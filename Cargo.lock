@@ -2034,7 +2034,7 @@ dependencies = [
 
 [[package]]
 name = "monochange"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anstyle",
  "chrono",
@@ -2091,7 +2091,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_analysis"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "insta",
  "monochange_cargo",
@@ -2112,7 +2112,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_book"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "doc-comment",
  "monochange",
@@ -2130,7 +2130,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_cargo"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "glob",
  "insta",
@@ -2157,7 +2157,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_config"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "doc-comment",
  "glob",
@@ -2190,7 +2190,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "ignore",
  "insta",
@@ -2208,7 +2208,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_dart"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "glob",
  "insta",
@@ -2228,7 +2228,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_deno"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "glob",
  "insta",
@@ -2246,7 +2246,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_ecmascript"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "monochange_core",
  "oxc_allocator",
@@ -2257,7 +2257,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitea"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "etest",
  "httpmock",
@@ -2276,7 +2276,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "etest",
  "httpmock",
@@ -2297,7 +2297,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitlab"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "etest",
  "httpmock",
@@ -2316,7 +2316,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_go"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "glob",
  "insta",
@@ -2333,7 +2333,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_graph"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2347,7 +2347,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "httpmock",
  "monochange_core",
@@ -2366,7 +2366,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_lint"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "glob",
  "ignore",
@@ -2379,7 +2379,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_lint_testing"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "monochange_core",
  "monochange_lint",
@@ -2388,14 +2388,14 @@ dependencies = [
 
 [[package]]
 name = "monochange_linting"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "monochange_core",
 ]
 
 [[package]]
 name = "monochange_npm"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "glob",
  "insta",
@@ -2418,7 +2418,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_python"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "glob",
  "insta",
@@ -2437,7 +2437,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_semver"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2449,7 +2449,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_telemetry"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "monochange_core",
  "reqwest",
@@ -2462,7 +2462,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_test_helpers"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -3461,9 +3461,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "1.5.0"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67d69668de0b0ccd9cc435f700f3b39a7861863cf37a15e1f304ea78688a4826"
+checksum = "e12ca9067b5ebfbd5b3fcdc4acfceb81aa7d5ab2a879dff7cb75d22434276aad"
 dependencies = [
  "async-trait",
  "base64",
@@ -3483,9 +3483,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp-macros"
-version = "1.5.0"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48fdc01c81097b0aed18633e676e269fefa3a78ec1df56b4fe597c1241b92025"
+checksum = "7caa6743cc0888e433105fe1bc551a7f607940b126a37bc97b478e86064627eb"
 dependencies = [
  "darling",
  "proc-macro2",
