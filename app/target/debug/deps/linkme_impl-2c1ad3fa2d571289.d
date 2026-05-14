@@ -1,0 +1,14 @@
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/linkme_impl-2c1ad3fa2d571289.d: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/args.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/attr.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/declaration.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/element.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/hash.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/linker.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/ty.rs
+
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/liblinkme_impl-2c1ad3fa2d571289.dylib: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/args.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/attr.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/declaration.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/element.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/hash.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/linker.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/ty.rs
+
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/lib.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/args.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/attr.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/declaration.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/element.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/hash.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/linker.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linkme-impl-0.3.36/src/ty.rs:
+
+# env-dep:CARGO_PKG_VERSION_PATCH=36

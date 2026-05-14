@@ -1,0 +1,8 @@
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/js_sys-5af6a42cba74426c.d: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/mod.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/queue.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/task/singlethread.rs
+
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/libjs_sys-5af6a42cba74426c.rmeta: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/mod.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/queue.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/task/singlethread.rs
+
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/lib.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/mod.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/queue.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.98/src/futures/task/singlethread.rs:

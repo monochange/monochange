@@ -1,0 +1,8 @@
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/snafu_derive-171e1a773748201e.d: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/parse.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/shared.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/report.rs
+
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/libsnafu_derive-171e1a773748201e.dylib: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/parse.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/shared.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/report.rs
+
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/lib.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/parse.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/shared.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snafu-derive-0.8.9/src/report.rs:
