@@ -28,7 +28,6 @@ in
       pnpm
       nodejs_24
       python3
-      postgresql_17
       rustup
       shfmt
       taplo
@@ -45,19 +44,9 @@ in
     export PATH="$DEVENV_PROFILE/bin:$PATH"
     export PATH="$HOME/.cargo/bin:$PATH"
     if [ -z "''${DATABASE_URL:-}" ]; then
-      if [ -n "''${PGHOST:-}" ]; then
-        export DATABASE_URL="postgresql:///monochange_dev?host=$PGHOST"
-      else
-        export DATABASE_URL="postgresql://localhost:5432/monochange_dev"
-      fi
+      export DATABASE_URL="sqlite://$PWD/.devenv/state/monochange_app.sqlite3"
     fi
   '';
-
-  # PostgreSQL for local development
-  services.postgres = {
-    enable = true;
-    initialDatabases = [ { name = "monochange_dev"; } ];
-  };
 
   # disable dotenv since it breaks the variable interpolation supported by `direnv`
   dotenv.disableHint = true;
