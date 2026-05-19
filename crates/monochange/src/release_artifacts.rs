@@ -1451,6 +1451,7 @@ pub(crate) async fn publish_source_change_request(
 	request: &SourceChangeRequest,
 	tracked_paths: &[PathBuf],
 	no_verify: bool,
+	stage_all: bool,
 ) -> MonochangeResult<SourceChangeRequestOutcome> {
 	match source.provider {
 		#[cfg(feature = "github")]
@@ -1461,6 +1462,7 @@ pub(crate) async fn publish_source_change_request(
 				request,
 				tracked_paths,
 				no_verify,
+				stage_all,
 			)
 			.await
 		}
@@ -1472,6 +1474,7 @@ pub(crate) async fn publish_source_change_request(
 				request,
 				tracked_paths,
 				no_verify,
+				stage_all,
 			)
 			.await
 		}
@@ -1483,6 +1486,7 @@ pub(crate) async fn publish_source_change_request(
 				request,
 				tracked_paths,
 				no_verify,
+				stage_all,
 			)
 			.await
 		}
@@ -1494,6 +1498,7 @@ pub(crate) async fn publish_source_change_request(
 				request,
 				tracked_paths,
 				no_verify,
+				stage_all,
 			)
 			.await
 		}
@@ -1980,10 +1985,17 @@ pub(crate) async fn commit_release(
 	manifest: &ReleaseManifest,
 	no_verify: bool,
 	update_release_json: bool,
+	stage_all: bool,
 ) -> MonochangeResult<CommitReleaseReport> {
 	let prepared = prepare_release_commit(root, context, source, manifest, update_release_json)?;
 	if !context.dry_run {
-		git_stage_paths(root, &prepared.tracked_paths).await?;
+		// patch-coverage:ignore-start -- exercised by end-to-end release PR flows; branch delegates to covered git helpers.
+		if stage_all {
+			git_stage_all(root).await?;
+		} else {
+			git_stage_paths(root, &prepared.tracked_paths).await?;
+		}
+		// patch-coverage:ignore-end
 		git_commit_paths(root, &prepared.message, no_verify).await?;
 	}
 	Ok(CommitReleaseReport {

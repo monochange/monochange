@@ -496,13 +496,21 @@ async fn build_release_request_result_for_source(
 	request: &SourceChangeRequest,
 	tracked_paths: &[PathBuf],
 	no_verify: bool,
+	stage_all: bool,
 ) -> MonochangeResult<String> {
 	if dry_run {
 		build_release_request_result(dry_run, request, || unreachable!())
 	} else {
 		// patch-coverage:ignore-start -- provider-backed publish path requires live hosted-source adapters.
-		let result =
-			publish_source_change_request(source, root, request, tracked_paths, no_verify).await?;
+		let result = publish_source_change_request(
+			source,
+			root,
+			request,
+			tracked_paths,
+			no_verify,
+			stage_all,
+		)
+		.await?;
 		Ok(format!(
 			"{} #{} ({}) via {}",
 			result.repository,
@@ -1063,6 +1071,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					hosted_auth,
 					hosted_url,
 					oidc_audience,
+					stage_all,
 					..
 				} => {
 					release_branch_policy::verify_release_ref_for_commit(
@@ -1095,6 +1104,8 @@ pub(crate) async fn execute_cli_command_with_options(
 					let update_release_json =
 						parse_boolean_step_input(&step_inputs, "update_release_json")?
 							.unwrap_or(*update_release_json);
+					let stage_all =
+						parse_boolean_step_input(&step_inputs, "stage_all")?.unwrap_or(*stage_all);
 					let commit_backend = parse_commit_release_backend_input(&step_inputs)?
 						.unwrap_or(*commit_backend);
 					let hosted_auth =
@@ -1117,14 +1128,18 @@ pub(crate) async fn execute_cli_command_with_options(
 					} else {
 						#[rustfmt::skip]
 						let report =
-							commit_release(root, &context, configuration.source.as_ref(), &manifest, no_verify, update_release_json).await?;
+							commit_release(root, &context, configuration.source.as_ref(), &manifest, no_verify, update_release_json, stage_all).await?;
 						report
 					};
 					context.release_commit_report = Some(release_commit_report);
 					output = None;
 					Ok(())
 				}
-				CliStepDefinition::OpenReleaseRequest { no_verify, .. } => {
+				CliStepDefinition::OpenReleaseRequest {
+					no_verify,
+					stage_all,
+					..
+				} => {
 					let build_file_diffs = context.show_diff;
 					ensure_prepared_release_for_consumer_step(
 						root,
@@ -1154,6 +1169,8 @@ pub(crate) async fn execute_cli_command_with_options(
 					let dry_run = context.dry_run;
 					let no_verify =
 						parse_boolean_step_input(&step_inputs, "no_verify")?.unwrap_or(*no_verify);
+					let stage_all =
+						parse_boolean_step_input(&step_inputs, "stage_all")?.unwrap_or(*stage_all);
 					let result = build_release_request_result_for_source(
 						dry_run,
 						&source,
@@ -1161,6 +1178,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						&request,
 						&tracked_paths,
 						no_verify,
+						stage_all,
 					)
 					.await?;
 					context.release_request_result = Some(result);

@@ -1156,6 +1156,7 @@ fn cli_step_definition_kind_name_covers_all_variants() {
 				hosted_auth: HostedCommitAuth::default(),
 				hosted_url: None,
 				oidc_audience: None,
+				stage_all: false,
 				inputs: BTreeMap::new(),
 			},
 			"CommitRelease",
@@ -1175,6 +1176,7 @@ fn cli_step_definition_kind_name_covers_all_variants() {
 				when: None,
 				always_run: false,
 				no_verify: false,
+				stage_all: false,
 				inputs: BTreeMap::new(),
 			},
 			"OpenReleaseRequest",
@@ -1328,6 +1330,7 @@ fn cli_step_name_returns_explicit_names_for_all_variants() {
 			hosted_auth: HostedCommitAuth::default(),
 			hosted_url: None,
 			oidc_audience: None,
+			stage_all: false,
 			inputs: BTreeMap::new(),
 		},
 		CliStepDefinition::PublishRelease {
@@ -1341,6 +1344,7 @@ fn cli_step_name_returns_explicit_names_for_all_variants() {
 			when: None,
 			always_run: false,
 			no_verify: false,
+			stage_all: false,
 			inputs: BTreeMap::new(),
 		},
 		CliStepDefinition::CommentReleasedIssues {
@@ -1425,6 +1429,7 @@ fn valid_input_names_returns_expected_names_for_commit_release() {
 		hosted_auth: HostedCommitAuth::default(),
 		hosted_url: None,
 		oidc_audience: None,
+		stage_all: false,
 		inputs: BTreeMap::new(),
 	};
 	assert_eq!(
@@ -1436,7 +1441,8 @@ fn valid_input_names_returns_expected_names_for_commit_release() {
 				"commit_backend",
 				"hosted_auth",
 				"hosted_url",
-				"oidc_audience"
+				"oidc_audience",
+				"stage_all",
 			]
 			.as_slice()
 		)
@@ -1637,6 +1643,7 @@ fn always_run_accessor_returns_value_for_all_variants() {
 		hosted_auth: HostedCommitAuth::default(),
 		hosted_url: None,
 		oidc_audience: None,
+		stage_all: false,
 	};
 	assert!(!commit.always_run());
 
@@ -1677,6 +1684,7 @@ fn always_run_accessor_returns_value_for_all_variants() {
 		when: None,
 		always_run: true,
 		no_verify: false,
+		stage_all: false,
 		inputs: BTreeMap::new(),
 	};
 	assert!(open_request.always_run());
@@ -1796,6 +1804,7 @@ fn expected_input_kind_returns_expected_kinds_for_commit_release() {
 		hosted_auth: HostedCommitAuth::default(),
 		hosted_url: None,
 		oidc_audience: None,
+		stage_all: false,
 		inputs: BTreeMap::new(),
 	};
 	assert_eq!(step.expected_input_kind("format"), None);
