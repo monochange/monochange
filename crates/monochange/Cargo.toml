@@ -31,7 +31,19 @@ pkg-fmt = "tgz"
 bin-dir = "{ bin }{ binary-ext }"
 
 [features]
-default = ["cargo", "npm", "deno", "dart", "python", "go", "github", "gitlab", "gitea", "forgejo", "mcp"]
+default = [
+	"cargo",
+	"npm",
+	"deno",
+	"dart",
+	"python",
+	"go",
+	"github",
+	"gitlab",
+	"gitea",
+	"forgejo",
+	"mcp",
+]
 cargo = ["monochange_cargo"]
 npm = ["monochange_npm"]
 deno = ["monochange_deno"]
@@ -75,8 +87,8 @@ rayon = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
 ring = { workspace = true }
-rustls = { workspace = true }
 rmcp = { workspace = true, features = ["server", "transport-io", "macros"], optional = true }
+rustls = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

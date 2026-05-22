@@ -143,68 +143,67 @@ pub(crate) fn build_command_with_cli(
 	bin_name: &'static str,
 	cli: &[CliCommandDefinition],
 ) -> Command {
-	let mut command =
-		Command::new(bin_name)
-			.about("Manage versions and releases for your multiplatform, multilanguage monorepo")
-			.styles(monochange_styles())
-			.color(ColorChoice::Auto)
-			.disable_help_subcommand(true)
-			.subcommand_required(true)
-			.arg_required_else_help(true)
-			.subcommand_help_heading("Built-in Commands")
-			.next_help_heading(GLOBAL_OPTIONS_HELP_HEADING)
-			.arg(
-				Arg::new("log-level")
-					.long("log-level")
-					.global(true)
-					.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
-					.help("Set tracing filter (e.g. debug, monochange=trace)")
-					.value_name("FILTER")
-					.hide(true),
-			)
-			.arg(
-				Arg::new("quiet")
-					.long("quiet")
-					.short('q')
-					.global(true)
-					.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
-					.help("Suppress stdout/stderr output and run in dry-run mode when supported")
-					.action(ArgAction::SetTrue),
-			)
-			.arg(
-				Arg::new("progress-format")
-					.long("progress-format")
-					.global(true)
-					.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
-					.help("Control progress output on stderr")
-					.value_name("FORMAT")
-					.value_parser(["auto", "unicode", "ascii", "json"]),
-			)
-			.arg(
-				Arg::new("jq")
-					.long("jq")
-					.global(true)
-					.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
-					.help("Filter JSON output with a jq-style expression, such as `.assets[].name`")
-					.value_name("EXPRESSION"),
-			)
-			.subcommand(
-				Command::new("init")
-					.about(
-						"Generate monochange.toml with detected packages, groups, and default CLI commands",
-					)
-					.arg(
-						Arg::new("force")
-							.long("force")
-							.help("Overwrite an existing monochange.toml file")
-							.action(ArgAction::SetTrue),
-					)
-					.arg(
-						Arg::new("provider")
-							.long("provider")
-							.help("Source-control provider for release automation workflows")
-							.long_help(
-								"Configure release automation for the specified provider. \
+	let mut command = Command::new(bin_name)
+		.about("Manage versions and releases for your multiplatform, multilanguage monorepo")
+		.styles(monochange_styles())
+		.color(ColorChoice::Auto)
+		.disable_help_subcommand(true)
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand_help_heading("Built-in Commands")
+		.next_help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+		.arg(
+			Arg::new("log-level")
+				.long("log-level")
+				.global(true)
+				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+				.help("Set tracing filter (e.g. debug, monochange=trace)")
+				.value_name("FILTER")
+				.hide(true),
+		)
+		.arg(
+			Arg::new("quiet")
+				.long("quiet")
+				.short('q')
+				.global(true)
+				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+				.help("Suppress stdout/stderr output and run in dry-run mode when supported")
+				.action(ArgAction::SetTrue),
+		)
+		.arg(
+			Arg::new("progress-format")
+				.long("progress-format")
+				.global(true)
+				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+				.help("Control progress output on stderr")
+				.value_name("FORMAT")
+				.value_parser(["auto", "unicode", "ascii", "json"]),
+		)
+		.arg(
+			Arg::new("jq")
+				.long("jq")
+				.global(true)
+				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+				.help("Filter JSON output with a jq-style expression, such as `.assets[].name`")
+				.value_name("EXPRESSION"),
+		)
+		.subcommand(
+			Command::new("init")
+				.about(
+					"Generate monochange.toml with detected packages, groups, and default CLI commands",
+				)
+				.arg(
+					Arg::new("force")
+						.long("force")
+						.help("Overwrite an existing monochange.toml file")
+						.action(ArgAction::SetTrue),
+				)
+				.arg(
+					Arg::new("provider")
+						.long("provider")
+						.help("Source-control provider for release automation workflows")
+						.long_help(
+							"Configure release automation for the specified provider. \
 When provided, the generated config includes:\n\
 \n\
 - [source] section with the provider configured\n\
@@ -212,33 +211,33 @@ When provided, the generated config includes:\n\
 - A minimal starter config without generated [cli.*] command aliases\n\
 - GitHub Actions workflows (for --provider=github)\n\
 \nSupported providers: github, gitlab, gitea",
-							)
-							.value_parser(["github", "gitlab", "gitea"]),
-					),
-			)
-			.subcommand(Command::new("populate").about(
-				"Add any missing built-in CLI commands to monochange.toml so you can customize them",
-			))
-			.subcommand(build_command_wizard_subcommand())
-			.subcommand(build_skill_subcommand())
-			.subcommand(build_subagents_subcommand())
-			.subcommand(build_analyze_subcommand())
-			.subcommand(build_migrate_subcommand())
-			.subcommand(build_lint_subcommand())
-			.subcommand({
-				#[cfg(feature = "mcp")]
-				{
-					Command::new("mcp").about(
-						"Start the monochange MCP (Model Context Protocol) server over stdin/stdout",
-					)
-				}
-				#[cfg(not(feature = "mcp"))]
-				{
-					Command::new("mcp").hide(true)
-				}
-			})
-			.subcommand(build_check_subcommand())
-			.subcommand(build_help_subcommand());
+						)
+						.value_parser(["github", "gitlab", "gitea"]),
+				),
+		)
+		.subcommand(Command::new("populate").about(
+			"Add any missing built-in CLI commands to monochange.toml so you can customize them",
+		))
+		.subcommand(build_command_wizard_subcommand())
+		.subcommand(build_skill_subcommand())
+		.subcommand(build_subagents_subcommand())
+		.subcommand(build_analyze_subcommand())
+		.subcommand(build_migrate_subcommand())
+		.subcommand(build_lint_subcommand())
+		.subcommand({
+			#[cfg(feature = "mcp")]
+			{
+				Command::new("mcp").about(
+					"Start the monochange MCP (Model Context Protocol) server over stdin/stdout",
+				)
+			}
+			#[cfg(not(feature = "mcp"))]
+			{
+				Command::new("mcp").hide(true)
+			}
+		})
+		.subcommand(build_check_subcommand())
+		.subcommand(build_help_subcommand());
 
 	command = command.next_help_heading("Step Commands");
 	for step in monochange_core::all_step_variants() {

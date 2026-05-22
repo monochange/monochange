@@ -627,6 +627,11 @@ pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
 #[coverage(off)]
 #[must_use = "the process exit code must be returned"]
 pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
+	// Install the ring crypto provider for rustls. Required because we use
+	// reqwest's rustls-no-provider feature — without a default provider,
+	// any HTTPS request will panic with "No provider set".
+	let _ = rustls::crypto::ring::default_provider().install_default();
+
 	let quiet = extract_quiet_from_args(std::env::args_os());
 	let result = Box::pin(run_from_env(bin_name)).await;
 	let Err(error) = result else {
