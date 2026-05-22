@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/release_record_artifacts.rs
+expression: "serde_json::json!({ \"relevantLines\": relevant_lines, })"
+---
+{
+  "relevantLines": [
+    "prerelease state exists at [workspace]/.monochange/prerelease-state.json but prerelease mode is disabled; remove the state file or enable `[prerelease]`"
+  ]
+}

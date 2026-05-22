@@ -11422,6 +11422,7 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 		root_path: PathBuf::from("."),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: monochange_core::ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![monochange_core::PackageDefinition {
 			id: "core".to_string(),
 			path: PathBuf::from("crates/core"),
@@ -11536,6 +11537,7 @@ fn apply_runtime_change_type_choices_updates_only_unconfigured_change_inputs() {
 		root_path: PathBuf::from("."),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: monochange_core::ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![monochange_core::PackageDefinition {
 			id: "core".to_string(),
 			path: PathBuf::from("crates/core"),
@@ -11618,6 +11620,7 @@ fn apply_runtime_change_type_choices_preserves_existing_choice_inputs_and_empty_
 		root_path: PathBuf::from("."),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: monochange_core::ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: Vec::new(),
 		groups: Vec::new(),
 		cli: Vec::new(),

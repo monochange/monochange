@@ -82,6 +82,10 @@ expression: redacted
       {
         "durationMs": "[duration_ms]",
         "label": "apply release changes"
+      },
+      {
+        "durationMs": "[duration_ms]",
+        "label": "load prerelease state"
       }
     ],
     "sequence": "[sequence:2]",

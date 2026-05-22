@@ -49,6 +49,7 @@ fn workspace_configuration(root: &Path) -> WorkspaceConfiguration {
 		root_path: root.to_path_buf(),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: monochange_core::ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: Vec::new(),
 		groups: Vec::new(),
 		cli: Vec::new(),

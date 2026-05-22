@@ -1,0 +1,16 @@
+---
+source: crates/monochange_config/src/__tests__/lib_tests.rs
+expression: "serde_json::json!({\n    \"enabled\": prerelease.enabled, \"channel\": prerelease.channel, \"numbering\":\n    format!(\"{:?}\", prerelease.numbering), \"base\":\n    format!(\"{:?}\", prerelease.base), \"baseVersion\":\n    prerelease.base_version.map(|version| version.to_string()),\n    \"keepChangesets\": prerelease.keep_changesets, \"changelog\":\n    prerelease.changelog, \"releaseNotes\": prerelease.release_notes,\n    \"publishPackages\": prerelease.publish_packages, \"writeManifests\":\n    prerelease.write_manifests,\n})"
+---
+{
+  "base": "Fixed",
+  "baseVersion": "0.0.0",
+  "changelog": true,
+  "channel": "rc",
+  "enabled": true,
+  "keepChangesets": false,
+  "numbering": "Datetime",
+  "publishPackages": true,
+  "releaseNotes": false,
+  "writeManifests": false
+}

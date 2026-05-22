@@ -665,6 +665,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 		root_path: std::path::PathBuf::from("/workspace"),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: monochange_core::ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![
 			monochange_core::PackageDefinition {
 				id: "core".to_string(),
@@ -1190,6 +1191,7 @@ async fn enforce_publish_rate_limits_returns_ok_when_enforcement_is_not_triggere
 		root_path: Path::new(".").to_path_buf(),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: monochange_core::ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![monochange_core::PackageDefinition {
 			id: "pkg-a".to_string(),
 			path: Path::new("pkg-a").to_path_buf(),
@@ -1299,6 +1301,7 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 		root_path: Path::new(".").to_path_buf(),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: monochange_core::ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: (0..13)
 			.map(|index| {
 				monochange_core::PackageDefinition {

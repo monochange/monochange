@@ -60,6 +60,7 @@ fn empty_configuration() -> WorkspaceConfiguration {
 		root_path: std::path::PathBuf::from("."),
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: Vec::new(),
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -265,6 +266,7 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 		root_path: std::path::PathBuf::from("."),
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![
 			PackageDefinition {
 				id: "app".to_string(),
@@ -399,6 +401,7 @@ fn build_selectable_targets_handles_group_with_empty_packages() {
 		root_path: std::path::PathBuf::from("."),
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: Vec::new(),
 		groups: vec![GroupDefinition {
 			id: "empty-group".to_string(),
@@ -438,6 +441,7 @@ fn build_selectable_targets_with_only_standalone_packages() {
 		root_path: std::path::PathBuf::from("."),
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![
 			PackageDefinition {
 				id: "alpha".to_string(),
@@ -545,6 +549,7 @@ fn build_selectable_targets_deduplicates_and_sorts_change_types() {
 		root_path: std::path::PathBuf::from("."),
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![PackageDefinition {
 			id: "web".to_string(),
 			path: std::path::PathBuf::from("packages/web"),

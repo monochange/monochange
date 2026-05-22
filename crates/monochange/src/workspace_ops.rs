@@ -9,6 +9,7 @@ use std::process::Command as ProcessCommand;
 use std::time::Duration;
 use std::time::Instant;
 
+use chrono::Utc;
 #[cfg(feature = "cargo")]
 use monochange_cargo::CargoAdapter;
 use monochange_cargo::discover_cargo_packages;
@@ -28,6 +29,11 @@ use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageRecord;
 use monochange_core::PackageType;
+use monochange_core::PlannedVersionGroup;
+use monochange_core::PrereleaseBase;
+use monochange_core::PrereleaseConfiguration;
+use monochange_core::PrereleaseNumbering;
+use monochange_core::ReleaseDecision;
 use monochange_core::ReleasePlan;
 use monochange_core::SourceConfiguration;
 use monochange_core::default_cli_commands;
@@ -38,6 +44,10 @@ use monochange_go::GoAdapter;
 #[cfg(feature = "npm")]
 use monochange_npm::NpmAdapter;
 use monochange_python::PythonAdapter;
+use semver::Prerelease;
+use semver::Version;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_json::json;
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
@@ -65,6 +75,344 @@ impl InitWorkspaceResult {
 		}
 		lines.join("\n")
 	}
+}
+
+const PRERELEASE_STATE_PATH: &str = ".monochange/prerelease-state.json";
+const PRERELEASE_STATE_SCHEMA_VERSION: u32 = 1;
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct PrereleaseState {
+	schema_version: u32,
+	channel: String,
+	numbering: PrereleaseNumbering,
+	base: PrereleaseBase,
+	created_at: String,
+	updated_at: String,
+	#[serde(default)]
+	packages: BTreeMap<String, PrereleaseStateEntry>,
+	#[serde(default)]
+	groups: BTreeMap<String, PrereleaseStateEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PrereleaseStateEntry {
+	#[serde(rename = "original_stable_version")]
+	original_stable: Version,
+	#[serde(rename = "planned_stable_version")]
+	planned_stable: Version,
+	#[serde(rename = "latest_prerelease_version")]
+	latest_prerelease: Version,
+}
+
+#[derive(Debug, Clone)]
+struct PrereleasePreparedState {
+	state_update: FileUpdate,
+}
+
+fn prerelease_state_path(root: &Path) -> PathBuf {
+	root.join(PRERELEASE_STATE_PATH)
+}
+
+fn load_prerelease_state(root: &Path) -> MonochangeResult<Option<PrereleaseState>> {
+	let path = prerelease_state_path(root);
+	if !path.exists() {
+		return Ok(None);
+	}
+	let contents = fs::read_to_string(&path).map_err(|error| {
+		MonochangeError::Io(format!("failed to read {}: {error}", path.display()))
+	})?;
+	let state = serde_json::from_str::<PrereleaseState>(&contents).map_err(|error| {
+		MonochangeError::Config(format!("failed to parse {}: {error}", path.display()))
+	})?;
+	if state.schema_version != PRERELEASE_STATE_SCHEMA_VERSION {
+		return Err(MonochangeError::Config(format!(
+			"{} uses unsupported schema_version {}",
+			path.display(),
+			state.schema_version
+		)));
+	}
+	Ok(Some(state))
+}
+
+fn stable_version(version: &Version) -> Version {
+	Version::new(version.major, version.minor, version.patch)
+}
+
+fn original_package_version(
+	state: Option<&PrereleaseState>,
+	package: &PackageRecord,
+) -> Option<Version> {
+	state
+		.and_then(|state| state.packages.get(&package.id))
+		.map(|entry| entry.original_stable.clone())
+		.or_else(|| package.current_version.as_ref().map(stable_version))
+}
+
+fn original_group_version(
+	state: Option<&PrereleaseState>,
+	group_id: &str,
+	packages: &[PackageRecord],
+) -> Option<Version> {
+	state
+		.and_then(|state| state.groups.get(group_id))
+		.map(|entry| entry.original_stable.clone())
+		.or_else(|| {
+			packages
+				.iter()
+				.filter(|package| package.version_group_id.as_deref() == Some(group_id))
+				.filter_map(|package| package.current_version.as_ref().map(stable_version))
+				.max()
+		})
+}
+
+fn discovery_with_prerelease_baselines(
+	discovery: &DiscoveryReport,
+	state: Option<&PrereleaseState>,
+	configuration: &PrereleaseConfiguration,
+) -> DiscoveryReport {
+	let mut adjusted = discovery.clone();
+	for package in &mut adjusted.packages {
+		let baseline = match configuration.base {
+			PrereleaseBase::Fixed => configuration.base_version.clone(),
+			PrereleaseBase::Planned | PrereleaseBase::CurrentStable => {
+				original_package_version(state, package)
+			}
+		};
+		if let Some(version) = baseline {
+			package.current_version = Some(version);
+		}
+	}
+	adjusted
+}
+
+fn prerelease_identifier(
+	config: &PrereleaseConfiguration,
+	stable_base: &Version,
+	latest: Option<&Version>,
+) -> String {
+	let channel = config.channel.to_ascii_lowercase();
+	match config.numbering {
+		PrereleaseNumbering::Increment => {
+			let next = latest
+				.and_then(|version| {
+					if stable_version(version) == *stable_base {
+						version.pre.as_str().rsplit_once('.')?.1.parse::<u64>().ok()
+					} else {
+						None
+					}
+				})
+				.map_or(0, |value| value + 1);
+			format!("{channel}.{next}")
+		}
+		PrereleaseNumbering::Date => format!("{channel}.{}", Utc::now().format("%Y%m%d")),
+		PrereleaseNumbering::Datetime => format!("{channel}.{}", Utc::now().format("%Y%m%d%H%M")),
+	}
+}
+
+fn append_prerelease(
+	base: &Version,
+	config: &PrereleaseConfiguration,
+	latest: Option<&Version>,
+) -> MonochangeResult<Version> {
+	let mut version = base.clone();
+	version.pre =
+		Prerelease::new(&prerelease_identifier(config, base, latest)).map_err(|error| {
+			MonochangeError::Config(format!(
+				"failed to build prerelease version for `{base}`: {error}"
+			))
+		})?;
+	Ok(version)
+}
+
+fn apply_prerelease_versions_to_plan(
+	plan: &mut ReleasePlan,
+	discovery: &DiscoveryReport,
+	state: Option<&PrereleaseState>,
+	config: &PrereleaseConfiguration,
+) -> MonochangeResult<()> {
+	let package_by_id = discovery
+		.packages
+		.iter()
+		.map(|package| (package.id.as_str(), package))
+		.collect::<BTreeMap<_, _>>();
+	let mut planned_group_versions = BTreeMap::new();
+	for group in &mut plan.groups {
+		let Some(planned) = group.planned_version.clone() else {
+			continue;
+		};
+		let base = match config.base {
+			PrereleaseBase::Planned => planned,
+			PrereleaseBase::CurrentStable => {
+				original_group_version(state, &group.group_id, &discovery.packages)
+					.unwrap_or(planned)
+			}
+			PrereleaseBase::Fixed => config.base_version.clone().unwrap_or(planned),
+		};
+		let latest = state
+			.and_then(|state| state.groups.get(&group.group_id))
+			.map(|entry| &entry.latest_prerelease);
+		let prerelease = append_prerelease(&base, config, latest)?;
+		planned_group_versions.insert(group.group_id.clone(), prerelease.clone());
+		group.planned_version = Some(prerelease);
+	}
+	for decision in &mut plan.decisions {
+		let Some(planned) = decision.planned_version.clone() else {
+			continue;
+		};
+		if let Some(group_id) = decision.group_id.as_ref()
+			&& let Some(group_version) = planned_group_versions.get(group_id)
+		{
+			decision.planned_version = Some(group_version.clone());
+			continue;
+		}
+		let package = package_by_id.get(decision.package_id.as_str()).copied();
+		let base = match config.base {
+			PrereleaseBase::Planned => planned,
+			PrereleaseBase::CurrentStable => {
+				package
+					.and_then(|package| original_package_version(state, package))
+					.unwrap_or(planned)
+			}
+			PrereleaseBase::Fixed => config.base_version.clone().unwrap_or(planned),
+		};
+		let latest = state
+			.and_then(|state| state.packages.get(&decision.package_id))
+			.map(|entry| &entry.latest_prerelease);
+		decision.planned_version = Some(append_prerelease(&base, config, latest)?);
+	}
+	Ok(())
+}
+
+fn synthesize_no_changeset_prerelease_plan(discovery: &DiscoveryReport) -> ReleasePlan {
+	let group_by_package = discovery
+		.version_groups
+		.iter()
+		.flat_map(|group| {
+			group
+				.members
+				.iter()
+				.cloned()
+				.map(move |member| (member, group.group_id.clone()))
+		})
+		.collect::<BTreeMap<_, _>>();
+	let groups = discovery
+		.version_groups
+		.iter()
+		.filter_map(|group| {
+			let planned_version = group
+				.members
+				.iter()
+				.filter_map(|member| {
+					discovery
+						.packages
+						.iter()
+						.find(|package| package.id == *member)
+				})
+				.find_map(|package| package.current_version.clone())?;
+			Some(PlannedVersionGroup {
+				group_id: group.group_id.clone(),
+				display_name: group.display_name.clone(),
+				members: group.members.clone(),
+				mismatch_detected: group.mismatch_detected,
+				planned_version: Some(planned_version),
+				recommended_bump: BumpSeverity::Patch,
+			})
+		})
+		.collect::<Vec<_>>();
+	let decisions = discovery
+		.packages
+		.iter()
+		.filter_map(|package| {
+			let planned_version = package.current_version.clone()?;
+			Some(ReleaseDecision {
+				package_id: package.id.clone(),
+				trigger_type: "prerelease".to_string(),
+				recommended_bump: BumpSeverity::Patch,
+				planned_version: Some(planned_version),
+				group_id: group_by_package.get(&package.id).cloned(),
+				reasons: vec!["prerelease mode is enabled without changesets".to_string()],
+				upstream_sources: Vec::new(),
+				warnings: Vec::new(),
+			})
+		})
+		.collect::<Vec<_>>();
+	ReleasePlan {
+		workspace_root: discovery.workspace_root.clone(),
+		decisions,
+		groups,
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	}
+}
+
+fn build_prerelease_state_update(
+	root: &Path,
+	plan: &ReleasePlan,
+	discovery: &DiscoveryReport,
+	previous: Option<&PrereleaseState>,
+	config: &PrereleaseConfiguration,
+) -> MonochangeResult<PrereleasePreparedState> {
+	let now = Utc::now().to_rfc3339();
+	let mut state = PrereleaseState {
+		schema_version: PRERELEASE_STATE_SCHEMA_VERSION,
+		channel: config.channel.to_ascii_lowercase(),
+		numbering: config.numbering,
+		base: config.base,
+		created_at: previous.map_or_else(|| now.clone(), |state| state.created_at.clone()),
+		updated_at: now,
+		packages: BTreeMap::new(),
+		groups: BTreeMap::new(),
+	};
+	let package_by_id = discovery
+		.packages
+		.iter()
+		.map(|package| (package.id.as_str(), package))
+		.collect::<BTreeMap<_, _>>();
+	for decision in &plan.decisions {
+		let Some(latest) = decision.planned_version.clone() else {
+			continue;
+		};
+		let Some(package) = package_by_id.get(decision.package_id.as_str()).copied() else {
+			continue;
+		};
+		state.packages.insert(
+			decision.package_id.clone(),
+			PrereleaseStateEntry {
+				original_stable: original_package_version(previous, package)
+					.unwrap_or_else(|| stable_version(&latest)),
+				planned_stable: stable_version(&latest),
+				latest_prerelease: latest,
+			},
+		);
+	}
+	for group in &plan.groups {
+		let Some(latest) = group.planned_version.clone() else {
+			continue;
+		};
+		state.groups.insert(
+			group.group_id.clone(),
+			PrereleaseStateEntry {
+				original_stable: original_group_version(
+					previous,
+					&group.group_id,
+					&discovery.packages,
+				)
+				.unwrap_or_else(|| stable_version(&latest)),
+				planned_stable: stable_version(&latest),
+				latest_prerelease: latest,
+			},
+		);
+	}
+	let content = serde_json::to_vec_pretty(&state).map_err(|error| {
+		MonochangeError::Config(format!("failed to serialize prerelease state: {error}"))
+	})?;
+	Ok(PrereleasePreparedState {
+		state_update: FileUpdate {
+			path: prerelease_state_path(root),
+			content,
+		},
+	})
 }
 
 /// Initialize a new monochange workspace.
@@ -1048,7 +1396,7 @@ pub fn add_change_file(
 	}
 
 	if let Some(version) = request.version {
-		semver::Version::parse(version).map_err(|error| {
+		Version::parse(version).map_err(|error| {
 			MonochangeError::Config(format!(
 				"invalid explicit version `{version}` passed to `change`: {error}"
 			))
@@ -1536,13 +1884,31 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		measure_prepare_phase(&mut phase_timings, "discover release workspace", || {
 			discover_release_workspace(root, &configuration)
 		})?;
+	let previous_prerelease_state =
+		measure_prepare_phase(&mut phase_timings, "load prerelease state", || {
+			load_prerelease_state(root)
+		})?;
+	let planning_discovery =
+		if configuration.prerelease.enabled || previous_prerelease_state.is_some() {
+			discovery_with_prerelease_baselines(
+				&discovery,
+				previous_prerelease_state.as_ref(),
+				&configuration.prerelease,
+			)
+		} else {
+			discovery.clone()
+		};
+	let prerelease_allows_empty_changesets = configuration.prerelease.enabled;
 	let changeset_paths =
 		measure_prepare_phase(&mut phase_timings, "discover changeset paths", || {
-			discover_changeset_paths(root, allow_empty_changesets)
+			discover_changeset_paths(
+				root,
+				allow_empty_changesets || prerelease_allows_empty_changesets,
+			)
 		})?;
 	tracing::debug!(count = changeset_paths.len(), "discovered changesets");
 
-	if changeset_paths.is_empty() && allow_empty_changesets {
+	if changeset_paths.is_empty() && allow_empty_changesets && !prerelease_allows_empty_changesets {
 		return Ok(PreparedReleaseExecution {
 			prepared_release: PreparedRelease {
 				plan: ReleasePlan {
@@ -1639,9 +2005,23 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		.await;
 	}
 	// patch-coverage:ignore-end
-	let plan = measure_prepare_phase(&mut phase_timings, "build release plan", || {
-		build_release_plan_from_signals(&configuration, &discovery, &change_signals)
+	let mut plan = measure_prepare_phase(&mut phase_timings, "build release plan", || {
+		if configuration.prerelease.enabled && change_signals.is_empty() {
+			Ok(synthesize_no_changeset_prerelease_plan(&planning_discovery))
+		} else {
+			build_release_plan_from_signals(&configuration, &planning_discovery, &change_signals)
+		}
 	})?;
+	if configuration.prerelease.enabled {
+		measure_prepare_phase(&mut phase_timings, "apply prerelease versions", || {
+			apply_prerelease_versions_to_plan(
+				&mut plan,
+				&planning_discovery,
+				previous_prerelease_state.as_ref(),
+				&configuration.prerelease,
+			)
+		})?;
+	}
 	let released_packages = released_package_names(&discovery.packages, &plan);
 	tracing::debug!(
 		count = released_packages.len(),
@@ -1703,8 +2083,18 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		lockfile_commands_result.1,
 	]);
 	let changelog_targets = changelog_targets_result.0?;
-	let manifest_updates = manifest_updates_result.0?;
-	let versioned_file_updates = versioned_file_updates_result.0?;
+	let manifest_updates =
+		if configuration.prerelease.enabled && !configuration.prerelease.write_manifests {
+			Vec::new()
+		} else {
+			manifest_updates_result.0?
+		};
+	let versioned_file_updates =
+		if configuration.prerelease.enabled && !configuration.prerelease.write_manifests {
+			Vec::new()
+		} else {
+			versioned_file_updates_result.0?
+		};
 	let release_targets = measure_async_prepare_phase(
 		&mut phase_timings,
 		"build release targets",
@@ -1712,8 +2102,11 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 	)
 	.await;
 	let lockfile_commands = lockfile_commands_result.0?;
-	let package_publications =
+	let mut package_publications =
 		build_package_publication_targets(&configuration, &discovery.packages, &plan);
+	if configuration.prerelease.enabled && !configuration.prerelease.publish_packages {
+		package_publications.clear();
+	}
 	let changesets = if let Some(handle) = background_changeset_context {
 		join_source_changeset_context_task(&mut phase_timings, handle).await?
 	} else {
@@ -1739,20 +2132,24 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		})
 		.collect::<Vec<_>>();
 	let changelog_updates =
-		measure_prepare_phase(&mut phase_timings, "build changelog updates", || {
-			build_changelog_updates(
-				ChangelogBuildContext::builder()
-					.root(root)
-					.configuration(&configuration)
-					.packages(&discovery.packages)
-					.plan(&plan)
-					.change_signals(&change_signals)
-					.changesets(&changesets)
-					.changelog_targets(&changelog_targets)
-					.release_targets(&changelog_release_targets)
-					.build(),
-			)
-		})?;
+		if configuration.prerelease.enabled && !configuration.prerelease.changelog {
+			Vec::new()
+		} else {
+			measure_prepare_phase(&mut phase_timings, "build changelog updates", || {
+				build_changelog_updates(
+					ChangelogBuildContext::builder()
+						.root(root)
+						.configuration(&configuration)
+						.packages(&discovery.packages)
+						.plan(&plan)
+						.change_signals(&change_signals)
+						.changesets(&changesets)
+						.changelog_targets(&changelog_targets)
+						.release_targets(&changelog_release_targets)
+						.build(),
+				)
+			})?
+		};
 	let changelog_file_updates = changelog_updates
 		.iter()
 		.map(|update| {
@@ -1762,10 +2159,26 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 			}
 		})
 		.collect::<Vec<_>>();
+	let prerelease_prepared_state = if configuration.prerelease.enabled {
+		Some(build_prerelease_state_update(
+			root,
+			&plan,
+			&planning_discovery,
+			previous_prerelease_state.as_ref(),
+			&configuration.prerelease,
+		)?)
+	} else {
+		None
+	};
+	let prerelease_state_updates = prerelease_prepared_state
+		.as_ref()
+		.map(|prepared| vec![prepared.state_update.clone()])
+		.unwrap_or_default();
 	let base_updates = [
 		manifest_updates.clone(),
 		versioned_file_updates.clone(),
 		changelog_file_updates.clone(),
+		prerelease_state_updates,
 	]
 	.concat();
 	tracing::debug!(
@@ -1834,9 +2247,19 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 			if lockfile_commands.is_empty() {
 				apply_file_updates(&file_updates)?;
 			}
-			for path in &changeset_paths {
-				delete_changeset_file(path)?;
-				deleted_changesets.push(root_relative(root, path));
+			if !(configuration.prerelease.enabled && configuration.prerelease.keep_changesets) {
+				for path in &changeset_paths {
+					delete_changeset_file(path)?;
+					deleted_changesets.push(root_relative(root, path));
+				}
+			}
+			if !configuration.prerelease.enabled && previous_prerelease_state.is_some() {
+				let path = prerelease_state_path(root);
+				if path.exists() {
+					fs::remove_file(&path).map_err(|error| {
+						MonochangeError::Io(format!("failed to delete {}: {error}", path.display()))
+					})?;
+				}
 			}
 			Ok(())
 		})?;

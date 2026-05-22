@@ -168,6 +168,7 @@ fn workspace_configuration_with_lockfile_commands() -> WorkspaceConfiguration {
 		root_path: PathBuf::from("."),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: Vec::new(),
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -384,6 +385,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			..monochange_core::WorkspaceDefaults::default()
 		},
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![PackageDefinition {
 			id: "empty".to_string(),
 			path: PathBuf::from("empty-package"),
@@ -434,6 +436,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			..monochange_core::WorkspaceDefaults::default()
 		},
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: vec![PackageDefinition {
 			id: "pkg".to_string(),
 			path: PathBuf::from("packages/pkg"),
@@ -1414,4 +1417,242 @@ async fn join_source_changeset_context_task_reports_background_panic() {
 		"error: {error}"
 	);
 	assert!(phase_timings.is_empty());
+}
+
+#[test]
+fn prerelease_planned_mode_reuses_original_stable_from_state() {
+	let root = std::path::PathBuf::from("/workspace");
+	let package = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Cargo,
+		"core",
+		root.join("crates/core/Cargo.toml"),
+		root.clone(),
+		Some(semver::Version::parse("2.0.0-alpha.0").unwrap()),
+		monochange_core::PublishState::Public,
+	);
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: root,
+		packages: vec![package],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let mut previous = PrereleaseState {
+		schema_version: PRERELEASE_STATE_SCHEMA_VERSION,
+		channel: "alpha".to_string(),
+		numbering: monochange_core::PrereleaseNumbering::Increment,
+		base: monochange_core::PrereleaseBase::Planned,
+		created_at: "2026-05-22T00:00:00Z".to_string(),
+		updated_at: "2026-05-22T00:00:00Z".to_string(),
+		packages: std::collections::BTreeMap::new(),
+		groups: std::collections::BTreeMap::new(),
+	};
+	previous.packages.insert(
+		"cargo:crates/core/Cargo.toml".to_string(),
+		PrereleaseStateEntry {
+			original_stable: semver::Version::parse("1.0.0").unwrap(),
+			planned_stable: semver::Version::parse("2.0.0").unwrap(),
+			latest_prerelease: semver::Version::parse("2.0.0-alpha.0").unwrap(),
+		},
+	);
+
+	let adjusted = discovery_with_prerelease_baselines(
+		&discovery,
+		Some(&previous),
+		&monochange_core::PrereleaseConfiguration::default(),
+	);
+
+	assert_eq!(
+		adjusted.packages[0].current_version,
+		Some(semver::Version::parse("1.0.0").unwrap())
+	);
+}
+
+#[test]
+fn prerelease_versions_increment_within_stable_base() {
+	let mut plan = monochange_core::ReleasePlan {
+		workspace_root: std::path::PathBuf::from("/workspace"),
+		decisions: vec![monochange_core::ReleaseDecision {
+			package_id: "cargo:crates/core/Cargo.toml".to_string(),
+			trigger_type: "direct-change".to_string(),
+			recommended_bump: monochange_core::BumpSeverity::Major,
+			planned_version: Some(semver::Version::parse("2.0.0").unwrap()),
+			group_id: None,
+			reasons: Vec::new(),
+			upstream_sources: Vec::new(),
+			warnings: Vec::new(),
+		}],
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+	let root = std::path::PathBuf::from("/workspace");
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: root.clone(),
+		packages: vec![monochange_core::PackageRecord::new(
+			monochange_core::Ecosystem::Cargo,
+			"core",
+			root.join("crates/core/Cargo.toml"),
+			root,
+			Some(semver::Version::parse("1.0.0").unwrap()),
+			monochange_core::PublishState::Public,
+		)],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let mut previous = PrereleaseState {
+		schema_version: PRERELEASE_STATE_SCHEMA_VERSION,
+		channel: "alpha".to_string(),
+		numbering: monochange_core::PrereleaseNumbering::Increment,
+		base: monochange_core::PrereleaseBase::Planned,
+		created_at: "2026-05-22T00:00:00Z".to_string(),
+		updated_at: "2026-05-22T00:00:00Z".to_string(),
+		packages: std::collections::BTreeMap::new(),
+		groups: std::collections::BTreeMap::new(),
+	};
+	previous.packages.insert(
+		"cargo:crates/core/Cargo.toml".to_string(),
+		PrereleaseStateEntry {
+			original_stable: semver::Version::parse("1.0.0").unwrap(),
+			planned_stable: semver::Version::parse("2.0.0").unwrap(),
+			latest_prerelease: semver::Version::parse("2.0.0-alpha.0").unwrap(),
+		},
+	);
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		..Default::default()
+	};
+
+	apply_prerelease_versions_to_plan(&mut plan, &discovery, Some(&previous), &config).unwrap();
+
+	assert_eq!(
+		plan.decisions[0].planned_version,
+		Some(semver::Version::parse("2.0.0-alpha.1").unwrap())
+	);
+}
+
+#[test]
+fn fixed_prerelease_base_overrides_planned_version() {
+	let mut plan = monochange_core::ReleasePlan {
+		workspace_root: std::path::PathBuf::from("/workspace"),
+		decisions: vec![monochange_core::ReleaseDecision {
+			package_id: "cargo:crates/core/Cargo.toml".to_string(),
+			trigger_type: "direct-change".to_string(),
+			recommended_bump: monochange_core::BumpSeverity::Major,
+			planned_version: Some(semver::Version::parse("2.0.0").unwrap()),
+			group_id: None,
+			reasons: Vec::new(),
+			upstream_sources: Vec::new(),
+			warnings: Vec::new(),
+		}],
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: std::path::PathBuf::from("/workspace"),
+		packages: Vec::new(),
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let config = monochange_core::PrereleaseConfiguration {
+		base: monochange_core::PrereleaseBase::Fixed,
+		base_version: Some(semver::Version::parse("0.0.0").unwrap()),
+		..Default::default()
+	};
+
+	apply_prerelease_versions_to_plan(&mut plan, &discovery, None, &config).unwrap();
+
+	assert_eq!(
+		plan.decisions[0].planned_version,
+		Some(semver::Version::parse("0.0.0-alpha.0").unwrap())
+	);
+}
+
+#[test]
+fn prerelease_state_loads_missing_valid_and_malformed_json() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+
+	assert!(load_prerelease_state(root).unwrap().is_none());
+
+	let state_path = prerelease_state_path(root);
+	std::fs::create_dir_all(state_path.parent().unwrap())
+		.unwrap_or_else(|error| panic!("state dir: {error}"));
+	std::fs::write(
+		&state_path,
+		serde_json::json!({
+			"schema_version": 1,
+			"channel": "alpha",
+			"numbering": "increment",
+			"base": "planned",
+			"created_at": "2026-05-22T00:00:00Z",
+			"updated_at": "2026-05-22T00:00:00Z",
+			"packages": {
+				"cargo:crates/core/Cargo.toml": {
+					"original_stable_version": "1.0.0",
+					"planned_stable_version": "2.0.0",
+					"latest_prerelease_version": "2.0.0-alpha.1"
+				}
+			},
+			"groups": {}
+		})
+		.to_string(),
+	)
+	.unwrap_or_else(|error| panic!("write state: {error}"));
+
+	let loaded = load_prerelease_state(root)
+		.unwrap()
+		.unwrap_or_else(|| panic!("expected state"));
+	let package = loaded
+		.packages
+		.get("cargo:crates/core/Cargo.toml")
+		.unwrap_or_else(|| panic!("expected package state"));
+	assert_eq!(loaded.channel, "alpha");
+	assert_eq!(package.original_stable, semver::Version::new(1, 0, 0));
+	assert_eq!(package.latest_prerelease.to_string(), "2.0.0-alpha.1");
+
+	std::fs::write(&state_path, b"{").unwrap_or_else(|error| panic!("write malformed: {error}"));
+	let error = load_prerelease_state(root).expect_err("malformed state should fail");
+	let rendered = error.to_string();
+	assert!(rendered.contains("failed to parse"));
+	assert!(rendered.contains("prerelease-state.json"));
+}
+
+#[test]
+fn no_changeset_prerelease_plan_synthesizes_package_decisions() {
+	let root = std::path::PathBuf::from("/workspace");
+	let package = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Cargo,
+		"core",
+		root.join("crates/core/Cargo.toml"),
+		root.clone(),
+		Some(semver::Version::parse("1.2.3").unwrap()),
+		monochange_core::PublishState::Public,
+	);
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: root,
+		packages: vec![package],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let mut plan = synthesize_no_changeset_prerelease_plan(&discovery);
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		..Default::default()
+	};
+
+	apply_prerelease_versions_to_plan(&mut plan, &discovery, None, &config).unwrap();
+
+	assert_eq!(plan.decisions.len(), 1);
+	assert_eq!(plan.decisions[0].trigger_type, "prerelease");
+	assert_eq!(
+		plan.decisions[0].planned_version,
+		Some(semver::Version::parse("1.2.3-alpha.0").unwrap())
+	);
 }

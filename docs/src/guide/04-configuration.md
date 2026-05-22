@@ -171,6 +171,33 @@ The built-in grouped-package fallback reads:
 
 > No package-specific changes were recorded; `{{ package }}` was updated to {{ version }} as part of group `{{ group }}`.
 
+## Prerelease mode
+
+Enable `[prerelease]` when you want repeatable alpha/rc/binary prerelease builds before the final stable release. Prerelease mode writes SemVer prerelease versions into manifests by default, keeps changesets for the later stable release, skips changelog file updates by default, and does not publish packages unless explicitly enabled.
+
+```toml
+[prerelease]
+enabled = true
+channel = "alpha"
+numbering = "increment" # increment | date | datetime
+base = "planned"        # planned | current-stable | fixed
+base_version = "0.0.0"  # required when base = "fixed"
+
+write_manifests = true
+keep_changesets = true
+changelog = false
+release_notes = true
+publish_packages = false
+```
+
+Base strategies:
+
+- `planned` — compute the next stable version from changesets and dependency propagation, then append the prerelease suffix.
+- `current-stable` — use the current/original stable manifest version as the prerelease base.
+- `fixed` — use `base_version`, which is useful for binary/nightly workflows such as `0.0.0-alpha.0`.
+
+When no changesets exist, prerelease mode still synthesizes release decisions from discovered packages and version groups. Repeated prerelease runs persist state in `.monochange/prerelease-state.json` so a series advances from `alpha.0` to `alpha.1` without repeatedly reapplying the same stable bump. Disable prerelease mode for the final stable release; successful stable preparation removes the state file. If prerelease mode is disabled and `.monochange/prerelease-state.json` is still present, validation/check fails so stale prerelease state is not ignored.
+
 ## Package publishing
 
 Built-in package publishing is configured through `publish` on packages and ecosystems.

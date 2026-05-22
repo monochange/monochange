@@ -339,6 +339,7 @@ fn sample_configuration(
 		root_path: PathBuf::from("/workspace"),
 		defaults: monochange_core::WorkspaceDefaults::default(),
 		changelog: monochange_core::ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: packages
 			.iter()
 			.map(|(id, package_type, enabled)| {
