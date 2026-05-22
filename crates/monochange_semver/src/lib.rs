@@ -45,6 +45,9 @@ use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::CompatibilityAssessment;
 use monochange_core::PackageRecord;
+use monochange_core::SemanticChange;
+use monochange_core::SemanticChangeCategory;
+use monochange_core::SemanticChangeKind;
 
 /// Provider interface for ecosystem-specific compatibility evidence.
 pub trait CompatibilityProvider {
@@ -134,6 +137,80 @@ pub fn propagated_release_severity(
 		default_parent_bump,
 		assessment.map_or(BumpSeverity::None, |value| value.severity),
 	)
+}
+
+/// Infer the minimum `SemVer` bump for one semantic diff record.
+#[must_use]
+#[rustfmt::skip]
+pub fn semantic_change_severity(change: &SemanticChange) -> BumpSeverity {
+	if matches!(
+		(change.category, change.kind),
+		(
+			SemanticChangeCategory::PublicApi | SemanticChangeCategory::Export,
+			SemanticChangeKind::Removed | SemanticChangeKind::Modified
+		)
+	) {
+		return BumpSeverity::Major;
+	}
+
+	if matches!(
+		(change.category, change.kind),
+		(
+			SemanticChangeCategory::PublicApi | SemanticChangeCategory::Export,
+			SemanticChangeKind::Added
+		)
+	) {
+		return BumpSeverity::Minor;
+	}
+
+	let is_dependency_or_metadata = matches!(
+		change.category,
+		SemanticChangeCategory::Dependency | SemanticChangeCategory::Metadata
+	);
+	if is_dependency_or_metadata { BumpSeverity::Patch } else { BumpSeverity::None }
+}
+/// Build release-planning compatibility evidence from semantic analyzer output.
+#[must_use]
+pub fn semantic_changes_assessment(
+	package_id: &str,
+	provider_id: &str,
+	semantic_changes: &[SemanticChange],
+) -> Option<CompatibilityAssessment> {
+	let severity = semantic_changes
+		.iter()
+		.map(semantic_change_severity)
+		.max()
+		.unwrap_or(BumpSeverity::None);
+
+	if !severity.is_release() {
+		return None;
+	}
+
+	let first_change = semantic_changes
+		.first()
+		.expect("release-impact semantic assessments include at least one semantic change");
+	let evidence_location = Some(first_change.file_path.display().to_string());
+	let example = first_change.summary.clone();
+
+	Some(CompatibilityAssessment {
+		package_id: package_id.to_string(),
+		provider_id: provider_id.to_string(),
+		severity,
+		confidence: semantic_assessment_confidence(severity).to_string(),
+		summary: format!(
+			"{severity} SemVer impact inferred from {} semantic change(s); {example}",
+			semantic_changes.len()
+		),
+		evidence_location,
+	})
+}
+
+fn semantic_assessment_confidence(severity: BumpSeverity) -> &'static str {
+	match severity {
+		BumpSeverity::Major | BumpSeverity::Minor => "high",
+		BumpSeverity::Patch => "medium",
+		_ => "low",
+	}
 }
 
 #[cfg(test)]

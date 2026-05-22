@@ -1,12 +1,16 @@
 #![allow(clippy::disallowed_methods)]
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
 use monochange_core::BumpSeverity;
+use monochange_core::ChangeSignal;
 use monochange_core::ChangesetContext;
 use monochange_core::ChangesetRevision;
 use monochange_core::ChangesetTargetKind;
+use monochange_core::DiscoveryReport;
+use monochange_core::Ecosystem;
 use monochange_core::HostedCommitRef;
 use monochange_core::HostedIssueRef;
 use monochange_core::HostedIssueRelationshipKind;
@@ -14,21 +18,56 @@ use monochange_core::HostedReviewRequestKind;
 use monochange_core::HostedReviewRequestRef;
 use monochange_core::HostingCapabilities;
 use monochange_core::HostingProviderKind;
+use monochange_core::PackageRecord;
+use monochange_core::PublishState;
+use semver::Version;
 
 use super::batch_git_log;
 use super::build_prepared_changesets;
+use super::build_release_plan_from_signals;
 use super::diagnose_changesets;
 use super::discover_changeset_paths;
+use super::has_semantic_guardrail_candidate;
 use super::parse_batch_git_log_bytes;
 use super::parse_batch_git_log_output;
 use super::render_changeset_diagnostics;
 use super::render_changeset_markdown;
+use super::semantic_compatibility_evidence;
+use super::semantic_package_targets;
 use crate::ChangesetDiagnosticsReport;
 use crate::PreparedChangeset;
 use crate::PreparedChangesetTarget;
 
 fn setup_fixture(relative: &str) -> tempfile::TempDir {
 	monochange_test_helpers::fs::setup_fixture_from(env!("CARGO_MANIFEST_DIR"), relative)
+}
+
+fn make_test_package_record(id: &str) -> PackageRecord {
+	let mut package = PackageRecord::new(
+		Ecosystem::Cargo,
+		id.to_string(),
+		PathBuf::from("crates/core/Cargo.toml"),
+		PathBuf::from("crates/core"),
+		Some(Version::new(1, 0, 0)),
+		PublishState::Public,
+	);
+	package.id = id.to_string();
+	package
+}
+
+fn make_test_change_signal(package_id: &str, bump: BumpSeverity) -> ChangeSignal {
+	ChangeSignal {
+		package_id: package_id.to_string(),
+		requested_bump: Some(bump),
+		explicit_version: None,
+		change_origin: "test".to_string(),
+		evidence_refs: Vec::new(),
+		notes: None,
+		details: None,
+		change_type: None,
+		caused_by: Vec::new(),
+		source_path: PathBuf::from(".changeset/test.md"),
+	}
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -451,4 +490,210 @@ fn parse_batch_git_log_output_ignores_malformed_name_status_lines() {
 	);
 	assert!(introduced.is_empty());
 	assert!(last_updated.is_empty());
+}
+
+#[test]
+fn semantic_guardrail_skips_non_git_roots_without_warning() {
+	let tempdir = tempfile::TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let signal = make_test_change_signal("core", BumpSeverity::Patch);
+
+	let (evidence, warnings) = semantic_compatibility_evidence(tempdir.path(), &[], &[signal]);
+
+	assert!(evidence.is_empty());
+	assert!(warnings.is_empty());
+}
+
+#[test]
+fn semantic_guardrail_skips_changeset_only_updates_without_warning() {
+	let tempdir = tempfile::TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	run_git_test_command(tempdir.path(), &["init", "-b", "main"]);
+	run_git_test_command(tempdir.path(), &["config", "user.name", "monochange test"]);
+	run_git_test_command(
+		tempdir.path(),
+		&["config", "user.email", "test@example.com"],
+	);
+	fs::create_dir_all(tempdir.path().join(".changeset"))
+		.unwrap_or_else(|error| panic!("create changeset directory: {error}"));
+	fs::write(tempdir.path().join(".changeset/core.md"), "initial")
+		.unwrap_or_else(|error| panic!("write initial changeset: {error}"));
+	run_git_test_command(tempdir.path(), &["add", "."]);
+	run_git_test_command(tempdir.path(), &["commit", "-m", "initial fixture"]);
+	fs::write(tempdir.path().join(".changeset/core.md"), "updated")
+		.unwrap_or_else(|error| panic!("write updated changeset: {error}"));
+	let signal = make_test_change_signal("core", BumpSeverity::Patch);
+
+	let (evidence, warnings) = semantic_compatibility_evidence(tempdir.path(), &[], &[signal]);
+
+	assert!(evidence.is_empty());
+	assert!(warnings.is_empty());
+}
+
+#[test]
+fn semantic_guardrail_candidate_detection_uses_supported_source_extensions() {
+	assert!(has_semantic_guardrail_candidate(&[PathBuf::from(
+		"crates/core/src/lib.rs"
+	)]));
+	assert!(has_semantic_guardrail_candidate(&[PathBuf::from(
+		"packages/core/package.json"
+	)]));
+	assert!(!has_semantic_guardrail_candidate(&[PathBuf::from(
+		".changeset/core.md"
+	)]));
+	assert!(!has_semantic_guardrail_candidate(&[PathBuf::from(
+		"README"
+	)]));
+}
+
+#[test]
+fn semantic_package_targets_skips_packages_without_changesets() {
+	let packages = vec![
+		make_test_package_record("core"),
+		make_test_package_record("other"),
+	];
+	let changeset_packages = BTreeSet::from(["core"]);
+
+	let targets = semantic_package_targets(&packages, &changeset_packages);
+
+	assert_eq!(targets.get("core").map(String::as_str), Some("core"));
+	assert!(!targets.contains_key("other"));
+}
+
+#[test]
+fn release_plan_propagates_graph_errors_after_semantic_guardrail_collection() {
+	let tempdir = tempfile::TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let mut configuration = monochange_config::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("load configuration: {error}"));
+	configuration.root_path = tempdir.path().to_path_buf();
+	let discovery = DiscoveryReport {
+		workspace_root: tempdir.path().to_path_buf(),
+		packages: vec![make_test_package_record("core")],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let mut signal = make_test_change_signal("core", BumpSeverity::Patch);
+	signal.explicit_version = Some(Version::new(1, 0, 0));
+
+	let error = build_release_plan_from_signals(&configuration, &discovery, &[signal])
+		.expect_err("unknown signal target should fail release planning");
+
+	assert!(error.to_string().contains("greater than current version"));
+}
+
+fn run_git_test_command(root: &Path, args: &[&str]) {
+	let mut command = std::process::Command::new("git");
+	command.arg("-C").arg(root);
+	if args.first() == Some(&"commit") {
+		command.arg("-c").arg("commit.gpgsign=false");
+	}
+	let status = command
+		.args(args)
+		.status()
+		.unwrap_or_else(|error| panic!("run git {args:?}: {error}"));
+	assert!(status.success(), "git {args:?} failed");
+}
+
+fn replace_workspace_contents(destination: &Path, source: &Path) {
+	for entry in
+		fs::read_dir(destination).unwrap_or_else(|error| panic!("read temp workspace: {error}"))
+	{
+		let entry = entry.unwrap_or_else(|error| panic!("read temp entry: {error}"));
+		if entry.file_name() == ".git" {
+			continue;
+		}
+		let path = entry.path();
+		if path.is_dir() {
+			fs::remove_dir_all(&path)
+				.unwrap_or_else(|error| panic!("remove dir {}: {error}", path.display()));
+		} else {
+			fs::remove_file(&path)
+				.unwrap_or_else(|error| panic!("remove file {}: {error}", path.display()));
+		}
+	}
+	monochange_test_helpers::fs::copy_directory(source, destination);
+}
+
+fn setup_semantic_guardrail_git_fixture(relative: &str) -> tempfile::TempDir {
+	let before = monochange_test_helpers::fs::fixture_path_from(
+		env!("CARGO_MANIFEST_DIR"),
+		&format!("semantic-release-guardrails/{relative}/before"),
+	);
+	let after = monochange_test_helpers::fs::fixture_path_from(
+		env!("CARGO_MANIFEST_DIR"),
+		&format!("semantic-release-guardrails/{relative}/after"),
+	);
+	let tempdir = tempfile::TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	monochange_test_helpers::fs::copy_directory(&before, tempdir.path());
+	run_git_test_command(tempdir.path(), &["init", "-b", "main"]);
+	run_git_test_command(tempdir.path(), &["config", "user.name", "monochange test"]);
+	run_git_test_command(
+		tempdir.path(),
+		&["config", "user.email", "test@example.com"],
+	);
+	run_git_test_command(tempdir.path(), &["add", "."]);
+	run_git_test_command(tempdir.path(), &["commit", "-m", "initial fixture"]);
+	replace_workspace_contents(tempdir.path(), &after);
+	tempdir
+}
+
+#[test]
+fn semantic_guardrail_warns_when_change_frame_detection_fails_in_git_root() {
+	let tempdir = tempfile::TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(tempdir.path().join(".git"), "not a git directory")
+		.unwrap_or_else(|error| panic!("write git marker: {error}"));
+	let signal = make_test_change_signal("core", BumpSeverity::Patch);
+
+	let (evidence, warnings) = semantic_compatibility_evidence(tempdir.path(), &[], &[signal]);
+
+	assert!(evidence.is_empty());
+	assert!(
+		warnings
+			.iter()
+			.any(|warning| warning.contains("change frame could not be detected"))
+	);
+}
+
+#[test]
+fn semantic_guardrail_warns_when_semantic_analysis_fails() {
+	let tempdir = tempfile::TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	run_git_test_command(tempdir.path(), &["init", "-b", "main"]);
+	run_git_test_command(tempdir.path(), &["config", "user.name", "monochange test"]);
+	run_git_test_command(
+		tempdir.path(),
+		&["config", "user.email", "test@example.com"],
+	);
+	fs::write(tempdir.path().join("monochange.toml"), "packages = [")
+		.unwrap_or_else(|error| panic!("write invalid config: {error}"));
+	run_git_test_command(tempdir.path(), &["add", "."]);
+	run_git_test_command(tempdir.path(), &["commit", "-m", "initial fixture"]);
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		"packages = [invalid",
+	)
+	.unwrap_or_else(|error| panic!("write invalid changed config: {error}"));
+	let signal = make_test_change_signal("core", BumpSeverity::Patch);
+
+	let (evidence, warnings) = semantic_compatibility_evidence(tempdir.path(), &[], &[signal]);
+
+	assert!(evidence.is_empty());
+	assert!(
+		warnings
+			.iter()
+			.any(|warning| warning.contains("semantic analysis failed"))
+	);
+}
+
+#[test]
+fn semantic_guardrail_warns_for_semantic_changes_without_matching_changeset_target() {
+	let fixture = setup_semantic_guardrail_git_fixture("changeset-covered-breaking-public-api");
+	let signal = make_test_change_signal("other", BumpSeverity::Patch);
+
+	let (evidence, warnings) = semantic_compatibility_evidence(fixture.path(), &[], &[signal]);
+
+	assert!(evidence.is_empty());
+	assert!(
+		warnings
+			.iter()
+			.any(|warning| warning.contains("no pending changeset targets"))
+	);
 }

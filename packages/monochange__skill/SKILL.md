@@ -26,7 +26,7 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 1. Inspect configuration: `mc step:validate`, `mc step:config --format json`, or `mc help`. Use this to learn package ids, enabled ecosystems, groups, and which top-level workflow commands actually exist.
 2. Inspect packages: use the configured workflow command (often `mc discover --format json`) or `mc step:discover --format json`. Prefer JSON when another tool or agent will consume the package graph.
 3. Create release intent: use a configured workflow command (often `mc change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
-4. Preview versioned files: use the configured workflow command (often `mc release --dry-run --format json` or `--diff`) or `mc step:prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, and lockfile work before mutating the tree.
+4. Preview versioned files: use the configured workflow command (often `mc release --dry-run --format json` or `--diff`) or `mc step:prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
 5. Run validation and linting: `mc check` and `mc step:validate`. `validate` catches monochange configuration and target issues; `check` also runs manifest lint rules.
 6. Only after review, run configured commit/release/publish workflows. Keep release-record, readiness, bootstrap, plan, and publish artifacts when the workflow emits them.
 
@@ -101,3 +101,26 @@ The `mc mcp` server exposes these tools:
 - `monochange_validate_changeset` — check one changeset against the current semantic diff.
 
 Prefer MCP tools when the caller needs structured data and the shell when you need to run the exact repository workflow that maintainers use locally or in CI.
+
+## Semantic SemVer guardrails
+
+Release planning treats semantic analysis as advisory guardrails. When a git change frame can be analyzed, `mc release --dry-run --format json`, `monochange_release_preview`, and release manifests may include `compatibilityEvidence` inferred from public API/export, dependency, and metadata changes. Compare this with human-authored changesets:
+
+- removed or modified public API/export evidence implies at least `major`;
+- added public API/export evidence implies at least `minor`;
+- dependency or metadata evidence is usually `patch` context;
+- warnings about semantic changes without matching changesets should be resolved before release.
+
+Do not let semantic analysis author releases automatically. Use it to catch mismatched or missing changesets, then update `.changeset/*.md` deliberately.
+
+For comparing two refs today, use `mc analyze`:
+
+```nu
+mc analyze --package core --main-ref <base-ref> --head-ref <head-ref>
+```
+
+For release-aware trajectory:
+
+```nu
+mc analyze --package core --release-ref <last-release-tag> --main-ref main --head-ref HEAD --format json
+```

@@ -133,6 +133,17 @@ Validate before planning:
 mc step:validate
 ```
 
+## Semantic SemVer guardrails
+
+Release planning also runs semantic analysis for the detected git change frame when it can. The analyzer output is advisory release evidence, not a replacement for changesets:
+
+- removed or modified public API/export evidence can raise the minimum bump to `major`;
+- added public API/export evidence can raise the minimum bump to `minor`;
+- dependency and metadata evidence is treated as `patch` advisory context;
+- analyzer failures become release-plan warnings instead of blocking the command.
+
+Dry-run JSON and release manifest payloads include this data under `compatibilityEvidence`. Human reviewers should compare that evidence with the authored changesets before preparing a release.
+
 ## Release manifests vs release records
 
 Release planning and release repair use two different artifacts on purpose.
