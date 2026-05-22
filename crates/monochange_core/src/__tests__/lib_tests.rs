@@ -4,7 +4,6 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-use monochange_test_helpers::install_rustls_ring_provider;
 use semver::Version;
 use serde_json::json;
 use tempfile::tempdir;
@@ -85,6 +84,14 @@ use crate::git::git_head_commit;
 use crate::git::git_push_branch_command;
 use crate::materialize_dependency_edges;
 use crate::render_release_notes;
+
+#[cfg(feature = "http")]
+fn install_rustls_ring_provider() {
+	static INIT: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+	INIT.get_or_init(|| {
+		let _ = rustls::crypto::ring::default_provider().install_default();
+	});
+}
 
 #[test]
 fn default_publish_order_dependency_fields_cover_all_ecosystems() {
