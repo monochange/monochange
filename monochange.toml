@@ -758,6 +758,6 @@ steps = [
 help_text = "Validate the release and preview package publishing in dry-run mode"
 dry_run = true
 steps = [
-	{ type = "PrepareRelease", name = "plan release" },
+	{ type = "PrepareRelease", name = "plan release", allow_empty_changesets = true },
 	{ type = "PublishPackages", name = "publish packages dry run" },
 ]
