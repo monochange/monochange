@@ -73,7 +73,9 @@ monochange_telemetry = { workspace = true }
 monochange_test_helpers = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
-reqwest = { workspace = true, default-features = true }
+reqwest = { workspace = true }
+ring = { workspace = true }
+rustls = { workspace = true }
 rmcp = { workspace = true, features = ["server", "transport-io", "macros"], optional = true }
 semver = { workspace = true }
 serde = { workspace = true }

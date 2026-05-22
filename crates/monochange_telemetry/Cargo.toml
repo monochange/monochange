@@ -25,7 +25,7 @@ serde_json = { workspace = true, default-features = true }
 tracing = { workspace = true, default-features = true }
 
 [dev-dependencies]
-reqwest = { workspace = true, default-features = true, features = ["blocking"] }
+reqwest = { workspace = true, features = ["blocking"] }
 temp-env = { workspace = true, default-features = true }
 tempfile = { workspace = true, default-features = true }
 
