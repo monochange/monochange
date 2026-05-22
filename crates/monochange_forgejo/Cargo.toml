@@ -16,7 +16,7 @@ description = "Forgejo release payload rendering and publishing for monochange"
 async-trait = { workspace = true, default-features = true }
 monochange_core = { workspace = true }
 monochange_hosting = { workspace = true }
-reqwest = { workspace = true, default-features = true }
+reqwest = { workspace = true }
 serde = { workspace = true, default-features = true }
 serde_json = { workspace = true, default-features = true }
 tokio = { workspace = true, default-features = true }

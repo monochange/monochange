@@ -51,6 +51,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::ffi::OsString;
 use std::fs;
+#[cfg(feature = "mcp")]
 use std::future::Future;
 use std::io::IsTerminal;
 use std::path::Path;
@@ -318,6 +319,7 @@ mod interactive;
 mod jq_filter;
 mod lint;
 mod lint_check_reporter;
+#[cfg(feature = "mcp")]
 mod mcp;
 mod migration_audit;
 mod package_publish;
@@ -625,6 +627,11 @@ pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
 #[coverage(off)]
 #[must_use = "the process exit code must be returned"]
 pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
+	// Install the ring crypto provider for rustls. Required because we use
+	// reqwest's rustls-no-provider feature — without a default provider,
+	// any HTTPS request will panic with "No provider set".
+	let _ = rustls::crypto::ring::default_provider().install_default();
+
 	let quiet = extract_quiet_from_args(std::env::args_os());
 	let result = Box::pin(run_from_env(bin_name)).await;
 	let Err(error) = result else {
@@ -950,6 +957,7 @@ where
 			.await
 		}
 		Some(("migrate", migrate_matches)) => run_migration_command(root, quiet, migrate_matches),
+		#[cfg(feature = "mcp")]
 		Some(("mcp", _)) => run_mcp_command_with(quiet, mcp::run_server).await,
 
 		Some(("check", check_matches)) => {
@@ -1015,6 +1023,7 @@ fn run_command_wizard_for_cli(root: &Path, quiet: bool) -> MonochangeResult<Stri
 	run_command_wizard(root)
 }
 
+#[cfg(feature = "mcp")]
 async fn run_mcp_command_with<F, Fut>(quiet: bool, run_server: F) -> MonochangeResult<String>
 where
 	F: FnOnce() -> Fut,

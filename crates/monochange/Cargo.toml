@@ -31,25 +31,38 @@ pkg-fmt = "tgz"
 bin-dir = "{ bin }{ binary-ext }"
 
 [features]
-default = ["cargo", "npm", "deno", "dart", "python", "go", "github", "gitlab", "gitea", "forgejo"]
+default = [
+	"cargo",
+	"npm",
+	"deno",
+	"dart",
+	"python",
+	"go",
+	"github",
+	"gitlab",
+	"gitea",
+	"forgejo",
+	"mcp",
+]
 cargo = ["monochange_cargo"]
 npm = ["monochange_npm"]
 deno = ["monochange_deno"]
 dart = ["monochange_dart"]
 python = ["monochange_python"]
 go = ["monochange_go"]
+mcp = ["rmcp"]
 github = ["monochange_github", "monochange_core/http"]
 gitlab = ["monochange_gitlab", "monochange_core/http"]
 gitea = ["monochange_gitea", "monochange_core/http"]
 forgejo = ["monochange_forgejo", "monochange_core/http"]
 
 [dependencies]
-anstyle = { workspace = true, default-features = true }
-chrono = { workspace = true, default-features = true }
+anstyle = { workspace = true }
+chrono = { workspace = true }
 clap = { workspace = true, default-features = true, features = ["color"] }
-glob = { workspace = true, default-features = true }
-inquire = { workspace = true, default-features = true }
-minijinja = { workspace = true, default-features = true }
+glob = { workspace = true }
+inquire = { workspace = true, default-features = true, features = ["crossterm"] }
+minijinja = { workspace = true }
 monochange_analysis = { workspace = true }
 monochange_cargo = { workspace = true, optional = true }
 monochange_changelog = { workspace = true }
@@ -70,26 +83,28 @@ monochange_python = { workspace = true, optional = true }
 monochange_semver = { workspace = true }
 monochange_telemetry = { workspace = true }
 monochange_test_helpers = { workspace = true }
-rayon = { workspace = true, default-features = true }
-regex = { workspace = true, default-features = true }
-reqwest = { workspace = true, default-features = true, features = ["blocking"] }
-rmcp = { workspace = true, features = ["server", "transport-io", "macros"], default-features = true }
-semver = { workspace = true, default-features = true }
-serde = { workspace = true, default-features = true }
-serde_json = { workspace = true, default-features = true }
-serde_yaml_ng = { workspace = true, default-features = true }
-shlex = { workspace = true, default-features = true }
-similar = { workspace = true, default-features = true }
-tempfile = { workspace = true, default-features = true }
-termimad = { workspace = true, default-features = true }
-thiserror = { workspace = true, default-features = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "process"], default-features = true }
-toml = { workspace = true, default-features = true }
-toml_edit = { workspace = true, default-features = true }
-tracing = { workspace = true, default-features = true }
-tracing-subscriber = { workspace = true, default-features = true }
-typed-builder = { workspace = true, default-features = true }
-urlencoding = { workspace = true, default-features = true }
+rayon = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+ring = { workspace = true }
+rmcp = { workspace = true, features = ["server", "transport-io", "macros"], optional = true }
+rustls = { workspace = true }
+semver = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml_ng = { workspace = true }
+shlex = { workspace = true }
+similar = { workspace = true }
+tempfile = { workspace = true }
+termimad = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "process"] }
+toml = { workspace = true }
+toml_edit = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+typed-builder = { workspace = true }
+urlencoding = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, default-features = true }

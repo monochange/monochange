@@ -6,6 +6,9 @@ static TEST_ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 use std::io;
 use std::path::Path;
 
+#[cfg(feature = "http")]
+use monochange_test_helpers::install_rustls_ring_provider;
+
 use super::*;
 
 #[test]
@@ -197,6 +200,7 @@ fn error_kind_uses_sanitized_categories() {
 
 	#[cfg(feature = "http")]
 	{
+		install_rustls_ring_provider();
 		let source = reqwest::blocking::get("http://[::1")
 			.expect_err("invalid URL should fail before making a request");
 		let error = MonochangeError::HttpRequest {

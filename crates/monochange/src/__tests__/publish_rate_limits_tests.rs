@@ -1,6 +1,7 @@
 #![allow(clippy::disallowed_methods)]
 use monochange_publish::RegistryEndpoints;
 use monochange_publish::filter_pending_publish_requests_with_transport;
+use monochange_test_helpers::install_rustls_ring_provider;
 
 async fn build_placeholder_plan_requests_with_transport(
 	root: &Path,
@@ -623,6 +624,7 @@ async fn plan_publish_rate_limits_summarizes_pending_publications_and_batches() 
 		then.status(404);
 	});
 
+	install_rustls_ring_provider();
 	let client = reqwest::Client::builder()
 		.build()
 		.unwrap_or_else(|error| panic!("http client: {error}"));
@@ -897,6 +899,7 @@ async fn plan_publish_rate_limits_skips_versions_that_are_already_published() {
 		then.status(404);
 	});
 
+	install_rustls_ring_provider();
 	let client = reqwest::Client::builder()
 		.build()
 		.unwrap_or_else(|error| panic!("http client: {error}"));
@@ -969,6 +972,7 @@ async fn build_placeholder_plan_requests_skips_packages_when_any_registry_versio
 		then.status(404);
 	});
 
+	install_rustls_ring_provider();
 	let client = reqwest::Client::builder()
 		.build()
 		.unwrap_or_else(|error| panic!("http client: {error}"));
@@ -1080,6 +1084,7 @@ async fn plan_publish_rate_limits_supports_placeholder_mode_and_skips_external_r
 		then.status(404);
 	});
 
+	install_rustls_ring_provider();
 	let client = reqwest::Client::builder()
 		.build()
 		.unwrap_or_else(|error| panic!("http client: {error}"));

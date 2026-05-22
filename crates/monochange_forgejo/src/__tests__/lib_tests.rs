@@ -39,6 +39,7 @@ use monochange_core::VersionFormat;
 use monochange_hosting::push_body_entries;
 use monochange_test_helpers::git;
 use monochange_test_helpers::git_output;
+use monochange_test_helpers::install_rustls_ring_provider;
 use tempfile::tempdir;
 
 use super::*;
@@ -417,6 +418,7 @@ fn forgejo_json_helpers_cover_not_found_and_status_errors() {
 		when.method(PATCH).path("/invalid-patch");
 		then.status(200).body("not json");
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder()
 		.build()
 		.expect("failed to build Forgejo HTTP client");
@@ -1232,6 +1234,7 @@ fn publish_pull_request_updates_existing_pull_request() {
 		),
 		&sample_manifest(),
 	);
+	install_rustls_ring_provider();
 	let client = Client::builder()
 		.build()
 		.expect("failed to build Forgejo HTTP client");

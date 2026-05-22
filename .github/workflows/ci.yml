@@ -98,6 +98,26 @@ jobs:
         run: test:docs
         shell: devenv shell -- bash -e {0}
 
+  test_dist:
+    needs: [lint]
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: setup
+        uses: ./.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          free-runner-space: "true"
+
+      - name: run tests against dist profile
+        run: test:dist
+        shell: devenv shell -- bash -e {0}
+
   build:
     timeout-minutes: 60
     strategy:
@@ -128,6 +148,11 @@ jobs:
       - name: build
         if: runner.os != 'Windows'
         run: build:all
+        shell: devenv shell -- bash -e {0}
+
+      - name: build dist profile
+        if: runner.os == 'Linux'
+        run: build:dist
         shell: devenv shell -- bash -e {0}
 
       - name: build on windows
@@ -365,14 +390,14 @@ jobs:
           free-runner-space: "true"
 
       - name: build PR binary
-        run: cargo build --release --bin mc && cp target/release/mc /tmp/mc-pr
+        run: cargo build --profile dist --bin mc && cp target/dist/mc /tmp/mc-pr
         shell: devenv shell -- bash -e {0}
 
       - name: build main binary
         run: |
           git stash --include-untracked
           git checkout origin/main
-          cargo build --release --bin mc && cp target/release/mc /tmp/mc-main
+          cargo build --profile dist --bin mc && cp target/dist/mc /tmp/mc-main
           git checkout -
           git stash pop || true
         shell: devenv shell -- bash -e {0}
@@ -409,6 +434,60 @@ jobs:
             exit 1
           fi
         shell: devenv shell -- bash -e {0}
+
+  binary-size:
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      pull-requests: write
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: setup
+        uses: ./.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          free-runner-space: "true"
+
+      - name: build PR binary
+        run: cargo build --profile dist --bin mc && cp target/dist/mc /tmp/mc-pr
+        shell: devenv shell -- bash -e {0}
+
+      - name: build main binary
+        run: |
+          git stash --include-untracked
+          git checkout origin/main
+          cargo build --profile dist --bin mc && cp target/dist/mc /tmp/mc-main
+          git checkout -
+          git stash pop || true
+        shell: devenv shell -- bash -e {0}
+
+      - name: compare binary sizes
+        id: size
+        run: |
+          pnpm node scripts/binary-size.mjs compare \
+            --main-bin /tmp/mc-main \
+            --pr-bin /tmp/mc-pr \
+            --output /tmp/size-comment.md
+
+          {
+            echo "results<<ENDOFSIZE"
+            cat /tmp/size-comment.md
+            echo "ENDOFSIZE"
+          } >> "$GITHUB_OUTPUT"
+        shell: devenv shell -- bash -e {0}
+
+      - name: comment binary size on PR
+        if: always() && steps.size.outcome == 'success'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: binary-size
+          message: ${{ steps.size.outputs.results }}
 
   release-test:
     if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'monochange/release')

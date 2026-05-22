@@ -30,6 +30,7 @@
 
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use monochange_core::CommitMessage;
 use monochange_core::MonochangeError;
@@ -48,8 +49,23 @@ use monochange_core::git::run_command;
 use monochange_core::git::run_git_commit_message;
 use reqwest::Client;
 use reqwest::header::HeaderMap;
+use rustls::crypto::ring::default_provider as ring_provider;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+
+static RUSTLS_PROVIDER_INSTALLED: OnceLock<()> = OnceLock::new();
+
+/// Install the ring crypto provider as the default for rustls.
+///
+/// Required because monochange uses `reqwest` with the `rustls-no-provider` feature —
+/// without an explicit provider, any HTTPS request panics with "No provider set".
+///
+/// Safe to call multiple times; subsequent calls are no-ops.
+pub fn ensure_rustls_provider() {
+	let () = RUSTLS_PROVIDER_INSTALLED.get_or_init(|| {
+		let _ = ring_provider().install_default();
+	});
+}
 
 /// Append release-note entries to a markdown body, normalizing bullet formatting.
 pub fn push_body_entries(lines: &mut Vec<String>, entries: &[String]) {
@@ -215,7 +231,14 @@ pub fn release_body(
 }
 
 /// Build a blocking HTTP client for provider API calls.
+///
+/// Build a blocking HTTP client for provider API calls.
+///
+/// Installs the ring crypto provider for rustls if not already set, ensuring
+/// HTTPS works with the `rustls-no-provider` feature flag.
 pub fn build_http_client(provider: &str) -> MonochangeResult<Client> {
+	ensure_rustls_provider();
+
 	Client::builder().build().map_err(|error| {
 		MonochangeError::Config(format!("failed to build {provider} HTTP client: {error}"))
 	})

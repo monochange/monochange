@@ -30,7 +30,7 @@ insta-cmd = { version = "0.6", default-features = false }
 jsonschema = { version = "0.46.5", default-features = false }
 miette = { version = "7", default-features = false }
 minijinja = { version = "2", default-features = false }
-octocrab = { version = "0.50.0", default-features = false, features = ["default-client", "follow-redirect", "jwt-rust-crypto", "retry", "rustls", "rustls-aws-lc-rs", "timeout", "tracing"] }
+octocrab = { version = "0.50.0", default-features = false, features = ["default-client", "follow-redirect", "jwt-rust-crypto", "retry", "rustls", "rustls-ring", "timeout", "tracing"] }
 oxc_allocator = { version = "0.131.0", default-features = false }
 oxc_ast = { version = "0.131.0", default-features = false }
 oxc_parser = { version = "0.131.0", default-features = false }
@@ -40,7 +40,9 @@ proptest = { version = "1.6", default-features = false }
 quote = { version = "1", default-features = false }
 rayon = { version = "1.10", default-features = false }
 regex = { version = "1", default-features = false, features = ["std", "unicode-perl"] }
-reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "rustls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
+ring = { version = "0.17", default-features = false }
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
 rmcp = { version = "1", default-features = false }
 rstest = { version = "0.26.1", default-features = false }
 schemars = { version = "1.2", default-features = false, features = ["derive", "std"] }
@@ -62,7 +64,7 @@ toml = { version = "1.1.2", default-features = false }
 # whitespace and comment handling. Bumping requires verifying manifest output.
 toml_edit = { version = "0.25.10", default-features = false, features = ["parse"] }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt", "ansi"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "ansi"] }
 typed-builder = { version = "0.23.2", default-features = false }
 urlencoding = { version = "2", default-features = false }
 walkdir = { version = "2", default-features = false }
@@ -93,6 +95,16 @@ monochange_schema = { version = "0.2.1", path = "./crates/monochange_schema" }
 monochange_semver = { version = "0.5.1", path = "./crates/monochange_semver" }
 monochange_telemetry = { version = "0.5.1", path = "./crates/monochange_telemetry" }
 monochange_test_helpers = { version = "0.5.1", path = "./crates/monochange_test_helpers" }
+
+# Distribution profile for release builds.
+# Use `cargo build --profile dist` for optimized, stripped binaries.
+# The CI release workflow already sets equivalent env vars; this profile
+# makes the optimizations available for local benchmarking and bloat analysis.
+[profile.dist]
+inherits = "release"
+lto = true
+codegen-units = 1
+strip = "symbols"
 
 [workspace.metadata.bin]
 cargo-deny = { version = "0.19.0" }

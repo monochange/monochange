@@ -26,6 +26,7 @@ use monochange_core::WorkspaceConfiguration;
 use monochange_core::default_publish_order_dependency_fields;
 use reqwest::Client;
 use reqwest::StatusCode;
+use rustls::crypto::ring::default_provider as ring_provider;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
@@ -2592,6 +2593,8 @@ impl RegistryEndpoints {
 }
 
 pub fn registry_client() -> MonochangeResult<Client> {
+	let _ = ring_provider().install_default();
+
 	Client::builder()
 		.user_agent(format!("monochange/{}", env!("CARGO_PKG_VERSION")))
 		.build()

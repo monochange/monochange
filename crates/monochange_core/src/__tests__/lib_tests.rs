@@ -4,6 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
+use monochange_test_helpers::install_rustls_ring_provider;
 use semver::Version;
 use serde_json::json;
 use tempfile::tempdir;
@@ -3571,6 +3572,7 @@ fn monochange_error_cancelled_render_returns_cancelled() {
 #[cfg(feature = "http")]
 #[test]
 fn monochange_error_http_request_render_includes_context_and_source() {
+	install_rustls_ring_provider();
 	let client = reqwest::blocking::Client::new();
 	let error = MonochangeError::HttpRequest {
 		context: "fetching releases".to_string(),

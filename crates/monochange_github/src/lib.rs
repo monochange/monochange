@@ -140,6 +140,7 @@ use monochange_core::git::git_stage_all_command;
 use monochange_core::git::git_stage_paths_command;
 use monochange_core::git::run_command;
 use monochange_core::git::run_git_commit_message;
+use monochange_hosting::ensure_rustls_provider;
 use octocrab::Octocrab;
 use regex::Regex;
 use serde::Deserialize;
@@ -1765,6 +1766,7 @@ fn github_commit_client_from_env(source: &SourceConfiguration) -> MonochangeResu
 }
 
 fn build_github_client(token: &str, base_uri: Option<&str>) -> MonochangeResult<Octocrab> {
+	ensure_rustls_provider();
 	let builder = Octocrab::builder().personal_token(token.to_string());
 	let builder = if let Some(base_uri) = base_uri {
 		builder.base_uri(base_uri).map_err(|error| {
