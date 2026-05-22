@@ -225,9 +225,18 @@ When provided, the generated config includes:\n\
 			.subcommand(build_analyze_subcommand())
 			.subcommand(build_migrate_subcommand())
 			.subcommand(build_lint_subcommand())
-			.subcommand(Command::new("mcp").about(
-				"Start the monochange MCP (Model Context Protocol) server over stdin/stdout",
-			))
+			.subcommand({
+				#[cfg(feature = "mcp")]
+				{
+					Command::new("mcp").about(
+						"Start the monochange MCP (Model Context Protocol) server over stdin/stdout",
+					)
+				}
+				#[cfg(not(feature = "mcp"))]
+				{
+					Command::new("mcp").hide(true)
+				}
+			})
 			.subcommand(build_check_subcommand())
 			.subcommand(build_help_subcommand());
 

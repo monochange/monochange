@@ -365,14 +365,14 @@ jobs:
           free-runner-space: "true"
 
       - name: build PR binary
-        run: cargo build --release --bin mc && cp target/release/mc /tmp/mc-pr
+        run: cargo build --profile dist --bin mc && cp target/dist/mc /tmp/mc-pr
         shell: devenv shell -- bash -e {0}
 
       - name: build main binary
         run: |
           git stash --include-untracked
           git checkout origin/main
-          cargo build --release --bin mc && cp target/release/mc /tmp/mc-main
+          cargo build --profile dist --bin mc && cp target/dist/mc /tmp/mc-main
           git checkout -
           git stash pop || true
         shell: devenv shell -- bash -e {0}
@@ -430,14 +430,14 @@ jobs:
           free-runner-space: "true"
 
       - name: build PR binary
-        run: cargo build --release --bin mc && cp target/release/mc /tmp/mc-pr
+        run: cargo build --profile dist --bin mc && cp target/dist/mc /tmp/mc-pr
         shell: devenv shell -- bash -e {0}
 
       - name: build main binary
         run: |
           git stash --include-untracked
           git checkout origin/main
-          cargo build --release --bin mc && cp target/release/mc /tmp/mc-main
+          cargo build --profile dist --bin mc && cp target/dist/mc /tmp/mc-main
           git checkout -
           git stash pop || true
         shell: devenv shell -- bash -e {0}
