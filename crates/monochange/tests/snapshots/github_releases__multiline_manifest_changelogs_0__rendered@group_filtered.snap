@@ -1,0 +1,11 @@
+---
+source: crates/monochange/tests/github_releases.rs
+assertion_line: 26
+expression: contents
+---
+## [1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) ([DATE])
+
+Grouped release for `sdk`.
+### Changed
+
+- No group-facing notes were recorded for this release. Member packages were updated as part of the synchronized group `sdk` version, but their changes are not configured for inclusion in this changelog.

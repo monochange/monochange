@@ -1,0 +1,212 @@
+---
+source: crates/monochange/tests/github_releases.rs
+assertion_line: 26
+expression: redacted
+---
+{
+  "issueComments": [],
+  "manifest": {
+    "changedFiles": [
+      "Cargo.toml",
+      "changelog.md",
+      "crates/app/Cargo.toml",
+      "crates/core/CHANGELOG.md",
+      "crates/core/Cargo.toml",
+      "group.toml"
+    ],
+    "changelogs": [
+      {
+        "format": "monochange",
+        "notes": {
+          "sections": [
+            {
+              "collapsed": false,
+              "entries": [
+                "- No group-facing notes were recorded for this release. Member packages were updated as part of the synchronized group `sdk` version, but their changes are not configured for inclusion in this changelog."
+              ],
+              "title": "Changed"
+            }
+          ],
+          "summary": [
+            "Grouped release for `sdk`."
+          ],
+          "title": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) ([DATE])"
+        },
+        "ownerId": "sdk",
+        "ownerKind": "group",
+        "path": "changelog.md",
+        "rendered": "[multiline text]"
+      },
+      {
+        "format": "monochange",
+        "notes": {
+          "sections": [
+            {
+              "collapsed": false,
+              "entries": [
+                "#### add feature"
+              ],
+              "title": "🚀 Feature"
+            }
+          ],
+          "summary": [],
+          "title": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) ([DATE])"
+        },
+        "ownerId": "core",
+        "ownerKind": "package",
+        "path": "crates/core/CHANGELOG.md",
+        "rendered": "[multiline text]"
+      }
+    ],
+    "changesets": [
+      {
+        "context": {
+          "capabilities": {
+            "actorProfiles": true,
+            "commitWebUrls": true,
+            "issueComments": true,
+            "relatedIssues": true,
+            "reviewRequestLookup": true
+          },
+          "host": "github.com",
+          "introduced": null,
+          "lastUpdated": null,
+          "provider": "github",
+          "relatedIssues": []
+        },
+        "details": null,
+        "path": ".changeset/feature.md",
+        "summary": "add feature",
+        "targets": [
+          {
+            "bump": "minor",
+            "changeType": "minor",
+            "evidenceRefs": [],
+            "id": "core",
+            "kind": "package",
+            "origin": "direct-change"
+          }
+        ]
+      }
+    ],
+    "command": "publish-release",
+    "deletedChangesets": [],
+    "dryRun": true,
+    "groupVersion": "1.1.0",
+    "packagePublications": [
+      {
+        "ecosystem": "cargo",
+        "mode": "builtin",
+        "package": "app",
+        "registry": "crates_io",
+        "trustedPublishing": {
+          "enabled": true,
+          "environment": null,
+          "repository": null,
+          "workflow": null
+        },
+        "version": "1.1.0"
+      },
+      {
+        "ecosystem": "cargo",
+        "mode": "builtin",
+        "package": "core",
+        "registry": "crates_io",
+        "trustedPublishing": {
+          "enabled": true,
+          "environment": null,
+          "repository": null,
+          "workflow": null
+        },
+        "version": "1.1.0"
+      }
+    ],
+    "plan": {
+      "compatibilityEvidence": [],
+      "decisions": [
+        {
+          "bump": "minor",
+          "package": "cargo:crates/app/Cargo.toml",
+          "plannedVersion": "1.1.0",
+          "reasons": [
+            "depends on `cargo:crates/core/Cargo.toml`",
+            "shares version group `sdk`"
+          ],
+          "trigger": "version-group-synchronization",
+          "upstreamSources": [
+            "cargo:crates/core/Cargo.toml"
+          ]
+        },
+        {
+          "bump": "minor",
+          "package": "cargo:crates/core/Cargo.toml",
+          "plannedVersion": "1.1.0",
+          "reasons": [
+            "add feature",
+            "shares version group `sdk`"
+          ],
+          "trigger": "direct-change",
+          "upstreamSources": [
+            "cargo:crates/core/Cargo.toml"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "bump": "minor",
+          "id": "sdk",
+          "members": [
+            "cargo:crates/core/Cargo.toml",
+            "cargo:crates/app/Cargo.toml"
+          ],
+          "plannedVersion": "1.1.0"
+        }
+      ],
+      "unresolvedItems": [],
+      "warnings": [],
+      "workspaceRoot": "."
+    },
+    "releaseTargets": [
+      {
+        "id": "sdk",
+        "kind": "group",
+        "members": [
+          "core",
+          "app"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) ([DATE])",
+        "renderedTitle": "1.1.0 ([DATE])",
+        "tag": true,
+        "tagName": "v1.1.0",
+        "version": "1.1.0",
+        "versionFormat": "primary"
+      }
+    ],
+    "releasedPackages": [
+      "workflow-app",
+      "workflow-core"
+    ],
+    "version": "1.1.0"
+  },
+  "packagePublish": null,
+  "publishRateLimits": null,
+  "releaseCommit": null,
+  "releaseRequest": null,
+  "releases": [
+    {
+      "body": "[multiline text]",
+      "draft": false,
+      "generateReleaseNotes": false,
+      "name": "1.1.0 ([DATE])",
+      "owner": "ifiokjr",
+      "prerelease": false,
+      "provider": "github",
+      "repo": "monochange",
+      "repository": "ifiokjr/monochange",
+      "tagName": "v1.1.0",
+      "targetId": "sdk",
+      "targetKind": "group"
+    }
+  ]
+}

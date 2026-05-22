@@ -2817,6 +2817,214 @@ fn build_test_client(server: &MockServer) -> Octocrab {
 		.unwrap_or_else(|error| panic!("octocrab client: {error}"))
 }
 
+fn github_release_section(title: &str, entries: Vec<&str>) -> ReleaseNotesSection {
+	ReleaseNotesSection {
+		title: title.to_string(),
+		collapsed: false,
+		entries: entries.into_iter().map(str::to_string).collect(),
+	}
+}
+
+fn github_release_changelog(
+	owner_id: &str,
+	owner_kind: ReleaseOwnerKind,
+	summary: Vec<String>,
+	sections: Vec<ReleaseNotesSection>,
+	rendered: &str,
+) -> ReleaseManifestChangelog {
+	ReleaseManifestChangelog {
+		owner_id: owner_id.to_string(),
+		owner_kind,
+		path: PathBuf::from(format!("{owner_id}.md")),
+		format: monochange_core::ChangelogFormat::Monochange,
+		notes: ReleaseNotesDocument {
+			title: "1.2.0".to_string(),
+			summary,
+			sections,
+		},
+		rendered: rendered.to_string(),
+	}
+}
+
+fn github_group_release_target(
+	rendered_title: &str,
+	rendered_changelog_title: &str,
+) -> ReleaseManifestTarget {
+	ReleaseManifestTarget {
+		id: "sdk".to_string(),
+		kind: ReleaseOwnerKind::Group,
+		version: "1.2.0".to_string(),
+		tag: true,
+		release: true,
+		version_format: VersionFormat::Primary,
+		tag_name: "sdk-v1.2.0".to_string(),
+		rendered_title: rendered_title.to_string(),
+		rendered_changelog_title: rendered_changelog_title.to_string(),
+		members: vec!["core".to_string(), "cli".to_string()],
+	}
+}
+
+fn github_release_source() -> SourceConfiguration {
+	SourceConfiguration {
+		releases: ProviderReleaseSettings {
+			source: ProviderReleaseNotesSource::Monochange,
+			..ProviderReleaseSettings::default()
+		},
+		..sample_source(None)
+	}
+}
+
+#[test]
+fn release_body_appends_uncovered_member_notes_for_github_releases() {
+	let source = github_release_source();
+	let target = github_group_release_target("sdk 1.2.0", "sdk changelog 1.2.0");
+	let mut manifest = sample_manifest();
+	manifest.changelogs = vec![
+		github_release_changelog(
+			"sdk",
+			ReleaseOwnerKind::Group,
+			vec!["Group summary".to_string()],
+			vec![github_release_section("Features", vec!["- group feature"])],
+			"## sdk changelog 1.2.0\n\nGroup summary\n\n### Features\n\n- group feature\n",
+		),
+		github_release_changelog(
+			"core",
+			ReleaseOwnerKind::Package,
+			vec!["Core summary".to_string()],
+			vec![
+				github_release_section("Features", vec!["- core feature\n_Packages: core_"]),
+				github_release_section("Empty", vec![]),
+			],
+			"## core 1.2.0",
+		),
+	];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert!(body.contains("## sdk changelog 1.2.0"), "body:\n{body}");
+	assert!(
+		body.contains("## Member package changelogs"),
+		"body:\n{body}"
+	);
+	assert!(body.contains("Core summary"), "body:\n{body}");
+	assert!(body.contains("- core feature"), "body:\n{body}");
+	assert!(!body.contains("#### Empty"), "body:\n{body}");
+}
+
+#[test]
+fn release_body_uses_grouped_member_body_when_github_group_notes_are_empty() {
+	let source = github_release_source();
+	let target = github_group_release_target("sdk release title", "");
+	let mut manifest = sample_manifest();
+	manifest.changelogs = vec![
+		github_release_changelog(
+			"sdk",
+			ReleaseOwnerKind::Group,
+			vec![],
+			vec![github_release_section(
+				"Other",
+				vec!["No group-facing notes were recorded for this release."],
+			)],
+			"## sdk\n\nNo group-facing notes were recorded for this release.",
+		),
+		github_release_changelog(
+			"core",
+			ReleaseOwnerKind::Package,
+			vec![],
+			vec![github_release_section("Fixes", vec!["- fix core bug"])],
+			"## core 1.2.0",
+		),
+	];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert!(body.starts_with("## sdk release title"), "body:\n{body}");
+	assert!(body.contains("Grouped release for `sdk`."), "body:\n{body}");
+	assert!(body.contains("### `core`"), "body:\n{body}");
+	assert!(!body.contains("No group-facing notes"), "body:\n{body}");
+}
+
+#[test]
+fn release_body_uses_tag_title_for_github_group_when_titles_are_empty() {
+	let source = github_release_source();
+	let target = github_group_release_target("", "");
+	let mut manifest = sample_manifest();
+	manifest.changelogs = vec![github_release_changelog(
+		"core",
+		ReleaseOwnerKind::Package,
+		vec![],
+		vec![github_release_section("Fixes", vec!["- fix core bug"])],
+		"## core 1.2.0",
+	)];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert!(body.starts_with("## sdk-v1.2.0"), "body:\n{body}");
+	assert!(body.contains("### `core`"), "body:\n{body}");
+}
+
+#[test]
+fn release_body_does_not_duplicate_github_member_notes_already_in_group() {
+	let source = github_release_source();
+	let target = github_group_release_target("sdk 1.2.0", "sdk changelog 1.2.0");
+	let mut manifest = sample_manifest();
+	manifest.changelogs = vec![
+		github_release_changelog(
+			"sdk",
+			ReleaseOwnerKind::Group,
+			vec![],
+			vec![github_release_section("Features", vec!["- shared feature"])],
+			"## sdk changelog 1.2.0\n\n### Features\n\n- shared feature",
+		),
+		github_release_changelog(
+			"core",
+			ReleaseOwnerKind::Package,
+			vec![],
+			vec![github_release_section(
+				"Features",
+				vec!["- shared feature\n_Packages: core_"],
+			)],
+			"## core 1.2.0",
+		),
+	];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert_eq!(
+		body,
+		"## sdk changelog 1.2.0\n\n### Features\n\n- shared feature"
+	);
+}
+
+#[test]
+fn release_body_ignores_github_member_changelogs_for_package_targets() {
+	let source = github_release_source();
+	let target = ReleaseManifestTarget {
+		id: "core".to_string(),
+		kind: ReleaseOwnerKind::Package,
+		version: "1.2.0".to_string(),
+		tag: true,
+		release: true,
+		version_format: VersionFormat::Namespaced,
+		tag_name: "core-v1.2.0".to_string(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
+		members: vec![],
+	};
+	let mut manifest = sample_manifest();
+	manifest.changelogs = vec![github_release_changelog(
+		"core",
+		ReleaseOwnerKind::Package,
+		vec![],
+		vec![github_release_section("Fixes", vec!["- fix package bug"])],
+		"## core 1.2.0\n\n### Fixes\n\n- fix package bug",
+	)];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert_eq!(body, "## core 1.2.0\n\n### Fixes\n\n- fix package bug");
+}
+
 fn sample_source(api_url: Option<String>) -> SourceConfiguration {
 	SourceConfiguration {
 		provider: SourceProvider::GitHub,
