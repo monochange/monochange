@@ -6,6 +6,9 @@ use monochange_core::CompatibilityAssessment;
 use monochange_core::Ecosystem;
 use monochange_core::PackageRecord;
 use monochange_core::PublishState;
+use monochange_core::SemanticChange;
+use monochange_core::SemanticChangeCategory;
+use monochange_core::SemanticChangeKind;
 use semver::Version;
 
 use crate::CompatibilityProvider;
@@ -13,6 +16,8 @@ use crate::collect_assessments;
 use crate::direct_release_severity;
 use crate::merge_severities;
 use crate::propagated_release_severity;
+use crate::semantic_change_severity;
+use crate::semantic_changes_assessment;
 use crate::strongest_assessment;
 use crate::strongest_assessment_for_package;
 
@@ -456,6 +461,83 @@ fn collect_assessments_returns_empty_for_unmatched_signals() {
 	assert!(assessments.is_empty());
 }
 
+fn semantic_change(
+	category: SemanticChangeCategory,
+	kind: SemanticChangeKind,
+	summary: &str,
+) -> SemanticChange {
+	SemanticChange {
+		category,
+		kind,
+		item_kind: "function".to_string(),
+		item_path: "pkg::api".to_string(),
+		summary: summary.to_string(),
+		file_path: PathBuf::from("src/lib.rs"),
+		before_signature: None,
+		after_signature: None,
+	}
+}
+
+#[test]
+fn semantic_change_severity_maps_public_api_breaks_to_major() {
+	let removed = semantic_change(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Removed,
+		"removed public function",
+	);
+	let modified = semantic_change(
+		SemanticChangeCategory::Export,
+		SemanticChangeKind::Modified,
+		"modified export signature",
+	);
+
+	assert_eq!(semantic_change_severity(&removed), BumpSeverity::Major);
+	assert_eq!(semantic_change_severity(&modified), BumpSeverity::Major);
+}
+
+#[test]
+fn semantic_change_severity_maps_additions_to_minor_and_metadata_to_patch() {
+	let added = semantic_change(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Added,
+		"added public function",
+	);
+	let metadata = semantic_change(
+		SemanticChangeCategory::Metadata,
+		SemanticChangeKind::Modified,
+		"changed package metadata",
+	);
+
+	assert_eq!(semantic_change_severity(&added), BumpSeverity::Minor);
+	assert_eq!(semantic_change_severity(&metadata), BumpSeverity::Patch);
+}
+
+#[test]
+fn semantic_changes_assessment_uses_strongest_semver_impact() {
+	let changes = vec![
+		semantic_change(
+			SemanticChangeCategory::Dependency,
+			SemanticChangeKind::Modified,
+			"updated dependency range",
+		),
+		semantic_change(
+			SemanticChangeCategory::Export,
+			SemanticChangeKind::Removed,
+			"removed exported function",
+		),
+	];
+
+	let assessment = semantic_changes_assessment("pkg", "semantic-analysis:test", &changes)
+		.unwrap_or_else(|| panic!("expected semantic assessment"));
+
+	assert_eq!(assessment.package_id, "pkg");
+	assert_eq!(assessment.provider_id, "semantic-analysis:test");
+	assert_eq!(assessment.severity, BumpSeverity::Major);
+	assert_eq!(assessment.confidence, "high");
+	assert_eq!(assessment.evidence_location.as_deref(), Some("src/lib.rs"));
+	assert!(assessment.summary.contains("2 semantic change"));
+}
+
 #[test]
 fn collect_assessments_returns_empty_without_providers() {
 	let root = PathBuf::from("/workspace");
@@ -482,4 +564,29 @@ fn collect_assessments_returns_empty_without_providers() {
 	let providers: Vec<&dyn CompatibilityProvider> = vec![];
 	let assessments = collect_assessments(&providers, &packages, &signals);
 	assert!(assessments.is_empty());
+}
+
+#[test]
+fn semantic_assessment_confidence_describes_each_supported_severity() {
+	assert_eq!(
+		crate::semantic_assessment_confidence(BumpSeverity::Major),
+		"high"
+	);
+	assert_eq!(
+		crate::semantic_assessment_confidence(BumpSeverity::Minor),
+		"high"
+	);
+	assert_eq!(
+		crate::semantic_assessment_confidence(BumpSeverity::Patch),
+		"medium"
+	);
+	assert_eq!(
+		crate::semantic_assessment_confidence(BumpSeverity::None),
+		"low"
+	);
+}
+
+#[test]
+fn semantic_changes_assessment_returns_none_without_release_impact() {
+	assert!(semantic_changes_assessment("core", "semantic", &[]).is_none());
 }

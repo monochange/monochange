@@ -1,5 +1,11 @@
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
+
+use monochange_analysis::AnalysisConfig;
+use monochange_analysis::ChangeFrame;
+use monochange_core::CompatibilityAssessment;
+use monochange_core::PackageRecord;
 
 use super::*;
 use crate::changeset_policy::configuration_package_records;
@@ -588,7 +594,15 @@ pub(crate) fn build_release_plan_from_signals(
 	#[cfg(not(feature = "cargo"))]
 	let compatibility_evidence = Vec::new();
 
-	build_release_plan(
+	let (semantic_evidence, semantic_warnings) = semantic_compatibility_evidence(
+		&discovery.workspace_root,
+		&discovery.packages,
+		change_signals,
+	);
+	let mut compatibility_evidence = compatibility_evidence;
+	compatibility_evidence.extend(semantic_evidence);
+
+	let mut plan = build_release_plan(
 		&discovery.workspace_root,
 		&discovery.packages,
 		&discovery.dependencies,
@@ -597,7 +611,117 @@ pub(crate) fn build_release_plan_from_signals(
 		&compatibility_evidence,
 		configuration.defaults.parent_bump,
 		configuration.defaults.strict_version_conflicts,
-	)
+	)?;
+	plan.warnings.extend(semantic_warnings);
+
+	Ok(plan)
+}
+
+fn semantic_compatibility_evidence(
+	root: &Path,
+	packages: &[PackageRecord],
+	change_signals: &[ChangeSignal],
+) -> (Vec<CompatibilityAssessment>, Vec<String>) {
+	let frame = match ChangeFrame::detect(root) {
+		Ok(frame) => frame,
+		Err(error) => {
+			if !root.join(".git").exists() {
+				return (Vec::new(), Vec::new());
+			}
+			return (
+				Vec::new(),
+				vec![format!(
+					"semantic SemVer analysis was skipped because the change frame could not be detected: {error}"
+				)],
+			);
+		}
+	};
+	let changed_files = frame.changed_files(root).unwrap_or_default();
+	if !has_semantic_guardrail_candidate(&changed_files) {
+		return (Vec::new(), Vec::new());
+	}
+
+	let analysis =
+		match monochange_analysis::analyze_changes(root, &frame, &AnalysisConfig::default()) {
+			Ok(analysis) => analysis,
+			Err(error) => {
+				return (
+					Vec::new(),
+					vec![format!(
+						"semantic SemVer analysis was skipped because semantic analysis failed: {error}"
+					)],
+				);
+			}
+		};
+	let changeset_packages = change_signals
+		.iter()
+		.map(|signal| signal.package_id.as_str())
+		.collect::<BTreeSet<_>>();
+	let semantic_package_targets = semantic_package_targets(packages, &changeset_packages);
+	let mut warnings = Vec::new();
+	let evidence = analysis
+		.package_analyses
+		.values()
+		.filter_map(|package_analysis| {
+			let Some(target_package_id) = semantic_package_targets
+				.get(package_analysis.package_id.as_str())
+				.map(String::as_str)
+			else {
+				if !package_analysis.semantic_changes.is_empty() {
+					warnings.push(format!(
+						"semantic SemVer analysis found changes for `{}` but no pending changeset targets that package",
+						package_analysis.package_id
+					));
+				}
+				return None;
+			};
+			let analyzer_id = package_analysis
+				.analyzer_id
+				.as_deref()
+				.unwrap_or("semantic-analysis");
+			let provider_id = format!("semantic-analysis:{analyzer_id}");
+			monochange_semver::semantic_changes_assessment(
+				target_package_id,
+				&provider_id,
+				&package_analysis.semantic_changes,
+			)
+		})
+		.collect();
+
+	(evidence, warnings)
+}
+
+pub(crate) fn has_semantic_guardrail_candidate(changed_files: &[PathBuf]) -> bool {
+	changed_files.iter().any(|path| {
+		let Some(extension) = path.extension().and_then(|extension| extension.to_str()) else {
+			return false;
+		};
+		matches!(
+			extension,
+			"cjs"
+				| "dart" | "js"
+				| "jsx" | "json"
+				| "mjs" | "rs"
+				| "toml" | "ts"
+				| "tsx" | "yaml"
+				| "yml"
+		)
+	})
+}
+
+fn semantic_package_targets(
+	packages: &[PackageRecord],
+	changeset_packages: &BTreeSet<&str>,
+) -> BTreeMap<String, String> {
+	let mut targets = BTreeMap::new();
+	for package in packages {
+		if !changeset_packages.contains(package.id.as_str()) {
+			continue;
+		}
+		targets.insert(package.id.clone(), package.id.clone());
+		targets.insert(package.name.clone(), package.id.clone());
+	}
+	targets
 }
 
 pub(crate) fn canonical_change_packages(

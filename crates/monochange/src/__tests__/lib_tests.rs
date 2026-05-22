@@ -2175,6 +2175,43 @@ fn workspace_discover_json_output_contains_contract_fields() {
 }
 
 #[test]
+fn plan_release_uses_semantic_guardrail_evidence_for_changeset_covered_breaking_public_api() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let fixture_root = "semantic-release-guardrails/changeset-covered-breaking-public-api";
+	copy_fixture(&format!("{fixture_root}/before"), tempdir.path());
+	init_git_repo(tempdir.path());
+	git_in_temp_repo(tempdir.path(), &["add", "."]);
+	git_in_temp_repo(tempdir.path(), &["commit", "-m", "initial fixture"]);
+	copy_fixture(&format!("{fixture_root}/after"), tempdir.path());
+
+	let plan = plan_release(
+		tempdir.path(),
+		&tempdir.path().join(".changeset/core-breaking-api.md"),
+	)
+	.unwrap_or_else(|error| panic!("release plan: {error}"));
+	let core_decision = plan
+		.decisions
+		.iter()
+		.find(|decision| decision.package_id.contains("core"))
+		.unwrap_or_else(|| panic!("expected core release decision"));
+	let semantic_evidence = plan
+		.compatibility_evidence
+		.iter()
+		.find(|assessment| assessment.provider_id.starts_with("semantic-analysis:"))
+		.unwrap_or_else(|| panic!("expected semantic compatibility evidence"));
+
+	assert_eq!(core_decision.recommended_bump, BumpSeverity::Major);
+	assert_eq!(semantic_evidence.package_id, core_decision.package_id);
+	assert_eq!(semantic_evidence.severity, BumpSeverity::Major);
+	assert_eq!(semantic_evidence.confidence, "high");
+	assert!(
+		plan.warnings.is_empty(),
+		"unexpected warnings: {:?}",
+		plan.warnings
+	);
+}
+
+#[test]
 fn plan_release_aggregates_transitive_dependents_and_version_groups() {
 	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/mixed");
 	let plan = plan_release(&fixture_root, &fixture_root.join("changes-minor.md"))
