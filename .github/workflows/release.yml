@@ -201,8 +201,87 @@ jobs:
             echo "::endgroup::"
           done
 
-  publish_draft:
+  publish_readiness:
+    if: >-
+      github.repository_owner == 'monochange' &&
+      startsWith(inputs.tag || github.ref_name, 'v')
     needs: attest_assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: checkout release tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: verify checkout matches release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_tag="${RELEASE_TAG}"
+          actual_commit=$(git rev-parse HEAD)
+          tag_commit=$(git rev-list -n1 "$expected_tag")
+          if [ "$actual_commit" != "$tag_commit" ]; then
+            echo "::error::Checked-out commit $actual_commit does not match tag $expected_tag ($tag_commit)" >&2
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "$actual_commit" refs/remotes/origin/main 2>/dev/null; then
+            echo "::error::Tag $expected_tag ($actual_commit) is not on the main branch" >&2
+            exit 1
+          fi
+
+          echo "Verified: checked-out commit matches tag $expected_tag and is on main"
+
+      - name: setup current monochange cli
+        uses: ./.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build current monochange cli
+        run: |
+          cargo build --release --package monochange --bin mc
+          mkdir -p "$RUNNER_TEMP/bin"
+          cp target/release/mc "$RUNNER_TEMP/bin/mc"
+        shell: devenv shell -- bash -e {0}
+
+      - name: download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-assets"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "monochange-*-${RELEASE_TAG}.tar.gz" \
+            --pattern "monochange-*-${RELEASE_TAG}.zip" \
+            --dir "$RUNNER_TEMP/release-assets"
+        shell: devenv shell -- bash -e {0}
+
+      - name: populate cli npm packages with release binaries
+        run: |
+          pnpm node scripts/npm/build-packages.mjs \
+            --release-tag "$RELEASE_TAG" \
+            --assets-dir "$RUNNER_TEMP/release-assets"
+          pnpm node scripts/npm/populate-packages.mjs \
+            --packages-dir packages
+        shell: devenv shell -- bash -e {0}
+
+      - name: check publish readiness
+        run: |
+          "$RUNNER_TEMP/bin/mc" step:publish-readiness \
+            --from HEAD \
+            --output "$RUNNER_TEMP/publish-readiness.json" \
+            --format json
+        shell: devenv shell -- bash -e {0}
+
+  publish_draft:
+    needs: publish_readiness
     environment: publisher
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}

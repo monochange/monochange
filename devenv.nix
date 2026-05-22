@@ -163,9 +163,11 @@ in
     "publish:check" = {
       exec = ''
         set -euo pipefail
-        mc publish-check || true
+        output="''${MONOCHANGE_PUBLISH_READINESS_OUTPUT:-target/publish-readiness.json}"
+        mkdir -p "$(dirname "$output")"
+        mc step:publish-readiness --from HEAD --output "$output" --format json
       '';
-      description = "Check that publication is valid for this project";
+      description = "Run publish readiness for the current commit and fail on publication blockers";
       binary = "bash";
     };
     "package:check" = {
