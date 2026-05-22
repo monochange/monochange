@@ -35,8 +35,8 @@ The main correctness risk is repeated prerelease preparation. If a major changes
 enabled = true
 channel = "alpha"
 numbering = "increment" # increment | date | datetime
-base = "planned"        # planned | current-stable | fixed
-base_version = "0.0.0"  # required only when base = "fixed"
+base = "planned" # planned | current-stable | fixed
+base_version = "0.0.0" # required only when base = "fixed"
 
 write_manifests = true
 keep_changesets = true
@@ -57,26 +57,26 @@ Shape:
 
 ```json
 {
-  "schema_version": 1,
-  "channel": "alpha",
-  "numbering": "increment",
-  "base": "planned",
-  "created_at": "2026-05-22T00:00:00Z",
-  "updated_at": "2026-05-22T00:00:00Z",
-  "packages": {
-    "cargo:monochange": {
-      "original_stable_version": "1.0.0",
-      "planned_stable_version": "2.0.0",
-      "latest_prerelease_version": "2.0.0-alpha.1"
-    }
-  },
-  "groups": {
-    "rust": {
-      "original_stable_version": "1.0.0",
-      "planned_stable_version": "2.0.0",
-      "latest_prerelease_version": "2.0.0-alpha.1"
-    }
-  }
+	"schema_version": 1,
+	"channel": "alpha",
+	"numbering": "increment",
+	"base": "planned",
+	"created_at": "2026-05-22T00:00:00Z",
+	"updated_at": "2026-05-22T00:00:00Z",
+	"packages": {
+		"cargo:monochange": {
+			"original_stable_version": "1.0.0",
+			"planned_stable_version": "2.0.0",
+			"latest_prerelease_version": "2.0.0-alpha.1"
+		}
+	},
+	"groups": {
+		"rust": {
+			"original_stable_version": "1.0.0",
+			"planned_stable_version": "2.0.0",
+			"latest_prerelease_version": "2.0.0-alpha.1"
+		}
+	}
 }
 ```
 

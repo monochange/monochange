@@ -180,8 +180,8 @@ Enable `[prerelease]` when you want repeatable alpha/rc/binary prerelease builds
 enabled = true
 channel = "alpha"
 numbering = "increment" # increment | date | datetime
-base = "planned"        # planned | current-stable | fixed
-base_version = "0.0.0"  # required when base = "fixed"
+base = "planned" # planned | current-stable | fixed
+base_version = "0.0.0" # required when base = "fixed"
 
 write_manifests = true
 keep_changesets = true
