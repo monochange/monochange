@@ -34,6 +34,7 @@ use monochange_core::PackageType;
 use monochange_core::PlannedVersionGroup;
 use monochange_core::PreparedChangeset;
 use monochange_core::PreparedChangesetTarget;
+use monochange_core::PrereleaseConfiguration;
 use monochange_core::PublishState;
 use monochange_core::ReleaseDecision;
 use monochange_core::VersionFormat;
@@ -87,6 +88,7 @@ fn empty_configuration(root: &Path) -> WorkspaceConfiguration {
 		root_path: root.to_path_buf(),
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: PrereleaseConfiguration::default(),
 		packages: Vec::new(),
 		groups: Vec::new(),
 		cli: Vec::new(),

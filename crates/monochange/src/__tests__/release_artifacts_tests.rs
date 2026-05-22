@@ -72,6 +72,7 @@ fn empty_configuration(root: &Path) -> WorkspaceConfiguration {
 		root_path: root.to_path_buf(),
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: Vec::new(),
 		groups: Vec::new(),
 		cli: Vec::new(),

@@ -1,0 +1,165 @@
+---
+source: crates/monochange_integration_tests/tests/release_record_artifacts.rs
+expression: "Value::Object(outputs)"
+---
+{
+  "current-stable": {
+    "releaseTargets": [
+      {
+        "id": "app",
+        "kind": "package",
+        "members": [
+          "app"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "app [1.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.0-alpha.0) (2026-04-07)",
+        "renderedTitle": "app 1.0.0-alpha.0 (2026-04-07)",
+        "tag": false,
+        "tagName": "app/v1.0.0-alpha.0",
+        "version": "1.0.0-alpha.0",
+        "versionFormat": "namespaced"
+      },
+      {
+        "id": "core",
+        "kind": "package",
+        "members": [
+          "core"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "core [1.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.0.0-alpha.0) (2026-04-07)",
+        "renderedTitle": "core 1.0.0-alpha.0 (2026-04-07)",
+        "tag": true,
+        "tagName": "core/v1.0.0-alpha.0",
+        "version": "1.0.0-alpha.0",
+        "versionFormat": "namespaced"
+      }
+    ],
+    "state": {
+      "base": "current-stable",
+      "channel": "alpha",
+      "created_at": "[timestamp]",
+      "groups": {},
+      "numbering": "increment",
+      "packages": {
+        "cargo:crates/app/Cargo.toml": {
+          "latest_prerelease_version": "1.0.0-alpha.0",
+          "original_stable_version": "1.0.0",
+          "planned_stable_version": "1.0.0"
+        },
+        "cargo:crates/core/Cargo.toml": {
+          "latest_prerelease_version": "1.0.0-alpha.0",
+          "original_stable_version": "1.0.0",
+          "planned_stable_version": "1.0.0"
+        }
+      },
+      "schema_version": 1,
+      "updated_at": "[timestamp]"
+    }
+  },
+  "fixed": {
+    "releaseTargets": [
+      {
+        "id": "app",
+        "kind": "package",
+        "members": [
+          "app"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "app [0.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/app/v0.0.0-alpha.0) (2026-04-07)",
+        "renderedTitle": "app 0.0.0-alpha.0 (2026-04-07)",
+        "tag": false,
+        "tagName": "app/v0.0.0-alpha.0",
+        "version": "0.0.0-alpha.0",
+        "versionFormat": "namespaced"
+      },
+      {
+        "id": "core",
+        "kind": "package",
+        "members": [
+          "core"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "core [0.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/core/v0.0.0-alpha.0) (2026-04-07)",
+        "renderedTitle": "core 0.0.0-alpha.0 (2026-04-07)",
+        "tag": true,
+        "tagName": "core/v0.0.0-alpha.0",
+        "version": "0.0.0-alpha.0",
+        "versionFormat": "namespaced"
+      }
+    ],
+    "state": {
+      "base": "fixed",
+      "channel": "alpha",
+      "created_at": "[timestamp]",
+      "groups": {},
+      "numbering": "increment",
+      "packages": {
+        "cargo:crates/app/Cargo.toml": {
+          "latest_prerelease_version": "0.0.0-alpha.0",
+          "original_stable_version": "0.0.0",
+          "planned_stable_version": "0.0.0"
+        },
+        "cargo:crates/core/Cargo.toml": {
+          "latest_prerelease_version": "0.0.0-alpha.0",
+          "original_stable_version": "0.0.0",
+          "planned_stable_version": "0.0.0"
+        }
+      },
+      "schema_version": 1,
+      "updated_at": "[timestamp]"
+    }
+  },
+  "planned": {
+    "releaseTargets": [
+      {
+        "id": "app",
+        "kind": "package",
+        "members": [
+          "app"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "app [1.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.0-alpha.0) (2026-04-07)",
+        "renderedTitle": "app 1.0.0-alpha.0 (2026-04-07)",
+        "tag": false,
+        "tagName": "app/v1.0.0-alpha.0",
+        "version": "1.0.0-alpha.0",
+        "versionFormat": "namespaced"
+      },
+      {
+        "id": "core",
+        "kind": "package",
+        "members": [
+          "core"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "core [1.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.0.0-alpha.0) (2026-04-07)",
+        "renderedTitle": "core 1.0.0-alpha.0 (2026-04-07)",
+        "tag": true,
+        "tagName": "core/v1.0.0-alpha.0",
+        "version": "1.0.0-alpha.0",
+        "versionFormat": "namespaced"
+      }
+    ],
+    "state": {
+      "base": "planned",
+      "channel": "alpha",
+      "created_at": "[timestamp]",
+      "groups": {},
+      "numbering": "increment",
+      "packages": {
+        "cargo:crates/app/Cargo.toml": {
+          "latest_prerelease_version": "1.0.0-alpha.0",
+          "original_stable_version": "1.0.0",
+          "planned_stable_version": "1.0.0"
+        },
+        "cargo:crates/core/Cargo.toml": {
+          "latest_prerelease_version": "1.0.0-alpha.0",
+          "original_stable_version": "1.0.0",
+          "planned_stable_version": "1.0.0"
+        }
+      },
+      "schema_version": 1,
+      "updated_at": "[timestamp]"
+    }
+  }
+}

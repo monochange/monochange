@@ -15,10 +15,10 @@ fn fixture_path(relative: &str) -> PathBuf {
 		.join(relative)
 }
 
-fn setup_release_fixture() -> TempDir {
+fn setup_release_fixture(relative: &str) -> TempDir {
 	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	copy_directory(&fixture_path("release-pr/ungrouped"), root);
+	copy_directory(&fixture_path(relative), root);
 	git(root, &["init"]);
 	git(root, &["config", "user.name", "monochange-tests"]);
 	git(
@@ -66,9 +66,124 @@ fn release_record_paths(root: &Path) -> Vec<PathBuf> {
 	paths
 }
 
+fn check_failure(root: &Path) -> String {
+	let output = Command::new(get_cargo_bin("mc"))
+		.current_dir(root)
+		.env("NO_COLOR", "1")
+		.env_remove("RUST_LOG")
+		.arg("check")
+		.output()
+		.unwrap_or_else(|error| panic!("run check: {error}"));
+	assert!(!output.status.success(), "check unexpectedly succeeded");
+	String::from_utf8_lossy(&output.stderr).to_string()
+}
+
+fn redact_prerelease_state(mut state: Value) -> Value {
+	state["created_at"] = Value::String("[timestamp]".to_string());
+	state["updated_at"] = Value::String("[timestamp]".to_string());
+	state
+}
+
+fn read_prerelease_state(root: &Path) -> Value {
+	let state_path = root.join(".monochange/prerelease-state.json");
+	serde_json::from_slice(
+		&std::fs::read(&state_path).unwrap_or_else(|error| panic!("read state: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("parse state: {error}"))
+}
+
+#[test]
+fn prepare_release_supports_prerelease_without_changesets() {
+	let cases = [
+		("planned", "prerelease/no-changesets-planned"),
+		("current-stable", "prerelease/no-changesets-current-stable"),
+		("fixed", "prerelease/no-changesets-fixed"),
+	];
+	let mut outputs = serde_json::Map::new();
+
+	for (case_name, fixture) in cases {
+		let tempdir = setup_release_fixture(fixture);
+		let root = tempdir.path();
+
+		let prepared = prepare_release(root);
+		let state = read_prerelease_state(root);
+		outputs.insert(
+			case_name.to_string(),
+			serde_json::json!({
+				"releaseTargets": prepared["releaseTargets"],
+				"state": redact_prerelease_state(state),
+			}),
+		);
+	}
+
+	assert_json_snapshot!(Value::Object(outputs));
+}
+
+#[test]
+fn prepare_release_increments_repeated_no_changeset_prereleases_from_json_state() {
+	let tempdir = setup_release_fixture("prerelease/no-changesets-planned");
+	let root = tempdir.path();
+
+	let first = prepare_release(root);
+	let first_state = read_prerelease_state(root);
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "prepare alpha 0"]);
+	let second = prepare_release(root);
+	let second_state = read_prerelease_state(root);
+
+	assert_json_snapshot!(serde_json::json!({
+		"firstReleaseTargets": first["releaseTargets"],
+		"firstState": redact_prerelease_state(first_state),
+		"secondReleaseTargets": second["releaseTargets"],
+		"secondState": redact_prerelease_state(second_state),
+	}));
+}
+
+#[test]
+fn prepare_stable_release_removes_prerelease_state() {
+	let tempdir = setup_release_fixture("prerelease/with-changesets-planned");
+	let root = tempdir.path();
+
+	let prerelease = prepare_release(root);
+	assert!(root.join(".monochange/prerelease-state.json").exists());
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "prepare alpha 0"]);
+	let config_path = root.join("monochange.toml");
+	let config = std::fs::read_to_string(&config_path)
+		.unwrap_or_else(|error| panic!("read config: {error}"))
+		.replace("enabled = true", "enabled = false");
+	std::fs::write(&config_path, config).unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let stable = prepare_release(root);
+	assert!(!root.join(".monochange/prerelease-state.json").exists());
+
+	assert_json_snapshot!(serde_json::json!({
+		"prereleaseTargets": prerelease["releaseTargets"],
+		"stableTargets": stable["releaseTargets"],
+		"stateExistsAfterStable": root.join(".monochange/prerelease-state.json").exists(),
+	}));
+}
+
+#[test]
+fn check_rejects_stale_prerelease_state_when_mode_is_off() {
+	let tempdir = setup_release_fixture("prerelease/stale-state-disabled");
+	let root = tempdir.path();
+
+	let stderr = check_failure(root).replace(root.to_string_lossy().as_ref(), "[workspace]");
+	let relevant_lines = stderr
+		.lines()
+		.filter(|line| line.contains("prerelease state") || line.contains("prerelease-state.json"))
+		.map(|line| line.replace("/private[workspace]", "[workspace]"))
+		.collect::<Vec<_>>();
+
+	assert_json_snapshot!(serde_json::json!({
+		"relevantLines": relevant_lines,
+	}));
+}
+
 #[test]
 fn prepare_release_persists_one_record_and_reuses_it_on_later_runs() {
-	let tempdir = setup_release_fixture();
+	let tempdir = setup_release_fixture("release-pr/ungrouped");
 	let root = tempdir.path();
 
 	let first = prepare_release(root);

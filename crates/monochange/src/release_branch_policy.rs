@@ -4,6 +4,7 @@ use std::path::Path;
 use glob::Pattern;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+use monochange_core::PrereleaseConfiguration;
 use monochange_core::ProviderReleaseSettings;
 use monochange_core::SourceConfiguration;
 use serde::Serialize;
@@ -22,6 +23,7 @@ pub(crate) struct ReleaseBranchVerificationReport {
 pub(crate) async fn verify_release_ref_for_tags(
 	root: &Path,
 	source: Option<&SourceConfiguration>,
+	prerelease: &PrereleaseConfiguration,
 	ref_name: &str,
 ) -> MonochangeResult<Option<ReleaseBranchVerificationReport>> {
 	let Some(source) = source else {
@@ -30,14 +32,14 @@ pub(crate) async fn verify_release_ref_for_tags(
 	if !source.releases.enforce_for_tags {
 		return Ok(None);
 	}
-	verify_release_ref(root, &source.releases, ref_name)
-		.await
-		.map(Some)
+	let policy = effective_release_branch_policy(&source.releases, prerelease);
+	verify_release_ref(root, &policy, ref_name).await.map(Some)
 }
 
 pub(crate) async fn verify_release_ref_for_publish(
 	root: &Path,
 	source: Option<&SourceConfiguration>,
+	prerelease: &PrereleaseConfiguration,
 	ref_name: &str,
 ) -> MonochangeResult<Option<ReleaseBranchVerificationReport>> {
 	let Some(source) = source else {
@@ -46,9 +48,8 @@ pub(crate) async fn verify_release_ref_for_publish(
 	if !source.releases.enforce_for_publish {
 		return Ok(None);
 	}
-	verify_release_ref(root, &source.releases, ref_name)
-		.await
-		.map(Some)
+	let policy = effective_release_branch_policy(&source.releases, prerelease);
+	verify_release_ref(root, &policy, ref_name).await.map(Some)
 }
 
 pub(crate) async fn verify_release_ref_for_commit(
@@ -65,6 +66,17 @@ pub(crate) async fn verify_release_ref_for_commit(
 	verify_release_ref(root, &source.releases, ref_name)
 		.await
 		.map(Some)
+}
+
+fn effective_release_branch_policy(
+	stable: &ProviderReleaseSettings,
+	prerelease: &PrereleaseConfiguration,
+) -> ProviderReleaseSettings {
+	let mut policy = stable.clone();
+	if prerelease.enabled && !prerelease.branches.is_empty() {
+		policy.branches.clone_from(&prerelease.branches);
+	}
+	policy
 }
 
 pub(crate) async fn verify_release_ref(

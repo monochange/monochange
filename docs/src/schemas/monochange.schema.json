@@ -1248,6 +1248,78 @@
 			],
 			"type": "string"
 		},
+		"PrereleaseBase": {
+			"enum": [
+				"planned",
+				"current-stable",
+				"fixed"
+			],
+			"type": "string"
+		},
+		"PrereleaseConfiguration": {
+			"additionalProperties": false,
+			"properties": {
+				"base": {
+					"$ref": "#/$defs/PrereleaseBase",
+					"default": "planned"
+				},
+				"base_version": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"branches": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"changelog": {
+					"default": false,
+					"type": "boolean"
+				},
+				"channel": {
+					"default": "alpha",
+					"type": "string"
+				},
+				"enabled": {
+					"default": false,
+					"type": "boolean"
+				},
+				"keep_changesets": {
+					"default": true,
+					"type": "boolean"
+				},
+				"numbering": {
+					"$ref": "#/$defs/PrereleaseNumbering",
+					"default": "increment"
+				},
+				"publish_packages": {
+					"default": false,
+					"type": "boolean"
+				},
+				"release_notes": {
+					"default": true,
+					"type": "boolean"
+				},
+				"write_manifests": {
+					"default": true,
+					"type": "boolean"
+				}
+			},
+			"type": "object"
+		},
+		"PrereleaseNumbering": {
+			"enum": [
+				"increment",
+				"date",
+				"datetime"
+			],
+			"type": "string"
+		},
 		"ProviderMergeRequestSettings": {
 			"additionalProperties": false,
 			"properties": {
@@ -2336,6 +2408,22 @@
 				"$ref": "#/$defs/packageDefinition"
 			},
 			"type": "object"
+		},
+		"prerelease": {
+			"$ref": "#/$defs/PrereleaseConfiguration",
+			"default": {
+				"base": "planned",
+				"base_version": null,
+				"branches": [],
+				"changelog": false,
+				"channel": "alpha",
+				"enabled": false,
+				"keep_changesets": true,
+				"numbering": "increment",
+				"publish_packages": false,
+				"release_notes": true,
+				"write_manifests": true
+			}
 		},
 		"source": {
 			"anyOf": [

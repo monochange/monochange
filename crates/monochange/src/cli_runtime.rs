@@ -898,6 +898,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						release_branch_policy::verify_release_ref_for_publish(
 							root,
 							Some(&source),
+							&configuration.prerelease,
 							&verify_ref,
 						)
 						.await?;
@@ -957,6 +958,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						release_branch_policy::verify_release_ref_for_publish(
 							root,
 							configuration.source.as_ref(),
+							&configuration.prerelease,
 							"HEAD",
 						)
 						.await?;
@@ -1230,6 +1232,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					release_branch_policy::verify_release_ref_for_tags(
 						root,
 						configuration.source.as_ref(),
+						&configuration.prerelease,
 						from,
 					)
 					.await?;

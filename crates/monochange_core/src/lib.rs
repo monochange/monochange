@@ -4640,11 +4640,95 @@ pub struct EffectiveReleaseIdentity {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PrereleaseNumbering {
+	#[default]
+	Increment,
+	Date,
+	Datetime,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum PrereleaseBase {
+	#[default]
+	Planned,
+	CurrentStable,
+	Fixed,
+}
+
+fn default_prerelease_channel() -> String {
+	"alpha".to_string()
+}
+
+fn default_prerelease_keep_changesets() -> bool {
+	true
+}
+
+fn default_prerelease_release_notes() -> bool {
+	true
+}
+
+fn default_prerelease_write_manifests() -> bool {
+	true
+}
+
+#[allow(clippy::struct_excessive_bools)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PrereleaseConfiguration {
+	#[serde(default)]
+	pub enabled: bool,
+	#[serde(default = "default_prerelease_channel")]
+	pub channel: String,
+	#[serde(default)]
+	pub numbering: PrereleaseNumbering,
+	#[serde(default)]
+	pub branches: Vec<String>,
+	#[serde(default)]
+	pub base: PrereleaseBase,
+	#[cfg_attr(feature = "schema", schemars(with = "Option<String>"))]
+	#[serde(default)]
+	pub base_version: Option<Version>,
+	#[serde(default = "default_prerelease_keep_changesets")]
+	pub keep_changesets: bool,
+	#[serde(default)]
+	pub changelog: bool,
+	#[serde(default = "default_prerelease_release_notes")]
+	pub release_notes: bool,
+	#[serde(default)]
+	pub publish_packages: bool,
+	#[serde(default = "default_prerelease_write_manifests")]
+	pub write_manifests: bool,
+}
+
+impl Default for PrereleaseConfiguration {
+	fn default() -> Self {
+		Self {
+			enabled: false,
+			channel: default_prerelease_channel(),
+			numbering: PrereleaseNumbering::default(),
+			branches: Vec::new(),
+			base: PrereleaseBase::default(),
+			base_version: None,
+			keep_changesets: default_prerelease_keep_changesets(),
+			changelog: false,
+			release_notes: default_prerelease_release_notes(),
+			publish_packages: false,
+			write_manifests: default_prerelease_write_manifests(),
+		}
+	}
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkspaceConfiguration {
 	pub root_path: PathBuf,
 	pub defaults: WorkspaceDefaults,
 	pub changelog: ChangelogSettings,
+	pub prerelease: PrereleaseConfiguration,
 	pub packages: Vec<PackageDefinition>,
 	pub groups: Vec<GroupDefinition>,
 	pub cli: Vec<CliCommandDefinition>,

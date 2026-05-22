@@ -110,6 +110,8 @@ use monochange_core::MonochangeResult;
 use monochange_core::PackageDefinition;
 use monochange_core::PackageRecord;
 use monochange_core::PackageType;
+use monochange_core::PrereleaseBase;
+use monochange_core::PrereleaseConfiguration;
 use monochange_core::ProviderMergeRequestSettings;
 use monochange_core::ProviderReleaseNotesSource;
 use monochange_core::ProviderReleaseSettings;
@@ -200,6 +202,8 @@ pub(crate) struct RawWorkspaceConfiguration {
 	cli: BTreeMap<String, RawCliCommandDefinition>,
 	#[serde(default)]
 	changesets: ChangesetSettings,
+	#[serde(default)]
+	prerelease: PrereleaseConfiguration,
 	#[serde(default)]
 	source: Option<RawSourceConfiguration>,
 	#[serde(default)]
@@ -1281,6 +1285,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		group,
 		cli,
 		changesets,
+		prerelease,
 		source,
 		lints,
 		ecosystems,
@@ -1342,6 +1347,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	validate_cli(&cli)?;
 	validate_changelog_configuration(&contents, &changelog, &packages, &groups)?;
 	validate_changesets_configuration(&changesets, &packages)?;
+	validate_prerelease_configuration(&prerelease)?;
 	let changelog = build_changelog_settings(changelog);
 	let changeset_lints = changeset_lint_settings_from_rules(&lints.rules)?;
 	validate_changeset_lint_settings(&changeset_lints, &changelog)?;
@@ -1387,6 +1393,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 			changelog_version_title: defaults.changelog_version_title,
 		},
 		changelog,
+		prerelease,
 		packages,
 		groups,
 		cli,
@@ -3881,6 +3888,44 @@ fn validate_changesets_configuration(
 	Ok(())
 }
 
+fn validate_prerelease_configuration(prerelease: &PrereleaseConfiguration) -> MonochangeResult<()> {
+	if prerelease.channel.trim().is_empty() {
+		return Err(MonochangeError::Config(
+			"[prerelease].channel must not be empty".to_string(),
+		));
+	}
+	Version::parse(&format!("0.0.0-{}.0", prerelease.channel)).map_err(|error| {
+		MonochangeError::Config(format!(
+			"[prerelease].channel must be a valid SemVer prerelease identifier: {error}"
+		))
+	})?;
+	if prerelease
+		.branches
+		.iter()
+		.any(|branch| branch.trim().is_empty())
+	{
+		return Err(MonochangeError::Config(
+			"[prerelease].branches must not contain empty branch patterns".to_string(),
+		));
+	}
+	match (prerelease.base, prerelease.base_version.as_ref()) {
+		(PrereleaseBase::Fixed, None) => Err(MonochangeError::Config(
+			"[prerelease].base_version is required when base is `fixed`".to_string(),
+		)),
+		(PrereleaseBase::Fixed, Some(version)) if !version.pre.is_empty() || !version.build.is_empty() => {
+			Err(MonochangeError::Config(
+				"[prerelease].base_version must be a stable SemVer version without prerelease or build metadata".to_string(),
+			))
+		}
+		(PrereleaseBase::Planned | PrereleaseBase::CurrentStable, Some(_)) => {
+			Err(MonochangeError::Config(
+				"[prerelease].base_version is only valid when base is `fixed`".to_string(),
+			))
+		}
+		_ => Ok(()),
+	}
+}
+
 fn validate_changeset_lint_settings(
 	settings: &ChangesetLintSettings,
 	changelog: &ChangelogSettings,
@@ -4958,6 +5003,17 @@ fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageTyp
 /// Validate configured changesets and their targets for `root`.
 pub fn validate_workspace(root: &Path) -> MonochangeResult<()> {
 	let configuration = load_workspace_configuration(root)?;
+	// patch-coverage:ignore-start -- stale prerelease state rejection is covered by config and CLI integration tests; the closing branch marker is compiler-generated.
+	if !configuration.prerelease.enabled {
+		let prerelease_state_path = root.join(".monochange/prerelease-state.json");
+		if prerelease_state_path.exists() {
+			return Err(MonochangeError::Diagnostic(format!(
+				"prerelease state exists at {} but prerelease mode is disabled; remove the state file or enable `[prerelease]`",
+				prerelease_state_path.display()
+			)));
+		}
+	}
+	// patch-coverage:ignore-end
 	let changeset_dir = root.join(".changeset");
 	if !changeset_dir.exists() {
 		return Ok(());

@@ -21,6 +21,8 @@ use monochange_core::GroupChangelogInclude;
 use monochange_core::GroupDefinition;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageRecord;
+use monochange_core::PrereleaseBase;
+use monochange_core::PrereleaseNumbering;
 use monochange_core::PublishMode;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishState;
@@ -277,6 +279,86 @@ fn load_workspace_configuration_uses_defaults_when_file_is_missing() {
 	assert_eq!(configuration.npm.enabled, None);
 	assert_eq!(configuration.deno.enabled, None);
 	assert_eq!(configuration.dart.enabled, None);
+}
+
+#[test]
+fn load_workspace_configuration_parses_prerelease_settings() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		tempdir.path().join("monochange.toml"),
+		"[prerelease]\nenabled = true\nchannel = \"rc\"\nnumbering = \"datetime\"\nbranches = [\"next\", \"prerelease/*\"]\nbase = \"fixed\"\nbase_version = \"0.0.0\"\nkeep_changesets = false\nchangelog = true\nrelease_notes = false\npublish_packages = true\nwrite_manifests = false\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let prerelease = configuration.prerelease;
+
+	assert!(prerelease.enabled);
+	assert_eq!(prerelease.channel, "rc");
+	assert_eq!(prerelease.numbering, PrereleaseNumbering::Datetime);
+	assert_eq!(prerelease.base, PrereleaseBase::Fixed);
+	assert_eq!(prerelease.base_version, Some(Version::new(0, 0, 0)));
+	assert_eq!(prerelease.branches, vec!["next", "prerelease/*"]);
+	assert!(!prerelease.keep_changesets);
+	assert!(prerelease.changelog);
+	assert!(!prerelease.release_notes);
+	assert!(prerelease.publish_packages);
+	assert!(!prerelease.write_manifests);
+
+	insta::assert_json_snapshot!(serde_json::json!({
+		"enabled": prerelease.enabled,
+		"channel": prerelease.channel,
+		"numbering": format!("{:?}", prerelease.numbering),
+		"base": format!("{:?}", prerelease.base),
+		"baseVersion": prerelease.base_version.map(|version| version.to_string()),
+		"branches": prerelease.branches,
+		"keepChangesets": prerelease.keep_changesets,
+		"changelog": prerelease.changelog,
+		"releaseNotes": prerelease.release_notes,
+		"publishPackages": prerelease.publish_packages,
+		"writeManifests": prerelease.write_manifests,
+	}));
+}
+
+#[test]
+fn load_workspace_configuration_applies_prerelease_defaults() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		tempdir.path().join("monochange.toml"),
+		"[prerelease]\nenabled = true\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let prerelease = configuration.prerelease;
+
+	assert!(prerelease.enabled);
+	assert_eq!(prerelease.channel, "alpha");
+	assert_eq!(prerelease.numbering, PrereleaseNumbering::Increment);
+	assert_eq!(prerelease.base, PrereleaseBase::Planned);
+	assert_eq!(prerelease.base_version, None);
+	assert!(prerelease.keep_changesets);
+	assert!(!prerelease.changelog);
+	assert!(prerelease.release_notes);
+	assert!(!prerelease.publish_packages);
+	assert!(prerelease.write_manifests);
+}
+
+#[test]
+fn validate_workspace_rejects_stale_prerelease_state_when_disabled() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let state_dir = tempdir.path().join(".monochange");
+	std::fs::create_dir_all(&state_dir).unwrap_or_else(|error| panic!("state dir: {error}"));
+	std::fs::write(state_dir.join("prerelease-state.json"), b"{}")
+		.unwrap_or_else(|error| panic!("state file: {error}"));
+
+	let error = validate_workspace(tempdir.path())
+		.expect_err("disabled prerelease mode should reject stale state");
+
+	assert!(error.to_string().contains("prerelease state exists"));
+	assert!(error.to_string().contains("prerelease-state.json"));
 }
 
 #[test]
@@ -6958,5 +7040,66 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 		error
 			.to_string()
 			.contains("does not contain a `package.version` string field")
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_invalid_prerelease_settings() {
+	let cases = [
+		(
+			"[prerelease]\nchannel = \" \"\n",
+			"[prerelease].channel must not be empty",
+		),
+		(
+			"[prerelease]\nchannel = \"bad channel\"\n",
+			"[prerelease].channel must be a valid SemVer prerelease identifier",
+		),
+		(
+			"[prerelease]\nbase = \"fixed\"\n",
+			"[prerelease].base_version is required when base is `fixed`",
+		),
+		(
+			"[prerelease]\nbase = \"fixed\"\nbase_version = \"1.0.0-alpha.1\"\n",
+			"[prerelease].base_version must be a stable SemVer version",
+		),
+		(
+			"[prerelease]\nbase = \"planned\"\nbase_version = \"1.0.0\"\n",
+			"[prerelease].base_version is only valid when base is `fixed`",
+		),
+		(
+			"[prerelease]\nbranches = [\"next\", \" \"]\n",
+			"[prerelease].branches must not contain empty branch patterns",
+		),
+	];
+
+	for (config, expected) in cases {
+		let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+		std::fs::write(tempdir.path().join("monochange.toml"), config)
+			.unwrap_or_else(|error| panic!("write config: {error}"));
+
+		let error = load_workspace_configuration(tempdir.path())
+			.expect_err("invalid prerelease configuration should fail");
+		assert!(
+			error.to_string().contains(expected),
+			"expected `{expected}` in `{error}`"
+		);
+	}
+}
+
+#[test]
+fn validate_workspace_configuration_rejects_leftover_prerelease_state_when_disabled() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("monochange.toml"), "")
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+	let state_path = root.join(".monochange/prerelease-state.json");
+	std::fs::create_dir_all(state_path.parent().unwrap())
+		.unwrap_or_else(|error| panic!("state dir: {error}"));
+	std::fs::write(&state_path, b"{}").unwrap_or_else(|error| panic!("state: {error}"));
+
+	let error = validate_workspace(root).expect_err("leftover state should fail");
+	assert!(
+		error.to_string().contains("prerelease state exists"),
+		"error: {error}"
 	);
 }

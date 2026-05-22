@@ -37,6 +37,7 @@ use crate::PackageLabelPlacement;
 use crate::PackageLabelStyle;
 use crate::PackageRecord;
 use crate::PackageType;
+use crate::PrereleaseConfiguration;
 use crate::ProviderMergeRequestSettings;
 use crate::ProviderReleaseSettings;
 use crate::PublishMode;
@@ -2288,6 +2289,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 		root_path: PathBuf::from("."),
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
+		prerelease: PrereleaseConfiguration::default(),
 		packages: vec![
 			PackageDefinition {
 				id: "monochange".to_string(),

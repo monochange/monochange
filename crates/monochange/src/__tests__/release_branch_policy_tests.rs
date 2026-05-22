@@ -1,6 +1,7 @@
 #![allow(clippy::disallowed_methods)]
 use std::process::Command;
 
+use monochange_core::PrereleaseConfiguration;
 use monochange_core::ProviderMergeRequestSettings;
 use monochange_core::ProviderReleaseSettings;
 use monochange_core::SourceProvider;
@@ -145,21 +146,56 @@ async fn enforcement_wrappers_verify_when_enabled() {
 	source.releases.enforce_for_commit = true;
 
 	assert!(
-		verify_release_ref_for_tags(repo.path(), Some(&source), "HEAD")
-			.await
-			.unwrap_or_else(|error| panic!("tag verification: {error}"))
-			.is_some()
+		verify_release_ref_for_tags(
+			repo.path(),
+			Some(&source),
+			&PrereleaseConfiguration::default(),
+			"HEAD"
+		)
+		.await
+		.unwrap_or_else(|error| panic!("tag verification: {error}"))
+		.is_some()
 	);
 	assert!(
-		verify_release_ref_for_publish(repo.path(), Some(&source), "HEAD")
-			.await
-			.unwrap_or_else(|error| panic!("publish verification: {error}"))
-			.is_some()
+		verify_release_ref_for_publish(
+			repo.path(),
+			Some(&source),
+			&PrereleaseConfiguration::default(),
+			"HEAD"
+		)
+		.await
+		.unwrap_or_else(|error| panic!("publish verification: {error}"))
+		.is_some()
 	);
 	assert!(
 		verify_release_ref_for_commit(repo.path(), Some(&source), "HEAD")
 			.await
 			.unwrap_or_else(|error| panic!("commit verification: {error}"))
+			.is_some()
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn enforcement_wrappers_use_prerelease_branches_when_enabled() {
+	let repo = init_git_repo();
+	let mut source = source_configuration();
+	source.releases.branches = vec!["release/*".to_string()];
+	let prerelease = PrereleaseConfiguration {
+		enabled: true,
+		branches: vec!["main".to_string()],
+		..PrereleaseConfiguration::default()
+	};
+
+	assert!(
+		verify_release_ref_for_tags(repo.path(), Some(&source), &prerelease, "HEAD")
+			.await
+			.unwrap_or_else(|error| panic!("tag verification: {error}"))
+			.is_some()
+	);
+	assert!(
+		verify_release_ref_for_publish(repo.path(), Some(&source), &prerelease, "HEAD")
+			.await
+			.unwrap_or_else(|error| panic!("publish verification: {error}"))
 			.is_some()
 	);
 }
@@ -172,28 +208,48 @@ async fn enforcement_wrappers_skip_absent_source_or_disabled_policy() {
 	source.releases.enforce_for_publish = false;
 
 	assert!(
-		verify_release_ref_for_tags(repo.path(), None, "HEAD")
-			.await
-			.unwrap_or_else(|error| panic!("tag verification: {error}"))
-			.is_none()
+		verify_release_ref_for_tags(
+			repo.path(),
+			None,
+			&PrereleaseConfiguration::default(),
+			"HEAD"
+		)
+		.await
+		.unwrap_or_else(|error| panic!("tag verification: {error}"))
+		.is_none()
 	);
 	assert!(
-		verify_release_ref_for_tags(repo.path(), Some(&source), "HEAD")
-			.await
-			.unwrap_or_else(|error| panic!("tag verification: {error}"))
-			.is_none()
+		verify_release_ref_for_tags(
+			repo.path(),
+			Some(&source),
+			&PrereleaseConfiguration::default(),
+			"HEAD"
+		)
+		.await
+		.unwrap_or_else(|error| panic!("tag verification: {error}"))
+		.is_none()
 	);
 	assert!(
-		verify_release_ref_for_publish(repo.path(), None, "HEAD")
-			.await
-			.unwrap_or_else(|error| panic!("publish verification: {error}"))
-			.is_none()
+		verify_release_ref_for_publish(
+			repo.path(),
+			None,
+			&PrereleaseConfiguration::default(),
+			"HEAD"
+		)
+		.await
+		.unwrap_or_else(|error| panic!("publish verification: {error}"))
+		.is_none()
 	);
 	assert!(
-		verify_release_ref_for_publish(repo.path(), Some(&source), "HEAD")
-			.await
-			.unwrap_or_else(|error| panic!("publish verification: {error}"))
-			.is_none()
+		verify_release_ref_for_publish(
+			repo.path(),
+			Some(&source),
+			&PrereleaseConfiguration::default(),
+			"HEAD"
+		)
+		.await
+		.unwrap_or_else(|error| panic!("publish verification: {error}"))
+		.is_none()
 	);
 	assert!(
 		verify_release_ref_for_commit(repo.path(), None, "HEAD")
