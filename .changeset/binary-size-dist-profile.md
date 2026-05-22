@@ -7,6 +7,7 @@ monochange_gitlab: patch
 monochange_hosting: patch
 monochange_publish: patch
 monochange_telemetry: patch
+monochange_test_helpers: patch
 ---
 
 Reduce binary size with dist profile, MCP feature gate, EnvFilter replacement, and ring TLS backend
