@@ -41,6 +41,15 @@ pub use git::git_output_trimmed;
 pub use insta::snapshot_settings;
 pub use rmcp::content_text;
 
+/// Install the ring crypto provider as the default for rustls.
+///
+/// Required because monochange uses `rustls-no-provider` with reqwest.
+/// Without this, any HTTPS request will panic with "No provider set".
+/// Call this once at the start of any test that makes HTTP requests.
+pub fn install_rustls_ring_provider() {
+	let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 #[macro_export]
 macro_rules! fixture_path {
 	($relative:expr) => {

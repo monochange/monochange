@@ -48,6 +48,7 @@ use monochange_core::git::run_command;
 use monochange_core::git::run_git_commit_message;
 use reqwest::Client;
 use reqwest::header::HeaderMap;
+use rustls::crypto::ring::default_provider as ring_provider;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
@@ -215,7 +216,12 @@ pub fn release_body(
 }
 
 /// Build a blocking HTTP client for provider API calls.
+///
+/// Installs the ring crypto provider for rustls if not already set, ensuring
+/// HTTPS works with the `rustls-no-provider` feature flag.
 pub fn build_http_client(provider: &str) -> MonochangeResult<Client> {
+	let _ = ring_provider().install_default();
+
 	Client::builder().build().map_err(|error| {
 		MonochangeError::Config(format!("failed to build {provider} HTTP client: {error}"))
 	})

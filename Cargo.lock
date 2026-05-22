@@ -2494,6 +2494,7 @@ dependencies = [
  "monochange_core",
  "monochange_test_helpers",
  "reqwest",
+ "rustls",
  "serde",
  "tempfile",
  "tokio",
@@ -2567,6 +2568,7 @@ version = "0.5.1"
 dependencies = [
  "monochange_core",
  "reqwest",
+ "rustls",
  "serde",
  "serde_json",
  "tempfile",
@@ -2637,7 +2639,9 @@ dependencies = [
  "insta",
  "monochange_core",
  "monochange_lint",
+ "ring",
  "rmcp",
+ "rustls",
  "shlex",
  "tempfile",
 ]
