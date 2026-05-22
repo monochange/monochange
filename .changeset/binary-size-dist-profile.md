@@ -2,6 +2,7 @@
 monochange: patch
 monochange_core: patch
 monochange_forgejo: patch
+monochange_github: patch
 monochange_gitea: patch
 monochange_gitlab: patch
 monochange_hosting: patch

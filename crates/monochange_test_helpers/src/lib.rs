@@ -45,9 +45,13 @@ pub use rmcp::content_text;
 ///
 /// Required because monochange uses `rustls-no-provider` with reqwest.
 /// Without this, any HTTPS request will panic with "No provider set".
-/// Call this once at the start of any test that makes HTTP requests.
+///
+/// Safe to call multiple times; subsequent calls are no-ops.
 pub fn install_rustls_ring_provider() {
-	let _ = rustls::crypto::ring::default_provider().install_default();
+	static INIT: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+	INIT.get_or_init(|| {
+		let _ = rustls::crypto::ring::default_provider().install_default();
+	});
 }
 
 #[macro_export]

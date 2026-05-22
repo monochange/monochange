@@ -52,6 +52,7 @@ use monochange_publish::resolve_placeholder_readme;
 use monochange_publish::resolve_registry_kind;
 use monochange_publish::write_publish_report_artifact;
 use monochange_test_helpers::git;
+use monochange_test_helpers::install_rustls_ring_provider;
 use reqwest::Client;
 use semver::Version;
 use serde_json::Value as JsonValue;
@@ -999,6 +1000,7 @@ async fn registry_version_exists_returns_false_for_missing_go_proxy_version() {
 			.path("/github.com/example/repo/@v/v1.2.3.info");
 		then.status(404);
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let request = PublishRequest {
@@ -1190,6 +1192,7 @@ async fn registry_version_exists_parses_all_supported_registry_shapes() {
 			"Time": "2026-04-28T00:00:00Z"
 		}));
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = RegistryEndpoints {
 		npm_registry: server.base_url(),
@@ -1275,6 +1278,7 @@ async fn registry_version_exists_treats_any_existing_version_as_placeholder_boot
 			"releases": { "1.0.0": [] }
 		}));
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let placeholder = |registry| {
@@ -1333,6 +1337,7 @@ async fn registry_version_exists_falls_back_to_crates_io_index_when_api_is_forbi
 		then.status(200)
 			.body("{\"name\":\"pkg\",\"vers\":\"1.2.3\"}\n");
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 
@@ -1354,6 +1359,7 @@ async fn registry_version_exists_reports_crates_io_index_fallback_failures() {
 		when.method(GET).path("/3/p/pkg");
 		then.status(500);
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let error =
@@ -1375,6 +1381,7 @@ async fn registry_version_exists_reports_crates_io_index_fallback_failures() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn crates_io_index_version_exists_handles_missing_invalid_and_nonmatching_entries() {
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 
 	let missing_server = MockServer::start();
@@ -1429,6 +1436,7 @@ async fn crates_io_index_version_exists_handles_missing_invalid_and_nonmatching_
 
 #[tokio::test(flavor = "multi_thread")]
 async fn crates_io_index_version_exists_matches_placeholder_or_requested_version() {
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let server = MockServer::start();
 	server.mock(|when, then| {
@@ -1473,6 +1481,7 @@ async fn registry_version_exists_returns_false_for_missing_packages() {
 		when.method(GET).path("/missing/json");
 		then.status(404);
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = RegistryEndpoints {
 		npm_registry: server.base_url(),
@@ -1533,6 +1542,7 @@ async fn registry_version_exists_handles_missing_and_invalid_registry_responses(
 		then.status(500).body("boom");
 	});
 
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 
@@ -3259,6 +3269,7 @@ async fn execute_publish_requests_blocks_trusted_publish_before_external_command
 		when.method(GET).path("/pkg");
 		then.status(404);
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let mut executor = FakeExecutor::new(Vec::new());
@@ -3584,6 +3595,7 @@ name = "pkg"
 version = "1.2.3"
 "#,
 	);
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let request = sample_cargo_request(root.path(), &manifest_path);
@@ -3628,6 +3640,7 @@ name = "pkg"
 version = "1.2.3"
 "#,
 	);
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let request = sample_cargo_request(root.path(), &manifest_path);
@@ -3664,6 +3677,7 @@ async fn execute_publish_requests_skips_external_and_existing_versions() {
 			"versions": { "1.2.3": {} }
 		}));
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = RegistryEndpoints {
 		npm_registry: server.base_url(),
@@ -3713,6 +3727,7 @@ async fn filter_pending_publish_requests_skips_external_and_existing_versions() 
 			"versions": { "1.2.3": {} }
 		}));
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let request = PublishRequest {
@@ -3749,6 +3764,7 @@ async fn execute_publish_requests_publishes_release_with_trust_outcome() {
 		when.method(GET).path("/pkg");
 		then.status(404);
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let root = workflow_root();
@@ -3945,6 +3961,7 @@ async fn execute_publish_requests_placeholder_dry_run_validates_publish_command(
 		when.method(GET).path("/pkg");
 		then.status(404);
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let mut executor = FakeExecutor::new(vec![CommandOutput {
@@ -3993,6 +4010,7 @@ async fn execute_publish_requests_placeholder_dry_run_surfaces_manifest_prerequi
 	)
 	.expect("write manifest:");
 
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let mut request = sample_request(RegistryKind::CratesIo);
@@ -4043,6 +4061,7 @@ async fn execute_publish_requests_publishes_placeholder_and_flags_manual_trust()
 	)
 	.expect("write manifest:");
 
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let mut request = trusted_request(RegistryKind::CratesIo);
@@ -4083,6 +4102,7 @@ async fn execute_publish_requests_surfaces_publish_command_failures() {
 		when.method(GET).path("/pkg");
 		then.status(404);
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = sample_endpoints(&server.base_url());
 	let mut executor = FakeExecutor::new(vec![CommandOutput {
@@ -4138,6 +4158,7 @@ async fn execute_publish_requests_uses_disabled_trust_outcome_for_successful_bui
 		when.method(GET).path("/pkg");
 		then.status(404);
 	});
+	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client");
 	let endpoints = sample_endpoints(&server.base_url());
 	let mut executor = FakeExecutor::new(vec![CommandOutput {

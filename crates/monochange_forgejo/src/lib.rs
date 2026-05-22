@@ -49,6 +49,7 @@ use monochange_core::SourceReleaseOperation;
 use monochange_core::SourceReleaseOutcome;
 use monochange_core::SourceReleaseRequest;
 use monochange_core::git::git_head_commit;
+use monochange_hosting::ensure_rustls_provider;
 use monochange_hosting::git_checkout_branch;
 use monochange_hosting::git_commit_paths;
 use monochange_hosting::git_push_branch;
@@ -399,6 +400,7 @@ pub async fn publish_release_requests(
 	source: &SourceConfiguration,
 	requests: &[SourceReleaseRequest],
 ) -> MonochangeResult<Vec<SourceReleaseOutcome>> {
+	ensure_rustls_provider();
 	let client = Client::builder()
 		.build()
 		.expect("failed to build Forgejo HTTP client");
@@ -427,6 +429,7 @@ pub async fn publish_release_pull_request(
 	let lookup_source = source.clone();
 	let lookup_request = request.clone();
 	let existing_pull_request = tokio::spawn(async move {
+		ensure_rustls_provider();
 		let client = Client::builder()
 			.build()
 			.expect("failed to build Forgejo HTTP client");
@@ -471,6 +474,7 @@ pub async fn publish_release_pull_request(
 		.await?;
 	}
 
+	ensure_rustls_provider();
 	let client = Client::builder()
 		.build()
 		.expect("failed to build Forgejo HTTP client");
