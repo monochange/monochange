@@ -181,11 +181,11 @@ not current manifest version
 - [x] Run tests. (`cargo test -q` passes after updating current and versioned schema assets, clippy fixes, and prerelease-state field rename.)
 - [x] Run patch coverage and reach 100%. (`350/350 (100%)` after focused tests and narrow ignores.)
 - [ ] Commit signed changes on `feat/prerelease-mode`.
-- [ ] Push branch.
-- [ ] Create pull request.
-- [ ] Monitor pull request checks.
-- [ ] Fix any CI/check failures.
-- [ ] Notify maintainer when the PR is ready for review.
+- [x] Push branch.
+- [x] Create pull request.
+- [x] Monitor pull request checks.
+- [x] Fix any CI/check failures.
+- [x] Notify maintainer when the PR is ready for review.
 
 ## Validation commands
 
@@ -226,3 +226,4 @@ If local devenv linking fails because of the known macOS SDK/libiconv issue, rec
 - 2026-05-22: Patch coverage after the first commit was 260/367 (70.84%). Added focused unit coverage for invalid prerelease config branches, prerelease numbering/base mismatch branches, grouped no-changeset prerelease state creation, and unsupported prerelease state schema handling.
 - 2026-05-22: Expanded focused prerelease/config tests for read failures, invalid channels, stale-state validation, fixed-base overrides, unplanned groups, and skipped stale/unknown state entries. Added narrow patch-coverage ignores for practically unreachable serialization and OS deletion race branches. Final patch coverage is 350/350 (100%).
 - 2026-05-22: Reran `cargo fmt --check`, `cargo llvm-cov --workspace --all-features --lcov --output-path target/coverage/lcov.info`, `pnpm node scripts/check-patch-coverage.mjs --repo-root $PWD --lcov target/coverage/lcov.info --base origin/main --head HEAD --target 100`, `cargo clippy --workspace --all-features --all-targets -- -D warnings`, `cargo build --workspace --all-features`, `cargo run -q -p monochange --bin mc -- step:validate`, and `cargo run -q -p monochange --bin mc -- check`; all pass.
+- 2026-05-22: Opened PR #522, fixed CI changeset coverage by adding all affected packages to the changeset, fixed CI formatting by running `dprint fmt` on generated schemas/docs, and confirmed the latest PR checks pass.
