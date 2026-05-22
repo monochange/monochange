@@ -4,26 +4,6 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
-## [0.6.0](https://github.com/monochange/monochange/releases/tag/v0.6.0) (2026-05-22)
-
-### 🐛 Fixed
-
-#### Add dist profile and ring TLS backend for binary size reduction
-
-- Add `[profile.dist]` for optimized CI/release builds (LTO, codegen-units=1, strip)
-- Feature-gate `rmcp`/MCP server behind `mcp` feature (default-enabled, ~313 KiB savings when disabled)
-- Replace `EnvFilter` with `LevelFilter` in tracing setup (~1.4 MiB savings from removing tracing-log and regex)
-- Switch TLS backend from `aws-lc-rs` to `ring` (~2.5 MiB binary size reduction)
-- Install ring crypto provider at startup (required for rustls-no-provider)
-- Remove `default-features = true` on `reqwest` workspace references (was re-enabling default TLS)
-- Wire `dist` profile into binary-size CI job and release workflow
-- Remove redundant `CARGO_PROFILE_RELEASE_*` env vars from release workflow
-- Add `build:dist` and `test:dist` devenv scripts for dist-profile validation
-- Add `test_dist` CI job to run tests against dist-optimized build
-- Add `build dist profile` step to CI build job (Linux only)
-
-_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #521](https://github.com/monochange/monochange/pull/521) _Introduced in:_ [`a49bbc1`](https://github.com/monochange/monochange/commit/a49bbc1eb8f04699e99de01d159de67c8f48a160)
-
 ## [0.5.1](https://github.com/monochange/monochange/releases/tag/v0.5.1) (2026-05-15)
 
 ### 📝 Changed

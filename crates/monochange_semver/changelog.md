@@ -4,16 +4,6 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
-## [0.6.0](https://github.com/monochange/monochange/releases/tag/v0.6.0) (2026-05-22)
-
-### 🚀 Feature
-
-#### add semantic semver guardrails to release planning
-
-Release planning now folds semantic analyzer evidence into compatibility assessments so public API and export diffs can raise the planned bump during previews. The guardrail is advisory: analyzer failures and uncovered semantic changes are reported as warnings instead of blocking release planning.
-
-_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #523](https://github.com/monochange/monochange/pull/523) _Introduced in:_ [`e7fcb04`](https://github.com/monochange/monochange/commit/e7fcb04f9b80b9e1578a8bb4801fde80e59aec18) _Closed issues:_ [#249](https://github.com/monochange/monochange/issues/249)
-
 ## [0.5.1](https://github.com/monochange/monochange/releases/tag/v0.5.1) (2026-05-15)
 
 ### 📝 Changed
