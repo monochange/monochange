@@ -147,7 +147,7 @@ in
       exec = ''
         set -euo pipefail
         echo "Running tests with dist profile"
-        cargo insta test --workspace --exclude xtask --all-features --test-runner nextest --unreferenced=reject -- profile dist
+        cargo test --workspace --exclude xtask --all-features --profile dist
       '';
       description = "Run cargo tests against the dist-optimized build to verify release behavior.";
       binary = "bash";

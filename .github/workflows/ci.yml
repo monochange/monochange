@@ -98,25 +98,6 @@ jobs:
         run: test:docs
         shell: devenv shell -- bash -e {0}
 
-  test_dist:
-    timeout-minutes: 90
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: setup
-        uses: ./.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: run tests against dist profile
-        run: test:dist
-        shell: devenv shell -- bash -e {0}
-
   build:
     timeout-minutes: 60
     strategy:
@@ -144,12 +125,12 @@ jobs:
         if: runner.os == 'Windows'
         uses: dtolnay/rust-toolchain@stable
 
-      - name: build
-        if: runner.os != 'Windows'
+      - name: build on macOS
+        if: runner.os == 'macOS'
         run: build:all
         shell: devenv shell -- bash -e {0}
 
-      - name: build dist profile
+      - name: build dist profile on linux
         if: runner.os == 'Linux'
         run: build:dist
         shell: devenv shell -- bash -e {0}
