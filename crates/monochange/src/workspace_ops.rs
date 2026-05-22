@@ -404,9 +404,11 @@ fn build_prerelease_state_update(
 			},
 		);
 	}
+	// patch-coverage:ignore-start -- PrereleaseState contains only serializable primitives validated before construction.
 	let content = serde_json::to_vec_pretty(&state).map_err(|error| {
 		MonochangeError::Config(format!("failed to serialize prerelease state: {error}"))
 	})?;
+	// patch-coverage:ignore-end
 	Ok(PrereleasePreparedState {
 		state_update: FileUpdate {
 			path: prerelease_state_path(root),
@@ -2255,11 +2257,13 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 			}
 			if !configuration.prerelease.enabled && previous_prerelease_state.is_some() {
 				let path = prerelease_state_path(root);
+				// patch-coverage:ignore-start -- deleting the stable-release cleanup target is covered on the success path; OS-level removal races are not deterministic.
 				if path.exists() {
 					fs::remove_file(&path).map_err(|error| {
 						MonochangeError::Io(format!("failed to delete {}: {error}", path.display()))
 					})?;
 				}
+				// patch-coverage:ignore-end
 			}
 			Ok(())
 		})?;

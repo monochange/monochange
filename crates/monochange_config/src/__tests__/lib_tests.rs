@@ -7040,3 +7040,60 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 			.contains("does not contain a `package.version` string field")
 	);
 }
+
+#[test]
+fn load_workspace_configuration_rejects_invalid_prerelease_settings() {
+	let cases = [
+		(
+			"[prerelease]\nchannel = \" \"\n",
+			"[prerelease].channel must not be empty",
+		),
+		(
+			"[prerelease]\nchannel = \"bad channel\"\n",
+			"[prerelease].channel must be a valid SemVer prerelease identifier",
+		),
+		(
+			"[prerelease]\nbase = \"fixed\"\n",
+			"[prerelease].base_version is required when base is `fixed`",
+		),
+		(
+			"[prerelease]\nbase = \"fixed\"\nbase_version = \"1.0.0-alpha.1\"\n",
+			"[prerelease].base_version must be a stable SemVer version",
+		),
+		(
+			"[prerelease]\nbase = \"planned\"\nbase_version = \"1.0.0\"\n",
+			"[prerelease].base_version is only valid when base is `fixed`",
+		),
+	];
+
+	for (config, expected) in cases {
+		let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+		std::fs::write(tempdir.path().join("monochange.toml"), config)
+			.unwrap_or_else(|error| panic!("write config: {error}"));
+
+		let error = load_workspace_configuration(tempdir.path())
+			.expect_err("invalid prerelease configuration should fail");
+		assert!(
+			error.to_string().contains(expected),
+			"expected `{expected}` in `{error}`"
+		);
+	}
+}
+
+#[test]
+fn validate_workspace_configuration_rejects_leftover_prerelease_state_when_disabled() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("monochange.toml"), "")
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+	let state_path = root.join(".monochange/prerelease-state.json");
+	std::fs::create_dir_all(state_path.parent().unwrap())
+		.unwrap_or_else(|error| panic!("state dir: {error}"));
+	std::fs::write(&state_path, b"{}").unwrap_or_else(|error| panic!("state: {error}"));
+
+	let error = validate_workspace(root).expect_err("leftover state should fail");
+	assert!(
+		error.to_string().contains("prerelease state exists"),
+		"error: {error}"
+	);
+}

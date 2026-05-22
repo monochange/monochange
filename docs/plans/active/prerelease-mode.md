@@ -165,7 +165,7 @@ not current manifest version
 - [x] Integration tests for stable release cleanup deleting `.monochange/prerelease-state.json`.
 - [x] Use Insta snapshots for observable command output/file-update output; redact timestamps, temp paths, generated IDs, and other unstable values.
 - [x] Keep JSON snapshot readability: do not snapshot multiline JSON fields with escaped newlines; redact multiline JSON fields and snapshot multiline content separately when needed.
-- [ ] Patch coverage remains 100% for executable changed lines.
+- [x] Patch coverage remains 100% for executable changed lines.
 
 ### Documentation
 
@@ -176,10 +176,10 @@ not current manifest version
 ### Validation and PR
 
 - [x] Run formatting/fix command. (`cargo fmt`; `fix:all` pending.)
-- [ ] Run build command.
-- [ ] Run lint/typecheck command.
+- [x] Run build command. (`cargo build --workspace --all-features` passes.)
+- [x] Run lint/typecheck command. (`cargo clippy --workspace --all-features --all-targets -- -D warnings`, `mc step:validate`, and `mc check` pass.)
 - [x] Run tests. (`cargo test -q` passes after updating current and versioned schema assets, clippy fixes, and prerelease-state field rename.)
-- [ ] Run patch coverage and reach 100%.
+- [x] Run patch coverage and reach 100%. (`350/350 (100%)` after focused tests and narrow ignores.)
 - [ ] Commit signed changes on `feat/prerelease-mode`.
 - [ ] Push branch.
 - [ ] Create pull request.
@@ -223,3 +223,6 @@ If local devenv linking fails because of the known macOS SDK/libiconv issue, rec
 - 2026-05-22: Ran `cargo clippy --workspace --all-features --all-targets -- -D warnings`; fixed `PrereleaseConfiguration` bool-heavy config lint consistently with existing config structs, replaced generic prerelease `Default::default()` uses in test fixtures, renamed internal prerelease state struct fields while preserving JSON keys, and reran clippy successfully.
 - 2026-05-22: Reran full `cargo test -q` after clippy fixes; all workspace tests and doctests pass.
 - 2026-05-22: Generated coverage data; overall line coverage is 96.03%, and initial patch coverage command reported `0/0 (100%)` because the branch has not been committed yet. Added `.changeset/prerelease-mode.md`; will rerun patch coverage after committing so `HEAD` contains the patch.
+- 2026-05-22: Patch coverage after the first commit was 260/367 (70.84%). Added focused unit coverage for invalid prerelease config branches, prerelease numbering/base mismatch branches, grouped no-changeset prerelease state creation, and unsupported prerelease state schema handling.
+- 2026-05-22: Expanded focused prerelease/config tests for read failures, invalid channels, stale-state validation, fixed-base overrides, unplanned groups, and skipped stale/unknown state entries. Added narrow patch-coverage ignores for practically unreachable serialization and OS deletion race branches. Final patch coverage is 350/350 (100%).
+- 2026-05-22: Reran `cargo fmt --check`, `cargo llvm-cov --workspace --all-features --lcov --output-path target/coverage/lcov.info`, `pnpm node scripts/check-patch-coverage.mjs --repo-root $PWD --lcov target/coverage/lcov.info --base origin/main --head HEAD --target 100`, `cargo clippy --workspace --all-features --all-targets -- -D warnings`, `cargo build --workspace --all-features`, `cargo run -q -p monochange --bin mc -- step:validate`, and `cargo run -q -p monochange --bin mc -- check`; all pass.

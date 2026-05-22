@@ -1656,3 +1656,302 @@ fn no_changeset_prerelease_plan_synthesizes_package_decisions() {
 		Some(semver::Version::parse("1.2.3-alpha.0").unwrap())
 	);
 }
+
+fn test_package(
+	root: &std::path::Path,
+	name: &str,
+	version: &str,
+) -> monochange_core::PackageRecord {
+	monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Cargo,
+		name,
+		root.join(format!("crates/{name}/Cargo.toml")),
+		root.to_path_buf(),
+		Some(semver::Version::parse(version).unwrap()),
+		monochange_core::PublishState::Public,
+	)
+}
+
+#[test]
+fn prerelease_identifier_covers_numbering_and_mismatched_latest_base() {
+	let stable = semver::Version::parse("2.0.0").unwrap();
+	let previous_for_other_base = semver::Version::parse("1.0.0-alpha.4").unwrap();
+	let mut config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		..Default::default()
+	};
+
+	assert_eq!(
+		prerelease_identifier(&config, &stable, Some(&previous_for_other_base)),
+		"alpha.0"
+	);
+
+	config.numbering = monochange_core::PrereleaseNumbering::Date;
+	assert!(prerelease_identifier(&config, &stable, None).starts_with("alpha.20"));
+
+	config.numbering = monochange_core::PrereleaseNumbering::Datetime;
+	assert!(prerelease_identifier(&config, &stable, None).starts_with("alpha.20"));
+}
+
+#[test]
+fn grouped_no_changeset_prerelease_plan_updates_group_and_state() {
+	let root = std::path::PathBuf::from("/workspace");
+	let mut member = test_package(&root, "member", "1.2.3");
+	member.version_group_id = Some("suite".to_string());
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: root.clone(),
+		packages: vec![member],
+		dependencies: Vec::new(),
+		version_groups: vec![monochange_core::VersionGroup {
+			group_id: "suite".to_string(),
+			display_name: "Suite".to_string(),
+			members: vec!["cargo:crates/member/Cargo.toml".to_string()],
+			mismatch_detected: false,
+		}],
+		warnings: Vec::new(),
+	};
+	let mut plan = synthesize_no_changeset_prerelease_plan(&discovery);
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		..Default::default()
+	};
+
+	apply_prerelease_versions_to_plan(&mut plan, &discovery, None, &config).unwrap();
+	assert_eq!(plan.groups.len(), 1);
+	assert_eq!(
+		plan.groups[0].planned_version.as_ref().unwrap().to_string(),
+		"1.2.3-alpha.0"
+	);
+	assert_eq!(
+		plan.decisions[0].planned_version,
+		plan.groups[0].planned_version
+	);
+
+	let prepared = build_prerelease_state_update(&root, &plan, &discovery, None, &config).unwrap();
+	let state: serde_json::Value = serde_json::from_slice(&prepared.state_update.content).unwrap();
+	assert_eq!(
+		state["groups"]["suite"]["latest_prerelease_version"],
+		serde_json::json!("1.2.3-alpha.0")
+	);
+}
+
+#[test]
+fn prerelease_state_rejects_unsupported_schema_version() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = prerelease_state_path(tempdir.path());
+	std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+	std::fs::write(
+		&path,
+		serde_json::json!({
+			"schema_version": 999,
+			"channel": "alpha",
+			"numbering": "increment",
+			"base": "planned",
+			"created_at": "2026-05-22T00:00:00Z",
+			"updated_at": "2026-05-22T00:00:00Z",
+			"packages": {},
+			"groups": {}
+		})
+		.to_string(),
+	)
+	.unwrap();
+
+	let error = load_prerelease_state(tempdir.path()).expect_err("unsupported schema should fail");
+	assert!(error.to_string().contains("unsupported schema_version 999"));
+}
+
+#[test]
+fn prerelease_state_reports_read_failures() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = prerelease_state_path(tempdir.path());
+	std::fs::create_dir_all(&path).unwrap_or_else(|error| panic!("state directory: {error}"));
+
+	let error =
+		load_prerelease_state(tempdir.path()).expect_err("directory should not load as JSON");
+	let rendered = error.to_string();
+	assert!(rendered.contains("failed to read"), "error: {rendered}");
+	assert!(
+		rendered.contains("prerelease-state.json"),
+		"error: {rendered}"
+	);
+}
+
+#[test]
+fn invalid_prerelease_channel_reports_version_build_error() {
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		channel: "alpha+bad".to_string(),
+		..Default::default()
+	};
+	let base = semver::Version::parse("1.2.3").unwrap();
+
+	let error = append_prerelease(&base, &config, None).expect_err("invalid channel should fail");
+	assert!(
+		error
+			.to_string()
+			.contains("failed to build prerelease version for `1.2.3`"),
+		"error: {error}"
+	);
+}
+
+#[test]
+fn prerelease_plan_skips_unplanned_group_and_uses_current_stable_group_base() {
+	let root = std::path::PathBuf::from("/workspace");
+	let mut member = test_package(&root, "member", "1.2.3-alpha.7");
+	member.version_group_id = Some("suite".to_string());
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: root,
+		packages: vec![member],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let mut plan = monochange_core::ReleasePlan {
+		workspace_root: std::path::PathBuf::from("/workspace"),
+		decisions: vec![monochange_core::ReleaseDecision {
+			package_id: "cargo:crates/member/Cargo.toml".to_string(),
+			trigger_type: "direct-change".to_string(),
+			recommended_bump: monochange_core::BumpSeverity::Patch,
+			planned_version: None,
+			group_id: None,
+			reasons: Vec::new(),
+			upstream_sources: Vec::new(),
+			warnings: Vec::new(),
+		}],
+		groups: vec![
+			monochange_core::PlannedVersionGroup {
+				group_id: "skipped".to_string(),
+				display_name: "Skipped".to_string(),
+				members: Vec::new(),
+				mismatch_detected: false,
+				planned_version: None,
+				recommended_bump: monochange_core::BumpSeverity::Patch,
+			},
+			monochange_core::PlannedVersionGroup {
+				group_id: "suite".to_string(),
+				display_name: "Suite".to_string(),
+				members: vec!["cargo:crates/member/Cargo.toml".to_string()],
+				mismatch_detected: false,
+				planned_version: Some(semver::Version::parse("2.0.0").unwrap()),
+				recommended_bump: monochange_core::BumpSeverity::Patch,
+			},
+		],
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		base: monochange_core::PrereleaseBase::CurrentStable,
+		..Default::default()
+	};
+
+	apply_prerelease_versions_to_plan(&mut plan, &discovery, None, &config).unwrap();
+
+	assert!(plan.groups[0].planned_version.is_none());
+	assert_eq!(
+		plan.groups[1].planned_version,
+		Some(semver::Version::parse("1.2.3-alpha.0").unwrap())
+	);
+}
+
+#[test]
+fn prerelease_state_skips_unplanned_and_unknown_entries() {
+	let root = std::path::PathBuf::from("/workspace");
+	let package = test_package(&root, "member", "1.2.3");
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: root.clone(),
+		packages: vec![package],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let plan = monochange_core::ReleasePlan {
+		workspace_root: root.clone(),
+		decisions: vec![
+			monochange_core::ReleaseDecision {
+				package_id: "cargo:crates/member/Cargo.toml".to_string(),
+				trigger_type: "direct-change".to_string(),
+				recommended_bump: monochange_core::BumpSeverity::Patch,
+				planned_version: None,
+				group_id: None,
+				reasons: Vec::new(),
+				upstream_sources: Vec::new(),
+				warnings: Vec::new(),
+			},
+			monochange_core::ReleaseDecision {
+				package_id: "missing".to_string(),
+				trigger_type: "direct-change".to_string(),
+				recommended_bump: monochange_core::BumpSeverity::Patch,
+				planned_version: Some(semver::Version::parse("1.2.4-alpha.0").unwrap()),
+				group_id: None,
+				reasons: Vec::new(),
+				upstream_sources: Vec::new(),
+				warnings: Vec::new(),
+			},
+		],
+		groups: vec![monochange_core::PlannedVersionGroup {
+			group_id: "skipped".to_string(),
+			display_name: "Skipped".to_string(),
+			members: Vec::new(),
+			mismatch_detected: false,
+			planned_version: None,
+			recommended_bump: monochange_core::BumpSeverity::Patch,
+		}],
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		..Default::default()
+	};
+
+	let prepared = build_prerelease_state_update(&root, &plan, &discovery, None, &config).unwrap();
+	let state: serde_json::Value = serde_json::from_slice(&prepared.state_update.content).unwrap();
+
+	assert_eq!(state["packages"].as_object().unwrap().len(), 0);
+	assert_eq!(state["groups"].as_object().unwrap().len(), 0);
+}
+
+#[test]
+fn fixed_prerelease_base_overrides_group_planned_version() {
+	let root = std::path::PathBuf::from("/workspace");
+	let mut member = test_package(&root, "member", "1.2.3");
+	member.version_group_id = Some("suite".to_string());
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: root,
+		packages: vec![member],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let mut plan = monochange_core::ReleasePlan {
+		workspace_root: std::path::PathBuf::from("/workspace"),
+		decisions: Vec::new(),
+		groups: vec![monochange_core::PlannedVersionGroup {
+			group_id: "suite".to_string(),
+			display_name: "Suite".to_string(),
+			members: vec!["cargo:crates/member/Cargo.toml".to_string()],
+			mismatch_detected: false,
+			planned_version: Some(semver::Version::parse("2.0.0").unwrap()),
+			recommended_bump: monochange_core::BumpSeverity::Patch,
+		}],
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		base: monochange_core::PrereleaseBase::Fixed,
+		base_version: Some(semver::Version::parse("0.5.0").unwrap()),
+		..Default::default()
+	};
+
+	apply_prerelease_versions_to_plan(&mut plan, &discovery, None, &config).unwrap();
+
+	assert_eq!(
+		plan.groups[0].planned_version,
+		Some(semver::Version::parse("0.5.0-alpha.0").unwrap())
+	);
+}

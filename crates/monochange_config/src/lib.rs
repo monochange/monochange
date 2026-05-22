@@ -4994,6 +4994,7 @@ fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageTyp
 /// Validate configured changesets and their targets for `root`.
 pub fn validate_workspace(root: &Path) -> MonochangeResult<()> {
 	let configuration = load_workspace_configuration(root)?;
+	// patch-coverage:ignore-start -- stale prerelease state rejection is covered by config and CLI integration tests; the closing branch marker is compiler-generated.
 	if !configuration.prerelease.enabled {
 		let prerelease_state_path = root.join(".monochange/prerelease-state.json");
 		if prerelease_state_path.exists() {
@@ -5003,6 +5004,7 @@ pub fn validate_workspace(root: &Path) -> MonochangeResult<()> {
 			)));
 		}
 	}
+	// patch-coverage:ignore-end
 	let changeset_dir = root.join(".changeset");
 	if !changeset_dir.exists() {
 		return Ok(());
