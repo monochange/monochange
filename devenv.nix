@@ -163,7 +163,7 @@ in
     "publish:check" = {
       exec = ''
         set -euo pipefail
-        mc publish-check || true
+        mc publish-check
       '';
       description = "Check that publication is valid for this project";
       binary = "bash";
