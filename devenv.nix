@@ -134,6 +134,24 @@ in
       description = "Build all crates with all features activated.";
       binary = "bash";
     };
+    "build:dist" = {
+      exec = ''
+        set -euo pipefail
+        echo "Building with dist profile (LTO, codegen-units=1, strip)"
+        cargo build --workspace --all-features --locked --profile dist
+      '';
+      description = "Build all crates with the dist profile for release-like optimization.";
+      binary = "bash";
+    };
+    "test:dist" = {
+      exec = ''
+        set -euo pipefail
+        echo "Running tests with dist profile"
+        cargo insta test --workspace --exclude xtask --all-features --profile dist --test-runner nextest --unreferenced=reject
+      '';
+      description = "Run cargo tests against the dist-optimized build to verify release behavior.";
+      binary = "bash";
+    };
     "build:book" = {
       exec = ''
         set -euo pipefail
