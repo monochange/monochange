@@ -11,6 +11,7 @@ use test_support::snapshot_settings;
 
 #[rstest]
 #[case::group("group")]
+#[case::group_filtered("group-filtered")]
 #[case::ungrouped("ungrouped")]
 #[case::custom_sections("custom-sections")]
 #[case::default_custom_sections("default-custom-sections")]

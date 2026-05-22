@@ -552,6 +552,11 @@ name = "published cargo packages"
 match = { ecosystems = ["cargo"], managed = true, publishable = true }
 rules = { "cargo/required-package-fields" = "error" }
 
+[[lints.scopes]]
+name = "published npm CLI package"
+match = { paths = ["packages/monochange__cli/package.json"] }
+rules = { "npm/workspace-protocol" = "off" }
+
 # =============================================================================
 # [ecosystems.*] — per-ecosystem discovery and publishing settings
 # =============================================================================
@@ -748,7 +753,6 @@ steps = [
 	{ type = "Command", name = "update json schemas", when = "{{ number_of_changesets > 0 }}", command = "cargo xtask schema release update --versioned" },
 	{ type = "Command", name = "format changed files", when = "{{ number_of_changesets > 0 }}", command = "dprint fmt --allow-no-files" },
 	{ type = "Command", name = "stage schema assets", when = "{{ number_of_changesets > 0 }}", command = "git add crates/monochange_schema/SCHEMA_VERSION crates/monochange_schema/schemas docs/src/schemas" },
-	{ type = "Command", name = "refresh shared markdown", when = "{{ number_of_changesets > 0 }}", command = "mdt update" },
 	{ type = "CommitRelease", name = "create release commit", when = "{{ number_of_changesets > 0 && inputs.commit }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
 	{ type = "OpenReleaseRequest", name = "create the pr", when = "{{ number_of_changesets > 0 && inputs.commit && inputs.create_pr }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
 ]
