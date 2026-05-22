@@ -2,6 +2,10 @@
 monochange_core: minor
 monochange_config: minor
 monochange: minor
+monochange_schema: minor
+monochange_changelog: patch
+monochange_lint: patch
+monochange_publish: patch
 ---
 
 # Add prerelease mode
