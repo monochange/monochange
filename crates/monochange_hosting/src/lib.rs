@@ -62,7 +62,7 @@ static RUSTLS_PROVIDER_INSTALLED: OnceLock<()> = OnceLock::new();
 ///
 /// Safe to call multiple times; subsequent calls are no-ops.
 pub fn ensure_rustls_provider() {
-	let _ = RUSTLS_PROVIDER_INSTALLED.get_or_init(|| {
+	let () = RUSTLS_PROVIDER_INSTALLED.get_or_init(|| {
 		let _ = ring_provider().install_default();
 	});
 }
