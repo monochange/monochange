@@ -75,12 +75,7 @@ function emojiForDelta(current, previous) {
 }
 
 function compareMode(args) {
-	const o = parseOptions(args, [
-		"--main-bin",
-		"--main-size-bytes",
-		"--pr-bin",
-		"--output",
-	]);
+	const o = parseOptions(args, ["--main-bin", "--main-size-bytes", "--pr-bin", "--output"]);
 	if (!o.prBin || !o.output) {
 		die("compare requires --pr-bin and --output");
 	}
@@ -103,25 +98,19 @@ function compareMode(args) {
 	const emoji = emojiForDelta(prSize, mainSize);
 
 	if (delta > KIB) {
-		lines.push(
-			`| PR | ${formatBytes(prSize)} | ${emoji} ${formatDelta(prSize, mainSize)} |`,
-		);
+		lines.push(`| PR | ${formatBytes(prSize)} | ${emoji} ${formatDelta(prSize, mainSize)} |`);
 		lines.push("");
 		lines.push(
 			`> ⚠️ **This PR increases the binary size by ${formatBytes(delta)} (${((delta / mainSize) * 100).toFixed(1)}%).** Consider whether new dependencies or features can be feature-gated or replaced with lighter alternatives.`,
 		);
 	} else if (delta < -KIB) {
-		lines.push(
-			`| PR | ${formatBytes(prSize)} | ${emoji} ${formatDelta(prSize, mainSize)} |`,
-		);
+		lines.push(`| PR | ${formatBytes(prSize)} | ${emoji} ${formatDelta(prSize, mainSize)} |`);
 		lines.push("");
 		lines.push(
 			`> ✅ **This PR reduces the binary size by ${formatBytes(Math.abs(delta))} (${((delta / mainSize) * 100).toFixed(1)}%).** Nice work!`,
 		);
 	} else {
-		lines.push(
-			`| PR | ${formatBytes(prSize)} | ${emoji} ${formatDelta(prSize, mainSize)} |`,
-		);
+		lines.push(`| PR | ${formatBytes(prSize)} | ${emoji} ${formatDelta(prSize, mainSize)} |`);
 		lines.push("");
 		lines.push("> No meaningful change in binary size.");
 	}
