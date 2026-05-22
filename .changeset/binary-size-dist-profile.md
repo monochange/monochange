@@ -11,7 +11,7 @@ monochange_telemetry: patch
 monochange_test_helpers: patch
 ---
 
-Reduce binary size with dist profile, MCP feature gate, EnvFilter replacement, and ring TLS backend
+# Reduce binary size with dist profile, MCP feature gate, EnvFilter replacement, and ring TLS backend
 
 - Add `[profile.dist]` for optimized CI/release builds (LTO, codegen-units=1, strip)
 - Feature-gate `rmcp`/MCP server behind `mcp` feature (default-enabled, ~313 KiB savings when disabled)
