@@ -182,6 +182,10 @@ channel = "alpha"
 numbering = "increment" # increment | date | datetime
 base = "planned" # planned | current-stable | fixed
 base_version = "0.0.0" # required when base = "fixed"
+branches = [
+	"next",
+	"prerelease/*",
+] # optional; overrides [source.releases].branches for tag/publish checks while enabled
 
 write_manifests = true
 keep_changesets = true
@@ -196,7 +200,7 @@ Base strategies:
 - `current-stable` — use the current/original stable manifest version as the prerelease base.
 - `fixed` — use `base_version`, which is useful for binary/nightly workflows such as `0.0.0-alpha.0`.
 
-When no changesets exist, prerelease mode still synthesizes release decisions from discovered packages and version groups. Repeated prerelease runs persist state in `.monochange/prerelease-state.json` so a series advances from `alpha.0` to `alpha.1` without repeatedly reapplying the same stable bump. Disable prerelease mode for the final stable release; successful stable preparation removes the state file. If prerelease mode is disabled and `.monochange/prerelease-state.json` is still present, validation/check fails so stale prerelease state is not ignored.
+When no changesets exist, prerelease mode still synthesizes release decisions from discovered packages and version groups. Repeated prerelease runs persist state in `.monochange/prerelease-state.json` so a series advances from `alpha.0` to `alpha.1` without repeatedly reapplying the same stable bump. Set `branches` when prerelease tag/publish workflow steps should be allowed from a different branch set than stable releases. Disable prerelease mode for the final stable release; successful stable preparation removes the state file. If prerelease mode is disabled and `.monochange/prerelease-state.json` is still present, validation/check fails so stale prerelease state is not ignored.
 
 ## Package publishing
 

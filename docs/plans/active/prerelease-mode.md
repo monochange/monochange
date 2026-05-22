@@ -25,6 +25,7 @@ The main correctness risk is repeated prerelease preparation. If a major changes
 - Prerelease mode keeps release notes enabled by default so hosted prerelease pages can describe the changes.
 - Prerelease mode does not publish packages by default.
 - Prerelease mode supports preparing versions even when no changesets exist; in that case it synthesizes prerelease release decisions from discovered packages/version groups and the configured base strategy.
+- Prerelease mode can override stable release branch patterns for tag/publish branch checks with `[prerelease].branches` while enabled.
 - When prerelease mode is disabled, a leftover `.monochange/prerelease-state.json` is invalid repository state and must fail validation/check/lint instead of being silently ignored.
 - A final stable release removes prerelease state after successfully preparing the stable release.
 
@@ -37,6 +38,7 @@ channel = "alpha"
 numbering = "increment" # increment | date | datetime
 base = "planned" # planned | current-stable | fixed
 base_version = "0.0.0" # required only when base = "fixed"
+branches = ["next", "prerelease/*"] # optional override for prerelease tag/publish branch policy
 
 write_manifests = true
 keep_changesets = true
@@ -227,3 +229,8 @@ If local devenv linking fails because of the known macOS SDK/libiconv issue, rec
 - 2026-05-22: Expanded focused prerelease/config tests for read failures, invalid channels, stale-state validation, fixed-base overrides, unplanned groups, and skipped stale/unknown state entries. Added narrow patch-coverage ignores for practically unreachable serialization and OS deletion race branches. Final patch coverage is 350/350 (100%).
 - 2026-05-22: Reran `cargo fmt --check`, `cargo llvm-cov --workspace --all-features --lcov --output-path target/coverage/lcov.info`, `pnpm node scripts/check-patch-coverage.mjs --repo-root $PWD --lcov target/coverage/lcov.info --base origin/main --head HEAD --target 100`, `cargo clippy --workspace --all-features --all-targets -- -D warnings`, `cargo build --workspace --all-features`, `cargo run -q -p monochange --bin mc -- step:validate`, and `cargo run -q -p monochange --bin mc -- check`; all pass.
 - 2026-05-22: Opened PR #522, fixed CI changeset coverage by adding all affected packages to the changeset, fixed CI formatting by running `dprint fmt` on generated schemas/docs, and confirmed the latest PR checks pass.
+- 2026-05-22: Addressed review feedback in the separate worktree: removed generated `schemas/artifacts/0.3` fixtures, kept regenerated schema artifacts under `schemas/artifacts/current`, moved prerelease integration scenarios into committed `fixtures/tests/prerelease/*` directories, and added `[prerelease].branches` branch-policy override support with focused tests.
+- 2026-05-22: Validated the review-feedback commit with `cargo fmt --check`, `cargo test -q`, `cargo clippy --workspace --all-features --all-targets -- -D warnings`, `cargo run -q -p monochange --bin mc -- step:validate`, `cargo run -q -p monochange --bin mc -- check`, `cargo llvm-cov --workspace --all-features --lcov --output-path target/coverage/lcov.info`, and `pnpm node scripts/check-patch-coverage.mjs --repo-root $PWD --lcov target/coverage/lcov.info --base origin/main --head HEAD --target 100`; patch coverage is 375/375 (100%).
+- 2026-05-22: CI lint failed because regenerated schema JSON files needed `dprint fmt`. Ran `dprint fmt`, confirmed `dprint check`, `cargo fmt --check`, and `cargo test -q -p monochange_integration_tests --test schema_assets` pass, and prepared an amended push.
+- 2026-05-22: CI test then exposed a parallel-test race where source follow-up command tests prepared releases directly in `fixtures/tests/monochange/release-base`, creating transient manifest-cache temp files while another test copied the fixture. Updated those tests to copy the fixture into tempdirs first; confirmed `cargo fmt --check`, `dprint check`, filtered `execute_cli_command_` tests, and `cargo test -q -p monochange` pass.
+- 2026-05-22: CI lint/release-lint then reported one `clippy::needless_borrow` from the tempdir test refactor. Removed the extra borrow and confirmed `cargo fmt --check` plus `cargo clippy --workspace --all-features --all-targets -- -D warnings` pass locally.

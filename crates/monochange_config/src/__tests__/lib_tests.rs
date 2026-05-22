@@ -286,7 +286,7 @@ fn load_workspace_configuration_parses_prerelease_settings() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	std::fs::write(
 		tempdir.path().join("monochange.toml"),
-		"[prerelease]\nenabled = true\nchannel = \"rc\"\nnumbering = \"datetime\"\nbase = \"fixed\"\nbase_version = \"0.0.0\"\nkeep_changesets = false\nchangelog = true\nrelease_notes = false\npublish_packages = true\nwrite_manifests = false\n",
+		"[prerelease]\nenabled = true\nchannel = \"rc\"\nnumbering = \"datetime\"\nbranches = [\"next\", \"prerelease/*\"]\nbase = \"fixed\"\nbase_version = \"0.0.0\"\nkeep_changesets = false\nchangelog = true\nrelease_notes = false\npublish_packages = true\nwrite_manifests = false\n",
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 
@@ -299,6 +299,7 @@ fn load_workspace_configuration_parses_prerelease_settings() {
 	assert_eq!(prerelease.numbering, PrereleaseNumbering::Datetime);
 	assert_eq!(prerelease.base, PrereleaseBase::Fixed);
 	assert_eq!(prerelease.base_version, Some(Version::new(0, 0, 0)));
+	assert_eq!(prerelease.branches, vec!["next", "prerelease/*"]);
 	assert!(!prerelease.keep_changesets);
 	assert!(prerelease.changelog);
 	assert!(!prerelease.release_notes);
@@ -311,6 +312,7 @@ fn load_workspace_configuration_parses_prerelease_settings() {
 		"numbering": format!("{:?}", prerelease.numbering),
 		"base": format!("{:?}", prerelease.base),
 		"baseVersion": prerelease.base_version.map(|version| version.to_string()),
+		"branches": prerelease.branches,
 		"keepChangesets": prerelease.keep_changesets,
 		"changelog": prerelease.changelog,
 		"releaseNotes": prerelease.release_notes,
@@ -7063,6 +7065,10 @@ fn load_workspace_configuration_rejects_invalid_prerelease_settings() {
 		(
 			"[prerelease]\nbase = \"planned\"\nbase_version = \"1.0.0\"\n",
 			"[prerelease].base_version is only valid when base is `fixed`",
+		),
+		(
+			"[prerelease]\nbranches = [\"next\", \" \"]\n",
+			"[prerelease].branches must not contain empty branch patterns",
 		),
 	];
 

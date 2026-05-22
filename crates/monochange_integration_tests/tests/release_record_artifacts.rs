@@ -15,10 +15,10 @@ fn fixture_path(relative: &str) -> PathBuf {
 		.join(relative)
 }
 
-fn setup_release_fixture() -> TempDir {
+fn setup_release_fixture(relative: &str) -> TempDir {
 	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	copy_directory(&fixture_path("release-pr/ungrouped"), root);
+	copy_directory(&fixture_path(relative), root);
 	git(root, &["init"]);
 	git(root, &["config", "user.name", "monochange-tests"]);
 	git(
@@ -92,44 +92,18 @@ fn read_prerelease_state(root: &Path) -> Value {
 	.unwrap_or_else(|error| panic!("parse state: {error}"))
 }
 
-fn enable_no_changeset_prerelease(root: &Path, base_config: &str) {
-	std::fs::remove_dir_all(root.join(".changeset"))
-		.unwrap_or_else(|error| panic!("remove changesets: {error}"));
-	enable_prerelease(root, base_config);
-}
-
-fn enable_prerelease(root: &Path, base_config: &str) {
-	let config_path = root.join("monochange.toml");
-	let mut config = std::fs::read_to_string(&config_path)
-		.unwrap_or_else(|error| panic!("read config: {error}"));
-	config.push_str(
-		"\n[prerelease]\nenabled = true\nchannel = \"alpha\"\nnumbering = \"increment\"\n",
-	);
-	config.push_str(base_config);
-	std::fs::write(&config_path, config).unwrap_or_else(|error| panic!("write config: {error}"));
-}
-
-fn disable_prerelease(root: &Path) {
-	let config_path = root.join("monochange.toml");
-	let config = std::fs::read_to_string(&config_path)
-		.unwrap_or_else(|error| panic!("read config: {error}"))
-		.replace("enabled = true", "enabled = false");
-	std::fs::write(&config_path, config).unwrap_or_else(|error| panic!("write config: {error}"));
-}
-
 #[test]
 fn prepare_release_supports_prerelease_without_changesets() {
 	let cases = [
-		("planned", "base = \"planned\"\n"),
-		("current-stable", "base = \"current-stable\"\n"),
-		("fixed", "base = \"fixed\"\nbase_version = \"0.0.0\"\n"),
+		("planned", "prerelease/no-changesets-planned"),
+		("current-stable", "prerelease/no-changesets-current-stable"),
+		("fixed", "prerelease/no-changesets-fixed"),
 	];
 	let mut outputs = serde_json::Map::new();
 
-	for (case_name, base_config) in cases {
-		let tempdir = setup_release_fixture();
+	for (case_name, fixture) in cases {
+		let tempdir = setup_release_fixture(fixture);
 		let root = tempdir.path();
-		enable_no_changeset_prerelease(root, base_config);
 
 		let prepared = prepare_release(root);
 		let state = read_prerelease_state(root);
@@ -147,9 +121,8 @@ fn prepare_release_supports_prerelease_without_changesets() {
 
 #[test]
 fn prepare_release_increments_repeated_no_changeset_prereleases_from_json_state() {
-	let tempdir = setup_release_fixture();
+	let tempdir = setup_release_fixture("prerelease/no-changesets-planned");
 	let root = tempdir.path();
-	enable_no_changeset_prerelease(root, "base = \"planned\"\n");
 
 	let first = prepare_release(root);
 	let first_state = read_prerelease_state(root);
@@ -168,15 +141,18 @@ fn prepare_release_increments_repeated_no_changeset_prereleases_from_json_state(
 
 #[test]
 fn prepare_stable_release_removes_prerelease_state() {
-	let tempdir = setup_release_fixture();
+	let tempdir = setup_release_fixture("prerelease/with-changesets-planned");
 	let root = tempdir.path();
-	enable_prerelease(root, "base = \"planned\"\n");
 
 	let prerelease = prepare_release(root);
 	assert!(root.join(".monochange/prerelease-state.json").exists());
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "prepare alpha 0"]);
-	disable_prerelease(root);
+	let config_path = root.join("monochange.toml");
+	let config = std::fs::read_to_string(&config_path)
+		.unwrap_or_else(|error| panic!("read config: {error}"))
+		.replace("enabled = true", "enabled = false");
+	std::fs::write(&config_path, config).unwrap_or_else(|error| panic!("write config: {error}"));
 
 	let stable = prepare_release(root);
 	assert!(!root.join(".monochange/prerelease-state.json").exists());
@@ -190,12 +166,8 @@ fn prepare_stable_release_removes_prerelease_state() {
 
 #[test]
 fn check_rejects_stale_prerelease_state_when_mode_is_off() {
-	let tempdir = setup_release_fixture();
+	let tempdir = setup_release_fixture("prerelease/stale-state-disabled");
 	let root = tempdir.path();
-	let state_dir = root.join(".monochange");
-	std::fs::create_dir_all(&state_dir).unwrap_or_else(|error| panic!("state dir: {error}"));
-	std::fs::write(state_dir.join("prerelease-state.json"), b"{}")
-		.unwrap_or_else(|error| panic!("state file: {error}"));
 
 	let stderr = check_failure(root).replace(root.to_string_lossy().as_ref(), "[workspace]");
 	let relevant_lines = stderr
@@ -211,7 +183,7 @@ fn check_rejects_stale_prerelease_state_when_mode_is_off() {
 
 #[test]
 fn prepare_release_persists_one_record_and_reuses_it_on_later_runs() {
-	let tempdir = setup_release_fixture();
+	let tempdir = setup_release_fixture("release-pr/ungrouped");
 	let root = tempdir.path();
 
 	let first = prepare_release(root);

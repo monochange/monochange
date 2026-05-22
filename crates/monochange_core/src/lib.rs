@@ -4686,6 +4686,8 @@ pub struct PrereleaseConfiguration {
 	#[serde(default)]
 	pub numbering: PrereleaseNumbering,
 	#[serde(default)]
+	pub branches: Vec<String>,
+	#[serde(default)]
 	pub base: PrereleaseBase,
 	#[cfg_attr(feature = "schema", schemars(with = "Option<String>"))]
 	#[serde(default)]
@@ -4708,6 +4710,7 @@ impl Default for PrereleaseConfiguration {
 			enabled: false,
 			channel: default_prerelease_channel(),
 			numbering: PrereleaseNumbering::default(),
+			branches: Vec::new(),
 			base: PrereleaseBase::default(),
 			base_version: None,
 			keep_changesets: default_prerelease_keep_changesets(),

@@ -1270,6 +1270,13 @@
 						"null"
 					]
 				},
+				"branches": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
 				"changelog": {
 					"default": false,
 					"type": "boolean"
@@ -2407,6 +2414,7 @@
 			"default": {
 				"base": "planned",
 				"base_version": null,
+				"branches": [],
 				"changelog": false,
 				"channel": "alpha",
 				"enabled": false,

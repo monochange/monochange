@@ -7082,9 +7082,11 @@ async fn execute_cli_command_release_follow_up_steps_require_prepare_release() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn execute_cli_command_source_follow_up_steps_require_source_configuration() {
-	let root = fixture_path("monochange/release-base");
-	let mut configuration = load_workspace_configuration(&root)
-		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	let root = tempdir.path();
+	let mut configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
 	configuration.source = Some(monochange_core::SourceConfiguration {
 		provider: monochange_core::SourceProvider::GitLab,
 		host: Some("https://gitlab.example.com".to_string()),
@@ -7116,7 +7118,7 @@ async fn execute_cli_command_source_follow_up_steps_require_source_configuration
 		dry_run: false,
 	};
 	let error = crate::execute_cli_command(
-		&root,
+		root,
 		&configuration,
 		&prepare_and_publish,
 		true,
@@ -7134,9 +7136,11 @@ async fn execute_cli_command_source_follow_up_steps_require_source_configuration
 
 #[tokio::test(flavor = "multi_thread")]
 async fn execute_cli_command_comment_released_issues_requires_source_configuration() {
-	let root = fixture_path("monochange/release-base");
-	let mut configuration = load_workspace_configuration(&root)
-		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	let root = tempdir.path();
+	let mut configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
 	configuration.source = None;
 	let cli_command = CliCommandDefinition {
 		name: "release-comments".to_string(),
@@ -7161,7 +7165,7 @@ async fn execute_cli_command_comment_released_issues_requires_source_configurati
 	};
 
 	let error =
-		crate::execute_cli_command(&root, &configuration, &cli_command, true, BTreeMap::new())
+		crate::execute_cli_command(root, &configuration, &cli_command, true, BTreeMap::new())
 			.await
 			.err()
 			.unwrap_or_else(|| panic!("expected missing source configuration error"));
@@ -7175,9 +7179,11 @@ async fn execute_cli_command_comment_released_issues_requires_source_configurati
 
 #[tokio::test(flavor = "multi_thread")]
 async fn execute_cli_command_publish_and_request_steps_require_source_configuration() {
-	let root = fixture_path("monochange/release-base");
-	let mut configuration = load_workspace_configuration(&root)
-		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	let root = tempdir.path();
+	let mut configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
 	configuration.source = None;
 
 	let cases = [
@@ -7223,7 +7229,7 @@ async fn execute_cli_command_publish_and_request_steps_require_source_configurat
 			dry_run: false,
 		};
 		let error =
-			crate::execute_cli_command(&root, &configuration, &cli_command, true, BTreeMap::new())
+			crate::execute_cli_command(root, &configuration, &cli_command, true, BTreeMap::new())
 				.await
 				.err()
 				.unwrap_or_else(|| panic!("expected missing source error for {name}"));

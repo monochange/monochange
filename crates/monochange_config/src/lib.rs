@@ -3899,6 +3899,15 @@ fn validate_prerelease_configuration(prerelease: &PrereleaseConfiguration) -> Mo
 			"[prerelease].channel must be a valid SemVer prerelease identifier: {error}"
 		))
 	})?;
+	if prerelease
+		.branches
+		.iter()
+		.any(|branch| branch.trim().is_empty())
+	{
+		return Err(MonochangeError::Config(
+			"[prerelease].branches must not contain empty branch patterns".to_string(),
+		));
+	}
 	match (prerelease.base, prerelease.base_version.as_ref()) {
 		(PrereleaseBase::Fixed, None) => Err(MonochangeError::Config(
 			"[prerelease].base_version is required when base is `fixed`".to_string(),

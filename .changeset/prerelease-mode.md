@@ -14,7 +14,7 @@ Add first-class prerelease configuration and release planning support.
 
 Prerelease mode now writes `.monochange/prerelease-state.json`, preserves the original stable baseline across repeated prerelease preparations, supports planned/current/fixed stable bases, and can synthesize prerelease plans without changesets.
 
-Validation now rejects stale prerelease state when prerelease mode is disabled, and stable release preparation removes the prerelease state file.
+Validation now rejects stale prerelease state when prerelease mode is disabled, stable release preparation removes the prerelease state file, and `[prerelease].branches` can override stable release branch restrictions for prerelease tag/publish steps.
 
 Enable incrementing alpha prereleases from the next planned stable version:
 
@@ -24,6 +24,7 @@ enabled = true
 channel = "alpha"
 numbering = "increment"
 base = "planned"
+branches = ["next", "prerelease/*"]
 ```
 
 Use release-candidate prereleases from the current stable baseline when you want a tagged binary build without applying changeset bump severity yet:
