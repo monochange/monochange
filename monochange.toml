@@ -441,7 +441,7 @@ versioned_files = [
 # Use "group-only" to show only direct group-targeted changesets.
 # Use an array to allow only specific group members to contribute notes.
 # include = ["monochange"]
-changelog = { path = "changelog.md", format = "monochange", include = ["monochange"] }
+changelog = { path = "changelog.md", format = "monochange", include = "all" }
 
 # =============================================================================
 # [changesets.affected] — changeset verification settings
