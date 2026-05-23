@@ -25,7 +25,7 @@ in
       jq
       mdbook
       nixfmt
-      pnpm_10
+      pnpm
       nodejs_24
       python3
       rustup
