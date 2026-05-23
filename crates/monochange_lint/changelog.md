@@ -4,6 +4,67 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.0](https://github.com/monochange/monochange/releases/tag/v0.6.0) (2026-05-23)
+
+### 🐛 Fixed
+
+#### add missing crate metadata and align READMEs with badge template
+
+- Add `keywords` to `monochange_analysis`, `monochange_lint`, and `monochange_linting`
+- Add `authors`, `categories`, `homepage`, `readme`, `rust-version`, and `keywords` to `monochange_test_helpers`
+- Update `monochange_lint`, `monochange_linting`, and `monochange_test_helpers` READMEs to use the badge-row template consistent with other published crates
+
+No API changes. crates.io metadata and documentation only.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #512](https://github.com/monochange/monochange/pull/512) _Introduced in:_ [`f7bc995`](https://github.com/monochange/monochange/commit/f7bc9950aaa58983c2d9b3d53ec1a942debc263d) _Last updated in:_ [`88b520e`](https://github.com/monochange/monochange/commit/88b520ec51b76c79348595abc66a573761da4d63)
+
+#### Add prerelease mode
+
+Add first-class prerelease configuration and release planning support.
+
+Prerelease mode now writes `.monochange/prerelease-state.json`, preserves the original stable baseline across repeated prerelease preparations, supports planned/current/fixed stable bases, and can synthesize prerelease plans without changesets.
+
+Validation now rejects stale prerelease state when prerelease mode is disabled, stable release preparation removes the prerelease state file, and `[prerelease].branches` can override stable release branch restrictions for prerelease tag/publish steps.
+
+Enable incrementing alpha prereleases from the next planned stable version:
+
+```toml
+[prerelease]
+enabled = true
+channel = "alpha"
+numbering = "increment"
+base = "planned"
+branches = ["next", "prerelease/*"]
+```
+
+Use release-candidate prereleases from the current stable baseline when you want a tagged binary build without applying changeset bump severity yet:
+
+```toml
+[prerelease]
+enabled = true
+channel = "rc"
+numbering = "increment"
+base = "current-stable"
+publish_packages = false
+```
+
+Use a fixed `0.0.0` nightly-style prerelease line with date-based identifiers:
+
+```toml
+[prerelease]
+enabled = true
+channel = "nightly"
+numbering = "date"
+base = "fixed"
+base_version = "0.0.0"
+keep_changesets = true
+changelog = false
+release_notes = true
+publish_packages = false
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #522](https://github.com/monochange/monochange/pull/522) _Introduced in:_ [`9a5fe30`](https://github.com/monochange/monochange/commit/9a5fe305600c17364f8916fe9cfc160825dfda5c) _Last updated in:_ [`88b520e`](https://github.com/monochange/monochange/commit/88b520ec51b76c79348595abc66a573761da4d63)
+
 ## [0.5.1](https://github.com/monochange/monochange/releases/tag/v0.5.1) (2026-05-15)
 
 ### 📝 Changed
