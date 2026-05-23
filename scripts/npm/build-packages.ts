@@ -98,7 +98,7 @@ export const platforms = [
 ];
 
 export function parseArgs(argv) {
-	const args = {};
+	const args: Record<string, string> = {};
 	for (let index = 0; index < argv.length; index += 1) {
 		const key = argv[index];
 		const value = argv[index + 1];
@@ -115,7 +115,7 @@ export function ensureDirectory(path) {
 	mkdirSync(path, { recursive: true });
 }
 
-export function run(command, args, options = {}) {
+export function run(command, args, options: { stdio?: "pipe" | "inherit"; cwd?: string } = {}) {
 	const result = _spawnSync(command, args, {
 		encoding: "utf8",
 		stdio: options.stdio ?? "pipe",
@@ -197,7 +197,7 @@ export function main(argv = process.argv.slice(2)) {
 	const assetsDir = resolve(args["assets-dir"] ?? "");
 
 	if (!releaseTag || !args["assets-dir"]) {
-		throw new Error("usage: build-packages.mjs --release-tag <vX.Y.Z> --assets-dir <dir>");
+		throw new Error("usage: build-packages.ts --release-tag <vX.Y.Z> --assets-dir <dir>");
 	}
 
 	const packagesDir = join(repoRoot, "packages");

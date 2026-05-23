@@ -235,7 +235,8 @@ in
     "test:node" = {
       exec = ''
         set -euo pipefail
-        pnpm vitest run --exclude 'worktrees/**' scripts/npm/tests/*.test.mjs
+        pnpm build
+        pnpm vitest run --exclude 'worktrees/**' scripts/npm/tests/*.test.ts
       '';
       description = "Run npm helper, launcher, and repository utility tests with Vitest.";
       binary = "bash";
@@ -270,7 +271,7 @@ in
           coverage:all
         fi
 
-        pnpm node scripts/check-patch-coverage.mjs \
+        pnpm node scripts/check-patch-coverage.ts \
           --repo-root "$DEVENV_ROOT" \
           --lcov target/coverage/lcov.info \
           --base "$base_ref" \
@@ -355,6 +356,7 @@ in
     "lint:workflows" = {
       exec = ''
         set -euo pipefail
+        export PATH="$HOME/.cargo/bin:$PATH"
         if ! command -v zizmor >/dev/null 2>&1; then
           echo "Installing zizmor via cargo-binstall..."
           cargo binstall zizmor --no-confirm
@@ -390,8 +392,8 @@ in
         lint:architecture
         lint:root-git-config
         lint:js
-        lint:workflows
         lint:js:types
+        lint:workflows
         deny:check
         docs:check
         lint:monochange
@@ -429,7 +431,7 @@ in
     "lint:architecture" = {
       exec = ''
         set -euo pipefail
-        pnpm node scripts/check-architecture-boundaries.mjs
+        pnpm node scripts/check-architecture-boundaries.ts
       '';
       description = "Check that provider and ecosystem dispatch stays inside the documented allowlist.";
       binary = "bash";
@@ -494,7 +496,7 @@ in
     "fix:js" = {
       exec = ''
         set -euo pipefail
-        pnpm oxfmt --write '**/*.{js,mjs,ts,mts}'
+        pnpm oxfmt --write '**/*.ts'
         pnpm oxlint --type-aware --fix .
       '';
       description = "Format all JS/TS files with oxfmt.";
@@ -503,7 +505,7 @@ in
     "build:js" = {
       exec = ''
         set -euo pipefail
-        pnpm tsdown
+        pnpm build
       '';
       description = "Bundle JS/TS entry points with tsdown.";
       binary = "bash";
@@ -529,7 +531,7 @@ in
         set -euo pipefail
         mdt check
         skill:commands:check
-        pnpm node scripts/check-agent-surface.mjs
+        pnpm node scripts/check-agent-surface.ts
       '';
       description = "Check that shared documentation blocks are synchronized and agent-facing docs stay aligned with the repo surface.";
       binary = "bash";

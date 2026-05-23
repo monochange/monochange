@@ -1,6 +1,7 @@
 {
 	"name": "@monochange/root",
 	"private": true,
+	"type": "module",
 	"description": "Monorepo root for monochange npm packages",
 	"license": "Unlicense",
 	"repository": {
@@ -9,14 +10,15 @@
 	},
 	"scripts": {
 		"check": "tsgo -config tsconfig.json",
-		"fmt": "oxfmt --write \"**/*.{js,mjs,ts,mts}\"",
-		"fmt:check": "oxfmt --check \"**/*.{js,mjs,ts,mts}\"",
+		"fmt": "oxfmt --write \"**/*.ts\"",
+		"fmt:check": "oxfmt --check \"**/*.ts\"",
 		"lint": "oxlint --type-aware .",
 		"lint:syntax": "oxlint .",
 		"build": "tsdown"
 	},
 	"devDependencies": {
 		"@rslint/tsgo": "^0.5.0",
+		"@types/node": "^24.10.1",
 		"oxfmt": "^0.46.0",
 		"oxlint": "^1.61.0",
 		"oxlint-tsgolint": "^0.22.0",

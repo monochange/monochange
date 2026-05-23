@@ -38,7 +38,11 @@ function die(message) {
 	process.exit(1);
 }
 
-function run(command, args, options = {}) {
+function run(
+	command,
+	args,
+	options: { stdio?: "pipe" | "inherit"; cwd?: string; env?: NodeJS.ProcessEnv } = {},
+) {
 	const result = spawnSync(command, args, {
 		encoding: "utf8",
 		stdio: options.stdio ?? "pipe",
@@ -53,7 +57,7 @@ function run(command, args, options = {}) {
 }
 
 function parseOptions(args, names) {
-	const options = {};
+	const options: Record<string, string> = {};
 	for (let index = 0; index < args.length; index += 1) {
 		const key = args[index];
 		if (!names.includes(key)) die(`unknown argument: ${key}`);
@@ -376,7 +380,7 @@ function renderPhaseMarkdown(
 function collectPhaseMarkdown(scenarioId, fixtureDir, mainBin, prBin, phasePath, violationsPath) {
 	const paths = ["dry-main", "dry-pr", "release-main", "release-pr"].map((name) =>
 		tempPath(`-${name}.json`),
-	);
+	) as [string, string, string, string];
 	if (supportsJsonProgress(mainBin)) {
 		const dry = tempPath("-dry-main.jsonl");
 		const release = tempPath("-release-main.jsonl");

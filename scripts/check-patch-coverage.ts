@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 
 export function parseArgs(argv) {
-	const options = {};
+	const options: Record<string, string> = {};
 
 	for (let index = 0; index < argv.length; index += 1) {
 		const token = argv[index];
@@ -140,6 +140,11 @@ function buildIgnoreRangeChecker() {
 	return (filePath, lineNumber) => {
 		if (!cache.has(filePath)) {
 			const ranges = [];
+			if (!existsSync(filePath)) {
+				cache.set(filePath, ranges);
+				return false;
+			}
+
 			let start = null;
 			for (const [index, line] of readFileSync(filePath, "utf8").split(/\r?\n/u).entries()) {
 				const currentLine = index + 1;

@@ -65,6 +65,10 @@ jobs:
         run: pnpm oxlint .
         shell: devenv shell -- bash -e {0}
 
+      - name: typecheck js
+        run: lint:js:types
+        shell: devenv shell -- bash -e {0}
+
       - name: cargo deny
         run: deny:check
         shell: devenv shell -- bash -e {0}
@@ -265,7 +269,7 @@ jobs:
         id: prepare-codecov-flags
         if: always()
         run: |
-          pnpm node scripts/prepare-codecov-flags.mjs \
+          pnpm node scripts/prepare-codecov-flags.ts \
             --lcov target/coverage/lcov.info \
             --out-dir target/coverage/flags \
             --github-output "$GITHUB_OUTPUT"
@@ -403,7 +407,7 @@ jobs:
       - name: run CLI benchmarks
         id: bench
         run: |
-          pnpm node scripts/benchmark-cli.mjs run \
+          pnpm node scripts/benchmark-cli.ts run \
             --main-bin /tmp/mc-main \
             --pr-bin /tmp/mc-pr \
             --output /tmp/benchmark-comment.md \
@@ -468,7 +472,7 @@ jobs:
       - name: compare binary sizes
         id: size
         run: |
-          pnpm node scripts/binary-size.mjs compare \
+          pnpm node scripts/binary-size.ts compare \
             --main-bin /tmp/mc-main \
             --pr-bin /tmp/mc-pr \
             --output /tmp/size-comment.md

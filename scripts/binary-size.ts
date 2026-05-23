@@ -8,12 +8,12 @@
  * benchmark-binary job.
  *
  * Usage:
- *   node scripts/binary-size.mjs compare \
+ *   node scripts/binary-size.ts compare \
  *     --main-bin /tmp/mc-main \
  *     --pr-bin /tmp/mc-pr \
  *     --output /tmp/size-comment.md
  *
- *   node scripts/binary-size.mjs compare \
+ *   node scripts/binary-size.ts compare \
  *     --main-bin /tmp/mc-main \
  *     --main-size-bytes 30_886_048 \
  *     --pr-bin /tmp/mc-pr \
@@ -35,7 +35,7 @@ function die(message) {
 }
 
 function parseOptions(args, names) {
-	const options = {};
+	const options: Record<string, string> = {};
 	for (let index = 0; index < args.length; index += 1) {
 		const key = args[index];
 		if (!names.includes(key)) die(`unknown argument: ${key}`);

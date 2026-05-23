@@ -73,4 +73,4 @@ The binary benchmark workflow uses `--progress-format json` to extract `PrepareR
 
 Those timings are summarized and compared against `scripts/benchmark-phase-budgets.json`, which lets pull requests fail when real release-path regressions exceed the configured budget.
 
-For hosted-provider analysis outside CI, `pnpm node scripts/benchmark-cli.mjs run-fixture` can benchmark an existing repository checkout and render the same markdown summary against a real hosted fixture. See [Hosted release benchmarks](./hosted-release-benchmarks.md).
+For hosted-provider analysis outside CI, `pnpm node scripts/benchmark-cli.ts run-fixture` can benchmark an existing repository checkout and render the same markdown summary against a real hosted fixture. See [Hosted release benchmarks](./hosted-release-benchmarks.md).
