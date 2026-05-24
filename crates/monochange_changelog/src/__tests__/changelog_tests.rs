@@ -1976,10 +1976,10 @@ fn snapshot_metadata_styles_render_context_blocks() {
 	// Inline style without a PR should include commit links
 	let mut changeset_no_pr = changeset.clone();
 	// Remove the review request from the introduced revision to test commit inclusion
-	if let Some(ref mut context) = changeset_no_pr.context {
-		if let Some(ref mut introduced) = context.introduced {
-			introduced.review_request = None;
-		}
+	if let Some(ref mut context) = changeset_no_pr.context
+		&& let Some(ref mut introduced) = context.introduced
+	{
+		introduced.review_request = None;
 	}
 	let inline_no_pr =
 		build_rendered_changeset_context(tempdir.path(), &changeset_no_pr, MetadataStyle::Inline);
