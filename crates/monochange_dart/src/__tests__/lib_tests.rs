@@ -69,7 +69,12 @@ fn marks_flutter_packages_with_dart_ecosystem_and_metadata() {
 			"all Dart/Flutter packages should have ecosystem = dart"
 		);
 		// Flutter packages should have is_flutter metadata set
-		if package.name.contains("flutter") || package.metadata.get("is_flutter").is_some_and(|v| v == "true") {
+		if package.name.contains("flutter")
+			|| package
+				.metadata
+				.get("is_flutter")
+				.is_some_and(|v| v == "true")
+		{
 			assert_eq!(
 				package.metadata.get("is_flutter"),
 				Some(&"true".to_string()),
@@ -175,7 +180,9 @@ fn default_lockfile_commands_choose_dart_or_flutter_pub_get() {
 		Some(Version::new(1, 0, 0)),
 		PublishState::Public,
 	);
-	flutter_package.metadata.insert("is_flutter".to_string(), "true".to_string());
+	flutter_package
+		.metadata
+		.insert("is_flutter".to_string(), "true".to_string());
 	assert_eq!(
 		default_lockfile_commands(&flutter_package),
 		vec![monochange_core::LockfileCommandExecution {

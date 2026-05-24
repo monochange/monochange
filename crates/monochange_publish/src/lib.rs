@@ -1686,11 +1686,7 @@ fn build_dart_publish_command(request: &PublishRequest, cwd: &Path) -> CommandSp
 		.package_metadata
 		.get("is_flutter")
 		.is_some_and(|v| v == "true");
-	let program = if is_flutter {
-		"flutter"
-	} else {
-		"dart"
-	};
+	let program = if is_flutter { "flutter" } else { "dart" };
 	CommandSpec {
 		program: program.to_string(),
 		args: vec![

@@ -919,9 +919,7 @@ fn render_annotated_init_config(
 	let has_cargo = packages.iter().any(|p| p.ecosystem == Ecosystem::Cargo);
 	let has_npm = packages.iter().any(|p| p.ecosystem == Ecosystem::Npm);
 	let has_deno = packages.iter().any(|p| p.ecosystem == Ecosystem::Deno);
-	let has_dart = packages
-		.iter()
-		.any(|p| p.ecosystem == Ecosystem::Dart);
+	let has_dart = packages.iter().any(|p| p.ecosystem == Ecosystem::Dart);
 	let has_python = packages.iter().any(|p| p.ecosystem == Ecosystem::Python);
 	let has_go = packages.iter().any(|p| p.ecosystem == Ecosystem::Go);
 

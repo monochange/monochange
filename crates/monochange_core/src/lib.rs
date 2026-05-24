@@ -265,7 +265,12 @@ impl<'de> Deserialize<'de> for Ecosystem {
 			"dart" | "flutter" => Ok(Ecosystem::Dart),
 			"python" => Ok(Ecosystem::Python),
 			"go" => Ok(Ecosystem::Go),
-			_ => Err(serde::de::Error::unknown_variant(&s, &["cargo", "npm", "deno", "dart", "python", "go"])),
+			_ => {
+				Err(serde::de::Error::unknown_variant(
+					&s,
+					&["cargo", "npm", "deno", "dart", "python", "go"],
+				))
+			}
 		}
 	}
 }
@@ -633,7 +638,12 @@ impl<'de> Deserialize<'de> for PackageType {
 			"dart" | "flutter" => Ok(PackageType::Dart),
 			"python" => Ok(PackageType::Python),
 			"go" => Ok(PackageType::Go),
-			_ => Err(serde::de::Error::unknown_variant(&s, &["cargo", "npm", "deno", "dart", "python", "go"])),
+			_ => {
+				Err(serde::de::Error::unknown_variant(
+					&s,
+					&["cargo", "npm", "deno", "dart", "python", "go"],
+				))
+			}
 		}
 	}
 }
@@ -5116,11 +5126,16 @@ impl EcosystemRegistry {
 						let handle = scope.spawn(move || adapter.discover(root));
 						(ecosystem, handle)
 					})
-					.map(|(ecosystem, handle)| (ecosystem, handle.join().unwrap_or_else(|_| {
-						Err(MonochangeError::Discovery(
-							"ecosystem discovery worker panicked".to_string(),
-						))
-					})))
+					.map(|(ecosystem, handle)| {
+						(
+							ecosystem,
+							handle.join().unwrap_or_else(|_| {
+								Err(MonochangeError::Discovery(
+									"ecosystem discovery worker panicked".to_string(),
+								))
+							}),
+						)
+					})
 					.collect()
 			});
 
@@ -5134,9 +5149,7 @@ impl EcosystemRegistry {
 					warnings.append(&mut discovery.warnings.clone());
 				}
 				Err(error) => {
-					tracing::warn!(
-						"skipping {ecosystem} discovery due to error: {error}"
-					);
+					tracing::warn!("skipping {ecosystem} discovery due to error: {error}");
 					warnings.push(format!(
 						"skipping {ecosystem} discovery due to error: {error}"
 					));

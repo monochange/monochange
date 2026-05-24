@@ -4991,9 +4991,10 @@ fn package_matches_definition(
 fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageType) -> bool {
 	matches!(
 		(ecosystem, package_type),
-		(Ecosystem::Cargo, PackageType::Cargo) | (Ecosystem::Npm, PackageType::Npm) |
-(Ecosystem::Deno, PackageType::Deno) |
-(Ecosystem::Dart, PackageType::Dart)
+		(Ecosystem::Cargo, PackageType::Cargo)
+			| (Ecosystem::Npm, PackageType::Npm)
+			| (Ecosystem::Deno, PackageType::Deno)
+			| (Ecosystem::Dart, PackageType::Dart)
 	)
 }
 

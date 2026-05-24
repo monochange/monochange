@@ -232,7 +232,9 @@ impl crate::EcosystemAdapter for FailingDiscoveryAdapter {
 	}
 
 	fn discover(&self, _root: &Path) -> crate::MonochangeResult<crate::AdapterDiscovery> {
-		Err(MonochangeError::Io("failed to read package.json: No such file or directory (os error 2)".to_string()))
+		Err(MonochangeError::Io(
+			"failed to read package.json: No such file or directory (os error 2)".to_string(),
+		))
 	}
 
 	fn load_configured(
@@ -947,9 +949,14 @@ fn discovery_path_filter_skips_nested_git_worktrees() {
 #[test]
 fn ecosystem_registry_gracefully_handles_panicked_discovery_worker() {
 	let registry = crate::EcosystemRegistry::new().with_adapter(Box::new(PanicDiscoveryAdapter));
-	let result = registry.discover_all(Path::new(".")).expect("discovery should succeed even with panicking adapter");
+	let result = registry
+		.discover_all(Path::new("."))
+		.expect("discovery should succeed even with panicking adapter");
 
-	assert!(result.packages.is_empty(), "panicked adapter should produce no packages");
+	assert!(
+		result.packages.is_empty(),
+		"panicked adapter should produce no packages"
+	);
 	assert!(
 		result.warnings.iter().any(|w| w.contains("panicked")),
 		"should include a warning about the panicked worker, got: {:#?}",
@@ -960,11 +967,19 @@ fn ecosystem_registry_gracefully_handles_panicked_discovery_worker() {
 #[test]
 fn ecosystem_registry_gracefully_handles_failing_discovery_adapter() {
 	let registry = crate::EcosystemRegistry::new().with_adapter(Box::new(FailingDiscoveryAdapter));
-	let result = registry.discover_all(Path::new(".")).expect("discovery should succeed even when an adapter returns an error");
+	let result = registry
+		.discover_all(Path::new("."))
+		.expect("discovery should succeed even when an adapter returns an error");
 
-	assert!(result.packages.is_empty(), "failing adapter should produce no packages");
 	assert!(
-		result.warnings.iter().any(|w| w.contains("npm discovery due to error")),
+		result.packages.is_empty(),
+		"failing adapter should produce no packages"
+	);
+	assert!(
+		result
+			.warnings
+			.iter()
+			.any(|w| w.contains("npm discovery due to error")),
 		"should include a warning about the failing adapter, got: {:#?}",
 		result.warnings
 	);

@@ -809,9 +809,7 @@ pub(crate) fn build_dart_manifest_updates(
 	let released_versions = released_versions_by_record_id(plan);
 	packages
 		.iter()
-		.filter(|package| {
-			package.ecosystem == Ecosystem::Dart
-		})
+		.filter(|package| package.ecosystem == Ecosystem::Dart)
 		.par_bridge()
 		.filter_map(|package| {
 			released_versions

@@ -143,7 +143,11 @@ pub fn discover_lockfiles(package: &PackageRecord) -> Vec<PathBuf> {
 pub fn default_lockfile_commands(package: &PackageRecord) -> Vec<LockfileCommandExecution> {
 	let command = match package.ecosystem {
 		Ecosystem::Dart => {
-			if package.metadata.get("is_flutter").is_some_and(|v| v == "true") {
+			if package
+				.metadata
+				.get("is_flutter")
+				.is_some_and(|v| v == "true")
+			{
 				"flutter pub get"
 			} else {
 				"dart pub get"
@@ -600,7 +604,9 @@ fn parse_manifest(
 	);
 	package.declared_dependencies = parse_dependencies(&parsed);
 	if is_flutter {
-		package.metadata.insert("is_flutter".to_string(), "true".to_string());
+		package
+			.metadata
+			.insert("is_flutter".to_string(), "true".to_string());
 	}
 	Ok(Some(package))
 }
