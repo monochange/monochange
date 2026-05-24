@@ -232,7 +232,7 @@ impl crate::EcosystemAdapter for FailingDiscoveryAdapter {
 	}
 
 	fn discover(&self, _root: &Path) -> crate::MonochangeResult<crate::AdapterDiscovery> {
-		Err(crate::MonochangeError::Io("failed to read package.json: No such file or directory (os error 2)".to_string()))
+		Err(MonochangeError::Io("failed to read package.json: No such file or directory (os error 2)".to_string()))
 	}
 
 	fn load_configured(

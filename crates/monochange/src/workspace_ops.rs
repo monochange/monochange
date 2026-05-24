@@ -899,7 +899,6 @@ fn render_annotated_init_config(
 			PackageType::Npm => "npm",
 			PackageType::Deno => "deno",
 			PackageType::Dart => "dart",
-			PackageType::Flutter => "flutter",
 			PackageType::Python => "python",
 			PackageType::Go => "go",
 			_ => unreachable!(),

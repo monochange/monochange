@@ -305,7 +305,6 @@ impl From<PackageType> for Ecosystem {
 			PackageType::Npm => Self::Npm,
 			PackageType::Deno => Self::Deno,
 			PackageType::Dart => Self::Dart,
-			PackageType::Flutter => Self::Dart,
 			PackageType::Python => Self::Python,
 			PackageType::Go => Self::Go,
 		}
@@ -326,8 +325,7 @@ impl std::str::FromStr for Ecosystem {
 			"cargo" => Ok(Self::Cargo),
 			"npm" => Ok(Self::Npm),
 			"deno" => Ok(Self::Deno),
-			"dart" => Ok(Self::Dart),
-			"flutter" => Ok(Self::Dart),
+			"dart" | "flutter" => Ok(Self::Dart),
 			"python" => Ok(Self::Python),
 			"go" => Ok(Self::Go),
 			_ => Err(()),
@@ -602,17 +600,42 @@ pub struct DependencyEdge {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum PackageType {
 	Cargo,
 	Npm,
 	Deno,
 	Dart,
-	Flutter,
 	Python,
 	Go,
+}
+
+impl Serialize for PackageType {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		serializer.serialize_str(self.as_str())
+	}
+}
+
+impl<'de> Deserialize<'de> for PackageType {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		let s = String::deserialize(deserializer)?;
+		match s.as_str() {
+			"cargo" => Ok(PackageType::Cargo),
+			"npm" => Ok(PackageType::Npm),
+			"deno" => Ok(PackageType::Deno),
+			"dart" | "flutter" => Ok(PackageType::Dart),
+			"python" => Ok(PackageType::Python),
+			"go" => Ok(PackageType::Go),
+			_ => Err(serde::de::Error::unknown_variant(&s, &["cargo", "npm", "deno", "dart", "python", "go"])),
+		}
+	}
 }
 
 impl PackageType {
@@ -624,7 +647,6 @@ impl PackageType {
 			Self::Npm => "npm",
 			Self::Deno => "deno",
 			Self::Dart => "dart",
-			Self::Flutter => "flutter",
 			Self::Python => "python",
 			Self::Go => "go",
 		}

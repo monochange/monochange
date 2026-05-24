@@ -6371,7 +6371,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 	));
 	assert!(crate::ecosystem_matches_package_type(
 		Ecosystem::Dart,
-		monochange_core::PackageType::Flutter
+		monochange_core::PackageType::Dart
 	));
 }
 
@@ -6641,7 +6641,7 @@ fn package_type_dart_maps_to_ecosystem_type_dart() {
 #[test]
 fn package_type_flutter_maps_to_ecosystem_type_dart() {
 	assert_eq!(
-		package_type_to_ecosystem_type(monochange_core::PackageType::Flutter),
+		package_type_to_ecosystem_type(monochange_core::PackageType::Dart),
 		EcosystemType::Dart
 	);
 }

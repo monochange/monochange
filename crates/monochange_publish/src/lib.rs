@@ -1685,7 +1685,7 @@ fn build_dart_publish_command(request: &PublishRequest, cwd: &Path) -> CommandSp
 	let is_flutter = request
 		.package_metadata
 		.get("is_flutter")
-		.map_or(false, |v| v == "true");
+		.is_some_and(|v| v == "true");
 	let program = if is_flutter {
 		"flutter"
 	} else {

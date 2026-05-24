@@ -69,8 +69,7 @@ fn package_type_as_str_returns_canonical_names() {
 	assert_eq!(PackageType::Npm.as_str(), "npm");
 	assert_eq!(PackageType::Deno.as_str(), "deno");
 	assert_eq!(PackageType::Dart.as_str(), "dart");
-	assert_eq!(PackageType::Flutter.as_str(), "flutter");
-}
+	}
 
 #[test]
 #[allow(deprecated)]
