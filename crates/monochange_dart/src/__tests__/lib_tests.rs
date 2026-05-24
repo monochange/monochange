@@ -56,18 +56,28 @@ fn discovers_dart_workspace_packages() {
 }
 
 #[test]
-fn marks_flutter_packages_with_flutter_ecosystem() {
+fn marks_flutter_packages_with_dart_ecosystem_and_metadata() {
 	let fixture_root =
 		Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/flutter/workspace");
 	let discovery = discover_dart_packages(&fixture_root)
 		.unwrap_or_else(|error| panic!("flutter discovery: {error}"));
 
-	assert!(
-		discovery
-			.packages
-			.iter()
-			.all(|package| package.ecosystem.as_str() == "flutter")
-	);
+	for package in &discovery.packages {
+		assert_eq!(
+			package.ecosystem.as_str(),
+			"dart",
+			"all Dart/Flutter packages should have ecosystem = dart"
+		);
+		// Flutter packages should have is_flutter metadata set
+		if package.name.contains("flutter") || package.metadata.get("is_flutter").map_or(false, |v| v == "true") {
+			assert_eq!(
+				package.metadata.get("is_flutter"),
+				Some(&"true".to_string()),
+				"Flutter package '{}' should have is_flutter=true in metadata",
+				package.name
+			);
+		}
+	}
 }
 
 #[test]
@@ -157,7 +167,7 @@ fn default_lockfile_commands_choose_dart_or_flutter_pub_get() {
 		}]
 	);
 
-	let flutter_package = PackageRecord::new(
+	let mut flutter_package = PackageRecord::new(
 		Ecosystem::Dart,
 		"nested_flutter_app",
 		fixture_root.join("packages/app/pubspec.yaml"),
@@ -165,6 +175,7 @@ fn default_lockfile_commands_choose_dart_or_flutter_pub_get() {
 		Some(Version::new(1, 0, 0)),
 		PublishState::Public,
 	);
+	flutter_package.metadata.insert("is_flutter".to_string(), "true".to_string());
 	assert_eq!(
 		default_lockfile_commands(&flutter_package),
 		vec![monochange_core::LockfileCommandExecution {
