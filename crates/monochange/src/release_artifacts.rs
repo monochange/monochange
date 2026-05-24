@@ -2137,6 +2137,7 @@ fn send_hosted_commit_request(
 		.unwrap_or("https://monochange.dev")
 		.trim_end_matches('/');
 	let token = hosted_commit_bearer_token(options)?;
+	install_rustls_crypto_provider();
 	let response = reqwest::blocking::Client::new()
 		.post(format!("{base_url}/api/release-commits"))
 		.bearer_auth(token)
@@ -2187,6 +2188,13 @@ struct GithubActionsOidcResponse {
 	value: String,
 }
 
+fn install_rustls_crypto_provider() {
+	static INIT: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+	INIT.get_or_init(|| {
+		let _ = rustls::crypto::ring::default_provider().install_default();
+	});
+}
+
 fn github_actions_oidc_token(options: &HostedCommitOptions) -> MonochangeResult<String> {
 	let request_url = std::env::var("ACTIONS_ID_TOKEN_REQUEST_URL").map_err(|_| {
 		MonochangeError::Config(
@@ -2201,6 +2209,7 @@ fn github_actions_oidc_token(options: &HostedCommitOptions) -> MonochangeResult<
 	let audience = options.oidc_audience.as_deref().unwrap_or("monochange.dev");
 	let separator = if request_url.contains('?') { '&' } else { '?' };
 	let url = format!("{request_url}{separator}audience={audience}");
+	install_rustls_crypto_provider();
 	#[rustfmt::skip]
 	let response = reqwest::blocking::Client::new().get(url).bearer_auth(request_token).send().map_err(|error| MonochangeError::Config(format!("GitHub Actions OIDC request failed: {error}")))?;
 	let status = response.status();
