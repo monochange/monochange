@@ -3051,10 +3051,11 @@ Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all", "otp"
 		match self {
 			Self::CommitRelease { .. } => {
 				match name {
-					"no_verify" | "update_release_json" => Some(CliInputKind::Boolean),
+					"no_verify" | "update_release_json" | "stage_all" => {
+						Some(CliInputKind::Boolean)
+					}
 					"commit_backend" | "hosted_auth" => Some(CliInputKind::Choice),
 					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
-					"stage_all" => Some(CliInputKind::Boolean),
 					_ => None,
 				}
 			}
