@@ -326,6 +326,23 @@ warn_on_group_mismatch = true
 #   version_format          — "namespaced" (default: "pkg/v1.0.0") or
 #                             "primary" (just "v1.0.0"); only one package/group
 #                             may use "primary"
+#
+# Publish example (uncomment and customize per package as needed):
+# [package.<id>.publish]
+# enabled = true
+# mode = "builtin"
+# trusted_publishing = true
+# [package.<id>.publish.trusted_publishing]
+# enabled = true
+# repository = "owner/repo"
+# workflow = "publish.yml"
+# environment = "release"
+# registry = "<crates_io|npm|jsr|pub_dev>"
+#
+# Placeholder example (uncomment and customize per package as needed):
+# [package.<id>.publish.placeholder]
+# readme = "This package is a placeholder published by monochange until the first real release."
+# readme_file = "docs/<id>-placeholder.md"
 
 {% for pkg in packages %}
 [package.{{ pkg.id }}]
@@ -334,20 +351,6 @@ type = "{{ pkg.type }}"
 {% if pkg.changelog %}
 changelog = "{{ pkg.changelog }}"
 {% endif %}
-# [package.{{ pkg.id }}.publish]
-# enabled = true
-# mode = "builtin"
-# trusted_publishing = true
-# [package.{{ pkg.id }}.publish.trusted_publishing]
-# enabled = true
-# repository = "owner/repo"
-# workflow = "publish.yml"
-# environment = "release"
-# registry = "{{ pkg.type == "cargo" and "crates_io" or pkg.type == "npm" and "npm" or pkg.type == "deno" and "jsr" or "pub_dev" }}"
-
-# [package.{{ pkg.id }}.publish.placeholder]
-# readme = "This package is a placeholder published by monochange until the first real release."
-# readme_file = "docs/{{ pkg.id }}-placeholder.md"
 
 {% endfor %}
 # =============================================================================
@@ -397,7 +400,7 @@ packages = [{{ package_ids_toml }}]
 tag = true
 release = true
 version_format = "primary"
-# [group.main.changelog]
+# [group.<id>.changelog]
 # path = "changelog.md"
 # include = ["package-id"]
 {% endif %}
