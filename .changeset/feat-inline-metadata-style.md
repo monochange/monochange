@@ -2,6 +2,7 @@
 monochange_core: minor
 monochange_changelog: minor
 monochange: patch
+monochange_schema: patch
 ---
 
 # Add `Inline` metadata style and make it the default
