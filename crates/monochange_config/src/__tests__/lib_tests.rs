@@ -6370,7 +6370,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		&definition
 	));
 	assert!(crate::ecosystem_matches_package_type(
-		Ecosystem::Flutter,
+		Ecosystem::Dart,
 		monochange_core::PackageType::Flutter
 	));
 }

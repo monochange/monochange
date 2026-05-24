@@ -317,7 +317,7 @@ fn init_rendering_helpers_cover_duplicate_names_changelogs_and_package_types() {
 		PackageType::Dart
 	);
 	assert_eq!(
-		package_type_for_ecosystem(Ecosystem::Flutter),
+		package_type_for_ecosystem(Ecosystem::Dart),
 		PackageType::Flutter
 	);
 }

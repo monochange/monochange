@@ -665,7 +665,7 @@ fn resolve_registry_kind_defaults_and_custom_errors_match_expectations() {
 		RegistryKind::Jsr
 	);
 	assert_eq!(
-		resolve_registry_kind(None, Ecosystem::Flutter).expect("pub registry:"),
+		resolve_registry_kind(None, Ecosystem::Dart).expect("pub registry:"),
 		RegistryKind::PubDev
 	);
 
@@ -862,7 +862,7 @@ fn build_publish_command_covers_all_supported_registries() {
 	assert_eq!(dart_placeholder.cwd, tempdir.path());
 	let flutter = build_publish_command(
 		&PublishRequest {
-			ecosystem: Ecosystem::Flutter,
+			ecosystem: Ecosystem::Dart,
 			..sample_request(RegistryKind::PubDev)
 		},
 		PackagePublishRunMode::Release,

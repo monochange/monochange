@@ -112,7 +112,7 @@ fn default_publish_order_dependency_fields_cover_all_ecosystems() {
 		["dependencies", "dev_dependencies"]
 	);
 	assert_eq!(
-		default_publish_order_dependency_fields(Ecosystem::Flutter),
+		default_publish_order_dependency_fields(Ecosystem::Dart),
 		["dependencies", "dev_dependencies"]
 	);
 	assert_eq!(
@@ -200,6 +200,39 @@ impl crate::EcosystemAdapter for PanicDiscoveryAdapter {
 
 	fn discover(&self, _root: &Path) -> crate::MonochangeResult<crate::AdapterDiscovery> {
 		panic!("discovery panic for coverage");
+	}
+
+	fn load_configured(
+		&self,
+		_root: &Path,
+		_package_path: &Path,
+	) -> crate::MonochangeResult<Option<PackageRecord>> {
+		Ok(None)
+	}
+
+	fn supported_versioned_file_kind(&self, _path: &Path) -> bool {
+		false
+	}
+
+	fn validate_versioned_file(
+		&self,
+		_full_path: &Path,
+		_display_path: &str,
+		_custom_fields: Option<&[String]>,
+	) -> crate::MonochangeResult<()> {
+		Ok(())
+	}
+}
+
+struct FailingDiscoveryAdapter;
+
+impl crate::EcosystemAdapter for FailingDiscoveryAdapter {
+	fn ecosystem(&self) -> Ecosystem {
+		Ecosystem::Npm
+	}
+
+	fn discover(&self, _root: &Path) -> crate::MonochangeResult<crate::AdapterDiscovery> {
+		Err(crate::MonochangeError::Io("failed to read package.json: No such file or directory (os error 2)".to_string()))
 	}
 
 	fn load_configured(
@@ -912,17 +945,28 @@ fn discovery_path_filter_skips_nested_git_worktrees() {
 }
 
 #[test]
-fn ecosystem_registry_reports_panicked_discovery_worker() {
+fn ecosystem_registry_gracefully_handles_panicked_discovery_worker() {
 	let registry = crate::EcosystemRegistry::new().with_adapter(Box::new(PanicDiscoveryAdapter));
-	let error = registry
-		.discover_all(Path::new("."))
-		.err()
-		.unwrap_or_else(|| panic!("expected panicked discovery worker error"));
+	let result = registry.discover_all(Path::new(".")).expect("discovery should succeed even with panicking adapter");
 
+	assert!(result.packages.is_empty(), "panicked adapter should produce no packages");
 	assert!(
-		error
-			.to_string()
-			.contains("ecosystem discovery worker panicked")
+		result.warnings.iter().any(|w| w.contains("panicked")),
+		"should include a warning about the panicked worker, got: {:#?}",
+		result.warnings
+	);
+}
+
+#[test]
+fn ecosystem_registry_gracefully_handles_failing_discovery_adapter() {
+	let registry = crate::EcosystemRegistry::new().with_adapter(Box::new(FailingDiscoveryAdapter));
+	let result = registry.discover_all(Path::new(".")).expect("discovery should succeed even when an adapter returns an error");
+
+	assert!(result.packages.is_empty(), "failing adapter should produce no packages");
+	assert!(
+		result.warnings.iter().any(|w| w.contains("npm discovery due to error")),
+		"should include a warning about the failing adapter, got: {:#?}",
+		result.warnings
 	);
 }
 

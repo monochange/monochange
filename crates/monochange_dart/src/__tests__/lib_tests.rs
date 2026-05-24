@@ -158,7 +158,7 @@ fn default_lockfile_commands_choose_dart_or_flutter_pub_get() {
 	);
 
 	let flutter_package = PackageRecord::new(
-		Ecosystem::Flutter,
+		Ecosystem::Dart,
 		"nested_flutter_app",
 		fixture_root.join("packages/app/pubspec.yaml"),
 		fixture_root.clone(),
@@ -348,7 +348,7 @@ fn workspace_and_manifest_helpers_cover_yaml_and_error_paths() {
 	let private = parse_manifest(&private_manifest, &fixture_root)
 		.unwrap_or_else(|error| panic!("parse private manifest: {error}"))
 		.unwrap_or_else(|| panic!("expected private package"));
-	assert_eq!(private.ecosystem, Ecosystem::Flutter);
+	assert_eq!(private.ecosystem, Ecosystem::Dart);
 	assert_eq!(private.publish_state, PublishState::Private);
 	assert_eq!(private.current_version, None);
 
