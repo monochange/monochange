@@ -297,10 +297,16 @@ fn internal_path_dependency_policy_rule_supports_path_and_hosted_modes() {
 	let targets = advanced_workspace_flutter_targets();
 	let path_ok = find_target(&targets, "path_ok");
 	let path_fail = find_target(&targets, "path_fail");
+	let workspace_resolution = find_target(&targets, "workspace_resolution");
 
 	assert!(
 		InternalPathDependencyPolicyRule::new()
 			.run(&ctx(path_ok), &config())
+			.is_empty()
+	);
+	assert!(
+		InternalPathDependencyPolicyRule::new()
+			.run(&ctx(workspace_resolution), &config())
 			.is_empty()
 	);
 	let failing = InternalPathDependencyPolicyRule::new().run(&ctx(path_fail), &config());

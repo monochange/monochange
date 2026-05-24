@@ -293,6 +293,13 @@ fn manifest_declares_private(mapping: &Mapping) -> bool {
 	)
 }
 
+fn manifest_uses_workspace_resolution(mapping: &Mapping) -> bool {
+	mapping
+		.get(yaml_key("resolution"))
+		.and_then(Value::as_str)
+		.is_some_and(|resolution| resolution.trim() == "workspace")
+}
+
 fn dependency_sections() -> [&'static str; 3] {
 	["dependencies", "dev_dependencies", "dependency_overrides"]
 }
@@ -855,6 +862,7 @@ impl LintRuleRunner for InternalPathDependencyPolicyRule {
 			.string_option("mode")
 			.unwrap_or_else(|| "path".to_string());
 		let require_path = mode != "hosted";
+		let workspace_resolution = manifest_uses_workspace_resolution(&file.manifest);
 		let mut results = Vec::new();
 
 		for section in ["dependencies", "dev_dependencies"] {
@@ -869,7 +877,9 @@ impl LintRuleRunner for InternalPathDependencyPolicyRule {
 					continue;
 				}
 				let uses_path = dependency_uses_path(value);
-				if (require_path && uses_path) || (!require_path && !uses_path) {
+				if (require_path && (uses_path || workspace_resolution))
+					|| (!require_path && !uses_path)
+				{
 					continue;
 				}
 				let expectation = if require_path {
