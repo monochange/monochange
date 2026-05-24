@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.1](https://github.com/monochange/monochange/releases/tag/v0.6.1) (2026-05-24)
+
+Grouped release for `main`.
+
+### 🚀 Feature
+
+#### Resilient discovery and Dart/Flutter ecosystem unification
+
+_Packages:_ _monochange_, _monochange_config_, _monochange_core_, _monochange_dart_, _monochange_npm_, _monochange_publish_
+
+###### Discovery no longer crashes on unfamiliar ecosystems
+
+`mc init` and `discover_all` now gracefully handle errors from individual ecosystem adapters. When an adapter (e.g. npm) fails in a monorepo that doesn't use that ecosystem (e.g. a Dart monorepo), the error is logged as a warning and discovery continues with remaining adapters instead of aborting. The npm adapter's `expand_member_patterns` also guards against workspace glob patterns that resolve to directories without a `package.json`.
+
+###### Flutter merged into the Dart ecosystem
+
+`Ecosystem::Flutter` and `PackageType::Flutter` have been removed. Flutter packages use `Ecosystem::Dart` with an `is_flutter` metadata flag on the package record, since Flutter and Dart share `pubspec.yaml`, `pub.dev`, and the same tooling. The publish and lockfile commands now check this metadata to choose `flutter pub get`/`flutter pub publish` vs `dart pub get`/`dart pub publish`. Config files that use the string `"flutter"` are deserialized to `Ecosystem::Dart` or `PackageType::Dart` for backward compatibility.
+
+```toml
+# Before (still works, maps to dart ecosystem):
+[[packages]]
+type = "flutter"
+
+# After (preferred):
+[[packages]]
+type = "dart"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #530](https://github.com/monochange/monochange/pull/530) _Introduced in:_ [`7a1ef20`](https://github.com/monochange/monochange/commit/7a1ef2061ac22a0bb9918b113009d468aa471083)
+
+### 🐛 Fixed
+
+#### Refactor npm scripts to TypeScript
+
+_Packages:_ _@monochange/cli_
+
+Move repository npm tooling and the npm CLI launcher source to TypeScript so local and CI scripts run through Node's native TypeScript support while the published CLI package still ships a built JavaScript bin.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #529](https://github.com/monochange/monochange/pull/529) _Introduced in:_ [`99cdf08`](https://github.com/monochange/monochange/commit/99cdf08d560d40c020d9bf031c0441fd871d67e4)
+
 ## [0.6.0](https://github.com/monochange/monochange/releases/tag/v0.6.0) (2026-05-23)
 
 Grouped release for `main`.
