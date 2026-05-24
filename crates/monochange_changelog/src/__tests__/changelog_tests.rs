@@ -1703,7 +1703,7 @@ fn render_release_notes_document_includes_section_headings_in_markdown() {
 	let markdown = render_release_notes(
 		monochange_core::ChangelogFormat::Monochange,
 		&document,
-		&monochange_core::ChangelogStyle::default(),
+		&ChangelogStyle::default(),
 	);
 	assert!(
 		markdown.contains("### Features"),
@@ -1767,7 +1767,7 @@ fn keep_a_changelog_format_always_includes_section_headings() {
 	let markdown = render_release_notes(
 		monochange_core::ChangelogFormat::KeepAChangelog,
 		&document,
-		&monochange_core::ChangelogStyle::default(),
+		&ChangelogStyle::default(),
 	);
 
 	// Keep-a-changelog always includes section headings, even for single section
@@ -1797,7 +1797,7 @@ fn monochange_format_includes_heading_for_single_changed_section() {
 	let markdown = render_release_notes(
 		monochange_core::ChangelogFormat::Monochange,
 		&document,
-		&monochange_core::ChangelogStyle::default(),
+		&ChangelogStyle::default(),
 	);
 
 	// Monochange format includes section headings even when the only section is
@@ -1847,7 +1847,7 @@ fn monochange_format_includes_heading_for_custom_single_section() {
 	let markdown = render_release_notes(
 		monochange_core::ChangelogFormat::Monochange,
 		&document,
-		&monochange_core::ChangelogStyle::default(),
+		&ChangelogStyle::default(),
 	);
 
 	// Single custom section with non-"Changed" title should include heading
