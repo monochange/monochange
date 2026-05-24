@@ -141,10 +141,10 @@ pub fn discover_lockfiles(package: &PackageRecord) -> Vec<PathBuf> {
 
 /// Return the default lockfile refresh commands for `package`.
 pub fn default_lockfile_commands(package: &PackageRecord) -> Vec<LockfileCommandExecution> {
-	let command = match package.ecosystem {
-		Ecosystem::Dart => "flutter pub get",
-		Ecosystem::Dart => "dart pub get",
-		_ => return Vec::new(),
+	let command = if package.metadata.contains_key("is_flutter") {
+		"flutter pub get"
+	} else {
+		"dart pub get"
 	};
 
 	discover_lockfiles(package)
@@ -580,22 +580,23 @@ fn parse_manifest(
 	let Some(name) = yaml_string(&parsed, "name") else {
 		return Ok(None);
 	};
-	let ecosystem = if parsed.get(Value::String("flutter".to_string())).is_some() {
-		Ecosystem::Dart
-	} else {
-		Ecosystem::Dart
-	};
+	let is_flutter = parsed.get(Value::String("flutter".to_string())).is_some();
 	let version = yaml_string(&parsed, "version").and_then(|value| Version::parse(&value).ok());
 	let publish_state = manifest_publish_state(&parsed);
 
 	let mut package = PackageRecord::new(
-		ecosystem,
+		Ecosystem::Dart,
 		name,
 		manifest_path.to_path_buf(),
 		workspace_root.to_path_buf(),
 		version,
 		publish_state,
 	);
+	if is_flutter {
+		package
+			.metadata
+			.insert("is_flutter".to_string(), "true".to_string());
+	}
 	package.declared_dependencies = parse_dependencies(&parsed);
 	Ok(Some(package))
 }

@@ -295,7 +295,7 @@ fn init_rendering_helpers_cover_duplicate_names_changelogs_and_package_types() {
 	assert!(rendered.contains("type = \"npm\""));
 	assert!(rendered.contains("type = \"deno\""));
 	assert!(rendered.contains("type = \"dart\""));
-	assert!(rendered.contains("type = \"flutter\""));
+	assert!(rendered.contains("type = \"dart\""));
 	assert!(rendered.contains("changelog = \"packages/core/changelog.md\""));
 	assert!(rendered.contains("packages/core"));
 
