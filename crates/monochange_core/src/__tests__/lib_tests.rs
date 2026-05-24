@@ -979,7 +979,7 @@ fn ecosystem_registry_gracefully_handles_failing_discovery_adapter() {
 		result
 			.warnings
 			.iter()
-			.any(|w| w.contains("npm discovery due to error")),
+			.any(|w| w.contains("npm discovery failed")),
 		"should include a warning about the failing adapter, got: {:#?}",
 		result.warnings
 	);

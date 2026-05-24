@@ -474,7 +474,6 @@ fn ecosystem_progress_presentation_uses_portable_emojis() {
 	assert_eq!(Ecosystem::Npm.progress_emoji(), "📦");
 	assert_eq!(Ecosystem::Deno.progress_emoji(), "🦕");
 	assert_eq!(Ecosystem::Dart.progress_emoji(), "🎯");
-	assert_eq!(Ecosystem::Dart.progress_emoji(), "🦋");
 	assert_eq!(Ecosystem::Python.progress_emoji(), "🐍");
 	assert_eq!(Ecosystem::Go.progress_emoji(), "🐹");
 	assert_eq!(Ecosystem::Cargo.progress_label(), "cargo");

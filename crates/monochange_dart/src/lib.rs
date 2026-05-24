@@ -141,6 +141,10 @@ pub fn discover_lockfiles(package: &PackageRecord) -> Vec<PathBuf> {
 
 /// Return the default lockfile refresh commands for `package`.
 pub fn default_lockfile_commands(package: &PackageRecord) -> Vec<LockfileCommandExecution> {
+	if package.ecosystem != Ecosystem::Dart {
+		return Vec::new();
+	}
+
 	let command = if package.metadata.contains_key("is_flutter") {
 		"flutter pub get"
 	} else {
