@@ -1863,3 +1863,125 @@ fn root_relative_renders_workspace_root_as_dot() {
 
 	assert_eq!(root_relative(root, root), PathBuf::from("."));
 }
+
+#[test]
+fn snapshot_metadata_styles_render_context_blocks() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let changeset_path = tempdir.path().join(".changeset/snapshot-feature.md");
+	fs::create_dir_all(changeset_path.parent().unwrap_or_else(|| Path::new(".")))
+		.unwrap_or_else(|error| panic!("create changeset dir: {error}"));
+	fs::write(&changeset_path, "feature\n")
+		.unwrap_or_else(|error| panic!("write changeset file: {error}"));
+
+	// Changeset with all metadata: owner, review request, commits, issues.
+	let changeset = PreparedChangeset {
+		path: changeset_path.clone(),
+		summary: Some("snapshot feature".to_string()),
+		details: Some("snapshot details".to_string()),
+		targets: vec![PreparedChangesetTarget {
+			id: "pkg-a".to_string(),
+			kind: ChangesetTargetKind::Package,
+			bump: Some(BumpSeverity::Minor),
+			origin: "manual".to_string(),
+			evidence_refs: Vec::new(),
+			change_type: Some("note".to_string()),
+			caused_by: Vec::new(),
+		}],
+		context: Some(ChangesetContext {
+			provider: HostingProviderKind::GitHub,
+			host: Some("github.com".to_string()),
+			capabilities: HostingCapabilities::default(),
+			introduced: Some(ChangesetRevision {
+				actor: Some(HostedActorRef {
+					provider: HostingProviderKind::GitHub,
+					host: Some("github.com".to_string()),
+					id: Some("1".to_string()),
+					login: Some("octocat".to_string()),
+					display_name: Some("Octo Cat".to_string()),
+					url: Some("https://example.com/octocat".to_string()),
+					source: HostedActorSourceKind::ReviewRequestAuthor,
+				}),
+				commit: Some(HostedCommitRef {
+					provider: HostingProviderKind::GitHub,
+					host: Some("github.com".to_string()),
+					sha: "abcdef123456".to_string(),
+					short_sha: "abcdef1".to_string(),
+					url: Some("https://example.com/commit/abcdef1".to_string()),
+					authored_at: None,
+					committed_at: None,
+					author_name: None,
+					author_email: None,
+				}),
+				review_request: Some(HostedReviewRequestRef {
+					provider: HostingProviderKind::GitHub,
+					host: Some("github.com".to_string()),
+					kind: HostedReviewRequestKind::PullRequest,
+					id: "42".to_string(),
+					title: Some("feat: add feature".to_string()),
+					url: Some("https://example.com/pull/42".to_string()),
+					author: None,
+				}),
+			}),
+			last_updated: Some(ChangesetRevision {
+				actor: None,
+				commit: Some(HostedCommitRef {
+					provider: HostingProviderKind::GitHub,
+					host: Some("github.com".to_string()),
+					sha: "9876543210".to_string(),
+					short_sha: "9876543".to_string(),
+					url: Some("https://example.com/commit/9876543".to_string()),
+					authored_at: None,
+					committed_at: None,
+					author_name: None,
+					author_email: None,
+				}),
+				review_request: None,
+			}),
+			related_issues: vec![
+				HostedIssueRef {
+					provider: HostingProviderKind::GitHub,
+					host: Some("github.com".to_string()),
+					id: "123".to_string(),
+					relationship: HostedIssueRelationshipKind::ClosedByReviewRequest,
+					title: Some("Bug fix".to_string()),
+					url: Some("https://example.com/issues/123".to_string()),
+				},
+				HostedIssueRef {
+					provider: HostingProviderKind::GitHub,
+					host: Some("github.com".to_string()),
+					id: "456".to_string(),
+					relationship: HostedIssueRelationshipKind::ReferencedByReviewRequest,
+					title: None,
+					url: None,
+				},
+			],
+		}),
+	};
+
+	// Snapshot each metadata style
+	let blockquote =
+		build_rendered_changeset_context(tempdir.path(), &changeset, MetadataStyle::Blockquote);
+	insta::assert_snapshot!("metadata_style_blockquote", blockquote.context);
+
+	let plain = build_rendered_changeset_context(tempdir.path(), &changeset, MetadataStyle::Plain);
+	insta::assert_snapshot!("metadata_style_plain", plain.context);
+
+	let inline =
+		build_rendered_changeset_context(tempdir.path(), &changeset, MetadataStyle::Inline);
+	insta::assert_snapshot!("metadata_style_inline", inline.context);
+
+	let omit = build_rendered_changeset_context(tempdir.path(), &changeset, MetadataStyle::Omit);
+	insta::assert_snapshot!("metadata_style_omit", omit.context);
+
+	// Inline style without a PR should include commit links
+	let mut changeset_no_pr = changeset.clone();
+	// Remove the review request from the introduced revision to test commit inclusion
+	if let Some(ref mut context) = changeset_no_pr.context {
+		if let Some(ref mut introduced) = context.introduced {
+			introduced.review_request = None;
+		}
+	}
+	let inline_no_pr =
+		build_rendered_changeset_context(tempdir.path(), &changeset_no_pr, MetadataStyle::Inline);
+	insta::assert_snapshot!("metadata_style_inline_no_pr", inline_no_pr.context);
+}

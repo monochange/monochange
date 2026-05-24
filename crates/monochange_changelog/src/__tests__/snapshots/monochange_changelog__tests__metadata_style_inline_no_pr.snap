@@ -1,0 +1,5 @@
+---
+source: crates/monochange_changelog/src/__tests__/changelog_tests.rs
+expression: inline_no_pr.context
+---
+_Owner:_ [@octocat](https://example.com/octocat) · _Introduced in:_ [`abcdef1`](https://example.com/commit/abcdef1) · _Last updated in:_ [`9876543`](https://example.com/commit/9876543) · _Closed issues:_ [123](https://example.com/issues/123) · _Related issues:_ 456
