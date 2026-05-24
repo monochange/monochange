@@ -1242,7 +1242,6 @@
 				"npm",
 				"deno",
 				"dart",
-				"flutter",
 				"python",
 				"go"
 			],

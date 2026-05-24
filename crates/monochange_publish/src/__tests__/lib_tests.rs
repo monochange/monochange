@@ -474,7 +474,6 @@ fn ecosystem_progress_presentation_uses_portable_emojis() {
 	assert_eq!(Ecosystem::Npm.progress_emoji(), "📦");
 	assert_eq!(Ecosystem::Deno.progress_emoji(), "🦕");
 	assert_eq!(Ecosystem::Dart.progress_emoji(), "🎯");
-	assert_eq!(Ecosystem::Flutter.progress_emoji(), "🦋");
 	assert_eq!(Ecosystem::Python.progress_emoji(), "🐍");
 	assert_eq!(Ecosystem::Go.progress_emoji(), "🐹");
 	assert_eq!(Ecosystem::Cargo.progress_label(), "cargo");
@@ -1077,7 +1076,7 @@ fn ecosystem_publish_order_package(
 	let root = PathBuf::from("/workspace");
 	let manifest_name = match ecosystem {
 		Ecosystem::Cargo => "Cargo.toml",
-		Ecosystem::Dart | Ecosystem::Flutter => "pubspec.yaml",
+		Ecosystem::Dart => "pubspec.yaml",
 		Ecosystem::Python => "pyproject.toml",
 		Ecosystem::Go => "go.mod",
 		_ => "package.json",
@@ -1145,7 +1144,7 @@ fn publish_order_configuration_for(
 	let settings = match ecosystem {
 		Ecosystem::Cargo => &mut configuration.cargo,
 		Ecosystem::Deno => &mut configuration.deno,
-		Ecosystem::Dart | Ecosystem::Flutter => &mut configuration.dart,
+		Ecosystem::Dart => &mut configuration.dart,
 		Ecosystem::Python => &mut configuration.python,
 		Ecosystem::Go => &mut configuration.go,
 		_ => &mut configuration.npm,

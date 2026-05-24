@@ -665,7 +665,7 @@ fn resolve_registry_kind_defaults_and_custom_errors_match_expectations() {
 		RegistryKind::Jsr
 	);
 	assert_eq!(
-		resolve_registry_kind(None, Ecosystem::Flutter).expect("pub registry:"),
+		resolve_registry_kind(None, Ecosystem::Dart).expect("pub registry:"),
 		RegistryKind::PubDev
 	);
 
@@ -862,7 +862,8 @@ fn build_publish_command_covers_all_supported_registries() {
 	assert_eq!(dart_placeholder.cwd, tempdir.path());
 	let flutter = build_publish_command(
 		&PublishRequest {
-			ecosystem: Ecosystem::Flutter,
+			ecosystem: Ecosystem::Dart,
+			package_metadata: BTreeMap::from([("is_flutter".to_string(), "true".to_string())]),
 			..sample_request(RegistryKind::PubDev)
 		},
 		PackagePublishRunMode::Release,
@@ -870,6 +871,16 @@ fn build_publish_command_covers_all_supported_registries() {
 		false,
 	);
 	assert_eq!(flutter.program, "flutter");
+	let pure_dart = build_publish_command(
+		&PublishRequest {
+			ecosystem: Ecosystem::Dart,
+			..sample_request(RegistryKind::PubDev)
+		},
+		PackagePublishRunMode::Release,
+		None,
+		false,
+	);
+	assert_eq!(pure_dart.program, "dart");
 	let jsr = build_publish_command(
 		&sample_request(RegistryKind::Jsr),
 		PackagePublishRunMode::Placeholder,

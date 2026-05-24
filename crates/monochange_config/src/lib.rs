@@ -825,7 +825,7 @@ fn package_type_to_ecosystem_type(package_type: PackageType) -> EcosystemType {
 		PackageType::Cargo => EcosystemType::Cargo,
 		PackageType::Npm => EcosystemType::Npm,
 		PackageType::Deno => EcosystemType::Deno,
-		PackageType::Dart | PackageType::Flutter => EcosystemType::Dart,
+		PackageType::Dart => EcosystemType::Dart,
 		PackageType::Python => EcosystemType::Python,
 		PackageType::Go => EcosystemType::Go,
 		_ => EcosystemType::Cargo,
@@ -3476,7 +3476,7 @@ fn expected_manifest_name(package_type: PackageType) -> &'static str {
 		PackageType::Cargo => "Cargo.toml",
 		PackageType::Npm => "package.json",
 		PackageType::Deno => "deno.json",
-		PackageType::Dart | PackageType::Flutter => "pubspec.yaml",
+		PackageType::Dart => "pubspec.yaml",
 		PackageType::Python => "pyproject.toml",
 		PackageType::Go => "go.mod",
 		_ => "Cargo.toml",
@@ -4995,7 +4995,6 @@ fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageTyp
 			| (Ecosystem::Npm, PackageType::Npm)
 			| (Ecosystem::Deno, PackageType::Deno)
 			| (Ecosystem::Dart, PackageType::Dart)
-			| (Ecosystem::Flutter, PackageType::Flutter)
 	)
 }
 

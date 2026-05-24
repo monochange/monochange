@@ -195,7 +195,7 @@ fn publish_readiness_input_fingerprint_tracks_publish_inputs() {
 		sample_package_definition("npm", "packages/web", PackageType::Npm),
 		sample_package_definition("deno", "packages/deno", PackageType::Deno),
 		sample_package_definition("dart", "packages/dart", PackageType::Dart),
-		sample_package_definition("flutter", "packages/flutter", PackageType::Flutter),
+		sample_package_definition("dart", "packages/flutter", PackageType::Dart),
 		sample_package_definition("python", "packages/python", PackageType::Python),
 	];
 

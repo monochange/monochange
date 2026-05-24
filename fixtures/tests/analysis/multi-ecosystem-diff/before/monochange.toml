@@ -12,4 +12,4 @@ type = "deno"
 
 [package.mobile]
 path = "packages/mobile"
-type = "flutter"
+type = "dart"

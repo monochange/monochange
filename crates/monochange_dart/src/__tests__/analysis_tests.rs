@@ -6,7 +6,7 @@ use super::*;
 #[test]
 fn analyzer_applies_to_flutter_packages() {
 	let package = PackageRecord::new(
-		Ecosystem::Flutter,
+		Ecosystem::Dart,
 		"mobile_app",
 		PathBuf::from("/repo/packages/mobile/pubspec.yaml"),
 		PathBuf::from("/repo"),

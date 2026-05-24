@@ -961,3 +961,25 @@ fn validate_versioned_file_rejects_missing_file() {
 	assert!(result.is_err());
 	assert!(result.unwrap_err().to_string().contains("not readable"));
 }
+
+#[test]
+fn workspace_pattern_skips_directories_without_package_json() {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/npm/workspace-missing-package-json");
+
+	// Discovery should succeed and only find packages with package.json files,
+	// skipping directories that match the glob but don't contain a package.json.
+	let discovery = discover_npm_packages(&fixture_root)
+		.unwrap_or_else(|error| panic!("npm discovery should succeed when workspace pattern matches directories without package.json: {error}"));
+
+	// Only the directory with a package.json should be discovered
+	let names: Vec<_> = discovery.packages.iter().map(|p| p.name.clone()).collect();
+	assert!(
+		names.contains(&"has-package".to_string()),
+		"expected 'has-package' in {names:?}"
+	);
+	assert!(
+		!names.contains(&"no-package-json".to_string()),
+		"'no-package-json' should not be discovered since it has no package.json, got {names:?}"
+	);
+}

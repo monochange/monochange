@@ -988,7 +988,9 @@ fn expand_member_patterns(
 				matched_path
 			};
 			if manifest_path.file_name().and_then(|name| name.to_str()) == Some(PACKAGE_JSON_FILE)
+				&& manifest_path.exists()
 				&& filter.allows(&manifest_path)
+				&& manifest_path.exists()
 			{
 				manifests.insert(manifest_path);
 			}

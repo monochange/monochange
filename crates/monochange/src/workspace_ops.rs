@@ -899,7 +899,6 @@ fn render_annotated_init_config(
 			PackageType::Npm => "npm",
 			PackageType::Deno => "deno",
 			PackageType::Dart => "dart",
-			PackageType::Flutter => "flutter",
 			PackageType::Python => "python",
 			PackageType::Go => "go",
 			_ => unreachable!(),
@@ -920,9 +919,7 @@ fn render_annotated_init_config(
 	let has_cargo = packages.iter().any(|p| p.ecosystem == Ecosystem::Cargo);
 	let has_npm = packages.iter().any(|p| p.ecosystem == Ecosystem::Npm);
 	let has_deno = packages.iter().any(|p| p.ecosystem == Ecosystem::Deno);
-	let has_dart = packages
-		.iter()
-		.any(|p| p.ecosystem == Ecosystem::Dart || p.ecosystem == Ecosystem::Flutter);
+	let has_dart = packages.iter().any(|p| p.ecosystem == Ecosystem::Dart);
 	let has_python = packages.iter().any(|p| p.ecosystem == Ecosystem::Python);
 	let has_go = packages.iter().any(|p| p.ecosystem == Ecosystem::Go);
 
@@ -1030,7 +1027,6 @@ fn package_type_for_ecosystem(ecosystem: Ecosystem) -> PackageType {
 		Ecosystem::Npm => PackageType::Npm,
 		Ecosystem::Deno => PackageType::Deno,
 		Ecosystem::Dart => PackageType::Dart,
-		Ecosystem::Flutter => PackageType::Flutter,
 		Ecosystem::Python => PackageType::Python,
 		Ecosystem::Go => PackageType::Go,
 		_ => PackageType::Cargo,
@@ -1118,7 +1114,7 @@ pub(crate) fn build_lockfile_command_executions(
 		root,
 		&configuration.dart.lockfile_commands,
 		packages.iter().any(|package| {
-			matches!(package.ecosystem, Ecosystem::Dart | Ecosystem::Flutter)
+			matches!(package.ecosystem, Ecosystem::Dart)
 				&& released_versions.contains_key(&package.id)
 		}),
 	)?;

@@ -62,9 +62,9 @@ expression: analysis
     },
     "mobile": {
       "packageId": "mobile",
-      "packageRecordId": "flutter:packages/mobile/pubspec.yaml",
+      "packageRecordId": "dart:packages/mobile/pubspec.yaml",
       "packageName": "mobile_app",
-      "ecosystem": "flutter",
+      "ecosystem": "dart",
       "analyzerId": "dart/pubspec",
       "changedFiles": [
         "lib/mobile_app.dart",

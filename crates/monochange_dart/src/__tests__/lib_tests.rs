@@ -56,18 +56,19 @@ fn discovers_dart_workspace_packages() {
 }
 
 #[test]
-fn marks_flutter_packages_with_flutter_ecosystem() {
+fn marks_flutter_packages_with_dart_ecosystem_and_metadata() {
 	let fixture_root =
 		Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/flutter/workspace");
 	let discovery = discover_dart_packages(&fixture_root)
 		.unwrap_or_else(|error| panic!("flutter discovery: {error}"));
 
-	assert!(
-		discovery
-			.packages
-			.iter()
-			.all(|package| package.ecosystem.as_str() == "flutter")
-	);
+	for package in &discovery.packages {
+		assert_eq!(
+			package.ecosystem.as_str(),
+			"dart",
+			"all Dart/Flutter packages should have ecosystem = dart"
+		);
+	}
 }
 
 #[test]
@@ -157,14 +158,17 @@ fn default_lockfile_commands_choose_dart_or_flutter_pub_get() {
 		}]
 	);
 
-	let flutter_package = PackageRecord::new(
-		Ecosystem::Flutter,
+	let mut flutter_package = PackageRecord::new(
+		Ecosystem::Dart,
 		"nested_flutter_app",
 		fixture_root.join("packages/app/pubspec.yaml"),
 		fixture_root.clone(),
 		Some(Version::new(1, 0, 0)),
 		PublishState::Public,
 	);
+	flutter_package
+		.metadata
+		.insert("is_flutter".to_string(), "true".to_string());
 	assert_eq!(
 		default_lockfile_commands(&flutter_package),
 		vec![monochange_core::LockfileCommandExecution {
@@ -348,7 +352,7 @@ fn workspace_and_manifest_helpers_cover_yaml_and_error_paths() {
 	let private = parse_manifest(&private_manifest, &fixture_root)
 		.unwrap_or_else(|error| panic!("parse private manifest: {error}"))
 		.unwrap_or_else(|| panic!("expected private package"));
-	assert_eq!(private.ecosystem, Ecosystem::Flutter);
+	assert_eq!(private.ecosystem, Ecosystem::Dart);
 	assert_eq!(private.publish_state, PublishState::Private);
 	assert_eq!(private.current_version, None);
 

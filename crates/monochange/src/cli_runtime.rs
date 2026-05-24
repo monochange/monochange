@@ -2555,8 +2555,7 @@ fn parse_ecosystem_input(input: &str) -> MonochangeResult<Ecosystem> {
 		"cargo" => Ok(Ecosystem::Cargo),
 		"npm" => Ok(Ecosystem::Npm),
 		"deno" => Ok(Ecosystem::Deno),
-		"dart" => Ok(Ecosystem::Dart),
-		"flutter" => Ok(Ecosystem::Flutter),
+		"dart" | "flutter" => Ok(Ecosystem::Dart),
 		"python" => Ok(Ecosystem::Python),
 		"go" => Ok(Ecosystem::Go),
 		_ => {

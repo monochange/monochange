@@ -191,7 +191,6 @@ fn sample_package(root: &Path, config_id: &str, package_type: PackageType) -> Pa
 		PackageType::Npm => Ecosystem::Npm,
 		PackageType::Deno => Ecosystem::Deno,
 		PackageType::Dart => Ecosystem::Dart,
-		PackageType::Flutter => Ecosystem::Flutter,
 		_ => unreachable!("unsupported package type in sample_package"),
 	};
 	let mut package = PackageRecord::new(
