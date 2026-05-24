@@ -10,6 +10,7 @@
 devenv.local.nix
 .monochange/local/
 
+packages/monochange__cli/bin/
 packages/monochange__cli-darwin-arm64/bin/
 packages/monochange__cli-darwin-x64/bin/
 packages/monochange__cli-linux-arm64-gnu/bin/

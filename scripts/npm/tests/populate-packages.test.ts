@@ -13,7 +13,7 @@ import {
 	PLATFORM_PACKAGE_DIRS,
 	run,
 	assertTrustedPublishingContext,
-} from "../populate-packages.mjs";
+} from "../populate-packages.ts";
 
 function makeSandbox() {
 	const base = join(process.cwd(), ".tmp-test-populate-packages");

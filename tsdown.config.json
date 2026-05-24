@@ -1,14 +1,19 @@
 {
 	"$schema": "https://raw.githubusercontent.com/sxzz/tsdown/main/schema.json",
-	"entry": { "index": "src/main.ts" },
-	"format": ["esm"],
-	"target": "node24",
-	"outDir": "dist",
-	"clean": true,
-	"sourcemap": true,
+	"entry": {
+		"packages/monochange__cli/bin/monochange": "packages/monochange__cli/src/monochange.ts"
+	},
+	"format": [
+		"esm"
+	],
+	"target": "node22",
+	"outDir": ".",
+	"clean": false,
+	"sourcemap": false,
 	"platform": "node",
 	"treeshake": true,
 	"dts": false,
 	"minify": false,
-	"report": false
+	"report": false,
+	"fixedExtension": false
 }

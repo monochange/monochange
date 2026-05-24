@@ -9,6 +9,6 @@
 		"directory": "packages/shared"
 	},
 	"exports": {
-		".": "./src/index.js"
+		".": "./src/index.ts"
 	}
 }

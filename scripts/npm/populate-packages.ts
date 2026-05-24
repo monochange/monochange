@@ -42,7 +42,7 @@ export function _resetSpawnSync() {
 }
 
 export function parseArgs(argv) {
-	const args = {};
+	const args: Record<string, string> = {};
 
 	for (let index = 0; index < argv.length; index += 1) {
 		const key = argv[index];
@@ -59,7 +59,11 @@ export function parseArgs(argv) {
 	return args;
 }
 
-export function run(command, args, options = {}) {
+export function run(
+	command,
+	args,
+	options: { stdio?: "pipe" | "inherit"; cwd?: string; env?: NodeJS.ProcessEnv } = {},
+) {
 	const result = _spawnSync(command, args, {
 		encoding: "utf8",
 		stdio: options.stdio ?? "pipe",
@@ -130,7 +134,7 @@ export function assertTrustedPublishingContext(env = process.env) {
 export function main(argv = process.argv.slice(2)) {
 	const args = parseArgs(argv);
 	if (!args["packages-dir"]) {
-		throw new Error("usage: populate-packages.mjs --packages-dir <dir>");
+		throw new Error("usage: populate-packages.ts --packages-dir <dir>");
 	}
 
 	const packagesDir = resolve(args["packages-dir"]);
@@ -141,7 +145,7 @@ export function main(argv = process.argv.slice(2)) {
 		if (hasBinary(dir) === false) {
 			throw new Error(
 				`Cannot populate ${pkg.name}@${pkg.version}: no binary found in ${join(dir, "bin")}. ` +
-					"Run build-packages.mjs first to populate platform binaries.",
+					"Run build-packages.ts first to populate platform binaries.",
 			);
 		}
 		console.log(`Populated ${pkg.name}@${pkg.version}`);
@@ -152,7 +156,7 @@ export function main(argv = process.argv.slice(2)) {
 	if (hasBinary(cliDir) === false) {
 		throw new Error(
 			`Cannot populate ${cliPkg.name}@${cliPkg.version}: no binary found in ${join(cliDir, "bin")}. ` +
-				"Run build-packages.mjs first to populate platform binaries.",
+				"Run build-packages.ts first to populate platform binaries.",
 		);
 	}
 	console.log(`Populated ${cliPkg.name}@${cliPkg.version}`);

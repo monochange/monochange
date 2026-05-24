@@ -30,8 +30,8 @@
     - `RUSTFLAGS="-L native=/nix/store/xvmhkpvfvmy4sfdkqwg9inq3qkpnx81b-libiconv-109.100.2/lib"`
   - Confirmed `hyperfine 1.20.0` is available.
 - Benchmark execution:
-  - Ran top-level CLI benchmark with `scripts/benchmark-cli.mjs`.
-  - Ran built-in step-command benchmark with `scripts/benchmark-step-commands.mjs`.
+  - Ran top-level CLI benchmark with `scripts/benchmark-cli.ts`.
+  - Ran built-in step-command benchmark with `scripts/benchmark-step-commands.ts`.
   - Re-ran step commands with `--warmup 3 --runs 8` to remove a noisy `step:display-versions` outlier.
   - Produced an HTML benchmark comparison report and hosted it in a secret gist for review.
 - Follow-up automation:
@@ -211,13 +211,13 @@ devenv shell -- coverage:patch
 
 ```sh
 workdir=/tmp/monochange-async-perf-20260513
-node "$workdir/async/scripts/benchmark-cli.mjs" run \
+node "$workdir/async/scripts/benchmark-cli.ts" run \
   --main-bin "$workdir/main/target/release/mc" \
   --pr-bin "$workdir/async/target/release/mc" \
   --output "$workdir/async-performance.md" \
   --violations-output "$workdir/async-performance-violations.txt"
 
-node "$workdir/async/scripts/benchmark-step-commands.mjs" run \
+node "$workdir/async/scripts/benchmark-step-commands.ts" run \
   --main-bin "$workdir/main/target/release/mc" \
   --pr-bin "$workdir/async/target/release/mc" \
   --output "$workdir/async-step-performance-rerun.md" \

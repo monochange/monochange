@@ -20,7 +20,7 @@ function createRoot(root) {
 		JSON.stringify({
 			name: "monochange-bin-test",
 			private: true,
-			type: "commonjs",
+			type: "module",
 		}),
 	);
 	cpSync(launcherPath, join(root, "bin", "monochange.js"));

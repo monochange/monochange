@@ -16,7 +16,7 @@ import {
 	populatePlatformPackage,
 	run,
 	walk,
-} from "../build-packages.mjs";
+} from "../build-packages.ts";
 
 function makeSandbox() {
 	const base = join(process.cwd(), ".tmp-test-build-packages");

@@ -44,10 +44,10 @@ push to main → ci.yml (release-pr) → merge release PR
 
 ## 5. npm publishing flow
 
-npm packages are handled differently from cargo crates. Platform-specific npm packages (`@monochange/cli-darwin-arm64`, etc.) and the main CLI wrapper (`@monochange/cli`) are built and populated by `scripts/npm/populate-packages.mjs` inside the `publish.yml` **plan** job. They are now published by `mc publish` alongside cargo crates in the **publish** job.
+npm packages are handled differently from cargo crates. Platform-specific npm packages (`@monochange/cli-darwin-arm64`, etc.) and the main CLI wrapper (`@monochange/cli`) are built and populated by `scripts/npm/populate-packages.ts` inside the `publish.yml` **plan** job. They are now published by `mc publish` alongside cargo crates in the **publish** job.
 
-- [ ] Confirm `scripts/npm/build-packages.mjs` runs **before** `scripts/npm/populate-packages.mjs` so binaries are populated.
-- [ ] Confirm `scripts/npm/populate-packages.mjs` validates binary presence before populate.
+- [ ] Confirm `scripts/npm/build-packages.ts` runs **before** `scripts/npm/populate-packages.ts` so binaries are populated.
+- [ ] Confirm `scripts/npm/populate-packages.ts` validates binary presence before populate.
 - [ ] Verify that `mc publish-plan` does **not** re-include npm packages in its batch output for a second publish attempt. If `mc publish-plan` cannot filter by ecosystem, pass `--package` flags to exclude npm packages from the cargo publish.
 
 ## 6. Trusted publishing and OIDC

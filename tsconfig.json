@@ -1,13 +1,28 @@
 {
 	"compilerOptions": {
-		"allowJs": true,
+		"allowImportingTsExtensions": true,
+		"allowJs": false,
 		"checkJs": false,
 		"module": "NodeNext",
 		"moduleResolution": "NodeNext",
 		"noEmit": true,
+		"noImplicitAny": false,
 		"skipLibCheck": true,
-		"target": "ES2024"
+		"strict": false,
+		"target": "ES2024",
+		"types": [
+			"node",
+			"vitest/globals"
+		]
 	},
-	"exclude": ["dist", "fixtures", "node_modules", "target"],
-	"include": ["scripts/**/*.mjs", ".github/scripts/**/*.mjs"]
+	"exclude": [
+		"dist",
+		"fixtures",
+		"node_modules",
+		"target"
+	],
+	"include": [
+		"scripts/**/*.ts",
+		"packages/monochange__cli/src/**/*.ts"
+	]
 }

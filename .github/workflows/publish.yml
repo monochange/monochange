@@ -103,10 +103,11 @@ jobs:
         env:
           RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
         run: |
-          pnpm node scripts/npm/build-packages.mjs \
+          pnpm build
+          pnpm node scripts/npm/build-packages.ts \
             --release-tag "$RELEASE_TAG" \
             --assets-dir "$RUNNER_TEMP/release-assets"
-          pnpm node scripts/npm/populate-packages.mjs \
+          pnpm node scripts/npm/populate-packages.ts \
             --packages-dir packages
         shell: devenv shell -- bash -e {0}
 

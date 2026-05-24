@@ -4,7 +4,7 @@ This branch should be measured against the current non-async `main` branch with 
 
 ## What to compare
 
-Use the existing CLI benchmark harness in `scripts/benchmark-cli.mjs`. It creates deterministic fixture repositories and measures these command paths with `hyperfine`:
+Use the existing CLI benchmark harness in `scripts/benchmark-cli.ts`. It creates deterministic fixture repositories and measures these command paths with `hyperfine`:
 
 - `mc validate`
 - `mc discover --format json`
@@ -18,7 +18,7 @@ The two bundled scenarios are intentionally different:
 
 These should expose whether async process execution and hosted-source/workspace orchestration improve wall-clock time for larger repositories, while also catching regressions in small repositories.
 
-Use `scripts/benchmark-step-commands.mjs` for built-in `mc step:<kebab>` coverage. It benchmarks all built-in step commands that can run safely against the offline fixture and reports the remaining provider/publish steps as explicit skips with setup rationale instead of silently omitting them.
+Use `scripts/benchmark-step-commands.ts` for built-in `mc step:<kebab>` coverage. It benchmarks all built-in step commands that can run safely against the offline fixture and reports the remaining provider/publish steps as explicit skips with setup rationale instead of silently omitting them.
 
 ## Local workflow
 
@@ -34,13 +34,13 @@ git worktree add "$workdir/async" feat/async-migration
 cargo build --manifest-path "$workdir/main/Cargo.toml" --release -p monochange --bin mc
 cargo build --manifest-path "$workdir/async/Cargo.toml" --release -p monochange --bin mc
 
-node "$workdir/async/scripts/benchmark-cli.mjs" run \
+node "$workdir/async/scripts/benchmark-cli.ts" run \
   --main-bin "$workdir/main/target/release/mc" \
   --pr-bin "$workdir/async/target/release/mc" \
   --output "$workdir/async-performance.md" \
   --violations-output "$workdir/async-performance-violations.txt"
 
-node "$workdir/async/scripts/benchmark-step-commands.mjs" run \
+node "$workdir/async/scripts/benchmark-step-commands.ts" run \
   --main-bin "$workdir/main/target/release/mc" \
   --pr-bin "$workdir/async/target/release/mc" \
   --output "$workdir/async-step-performance.md" \
@@ -62,7 +62,7 @@ Use `main` as the control and `pr` as the async branch. Treat results as meaning
 
 For `release` and `release --dry-run`, inspect the phase tables as well as total wall-clock time. The async migration should show its value most clearly in phases that launch independent git/provider/process work.
 
-For step-command benchmarks, use the pairwise `pr/main` summary from `benchmark-step-commands.mjs`; the raw `hyperfine` relative column is normalized against the fastest command in the whole table and is not a pairwise main-vs-PR ratio.
+For step-command benchmarks, use the pairwise `pr/main` summary from `benchmark-step-commands.ts`; the raw `hyperfine` relative column is normalized against the fastest command in the whole table and is not a pairwise main-vs-PR ratio.
 
 ## Latest local run
 
@@ -89,7 +89,7 @@ Headline results from the stable pairwise summaries:
 Add a non-blocking PR workflow that:
 
 1. Builds `origin/main` and the PR head in release mode.
-2. Runs `scripts/benchmark-cli.mjs run` and `scripts/benchmark-step-commands.mjs run`.
+2. Runs `scripts/benchmark-cli.ts run` and `scripts/benchmark-step-commands.ts run`.
 3. Uploads the generated Markdown as artifacts.
 4. Comments the Markdown on the PR.
 5. Fails only when configured phase budgets are exceeded; otherwise reports improvement/regression as advisory data.

@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path, { isAbsolute, relative, resolve } from "node:path";
 
 function parseArgs(argv) {
-	const options = {};
+	const options: Record<string, string> = {};
 
 	for (let index = 0; index < argv.length; index += 1) {
 		const token = argv[index];

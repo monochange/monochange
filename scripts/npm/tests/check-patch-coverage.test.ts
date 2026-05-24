@@ -6,7 +6,7 @@ import {
 	parseChangedLines,
 	parseLcov,
 	verifyPatchCoverage,
-} from "../../check-patch-coverage.mjs";
+} from "../../check-patch-coverage.ts";
 
 const repoRoot = "/repo";
 
