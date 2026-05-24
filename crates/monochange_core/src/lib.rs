@@ -1272,8 +1272,14 @@ pub enum MetadataStyle {
 	/// Render metadata as block-quote lines: `> _Owner:_ @user`
 	Blockquote,
 	/// Render metadata as plain lines: `_Owner:_ @user`
-	#[default]
 	Plain,
+	/// Render metadata as an inline paragraph joined with ` · `.
+	///
+	/// When a review request (PR/MR) link is available, commit links are
+	/// omitted since the PR already identifies the change. When no review
+	/// request link exists, commit links are included.
+	#[default]
+	Inline,
 	/// Omit metadata entirely.
 	Omit,
 }
@@ -1373,6 +1379,9 @@ impl ChangelogStyle {
 			}
 			MetadataStyle::Plain => {
 				"Render metadata lines (owner, review link, commit links, issues) as plain text — no block-quote prefix."
+			}
+			MetadataStyle::Inline => {
+				"Render metadata as a single inline paragraph joined with ' · '. When a review request (PR/MR) link is available, omit commit links since the PR already identifies the change. When no review request link exists, include commit links."
 			}
 			MetadataStyle::Omit => "Omit metadata lines entirely from changelog entries.",
 		};

@@ -143,6 +143,18 @@ templates = [
 	"- {{ summary }}",
 ]
 
+# Style options for changelog rendering.
+# metadata_style controls how metadata lines (owner, review link, commits, issues)
+# appear in context blocks:
+#   "blockquote" — block-quote lines prefixed with >
+#   "plain" — plain text lines
+#   "inline" — single paragraph joined with · (default)
+#     When a review request (PR/MR) link is available, commit links are
+#     omitted since the PR already identifies the change.
+#   "omit" — no metadata at all
+[changelog.style]
+metadata_style = "inline"
+
 [changelog.sections]
 breaking = { heading = "💥 Breaking Change", description = "Breaking changes that require consumer updates or migration", priority = 10 }
 feat = { heading = "🚀 Feature", description = "New features, enhancements, and additions", priority = 20 }
