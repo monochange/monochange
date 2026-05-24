@@ -5088,11 +5088,6 @@ impl EcosystemRegistry {
 					warnings.append(&mut discovery.warnings);
 				}
 				Err(error) => {
-					tracing::warn!(
-						ecosystem = ecosystem.as_str(),
-						%error,
-						"ecosystem discovery failed, skipping"
-					);
 					warnings.push(format!("{} discovery failed: {error}", ecosystem.as_str()));
 				}
 			}
