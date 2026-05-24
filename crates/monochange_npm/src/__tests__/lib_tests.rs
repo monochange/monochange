@@ -969,9 +969,8 @@ fn workspace_pattern_skips_directories_without_package_json() {
 
 	// Discovery should succeed and only find packages with package.json files,
 	// skipping directories that match the glob but don't contain a package.json.
-	let discovery = discover_npm_packages(&fixture_root).expect(
-		"npm discovery should succeed when workspace pattern matches directories without package.json",
-	);
+	let discovery = discover_npm_packages(&fixture_root)
+		.unwrap_or_else(|error| panic!("npm discovery should succeed when workspace pattern matches directories without package.json: {error}"));
 
 	// Only the directory with a package.json should be discovered
 	let names: Vec<_> = discovery.packages.iter().map(|p| p.name.clone()).collect();

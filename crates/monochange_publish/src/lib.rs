@@ -57,7 +57,6 @@ fn progress_emoji_for_label(label: &str) -> &'static str {
 		"npm" => "📦",
 		"deno" => "🦕",
 		"dart" => "🎯",
-		"flutter" => "🦋",
 		"python" => "🐍",
 		"go" => "🐹",
 		_ => "🌐",

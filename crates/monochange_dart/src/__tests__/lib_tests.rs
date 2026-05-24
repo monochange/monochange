@@ -158,7 +158,7 @@ fn default_lockfile_commands_choose_dart_or_flutter_pub_get() {
 		}]
 	);
 
-	let flutter_package = PackageRecord::new(
+	let mut flutter_package = PackageRecord::new(
 		Ecosystem::Dart,
 		"nested_flutter_app",
 		fixture_root.join("packages/app/pubspec.yaml"),
@@ -166,6 +166,9 @@ fn default_lockfile_commands_choose_dart_or_flutter_pub_get() {
 		Some(Version::new(1, 0, 0)),
 		PublishState::Public,
 	);
+	flutter_package
+		.metadata
+		.insert("is_flutter".to_string(), "true".to_string());
 	assert_eq!(
 		default_lockfile_commands(&flutter_package),
 		vec![monochange_core::LockfileCommandExecution {

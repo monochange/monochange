@@ -239,6 +239,7 @@ pub enum Ecosystem {
 	Cargo,
 	Npm,
 	Deno,
+	#[serde(alias = "flutter")]
 	Dart,
 	Python,
 	Go,
@@ -581,6 +582,7 @@ pub enum PackageType {
 	Cargo,
 	Npm,
 	Deno,
+	#[serde(alias = "flutter")]
 	Dart,
 	Python,
 	Go,
@@ -5055,29 +5057,45 @@ impl EcosystemRegistry {
 	}
 
 	pub fn discover_all(&self, root: &Path) -> MonochangeResult<AdapterDiscovery> {
-		let results = std::thread::scope(|scope| {
-			self.adapters
-				.iter()
-				.map(|adapter| scope.spawn(move || adapter.discover(root)))
-				.collect::<Vec<_>>()
-				.into_iter()
-				.map(|handle| {
-					handle.join().map_err(|_| {
-						MonochangeError::Discovery(
-							"ecosystem discovery worker panicked".to_string(),
+		let results: Vec<(Ecosystem, Result<AdapterDiscovery, MonochangeError>)> =
+			std::thread::scope(|scope| {
+				self.adapters
+					.iter()
+					.map(|adapter| {
+						let ecosystem = adapter.ecosystem();
+						let handle = scope.spawn(move || adapter.discover(root));
+						(ecosystem, handle)
+					})
+					.map(|(ecosystem, handle)| {
+						(
+							ecosystem,
+							handle.join().unwrap_or_else(|_| {
+								Err(MonochangeError::Discovery(
+									"ecosystem discovery worker panicked".to_string(),
+								))
+							}),
 						)
-					})?
-				})
-				.collect::<MonochangeResult<Vec<_>>>()
-		})?;
+					})
+					.collect()
+			});
 
-		let mut packages =
-			Vec::with_capacity(results.iter().map(|result| result.packages.len()).sum());
-		let mut warnings =
-			Vec::with_capacity(results.iter().map(|result| result.warnings.len()).sum());
-		for mut result in results {
-			packages.append(&mut result.packages);
-			warnings.append(&mut result.warnings);
+		let mut packages = Vec::new();
+		let mut warnings = Vec::new();
+		for (ecosystem, result) in results {
+			match result {
+				Ok(mut discovery) => {
+					packages.append(&mut discovery.packages);
+					warnings.append(&mut discovery.warnings);
+				}
+				Err(error) => {
+					tracing::warn!(
+						ecosystem = ecosystem.as_str(),
+						%error,
+						"ecosystem discovery failed, skipping"
+					);
+					warnings.push(format!("{} discovery failed: {error}", ecosystem.as_str()));
+				}
+			}
 		}
 		Ok(AdapterDiscovery { packages, warnings })
 	}
