@@ -5,6 +5,7 @@ monochange_core: minor
 monochange_dart: minor
 monochange_npm: minor
 monochange_publish: minor
+monochange_schema: minor
 ---
 
 # Resilient discovery and Dart/Flutter ecosystem unification
