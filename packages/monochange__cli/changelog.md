@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.1](https://github.com/monochange/monochange/releases/tag/v0.6.1) (2026-05-24)
+
+### 🐛 Fixed
+
+#### Refactor npm scripts to TypeScript
+
+Move repository npm tooling and the npm CLI launcher source to TypeScript so local and CI scripts run through Node's native TypeScript support while the published CLI package still ships a built JavaScript bin.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #529](https://github.com/monochange/monochange/pull/529) _Introduced in:_ [`99cdf08`](https://github.com/monochange/monochange/commit/99cdf08d560d40c020d9bf031c0441fd871d67e4)
+
 ## [0.6.0](https://github.com/monochange/monochange/releases/tag/v0.6.0) (2026-05-23)
 
 ### Changed

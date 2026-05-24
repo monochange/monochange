@@ -564,3 +564,29 @@ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #440](https://gith
 Release commit and release request steps now support a `stage_all` input/config field that defaults to `false`. When enabled, the release commit stages every non-ignored working tree change, so generated lockfile updates like `pnpm-lock.yaml` can be included alongside configured release manifests and changelogs.
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #520](https://github.com/monochange/monochange/pull/520) _Introduced in:_ [`035dcb3`](https://github.com/monochange/monochange/commit/035dcb345cca8586440451836fa06fb631596c20) _Last updated in:_ [`88b520e`](https://github.com/monochange/monochange/commit/88b520ec51b76c79348595abc66a573761da4d63)
+
+## monochange_schema [0.3.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.3.1) (2026-05-24)
+
+### 🚀 Feature
+
+#### Resilient discovery and Dart/Flutter ecosystem unification
+
+###### Discovery no longer crashes on unfamiliar ecosystems
+
+`mc init` and `discover_all` now gracefully handle errors from individual ecosystem adapters. When an adapter (e.g. npm) fails in a monorepo that doesn't use that ecosystem (e.g. a Dart monorepo), the error is logged as a warning and discovery continues with remaining adapters instead of aborting. The npm adapter's `expand_member_patterns` also guards against workspace glob patterns that resolve to directories without a `package.json`.
+
+###### Flutter merged into the Dart ecosystem
+
+`Ecosystem::Flutter` and `PackageType::Flutter` have been removed. Flutter packages use `Ecosystem::Dart` with an `is_flutter` metadata flag on the package record, since Flutter and Dart share `pubspec.yaml`, `pub.dev`, and the same tooling. The publish and lockfile commands now check this metadata to choose `flutter pub get`/`flutter pub publish` vs `dart pub get`/`dart pub publish`. Config files that use the string `"flutter"` are deserialized to `Ecosystem::Dart` or `PackageType::Dart` for backward compatibility.
+
+```toml
+# Before (still works, maps to dart ecosystem):
+[[packages]]
+type = "flutter"
+
+# After (preferred):
+[[packages]]
+type = "dart"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #530](https://github.com/monochange/monochange/pull/530) _Introduced in:_ [`7a1ef20`](https://github.com/monochange/monochange/commit/7a1ef2061ac22a0bb9918b113009d468aa471083)
