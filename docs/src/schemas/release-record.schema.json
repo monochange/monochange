@@ -120,13 +120,12 @@
 		},
 		"Ecosystem": {
 			"enum": [
-				"cargo",
-				"npm",
-				"deno",
-				"dart",
-				"flutter",
-				"python",
-				"go"
+				"Cargo",
+				"Npm",
+				"Deno",
+				"Dart",
+				"Python",
+				"Go"
 			],
 			"type": "string"
 		},
