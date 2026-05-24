@@ -57,7 +57,6 @@ fn progress_emoji_for_label(label: &str) -> &'static str {
 		"npm" => "📦",
 		"deno" => "🦕",
 		"dart" => "🎯",
-		"flutter" => "🦋",
 		"python" => "🐍",
 		"go" => "🐹",
 		_ => "🌐",
@@ -1683,7 +1682,11 @@ fn build_cargo_release_publish_command(request: &PublishRequest) -> CommandSpec 
 }
 
 fn build_dart_publish_command(request: &PublishRequest, cwd: &Path) -> CommandSpec {
-	let program = if request.ecosystem == Ecosystem::Flutter {
+	let is_flutter = request
+		.package_metadata
+		.get("is_flutter")
+		.map_or(false, |v| v == "true");
+	let program = if is_flutter {
 		"flutter"
 	} else {
 		"dart"
@@ -2252,7 +2255,7 @@ fn ecosystem_settings(
 	match ecosystem {
 		Ecosystem::Cargo => &configuration.cargo,
 		Ecosystem::Deno => &configuration.deno,
-		Ecosystem::Dart | Ecosystem::Flutter => &configuration.dart,
+		Ecosystem::Dart => &configuration.dart,
 		Ecosystem::Python => &configuration.python,
 		Ecosystem::Go => &configuration.go,
 		_ => &configuration.npm,

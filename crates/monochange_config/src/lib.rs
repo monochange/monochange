@@ -4995,7 +4995,7 @@ fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageTyp
 			| (Ecosystem::Npm, PackageType::Npm)
 			| (Ecosystem::Deno, PackageType::Deno)
 			| (Ecosystem::Dart, PackageType::Dart)
-			| (Ecosystem::Flutter, PackageType::Flutter)
+			| (Ecosystem::Dart, PackageType::Flutter)
 	)
 }
 

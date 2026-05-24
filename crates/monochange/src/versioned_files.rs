@@ -345,7 +345,7 @@ fn inferred_lockfile_ecosystem_type(
 			Some(monochange_core::EcosystemType::Deno)
 		}
 		#[cfg(feature = "dart")]
-		Ecosystem::Dart | Ecosystem::Flutter if configuration.dart.lockfile_commands.is_empty() => {
+		Ecosystem::Dart if configuration.dart.lockfile_commands.is_empty() => {
 			Some(monochange_core::EcosystemType::Dart)
 		}
 		#[cfg(feature = "python")]
@@ -369,7 +369,7 @@ fn inferred_lockfile_paths(package: &PackageRecord) -> Vec<PathBuf> {
 		#[cfg(feature = "deno")]
 		Ecosystem::Deno => monochange_deno::discover_lockfiles(package),
 		#[cfg(feature = "dart")]
-		Ecosystem::Dart | Ecosystem::Flutter => monochange_dart::discover_lockfiles(package),
+		Ecosystem::Dart => monochange_dart::discover_lockfiles(package),
 		#[cfg(feature = "go")]
 		Ecosystem::Go => monochange_go::discover_lockfiles(package),
 		_ => Vec::new(),

@@ -810,7 +810,7 @@ pub(crate) fn build_dart_manifest_updates(
 	packages
 		.iter()
 		.filter(|package| {
-			package.ecosystem == Ecosystem::Dart || package.ecosystem == Ecosystem::Flutter
+			package.ecosystem == Ecosystem::Dart
 		})
 		.par_bridge()
 		.filter_map(|package| {

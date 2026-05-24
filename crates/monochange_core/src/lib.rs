@@ -232,17 +232,42 @@ impl fmt::Display for BumpSeverity {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 #[non_exhaustive]
 pub enum Ecosystem {
 	Cargo,
 	Npm,
 	Deno,
 	Dart,
-	Flutter,
 	Python,
 	Go,
+}
+
+impl Serialize for Ecosystem {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		serializer.serialize_str(self.as_str())
+	}
+}
+
+impl<'de> Deserialize<'de> for Ecosystem {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		let s = String::deserialize(deserializer)?;
+		match s.as_str() {
+			"cargo" => Ok(Ecosystem::Cargo),
+			"npm" => Ok(Ecosystem::Npm),
+			"deno" => Ok(Ecosystem::Deno),
+			"dart" | "flutter" => Ok(Ecosystem::Dart),
+			"python" => Ok(Ecosystem::Python),
+			"go" => Ok(Ecosystem::Go),
+			_ => Err(serde::de::Error::unknown_variant(&s, &["cargo", "npm", "deno", "dart", "python", "go"])),
+		}
+	}
 }
 
 impl Ecosystem {
@@ -254,7 +279,6 @@ impl Ecosystem {
 			Self::Npm => "npm",
 			Self::Deno => "deno",
 			Self::Dart => "dart",
-			Self::Flutter => "flutter",
 			Self::Python => "python",
 			Self::Go => "go",
 		}
@@ -281,7 +305,7 @@ impl From<PackageType> for Ecosystem {
 			PackageType::Npm => Self::Npm,
 			PackageType::Deno => Self::Deno,
 			PackageType::Dart => Self::Dart,
-			PackageType::Flutter => Self::Flutter,
+			PackageType::Flutter => Self::Dart,
 			PackageType::Python => Self::Python,
 			PackageType::Go => Self::Go,
 		}
@@ -303,7 +327,7 @@ impl std::str::FromStr for Ecosystem {
 			"npm" => Ok(Self::Npm),
 			"deno" => Ok(Self::Deno),
 			"dart" => Ok(Self::Dart),
-			"flutter" => Ok(Self::Flutter),
+			"flutter" => Ok(Self::Dart),
 			"python" => Ok(Self::Python),
 			"go" => Ok(Self::Go),
 			_ => Err(()),
@@ -317,7 +341,7 @@ pub fn default_registry_kind_for_ecosystem(ecosystem: Ecosystem) -> Option<Regis
 		Ecosystem::Cargo => Some(RegistryKind::CratesIo),
 		Ecosystem::Npm => Some(RegistryKind::Npm),
 		Ecosystem::Deno => Some(RegistryKind::Jsr),
-		Ecosystem::Dart | Ecosystem::Flutter => Some(RegistryKind::PubDev),
+		Ecosystem::Dart => Some(RegistryKind::PubDev),
 		Ecosystem::Python => Some(RegistryKind::Pypi),
 		Ecosystem::Go => Some(RegistryKind::GoProxy),
 	}
@@ -5061,30 +5085,43 @@ impl EcosystemRegistry {
 	}
 
 	pub fn discover_all(&self, root: &Path) -> MonochangeResult<AdapterDiscovery> {
-		let results = std::thread::scope(|scope| {
-			self.adapters
-				.iter()
-				.map(|adapter| scope.spawn(move || adapter.discover(root)))
-				.collect::<Vec<_>>()
-				.into_iter()
-				.map(|handle| {
-					handle.join().map_err(|_| {
-						MonochangeError::Discovery(
+		let results: Vec<(Ecosystem, Result<AdapterDiscovery, MonochangeError>)> =
+			std::thread::scope(|scope| {
+				self.adapters
+					.iter()
+					.map(|adapter| {
+						let ecosystem = adapter.ecosystem();
+						let handle = scope.spawn(move || adapter.discover(root));
+						(ecosystem, handle)
+					})
+					.map(|(ecosystem, handle)| (ecosystem, handle.join().unwrap_or_else(|_| {
+						Err(MonochangeError::Discovery(
 							"ecosystem discovery worker panicked".to_string(),
-						)
-					})?
-				})
-				.collect::<MonochangeResult<Vec<_>>>()
-		})?;
+						))
+					})))
+					.collect()
+			});
 
-		let mut packages =
-			Vec::with_capacity(results.iter().map(|result| result.packages.len()).sum());
-		let mut warnings =
-			Vec::with_capacity(results.iter().map(|result| result.warnings.len()).sum());
-		for mut result in results {
-			packages.append(&mut result.packages);
-			warnings.append(&mut result.warnings);
+		let mut packages = Vec::new();
+		let mut warnings = Vec::new();
+
+		for (ecosystem, result) in results {
+			match result {
+				Ok(discovery) => {
+					packages.append(&mut discovery.packages.clone());
+					warnings.append(&mut discovery.warnings.clone());
+				}
+				Err(error) => {
+					tracing::warn!(
+						"skipping {ecosystem} discovery due to error: {error}"
+					);
+					warnings.push(format!(
+						"skipping {ecosystem} discovery due to error: {error}"
+					));
+				}
+			}
 		}
+
 		Ok(AdapterDiscovery { packages, warnings })
 	}
 
@@ -5138,7 +5175,7 @@ pub fn default_publish_order_dependency_fields(ecosystem: Ecosystem) -> &'static
 		Ecosystem::Cargo => &["dependencies", "dev-dependencies", "build-dependencies"],
 		Ecosystem::Npm => &["dependencies", "devDependencies"],
 		Ecosystem::Deno => &["dependencies", "imports"],
-		Ecosystem::Dart | Ecosystem::Flutter => &["dependencies", "dev_dependencies"],
+		Ecosystem::Dart => &["dependencies", "dev_dependencies"],
 		Ecosystem::Python => &["dependencies"],
 		Ecosystem::Go => &["require"],
 	}

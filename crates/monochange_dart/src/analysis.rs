@@ -36,7 +36,7 @@ impl SemanticAnalyzer for DartSemanticAnalyzer {
 	}
 
 	fn applies_to(&self, package: &PackageRecord) -> bool {
-		matches!(package.ecosystem, Ecosystem::Dart | Ecosystem::Flutter)
+		matches!(package.ecosystem, Ecosystem::Dart)
 	}
 
 	fn analyze_package(
