@@ -43,6 +43,7 @@ fn ecosystem_display_matches_as_str() {
 	assert_eq!(Ecosystem::Npm.to_string(), "npm");
 	assert_eq!(Ecosystem::Deno.to_string(), "deno");
 	assert_eq!(Ecosystem::Dart.to_string(), "dart");
+	assert_eq!(Ecosystem::Dart.to_string(), "dart");
 }
 
 // ---------------------------------------------------------------------------

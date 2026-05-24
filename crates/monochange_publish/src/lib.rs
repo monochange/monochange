@@ -57,6 +57,7 @@ fn progress_emoji_for_label(label: &str) -> &'static str {
 		"npm" => "📦",
 		"deno" => "🦕",
 		"dart" => "🎯",
+		"flutter" => "🦋",
 		"python" => "🐍",
 		"go" => "🐹",
 		_ => "🌐",
@@ -1682,11 +1683,15 @@ fn build_cargo_release_publish_command(request: &PublishRequest) -> CommandSpec 
 }
 
 fn build_dart_publish_command(request: &PublishRequest, cwd: &Path) -> CommandSpec {
-	let is_flutter = request
+	let program = if request
 		.package_metadata
 		.get("is_flutter")
-		.is_some_and(|v| v == "true");
-	let program = if is_flutter { "flutter" } else { "dart" };
+		.is_some_and(|v| v == "true")
+	{
+		"flutter"
+	} else {
+		"dart"
+	};
 	CommandSpec {
 		program: program.to_string(),
 		args: vec![
