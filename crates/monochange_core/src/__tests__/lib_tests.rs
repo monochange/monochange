@@ -2214,7 +2214,7 @@ fn release_notes_style_overrides_only_replace_configured_fields() {
 		section_separator: SectionSeparator::BlankLine,
 		package_label_style: PackageLabelStyle::Inline,
 		package_label_placement: PackageLabelPlacement::AfterHeading,
-		metadata_style: MetadataStyle::Plain,
+		metadata_style: MetadataStyle::Inline,
 		collapsed_section_style: CollapsedSectionStyle::Details,
 	};
 	let overrides = ReleaseNotesStyleOverrides {
