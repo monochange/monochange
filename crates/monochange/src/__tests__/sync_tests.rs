@@ -256,7 +256,7 @@ fn build_sync_subcommand_parses_versions_with_defaults() {
 	assert_eq!(
 		versions_matches
 			.get_one::<String>("strategy")
-			.map(|s| s.as_str()),
+			.map(String::as_str),
 		Some("default"),
 		"strategy should default to 'default'"
 	);
@@ -305,7 +305,7 @@ fn build_sync_subcommand_parses_versions_with_strategy() {
 	assert_eq!(
 		versions_matches
 			.get_one::<String>("strategy")
-			.map(|s| s.as_str()),
+			.map(String::as_str),
 		Some("exact")
 	);
 }
