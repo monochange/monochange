@@ -1,0 +1,9 @@
+name: workspace_resolution
+version: 1.0.0
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+dependencies:
+  core: ^1.2.3
+dev_dependencies:
+  path_fail: ^1.0.0
