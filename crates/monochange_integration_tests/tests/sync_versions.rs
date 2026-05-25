@@ -148,3 +148,17 @@ fn sync_versions_with_caret_strategy() {
 		"expected caret-prefixed version ^1.2.3 in updated pubspec"
 	);
 }
+
+#[test]
+fn sync_versions_with_compatible_strategy() {
+	let fixture = setup_fixture("dart-lints", "advanced-workspace-flutter/workspace");
+	let root = fixture.path();
+
+	let result = sync_workspace_versions(root, VersionStrategy::Compatible, false)
+		.unwrap_or_else(|error| panic!("sync compatible: {error}"));
+
+	assert!(
+		!result.changes.is_empty(),
+		"expected sync with compatible strategy to detect changes"
+	);
+}
