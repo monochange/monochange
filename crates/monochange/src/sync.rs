@@ -139,8 +139,6 @@ pub fn sync_workspace_versions(
 
 /// Apply detected changes to manifest contents using the ecosystem-specific
 /// update function.
-/// Apply detected changes to manifest contents using the ecosystem-specific
-/// update function.
 ///
 /// Accepts the manifest contents as a string so the function can be tested
 /// without file I/O.
