@@ -3,6 +3,7 @@ monochange: minor
 monochange_core: minor
 monochange_dart: minor
 monochange_npm: minor
+"@monochange/skill": patch
 ---
 
 # Add `mc sync versions` command for internal dependency synchronization
