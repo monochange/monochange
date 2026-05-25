@@ -2510,6 +2510,7 @@ dependencies = [
  "insta",
  "insta-cmd",
  "jsonschema",
+ "monochange",
  "monochange_config",
  "monochange_core",
  "monochange_forgejo",

@@ -19,12 +19,14 @@ use monochange_core::VersionStrategy;
 use crate::discover_workspace;
 
 /// Result of synchronizing internal dependency versions across a workspace.
+#[derive(Debug)]
 pub struct SyncResult {
 	/// Files that were changed, with the changes made in each.
 	pub changes: Vec<FileSyncResult>,
 }
 
 /// Changes made to a single file.
+#[derive(Debug)]
 pub struct FileSyncResult {
 	/// Relative path from workspace root.
 	pub path: String,
@@ -114,9 +116,11 @@ pub fn sync_workspace_versions(
 
 		if !dry_run {
 			// Apply changes and write back.
-			let updated_contents =
-				apply_sync_changes(root, &package.manifest_path, &changes, ecosystem)?;
 			let manifest_path = root.join(&package.manifest_path);
+			let contents = std::fs::read_to_string(&manifest_path).map_err(|e| {
+				MonochangeError::Io(format!("failed to read {}: {e}", manifest_path.display()))
+			})?;
+			let updated_contents = apply_sync_changes(&contents, &changes, ecosystem)?;
 			std::fs::write(&manifest_path, updated_contents).map_err(|e| {
 				MonochangeError::Io(format!("failed to write {}: {e}", manifest_path.display()))
 			})?;
@@ -135,16 +139,16 @@ pub fn sync_workspace_versions(
 
 /// Apply detected changes to manifest contents using the ecosystem-specific
 /// update function.
+/// Apply detected changes to manifest contents using the ecosystem-specific
+/// update function.
+///
+/// Accepts the manifest contents as a string so the function can be tested
+/// without file I/O.
 pub(crate) fn apply_sync_changes(
-	root: &Path,
-	manifest_path: &Path,
+	contents: &str,
 	changes: &[DependencySyncChange],
 	ecosystem: Ecosystem,
 ) -> MonochangeResult<String> {
-	let full_path = root.join(manifest_path);
-	let contents = std::fs::read_to_string(&full_path)
-		.map_err(|e| MonochangeError::Io(format!("failed to read {}: {e}", full_path.display())))?;
-
 	// Build versioned_deps map from changes for the existing update functions.
 	let versioned_deps: BTreeMap<String, String> = changes
 		.iter()
@@ -154,13 +158,63 @@ pub(crate) fn apply_sync_changes(
 	match ecosystem {
 		Ecosystem::Dart => {
 			let fields = monochange_dart::default_dependency_fields();
-			monochange_dart::update_manifest_text(&contents, None, fields, &versioned_deps)
+			monochange_dart::update_manifest_text(contents, None, fields, &versioned_deps)
 		}
 		// npm uses JSON manifest updates via core.
 		Ecosystem::Npm => {
 			let fields = monochange_npm::default_dependency_fields();
-			monochange_core::update_json_manifest_text(&contents, None, fields, &versioned_deps)
+			monochange_core::update_json_manifest_text(contents, None, fields, &versioned_deps)
 		}
-		_ => Ok(contents),
+		_ => Ok(contents.to_string()),
+	}
+}
+
+/// Format the sync result as a human-readable output string.
+///
+/// This function is separated from the main dispatch so it can be tested
+/// independently.
+pub(crate) fn format_sync_result(result: &SyncResult, dry_run: bool, quiet: bool) -> String {
+	if result.changes.is_empty() {
+		if !quiet {
+			eprintln!("No changes needed. All internal dependency versions are already in sync.");
+		}
+		return String::new();
+	}
+
+	let mut output = String::new();
+	for file_result in &result.changes {
+		for change in &file_result.changes {
+			let line = if dry_run {
+				format!(
+					"would update {} → {} in {} ({})\n",
+					change.old_value, change.new_value, change.dependency_name, file_result.path
+				)
+			} else {
+				format!(
+					"updated {} → {} in {} ({})\n",
+					change.old_value, change.new_value, change.dependency_name, file_result.path
+				)
+			};
+			if !quiet {
+				eprint!("{line}");
+			}
+			output.push_str(&line);
+		}
+	}
+
+	if dry_run {
+		output.push_str("\n(dry run — no files were modified)\n");
+	}
+
+	output
+}
+
+/// Parse a strategy string from CLI into a `VersionStrategy` enum.
+pub(crate) fn parse_strategy(strategy_str: &str) -> VersionStrategy {
+	match strategy_str {
+		"exact" => VersionStrategy::Exact,
+		"caret" => VersionStrategy::Caret,
+		"compatible" => VersionStrategy::Compatible,
+		_ => VersionStrategy::Default,
 	}
 }

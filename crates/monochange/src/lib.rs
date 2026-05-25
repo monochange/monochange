@@ -205,7 +205,6 @@ use monochange_core::SourceReleaseOperation;
 use monochange_core::SourceReleaseOutcome;
 use monochange_core::SourceReleaseRequest;
 use monochange_core::VersionFormat;
-use monochange_core::VersionStrategy;
 use monochange_core::VersionedFileDefinition;
 use monochange_core::materialize_dependency_edges;
 use monochange_core::relative_to_root;
@@ -334,6 +333,7 @@ mod release_record;
 mod skill;
 mod subagents;
 mod sync;
+pub use sync::sync_workspace_versions;
 mod tracing_setup;
 mod versioned_files;
 mod workspace_ops;
@@ -994,56 +994,11 @@ where
 				let strategy_str = versions_matches
 					.get_one::<String>("strategy")
 					.map_or("default", |s| s.as_str());
-				let strategy = match strategy_str {
-					"exact" => VersionStrategy::Exact,
-					"caret" => VersionStrategy::Caret,
-					"compatible" => VersionStrategy::Compatible,
-					_ => VersionStrategy::Default,
-				};
+				let strategy = sync::parse_strategy(strategy_str);
 				let dry_run = versions_matches.get_flag("dry-run");
-				let result = sync::sync_workspace_versions(root, strategy, dry_run)?;
+				let result = sync_workspace_versions(root, strategy, dry_run)?;
 
-				if result.changes.is_empty() {
-					if !quiet {
-						eprintln!(
-							"No changes needed. All internal dependency versions are already in sync."
-						);
-					}
-					return Ok(String::new());
-				}
-
-				let mut output = String::new();
-				for file_result in &result.changes {
-					for change in &file_result.changes {
-						let line = if dry_run {
-							format!(
-								"would update {} → {} in {} ({})\n",
-								change.old_value,
-								change.new_value,
-								change.dependency_name,
-								file_result.path
-							)
-						} else {
-							format!(
-								"updated {} → {} in {} ({})\n",
-								change.old_value,
-								change.new_value,
-								change.dependency_name,
-								file_result.path
-							)
-						};
-						if !quiet {
-							eprint!("{line}");
-						}
-						output.push_str(&line);
-					}
-				}
-
-				if dry_run {
-					output.push_str("\n(dry run — no files were modified)\n");
-				}
-
-				Ok(output)
+				Ok(sync::format_sync_result(&result, dry_run, quiet))
 			}
 			_ => Err(MonochangeError::Config(
 				"Usage: mc sync versions [--dry-run] [--strategy <default|exact|caret|compatible>]"
