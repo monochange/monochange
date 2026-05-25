@@ -182,6 +182,36 @@ fn format_sync_result_non_dry_run_has_no_dry_run_footer() {
 	);
 }
 
+#[test]
+fn format_sync_result_empty_not_quiet_still_returns_empty() {
+	let result = sync::SyncResult { changes: vec![] };
+	let output = sync::format_sync_result(&result, false, false);
+	assert!(
+		output.is_empty(),
+		"empty changes should return empty string even when not quiet"
+	);
+}
+
+#[test]
+fn format_sync_result_not_quiet_and_not_dry_run_eprints_output() {
+	let result = sync::SyncResult {
+		changes: vec![sync::FileSyncResult {
+			path: "pubspec.yaml".to_string(),
+			changes: vec![DependencySyncChange {
+				dependency_name: "my_package".to_string(),
+				section: "dependencies".to_string(),
+				old_value: "^0.5.0".to_string(),
+				new_value: "^0.7.0".to_string(),
+			}],
+		}],
+	};
+	let output = sync::format_sync_result(&result, false, false);
+	assert!(
+		output.contains("updated ^0.5.0 → ^0.7.0 in my_package (pubspec.yaml)"),
+		"expected update message in non-quiet output"
+	);
+}
+
 // --- parse_strategy tests ---
 
 #[test]
