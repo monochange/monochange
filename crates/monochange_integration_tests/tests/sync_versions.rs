@@ -118,8 +118,6 @@ fn sync_versions_with_exact_strategy_omits_caret() {
 		.unwrap_or_else(|error| panic!("read updated: {error}"));
 
 	// With Exact strategy, the version should appear without caret prefix.
-	// The core package is at 1.2.3, so the dep should be updated to "1.2.3"
-	// (exact) rather than "^1.2.3" (default/caret).
 	assert!(
 		updated_contents.contains("1.2.3"),
 		"expected exact version 1.2.3 in updated pubspec"
@@ -160,5 +158,67 @@ fn sync_versions_with_compatible_strategy() {
 	assert!(
 		!result.changes.is_empty(),
 		"expected sync with compatible strategy to detect changes"
+	);
+}
+
+#[test]
+fn sync_versions_with_npm_internal_deps() {
+	// Create a temporary npm workspace with internal dependencies.
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+
+	// Write monochange.toml
+	let config = "[package.lib-a]\npath = \"packages/lib-a\"\ntype = \"npm\"\n\n[package.lib-b]\npath = \"packages/lib-b\"\ntype = \"npm\"\n";
+	std::fs::write(root.join("monochange.toml"), config)
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	// Write lib-a (version 2.0.0, no deps)
+	std::fs::create_dir_all(root.join("packages/lib-a"))
+		.unwrap_or_else(|error| panic!("create lib-a: {error}"));
+	std::fs::write(
+		root.join("packages/lib-a/package.json"),
+		"{\"name\":\"lib-a\",\"version\":\"2.0.0\"}",
+	)
+	.unwrap_or_else(|error| panic!("write lib-a: {error}"));
+
+	// Write lib-b (version 1.0.0, depends on lib-a ^1.0.0)
+	std::fs::create_dir_all(root.join("packages/lib-b"))
+		.unwrap_or_else(|error| panic!("create lib-b: {error}"));
+	std::fs::write(
+		root.join("packages/lib-b/package.json"),
+		"{\"name\":\"lib-b\",\"version\":\"1.0.0\",\"dependencies\":{\"lib-a\":\"^1.0.0\"}}",
+	)
+	.unwrap_or_else(|error| panic!("write lib-b: {error}"));
+
+	// Dry run to verify detection.
+	let dry_result = sync_workspace_versions(root, VersionStrategy::Default, true)
+		.unwrap_or_else(|error| panic!("npm dry run: {error}"));
+
+	assert!(
+		!dry_result.changes.is_empty(),
+		"expected npm sync to detect version mismatch"
+	);
+
+	let has_lib_a_update = dry_result.changes.iter().any(|f| {
+		f.changes
+			.iter()
+			.any(|c| c.dependency_name == "lib-a" && c.new_value.contains("2.0.0"))
+	});
+	assert!(
+		has_lib_a_update,
+		"expected lib-a dependency to be updated to 2.0.0"
+	);
+
+	// Now apply for real.
+	let result = sync_workspace_versions(root, VersionStrategy::Default, false)
+		.unwrap_or_else(|error| panic!("npm apply: {error}"));
+
+	assert!(!result.changes.is_empty());
+
+	let updated = std::fs::read_to_string(root.join("packages/lib-b/package.json"))
+		.unwrap_or_else(|error| panic!("read updated: {error}"));
+	assert!(
+		updated.contains("2.0.0"),
+		"expected lib-b to reference lib-a 2.0.0 after sync"
 	);
 }
