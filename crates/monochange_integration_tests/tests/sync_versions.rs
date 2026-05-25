@@ -99,3 +99,52 @@ fn sync_versions_applies_changes_non_dry_run() {
 		"expected updated pubspec to reference core version 1.2.3"
 	);
 }
+
+#[test]
+fn sync_versions_with_exact_strategy_omits_caret() {
+	let fixture = setup_fixture("dart-lints", "advanced-workspace-flutter/workspace");
+	let root = fixture.path();
+
+	let result = sync_workspace_versions(root, VersionStrategy::Exact, false)
+		.unwrap_or_else(|error| panic!("sync exact: {error}"));
+
+	assert!(
+		!result.changes.is_empty(),
+		"expected sync with exact strategy to detect changes"
+	);
+
+	let mismatch_path = root.join("packages/version_mismatch/pubspec.yaml");
+	let updated_contents = std::fs::read_to_string(&mismatch_path)
+		.unwrap_or_else(|error| panic!("read updated: {error}"));
+
+	// With Exact strategy, the version should appear without caret prefix.
+	// The core package is at 1.2.3, so the dep should be updated to "1.2.3"
+	// (exact) rather than "^1.2.3" (default/caret).
+	assert!(
+		updated_contents.contains("1.2.3"),
+		"expected exact version 1.2.3 in updated pubspec"
+	);
+}
+
+#[test]
+fn sync_versions_with_caret_strategy() {
+	let fixture = setup_fixture("dart-lints", "advanced-workspace-flutter/workspace");
+	let root = fixture.path();
+
+	let result = sync_workspace_versions(root, VersionStrategy::Caret, false)
+		.unwrap_or_else(|error| panic!("sync caret: {error}"));
+
+	assert!(
+		!result.changes.is_empty(),
+		"expected sync with caret strategy to detect changes"
+	);
+
+	let mismatch_path = root.join("packages/version_mismatch/pubspec.yaml");
+	let updated_contents = std::fs::read_to_string(&mismatch_path)
+		.unwrap_or_else(|error| panic!("read updated: {error}"));
+
+	assert!(
+		updated_contents.contains("^1.2.3"),
+		"expected caret-prefixed version ^1.2.3 in updated pubspec"
+	);
+}
