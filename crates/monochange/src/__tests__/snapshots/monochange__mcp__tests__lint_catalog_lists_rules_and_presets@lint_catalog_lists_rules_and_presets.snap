@@ -293,7 +293,7 @@ expression: content_text(&result)
     {
       "autofixable": false,
       "category": "best_practice",
-      "description": "Enforces how internal Dart workspace packages reference each other",
+      "description": "Enforces how internal Dart workspace packages reference each other. Without resolution: workspace, internal deps should use path: references (mode=path) or hosted versions (mode=hosted). With resolution: workspace, internal deps must use version constraints instead of path: references.",
       "id": "dart/internal-path-dependency-policy",
       "maturity": "stable",
       "name": "Internal path dependency policy",

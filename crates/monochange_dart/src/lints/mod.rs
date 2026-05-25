@@ -835,7 +835,7 @@ impl InternalPathDependencyPolicyRule {
 			rule: LintRule::new(
 				"dart/internal-path-dependency-policy",
 				"Internal path dependency policy",
-				"Enforces how internal Dart workspace packages reference each other",
+				"Enforces how internal Dart workspace packages reference each other. Without resolution: workspace, internal deps should use path: references (mode=path) or hosted versions (mode=hosted). With resolution: workspace, internal deps must use version constraints instead of path: references.",
 				LintCategory::BestPractice,
 				LintMaturity::Stable,
 				false,
@@ -877,12 +877,24 @@ impl LintRuleRunner for InternalPathDependencyPolicyRule {
 					continue;
 				}
 				let uses_path = dependency_uses_path(value);
-				if (require_path && (uses_path || workspace_resolution))
-					|| (!require_path && !uses_path)
-				{
+
+				// With resolution: workspace, internal deps must use version
+				// constraints (not path:). Without workspace resolution, path
+				// mode requires path: references and hosted mode requires
+				// non-path references.
+				let valid = if workspace_resolution {
+					!uses_path
+				} else if require_path {
+					uses_path
+				} else {
+					!uses_path
+				};
+				if valid {
 					continue;
 				}
-				let expectation = if require_path {
+				let expectation = if workspace_resolution {
+					"use version constraints (not `path:`) when resolution is workspace"
+				} else if require_path {
 					"use `path:` references"
 				} else {
 					"use hosted version references"
