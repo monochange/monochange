@@ -1156,6 +1156,86 @@ pub fn default_dependency_version_prefix() -> &'static str {
 pub fn default_dependency_fields() -> &'static [&'static str] {
 	&["dependencies", "devDependencies", "peerDependencies"]
 }
+/// Identify internal dependency references in a package.json that need
+/// version synchronization and compute the target values.
+///
+/// For npm/pnpm workspaces, workspace protocol references
+/// (`workspace:*`, `workspace:^`, `workspace:~`) are left unchanged as they
+/// resolve correctly at install time. Only plain version strings for
+/// internal packages are updated.
+pub fn sync_internal_dependency_versions(
+	contents: &str,
+	version_map: &std::collections::BTreeMap<String, String>,
+	workspace_package_names: &std::collections::BTreeSet<String>,
+	strategy: monochange_core::VersionStrategy,
+) -> monochange_core::MonochangeResult<Vec<monochange_core::DependencySyncChange>> {
+	let mut json: serde_json::Value = serde_json::from_str(contents).map_err(|error| {
+		monochange_core::MonochangeError::Config(format!(
+			"failed to parse package.json for sync: {error}"
+		))
+	})?;
+
+	let prefix = version_prefix_for_strategy_npm(strategy);
+	let mut changes = Vec::new();
+
+	for section in ["dependencies", "devDependencies", "peerDependencies"] {
+		let Some(deps) = json.get_mut(section).and_then(|v| v.as_object_mut()) else {
+			continue;
+		};
+
+		let dep_names: Vec<String> = deps
+			.keys()
+			.filter(|name| workspace_package_names.contains(*name))
+			.cloned()
+			.collect();
+
+		for dep_name in dep_names {
+			let Some(canonical_version) = version_map.get(&dep_name) else {
+				continue;
+			};
+
+			let Some(dep_value) = deps.get(&dep_name) else {
+				continue;
+			};
+
+			let Some(current_str) = dep_value.as_str() else {
+				continue;
+			};
+
+			// Skip workspace protocol references — they resolve correctly at install time.
+			if current_str.starts_with("workspace:") {
+				continue;
+			}
+
+			let new_constraint = format!("{prefix}{canonical_version}");
+
+			if current_str == new_constraint {
+				continue;
+			}
+
+			changes.push(monochange_core::DependencySyncChange {
+				dependency_name: dep_name.clone(),
+				section: section.to_string(),
+				old_value: current_str.to_string(),
+				new_value: new_constraint,
+			});
+		}
+	}
+
+	Ok(changes)
+}
+
+/// Determine the version constraint prefix for the given strategy (npm variant).
+fn version_prefix_for_strategy_npm(strategy: monochange_core::VersionStrategy) -> &'static str {
+	match strategy {
+		monochange_core::VersionStrategy::Default | monochange_core::VersionStrategy::Caret => {
+			default_dependency_version_prefix()
+		}
+		monochange_core::VersionStrategy::Exact => "",
+		monochange_core::VersionStrategy::Compatible => ">=",
+	}
+}
+
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]
 mod tests;
