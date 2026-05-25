@@ -17,6 +17,9 @@ path = "packages/version_mismatch"
 [package.workspace_resolution]
 path = "packages/workspace_resolution"
 
+[package.workspace_path_fail]
+path = "packages/workspace_path_fail"
+
 [package.flutter_ok]
 path = "packages/flutter_ok"
 

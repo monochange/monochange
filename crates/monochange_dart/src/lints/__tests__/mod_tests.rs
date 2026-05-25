@@ -298,17 +298,23 @@ fn internal_path_dependency_policy_rule_supports_path_and_hosted_modes() {
 	let path_ok = find_target(&targets, "path_ok");
 	let path_fail = find_target(&targets, "path_fail");
 	let workspace_resolution = find_target(&targets, "workspace_resolution");
+	let workspace_path_fail = find_target(&targets, "workspace_path_fail");
 
+	// Without resolution: workspace, path mode requires path: references.
 	assert!(
 		InternalPathDependencyPolicyRule::new()
 			.run(&ctx(path_ok), &config())
 			.is_empty()
 	);
+
+	// With resolution: workspace, versioned internal deps should pass.
 	assert!(
 		InternalPathDependencyPolicyRule::new()
 			.run(&ctx(workspace_resolution), &config())
 			.is_empty()
 	);
+
+	// Without resolution: workspace, versioned internal deps should fail.
 	let failing = InternalPathDependencyPolicyRule::new().run(&ctx(path_fail), &config());
 	assert_eq!(failing.len(), 1);
 	assert!(
@@ -317,6 +323,18 @@ fn internal_path_dependency_policy_rule_supports_path_and_hosted_modes() {
 			.expect("expected lint result")
 			.message
 			.contains("use `path:` references")
+	);
+
+	// With resolution: workspace, path: references should fail.
+	let ws_failing =
+		InternalPathDependencyPolicyRule::new().run(&ctx(workspace_path_fail), &config());
+	assert_eq!(ws_failing.len(), 1);
+	assert!(
+		ws_failing
+			.first()
+			.expect("expected lint result")
+			.message
+			.contains("use version constraints")
 	);
 
 	let hosted_config = LintRuleConfig::Detailed {
