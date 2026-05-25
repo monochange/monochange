@@ -135,7 +135,7 @@ pub fn sync_workspace_versions(
 
 /// Apply detected changes to manifest contents using the ecosystem-specific
 /// update function.
-fn apply_sync_changes(
+pub(crate) fn apply_sync_changes(
 	root: &Path,
 	manifest_path: &Path,
 	changes: &[DependencySyncChange],

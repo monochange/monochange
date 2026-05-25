@@ -1114,3 +1114,7 @@ fn format_publish_state(publish_state: monochange_core::PublishState) -> &'stati
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]
 pub(crate) mod tests;
+
+#[cfg(test)]
+#[path = "__tests__/sync_tests.rs"]
+pub(crate) mod sync_tests;
