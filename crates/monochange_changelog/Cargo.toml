@@ -22,6 +22,7 @@ tracing = { workspace = true, default-features = true }
 typed-builder = { workspace = true, default-features = true }
 
 [dev-dependencies]
+insta = { workspace = true }
 tempfile = { workspace = true, default-features = true }
 
 [lints]

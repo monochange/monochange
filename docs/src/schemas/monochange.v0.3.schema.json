@@ -77,7 +77,7 @@
 				},
 				"metadataStyle": {
 					"$ref": "#/$defs/MetadataStyle",
-					"default": "plain"
+					"default": "inline"
 				},
 				"packageLabelPlacement": {
 					"$ref": "#/$defs/PackageLabelPlacement",
@@ -1195,6 +1195,11 @@
 					"type": "string"
 				},
 				{
+					"const": "inline",
+					"description": "Render metadata as an inline paragraph joined with ` · `.\n\nWhen a review request (PR/MR) link is available, commit links are\nomitted since the PR already identifies the change. When no review\nrequest link exists, commit links are included.",
+					"type": "string"
+				},
+				{
 					"const": "omit",
 					"description": "Omit metadata entirely.",
 					"type": "string"
@@ -1703,7 +1708,7 @@
 					"$ref": "#/$defs/ChangelogStyle",
 					"default": {
 						"collapsedSectionStyle": "details",
-						"metadataStyle": "plain",
+						"metadataStyle": "inline",
 						"packageLabelPlacement": "after_heading",
 						"packageLabelStyle": "inline",
 						"sectionSeparator": "blank_line"

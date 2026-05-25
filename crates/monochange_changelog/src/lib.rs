@@ -617,7 +617,7 @@ fn build_release_note_change(
 fn format_metadata_line(style: MetadataStyle, text: &str) -> String {
 	match style {
 		MetadataStyle::Blockquote => format!("> {text}"),
-		MetadataStyle::Plain => text.to_string(),
+		MetadataStyle::Plain | MetadataStyle::Inline => text.to_string(),
 		MetadataStyle::Omit | _ => String::new(),
 	}
 }
@@ -674,6 +674,11 @@ fn build_rendered_changeset_context(
 		}
 	}
 
+	// In Inline mode, omit commit links when a review request (PR/MR) link is
+	// available — the PR already identifies the change.
+	let include_commits =
+		!matches!(metadata_style, MetadataStyle::Inline) || review_request.is_none();
+
 	if let Some(commit) = context
 		.introduced
 		.as_ref()
@@ -683,7 +688,7 @@ fn build_rendered_changeset_context(
 		let link = render_markdown_link(&format!("`{label}`"), commit.url.as_deref());
 		rendered.introduced_commit = Some(label);
 		rendered.introduced_commit_link = Some(link.clone());
-		if metadata_style != MetadataStyle::Omit {
+		if include_commits && metadata_style != MetadataStyle::Omit {
 			let prefix = format!("_Introduced in:_ {link}");
 			lines.push(format_metadata_line(metadata_style, &prefix));
 		}
@@ -704,7 +709,7 @@ fn build_rendered_changeset_context(
 		let link = render_markdown_link(&format!("`{label}`"), commit.url.as_deref());
 		rendered.last_updated_commit = Some(label);
 		rendered.last_updated_commit_link = Some(link.clone());
-		if metadata_style != MetadataStyle::Omit {
+		if include_commits && metadata_style != MetadataStyle::Omit {
 			let prefix = format!("_Last updated in:_ {link}");
 			lines.push(format_metadata_line(metadata_style, &prefix));
 		}
@@ -742,7 +747,12 @@ fn build_rendered_changeset_context(
 		}
 	}
 
-	rendered.context = lines.join("\n");
+	rendered.context = match metadata_style {
+		MetadataStyle::Inline => lines.join(" · "),
+		MetadataStyle::Blockquote | MetadataStyle::Plain | MetadataStyle::Omit | _ => {
+			lines.join("\n")
+		}
+	};
 	rendered
 }
 
