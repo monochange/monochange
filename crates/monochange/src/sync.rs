@@ -11,6 +11,9 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use monochange_core::DependencySyncChange;
+use monochange_core::Ecosystem;
+use monochange_core::MonochangeError;
+use monochange_core::MonochangeResult;
 use monochange_core::VersionStrategy;
 
 use crate::discover_workspace;
@@ -39,7 +42,7 @@ pub fn sync_workspace_versions(
 	root: &Path,
 	strategy: VersionStrategy,
 	dry_run: bool,
-) -> monochange_core::MonochangeResult<SyncResult> {
+) -> MonochangeResult<SyncResult> {
 	let discovery = discover_workspace(root)?;
 	let mut all_changes: Vec<FileSyncResult> = Vec::new();
 
@@ -72,16 +75,13 @@ pub fn sync_workspace_versions(
 
 		// Only sync ecosystems that have sync support.
 		let changes = match ecosystem {
-			monochange_core::Ecosystem::Dart => {
+			Ecosystem::Dart => {
 				let manifest_path = root.join(&package.manifest_path);
 				if !manifest_path.exists() {
 					continue;
 				}
 				let contents = std::fs::read_to_string(&manifest_path).map_err(|e| {
-					monochange_core::MonochangeError::Io(format!(
-						"failed to read {}: {e}",
-						manifest_path.display()
-					))
+					MonochangeError::Io(format!("failed to read {}: {e}", manifest_path.display()))
 				})?;
 				monochange_dart::sync_internal_dependency_versions(
 					&contents,
@@ -90,16 +90,13 @@ pub fn sync_workspace_versions(
 					strategy,
 				)?
 			}
-			monochange_core::Ecosystem::Npm => {
+			Ecosystem::Npm => {
 				let manifest_path = root.join(&package.manifest_path);
 				if !manifest_path.exists() {
 					continue;
 				}
 				let contents = std::fs::read_to_string(&manifest_path).map_err(|e| {
-					monochange_core::MonochangeError::Io(format!(
-						"failed to read {}: {e}",
-						manifest_path.display()
-					))
+					MonochangeError::Io(format!("failed to read {}: {e}", manifest_path.display()))
 				})?;
 				monochange_npm::sync_internal_dependency_versions(
 					&contents,
@@ -121,10 +118,7 @@ pub fn sync_workspace_versions(
 				apply_sync_changes(root, &package.manifest_path, &changes, ecosystem)?;
 			let manifest_path = root.join(&package.manifest_path);
 			std::fs::write(&manifest_path, updated_contents).map_err(|e| {
-				monochange_core::MonochangeError::Io(format!(
-					"failed to write {}: {e}",
-					manifest_path.display()
-				))
+				MonochangeError::Io(format!("failed to write {}: {e}", manifest_path.display()))
 			})?;
 		}
 
@@ -145,12 +139,11 @@ fn apply_sync_changes(
 	root: &Path,
 	manifest_path: &Path,
 	changes: &[DependencySyncChange],
-	ecosystem: monochange_core::Ecosystem,
-) -> monochange_core::MonochangeResult<String> {
+	ecosystem: Ecosystem,
+) -> MonochangeResult<String> {
 	let full_path = root.join(manifest_path);
-	let contents = std::fs::read_to_string(&full_path).map_err(|e| {
-		monochange_core::MonochangeError::Io(format!("failed to read {}: {e}", full_path.display()))
-	})?;
+	let contents = std::fs::read_to_string(&full_path)
+		.map_err(|e| MonochangeError::Io(format!("failed to read {}: {e}", full_path.display())))?;
 
 	// Build versioned_deps map from changes for the existing update functions.
 	let versioned_deps: BTreeMap<String, String> = changes
@@ -159,34 +152,15 @@ fn apply_sync_changes(
 		.collect();
 
 	match ecosystem {
-		monochange_core::Ecosystem::Dart => {
+		Ecosystem::Dart => {
 			let fields = monochange_dart::default_dependency_fields();
 			monochange_dart::update_manifest_text(&contents, None, fields, &versioned_deps)
 		}
 		// npm uses JSON manifest updates via core.
-		monochange_core::Ecosystem::Npm => {
+		Ecosystem::Npm => {
 			let fields = monochange_npm::default_dependency_fields();
 			monochange_core::update_json_manifest_text(&contents, None, fields, &versioned_deps)
 		}
 		_ => Ok(contents),
 	}
-}
-
-/// Format a sync result for display.
-pub fn format_sync_result(result: &SyncResult) -> String {
-	if result.changes.is_empty() {
-		return "No changes needed. All internal dependency versions are already in sync."
-			.to_string();
-	}
-
-	let mut output = String::new();
-	for file_result in &result.changes {
-		for change in &file_result.changes {
-			output.push_str(&format!(
-				"  {} → {} in {} ({})\n",
-				change.old_value, change.new_value, change.dependency_name, file_result.path
-			));
-		}
-	}
-	output
 }

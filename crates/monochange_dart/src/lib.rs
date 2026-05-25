@@ -34,6 +34,7 @@
 
 pub mod analysis;
 
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::fmt::Write as _;
@@ -46,6 +47,7 @@ pub use analysis::semantic_analyzer;
 use glob::glob;
 use monochange_core::AdapterDiscovery;
 use monochange_core::DependencyKind;
+use monochange_core::DependencySyncChange;
 use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemAdapter;
@@ -57,6 +59,7 @@ use monochange_core::PackageRecord;
 use monochange_core::PublishState;
 use monochange_core::ShellConfig;
 use monochange_core::SourceConfiguration;
+use monochange_core::VersionStrategy;
 use monochange_core::normalize_path;
 use monochange_publish::PublishRequest;
 use semver::Version;
@@ -170,7 +173,7 @@ pub fn default_lockfile_commands(package: &PackageRecord) -> Vec<LockfileCommand
 pub fn update_dependency_fields(
 	mapping: &mut Mapping,
 	fields: &[&str],
-	versioned_deps: &std::collections::BTreeMap<String, String>,
+	versioned_deps: &BTreeMap<String, String>,
 ) {
 	for field in fields {
 		let Some(Value::Mapping(section)) = mapping.get_mut(Value::String(field.to_string()))
@@ -194,7 +197,7 @@ pub fn update_manifest_text(
 	contents: &str,
 	owner_version: Option<&str>,
 	fields: &[&str],
-	versioned_deps: &std::collections::BTreeMap<String, String>,
+	versioned_deps: &BTreeMap<String, String>,
 ) -> MonochangeResult<String> {
 	serde_yaml_ng::from_str::<Mapping>(contents).map_err(|error| {
 		MonochangeError::Config(format!("failed to parse pubspec yaml: {error}"))
@@ -395,10 +398,7 @@ fn render_yaml_scalar(existing: &str, value: &str) -> String {
 }
 
 /// Update versions embedded in a parsed `pubspec.lock` mapping.
-pub fn update_pubspec_lock(
-	mapping: &mut Mapping,
-	raw_versions: &std::collections::BTreeMap<String, String>,
-) {
+pub fn update_pubspec_lock(mapping: &mut Mapping, raw_versions: &BTreeMap<String, String>) {
 	let Some(Value::Mapping(packages)) = mapping.get_mut(Value::String("packages".to_string()))
 	else {
 		return;
@@ -726,7 +726,7 @@ pub fn default_dependency_fields() -> &'static [&'static str] {
 /// # Arguments
 ///
 /// * `contents` - The raw pubspec.yaml text.
-/// * `version_map` - Map of package_id → canonical version.
+/// * `version_map` - Map of `package_id` → canonical version.
 /// * `workspace_package_names` - Set of all workspace package names.
 /// * `strategy` - How to format version constraints.
 ///
@@ -735,14 +735,12 @@ pub fn default_dependency_fields() -> &'static [&'static str] {
 /// Returns an error if the YAML cannot be parsed.
 pub fn sync_internal_dependency_versions(
 	contents: &str,
-	version_map: &std::collections::BTreeMap<String, String>,
-	workspace_package_names: &std::collections::BTreeSet<String>,
-	strategy: monochange_core::VersionStrategy,
-) -> monochange_core::MonochangeResult<Vec<monochange_core::DependencySyncChange>> {
+	version_map: &BTreeMap<String, String>,
+	workspace_package_names: &BTreeSet<String>,
+	strategy: VersionStrategy,
+) -> MonochangeResult<Vec<DependencySyncChange>> {
 	let mapping: Mapping = serde_yaml_ng::from_str(contents).map_err(|error| {
-		monochange_core::MonochangeError::Config(format!(
-			"failed to parse pubspec yaml for sync: {error}"
-		))
+		MonochangeError::Config(format!("failed to parse pubspec yaml for sync: {error}"))
 	})?;
 
 	let workspace_resolution = manifest_uses_workspace_resolution(&mapping);
@@ -774,7 +772,7 @@ pub fn sync_internal_dependency_versions(
 				if current_version == &new_constraint {
 					continue;
 				}
-				changes.push(monochange_core::DependencySyncChange {
+				changes.push(DependencySyncChange {
 					dependency_name: dep_name.to_string(),
 					section: section.to_string(),
 					old_value: current_value_to_string(dep_value),
@@ -786,7 +784,7 @@ pub fn sync_internal_dependency_versions(
 					// With workspace resolution, convert path: deps to versioned.
 					// The new dep should just be a version string.
 					let old_representation = detail_to_string(detail);
-					changes.push(monochange_core::DependencySyncChange {
+					changes.push(DependencySyncChange {
 						dependency_name: dep_name.to_string(),
 						section: section.to_string(),
 						old_value: old_representation,
@@ -796,16 +794,15 @@ pub fn sync_internal_dependency_versions(
 					// Without workspace resolution, update the version: field within
 					// the mapping if it exists.
 					if let Some(Value::String(current_ver)) =
-						detail.get(&Value::String("version".to_string()))
+						detail.get(Value::String("version".to_string()))
+						&& current_ver != new_constraint.as_str()
 					{
-						if current_ver != &new_constraint {
-							changes.push(monochange_core::DependencySyncChange {
-								dependency_name: dep_name.to_string(),
-								section: section.to_string(),
-								old_value: current_ver.clone(),
-								new_value: new_constraint,
-							});
-						}
+						changes.push(DependencySyncChange {
+							dependency_name: dep_name.to_string(),
+							section: section.to_string(),
+							old_value: current_ver.clone(),
+							new_value: new_constraint,
+						});
 					}
 				}
 			}
@@ -816,13 +813,11 @@ pub fn sync_internal_dependency_versions(
 }
 
 /// Determine the version constraint prefix for the given strategy.
-fn version_prefix_for_strategy(strategy: monochange_core::VersionStrategy) -> &'static str {
+fn version_prefix_for_strategy(strategy: VersionStrategy) -> &'static str {
 	match strategy {
-		monochange_core::VersionStrategy::Default | monochange_core::VersionStrategy::Caret => {
-			default_dependency_version_prefix()
-		}
-		monochange_core::VersionStrategy::Exact => "",
-		monochange_core::VersionStrategy::Compatible => ">=",
+		VersionStrategy::Default | VersionStrategy::Caret => default_dependency_version_prefix(),
+		VersionStrategy::Exact => "",
+		VersionStrategy::Compatible => ">=",
 	}
 }
 

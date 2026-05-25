@@ -47,6 +47,7 @@ pub use analysis::semantic_analyzer;
 use glob::glob;
 use monochange_core::AdapterDiscovery;
 use monochange_core::DependencyKind;
+use monochange_core::DependencySyncChange;
 use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemAdapter;
@@ -59,6 +60,7 @@ use monochange_core::PublishState;
 use monochange_core::RegistryKind;
 use monochange_core::ShellConfig;
 use monochange_core::SourceConfiguration;
+use monochange_core::VersionStrategy;
 use monochange_core::normalize_path;
 use monochange_core::relative_to_root;
 use monochange_github::GitHubTrustContext;
@@ -1165,14 +1167,12 @@ pub fn default_dependency_fields() -> &'static [&'static str] {
 /// internal packages are updated.
 pub fn sync_internal_dependency_versions(
 	contents: &str,
-	version_map: &std::collections::BTreeMap<String, String>,
-	workspace_package_names: &std::collections::BTreeSet<String>,
-	strategy: monochange_core::VersionStrategy,
-) -> monochange_core::MonochangeResult<Vec<monochange_core::DependencySyncChange>> {
-	let mut json: serde_json::Value = serde_json::from_str(contents).map_err(|error| {
-		monochange_core::MonochangeError::Config(format!(
-			"failed to parse package.json for sync: {error}"
-		))
+	version_map: &BTreeMap<String, String>,
+	workspace_package_names: &BTreeSet<String>,
+	strategy: VersionStrategy,
+) -> MonochangeResult<Vec<DependencySyncChange>> {
+	let mut json: Value = serde_json::from_str(contents).map_err(|error| {
+		MonochangeError::Config(format!("failed to parse package.json for sync: {error}"))
 	})?;
 
 	let prefix = version_prefix_for_strategy_npm(strategy);
@@ -1213,7 +1213,7 @@ pub fn sync_internal_dependency_versions(
 				continue;
 			}
 
-			changes.push(monochange_core::DependencySyncChange {
+			changes.push(DependencySyncChange {
 				dependency_name: dep_name.clone(),
 				section: section.to_string(),
 				old_value: current_str.to_string(),
@@ -1226,13 +1226,11 @@ pub fn sync_internal_dependency_versions(
 }
 
 /// Determine the version constraint prefix for the given strategy (npm variant).
-fn version_prefix_for_strategy_npm(strategy: monochange_core::VersionStrategy) -> &'static str {
+fn version_prefix_for_strategy_npm(strategy: VersionStrategy) -> &'static str {
 	match strategy {
-		monochange_core::VersionStrategy::Default | monochange_core::VersionStrategy::Caret => {
-			default_dependency_version_prefix()
-		}
-		monochange_core::VersionStrategy::Exact => "",
-		monochange_core::VersionStrategy::Compatible => ">=",
+		VersionStrategy::Default | VersionStrategy::Caret => default_dependency_version_prefix(),
+		VersionStrategy::Exact => "",
+		VersionStrategy::Compatible => ">=",
 	}
 }
 
