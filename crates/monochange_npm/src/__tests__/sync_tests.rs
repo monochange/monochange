@@ -1,4 +1,4 @@
-//! Tests for the sync versions feature in monochange_npm.
+//! Tests for the sync versions feature in `monochange_npm`.
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -18,7 +18,7 @@ fn sync_npm_detects_internal_deps() {
 		&workspace_names,
 		VersionStrategy::Default,
 	)
-	.expect("sync should succeed");
+	.unwrap_or_else(|error| panic!("sync: {error}"));
 	assert_eq!(changes.len(), 1);
 	assert_eq!(changes[0].dependency_name, "my-package");
 	assert_eq!(changes[0].old_value, "^0.5.0");
@@ -38,7 +38,7 @@ fn sync_npm_skips_external_deps() {
 		&workspace_names,
 		VersionStrategy::Default,
 	)
-	.expect("sync should succeed");
+	.unwrap_or_else(|error| panic!("sync: {error}"));
 	assert!(changes.is_empty(), "no changes for external deps");
 }
 
@@ -55,7 +55,7 @@ fn sync_npm_skips_workspace_protocol_refs() {
 		&workspace_names,
 		VersionStrategy::Default,
 	)
-	.expect("sync should succeed");
+	.unwrap_or_else(|error| panic!("sync: {error}"));
 	assert!(changes.is_empty(), "workspace:* protocol should be skipped");
 }
 
@@ -72,7 +72,7 @@ fn sync_npm_skips_already_matching_deps() {
 		&workspace_names,
 		VersionStrategy::Default,
 	)
-	.expect("sync should succeed");
+	.unwrap_or_else(|error| panic!("sync: {error}"));
 	assert!(changes.is_empty(), "no changes when already matching");
 }
 
@@ -89,7 +89,7 @@ fn sync_npm_exact_strategy() {
 		&workspace_names,
 		VersionStrategy::Exact,
 	)
-	.expect("sync should succeed");
+	.unwrap_or_else(|error| panic!("sync: {error}"));
 	assert_eq!(changes.len(), 1);
 	assert_eq!(changes[0].new_value, "0.7.0");
 }
@@ -107,7 +107,7 @@ fn sync_npm_scans_dev_and_peer_dependencies() {
 		&workspace_names,
 		VersionStrategy::Default,
 	)
-	.expect("sync should succeed");
+	.unwrap_or_else(|error| panic!("sync: {error}"));
 	assert_eq!(changes.len(), 1);
 	assert_eq!(changes[0].section, "devDependencies");
 }
