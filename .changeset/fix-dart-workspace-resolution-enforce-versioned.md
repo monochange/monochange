@@ -3,7 +3,7 @@ monochange_dart: patch
 monochange: patch
 ---
 
-fix(dart): enforce version constraints for workspace resolution internal deps
+# Enforce version constraints for Dart workspace resolution internal deps
 
 The `dart/internal-path-dependency-policy` lint rule now enforces version constraints (not `path:` references) when a pubspec declares `resolution:
 workspace`. Dart workspace resolution resolves versioned internal dependencies to local workspace packages automatically, so `path:` references are redundant and can cause publishing issues.
