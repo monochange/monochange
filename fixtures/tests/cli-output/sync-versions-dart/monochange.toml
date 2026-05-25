@@ -1,7 +1,0 @@
-[package.my_app]
-path = "dart/my_app"
-type = "dart"
-
-[package.my_package]
-path = "dart/my_package"
-type = "dart"
