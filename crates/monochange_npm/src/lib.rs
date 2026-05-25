@@ -1235,5 +1235,9 @@ fn version_prefix_for_strategy_npm(strategy: VersionStrategy) -> &'static str {
 }
 
 #[cfg(test)]
+#[path = "__tests__/sync_tests.rs"]
+mod sync_tests;
+
+#[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]
 mod tests;
