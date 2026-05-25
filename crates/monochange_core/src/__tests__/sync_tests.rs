@@ -1,4 +1,4 @@
-//! Tests for VersionStrategy and DependencySyncChange types.
+//! Tests for `VersionStrategy` and `DependencySyncChange` types.
 
 use crate::DependencySyncChange;
 use crate::VersionStrategy;
