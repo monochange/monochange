@@ -1,9 +1,13 @@
 //! Tests for sync module types and functions.
 
+use std::ffi::OsString;
+
+use clap::Command;
 use monochange_core::DependencySyncChange;
 use monochange_core::Ecosystem;
 use monochange_core::VersionStrategy;
 
+use crate::cli;
 use crate::sync;
 
 // --- apply_sync_changes tests ---
@@ -226,4 +230,82 @@ fn sync_result_tracks_file_changes() {
 	assert_eq!(result.changes[0].path, "pubspec.yaml");
 	assert_eq!(result.changes[0].changes.len(), 1);
 	assert_eq!(result.changes[0].changes[0].dependency_name, "my_package");
+}
+
+// --- build_sync_subcommand tests ---
+
+#[test]
+fn build_sync_subcommand_parses_versions_with_defaults() {
+	let command = Command::new("mc").subcommand(cli::build_sync_subcommand());
+	let matches = command
+		.clone()
+		.try_get_matches_from([
+			OsString::from("mc"),
+			OsString::from("sync"),
+			OsString::from("versions"),
+		])
+		.unwrap_or_else(|error| panic!("sync matches: {error}"));
+	let (_, sync_matches) = matches
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected sync subcommand"));
+	let (sub_name, versions_matches) = sync_matches
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected versions subcommand"));
+	assert_eq!(sub_name, "versions");
+	assert!(!versions_matches.get_flag("dry-run"));
+	assert_eq!(
+		versions_matches
+			.get_one::<String>("strategy")
+			.map(|s| s.as_str()),
+		Some("default"),
+		"strategy should default to 'default'"
+	);
+}
+
+#[test]
+fn build_sync_subcommand_parses_versions_with_dry_run() {
+	let command = Command::new("mc").subcommand(cli::build_sync_subcommand());
+	let matches = command
+		.clone()
+		.try_get_matches_from([
+			OsString::from("mc"),
+			OsString::from("sync"),
+			OsString::from("versions"),
+			OsString::from("--dry-run"),
+		])
+		.unwrap_or_else(|error| panic!("sync matches: {error}"));
+	let (_, sync_matches) = matches
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected sync subcommand"));
+	let (_, versions_matches) = sync_matches
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected versions subcommand"));
+	assert!(versions_matches.get_flag("dry-run"));
+}
+
+#[test]
+fn build_sync_subcommand_parses_versions_with_strategy() {
+	let command = Command::new("mc").subcommand(cli::build_sync_subcommand());
+	let matches = command
+		.clone()
+		.try_get_matches_from([
+			OsString::from("mc"),
+			OsString::from("sync"),
+			OsString::from("versions"),
+			OsString::from("--strategy"),
+			OsString::from("exact"),
+		])
+		.unwrap_or_else(|error| panic!("sync matches: {error}"));
+	let (_, sync_matches) = matches
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected sync subcommand"));
+	let (_, versions_matches) = sync_matches
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected versions subcommand"));
+	assert_eq!(
+		versions_matches
+			.get_one::<String>("strategy")
+			.map(|s| s.as_str()),
+		Some("exact")
+	);
 }
