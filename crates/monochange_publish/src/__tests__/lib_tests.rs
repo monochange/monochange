@@ -616,7 +616,9 @@ fn publish_readiness_registry_push_checker_and_missing_checker_paths() {
 #[test]
 fn placeholder_manifest_registry_push_writer_and_directory_builder_write_files() {
 	let request = sample_publish_request_for_registry(RegistryKind::Npm);
-	let root = Path::new(".");
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(root.path().join("LICENSE"), "source license")
+		.unwrap_or_else(|error| panic!("write source license: {error}"));
 	let mut registry = PlaceholderManifestWriterRegistry::new();
 
 	registry.push_writer(
@@ -630,15 +632,43 @@ fn placeholder_manifest_registry_push_writer_and_directory_builder_write_files()
 		}),
 	);
 
-	let tempdir = build_placeholder_directory(root, &request, None, &registry).unwrap();
+	let tempdir = build_placeholder_directory(root.path(), &request, None, &registry).unwrap();
 
 	assert_eq!(
 		fs::read_to_string(tempdir.path().join("README.md")).unwrap(),
 		"placeholder"
 	);
 	assert_eq!(
+		fs::read_to_string(tempdir.path().join("LICENSE")).unwrap(),
+		"source license"
+	);
+	assert_eq!(
+		fs::read_to_string(tempdir.path().join("CHANGELOG.md")).unwrap(),
+		"## 1.0.0\n\n- Placeholder release.\n"
+	);
+	assert_eq!(
 		fs::read_to_string(tempdir.path().join("package.json")).unwrap(),
 		"{\"name\":\"pkg\"}"
+	);
+
+	let root_without_license =
+		tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let fallback_tempdir =
+		build_placeholder_directory(root_without_license.path(), &request, None, &registry)
+			.unwrap();
+	assert_eq!(
+		fs::read_to_string(fallback_tempdir.path().join("LICENSE")).unwrap(),
+		"Placeholder package published by monochange. See the source repository for license terms.\n"
+	);
+
+	let placeholder_file =
+		tempfile::NamedTempFile::new().unwrap_or_else(|error| panic!("placeholder file: {error}"));
+	let error = write_placeholder_license(root_without_license.path(), placeholder_file.path())
+		.expect_err("expected placeholder license write error");
+	assert!(
+		error
+			.to_string()
+			.contains("failed to write placeholder LICENSE")
 	);
 }
 

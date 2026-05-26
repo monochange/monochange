@@ -513,10 +513,36 @@ pub fn build_placeholder_directory(
 		&request.placeholder_readme,
 	)
 	.map_err(|error| MonochangeError::Io(format!("failed to write placeholder README: {error}")))?;
+	write_placeholder_license(root, tempdir.path())?;
+	write_placeholder_changelog(tempdir.path(), request)?;
 
 	manifest_writers.write_manifest(tempdir.path(), request, root, source)?;
 
 	Ok(tempdir)
+}
+
+fn write_placeholder_license(root: &Path, placeholder_dir: &Path) -> MonochangeResult<()> {
+	let license = ["LICENSE", "LICENSE.md"]
+		.into_iter()
+		.find_map(|file_name| fs::read_to_string(root.join(file_name)).ok())
+		.unwrap_or_else(|| {
+			"Placeholder package published by monochange. See the source repository for license terms.\n"
+				.to_string()
+		});
+	fs::write(placeholder_dir.join("LICENSE"), license).map_err(|error| {
+		MonochangeError::Io(format!("failed to write placeholder LICENSE: {error}"))
+	})
+}
+
+fn write_placeholder_changelog(
+	placeholder_dir: &Path,
+	request: &PublishRequest,
+) -> MonochangeResult<()> {
+	fs::write(
+		placeholder_dir.join("CHANGELOG.md"),
+		format!("## {}\n\n- Placeholder release.\n", request.version),
+	)
+	.map_err(|error| MonochangeError::Io(format!("failed to write placeholder CHANGELOG: {error}")))
 }
 
 fn placeholder_tempdir_error(error: &std::io::Error) -> MonochangeError {
