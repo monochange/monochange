@@ -553,6 +553,47 @@ async fn publish_progress_reports_external_skip_and_summary_events() {
 	));
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn placeholder_publish_does_not_skip_external_mode_packages() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.mode = PublishMode::External;
+	request.placeholder = true;
+	let requests = vec![request];
+	// In Placeholder mode, External packages should NOT be skipped —
+	// placeholder publishing is a bootstrap utility, not normal release publishing.
+	let report = execute_publish_requests(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Placeholder,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&RegistryEndpoints::from_env(),
+		&BTreeMap::new(),
+		&mut PanickingCommandExecutor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+	)
+	.await
+	.unwrap();
+
+	// The External package should NOT be skipped in Placeholder mode, so the
+	// report should not contain SkippedExternal. Instead it will fail because
+	// there is no real npm registry to check against, but it should have attempted
+	// the publish (i.e., not been skipped at the mode gate).
+	let skipped_external = report
+		.packages
+		.iter()
+		.any(|p| p.status == PackagePublishStatus::SkippedExternal);
+	assert!(
+		!skipped_external,
+		"placeholder publish should not skip external-mode packages, \
+		 but found SkippedExternal in report"
+	);
+}
+
 #[test]
 fn publish_readiness_registry_push_checker_and_missing_checker_paths() {
 	let request = sample_publish_request_for_registry(RegistryKind::Npm);
