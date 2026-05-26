@@ -23,8 +23,8 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 
 ## Fast workflow
 
-1. Inspect configuration: `mc step:validate`, `mc step:config --format json`, or `mc help`. Use this to learn package ids, enabled ecosystems, groups, and which top-level workflow commands actually exist.
-2. Inspect packages: use the configured workflow command (often `mc discover --format json`) or `mc step:discover --format json`. Prefer JSON when another tool or agent will consume the package graph.
+1. Inspect configuration: `mc step:validate`, `mc step:config`, or `mc help`. Use this to learn package ids, enabled ecosystems, groups, and which top-level workflow commands actually exist.
+2. Inspect packages: use the configured workflow command (often `mc step:discover --format json`) or `mc step:discover --format json`. Prefer JSON when another tool or agent will consume the package graph.
 3. Create release intent: use a configured workflow command (often `mc change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
 4. Preview versioned files: use the configured workflow command (often `mc release --dry-run --format json` or `--diff`) or `mc step:prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
 5. Run validation and linting: `mc check` and `mc step:validate`. `validate` catches monochange configuration and target issues; `check` also runs manifest lint rules.

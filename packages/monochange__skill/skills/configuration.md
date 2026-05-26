@@ -40,7 +40,7 @@ path = "crates/acme_cli"
 type = "cargo"
 ```
 
-Supported ecosystem/package types in current code are `cargo`, `npm`, `deno`, `dart`, `flutter`, `python`, and `go`.
+Canonical ecosystem/package types in current code are `cargo`, `npm`, `deno`, `dart`, `python`, and `go`. The legacy `flutter` spelling is accepted as an alias for Dart/Flutter packages and normalizes to the `dart` ecosystem.
 
 ## Grouped versions
 

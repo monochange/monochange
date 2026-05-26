@@ -2,7 +2,6 @@
 
 //! # `monochange_graph`
 //!
-//! <!-- {=monochangeGraphCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_graph` turns normalized workspace data into release decisions.
 //!
 //! Reach for this crate when you already have discovered packages, dependency edges, configuration, and change signals and need to calculate propagated bumps, synchronized version groups, and final release-plan output.
@@ -30,8 +29,6 @@
 //! - propagate release impact across direct and transitive dependents
 //! - synchronize version groups
 //! - calculate planned group versions
-//! <!-- {/monochangeGraphCrateDocs} -->
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::VecDeque;

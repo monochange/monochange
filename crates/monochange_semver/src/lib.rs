@@ -2,7 +2,6 @@
 
 //! # `monochange_semver`
 //!
-//! <!-- {=monochangeSemverCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_semver` merges requested bumps with compatibility evidence.
 //!
 //! Reach for this crate when you need deterministic severity calculations for direct changes, propagated dependent changes, or ecosystem-specific compatibility providers.
@@ -39,8 +38,6 @@
 //! assert_eq!(merged, BumpSeverity::Minor);
 //! assert_eq!(direct, BumpSeverity::Minor);
 //! ```
-//! <!-- {/monochangeSemverCrateDocs} -->
-
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::CompatibilityAssessment;

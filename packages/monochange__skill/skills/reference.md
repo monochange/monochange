@@ -15,11 +15,11 @@ monochange is a CLI/tool harness for producing versioned packages from a monorep
 mc help
 mc step:validate
 mc check
-mc step:config --format json
+mc step:config
 mc step:discover --format json
 ```
 
-If a repository defines user workflows, `mc help` will show them under user-defined commands. The monochange repo currently defines workflows such as `discover`, `change`, `versions`, `diagnostics`, `release`, `release-pr`, `publish`, and `publish-check`, but those are configuration-defined, not universal built-ins.
+If a repository defines user workflows, `mc help` will show them under user-defined commands. The monochange repo currently defines `change`, `publish-check`, and `release`; those are configuration-defined, not universal built-ins.
 
 ## Version planning flow
 
@@ -33,7 +33,7 @@ mc step:prepare-release --dry-run --format json
 If configured aliases exist, users may prefer:
 
 ```bash
-mc discover --format json
+mc step:discover --format json
 mc step:diagnose-changesets --format json
 mc release --dry-run --format json
 mc release --dry-run --diff
@@ -59,11 +59,11 @@ Current built-in package publishing is release-record oriented:
 ```bash
 mc step:publish-readiness --from HEAD --output readiness.json
 mc step:placeholder-publish --from HEAD --output bootstrap.json
-mc publish-plan --readiness readiness.json --format json   # only if configured in this repo
-mc publish --output publish-result.json                    # only if configured in this repo
+mc step:plan-publish-rate-limits --readiness readiness.json --format json
+mc step:publish-packages --output publish-result.json
 ```
 
-`mc step:publish-readiness` and `mc step:placeholder-publish` are built in. `mc publish-plan` and `mc publish` are user-defined workflows when present.
+`mc step:publish-readiness`, `mc step:placeholder-publish`, `mc step:plan-publish-rate-limits`, and `mc step:publish-packages` are built in. Repositories may define shorter workflow aliases such as `mc publish-plan` or `mc publish`, but those names are not universal.
 
 Use `mode = "external"` for private/custom registries or when existing CI handles package publication.
 

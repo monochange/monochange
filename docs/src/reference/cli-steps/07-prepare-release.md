@@ -144,23 +144,25 @@ Because the later steps all depend on the same prepared state, you should genera
 
 When you do need to split the workflow across separate commands, monochange can now reuse a prepared release artifact instead of recomputing the release plan from scratch.
 
-The default path is automatic:
+When a repository defines workflow wrappers, the default cache path is automatic. For example, a repo with `release` and `release-pr` wrappers might run:
 
 ```bash
-mc release
-mc release-pr --dry-run
+mc step:prepare-release
+mc step:open-release-request --dry-run
 ```
 
-`mc release` stores the prepared state in `.monochange/prepared-release-cache.json`, and later commands with a `PrepareRelease` step reuse it when the git `HEAD`, workspace status, tracked release inputs, and relevant configuration still match.
+The first `PrepareRelease` step stores prepared state in `.monochange/prepared-release-cache.json`, and later commands with a `PrepareRelease` step reuse it when the git `HEAD`, workspace status, tracked release inputs, and relevant configuration still match.
 
 That `.monochange/` directory is meant for local monochange artifacts. Keep it gitignored so reusable prepared state, the cached release manifest, and other local release metadata do not pollute reviewable commits.
 
-If you need to pass the artifact between explicit jobs or custom commands, use `--prepared-release`:
+If your configured workflow exposes a `prepared_release` input and you need to pass the artifact between explicit jobs or custom commands, wire that input to `PrepareRelease` and pass the artifact path:
 
 ```bash
 mc release --prepared-release /tmp/release-plan.json
-mc release-pr --prepared-release /tmp/release-plan.json --format json
+mc release-request --prepared-release /tmp/release-plan.json --format json
 ```
+
+Here `release` and `release-request` are example workflow names; use the names shown by `mc help` for your repository.
 
 If the artifact is stale, monochange falls back to a fresh `PrepareRelease` run instead of trusting outdated release data.
 

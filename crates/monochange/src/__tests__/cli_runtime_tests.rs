@@ -1079,7 +1079,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 	assert!(text.contains("trust message: configure trusted publishing manually for `pkg`"));
 	assert!(text.contains("setup: https://crates.io/crates/pkg"));
 	assert!(text.contains(
-		"next: open the setup URL, configure trusted publishing for this package, then rerun `mc publish`"
+		"next: open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`"
 	));
 
 	let markdown = render_package_publish_report_markdown(&report, false).join("\n");
@@ -1088,7 +1088,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 		markdown.contains("**Trust message:** configure trusted publishing manually for `pkg`")
 	);
 	assert!(markdown.contains("**Setup:** `https://crates.io/crates/pkg`"));
-	assert!(markdown.contains("**Next:** open the setup URL, configure trusted publishing for this package, then rerun `mc publish`"));
+	assert!(markdown.contains("**Next:** open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`"));
 }
 
 #[test]
@@ -1314,7 +1314,7 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 		.unwrap_or_else(|error| panic!("rate limit github snippet: {error}"));
 	assert!(github.contains("jobs:"));
 	assert!(github.contains("wait_seconds: 86400"));
-	assert!(github.contains("mc publish"));
+	assert!(github.contains("mc step:publish-packages"));
 
 	context.last_step_inputs = BTreeMap::from([("ci".to_string(), vec!["gitlab-ci".to_string()])]);
 	let gitlab = resolve_command_output(&cli_command, &context, true, None)

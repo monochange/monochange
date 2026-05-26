@@ -28,19 +28,19 @@ The goal is the same in every case:
 
 Trusted publishing support is not uniform across registries or CI providers. monochange models these dimensions separately so it can be strict where support is verifiable and honest where setup still needs manual review.
 
-| Ecosystem      | Registry  | Trusted-publishing providers modeled by monochange | Current CI identity can be detected | Registry-side setup can be verified by monochange | Registry-side setup can be automated by monochange | Registry-native provenance / attestations |
-| -------------- | --------- | -------------------------------------------------- | ----------------------------------- | ------------------------------------------------- | -------------------------------------------------- | ----------------------------------------- |
-| npm            | npm       | GitHub Actions, GitLab CI/CD                       | Yes                                 | GitHub Actions only                               | GitHub Actions only via `npm trust github ...`     | Yes, npm provenance                       |
-| cargo          | crates.io | GitHub Actions                                     | Yes                                 | No                                                | No                                                 | No registry-native package provenance     |
-| deno           | jsr       | GitHub Actions                                     | Yes                                 | No                                                | No                                                 | Yes, JSR package provenance               |
-| dart / flutter | pub.dev   | GitHub Actions, Google Cloud Build                 | Yes                                 | No                                                | No                                                 | No registry-native package provenance     |
-| python         | PyPI      | GitHub Actions, GitLab CI/CD, Google Cloud Build   | Yes                                 | No                                                | No                                                 | Yes, PEP 740 digital attestations         |
-| go             | Go proxy  | None; VCS tags are used instead                    | N/A                                 | N/A                                               | Creates module tags                                | Source-control provenance only            |
-| custom/private | custom    | None by default                                    | Provider may be detected            | No                                                | No                                                 | Unknown                                   |
+| Ecosystem      | Registry  | Trusted-publishing providers modeled by monochange | Current CI identity can be detected | Publish-time setup/context can be verified by monochange | Registry-side setup can be automated by monochange    | Registry-native provenance / attestations |
+| -------------- | --------- | -------------------------------------------------- | ----------------------------------- | -------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------- |
+| npm            | npm       | GitHub Actions, GitLab CI/CD                       | Yes                                 | GitHub Actions context only                              | No; run `npm trust github ...` manually or externally | Yes, npm provenance                       |
+| cargo          | crates.io | GitHub Actions                                     | Yes                                 | No                                                       | No                                                    | No registry-native package provenance     |
+| deno           | jsr       | GitHub Actions                                     | Yes                                 | No                                                       | No                                                    | Yes, JSR package provenance               |
+| dart / flutter | pub.dev   | GitHub Actions, Google Cloud Build                 | Yes                                 | No                                                       | No                                                    | No registry-native package provenance     |
+| python         | PyPI      | GitHub Actions, GitLab CI/CD, Google Cloud Build   | Yes                                 | No                                                       | No                                                    | Yes, PEP 740 digital attestations         |
+| go             | Go proxy  | None; VCS tags are used instead                    | N/A                                 | N/A                                                      | Creates module tags                                   | Source-control provenance only            |
+| custom/private | custom    | None by default                                    | Provider may be detected            | No                                                       | No                                                    | Unknown                                   |
 
 monochange also detects CircleCI publish-time identity, but none of the built-in public registry combinations above are treated as CircleCI trusted-publishing support today. Unknown local shells and unsupported providers are never treated as trusted.
 
-npm is currently the only ecosystem where monochange performs bulk trusted-publishing setup itself. Use `mode = "external"` for any registry workflow that should stay outside monochange's built-in publisher.
+npm is currently the only ecosystem where monochange can render precise GitHub trusted-publisher repair commands. It still does not run `npm trust` during real package publishing; use `mode = "external"` for any registry workflow that should stay outside monochange's built-in publisher.
 
 Go module publishing is included in the built-in package publisher, but it is not an OIDC trusted-publishing flow. Go versions are published by creating VCS tags. monochange uses `git tag`, choosing `v1.2.3` for a root module and path-prefixed tags such as `api/v1.2.3` for submodules, then checks availability through the Go module proxy.
 
@@ -177,12 +177,12 @@ When `publish.trusted_publishing = true`, release publishing is a mandatory CI/O
 Use this sequence when adopting trusted publishing for an existing workspace:
 
 1. Set `publish.trusted_publishing = true` for the target ecosystem, then override individual packages only when they differ.
-2. Run `mc placeholder-publish --dry-run` to see which packages do not exist yet.
-3. If needed, run `mc placeholder-publish` so the package exists in the registry first.
+2. Run `mc step:placeholder-publish --dry-run` to see which packages do not exist yet.
+3. If needed, run `mc step:placeholder-publish` so the package exists in the registry first.
 4. Complete the registry-side trusted-publishing setup for each package.
-5. Run `mc publish --dry-run` to confirm monochange now sees the expected trust configuration.
+5. Run `mc step:publish-packages --dry-run` to confirm monochange now sees the expected trust configuration.
 6. Optionally generate a readiness artifact in CI with `mc step:publish-readiness --from HEAD --output .monochange/readiness.json` for preflight review or publish planning.
-7. Publish from CI with `mc publish --output .monochange/publish-result.json`.
+7. Publish from CI with `mc step:publish-packages --output .monochange/publish-result.json`.
 
 Placeholder publishing is especially useful when the package name must exist in the registry before trusted publishing can be configured.
 
@@ -256,10 +256,10 @@ permissions:
 
 ### monochange notes
 
-- monochange verifies the current trust configuration first.
-- If trust is missing, monochange can run the trust command automatically before `npm publish` or `pnpm publish`.
-- If approval is still required in the browser, npm's own flow may still require human confirmation.
-- pnpm workspaces stay on `pnpm exec npm trust ...` and `pnpm publish` so workspace protocol and catalog dependency handling stay aligned with the workspace manager.
+- Real package publishing does not execute `npm trust` or `npm trust list` automatically.
+- monochange verifies the configured GitHub Actions OIDC context before trusted npm publishing.
+- If trust needs repair, monochange reports the exact `npm trust github ...` command to run manually or from separate tooling.
+- Trusted npm publishing uses the `npm` CLI directly. pnpm workspaces can still use `pnpm exec npm trust ...` for manual setup commands, and non-trusted pnpm publishing paths continue to use pnpm.
 
 ## crates.io
 
@@ -275,7 +275,7 @@ Trusted publishing on crates.io exchanges your CI identity for a short-lived pub
 - you must be an owner of the crate on `crates.io`
 - the repository must live on GitHub or GitLab
 
-If the crate does not exist yet, bootstrap it first with a real initial release or `mc placeholder-publish`. The first publish still uses the normal crates.io token flow.
+If the crate does not exist yet, bootstrap it first with a real initial release or `mc step:placeholder-publish`. The first publish still uses the normal crates.io token flow.
 
 **UI path**
 
@@ -394,7 +394,7 @@ Automated publishing on pub.dev authenticates with a temporary GitHub-signed OID
 - you must be an uploader or admin for the package
 - the repository must be on GitHub
 
-If the package does not exist yet, publish it once first or use `mc placeholder-publish`.
+If the package does not exist yet, publish it once first or use `mc step:placeholder-publish`.
 
 **UI path**
 
@@ -524,7 +524,7 @@ In those cases, you can still use the same registry-side trusted-publishing setu
 
 monochange is intentionally conservative here.
 
-Today, npm is the only registry where monochange performs trusted-publishing enrollment itself. For `crates.io`, `jsr`, `pub.dev`, and PyPI, monochange currently focuses on setup guidance, preflight checks, and actionable diagnostics instead of trying to mutate registry-side trust records automatically.
+Today, monochange does not perform registry-side trusted-publishing enrollment during real package publishing. npm has the richest repair guidance because monochange can render the expected `npm trust github ...` command, but the command is still manual or external. For `crates.io`, `jsr`, `pub.dev`, and PyPI, monochange focuses on setup guidance, preflight checks, and actionable diagnostics instead of trying to mutate registry-side trust records automatically.
 
 Areas that may become more automated later, where the registry and CI contracts make it safe enough, include:
 
@@ -535,7 +535,7 @@ Areas that may become more automated later, where the registry and CI contracts 
 
 Areas that monochange does **not** promise today:
 
-- auto-enrolling registry-side trusted-publisher records for `crates.io`, `jsr`, `pub.dev`, or PyPI
+- auto-enrolling registry-side trusted-publisher records for any registry, including npm, `crates.io`, `jsr`, `pub.dev`, or PyPI
 - bypassing browser-confirmed or admin-page-only steps that the registry intentionally keeps manual
 - inferring enough registry-side state to claim a package is fully enrolled when the registry does not expose that state safely or consistently
 

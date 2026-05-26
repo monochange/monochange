@@ -1,6 +1,5 @@
 //! # `monochange_test_helpers`
 //!
-//! <!-- {=monochangeTestHelpersCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_test_helpers` packages the shared fixture, snapshot, git, and RMCP helpers used across the workspace test suite.
 //!
 //! Reach for this crate when you are writing integration or fixture-heavy tests that need scenario workspaces, command snapshots, or temporary git repositories.
@@ -23,8 +22,6 @@
 //! - `git`, `git_output`, and `git_output_trimmed` run test git commands
 //! - `snapshot_settings()` configures shared snapshot behavior
 //! - `fixture_path!`, `setup_fixture!`, and `setup_scenario_workspace!` locate and materialize test fixtures
-//! <!-- {/monochangeTestHelpersCrateDocs} -->
-
 pub mod fs;
 pub mod git;
 pub mod insta;

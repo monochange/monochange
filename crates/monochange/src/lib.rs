@@ -4,7 +4,6 @@
 
 //! # `monochange`
 //!
-//! <!-- {=monochangeCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange` is the top-level entry point for the workspace.
 //!
 //! Reach for this crate when you want one API and CLI surface that discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Python, and Go workspaces, exposes top-level commands from `monochange.toml`, and runs configured CLI commands from those definitions.
@@ -45,8 +44,6 @@
 //! - preview or publish provider releases from prepared release data
 //! - evaluate pull-request changeset policy from CI-supplied changed paths and labels
 //! - expose JSON-first MCP tools for assistant workflows
-//! <!-- {/monochangeCrateDocs} -->
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::ffi::OsString;

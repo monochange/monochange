@@ -261,7 +261,7 @@ Private registries and custom publication flows are still external. For those pa
 
 ### Placeholder publishing
 
-`mc placeholder-publish` exists for the bootstrap case where a package must already exist in the registry before you can finish automation setup such as trusted publishing.
+`mc step:placeholder-publish` exists for the bootstrap case where a package must already exist in the registry before you can finish automation setup such as trusted publishing.
 
 Placeholder publishing works for all packages with `publish.enabled = true`, including those set to `publish.mode = "external"`. The `mode` field controls who handles **release** publishing (monochange's built-in publisher vs your own CI/scripts); it does not affect placeholder publishing because that is a one-time bootstrap utility, not a release step. To opt out of placeholder publishing entirely, set `publish.enabled = false`.
 
@@ -303,7 +303,7 @@ dependency_fields = ["dependencies", "optional-dependencies", "group.dependencie
 dependency_fields = []
 ```
 
-The same resolved policy is used by `mc plan-release-publish` and `mc publish`.
+The same resolved policy is used by `mc plan-release-publish` and `mc step:publish-packages`.
 
 ### Trusted publishing
 
@@ -327,9 +327,10 @@ trusted_publishing = false
 
 When `trusted_publishing` is enabled:
 
-- npm packages can be configured automatically with `npm trust github ...`
-- pnpm workspaces use `pnpm exec npm trust ...` and `pnpm publish`, so workspace protocol and catalog dependency handling stays aligned with the workspace manager
-- Cargo, `jsr`, `pub.dev`, and `PyPI` currently require manual trusted-publishing setup; monochange reports the setup URL and blocks built-in release publishing until trust is configured
+- npm package publishing must run from a verifiable CI/OIDC identity and must not use long-lived npm token environment variables
+- npm trusted-publisher enrollment is manual or external: monochange can render the expected `npm trust github ...` repair command and verify the GitHub workflow context, but `mc step:publish-packages` does not run `npm trust` automatically
+- trusted npm publishing uses the `npm` CLI directly; pnpm workspaces still use pnpm for non-trusted npm publishing paths
+- Cargo, `jsr`, `pub.dev`, and `PyPI` also require manual trusted-publishing setup; monochange reports the setup URL and blocks built-in release publishing until trust is configured
 
 ### Attestation policy
 
@@ -363,7 +364,7 @@ monochange resolves the GitHub trust context from:
 - otherwise `[source]` plus GitHub Actions environment such as `GITHUB_WORKFLOW_REF` and `GITHUB_JOB`
 - and, when possible, the workflow job environment declared in `.github/workflows/<file>.yml`
 
-If monochange cannot determine the GitHub repository or workflow for an npm package, automatic trust setup cannot proceed.
+If monochange cannot determine the GitHub repository or workflow for an npm package, it cannot render a precise `npm trust github ...` repair command or verify the expected GitHub context.
 
 ### Current implementation limits
 
@@ -371,7 +372,7 @@ The built-in package publishing flow is intentionally narrow for now:
 
 - no private or custom registry support in `mode = "builtin"`
 - rate-limit planning can batch work and enforce single-window safety, but monochange still does not sleep across windows or requeue later batches automatically
-- manual trusted-publishing setup is still required for `crates.io`, `jsr`, `pub.dev`, and `PyPI`
+- registry-side trusted-publisher enrollment is still manual for every registry; npm is special only because monochange can render and verify the GitHub setup context
 
 If your workflow needs any of those today, keep the package on `mode = "external"` and let your own CI or scripts own publication.
 
@@ -711,7 +712,7 @@ Performance tip: keep the default `mc release` path focused on built-in steps su
 
 `RetargetRelease` is intentionally different from `PrepareRelease`-driven steps. It operates from git history plus source/provider information, discovers the durable `ReleaseRecord`, and then exposes structured `retarget.*` outputs for later command steps.
 
-See [Repairable releases](./12-repairable-releases.md) for when to use `mc repair-release` versus publishing a new patch release.
+See [Repairable releases](./12-repairable-releases.md) for when to use `mc step:retarget-release` versus publishing a new patch release.
 
 ## GitHub release settings
 
@@ -829,6 +830,13 @@ monochange currently supports two changelog formats:
 
 Defaults can set a repository-wide changelog path pattern and format, while package and group changelog tables can override either field.
 
+Use `[changelog.style]` to tune rendered release-note shape. `metadata_style` accepts `inline` (the default), `blockquote`, `plain`, or `omit`. The inline style renders owner, review request, and issue metadata as one `·`-separated paragraph; when a PR/MR link is available, commit links are omitted because the review link already identifies the change.
+
+```toml
+[changelog.style]
+metadata_style = "inline"
+```
+
 You can also customize release-note rendering with a workspace-wide `[release_notes]` table plus per-package or per-group `extra_changelog_sections` definitions.
 
 Supported template variables include:
@@ -886,7 +894,7 @@ Current implementation notes:
 - live GitHub release and release-request publishing uses `octocrab` with `GITHUB_TOKEN` / `GH_TOKEN`; GitLab and Gitea use direct HTTP APIs
 - release-request publishing still uses local `git` for branch, commit, and push operations before provider API updates when not in dry-run mode
 - changeset policy commands currently apply only to the GitHub provider and expect `[changesets.affected]`, a `changed_paths` command input, and reusable diagnostics for GitHub Actions consumption
-- supported command steps today are `Validate`, `Discover`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `PublishRelease`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, and `Command`
+- supported `[[cli.<command>.steps]]` types today are `Config`, `Validate`, `Discover`, `DisplayVersions`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `VerifyReleaseBranch`, `PublishRelease`, `PlaceholderPublish`, `PublishPackages`, `PlanPublishRateLimits`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, `ReleaseRecord`, `PublishReadiness`, `TagRelease`, and `Command`
 - see the [CLI step reference](../reference/cli-steps/00-index.md) for detailed per-step guidance, prerequisites, and composition examples
 
 <!-- {/configurationCurrentStatus} -->

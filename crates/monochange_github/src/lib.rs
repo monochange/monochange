@@ -2,7 +2,6 @@
 
 //! # `monochange_github`
 //!
-//! <!-- {=monochangeGithubCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_github` turns `monochange` release manifests into GitHub automation requests.
 //!
 //! Reach for this crate when you want to preview or publish GitHub releases and release pull requests using the same structured release data that powers changelog files and release manifests.
@@ -88,8 +87,6 @@
 //! assert_eq!(requests[0].tag_name, "v1.2.0");
 //! assert_eq!(requests[0].repository, "monochange/monochange");
 //! ```
-//! <!-- {/monochangeGithubCrateDocs} -->
-
 use std::env;
 use std::fmt::Write as _;
 use std::path::Path;
@@ -2378,7 +2375,7 @@ pub fn trusted_publishing_identity_error(
 	reason: impl std::fmt::Display,
 ) -> MonochangeError {
 	MonochangeError::Config(format!(
-		"`{}` requires trusted publishing from the configured GitHub Actions OIDC identity, but the current context does not match: {reason}. Run `mc publish` from the configured CI workflow or set `publish.trusted_publishing = false` to opt out.",
+		"`{}` requires trusted publishing from the configured GitHub Actions OIDC identity, but the current context does not match: {reason}. Run `mc step:publish-packages` from the configured CI workflow or set `publish.trusted_publishing = false` to opt out.",
 		request.package_id,
 	))
 }

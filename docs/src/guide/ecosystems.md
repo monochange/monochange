@@ -36,6 +36,17 @@ All supported ecosystems feed the same planner. After discovery, monochange can:
 
 `[ecosystems.<name>]` configuration currently controls settings such as dependency-version prefixes, extra versioned files, publish defaults, and lockfile commands. Discovery still scans every supported ecosystem regardless of `[ecosystems.*].enabled`, `roots`, or `exclude` toggles.
 
+## Syncing internal dependency versions
+
+`mc sync versions` updates existing internal dependency references outside a release. It discovers workspace package versions, finds supported manifests that reference another workspace package, and rewrites those references to the canonical package version. Use `--dry-run` first to print the planned edits without writing files.
+
+```nu
+mc sync versions --dry-run
+mc sync versions --strategy exact
+```
+
+The `--strategy` flag accepts `default`, `exact`, `caret`, or `compatible`. `default` uses each supported ecosystem's normal constraint style; for the current sync command that means caret ranges for Dart and npm. Dart sync scans `dependencies`, `dev_dependencies`, and `dependency_overrides`; when a pubspec uses `resolution: workspace`, path references to internal packages are converted to version constraints. npm sync scans package dependency sections and leaves `workspace:*` protocol references alone. Other ecosystems still receive dependency-version updates during release preparation, but ad hoc `mc sync versions` support is currently limited to Dart and npm.
+
 ## Cargo
 
 Cargo support is designed for Rust crates that keep version data in `Cargo.toml` and dependency resolution in `Cargo.lock`.
@@ -73,9 +84,10 @@ npm-family behavior:
 - package ids come from `package.json` names
 - internal dependency ranges default to the `^` prefix
 - `dependencies`, `devDependencies`, and `peerDependencies` participate in dependency updates
+- `mc sync versions` can repair npm internal dependency ranges outside a release while preserving `workspace:*` protocol references
 - direct lockfile support covers `package-lock.json`, `pnpm-lock.yaml`, `bun.lock`, and `bun.lockb`
 - built-in publishing targets the public `npm` registry
-- GitHub npm trusted-publishing automation is built in; pnpm workspaces use pnpm-compatible trust and publish commands
+- GitHub npm trusted-publishing diagnostics are built in; registry-side enrollment stays manual or external, and trusted npm publishes use the `npm` CLI directly
 
 ## Deno
 
@@ -98,7 +110,7 @@ Deno behavior:
 
 ## Dart and Flutter
 
-Dart and Flutter share the Dart ecosystem settings because both use `pubspec.yaml` and Pub's version constraints.
+Dart and Flutter share the canonical `dart` ecosystem settings because both use `pubspec.yaml` and Pub's version constraints. The legacy `flutter` config and CLI filter spelling is still accepted as an alias, but normalized package records use the Dart ecosystem with Flutter metadata.
 
 Use Dart / Flutter support when your repository has:
 
@@ -109,9 +121,10 @@ Use Dart / Flutter support when your repository has:
 
 Dart / Flutter behavior:
 
-- package type is `dart` for pure Dart packages and `flutter` for Flutter packages
+- package type is canonically `dart` for both pure Dart and Flutter packages; Flutter packages are detected from `pubspec.yaml` metadata and published with `flutter pub publish` when appropriate
 - internal dependency ranges default to `^`
 - `dependencies` and `dev_dependencies` participate in dependency updates
+- `mc sync versions` can repair Dart internal dependency ranges outside a release, including converting internal `path:` references to version constraints when `resolution: workspace` is enabled
 - `pubspec.lock` can be rewritten directly by default
 - configure `dart pub get` or `flutter pub get` as lockfile commands when you need the Pub solver to refresh files instead of the direct updater
 - built-in publishing targets `pub.dev`

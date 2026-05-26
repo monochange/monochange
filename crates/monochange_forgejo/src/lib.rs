@@ -1,6 +1,5 @@
 //! # `monochange_forgejo`
 //!
-//! <!-- {=monochangeForgejoCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_forgejo` turns `monochange` release manifests into Forgejo automation requests.
 //!
 //! Reach for this crate when you want to preview or publish Forgejo releases and release pull requests using the same structured release data that powers changelog files and release manifests.
@@ -23,8 +22,6 @@
 //! - `build_change_request(manifest, source)` builds a pull-request payload for the release
 //! - `validate_source_configuration(source)` validates Forgejo-specific source config
 //! - `source_capabilities()` returns provider feature flags
-//! <!-- {/monochangeForgejoCrateDocs} -->
-
 use std::env;
 use std::path::Path;
 use std::path::PathBuf;

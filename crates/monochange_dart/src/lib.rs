@@ -2,7 +2,6 @@
 
 //! # `monochange_dart`
 //!
-//! <!-- {=monochangeDartCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_dart` discovers Dart and Flutter packages for the shared planner.
 //!
 //! Reach for this crate when you need to scan `pubspec.yaml` files, expand Dart or Flutter workspaces, and normalize package metadata into `monochange_core` records.
@@ -30,8 +29,6 @@
 //! - Dart package parsing
 //! - Flutter package detection
 //! - normalized dependency extraction
-//! <!-- {/monochangeDartCrateDocs} -->
-
 pub mod analysis;
 
 use std::collections::BTreeMap;

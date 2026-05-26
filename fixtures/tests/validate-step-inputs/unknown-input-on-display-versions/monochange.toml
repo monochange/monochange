@@ -1,0 +1,10 @@
+[defaults]
+package_type = "cargo"
+
+[package.core]
+path = "crates/core"
+
+[cli.check_config]
+[[cli.check_config.steps]]
+type = "Validate"
+inputs = { extra = "value" }

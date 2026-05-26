@@ -2,9 +2,7 @@
 
 ## Status
 
-In progress on branch `feat/prerelease-mode` in the separate worktree:
-
-`/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/chore-prerelease-support-review`
+Completed and archived after `feat: add prerelease mode (#522)` landed. The remaining unchecked bullets below are historical/deferred notes from the implementation plan rather than active documentation blockers.
 
 ## Problem statement
 
@@ -182,7 +180,7 @@ not current manifest version
 - [x] Run lint/typecheck command. (`cargo clippy --workspace --all-features --all-targets -- -D warnings`, `mc step:validate`, and `mc check` pass.)
 - [x] Run tests. (`cargo test -q` passes after updating current and versioned schema assets, clippy fixes, and prerelease-state field rename.)
 - [x] Run patch coverage and reach 100%. (`350/350 (100%)` after focused tests and narrow ignores.)
-- [ ] Commit signed changes on `feat/prerelease-mode`.
+- [x] Commit signed changes on `feat/prerelease-mode`.
 - [x] Push branch.
 - [x] Create pull request.
 - [x] Monitor pull request checks.

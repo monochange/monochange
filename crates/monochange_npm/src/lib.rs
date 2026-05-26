@@ -2,7 +2,6 @@
 
 //! # `monochange_npm`
 //!
-//! <!-- {=monochangeNpmCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_npm` discovers npm-family packages and normalizes them for shared planning.
 //!
 //! Reach for this crate when you want one adapter for npm, pnpm, and Bun workspaces that emits `monochange_core` package and dependency records.
@@ -30,8 +29,6 @@
 //! - `pnpm-workspace.yaml`
 //! - Bun lockfile detection
 //! - normalized dependency extraction
-//! <!-- {/monochangeNpmCrateDocs} -->
-
 pub mod analysis;
 pub mod lints;
 

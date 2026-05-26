@@ -399,7 +399,7 @@ ignored_paths = ["docs/**", "readme.md"]
 
 ### knope `forced-release` workflow
 
-knope's `forced-release` workflow runs `Release` without `PrepareRelease`. In monochange, use `publish-release` which always requires a `PrepareRelease` step first. For publishing without changesets, create a changeset manually or adjust the release flow.
+knope's `forced-release` workflow runs `Release` without `PrepareRelease`. In monochange, use a configured `PublishRelease` workflow, which always requires a `PrepareRelease` step first. For publishing without changesets, create a changeset manually or adjust the release flow.
 
 ### Regex-based versioned files
 

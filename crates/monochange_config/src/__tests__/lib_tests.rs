@@ -3999,19 +3999,33 @@ fn load_workspace_configuration_rejects_unknown_step_input_override() {
 }
 
 #[test]
+fn load_workspace_configuration_rejects_unknown_input_on_step_without_inputs() {
+	let root = fixture_path("validate-step-inputs/unknown-input-on-display-versions");
+	let error = load_workspace_configuration(&root)
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error.to_string().contains("unknown input override `extra`"),
+		"error was: {error}"
+	);
+	assert!(
+		error.to_string().contains("this step accepts no inputs"),
+		"error was: {error}"
+	);
+}
+
+#[test]
 fn load_workspace_configuration_rejects_unknown_input_on_validate_step() {
 	let root = fixture_path("validate-step-inputs/unknown-input-on-validate");
 	let error = load_workspace_configuration(&root)
 		.err()
 		.unwrap_or_else(|| panic!("expected config error"));
 	assert!(
-		error
-			.to_string()
-			.contains("unknown input override `format`"),
+		error.to_string().contains("unknown input override `mode`"),
 		"error was: {error}"
 	);
 	assert!(
-		error.to_string().contains("valid inputs: fix"),
+		error.to_string().contains("valid inputs: format"),
 		"error was: {error}"
 	);
 }

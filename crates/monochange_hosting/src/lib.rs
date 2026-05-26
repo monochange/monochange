@@ -2,7 +2,6 @@
 
 //! # `monochange_hosting`
 //!
-//! <!-- {=monochangeHostingCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_hosting` packages the shared git and HTTP plumbing used by hosted source providers.
 //!
 //! Reach for this crate when you are implementing GitHub, Gitea, Forgejo, or GitLab release adapters and want one place for release-body rendering, change-request branch naming, JSON requests, and git branch orchestration.
@@ -26,8 +25,6 @@
 //! - `release_pull_request_branch(prefix, command)` normalizes the change-request branch name
 //! - `get_json`, `post_json`, `patch_json`, and `put_json` wrap provider API requests
 //! - `git_checkout_branch`, `git_stage_paths`, `git_commit_paths`, and `git_push_branch` wrap shared git operations
-//! <!-- {/monochangeHostingCrateDocs} -->
-
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::OnceLock;

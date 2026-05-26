@@ -1,8 +1,8 @@
 # Repairable releases
 
-`mc repair-release` is for the stressful moment right after a release when you discover that a few follow-up commits still need to be part of that release.
+`mc step:retarget-release` is for the stressful moment right after a release when you discover that a few follow-up commits still need to be part of that release.
 
-If you have **not created the tags yet** and only need the initial post-merge tag creation step, use `mc step:tag-release --from HEAD` instead. `repair-release` is the follow-up tool for moving an already-created release tag set.
+If you have **not created the tags yet** and only need the initial post-merge tag creation step, use `mc step:tag-release --from HEAD` instead. `mc step:retarget-release` is the follow-up tool for moving an already-created release tag set.
 
 Examples:
 
@@ -69,11 +69,11 @@ That lets you inspect a release directly from its tag or from later fix commits.
 
 ## Repairing a recent release
 
-Use `mc repair-release` when you want to move a recent release forward to a later commit.
+Use `mc step:retarget-release` when you want to move a recent release forward to a later commit.
 
 ```bash
-mc repair-release --from v1.2.3 --target HEAD --dry-run
-mc repair-release --from v1.2.3 --target HEAD
+mc step:retarget-release --from v1.2.3 --target HEAD --dry-run
+mc step:retarget-release --from v1.2.3 --target HEAD
 ```
 
 The command does the heavy lifting for you:
@@ -87,7 +87,7 @@ The command does the heavy lifting for you:
 
 ### Dry-run first
 
-`repair-release` is intentionally a dry-run-friendly workflow.
+`RetargetRelease` is intentionally a dry-run-friendly workflow.
 
 Use dry-run to see:
 
@@ -98,7 +98,7 @@ Use dry-run to see:
 - whether hosted-release sync will run
 
 ```bash
-mc repair-release --from v1.2.3 --target HEAD --dry-run --format json
+mc step:retarget-release --from v1.2.3 --target HEAD --dry-run --format json
 ```
 
 ## Example workflow
@@ -117,18 +117,18 @@ mc step:release-record --from v1.2.3
 5. You preview the repair:
 
 ```bash
-mc repair-release --from v1.2.3 --target HEAD --dry-run
+mc step:retarget-release --from v1.2.3 --target HEAD --dry-run
 ```
 
 6. You execute the repair:
 
 ```bash
-mc repair-release --from v1.2.3 --target HEAD
+mc step:retarget-release --from v1.2.3 --target HEAD
 ```
 
-## What `repair-release` changes
+## What `RetargetRelease` changes
 
-`repair-release` is focused and narrow. It changes:
+`RetargetRelease` is focused and narrow. It changes:
 
 - the release-set git tags derived from the durable release record
 - hosted source-provider release state when supported by the provider integration
@@ -142,9 +142,9 @@ It does **not**:
 
 ## When to use this vs publish a new patch release
 
-Use `repair-release` for **just-created source/provider releases** when the right fix is to move the release tags forward to a later commit.
+Use `mc step:retarget-release` for **just-created source/provider releases** when the right fix is to move the release tags forward to a later commit.
 
-Use `tag-release` when the release commit has merged but the declared tags have not been created yet.
+Use `mc step:tag-release` when the release commit has merged but the declared tags have not been created yet.
 
 Prefer publishing a new patch release when:
 
@@ -154,7 +154,7 @@ Prefer publishing a new patch release when:
 
 If you are under pressure, the rule of thumb is simple:
 
-- if you need to fix the just-created source release itself, use `repair-release`
+- if you need to fix the just-created source release itself, use `mc step:retarget-release`
 - if you need a new immutable published artifact, cut a new patch release
 
 ## Configuration and step model
@@ -162,7 +162,7 @@ If you are under pressure, the rule of thumb is simple:
 The user-facing command is:
 
 ```bash
-mc repair-release --from v1.2.3 --target HEAD
+mc step:retarget-release --from v1.2.3 --target HEAD
 ```
 
 The underlying built-in step is `RetargetRelease`.
@@ -197,4 +197,4 @@ Keep using the cached manifest JSON from `PrepareRelease` when you want:
 - deterministic previews for downstream automation
 - a stable execution-time snapshot of what monochange is about to do
 
-Use `ReleaseRecord` and `repair-release` when you want to inspect or repair a release later from git history.
+Use `ReleaseRecord` and `RetargetRelease` when you want to inspect or repair a release later from git history.

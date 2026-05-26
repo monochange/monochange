@@ -73,7 +73,7 @@ This checks `monochange.toml` and your `.changeset/*.md` files together.
 ## 4. Discover package ids
 
 ```bash
-mc discover --format json
+mc step:discover --format json
 ```
 
 Look for the package ids you will use in changesets and CLI commands.
@@ -149,7 +149,7 @@ If you need a silent safety check, run `mc release --quiet`. Quiet mode suppress
 
 - `mc init` says a config already exists: keep the existing `monochange.toml` and continue with `mc step:validate`, or pass `--force` to regenerate.
 - `mc step:validate` reports problems: fix the reported config or changeset issue, then rerun `mc step:validate`.
-- `mc change` rejects your target: rerun `mc discover --format json` and copy a valid package id.
+- `mc change` rejects your target: rerun `mc step:discover --format json` and copy a valid package id.
 - You are not sure what to do next: continue with [Your first release plan](./02-setup.md).
 
 ## Next steps

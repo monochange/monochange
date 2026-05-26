@@ -6,8 +6,8 @@ This branch should be measured against the current non-async `main` branch with 
 
 Use the existing CLI benchmark harness in `scripts/benchmark-cli.ts`. It creates deterministic fixture repositories and measures these command paths with `hyperfine`:
 
-- `mc validate`
-- `mc discover --format json`
+- `mc step:validate`
+- `mc step:discover --format json`
 - `mc release --dry-run`
 - `mc release`
 

@@ -87,7 +87,7 @@ You only need a `[cli.*]` entry if you want a repository-specific alias that wra
 
 A typical agent workflow looks like this:
 
-1. `mc discover --format json` — understand the workspace package graph
+1. `mc step:discover --format json` — understand the workspace package graph
 2. `mc step:diagnose-changesets --format json` — see all pending changesets, linked PRs, and introduced commits
 3. `mc release --dry-run --format json` — preview the computed release plan
 4. `mc change ...` — add, update, or remove changesets as needed

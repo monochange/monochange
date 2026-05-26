@@ -2,7 +2,6 @@
 
 //! # `monochange_gitlab`
 //!
-//! <!-- {=monochangeGitlabCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_gitlab` turns `monochange` release manifests into GitLab automation requests.
 //!
 //! Reach for this crate when you want to preview or publish GitLab releases and merge requests using the same structured release data that powers changelog files and release manifests.
@@ -25,8 +24,6 @@
 //! - `build_change_request(manifest, source)` builds a merge-request payload for the release
 //! - `validate_source_configuration(source)` validates GitLab-specific source config
 //! - `source_capabilities()` returns provider feature flags
-//! <!-- {/monochangeGitlabCrateDocs} -->
-
 use std::env;
 use std::path::Path;
 use std::path::PathBuf;

@@ -2,7 +2,6 @@
 
 //! # `monochange_gitea`
 //!
-//! <!-- {=monochangeGiteaCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_gitea` turns `monochange` release manifests into Gitea automation requests.
 //!
 //! Reach for this crate when you want to preview or publish Gitea releases and release pull requests using the same structured release data that powers changelog files and release manifests.
@@ -25,8 +24,6 @@
 //! - `build_change_request(manifest, source)` builds a pull-request payload for the release
 //! - `validate_source_configuration(source)` validates Gitea-specific source config
 //! - `source_capabilities()` returns provider feature flags
-//! <!-- {/monochangeGiteaCrateDocs} -->
-
 use std::env;
 use std::path::Path;
 use std::path::PathBuf;
