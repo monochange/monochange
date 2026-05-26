@@ -2939,15 +2939,17 @@ impl CliStepDefinition {
 		match self {
 			Self::Config { .. } => Some(&[]),
 			Self::Validate { .. } => Some(&["fix"]),
-Self::CommitRelease { .. } => Some(&[
-				"no_verify",
-				"update_release_json",
-				"stage_all",
-				"commit_backend",
-				"hosted_auth",
-				"hosted_url",
-				"oidc_audience",
-			]),
+			Self::CommitRelease { .. } => {
+				Some(&[
+					"no_verify",
+					"update_release_json",
+					"stage_all",
+					"commit_backend",
+					"hosted_auth",
+					"hosted_url",
+					"oidc_audience",
+				])
+			}
 			Self::VerifyReleaseBranch { .. } => Some(&["from"]),
 			Self::Discover { .. } | Self::DisplayVersions { .. } | Self::PrepareRelease { .. } => {
 				Some(&["format"])

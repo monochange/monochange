@@ -4238,7 +4238,7 @@ fn load_workspace_configuration_rejects_unknown_input_on_step_without_inputs() {
 		"error was: {error}"
 	);
 	assert!(
-		error.to_string().contains("this step accepts no inputs"),
+		error.to_string().contains("valid inputs: fix"),
 		"error was: {error}"
 	);
 }
@@ -4254,7 +4254,7 @@ fn load_workspace_configuration_rejects_unknown_input_on_validate_step() {
 		"error was: {error}"
 	);
 	assert!(
-		error.to_string().contains("valid inputs: format"),
+		error.to_string().contains("valid inputs: fix"),
 		"error was: {error}"
 	);
 }
