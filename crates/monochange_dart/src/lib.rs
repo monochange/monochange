@@ -34,6 +34,7 @@
 
 pub mod analysis;
 
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::fmt::Write as _;
@@ -46,6 +47,7 @@ pub use analysis::semantic_analyzer;
 use glob::glob;
 use monochange_core::AdapterDiscovery;
 use monochange_core::DependencyKind;
+use monochange_core::DependencySyncChange;
 use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemAdapter;
@@ -57,6 +59,7 @@ use monochange_core::PackageRecord;
 use monochange_core::PublishState;
 use monochange_core::ShellConfig;
 use monochange_core::SourceConfiguration;
+use monochange_core::VersionStrategy;
 use monochange_core::normalize_path;
 use monochange_publish::PublishRequest;
 use semver::Version;
@@ -170,7 +173,7 @@ pub fn default_lockfile_commands(package: &PackageRecord) -> Vec<LockfileCommand
 pub fn update_dependency_fields(
 	mapping: &mut Mapping,
 	fields: &[&str],
-	versioned_deps: &std::collections::BTreeMap<String, String>,
+	versioned_deps: &BTreeMap<String, String>,
 ) {
 	for field in fields {
 		let Some(Value::Mapping(section)) = mapping.get_mut(Value::String(field.to_string()))
@@ -194,7 +197,7 @@ pub fn update_manifest_text(
 	contents: &str,
 	owner_version: Option<&str>,
 	fields: &[&str],
-	versioned_deps: &std::collections::BTreeMap<String, String>,
+	versioned_deps: &BTreeMap<String, String>,
 ) -> MonochangeResult<String> {
 	serde_yaml_ng::from_str::<Mapping>(contents).map_err(|error| {
 		MonochangeError::Config(format!("failed to parse pubspec yaml: {error}"))
@@ -395,10 +398,7 @@ fn render_yaml_scalar(existing: &str, value: &str) -> String {
 }
 
 /// Update versions embedded in a parsed `pubspec.lock` mapping.
-pub fn update_pubspec_lock(
-	mapping: &mut Mapping,
-	raw_versions: &std::collections::BTreeMap<String, String>,
-) {
+pub fn update_pubspec_lock(mapping: &mut Mapping, raw_versions: &BTreeMap<String, String>) {
 	let Some(Value::Mapping(packages)) = mapping.get_mut(Value::String("packages".to_string()))
 	else {
 		return;
@@ -714,6 +714,141 @@ pub fn default_dependency_version_prefix() -> &'static str {
 pub fn default_dependency_fields() -> &'static [&'static str] {
 	&["dependencies", "dev_dependencies"]
 }
+/// Identify internal dependency references in a Dart pubspec.yaml that need
+/// version synchronization and compute the target values.
+///
+/// This function scans `dependencies`, `dev_dependencies`, and
+/// `dependency_overrides` for references to other workspace packages. For
+/// each internal dependency found, it determines the correct version
+/// constraint based on the `VersionStrategy` and `resolution: workspace`
+/// setting.
+///
+/// # Arguments
+///
+/// * `contents` - The raw pubspec.yaml text.
+/// * `version_map` - Map of `package_id` → canonical version.
+/// * `workspace_package_names` - Set of all workspace package names.
+/// * `strategy` - How to format version constraints.
+///
+/// # Errors
+///
+/// Returns an error if the YAML cannot be parsed.
+pub fn sync_internal_dependency_versions(
+	contents: &str,
+	version_map: &BTreeMap<String, String>,
+	workspace_package_names: &BTreeSet<String>,
+	strategy: VersionStrategy,
+) -> MonochangeResult<Vec<DependencySyncChange>> {
+	let mapping: Mapping = serde_yaml_ng::from_str(contents).map_err(|error| {
+		MonochangeError::Config(format!("failed to parse pubspec yaml for sync: {error}"))
+	})?;
+
+	let workspace_resolution = manifest_uses_workspace_resolution(&mapping);
+	let prefix = version_prefix_for_strategy(strategy);
+
+	let mut changes = Vec::new();
+
+	for section in ["dependencies", "dev_dependencies", "dependency_overrides"] {
+		let Some(deps) = yaml_mapping(&mapping, section) else {
+			continue;
+		};
+
+		for (dep_key, dep_value) in deps {
+			let Some(dep_name) = dep_key.as_str() else {
+				continue;
+			};
+
+			if !workspace_package_names.contains(dep_name) {
+				continue;
+			}
+
+			let Some(canonical_version) = version_map.get(dep_name) else {
+				continue;
+			};
+
+			let new_constraint = format!("{prefix}{canonical_version}");
+
+			if let Value::String(current_version) = dep_value {
+				if current_version == &new_constraint {
+					continue;
+				}
+				changes.push(DependencySyncChange {
+					dependency_name: dep_name.to_string(),
+					section: section.to_string(),
+					old_value: current_version.clone(),
+					new_value: new_constraint,
+				});
+			} else if let Value::Mapping(detail) = dep_value {
+				// Dependency is a mapping (e.g., with path:, hosted:, version: keys).
+				if workspace_resolution {
+					// With workspace resolution, convert path: deps to versioned.
+					// The new dep should just be a version string.
+					let old_representation = detail_to_string(detail);
+					changes.push(DependencySyncChange {
+						dependency_name: dep_name.to_string(),
+						section: section.to_string(),
+						old_value: old_representation,
+						new_value: new_constraint,
+					});
+				} else {
+					// Without workspace resolution, update the version: field within
+					// the mapping if it exists.
+					if let Some(Value::String(current_ver)) =
+						detail.get(Value::String("version".to_string()))
+						&& current_ver != new_constraint.as_str()
+					{
+						changes.push(DependencySyncChange {
+							dependency_name: dep_name.to_string(),
+							section: section.to_string(),
+							old_value: current_ver.clone(),
+							new_value: new_constraint,
+						});
+					}
+				}
+			}
+		}
+	}
+
+	Ok(changes)
+}
+
+/// Determine the version constraint prefix for the given strategy.
+fn version_prefix_for_strategy(strategy: VersionStrategy) -> &'static str {
+	match strategy {
+		VersionStrategy::Default | VersionStrategy::Caret => default_dependency_version_prefix(),
+		VersionStrategy::Exact => "",
+		VersionStrategy::Compatible => ">=",
+	}
+}
+
+/// Convert a YAML mapping dependency detail to a readable string.
+fn detail_to_string(detail: &Mapping) -> String {
+	let mut parts: Vec<String> = detail
+		.iter()
+		.filter_map(|(k, v)| {
+			let key = k.as_str()?;
+			let val = match v {
+				Value::String(s) => s.clone(),
+				Value::Bool(b) => b.to_string(),
+				Value::Number(n) => n.to_string(),
+				Value::Null => "null".to_string(),
+				_ => "[...]".to_string(),
+			};
+			Some(format!("{key}: {val}"))
+		})
+		.collect();
+	parts.sort();
+	parts.join(", ")
+}
+
+/// Check if a pubspec manifest declares `resolution: workspace`.
+fn manifest_uses_workspace_resolution(mapping: &Mapping) -> bool {
+	mapping
+		.get(Value::String("resolution".to_string()))
+		.and_then(Value::as_str)
+		.is_some_and(|resolution| resolution.trim() == "workspace")
+}
+
 fn yaml_mapping<'map>(mapping: &'map Mapping, key: &str) -> Option<&'map Mapping> {
 	mapping
 		.get(Value::String(key.to_string()))
@@ -745,6 +880,10 @@ fn find_all_manifests(root: &Path) -> Vec<PathBuf> {
 		.map(|path| normalize_path(&path))
 		.collect()
 }
+
+#[cfg(test)]
+#[path = "__tests__/sync_tests.rs"]
+mod sync_tests;
 
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]

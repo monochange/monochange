@@ -224,6 +224,7 @@ When provided, the generated config includes:\n\
 		.subcommand(build_analyze_subcommand())
 		.subcommand(build_migrate_subcommand())
 		.subcommand(build_lint_subcommand())
+		.subcommand(build_sync_subcommand())
 		.subcommand({
 			#[cfg(feature = "mcp")]
 			{
@@ -947,6 +948,30 @@ fn build_cli_command_input_arg(input: &CliInputDefinition) -> Arg {
 /// and the leaked strings are never freed. Do not use this in library code.
 fn leak_string(value: impl Into<String>) -> &'static str {
 	Box::leak(value.into().into_boxed_str())
+}
+
+pub(crate) fn build_sync_subcommand() -> Command {
+	Command::new("sync")
+		.about("Synchronize workspace dependency versions")
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand(
+			Command::new("versions")
+				.about("Update internal dependency version references to match canonical versions")
+				.arg(
+					Arg::new("dry-run")
+						.long("dry-run")
+						.help("Show what would change without modifying files")
+						.action(ArgAction::SetTrue),
+				)
+				.arg(
+					Arg::new("strategy")
+						.long("strategy")
+						.help("Version constraint strategy: default, exact, caret, compatible")
+						.default_value("default")
+						.value_parser(["default", "exact", "caret", "compatible"]),
+				),
+		)
 }
 
 pub(crate) fn current_dir_or_dot() -> PathBuf {

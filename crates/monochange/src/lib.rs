@@ -332,6 +332,8 @@ mod release_branch_policy;
 mod release_record;
 mod skill;
 mod subagents;
+mod sync;
+pub use sync::sync_workspace_versions;
 mod tracing_setup;
 mod versioned_files;
 mod workspace_ops;
@@ -987,6 +989,20 @@ where
 			lint::handle_lint_subcommand(root, lint_matches)
 		}
 
+		Some(("sync", sync_matches)) => {
+			let (_, versions_matches) = sync_matches
+				.subcommand()
+				.unwrap_or_else(|| unreachable!("clap requires a sync subcommand"));
+			let strategy_str = versions_matches
+				.get_one::<String>("strategy")
+				.map_or("default", String::as_str);
+			let strategy = sync::parse_strategy(strategy_str);
+			let dry_run = versions_matches.get_flag("dry-run");
+			let result = sync_workspace_versions(root, strategy, dry_run)?;
+
+			Ok(sync::format_sync_result(&result, dry_run, quiet))
+		}
+
 		Some((cli_command_name, cli_command_matches)) if cli_command_name.starts_with("step:") => {
 			let configuration = configuration?;
 			let synthetic = synthetic_step_command_definition(cli_command_name)?;
@@ -1050,3 +1066,7 @@ fn format_publish_state(publish_state: monochange_core::PublishState) -> &'stati
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]
 pub(crate) mod tests;
+
+#[cfg(test)]
+#[path = "__tests__/sync_tests.rs"]
+pub(crate) mod sync_tests;

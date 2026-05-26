@@ -5051,6 +5051,42 @@ pub struct EcosystemRegistry {
 	adapters: Vec<Box<dyn EcosystemAdapter>>,
 }
 
+/// Strategy for formatting version constraints when syncing internal dependencies.
+///
+/// Controls how version constraints are formatted when `mc sync versions`
+/// updates internal dependency references to match canonical package versions.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum VersionStrategy {
+	/// Use each ecosystem's configured or built-in default constraint format.
+	///
+	/// - npm/dart: caret (`^1.2.3`)
+	/// - cargo: exact (`1.2.3`)
+	/// - python: compatible (`>=1.2.3`)
+	/// - go: exact (`v1.2.3`)
+	#[default]
+	Default,
+	/// Use exact version strings without range operators (e.g., `1.2.3`).
+	Exact,
+	/// Use caret ranges where applicable (e.g., `^1.2.3` for npm/dart, `1.2.3` for cargo).
+	Caret,
+	/// Use compatible ranges (e.g., `>=1.2.3` for python, `^1.2.3` for npm/dart).
+	Compatible,
+}
+
+/// A single dependency version change made during sync.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct DependencySyncChange {
+	/// The dependency package name (e.g., `my_workspace_lib`).
+	pub dependency_name: String,
+	/// The manifest section where the dependency was found
+	/// (e.g., `dependencies`, `dev_dependencies`).
+	pub section: String,
+	/// The value before the sync (e.g., `path: ../my_lib` or `^1.0.0`).
+	pub old_value: String,
+	/// The value after the sync (e.g., `^1.2.3`).
+	pub new_value: String,
+}
+
 impl EcosystemRegistry {
 	pub fn new() -> Self {
 		Self::default()
@@ -5199,6 +5235,10 @@ pub mod schema {
 		schemars::schema_for!(super::ReleaseRecord)
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/sync_tests.rs"]
+mod sync_tests;
 
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]

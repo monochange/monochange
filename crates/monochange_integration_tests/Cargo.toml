@@ -11,6 +11,7 @@ description = "Internal integration tests for monochange crates"
 insta = { workspace = true, features = ["redactions"], default-features = true }
 insta-cmd = { workspace = true, default-features = true }
 jsonschema = { workspace = true, default-features = true }
+monochange = { workspace = true }
 monochange_config = { workspace = true }
 monochange_core = { workspace = true }
 monochange_forgejo = { workspace = true }
