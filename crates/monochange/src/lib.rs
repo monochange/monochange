@@ -998,7 +998,9 @@ where
 			let format = sync::parse_versions_output_format(format_str);
 			let result = sync_workspace_versions(root, strategy, dry_run)?;
 
-			sync::format_sync_result_for_cli(&result, dry_run, quiet, format)
+			Ok(sync::format_sync_result_for_cli(
+				&result, dry_run, quiet, format,
+			))
 		}
 
 		Some((cli_command_name, cli_command_matches)) if cli_command_name.starts_with("step:") => {

@@ -66,9 +66,9 @@ pub struct VersionSyncPlanFile {
 	/// Individual dependency changes.
 	pub changes: Vec<DependencySyncChange>,
 	#[serde(skip)]
-	manifest_path: PathBuf,
+	pub(crate) manifest_path: PathBuf,
 	#[serde(skip)]
-	contents: String,
+	pub(crate) contents: String,
 }
 
 /// Changes made to a single file.
@@ -270,7 +270,7 @@ fn skipped_package(package: &PackageRecord, reason: &str) -> SkippedSyncPackage 
 	}
 }
 
-fn sync_context_error(
+pub(crate) fn sync_context_error(
 	operation: &str,
 	ecosystem: Ecosystem,
 	path: &Path,
@@ -408,15 +408,11 @@ pub(crate) fn format_sync_result(result: &SyncResult, dry_run: bool, _quiet: boo
 	output
 }
 
-pub(crate) fn format_sync_result_json(result: &SyncResult) -> MonochangeResult<String> {
-	serde_json::to_string_pretty(result)
-		.map(|mut output| {
-			output.push('\n');
-			output
-		})
-		.map_err(|error| {
-			MonochangeError::Config(format!("failed to serialize versions result: {error}"))
-		})
+pub(crate) fn format_sync_result_json(result: &SyncResult) -> String {
+	let mut output = serde_json::to_string_pretty(result)
+		.unwrap_or_else(|error| panic!("serialize versions result: {error}"));
+	output.push('\n');
+	output
 }
 
 pub(crate) fn format_sync_result_for_cli(
@@ -424,9 +420,9 @@ pub(crate) fn format_sync_result_for_cli(
 	dry_run: bool,
 	quiet: bool,
 	format: VersionsOutputFormat,
-) -> MonochangeResult<String> {
+) -> String {
 	match format {
-		VersionsOutputFormat::Text => Ok(format_sync_result(result, dry_run, quiet)),
+		VersionsOutputFormat::Text => format_sync_result(result, dry_run, quiet),
 		VersionsOutputFormat::Json => format_sync_result_json(result),
 	}
 }
@@ -448,7 +444,7 @@ pub(crate) fn parse_versions_output_format(format_str: &str) -> VersionsOutputFo
 	}
 }
 
-fn strategy_name(strategy: VersionStrategy) -> &'static str {
+pub(crate) fn strategy_name(strategy: VersionStrategy) -> &'static str {
 	match strategy {
 		VersionStrategy::Default => "default",
 		VersionStrategy::Exact => "exact",

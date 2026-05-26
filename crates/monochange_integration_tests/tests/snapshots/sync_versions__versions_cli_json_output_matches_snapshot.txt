@@ -1,7 +1,3 @@
----
-source: crates/monochange_integration_tests/tests/sync_versions.rs
-expression: output
----
 {
   "applied": false,
   "strategy": "Default",

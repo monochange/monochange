@@ -40,11 +40,7 @@ fn normalize_workspace_paths(root: &Path, output: String) -> String {
 		.replace(root_path.as_ref(), "[workspace]")
 }
 
-fn assert_cli_snapshot(output: &str, snapshot: &str) {
-	let expected = snapshot
-		.splitn(3, "---\n")
-		.nth(2)
-		.unwrap_or_else(|| panic!("snapshot body should exist"));
+fn assert_cli_snapshot(output: &str, expected: &str) {
 	if output != expected {
 		panic!("CLI output did not match snapshot\nexpected:\n{expected}\nactual:\n{output}");
 	}
@@ -264,7 +260,7 @@ fn versions_cli_dry_run_text_output_matches_snapshot() {
 	assert_cli_snapshot(
 		&output,
 		include_str!(
-			"snapshots/sync_versions__versions_cli_dry_run_text_output_matches_snapshot.snap"
+			"snapshots/sync_versions__versions_cli_dry_run_text_output_matches_snapshot.txt"
 		),
 	);
 }
@@ -275,7 +271,7 @@ fn versions_cli_json_output_matches_snapshot() {
 	let output = run_versions_cli(fixture.path(), &["--dry-run", "--format", "json"]);
 	assert_cli_snapshot(
 		&output,
-		include_str!("snapshots/sync_versions__versions_cli_json_output_matches_snapshot.snap"),
+		include_str!("snapshots/sync_versions__versions_cli_json_output_matches_snapshot.txt"),
 	);
 }
 
@@ -286,7 +282,7 @@ fn versions_cli_reports_unsupported_ecosystems_in_snapshot() {
 	assert_cli_snapshot(
 		&output,
 		include_str!(
-			"snapshots/sync_versions__versions_cli_reports_unsupported_ecosystems_in_snapshot.snap"
+			"snapshots/sync_versions__versions_cli_reports_unsupported_ecosystems_in_snapshot.txt"
 		),
 	);
 }

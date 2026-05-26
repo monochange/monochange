@@ -963,6 +963,11 @@ pub(crate) fn build_versions_subcommand() -> Command {
 Use this when migrating to monochange, checking whether manifests are already in sync, \
 or normalizing constraints before grouping packages for shared releases.",
 		)
+		.after_help(
+			"Examples:\n  mc versions --dry-run\n  mc versions --dry-run --format json\n  mc versions --strategy exact\n\n\
+This command syncs internal workspace dependency constraints. Strategy precedence is package config, \
+then ecosystem config, then the ecosystem default unless --strategy forces one style for this run.",
+		)
 		.arg(
 			Arg::new("dry-run")
 				.long("dry-run")

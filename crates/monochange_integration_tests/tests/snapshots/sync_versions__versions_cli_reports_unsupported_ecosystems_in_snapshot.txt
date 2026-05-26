@@ -1,7 +1,3 @@
----
-source: crates/monochange_integration_tests/tests/sync_versions.rs
-expression: output
----
 Skipped unsupported ecosystems:
 - [workspace]/cargo/sdk-core/Cargo.toml (Cargo): ecosystem sync is not implemented yet
 - [workspace]/deno/tool/deno.json (Deno): ecosystem sync is not implemented yet

@@ -5,8 +5,12 @@ use std::ffi::OsString;
 use clap::Command;
 use monochange_core::CliCommandDefinition;
 use monochange_core::DependencySyncChange;
+use monochange_core::DiscoveryReport;
 use monochange_core::Ecosystem;
+use monochange_core::PackageRecord;
+use monochange_core::PublishState;
 use monochange_core::VersionStrategy;
+use semver::Version;
 
 use crate::cli;
 use crate::sync;
@@ -201,6 +205,74 @@ fn format_sync_result_non_dry_run_has_no_dry_run_footer() {
 }
 
 #[test]
+fn format_sync_result_with_changes_and_skips_separates_sections() {
+	let dep_change = DependencySyncChange {
+		dependency_name: "my_package".to_string(),
+		section: "dependencies".to_string(),
+		old_value: "^0.5.0".to_string(),
+		new_value: "^0.7.0".to_string(),
+	};
+	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
+		changes: vec![sync::FileSyncResult {
+			path: "pubspec.yaml".to_string(),
+			ecosystem: Ecosystem::Dart,
+			changes: vec![dep_change],
+		}],
+		skipped: vec![sync::SkippedSyncPackage {
+			path: "go.mod".to_string(),
+			package_name: "go-lib".to_string(),
+			ecosystem: Ecosystem::Go,
+			reason: "ecosystem sync is not implemented yet".to_string(),
+		}],
+	};
+
+	let output = sync::format_sync_result(&result, false, true);
+	assert!(output.contains("updated ^0.5.0 → ^0.7.0"));
+	assert!(output.contains("\nSkipped unsupported ecosystems:"));
+	assert!(output.contains("- go.mod (Go): ecosystem sync is not implemented yet"));
+}
+
+#[test]
+fn format_sync_result_for_cli_supports_text_and_json() {
+	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
+		changes: vec![],
+		skipped: vec![sync::SkippedSyncPackage {
+			path: "go.mod".to_string(),
+			package_name: "go-lib".to_string(),
+			ecosystem: Ecosystem::Go,
+			reason: "ecosystem sync is not implemented yet".to_string(),
+		}],
+	};
+
+	let text =
+		sync::format_sync_result_for_cli(&result, true, true, sync::VersionsOutputFormat::Text);
+	let json =
+		sync::format_sync_result_for_cli(&result, true, true, sync::VersionsOutputFormat::Json);
+	assert!(text.contains("Skipped unsupported ecosystems:"));
+	assert!(json.contains(r#""package_name": "go-lib""#));
+}
+
+#[test]
+fn parse_versions_output_format_defaults_to_text() {
+	assert_eq!(
+		sync::parse_versions_output_format("json"),
+		sync::VersionsOutputFormat::Json
+	);
+	assert_eq!(
+		sync::parse_versions_output_format("text"),
+		sync::VersionsOutputFormat::Text
+	);
+	assert_eq!(
+		sync::parse_versions_output_format("unknown"),
+		sync::VersionsOutputFormat::Text
+	);
+}
+
+#[test]
 fn format_sync_result_empty_not_quiet_still_returns_empty() {
 	let result = sync::SyncResult {
 		applied: false,
@@ -293,6 +365,119 @@ fn sync_result_tracks_file_changes() {
 	assert_eq!(result.changes[0].changes[0].dependency_name, "my_package");
 }
 
+#[test]
+fn plan_discovered_workspace_versions_reports_unsupported_ecosystems() {
+	let root = std::path::Path::new("/workspace");
+	let package = PackageRecord::new(
+		Ecosystem::Go,
+		"go-lib",
+		root.join("go.mod"),
+		root.to_path_buf(),
+		Some(Version::new(1, 2, 3)),
+		PublishState::Public,
+	);
+	let discovery = DiscoveryReport {
+		workspace_root: root.to_path_buf(),
+		packages: vec![package],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+
+	let plan = sync::plan_discovered_workspace_versions(root, VersionStrategy::Default, &discovery)
+		.unwrap_or_else(|error| panic!("plan discovered workspace versions: {error}"));
+	assert!(plan.files.is_empty());
+	assert_eq!(plan.skipped.len(), 1);
+	assert_eq!(plan.skipped[0].package_name, "go-lib");
+	assert_eq!(plan.skipped[0].ecosystem, Ecosystem::Go);
+	assert_eq!(
+		plan.skipped[0].reason,
+		"ecosystem sync is not implemented yet"
+	);
+}
+
+#[test]
+fn plan_discovered_workspace_versions_wraps_detect_errors() {
+	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = temp.path();
+	let app_manifest = root.join("packages/app/package.json");
+	let lib_manifest = root.join("packages/lib/package.json");
+	std::fs::create_dir_all(
+		app_manifest
+			.parent()
+			.unwrap_or_else(|| panic!("app parent")),
+	)
+	.unwrap_or_else(|error| panic!("create app dir: {error}"));
+	std::fs::create_dir_all(
+		lib_manifest
+			.parent()
+			.unwrap_or_else(|| panic!("lib parent")),
+	)
+	.unwrap_or_else(|error| panic!("create lib dir: {error}"));
+	std::fs::write(&app_manifest, "{")
+		.unwrap_or_else(|error| panic!("write invalid package manifest: {error}"));
+	std::fs::write(&lib_manifest, r#"{"name":"lib","version":"1.2.3"}"#)
+		.unwrap_or_else(|error| panic!("write lib manifest: {error}"));
+
+	let app = PackageRecord::new(
+		Ecosystem::Npm,
+		"app",
+		app_manifest,
+		root.to_path_buf(),
+		Some(Version::new(1, 0, 0)),
+		PublishState::Public,
+	);
+	let lib = PackageRecord::new(
+		Ecosystem::Npm,
+		"lib",
+		lib_manifest,
+		root.to_path_buf(),
+		Some(Version::new(1, 2, 3)),
+		PublishState::Public,
+	);
+	let discovery = DiscoveryReport {
+		workspace_root: root.to_path_buf(),
+		packages: vec![app, lib],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+
+	let error =
+		sync::plan_discovered_workspace_versions(root, VersionStrategy::Default, &discovery)
+			.unwrap_err();
+	let message = error.to_string();
+	assert!(message.contains("failed to detect Npm version sync changes"));
+	assert!(message.contains("package.json"));
+}
+
+#[test]
+fn apply_version_sync_plan_wraps_apply_errors() {
+	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let manifest_path = temp.path().join("package.json");
+	let plan = sync::VersionSyncPlan {
+		strategy: VersionStrategy::Default,
+		files: vec![sync::VersionSyncPlanFile {
+			path: "package.json".to_string(),
+			ecosystem: Ecosystem::Npm,
+			changes: vec![DependencySyncChange {
+				dependency_name: "lib".to_string(),
+				section: "dependencies".to_string(),
+				old_value: "^1.0.0".to_string(),
+				new_value: "^1.2.3".to_string(),
+			}],
+			manifest_path,
+			contents: "{".to_string(),
+		}],
+		skipped: Vec::new(),
+	};
+
+	let error = sync::apply_version_sync_plan(&plan, true).unwrap_err();
+	let message = error.to_string();
+	assert!(message.contains("failed to apply Npm version sync changes"));
+	assert!(message.contains("package.json"));
+}
+
 // --- build_versions_subcommand tests ---
 
 #[test]
@@ -365,6 +550,64 @@ fn build_versions_subcommand_parses_strategy() {
 			.get_one::<String>("strategy")
 			.map(String::as_str),
 		Some("exact")
+	);
+}
+
+#[test]
+fn cli_command_after_help_describes_configured_versions_command() {
+	let cli_command = CliCommandDefinition {
+		name: "versions".to_string(),
+		help_text: Some("sync versions".to_string()),
+		inputs: Vec::new(),
+		steps: Vec::new(),
+		dry_run: false,
+	};
+	let help = cli::cli_command_after_help(&cli_command)
+		.unwrap_or_else(|| panic!("versions command should have after-help"));
+	assert!(help.contains("mc versions --dry-run"));
+	assert!(help.contains("This command syncs internal workspace dependency constraints."));
+	assert!(help.contains("Strategy precedence is package config"));
+}
+
+#[test]
+fn build_versions_subcommand_long_help_describes_examples() {
+	let mut command = cli::build_command_with_cli("mc", &[]);
+	let versions = command
+		.find_subcommand_mut("versions")
+		.unwrap_or_else(|| panic!("versions subcommand should exist"));
+	let help = versions
+		.get_after_help()
+		.unwrap_or_else(|| panic!("versions after help should exist"))
+		.to_string();
+	assert!(help.contains("mc versions --dry-run"));
+	assert!(help.contains("mc versions --dry-run --format json"));
+	assert!(help.contains("This command syncs internal workspace dependency constraints."));
+	assert!(help.contains("Strategy precedence is package config"));
+}
+
+#[test]
+fn sync_context_error_includes_operation_ecosystem_path_and_source() {
+	let source = crate::MonochangeError::Config("invalid manifest".to_string());
+	let error = sync::sync_context_error(
+		"detect",
+		Ecosystem::Npm,
+		std::path::Path::new("packages/app/package.json"),
+		&source,
+	);
+	let message = error.to_string();
+	assert!(message.contains("failed to detect Npm version sync changes"));
+	assert!(message.contains("packages/app/package.json"));
+	assert!(message.contains("invalid manifest"));
+}
+
+#[test]
+fn strategy_name_reports_all_versions_strategies() {
+	assert_eq!(sync::strategy_name(VersionStrategy::Default), "default");
+	assert_eq!(sync::strategy_name(VersionStrategy::Exact), "exact");
+	assert_eq!(sync::strategy_name(VersionStrategy::Caret), "caret");
+	assert_eq!(
+		sync::strategy_name(VersionStrategy::Compatible),
+		"compatible"
 	);
 }
 
