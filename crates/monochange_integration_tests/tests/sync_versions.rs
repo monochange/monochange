@@ -276,13 +276,11 @@ fn versions_cli_json_output_matches_snapshot() {
 }
 
 #[test]
-fn versions_cli_reports_unsupported_ecosystems_in_snapshot() {
+fn versions_cli_accepts_all_supported_ecosystems_in_mixed_workspace() {
 	let fixture = setup_fixture("cli-output", "discover-mixed");
 	let output = run_versions_cli(fixture.path(), &["--dry-run"]);
-	assert_cli_snapshot(
-		&output,
-		include_str!(
-			"snapshots/sync_versions__versions_cli_reports_unsupported_ecosystems_in_snapshot.txt"
-		),
+	assert!(
+		!output.contains("Skipped unsupported ecosystems"),
+		"supported ecosystems should not be reported as skipped: {output}"
 	);
 }

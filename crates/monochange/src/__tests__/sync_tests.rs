@@ -54,6 +54,106 @@ fn apply_sync_changes_npm_manifest_updates_version() {
 }
 
 #[test]
+fn apply_sync_changes_cargo_manifest_updates_version() {
+	let contents =
+		"[package]\nname = \"app\"\nversion = \"1.0.0\"\n\n[dependencies]\ncore = \"1.0.0\"\n";
+	let changes = vec![DependencySyncChange {
+		dependency_name: "core".to_string(),
+		section: "dependencies".to_string(),
+		old_value: "1.0.0".to_string(),
+		new_value: "2.0.0".to_string(),
+	}];
+	let result = sync::apply_sync_changes(contents, &changes, Ecosystem::Cargo)
+		.unwrap_or_else(|error| panic!("apply cargo changes: {error}"));
+	assert!(result.contains("core = \"2.0.0\""));
+}
+
+#[test]
+fn apply_sync_changes_python_manifest_updates_version() {
+	let contents =
+		"[project]\nname = \"app\"\nversion = \"1.0.0\"\ndependencies = [\"core>=1.0.0\"]\n";
+	let changes = vec![DependencySyncChange {
+		dependency_name: "core".to_string(),
+		section: "dependencies".to_string(),
+		old_value: ">=1.0.0".to_string(),
+		new_value: ">=2.0.0".to_string(),
+	}];
+	let result = sync::apply_sync_changes(contents, &changes, Ecosystem::Python)
+		.unwrap_or_else(|error| panic!("apply python changes: {error}"));
+	assert!(result.contains("core>=2.0.0"));
+}
+
+#[test]
+fn apply_sync_changes_go_manifest_updates_version() {
+	let contents = "module app\n\nrequire example.com/core v1.0.0\n";
+	let changes = vec![DependencySyncChange {
+		dependency_name: "example.com/core".to_string(),
+		section: "require".to_string(),
+		old_value: "v1.0.0".to_string(),
+		new_value: "v2.0.0".to_string(),
+	}];
+	let result = sync::apply_sync_changes(contents, &changes, Ecosystem::Go)
+		.unwrap_or_else(|error| panic!("apply go changes: {error}"));
+	assert!(result.contains("example.com/core v2.0.0"));
+}
+
+#[test]
+fn apply_sync_changes_deno_manifest_updates_import() {
+	let contents = r#"{"imports":{"core":"^1.0.0"}}"#;
+	let changes = vec![DependencySyncChange {
+		dependency_name: "core".to_string(),
+		section: "imports".to_string(),
+		old_value: "^1.0.0".to_string(),
+		new_value: "^2.0.0".to_string(),
+	}];
+	let result = sync::apply_sync_changes(contents, &changes, Ecosystem::Deno)
+		.unwrap_or_else(|error| panic!("apply deno changes: {error}"));
+	assert!(result.contains("^2.0.0"));
+}
+
+#[test]
+fn detect_supported_ecosystem_changes() {
+	let versions = std::collections::BTreeMap::from([("core".to_string(), "2.0.0".to_string())]);
+	let names = std::collections::BTreeSet::from(["core".to_string()]);
+
+	let cargo = sync::detect_cargo_changes(
+		"[package]\nname = \"app\"\nversion = \"1.0.0\"\n\n[dependencies]\ncore = \"1.0.0\"\n",
+		&versions,
+		&names,
+		VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect cargo: {error}"));
+	assert_eq!(cargo[0].new_value, "2.0.0");
+
+	let python = sync::detect_python_changes(
+		"[project]\nname = \"app\"\nversion = \"1.0.0\"\ndependencies = [\"core>=1.0.0\"]\n",
+		&versions,
+		&names,
+		VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect python: {error}"));
+	assert_eq!(python[0].new_value, ">=2.0.0");
+
+	let go = sync::detect_go_changes(
+		"module app\n\nrequire core v1.0.0\n",
+		&versions,
+		&names,
+		VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect go: {error}"));
+	assert_eq!(go[0].new_value, "v2.0.0");
+
+	let deno = sync::detect_deno_changes(
+		r#"{"imports":{"core":"^1.0.0"}}"#,
+		&versions,
+		&names,
+		VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect deno: {error}"));
+	assert_eq!(deno[0].new_value, "^2.0.0");
+}
+
+#[test]
 fn apply_sync_changes_unsupported_ecosystem_returns_contents_unchanged() {
 	let contents = "[package]\nname = \"my-crate\"\nversion = \"1.0.0\"\n";
 	let changes = vec![DependencySyncChange {
@@ -366,8 +466,11 @@ fn sync_result_tracks_file_changes() {
 }
 
 #[test]
-fn plan_discovered_workspace_versions_reports_unsupported_ecosystems() {
-	let root = std::path::Path::new("/workspace");
+fn plan_discovered_workspace_versions_handles_supported_go_packages_without_skips() {
+	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = temp.path();
+	std::fs::write(root.join("go.mod"), "module go-lib\n")
+		.unwrap_or_else(|error| panic!("write go.mod: {error}"));
 	let package = PackageRecord::new(
 		Ecosystem::Go,
 		"go-lib",
@@ -387,13 +490,7 @@ fn plan_discovered_workspace_versions_reports_unsupported_ecosystems() {
 	let plan = sync::plan_discovered_workspace_versions(root, VersionStrategy::Default, &discovery)
 		.unwrap_or_else(|error| panic!("plan discovered workspace versions: {error}"));
 	assert!(plan.files.is_empty());
-	assert_eq!(plan.skipped.len(), 1);
-	assert_eq!(plan.skipped[0].package_name, "go-lib");
-	assert_eq!(plan.skipped[0].ecosystem, Ecosystem::Go);
-	assert_eq!(
-		plan.skipped[0].reason,
-		"ecosystem sync is not implemented yet"
-	);
+	assert!(plan.skipped.is_empty());
 }
 
 #[test]

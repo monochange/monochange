@@ -27,7 +27,7 @@ Use JSON output for scripts and CI checks:
 mc versions --dry-run --format json
 ```
 
-The JSON result includes whether changes were applied, the selected strategy, changed files, dependency updates, and unsupported packages skipped during planning.
+The JSON result includes whether changes were applied, the selected strategy, changed files, dependency updates, and any packages skipped during planning.
 
 ## Strategy precedence
 
@@ -48,6 +48,6 @@ Passing `--strategy` overrides that fallback for the whole command.
 
 ## Supported ecosystems
 
-`mc versions` currently updates Dart `pubspec.yaml` / `pubspec.yml` files and npm `package.json` files. Unsupported ecosystems are reported as skipped so migration runs show what still needs manual review.
+`mc versions` updates internal dependency constraints for all ecosystems monochange discovers: Cargo `Cargo.toml`, Dart `pubspec.yaml` / `pubspec.yml`, Deno `deno.json`, Go `go.mod`, npm `package.json`, and Python `pyproject.toml` manifests.
 
 For Dart workspaces that use `resolution: workspace`, internal dependencies should use versioned constraints instead of `path:` references. `mc versions` converts eligible internal `path:` references to the configured version constraint.
