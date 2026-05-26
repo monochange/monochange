@@ -542,11 +542,19 @@
 			"type": "object"
 		},
 		"PublishMode": {
-			"enum": [
-				"builtin",
-				"external"
-			],
-			"type": "string"
+			"description": "Whether monochange's built-in publisher handles release publishing for a package.\n\n- `Builtin` – monochange runs the ecosystem-specific publish command (e.g. `npm\n  publish`, `cargo publish`) during `PublishPackages`.\n- `External` – the package is skipped during `PublishPackages`; your own CI or\n  scripts handle release publishing instead.\n\nThis setting does **not** affect placeholder publishing (`PlaceholderPublish`),\nwhich processes all packages with `publish.enabled = true` regardless of mode.\nPlaceholder publishing is a bootstrap utility, not a release publishing step.",
+			"oneOf": [
+				{
+					"const": "builtin",
+					"description": "monochange runs the built-in publish command during release publishing.",
+					"type": "string"
+				},
+				{
+					"const": "external",
+					"description": "The package is skipped during `PublishPackages`; external CI/scripts\nhandle release publishing. Placeholder publishing is not affected.",
+					"type": "string"
+				}
+			]
 		},
 		"PublishRegistry": {
 			"anyOf": [
