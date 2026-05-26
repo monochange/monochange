@@ -6,6 +6,7 @@ use std::process::Command as ProcessCommand;
 use std::process::Stdio;
 
 use monochange_core::CommitMessage;
+use monochange_core::DiscoveryPathFilter;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::git::git_command_output;
@@ -309,9 +310,10 @@ async fn resolve_stageable_release_paths(
 	tracked_paths: &[PathBuf],
 ) -> MonochangeResult<Vec<PathBuf>> {
 	let mut stageable_paths = Vec::with_capacity(tracked_paths.len());
+	let path_filter = DiscoveryPathFilter::new(root);
 
 	for path in tracked_paths {
-		if release_path_requires_staging(root, path).await? {
+		if release_path_requires_staging(root, path, &path_filter).await? {
 			stageable_paths.push(path.clone());
 		} else {
 			tracing::debug!(path = %path.display(), "skipping non-stageable release path");
@@ -321,27 +323,47 @@ async fn resolve_stageable_release_paths(
 	Ok(stageable_paths)
 }
 
-async fn release_path_requires_staging(root: &Path, path: &Path) -> MonochangeResult<bool> {
-	let absolute_path = root.join(path);
+async fn release_path_requires_staging(
+	root: &Path,
+	path: &Path,
+	path_filter: &DiscoveryPathFilter,
+) -> MonochangeResult<bool> {
+	let relative = root_relative_path(root, path);
+	if !relative.starts_with(".monochange/releases")
+		&& release_path_is_ignored_by_filter(root, relative, path_filter)
+	{
+		return Ok(false);
+	}
 
+	let absolute_path = root.join(path);
 	if !absolute_path.exists() {
 		return git_path_is_tracked(root, path).await;
 	}
 
+	if relative.starts_with(".monochange/releases") {
+		return Ok(true);
+	}
 	if git_path_is_tracked(root, path).await? {
 		return Ok(true);
 	}
 
-	let relative = if path.is_absolute() {
+	Ok(!git_path_is_ignored(root, path).await?)
+}
+
+fn release_path_is_ignored_by_filter(
+	root: &Path,
+	relative: &Path,
+	path_filter: &DiscoveryPathFilter,
+) -> bool {
+	!path_filter.allows(&root.join(relative))
+}
+
+fn root_relative_path<'a>(root: &Path, path: &'a Path) -> &'a Path {
+	if path.is_absolute() {
 		path.strip_prefix(root).unwrap_or(path)
 	} else {
 		path
-	};
-	if relative.starts_with(".monochange/releases") {
-		return Ok(true);
 	}
-
-	Ok(!git_path_is_ignored(root, path).await?)
 }
 
 #[must_use = "the tracked status result must be checked"]

@@ -144,29 +144,46 @@ untracked.txt"
 async fn git_stage_paths_returns_ok_when_all_paths_are_non_stageable() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	fs::write(root.join(".gitignore"), ".monochange/local/\n")
+	fs::write(root.join(".gitignore"), ".monochange/\n")
 		.unwrap_or_else(|error| panic!("write .gitignore: {error}"));
 	fs::write(root.join("tracked.txt"), "tracked\n")
 		.unwrap_or_else(|error| panic!("write tracked file: {error}"));
+	fs::create_dir_all(root.join(".monochange/releases"))
+		.unwrap_or_else(|error| panic!("create release state: {error}"));
+	fs::write(root.join(".monochange/releases/release.json"), "{}\n")
+		.unwrap_or_else(|error| panic!("write release state: {error}"));
 	init_git_repo(root);
 	git(root, &["add", "."]);
+	git(root, &["add", "-f", ".monochange/releases/release.json"]);
 	git(root, &["commit", "-m", "initial"]);
 	fs::create_dir_all(root.join(".monochange/local"))
 		.unwrap_or_else(|error| panic!("create .monochange: {error}"));
 	fs::write(root.join(".monochange/local/release-manifest.json"), "{}\n")
 		.unwrap_or_else(|error| panic!("write release manifest: {error}"));
+	fs::write(
+		root.join(".monochange/releases/release.json"),
+		"{\"released\":true}\n",
+	)
+	.unwrap_or_else(|error| panic!("update release state: {error}"));
+	fs::write(root.join("untracked.txt"), "untracked\n")
+		.unwrap_or_else(|error| panic!("write untracked file: {error}"));
 
 	git_stage_paths(
 		root,
 		&[
 			PathBuf::from(".monochange/local/release-manifest.json"),
+			PathBuf::from(".monochange/releases/release.json"),
+			PathBuf::from("untracked.txt"),
 			PathBuf::from(".changeset/missing.md"),
 		],
 	)
 	.await
 	.unwrap_or_else(|error| panic!("git stage paths: {error}"));
 
-	assert_eq!(git_output(root, &["diff", "--cached", "--name-only"]), "");
+	assert_eq!(
+		git_output(root, &["diff", "--cached", "--name-only"]),
+		".monochange/releases/release.json\nuntracked.txt"
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
