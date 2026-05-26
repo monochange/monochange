@@ -236,7 +236,7 @@ trusted_publishing = false
 Supported fields:
 
 - `enabled` - include this package in managed publishing
-- `mode` - `builtin` or `external`
+- `mode` - `builtin` or `external`. When `builtin` (the default), monochange's built-in publisher handles release publishing. When `external`, monochange skips the package during release publishing (`PublishPackages`) — your own CI or scripts handle release publishing instead. The `mode` setting does **not** affect placeholder publishing (`PlaceholderPublish`), which processes all packages with `publish.enabled = true`.
 - `registry` - public registry override for the package ecosystem
 - `trusted_publishing` - `true`/`false` or a table with `enabled`, `repository`, `workflow`, and `environment`
 - `attestations.require_registry_provenance` - require registry-native package provenance when the selected registry/provider capability supports it
@@ -257,13 +257,15 @@ Built-in publishing currently targets only the canonical public registry for eac
 - Go modules → `go_proxy` via VCS tags
 - Python packages → `pypi`
 
-Private registries and custom publication flows are still external. For those packages, set `mode = "external"` and handle publication outside monochange.
+Private registries and custom publication flows are still external. For those packages, set `mode = "external"` and handle release publication outside monochange. Placeholder publishing (`mc placeholder-publish`) still works for external-mode packages because it is a bootstrap utility, not a release publishing step.
 
 ### Placeholder publishing
 
 `mc placeholder-publish` exists for the bootstrap case where a package must already exist in the registry before you can finish automation setup such as trusted publishing.
 
-For each managed package with built-in publishing enabled, monochange:
+Placeholder publishing works for all packages with `publish.enabled = true`, including those set to `publish.mode = "external"`. The `mode` field controls who handles **release** publishing (monochange's built-in publisher vs your own CI/scripts); it does not affect placeholder publishing because that is a one-time bootstrap utility, not a release step. To opt out of placeholder publishing entirely, set `publish.enabled = false`.
+
+For each publishable package, monochange:
 
 - checks whether the package already exists in its configured public registry
 - skips packages that already exist

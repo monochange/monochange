@@ -1677,13 +1677,26 @@ impl ChangelogSettings {
 	}
 }
 
+/// Whether monochange's built-in publisher handles release publishing for a package.
+///
+/// - `Builtin` – monochange runs the ecosystem-specific publish command (e.g. `npm
+///   publish`, `cargo publish`) during `PublishPackages`.
+/// - `External` – the package is skipped during `PublishPackages`; your own CI or
+///   scripts handle release publishing instead.
+///
+/// This setting does **not** affect placeholder publishing (`PlaceholderPublish`),
+/// which processes all packages with `publish.enabled = true` regardless of mode.
+/// Placeholder publishing is a bootstrap utility, not a release publishing step.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum PublishMode {
 	#[default]
+	/// monochange runs the built-in publish command during release publishing.
 	Builtin,
+	/// The package is skipped during `PublishPackages`; external CI/scripts
+	/// handle release publishing. Placeholder publishing is not affected.
 	External,
 }
 
@@ -2248,8 +2261,7 @@ pub enum CliStepDefinition {
 		#[cfg_attr(feature = "schema", schemars(with = "CliStepInputsSchema"))]
 		inputs: BTreeMap<String, CliStepInputValue>,
 	},
-	/// Validate `monochange` configuration and changesets, and run lint rules
-	/// on package manifests.
+	/// Validate `monochange` configuration and changesets.
 	Validate {
 		#[serde(default)]
 		name: Option<String>,
@@ -2821,8 +2833,7 @@ impl CliStepDefinition {
 	#[must_use]
 	pub fn valid_input_names(&self) -> Option<&'static [&'static str]> {
 		match self {
-			Self::Config { .. } => Some(&[]),
-			Self::Validate { .. } => Some(&["fix"]),
+			Self::Config { .. } | Self::Validate { .. } => Some(&[]),
 			Self::CommitRelease { .. } => Some(&["no_verify", "update_release_json", "stage_all"]),
 			Self::VerifyReleaseBranch { .. } => Some(&["from"]),
 			Self::Discover { .. } | Self::DisplayVersions { .. } | Self::PrepareRelease { .. } => {
@@ -2918,12 +2929,6 @@ impl CliStepDefinition {
 	#[must_use]
 	pub fn expected_input_kind(&self, name: &str) -> Option<CliInputKind> {
 		match self {
-			Self::Validate { .. } => {
-				match name {
-					"fix" => Some(CliInputKind::Boolean),
-					_ => None,
-				}
-			}
 			Self::CommitRelease { .. } => {
 				match name {
 					"no_verify" | "update_release_json" | "stage_all" => {
@@ -2938,7 +2943,7 @@ impl CliStepDefinition {
 					_ => None,
 				}
 			}
-			Self::Config { .. } | Self::Command { .. } => None,
+			Self::Config { .. } | Self::Command { .. } | Self::Validate { .. } => None,
 			Self::Discover { .. } | Self::DisplayVersions { .. } | Self::PrepareRelease { .. } => {
 				matches!(name, "format").then_some(CliInputKind::Choice)
 			}

@@ -900,8 +900,9 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			name: "step:validate",
 			summary: "Validate monochange configuration and changesets",
 			description: "Validates the monochange.toml configuration, package manifests, version \
-				groups, changeset files, and workspace consistency. This is the same \
-				validation step that runs at the start of release commands.",
+				groups, changeset files, and workspace consistency. For lint rules, use \
+				`mc check`. This is the same validation step that runs at the start of release \
+				commands.",
 			usage: "mc step:validate",
 			options: &[],
 			examples: &[("Validate the workspace:", "mc step:validate")],

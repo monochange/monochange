@@ -206,6 +206,7 @@ pub(crate) fn run_check_command(
 }
 
 /// Run lint as part of a Validate step. Returns (`formatted_output`, `has_errors`).
+#[allow(dead_code)]
 pub(crate) fn run_lint_step(root: &Path, fix: bool) -> MonochangeResult<(String, bool)> {
 	let configuration = load_workspace_configuration(root)?;
 	let linter = build_linter(&configuration, LintSelection::all());

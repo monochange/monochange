@@ -692,7 +692,11 @@ pub async fn execute_publish_requests_with_progress(
 	let mut outcomes = Vec::new();
 
 	for request in requests {
-		if request.mode == PublishMode::External {
+		// External-mode packages are only skipped during release publishing.
+		// Placeholder publishing is a bootstrap utility that should work for all
+		// publishable packages, regardless of who handles normal release publishes.
+		// See: https://github.com/monochange/monochange/issues/542
+		if request.mode == PublishMode::External && mode == PackagePublishRunMode::Release {
 			info!(
 				package_name = request.package_name,
 				version = %request.version,
@@ -710,7 +714,7 @@ pub async fn execute_publish_requests_with_progress(
 				version: request.version.clone(),
 				status: PackagePublishStatus::SkippedExternal,
 				message: "package opted out of built-in publishing".to_string(),
-				placeholder: mode == PackagePublishRunMode::Placeholder,
+				placeholder: false,
 				trusted_publishing: disabled_trust_outcome(),
 				command: None,
 				stdout: None,
