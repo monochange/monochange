@@ -5055,8 +5055,8 @@ pub struct EcosystemRegistry {
 
 /// Strategy for formatting version constraints when syncing internal dependencies.
 ///
-/// Controls how version constraints are formatted when `mc sync versions`
-/// updates internal dependency references to match canonical package versions.
+/// Controls how version constraints are formatted when `mc versions` updates
+/// internal dependency references to match canonical package versions.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum VersionStrategy {
 	/// Use each ecosystem's configured or built-in default constraint format.

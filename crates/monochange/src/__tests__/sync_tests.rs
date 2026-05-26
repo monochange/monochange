@@ -3,6 +3,7 @@
 use std::ffi::OsString;
 
 use clap::Command;
+use monochange_core::CliCommandDefinition;
 use monochange_core::DependencySyncChange;
 use monochange_core::Ecosystem;
 use monochange_core::VersionStrategy;
@@ -110,7 +111,12 @@ dependencies:
 
 #[test]
 fn format_sync_result_empty_changes_returns_empty_string() {
-	let result = sync::SyncResult { changes: vec![] };
+	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
+		changes: vec![],
+		skipped: vec![],
+	};
 	let output = sync::format_sync_result(&result, false, true);
 	assert!(
 		output.is_empty(),
@@ -121,8 +127,11 @@ fn format_sync_result_empty_changes_returns_empty_string() {
 #[test]
 fn format_sync_result_reports_update() {
 	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
 		changes: vec![sync::FileSyncResult {
 			path: "pubspec.yaml".to_string(),
+			ecosystem: Ecosystem::Dart,
 			changes: vec![DependencySyncChange {
 				dependency_name: "my_package".to_string(),
 				section: "dependencies".to_string(),
@@ -130,6 +139,7 @@ fn format_sync_result_reports_update() {
 				new_value: "^0.7.0".to_string(),
 			}],
 		}],
+		skipped: vec![],
 	};
 	let output = sync::format_sync_result(&result, false, true);
 	assert!(
@@ -141,8 +151,11 @@ fn format_sync_result_reports_update() {
 #[test]
 fn format_sync_result_dry_run_prefixes_with_would() {
 	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
 		changes: vec![sync::FileSyncResult {
 			path: "pubspec.yaml".to_string(),
+			ecosystem: Ecosystem::Dart,
 			changes: vec![DependencySyncChange {
 				dependency_name: "my_package".to_string(),
 				section: "dependencies".to_string(),
@@ -150,6 +163,7 @@ fn format_sync_result_dry_run_prefixes_with_would() {
 				new_value: "^0.7.0".to_string(),
 			}],
 		}],
+		skipped: vec![],
 	};
 	let output = sync::format_sync_result(&result, true, true);
 	assert!(
@@ -165,8 +179,11 @@ fn format_sync_result_dry_run_prefixes_with_would() {
 #[test]
 fn format_sync_result_non_dry_run_has_no_dry_run_footer() {
 	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
 		changes: vec![sync::FileSyncResult {
 			path: "pubspec.yaml".to_string(),
+			ecosystem: Ecosystem::Dart,
 			changes: vec![DependencySyncChange {
 				dependency_name: "my_package".to_string(),
 				section: "dependencies".to_string(),
@@ -174,6 +191,7 @@ fn format_sync_result_non_dry_run_has_no_dry_run_footer() {
 				new_value: "^0.7.0".to_string(),
 			}],
 		}],
+		skipped: vec![],
 	};
 	let output = sync::format_sync_result(&result, false, true);
 	assert!(
@@ -184,7 +202,12 @@ fn format_sync_result_non_dry_run_has_no_dry_run_footer() {
 
 #[test]
 fn format_sync_result_empty_not_quiet_still_returns_empty() {
-	let result = sync::SyncResult { changes: vec![] };
+	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
+		changes: vec![],
+		skipped: vec![],
+	};
 	let output = sync::format_sync_result(&result, false, false);
 	assert!(
 		output.is_empty(),
@@ -193,10 +216,13 @@ fn format_sync_result_empty_not_quiet_still_returns_empty() {
 }
 
 #[test]
-fn format_sync_result_not_quiet_and_not_dry_run_eprints_output() {
+fn format_sync_result_not_quiet_and_not_dry_run_returns_output() {
 	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
 		changes: vec![sync::FileSyncResult {
 			path: "pubspec.yaml".to_string(),
+			ecosystem: Ecosystem::Dart,
 			changes: vec![DependencySyncChange {
 				dependency_name: "my_package".to_string(),
 				section: "dependencies".to_string(),
@@ -204,11 +230,12 @@ fn format_sync_result_not_quiet_and_not_dry_run_eprints_output() {
 				new_value: "^0.7.0".to_string(),
 			}],
 		}],
+		skipped: vec![],
 	};
 	let output = sync::format_sync_result(&result, false, false);
 	assert!(
 		output.contains("updated ^0.5.0 → ^0.7.0 in my_package (pubspec.yaml)"),
-		"expected update message in non-quiet output"
+		"expected update message in output"
 	);
 }
 
@@ -251,10 +278,14 @@ fn sync_result_tracks_file_changes() {
 	};
 	let file_result = sync::FileSyncResult {
 		path: "pubspec.yaml".to_string(),
+		ecosystem: Ecosystem::Dart,
 		changes: vec![dep_change.clone()],
 	};
 	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
 		changes: vec![file_result],
+		skipped: vec![],
 	};
 	assert_eq!(result.changes.len(), 1);
 	assert_eq!(result.changes[0].path, "pubspec.yaml");
@@ -262,74 +293,71 @@ fn sync_result_tracks_file_changes() {
 	assert_eq!(result.changes[0].changes[0].dependency_name, "my_package");
 }
 
-// --- build_sync_subcommand tests ---
+// --- build_versions_subcommand tests ---
 
 #[test]
-fn build_sync_subcommand_parses_versions_with_defaults() {
-	let command = Command::new("mc").subcommand(cli::build_sync_subcommand());
+fn build_versions_subcommand_parses_defaults() {
+	let command = Command::new("mc").subcommand(cli::build_versions_subcommand());
 	let matches = command
 		.clone()
-		.try_get_matches_from([
-			OsString::from("mc"),
-			OsString::from("sync"),
-			OsString::from("versions"),
-		])
-		.unwrap_or_else(|error| panic!("sync matches: {error}"));
-	let (_, sync_matches) = matches
-		.subcommand()
-		.unwrap_or_else(|| panic!("expected sync subcommand"));
-	let (sub_name, versions_matches) = sync_matches
+		.try_get_matches_from([OsString::from("mc"), OsString::from("versions")])
+		.unwrap_or_else(|error| panic!("versions matches: {error}"));
+	let (_, versions_matches) = matches
 		.subcommand()
 		.unwrap_or_else(|| panic!("expected versions subcommand"));
-	assert_eq!(sub_name, "versions");
 	assert!(!versions_matches.get_flag("dry-run"));
 	assert_eq!(
 		versions_matches
 			.get_one::<String>("strategy")
 			.map(String::as_str),
-		Some("default"),
-		"strategy should default to 'default'"
+		Some("default")
+	);
+	assert_eq!(
+		versions_matches
+			.get_one::<String>("format")
+			.map(String::as_str),
+		Some("text")
 	);
 }
 
 #[test]
-fn build_sync_subcommand_parses_versions_with_dry_run() {
-	let command = Command::new("mc").subcommand(cli::build_sync_subcommand());
+fn build_versions_subcommand_parses_dry_run_and_json() {
+	let command = Command::new("mc").subcommand(cli::build_versions_subcommand());
 	let matches = command
 		.clone()
 		.try_get_matches_from([
 			OsString::from("mc"),
-			OsString::from("sync"),
 			OsString::from("versions"),
 			OsString::from("--dry-run"),
+			OsString::from("--format"),
+			OsString::from("json"),
 		])
-		.unwrap_or_else(|error| panic!("sync matches: {error}"));
-	let (_, sync_matches) = matches
-		.subcommand()
-		.unwrap_or_else(|| panic!("expected sync subcommand"));
-	let (_, versions_matches) = sync_matches
+		.unwrap_or_else(|error| panic!("versions matches: {error}"));
+	let (_, versions_matches) = matches
 		.subcommand()
 		.unwrap_or_else(|| panic!("expected versions subcommand"));
 	assert!(versions_matches.get_flag("dry-run"));
+	assert_eq!(
+		versions_matches
+			.get_one::<String>("format")
+			.map(String::as_str),
+		Some("json")
+	);
 }
 
 #[test]
-fn build_sync_subcommand_parses_versions_with_strategy() {
-	let command = Command::new("mc").subcommand(cli::build_sync_subcommand());
+fn build_versions_subcommand_parses_strategy() {
+	let command = Command::new("mc").subcommand(cli::build_versions_subcommand());
 	let matches = command
 		.clone()
 		.try_get_matches_from([
 			OsString::from("mc"),
-			OsString::from("sync"),
 			OsString::from("versions"),
 			OsString::from("--strategy"),
 			OsString::from("exact"),
 		])
-		.unwrap_or_else(|error| panic!("sync matches: {error}"));
-	let (_, sync_matches) = matches
-		.subcommand()
-		.unwrap_or_else(|| panic!("expected sync subcommand"));
-	let (_, versions_matches) = sync_matches
+		.unwrap_or_else(|error| panic!("versions matches: {error}"));
+	let (_, versions_matches) = matches
 		.subcommand()
 		.unwrap_or_else(|| panic!("expected versions subcommand"));
 	assert_eq!(
@@ -341,7 +369,28 @@ fn build_sync_subcommand_parses_versions_with_strategy() {
 }
 
 #[test]
-fn run_with_args_dispatches_sync_versions() {
+fn build_cli_skips_config_defined_versions_command() {
+	let cli_command = CliCommandDefinition {
+		name: "versions".to_string(),
+		help_text: Some("legacy read-only versions command".to_string()),
+		inputs: Vec::new(),
+		steps: Vec::new(),
+		dry_run: false,
+	};
+	let command = cli::build_command_with_cli("mc", &[cli_command]);
+	let matches = command
+		.clone()
+		.try_get_matches_from([
+			OsString::from("mc"),
+			OsString::from("versions"),
+			OsString::from("--dry-run"),
+		])
+		.unwrap_or_else(|error| panic!("versions matches: {error}"));
+	assert_eq!(matches.subcommand().map(|(name, _)| name), Some("versions"));
+}
+
+#[test]
+fn run_with_args_dispatches_versions() {
 	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = temp.path();
 	std::fs::write(
@@ -380,7 +429,6 @@ enabled = true
 		"mc",
 		[
 			OsString::from("mc"),
-			OsString::from("sync"),
 			OsString::from("versions"),
 			OsString::from("--dry-run"),
 			OsString::from("--strategy"),
@@ -388,7 +436,7 @@ enabled = true
 		],
 		root,
 	)))
-	.unwrap_or_else(|error| panic!("sync versions: {error}"));
+	.unwrap_or_else(|error| panic!("versions: {error}"));
 }
 
 #[test]

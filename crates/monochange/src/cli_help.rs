@@ -541,24 +541,39 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 		},
 		CommandHelp {
 			name: "versions",
-			summary: "Display planned versions without modifying files",
-			description: "Computes the same planned versions used by mc release but renders them without \
-				mutating any manifests, changelogs, or changesets. This is a read-only preview \
-				of what a release would produce.",
+			summary: "Sync internal dependency versions in workspace manifests",
+			description: "Updates supported package manifests so internal workspace dependency \
+				constraints point at the versions monochange discovered for those packages. Use \
+				--dry-run to preview migration changes before writing files.",
 			usage: "mc versions [OPTIONS]",
-			options: &[(
-				"--format",
-				"<FORMAT>",
-				"text, markdown, json (default: text)",
-			)],
+			options: &[
+				(
+					"--dry-run",
+					"",
+					"Preview dependency constraint updates without modifying files",
+				),
+				(
+					"--strategy",
+					"<STRATEGY>",
+					"Override configured dependency prefix strategy: default, exact, caret, compatible",
+				),
+				("--format", "<FORMAT>", "text, json (default: text)"),
+			],
 			examples: &[
-				("Show planned versions:", "mc versions"),
-				("Markdown output:", "mc versions --format markdown"),
-				("JSON for scripting:", "mc versions --format json"),
+				(
+					"Preview internal dependency updates:",
+					"mc versions --dry-run",
+				),
+				("Apply updates to manifests:", "mc versions"),
+				(
+					"JSON preview for scripting:",
+					"mc versions --dry-run --format json",
+				),
 			],
 			tips: &[
-				"This command is read-only — it does not update manifests or changelogs.",
-				"It computes the same planned versions used by monochange release workflows.",
+				"Only internal workspace dependencies are updated; external dependencies are left untouched.",
+				"Strategy falls back through package config, ecosystem config, ecosystem defaults, then --strategy overrides.",
+				"Unsupported ecosystems are reported as skipped so migrations can track remaining work.",
 			],
 			see_also: &["release", "change"],
 		},

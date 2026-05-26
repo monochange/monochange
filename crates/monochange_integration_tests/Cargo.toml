@@ -19,4 +19,5 @@ monochange_schema = { workspace = true }
 monochange_test_helpers = { workspace = true }
 serde_json = { workspace = true, default-features = true }
 tempfile = { workspace = true, default-features = true }
+tokio = { workspace = true }
 toml = { workspace = true, features = ["parse", "serde"], default-features = true }

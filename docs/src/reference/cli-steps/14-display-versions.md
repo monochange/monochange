@@ -74,12 +74,12 @@ type = "DisplayVersions"
 
 ## Composition ideas
 
-### Use it as the built-in summary command
+### Run the display step directly
 
 ```bash
-mc versions
-mc versions --format markdown
-mc versions --format json
+mc step:display-versions
+mc step:display-versions --format markdown
+mc step:display-versions --format json
 ```
 
 ### Keep release preparation and version display separate

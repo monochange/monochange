@@ -986,18 +986,19 @@ where
 			lint::handle_lint_subcommand(root, lint_matches)
 		}
 
-		Some(("sync", sync_matches)) => {
-			let (_, versions_matches) = sync_matches
-				.subcommand()
-				.unwrap_or_else(|| unreachable!("clap requires a sync subcommand"));
+		Some(("versions", versions_matches)) => {
 			let strategy_str = versions_matches
 				.get_one::<String>("strategy")
 				.map_or("default", String::as_str);
 			let strategy = sync::parse_strategy(strategy_str);
 			let dry_run = versions_matches.get_flag("dry-run");
+			let format_str = versions_matches
+				.get_one::<String>("format")
+				.map_or("text", String::as_str);
+			let format = sync::parse_versions_output_format(format_str);
 			let result = sync_workspace_versions(root, strategy, dry_run)?;
 
-			Ok(sync::format_sync_result(&result, dry_run, quiet))
+			sync::format_sync_result_for_cli(&result, dry_run, quiet, format)
 		}
 
 		Some((cli_command_name, cli_command_matches)) if cli_command_name.starts_with("step:") => {
