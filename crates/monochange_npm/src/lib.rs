@@ -1194,9 +1194,7 @@ pub fn sync_internal_dependency_versions(
 				continue;
 			};
 
-			let Some(dep_value) = deps.get(&dep_name) else {
-				continue;
-			};
+			let dep_value = &deps[&dep_name];
 
 			let Some(current_str) = dep_value.as_str() else {
 				continue;

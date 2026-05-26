@@ -775,7 +775,7 @@ pub fn sync_internal_dependency_versions(
 				changes.push(DependencySyncChange {
 					dependency_name: dep_name.to_string(),
 					section: section.to_string(),
-					old_value: current_value_to_string(dep_value),
+					old_value: current_version.clone(),
 					new_value: new_constraint,
 				});
 			} else if let Value::Mapping(detail) = dep_value {
@@ -818,19 +818,6 @@ fn version_prefix_for_strategy(strategy: VersionStrategy) -> &'static str {
 		VersionStrategy::Default | VersionStrategy::Caret => default_dependency_version_prefix(),
 		VersionStrategy::Exact => "",
 		VersionStrategy::Compatible => ">=",
-	}
-}
-
-/// Extract a string representation of a dependency value for reporting.
-fn current_value_to_string(value: &Value) -> String {
-	match value {
-		Value::String(s) => s.clone(),
-		Value::Mapping(m) => detail_to_string(m),
-		Value::Number(n) => n.to_string(),
-		Value::Bool(b) => b.to_string(),
-		Value::Null => "null".to_string(),
-		Value::Sequence(_) => "[...]".to_string(),
-		Value::Tagged(t) => current_value_to_string(&t.value),
 	}
 }
 

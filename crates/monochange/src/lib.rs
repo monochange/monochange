@@ -989,22 +989,19 @@ where
 			lint::handle_lint_subcommand(root, lint_matches)
 		}
 
-		Some(("sync", sync_matches)) => match sync_matches.subcommand() {
-			Some(("versions", versions_matches)) => {
-				let strategy_str = versions_matches
-					.get_one::<String>("strategy")
-					.map_or("default", |s| s.as_str());
-				let strategy = sync::parse_strategy(strategy_str);
-				let dry_run = versions_matches.get_flag("dry-run");
-				let result = sync_workspace_versions(root, strategy, dry_run)?;
+		Some(("sync", sync_matches)) => {
+			let (_, versions_matches) = sync_matches
+				.subcommand()
+				.unwrap_or_else(|| unreachable!("clap requires a sync subcommand"));
+			let strategy_str = versions_matches
+				.get_one::<String>("strategy")
+				.map_or("default", String::as_str);
+			let strategy = sync::parse_strategy(strategy_str);
+			let dry_run = versions_matches.get_flag("dry-run");
+			let result = sync_workspace_versions(root, strategy, dry_run)?;
 
-				Ok(sync::format_sync_result(&result, dry_run, quiet))
-			}
-			_ => Err(MonochangeError::Config(
-				"Usage: mc sync versions [--dry-run] [--strategy <default|exact|caret|compatible>]"
-					.to_string(),
-			)),
-		},
+			Ok(sync::format_sync_result(&result, dry_run, quiet))
+		}
 
 		Some((cli_command_name, cli_command_matches)) if cli_command_name.starts_with("step:") => {
 			let configuration = configuration?;

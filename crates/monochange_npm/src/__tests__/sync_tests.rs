@@ -125,3 +125,39 @@ fn sync_npm_invalid_json_returns_error() {
 	);
 	assert!(result.is_err());
 }
+
+#[test]
+fn sync_npm_covers_missing_versions_non_strings_and_compatible_strategy() {
+	let package_json = r#"{
+  "name": "my-app",
+  "version": "1.0.0",
+  "dependencies": {
+    "missing-package": "^0.1.0",
+    "object-package": { "version": "^0.1.0" },
+    "number-package": 1,
+    "my-package": "^0.5.0"
+  }
+}"#;
+	let version_map: BTreeMap<String, String> = BTreeMap::from([
+		("my-package".to_string(), "2.0.0".to_string()),
+		("object-package".to_string(), "2.0.0".to_string()),
+		("number-package".to_string(), "2.0.0".to_string()),
+	]);
+	let workspace_names: BTreeSet<String> = BTreeSet::from([
+		"missing-package".to_string(),
+		"object-package".to_string(),
+		"number-package".to_string(),
+		"my-package".to_string(),
+	]);
+	let changes = super::sync_internal_dependency_versions(
+		package_json,
+		&version_map,
+		&workspace_names,
+		VersionStrategy::Compatible,
+	)
+	.unwrap_or_else(|error| panic!("sync: {error}"));
+
+	assert_eq!(changes.len(), 1);
+	assert_eq!(changes[0].dependency_name, "my-package");
+	assert_eq!(changes[0].new_value, ">=2.0.0");
+}

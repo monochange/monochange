@@ -339,3 +339,174 @@ fn build_sync_subcommand_parses_versions_with_strategy() {
 		Some("exact")
 	);
 }
+
+#[test]
+fn run_with_args_dispatches_sync_versions() {
+	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = temp.path();
+	std::fs::write(
+		root.join("monochange.toml"),
+		r#"[defaults]
+parent_bump = "patch"
+package_type = "dart"
+
+[package.core]
+path = "packages/core"
+
+[package.app]
+path = "packages/app"
+
+[ecosystems.dart]
+enabled = true
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	std::fs::create_dir_all(root.join("packages/core"))
+		.unwrap_or_else(|error| panic!("mkdir core: {error}"));
+	std::fs::create_dir_all(root.join("packages/app"))
+		.unwrap_or_else(|error| panic!("mkdir app: {error}"));
+	std::fs::write(
+		root.join("packages/core/pubspec.yaml"),
+		"name: core\nversion: 1.2.3\n",
+	)
+	.unwrap_or_else(|error| panic!("write core pubspec: {error}"));
+	std::fs::write(
+		root.join("packages/app/pubspec.yaml"),
+		"name: app\nversion: 1.0.0\ndependencies:\n  core: ^1.0.0\n",
+	)
+	.unwrap_or_else(|error| panic!("write app pubspec: {error}"));
+
+	crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
+		"mc",
+		[
+			OsString::from("mc"),
+			OsString::from("sync"),
+			OsString::from("versions"),
+			OsString::from("--dry-run"),
+			OsString::from("--strategy"),
+			OsString::from("exact"),
+		],
+		root,
+	)))
+	.unwrap_or_else(|error| panic!("sync versions: {error}"));
+}
+
+#[test]
+fn sync_workspace_versions_reads_npm_manifests_from_fixture() {
+	let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../..")
+		.join("fixtures/npm/workspace");
+	let result = sync::sync_workspace_versions(&root, VersionStrategy::Exact, true)
+		.unwrap_or_else(|error| panic!("sync workspace versions: {error}"));
+
+	assert_eq!(result.changes.len(), 1);
+	assert!(
+		result.changes[0]
+			.path
+			.ends_with("packages/web/package.json")
+	);
+	assert_eq!(result.changes[0].changes[0].new_value, "1.0.0");
+}
+
+#[test]
+fn sync_workspace_versions_writes_npm_manifest_in_temp_workspace() {
+	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = temp.path();
+	std::fs::write(
+		root.join("monochange.toml"),
+		r#"[defaults]
+parent_bump = "patch"
+package_type = "npm"
+
+[package.shared]
+path = "packages/shared"
+
+[package.web]
+path = "packages/web"
+
+[ecosystems.npm]
+enabled = true
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	std::fs::create_dir_all(root.join("packages/shared"))
+		.unwrap_or_else(|error| panic!("mkdir shared: {error}"));
+	std::fs::create_dir_all(root.join("packages/web"))
+		.unwrap_or_else(|error| panic!("mkdir web: {error}"));
+	std::fs::write(
+		root.join("packages/shared/package.json"),
+		r#"{"name":"npm-shared","version":"1.0.0"}"#,
+	)
+	.unwrap_or_else(|error| panic!("write shared package: {error}"));
+	std::fs::write(
+		root.join("packages/web/package.json"),
+		r#"{"name":"npm-web","version":"1.0.0","dependencies":{"npm-shared":"^0.9.0"}}"#,
+	)
+	.unwrap_or_else(|error| panic!("write web package: {error}"));
+
+	let result = sync::sync_workspace_versions(root, VersionStrategy::Exact, false)
+		.unwrap_or_else(|error| panic!("sync workspace versions: {error}"));
+	let updated = std::fs::read_to_string(root.join("packages/web/package.json"))
+		.unwrap_or_else(|error| panic!("read web package: {error}"));
+
+	assert_eq!(result.changes.len(), 1);
+	assert!(updated.contains(r#""npm-shared":"1.0.0""#));
+}
+
+#[test]
+fn sync_workspace_versions_returns_empty_when_packages_have_no_versions() {
+	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = temp.path();
+	std::fs::write(
+		root.join("monochange.toml"),
+		r#"[defaults]
+parent_bump = "patch"
+package_type = "npm"
+
+[package.shared]
+path = "packages/shared"
+
+[ecosystems.npm]
+enabled = true
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	std::fs::create_dir_all(root.join("packages/shared"))
+		.unwrap_or_else(|error| panic!("mkdir shared: {error}"));
+	std::fs::write(
+		root.join("packages/shared/package.json"),
+		r#"{"name":"npm-shared"}"#,
+	)
+	.unwrap_or_else(|error| panic!("write shared package: {error}"));
+
+	let result = sync::sync_workspace_versions(root, VersionStrategy::Default, true)
+		.unwrap_or_else(|error| panic!("sync workspace versions: {error}"));
+
+	assert!(result.changes.is_empty());
+}
+
+#[test]
+fn read_manifest_reports_missing_file() {
+	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let missing = temp.path().join("missing.json");
+	let result = sync::read_manifest(&missing);
+	let error = match result {
+		Ok(contents) => panic!("expected missing file error, got: {contents}"),
+		Err(error) => error,
+	};
+
+	assert!(error.to_string().contains("failed to read"));
+}
+
+#[test]
+fn write_manifest_reports_missing_parent() {
+	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let missing_parent = temp.path().join("missing/package.json");
+	let result = sync::write_manifest(&missing_parent, "{}".to_string());
+	let error = match result {
+		Ok(()) => panic!("expected missing parent write error"),
+		Err(error) => error,
+	};
+
+	assert!(error.to_string().contains("failed to write"));
+}

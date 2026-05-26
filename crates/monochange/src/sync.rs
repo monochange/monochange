@@ -79,37 +79,16 @@ pub fn sync_workspace_versions(
 		let changes = match ecosystem {
 			Ecosystem::Dart => {
 				let manifest_path = root.join(&package.manifest_path);
-				if !manifest_path.exists() {
-					continue;
-				}
-				let contents = std::fs::read_to_string(&manifest_path).map_err(|e| {
-					MonochangeError::Io(format!("failed to read {}: {e}", manifest_path.display()))
-				})?;
-				monochange_dart::sync_internal_dependency_versions(
-					&contents,
-					&version_map,
-					&workspace_package_names,
-					strategy,
-				)?
+				let contents = read_manifest(&manifest_path)?;
+				dart_changes(&contents, &version_map, &workspace_package_names, strategy)?
 			}
 			Ecosystem::Npm => {
 				let manifest_path = root.join(&package.manifest_path);
-				if !manifest_path.exists() {
-					continue;
-				}
-				let contents = std::fs::read_to_string(&manifest_path).map_err(|e| {
-					MonochangeError::Io(format!("failed to read {}: {e}", manifest_path.display()))
-				})?;
-				monochange_npm::sync_internal_dependency_versions(
-					&contents,
-					&version_map,
-					&workspace_package_names,
-					strategy,
-				)?
+				let contents = read_manifest(&manifest_path)?;
+				npm_changes(&contents, &version_map, &workspace_package_names, strategy)?
 			}
 			_ => Vec::new(),
 		};
-
 		if changes.is_empty() {
 			continue;
 		}
@@ -117,13 +96,9 @@ pub fn sync_workspace_versions(
 		if !dry_run {
 			// Apply changes and write back.
 			let manifest_path = root.join(&package.manifest_path);
-			let contents = std::fs::read_to_string(&manifest_path).map_err(|e| {
-				MonochangeError::Io(format!("failed to read {}: {e}", manifest_path.display()))
-			})?;
+			let contents = read_manifest(&manifest_path)?;
 			let updated_contents = apply_sync_changes(&contents, &changes, ecosystem)?;
-			std::fs::write(&manifest_path, updated_contents).map_err(|e| {
-				MonochangeError::Io(format!("failed to write {}: {e}", manifest_path.display()))
-			})?;
+			write_manifest(&manifest_path, updated_contents)?;
 		}
 
 		all_changes.push(FileSyncResult {
@@ -134,6 +109,45 @@ pub fn sync_workspace_versions(
 
 	Ok(SyncResult {
 		changes: all_changes,
+	})
+}
+
+pub(crate) fn dart_changes(
+	contents: &str,
+	version_map: &BTreeMap<String, String>,
+	workspace_package_names: &BTreeSet<String>,
+	strategy: VersionStrategy,
+) -> MonochangeResult<Vec<DependencySyncChange>> {
+	monochange_dart::sync_internal_dependency_versions(
+		contents,
+		version_map,
+		workspace_package_names,
+		strategy,
+	)
+}
+
+fn npm_changes(
+	contents: &str,
+	version_map: &BTreeMap<String, String>,
+	workspace_package_names: &BTreeSet<String>,
+	strategy: VersionStrategy,
+) -> MonochangeResult<Vec<DependencySyncChange>> {
+	monochange_npm::sync_internal_dependency_versions(
+		contents,
+		version_map,
+		workspace_package_names,
+		strategy,
+	)
+}
+
+pub(crate) fn read_manifest(path: &Path) -> MonochangeResult<String> {
+	std::fs::read_to_string(path)
+		.map_err(|error| MonochangeError::Io(format!("failed to read {}: {error}", path.display())))
+}
+
+pub(crate) fn write_manifest(path: &Path, contents: String) -> MonochangeResult<()> {
+	std::fs::write(path, contents).map_err(|error| {
+		MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
 	})
 }
 
