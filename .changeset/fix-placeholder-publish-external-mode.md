@@ -4,7 +4,7 @@ monochange_core: patch
 monochange_publish: patch
 ---
 
-Placeholder publishing no longer skips packages with `publish.mode = "external"`
+# Fix placeholder publish skipping external-mode packages
 
 Previously, `mc step:placeholder-publish` skipped packages configured with `publish.mode = "external"`, showing messages like "package opted out of built-in publishing". This was incorrect because placeholder publishing is a bootstrap utility separate from normal release publishing.
 
