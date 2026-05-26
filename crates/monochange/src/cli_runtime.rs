@@ -734,22 +734,11 @@ pub(crate) async fn execute_cli_command_with_options(
 							eprintln!("warning: {warning}");
 						}
 					}
-					let fix = step_inputs
-						.get("fix")
-						.and_then(|values| values.first())
-						.is_some_and(|value| value == "true");
-					let (lint_output, lint_has_errors) = lint::run_lint_step(root, fix)?;
-					if !context.quiet && !lint_output.is_empty() {
-						eprintln!("{lint_output}");
-					}
-					if !validation_errors.is_empty() || lint_has_errors {
+					if !validation_errors.is_empty() {
 						let mut message = String::from("workspace validation failed");
 						for error in validation_errors {
 							message.push('\n');
 							message.push_str(&error);
-						}
-						if lint_has_errors {
-							message.push_str("\nlint errors found during validation");
 						}
 						return Err(MonochangeError::Config(message));
 					}

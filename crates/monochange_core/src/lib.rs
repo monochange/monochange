@@ -2248,8 +2248,7 @@ pub enum CliStepDefinition {
 		#[cfg_attr(feature = "schema", schemars(with = "CliStepInputsSchema"))]
 		inputs: BTreeMap<String, CliStepInputValue>,
 	},
-	/// Validate `monochange` configuration and changesets, and run lint rules
-	/// on package manifests.
+	/// Validate `monochange` configuration and changesets.
 	Validate {
 		#[serde(default)]
 		name: Option<String>,
@@ -2821,8 +2820,7 @@ impl CliStepDefinition {
 	#[must_use]
 	pub fn valid_input_names(&self) -> Option<&'static [&'static str]> {
 		match self {
-			Self::Config { .. } => Some(&[]),
-			Self::Validate { .. } => Some(&["fix"]),
+			Self::Config { .. } | Self::Validate { .. } => Some(&[]),
 			Self::CommitRelease { .. } => Some(&["no_verify", "update_release_json", "stage_all"]),
 			Self::VerifyReleaseBranch { .. } => Some(&["from"]),
 			Self::Discover { .. } | Self::DisplayVersions { .. } | Self::PrepareRelease { .. } => {
@@ -2918,12 +2916,6 @@ impl CliStepDefinition {
 	#[must_use]
 	pub fn expected_input_kind(&self, name: &str) -> Option<CliInputKind> {
 		match self {
-			Self::Validate { .. } => {
-				match name {
-					"fix" => Some(CliInputKind::Boolean),
-					_ => None,
-				}
-			}
 			Self::CommitRelease { .. } => {
 				match name {
 					"no_verify" | "update_release_json" | "stage_all" => {
@@ -2938,7 +2930,7 @@ impl CliStepDefinition {
 					_ => None,
 				}
 			}
-			Self::Config { .. } | Self::Command { .. } => None,
+			Self::Config { .. } | Self::Command { .. } | Self::Validate { .. } => None,
 			Self::Discover { .. } | Self::DisplayVersions { .. } | Self::PrepareRelease { .. } => {
 				matches!(name, "format").then_some(CliInputKind::Choice)
 			}

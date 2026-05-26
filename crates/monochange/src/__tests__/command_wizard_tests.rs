@@ -215,10 +215,10 @@ fn upsert_cli_command_document_writes_step_inputs() {
 	inherited_step
 		.inputs
 		.insert("format".to_string(), CliStepInputValue::Inherited);
-	let mut fixed_step = CommandStepDraft::built_in("Validate");
+	let mut fixed_step = CommandStepDraft::built_in("CommitRelease");
 	fixed_step
 		.inputs
-		.insert("fix".to_string(), CliStepInputValue::Boolean(true));
+		.insert("no_verify".to_string(), CliStepInputValue::Boolean(true));
 	let mut mixed_step = CommandStepDraft::shell_command("echo publish".to_string(), None);
 	mixed_step
 		.inputs
@@ -245,7 +245,7 @@ fn upsert_cli_command_document_writes_step_inputs() {
 	let steps = &value["cli"]["release-pr"]["steps"];
 
 	assert_eq!(steps[0]["inputs"][0].as_str(), Some("format"));
-	assert_eq!(steps[1]["inputs"]["fix"].as_bool(), Some(true));
+	assert_eq!(steps[1]["inputs"]["no_verify"].as_bool(), Some(true));
 	assert_eq!(
 		steps[2]["inputs"]["channel"].as_str(),
 		Some("{{ inputs.channel }}")
@@ -260,7 +260,7 @@ fn read_cli_command_reads_step_input_formats() {
 [cli.release-pr]
 steps = [
   { type = "PrepareRelease", inputs = ["format"] },
-  { type = "Validate", inputs = { fix = true } },
+  { type = "CommitRelease", inputs = { no_verify = true } },
 ]
 "#;
 	let command = read_cli_command(config, "release-pr")
@@ -272,7 +272,7 @@ steps = [
 		Some(&CliStepInputValue::Inherited)
 	);
 	assert_eq!(
-		command.steps[1].inputs.get("fix"),
+		command.steps[1].inputs.get("no_verify"),
 		Some(&CliStepInputValue::Boolean(true))
 	);
 }
@@ -364,17 +364,17 @@ fn step_input_value_from_text_parses_typed_fixed_values() {
 		Some(CliStepInputValue::String("dist/plan.json".to_string()))
 	);
 
-	let fix_schema = step_input_schemas_for_kind("Validate")
+	let boolean_schema = step_input_schemas_for_kind("CommitRelease")
 		.into_iter()
-		.find(|schema| schema.name == "fix")
-		.unwrap_or_else(|| panic!("fix schema should exist"));
+		.find(|schema| schema.name == "no_verify")
+		.unwrap_or_else(|| panic!("no_verify schema should exist"));
 	assert_eq!(
-		step_input_value_from_text(&fix_schema, "true")
+		step_input_value_from_text(&boolean_schema, "true")
 			.unwrap_or_else(|error| panic!("boolean should parse: {error}")),
 		Some(CliStepInputValue::Boolean(true))
 	);
 	assert_config_error(
-		step_input_value_from_text(&fix_schema, "yes").map(|_| ()),
+		step_input_value_from_text(&boolean_schema, "yes").map(|_| ()),
 		"expects `true` or `false`",
 	);
 
@@ -654,14 +654,14 @@ fn validate_step_draft_rejects_unknown_or_misconfigured_steps() {
 		"step `Discover` does not support input `fix`",
 	);
 
-	let mut wrong_type = CommandStepDraft::built_in("Validate");
+	let mut wrong_type = CommandStepDraft::built_in("CommitRelease");
 	wrong_type.inputs.insert(
-		"fix".to_string(),
+		"no_verify".to_string(),
 		CliStepInputValue::String("true".to_string()),
 	);
 	assert_config_error(
 		validate_step_draft(&wrong_type),
-		"step `Validate` input `fix` expects `boolean` values",
+		"step `CommitRelease` input `no_verify` expects `boolean` values",
 	);
 
 	let mut invalid_choice = CommandStepDraft::built_in("PrepareRelease");
