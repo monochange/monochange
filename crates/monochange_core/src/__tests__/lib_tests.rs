@@ -1414,7 +1414,7 @@ fn valid_input_names_returns_empty_for_validate() {
 		always_run: false,
 		inputs: BTreeMap::new(),
 	};
-	assert_eq!(step.valid_input_names(), Some([].as_slice()));
+	assert_eq!(step.valid_input_names(), Some(["fix"].as_slice()));
 }
 
 #[test]
@@ -1438,11 +1438,11 @@ fn valid_input_names_returns_expected_names_for_commit_release() {
 			[
 				"no_verify",
 				"update_release_json",
+				"stage_all",
 				"commit_backend",
 				"hosted_auth",
 				"hosted_url",
 				"oidc_audience",
-				"stage_all",
 			]
 			.as_slice()
 		)
