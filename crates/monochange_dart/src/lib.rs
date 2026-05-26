@@ -83,14 +83,46 @@ pub fn write_dart_placeholder_manifest(
 	let repository =
 		source.map(|source| format!("https://github.com/{}/{}", source.owner, source.repo));
 	let mut rendered = format!(
-		"name: {}\nversion: {}\ndescription: Placeholder package published by monochange.\n",
-		request.package_name, request.version
+		"name: {}\nversion: {}\ndescription: Placeholder package published by monochange.\n{}",
+		request.package_name,
+		request.version,
+		dart_placeholder_environment(request)
 	);
 	if let Some(repository) = repository {
 		let _ = writeln!(rendered, "repository: {repository}");
 	}
 	fs::write(dir.join("pubspec.yaml"), rendered).map_err(|error| {
 		MonochangeError::Io(format!("failed to write placeholder pubspec.yaml: {error}"))
+	})
+}
+
+fn dart_placeholder_environment(request: &PublishRequest) -> String {
+	let environment = fs::read_to_string(&request.manifest_path)
+		.ok()
+		.and_then(|contents| serde_yaml_ng::from_str::<Mapping>(&contents).ok())
+		.and_then(|manifest| {
+			manifest
+				.get(Value::String("environment".to_string()))
+				.cloned()
+		})
+		.and_then(|environment| serde_yaml_ng::to_string(&environment).ok())
+		.map(|environment| format!("environment:\n{}", indent_yaml_block(&environment)));
+
+	environment.unwrap_or_else(|| default_dart_placeholder_environment(request))
+}
+
+fn default_dart_placeholder_environment(request: &PublishRequest) -> String {
+	let mut environment = "environment:\n  sdk: '>=3.0.0 <4.0.0'\n".to_string();
+	if request.package_metadata.contains_key("is_flutter") {
+		environment.push_str("  flutter: '>=3.0.0'\n");
+	}
+	environment
+}
+
+fn indent_yaml_block(contents: &str) -> String {
+	contents.lines().fold(String::new(), |mut output, line| {
+		let _ = writeln!(output, "  {line}");
+		output
 	})
 }
 

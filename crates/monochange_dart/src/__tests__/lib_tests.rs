@@ -5,7 +5,12 @@ use std::path::Path;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemAdapter;
 use monochange_core::PackageRecord;
+use monochange_core::PublishAttestationSettings;
+use monochange_core::PublishMode;
 use monochange_core::PublishState;
+use monochange_core::RegistryKind;
+use monochange_core::TrustedPublishingSettings;
+use monochange_publish::PublishRequest;
 use semver::Version;
 use serde_yaml_ng::Mapping;
 use serde_yaml_ng::Value;
@@ -30,6 +35,7 @@ use crate::supported_versioned_file_kind;
 use crate::update_dependency_fields;
 use crate::update_manifest_text;
 use crate::update_pubspec_lock;
+use crate::write_dart_placeholder_manifest;
 use crate::yaml_array_strings;
 use crate::yaml_mapping;
 use crate::yaml_string;
@@ -74,6 +80,75 @@ fn marks_flutter_packages_with_dart_ecosystem_and_metadata() {
 #[test]
 fn adapter_reports_dart_ecosystem() {
 	assert_eq!(adapter().ecosystem(), Ecosystem::Dart);
+}
+
+fn sample_publish_request(root: &Path) -> PublishRequest {
+	PublishRequest {
+		package_id: "dart-package".to_string(),
+		package_name: "dart_package".to_string(),
+		ecosystem: Ecosystem::Dart,
+		manifest_path: root.join("source-pubspec.yaml"),
+		package_root: root.to_path_buf(),
+		registry: RegistryKind::PubDev,
+		package_manager: None,
+		package_metadata: BTreeMap::new(),
+		mode: PublishMode::Builtin,
+		version: "0.0.0".to_string(),
+		placeholder: true,
+		trusted_publishing: TrustedPublishingSettings::default(),
+		attestations: PublishAttestationSettings::default(),
+		placeholder_readme: String::new(),
+	}
+}
+
+#[test]
+fn dart_placeholder_manifest_uses_source_environment() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let request = sample_publish_request(tempdir.path());
+	fs::write(
+		&request.manifest_path,
+		"name: dart_package\nenvironment:\n  sdk: ^3.11.0\n  flutter: '>=3.30.0'\n",
+	)
+	.unwrap_or_else(|error| panic!("write source pubspec: {error}"));
+
+	write_dart_placeholder_manifest(tempdir.path(), &request, None)
+		.unwrap_or_else(|error| panic!("write placeholder manifest: {error}"));
+
+	let manifest = fs::read_to_string(tempdir.path().join("pubspec.yaml"))
+		.unwrap_or_else(|error| panic!("read pubspec: {error}"));
+
+	assert!(manifest.contains("environment:\n  sdk: ^3.11.0\n  flutter: '>=3.30.0'\n"));
+}
+
+#[test]
+fn dart_placeholder_manifest_falls_back_to_default_sdk_constraint() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let request = sample_publish_request(tempdir.path());
+
+	write_dart_placeholder_manifest(tempdir.path(), &request, None)
+		.unwrap_or_else(|error| panic!("write placeholder manifest: {error}"));
+
+	let manifest = fs::read_to_string(tempdir.path().join("pubspec.yaml"))
+		.unwrap_or_else(|error| panic!("read pubspec: {error}"));
+
+	assert!(manifest.contains("environment:\n  sdk: '>=3.0.0 <4.0.0'\n"));
+}
+
+#[test]
+fn flutter_placeholder_manifest_falls_back_to_default_flutter_constraint() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let mut request = sample_publish_request(tempdir.path());
+	request
+		.package_metadata
+		.insert("is_flutter".to_string(), "true".to_string());
+
+	write_dart_placeholder_manifest(tempdir.path(), &request, None)
+		.unwrap_or_else(|error| panic!("write placeholder manifest: {error}"));
+
+	let manifest = fs::read_to_string(tempdir.path().join("pubspec.yaml"))
+		.unwrap_or_else(|error| panic!("read pubspec: {error}"));
+
+	assert!(manifest.contains("environment:\n  sdk: '>=3.0.0 <4.0.0'\n  flutter: '>=3.0.0'\n"));
 }
 
 #[test]
