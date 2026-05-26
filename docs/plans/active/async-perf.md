@@ -82,16 +82,16 @@
 
 Measured with `hyperfine --warmup 1 --runs 6`.
 
-| Fixture                                            | Command                     |      main |       PR | PR/main | Reduction |
-| :------------------------------------------------- | :-------------------------- | --------: | -------: | ------: | --------: |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc step:validate`          |   37.5 ms |  25.4 ms |   0.68× |     32.3% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc discover --format json` |   31.2 ms |  16.4 ms |   0.53× |     47.4% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc release --dry-run`      |  316.6 ms | 131.8 ms |   0.42× |     58.4% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc release`                |  345.9 ms | 148.9 ms |   0.43× |     57.0% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc step:validate`          |  595.1 ms | 475.3 ms |   0.80× |     20.1% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc discover --format json` |  548.0 ms | 380.7 ms |   0.69× |     30.5% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc release --dry-run`      | 2769.8 ms | 708.6 ms |   0.26× |     74.4% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc release`                | 3021.1 ms | 784.6 ms |   0.26× |     74.0% |
+| Fixture                                            | Command                          |      main |       PR | PR/main | Reduction |
+| :------------------------------------------------- | :------------------------------- | --------: | -------: | ------: | --------: |
+| Baseline, 20 packages / 50 changesets / 50 commits | `mc step:validate`               |   37.5 ms |  25.4 ms |   0.68× |     32.3% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `mc step:discover --format json` |   31.2 ms |  16.4 ms |   0.53× |     47.4% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `mc release --dry-run`           |  316.6 ms | 131.8 ms |   0.42× |     58.4% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `mc release`                     |  345.9 ms | 148.9 ms |   0.43× |     57.0% |
+| Large, 200 packages / 500 changesets / 500 commits | `mc step:validate`               |  595.1 ms | 475.3 ms |   0.80× |     20.1% |
+| Large, 200 packages / 500 changesets / 500 commits | `mc step:discover --format json` |  548.0 ms | 380.7 ms |   0.69× |     30.5% |
+| Large, 200 packages / 500 changesets / 500 commits | `mc release --dry-run`           | 2769.8 ms | 708.6 ms |   0.26× |     74.4% |
+| Large, 200 packages / 500 changesets / 500 commits | `mc release`                     | 3021.1 ms | 784.6 ms |   0.26× |     74.0% |
 
 Top-level CLI benchmark violations: `0`.
 

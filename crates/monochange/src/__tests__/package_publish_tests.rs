@@ -3408,7 +3408,7 @@ fn resume_publish_requests_rejects_dry_run_and_placeholder_reports() {
 	};
 	let error = resume_publish_requests(&[], Some(&report))
 		.expect_err("placeholder resume report should fail");
-	assert!(error.to_string().contains("mc publish"));
+	assert!(error.to_string().contains("mc step:publish-packages"));
 }
 
 #[test]

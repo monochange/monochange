@@ -2,7 +2,6 @@
 
 //! # `monochange_core`
 //!
-//! <!-- {=monochangeCoreCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_core` is the shared vocabulary for the `monochange` workspace.
 //!
 //! Reach for this crate when you are building ecosystem adapters, release planners, or custom automation and need one set of types for packages, dependency edges, version groups, change signals, and release plans.
@@ -56,8 +55,6 @@
 //! assert!(rendered.contains("### Features"));
 //! assert!(rendered.contains("- add keep-a-changelog output"));
 //! ```
-//! <!-- {/monochangeCoreCrateDocs} -->
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::env;
@@ -2908,8 +2905,8 @@ impl CliStepDefinition {
 			Self::PlanPublishRateLimits { .. } => {
 				match name {
 					"format" => Some(&["text", "json", "md"]),
-					"mode" => Some(&["local", "ci"]),
-					"ci" => Some(&["github", "gitlab", "generic"]),
+					"mode" => Some(&["publish", "placeholder"]),
+					"ci" => Some(&["github-actions", "gitlab-ci"]),
 					_ => None,
 				}
 			}

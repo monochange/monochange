@@ -4283,7 +4283,7 @@ fn repairable_releases_guide_distinguishes_manifest_and_release_record() {
 		"release record = \"what this release commit historically declared\"",
 		"`ReleaseRecord` does **not** replace the cached release manifest",
 		"mc step:release-record --from v1.2.3",
-		"mc repair-release --from v1.2.3 --target HEAD --dry-run",
+		"mc step:retarget-release --from v1.2.3 --target HEAD --dry-run",
 		"Prefer publishing a new patch release",
 	] {
 		assert!(
@@ -4302,8 +4302,8 @@ fn github_automation_guide_mentions_release_repair_and_dry_run() {
 
 	for expected in [
 		"mc step:release-record --from v1.2.3",
-		"mc repair-release --from v1.2.3 --target HEAD --dry-run",
-		"Use `--dry-run` first for `repair-release`",
+		"mc step:retarget-release --from v1.2.3 --target HEAD --dry-run",
+		"Use `--dry-run` first for `mc step:retarget-release`",
 	] {
 		assert!(
 			content.contains(expected),

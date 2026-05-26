@@ -452,11 +452,13 @@ Example:
 
 **Why:** monorepos usually want one consistent policy for how internal Dart packages reference each other.
 
-**Default policy:** strict mode expects internal packages to use `path:` references.
+**Default policy:** strict mode expects internal packages to use `path:` references unless the pubspec declares `resolution: workspace`.
+
+With Dart workspace resolution, Dart resolves versioned internal dependencies to local workspace packages automatically. In that mode, monochange requires version constraints and reports `path:` references with the message "use version constraints (not `path:`) when resolution is workspace".
 
 **Useful option:**
 
-- `mode` — choose `"path"` or `"hosted"`
+- `mode` — choose `"path"` or `"hosted"` for packages that do not use `resolution: workspace`
 
 Example:
 
@@ -469,7 +471,7 @@ Example:
 
 **Why:** when workspace packages reference each other with hosted version ranges, those ranges should not drift away from the current workspace version.
 
-**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches.
+**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `mc sync versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
 
 ### Flutter-only rules
 
@@ -523,7 +525,7 @@ For repository work:
 ```bash
 mc step:validate
 mc check
-mc release --dry-run --diff
+mc step:prepare-release --dry-run --diff
 ```
 
 If you changed shared docs too:

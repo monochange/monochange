@@ -1,6 +1,6 @@
 # Advanced: CI, package publishing, and release PR flows
 
-This guide brings together the practical CI patterns around `mc publish`, `mc placeholder-publish`, `mc release-pr`, `mc commit-release`, and provider release automation.
+This guide brings together the practical CI patterns around `mc step:publish-packages`, `mc step:placeholder-publish`, `mc step:open-release-request`, `mc step:commit-release`, and provider release automation.
 
 It also documents the recommended workflow for long-running release PR branches.
 
@@ -10,34 +10,36 @@ These commands solve different automation problems:
 
 <!-- {=projectCommandAutomationMatrix} -->
 
-These are common commands for repositories using monochange. With the current CLI model, workflow names such as `discover`, `change`, `release`, `publish`, and `affected` come from optional `[cli.*]` tables in `monochange.toml`; binary commands such as `check`, `init`, and `mcp` stay built in, while typed built-in operations such as validation are exposed as immutable `mc step:*` commands.
+These are common commands for repositories using monochange. With the current CLI model, workflow names such as `discover`, `change`, `release`, `publish`, and `affected` come from optional `[cli.*]` tables in `monochange.toml`; binary commands such as `check`, `init`, `sync`, and `mcp` stay built in, while typed built-in operations such as validation are exposed as immutable `mc step:*` commands.
 
-| Goal                             | Command                                                     | Use it when                                                                                              |
-| -------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Validate config and changesets   | `mc step:validate`                                          | You changed `monochange.toml` or `.changeset/*.md` files                                                 |
-| Inspect package ids and groups   | `mc discover --format json`                                 | You need the normalized workspace model                                                                  |
-| Create release intent            | `mc change --package <id> --bump <severity> --reason "..."` | You need a new `.changeset/*.md` file                                                                    |
-| Audit pending release context    | `mc step:diagnose-changesets --format json`                 | You need git provenance, PR/MR links, or related issues                                                  |
-| Preview the release plan         | `mc release --dry-run --diff`                               | You want changelog/version patches without mutating the repo                                             |
-| Create a durable release commit  | `mc commit-release`                                         | You want a monochange-managed release commit with an embedded `ReleaseRecord`                            |
-| Open or update a release request | `mc release-pr`                                             | You want a long-lived release PR/MR branch updated from current release state                            |
-| Inspect a past release commit    | `mc step:release-record --from <ref>`                       | You need the durable release declaration from git history                                                |
-| Check package publish readiness  | `mc step:publish-readiness --from HEAD --output <path>`     | You want a non-mutating preflight report before package publication                                      |
-| Plan ready package publishing    | `mc publish-plan --readiness <path>`                        | You want rate-limit batches that exclude non-ready package work                                          |
-| Publish packages to registries   | `mc publish --output <path>`                                | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication |
-| Bootstrap release packages       | `mc step:placeholder-publish --from HEAD --output <path>`   | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness               |
-| Create post-merge release tags   | `mc step:tag-release --from HEAD`                           | You merged a monochange release commit and now need to create and push its declared tag set              |
-| Repair a recent release          | `mc repair-release --from <tag> --target <commit>`          | You need to retarget a just-created release to a later commit                                            |
-| Publish hosted/provider releases | `mc publish-release`                                        | You want GitHub/GitLab/Gitea release objects from prepared release state                                 |
+| Goal                             | Command                                                              | Use it when                                                                                                                        |
+| -------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Validate config and changesets   | `mc step:validate`                                                   | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
+| Inspect package ids and groups   | `mc step:discover --format json`                                     | You need the normalized workspace model                                                                                            |
+| Sync internal dependency ranges  | `mc sync versions --dry-run`                                         | You want Dart or npm internal dependency references to match canonical workspace package versions                                  |
+| Create release intent            | `mc change --package <id> --bump <severity> --reason "..."`          | You need a new `.changeset/*.md` file                                                                                              |
+| Audit pending release context    | `mc step:diagnose-changesets --format json`                          | You need git provenance, PR/MR links, or related issues                                                                            |
+| Preview the release plan         | `mc release --dry-run --diff` or `mc step:prepare-release --dry-run` | You want changelog/version patches without mutating the repo                                                                       |
+| Create a durable release commit  | `mc step:commit-release`                                             | You want a monochange-managed release commit with an embedded `ReleaseRecord`                                                      |
+| Open or update a release request | `mc step:open-release-request`                                       | You want a long-lived release PR/MR branch updated from current release state                                                      |
+| Inspect a past release commit    | `mc step:release-record --from <ref>`                                | You need the durable release declaration from git history                                                                          |
+| Check package publish readiness  | `mc step:publish-readiness --from HEAD --output <path>`              | You want a non-mutating preflight report before package publication                                                                |
+| Dry-run configured publishing    | `mc publish-check`                                                   | This repository, or another repo with a similar `[cli.publish-check]`, should exercise publishing in CI without registry mutations |
+| Plan ready package publishing    | `mc step:plan-publish-rate-limits --readiness <path>`                | You want rate-limit batches that exclude non-ready package work                                                                    |
+| Publish packages to registries   | `mc step:publish-packages --output <path>`                           | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication                           |
+| Bootstrap release packages       | `mc step:placeholder-publish --from HEAD --output <path>`            | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
+| Create post-merge release tags   | `mc step:tag-release --from HEAD`                                    | You merged a monochange release commit and now need to create and push its declared tag set                                        |
+| Repair a recent release          | `mc step:retarget-release --from <tag> --target <commit>`            | You need to retarget a just-created release to a later commit                                                                      |
+| Publish hosted/provider releases | `mc step:publish-release`                                            | You want GitHub/GitLab/Gitea release objects from prepared release state                                                           |
 
 <!-- {/projectCommandAutomationMatrix} -->
 
 A practical rule of thumb:
 
-- use **`mc step:publish-readiness`** for registry preflight reports and **`mc publish`** for registry package publication
-- use **`mc publish-release`** for hosted releases from prepared release state
-- use **`mc release-pr`** when you want a provider-backed release request branch
-- use **`mc commit-release`** when you want a durable local release commit in git history
+- use **`mc step:publish-readiness`** for registry preflight reports and **`mc step:publish-packages`** for registry package publication
+- use **`mc step:publish-release`** for hosted releases from prepared release state
+- use **`mc step:open-release-request`** when you want a provider-backed release request branch
+- use **`mc step:commit-release`** when you want a durable local release commit in git history
 - use **`mc step:tag-release`** when that durable release commit has merged and you want to create its tag set on the default branch
 
 ## The three automation layers
@@ -45,8 +47,8 @@ A practical rule of thumb:
 monochange has three related but different automation layers:
 
 1. **Release planning** — `mc release --dry-run`, `mc release`, `mc step:diagnose-changesets`
-2. **Package registries** — `mc step:publish-readiness`, `mc step:placeholder-publish --from HEAD`, `mc publish-plan --readiness <path>`, `mc publish`, and lower-level `mc placeholder-publish`
-3. **Hosted providers** — `mc release-pr`, `mc publish-release`, `mc repair-release`
+2. **Package registries** — `mc step:publish-readiness`, `mc step:placeholder-publish --from HEAD`, `mc step:plan-publish-rate-limits --readiness <path>`, `mc step:publish-packages`, and lower-level `mc step:placeholder-publish`
+3. **Hosted providers** — `mc step:open-release-request`, `mc step:publish-release`, `mc step:retarget-release`
 
 Keeping those layers separate is important. Package publication and hosted-release publication are not the same job.
 
@@ -54,22 +56,23 @@ Keeping those layers separate is important. Package publication and hosted-relea
 
 <!-- {=projectCapabilityMatrix} -->
 
-| Capability                                                                     | Current status                                                                                                 |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, Go                                                           |
-| Package release planning                                                       | Built in                                                                                                       |
-| Grouped/shared versioning                                                      | Built in                                                                                                       |
-| Dry-run release diff previews                                                  | Built in via `mc release --dry-run --diff`                                                                     |
-| Durable release history and post-merge tagging                                 | Built in via `ReleaseRecord`, `mc step:release-record`, `mc step:tag-release`, and `mc repair-release`         |
-| Hosted provider releases                                                       | GitHub, GitLab, Gitea, Forgejo                                                                                 |
-| Hosted release requests                                                        | GitHub, GitLab, Gitea, Forgejo                                                                                 |
-| Python release planning                                                        | Built in for discovery, version rewrites, dependency rewrites, lockfile command inference, and PyPI publishing |
-| Go release planning                                                            | Built in for `go.mod` discovery, dependency rewrites, `go mod tidy` inference, and Go proxy tag publishing     |
-| Built-in registry publishing                                                   | `crates.io`, `npm`, `jsr`, `pub.dev`, `pypi`, Go proxy tags; use external mode for custom registries           |
-| GitHub npm trusted-publishing automation                                       | Built in                                                                                                       |
-| GitHub trusted-publishing guidance for `crates.io`, `jsr`, `pub.dev`, and PyPI | Built in, but manual registry enrollment is still required                                                     |
-| GitLab trusted-publishing auto-derivation                                      | Not built in today                                                                                             |
-| Release-retarget sync for hosted releases                                      | GitHub first                                                                                                   |
+| Capability                                                                     | Current status                                                                                                         |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, Go                                                                   |
+| Package release planning                                                       | Built in                                                                                                               |
+| Grouped/shared versioning                                                      | Built in                                                                                                               |
+| Internal dependency version synchronization                                    | Dart and npm via `mc sync versions`; release planning still updates supported ecosystems during releases               |
+| Dry-run release diff previews                                                  | Built in via `mc step:prepare-release --dry-run --diff`; configured workflows may expose `mc release --dry-run --diff` |
+| Durable release history and post-merge tagging                                 | Built in via `ReleaseRecord`, `mc step:release-record`, `mc step:tag-release`, and `mc step:retarget-release`          |
+| Hosted provider releases                                                       | GitHub, GitLab, Gitea, Forgejo                                                                                         |
+| Hosted release requests                                                        | GitHub, GitLab, Gitea, Forgejo                                                                                         |
+| Python release planning                                                        | Built in for discovery, version rewrites, dependency rewrites, lockfile command inference, and PyPI publishing         |
+| Go release planning                                                            | Built in for `go.mod` discovery, dependency rewrites, `go mod tidy` inference, and Go proxy tag publishing             |
+| Built-in registry publishing                                                   | `crates.io`, `npm`, `jsr`, `pub.dev`, `pypi`, Go proxy tags; use external mode for custom registries                   |
+| GitHub npm trusted-publishing diagnostics                                      | Built in; registry-side enrollment stays manual or external                                                            |
+| GitHub trusted-publishing guidance for `crates.io`, `jsr`, `pub.dev`, and PyPI | Built in, but manual registry enrollment is still required                                                             |
+| GitLab trusted-publishing auto-derivation                                      | Not built in today                                                                                                     |
+| Release-retarget sync for hosted releases                                      | GitHub first                                                                                                           |
 
 <!-- {/projectCapabilityMatrix} -->
 
@@ -93,11 +96,11 @@ For GitHub Actions, the most common structure is:
 2. a release commit lands on `main`
 3. a post-merge workflow detects the release commit
 4. that workflow creates the declared tags and publishes packages from the durable release commit
-5. hosted release objects or extra assets come either from downstream tag-driven workflows or from a separate workflow that still uses `mc publish-release`
+5. hosted release objects or extra assets come either from downstream tag-driven workflows or from a separate workflow that still uses `mc step:publish-release`
 
-The important current implementation detail is that `mc step:publish-readiness` can write a preflight artifact from the `ReleaseRecord` on `HEAD`, `mc step:placeholder-publish --from HEAD --output <path>` can run release-record-scoped first-time placeholder setup and record the result, `mc publish` publishes directly from prepared release or `HEAD` release state, `mc step:tag-release` can create the declared release tags from that same durable record, and `mc publish-release` still works from prepared release state when you want a manifest-driven hosted-release job. The readiness artifact also fingerprints publish inputs that affect registry behavior for planning: `monochange.toml`, package manifests, lockfiles, and registry/tooling files such as `.npmrc`, `.cargo/config.toml`, `rust-toolchain.toml`, workspace `Cargo.toml`, and ecosystem manifests.
+The important current implementation detail is that `mc step:publish-readiness` can write a preflight artifact from the `ReleaseRecord` on `HEAD`, `mc step:placeholder-publish --from HEAD --output <path>` can run release-record-scoped first-time placeholder setup and record the result, `mc step:publish-packages` publishes directly from prepared release or `HEAD` release state, `mc step:tag-release` can create the declared release tags from that same durable record, and `mc step:publish-release` still works from prepared release state when you want a manifest-driven hosted-release job. The readiness artifact also fingerprints publish inputs that affect registry behavior for planning: `monochange.toml`, package manifests, lockfiles, and registry/tooling files such as `.npmrc`, `.cargo/config.toml`, `rust-toolchain.toml`, workspace `Cargo.toml`, and ecosystem manifests.
 
-If the same post-merge job is responsible for both tags and package publication, run `mc step:tag-release --from HEAD` immediately after release-commit detection, then run `mc step:publish-readiness --from HEAD --output <path>`, use `mc step:placeholder-publish --from HEAD --output <path>` only when first-time package setup is required, optionally inspect `mc publish-plan --readiness <path>`, and finally run `mc publish --output .monochange/publish-result.json`. Rerun `mc step:publish-readiness` if CI setup edits publish inputs after the artifact is written. If a registry command fails after some packages were published, fix the cause and rerun `mc publish --resume .monochange/publish-result.json --output .monochange/publish-result.json`; monochange skips completed package versions from the previous result and retries the remaining release work.
+If the same post-merge job is responsible for both tags and package publication, run `mc step:tag-release --from HEAD` immediately after release-commit detection, then run `mc step:publish-readiness --from HEAD --output <path>`, use `mc step:placeholder-publish --from HEAD --output <path>` only when first-time package setup is required, optionally inspect `mc step:plan-publish-rate-limits --readiness <path>`, and finally run `mc step:publish-packages --output .monochange/publish-result.json`. Rerun `mc step:publish-readiness` if CI setup edits publish inputs after the artifact is written. If a registry command fails after some packages were published, fix the cause and rerun `mc step:publish-packages --resume .monochange/publish-result.json --output .monochange/publish-result.json`; monochange skips completed package versions from the previous result and retries the remaining release work.
 
 ### Tag-release JSON for follow-up workflows
 
@@ -198,12 +201,12 @@ jobs:
 What monochange does here:
 
 - resolves the GitHub workflow context
-- checks current npm trust configuration
-- runs `npm trust github ...` when trust is missing
-- uses `pnpm exec npm trust ...` in pnpm workspaces
-- verifies the trust result after configuration
+- rejects long-lived npm token environment variables when trusted publishing is enabled
+- verifies that the publish job is running from the configured GitHub Actions OIDC context
+- reports the `npm trust github ...` repair command when setup needs manual or external repair
+- publishes trusted npm packages with the `npm` CLI directly
 
-Use this when you want the most automated trusted-publishing path monochange currently supports.
+Run `npm trust github ...` separately before this workflow if npm has not been enrolled yet; `mc step:publish-packages` does not execute `npm trust` during real publishing.
 
 ### GitHub + Cargo (`crates.io`) trusted publishing
 
@@ -221,7 +224,7 @@ mode = "builtin"
 trusted_publishing = true
 ```
 
-Monochange-oriented post-merge workflow sketch:
+monochange-oriented post-merge workflow sketch:
 
 ```yaml
 name: publish-cargo
@@ -309,7 +312,7 @@ Important current behavior:
 - for built-in crates.io publishing, `mc step:publish-readiness` now blocks packages whose current `Cargo.toml` cannot be published: `publish = false`, `publish = [...]` without `crates-io`, missing `description`, or missing both `license` and `license-file`
 - workspace-inherited Cargo metadata such as `description = { workspace = true }` and `license = { workspace = true }` is accepted when `[workspace.package]` supplies the value
 - already-published Cargo versions remain non-blocking and are skipped when current readiness and the saved readiness artifact agree
-- monochange does **not** currently auto-configure `crates.io` trust the way it can for npm on GitHub
+- monochange does **not** currently auto-configure `crates.io` trust; registry-side enrollment remains manual
 - if you want the most literal crates.io/OIDC workflow today, `mode = "external"` plus `rust-lang/crates-io-auth-action@v1` is the clearest path
 
 Recommended setup:
@@ -400,7 +403,7 @@ trusted_publishing = true
 registry = "pub.dev"
 ```
 
-Monochange-oriented post-merge workflow sketch:
+monochange-oriented post-merge workflow sketch:
 
 ```yaml
 name: publish-pub-dev
@@ -490,10 +493,10 @@ If you want package publication to happen **after** the release PR merges, the s
 1. merge the release PR so the monochange release commit lands on `main`
 2. run `mc step:release-record --from HEAD --format json` in CI
 3. if the command succeeds, run `mc step:publish-readiness --from HEAD --output .monochange/readiness.json`
-4. run `mc publish` only after readiness succeeds
+4. run `mc step:publish-packages` only after readiness succeeds
 5. if release-record detection or readiness fails, exit early before registry mutation
 
-That pattern works well because `mc step:publish-readiness` and `mc publish` consume the durable `ReleaseRecord` from `HEAD`; readiness gives you a reviewable preflight report, while `mc publish` derives the publish work directly from release state before publishing.
+That pattern works well because `mc step:publish-readiness` and `mc step:publish-packages` consume the durable `ReleaseRecord` from `HEAD`; readiness gives you a reviewable preflight report, while `mc step:publish-packages` derives the publish work directly from release state before publishing.
 
 ## GitLab flows
 
@@ -542,7 +545,7 @@ publish_npm:
       fi
 ```
 
-If your npm flow needs registry-token setup or a custom `.npmrc`, do that in CI before running `mc step:publish-readiness` and `mc publish`.
+If your npm flow needs registry-token setup or a custom `.npmrc`, do that in CI before running `mc step:publish-readiness` and `mc step:publish-packages`.
 
 ### GitLab + Cargo
 
@@ -661,11 +664,11 @@ This is the flow you described:
 
 monochange now supports the core post-merge pieces of this shape directly:
 
-- `mc release-pr` can open or update a release request branch from current release state
-- `mc commit-release` can create a durable monochange release commit with an embedded `ReleaseRecord`
+- `mc step:open-release-request` can open or update a release request branch from current release state
+- `mc step:commit-release` can create a durable monochange release commit with an embedded `ReleaseRecord`
 - `mc step:release-record --from HEAD` can detect whether the latest commit is a monochange release commit
 - `mc step:tag-release --from HEAD` can create and push the declared tag set from that merged release commit
-- `mc step:publish-readiness` can write a readiness artifact from that same durable record on `HEAD`, and `mc publish` can publish directly from the durable release record
+- `mc step:publish-readiness` can write a readiness artifact from that same durable record on `HEAD`, and `mc step:publish-packages` can publish directly from the durable release record
 
 ### The important tag semantics
 
@@ -685,12 +688,12 @@ That is why pre-merge tagging on a long-running release PR is usually the wrong 
 
 For the long-running release PR model, the recommended shape is now:
 
-1. on every push to `main`, run `mc release-pr` to refresh the dedicated release PR branch
+1. on every push to `main`, run `mc step:open-release-request` to refresh the dedicated release PR branch
 2. do **not** create tags on the release PR branch
 3. merge the release PR when you are ready
 4. on the post-merge workflow, run `mc step:release-record --from HEAD --format json`
 5. if the latest commit is a release commit, run `mc step:tag-release --from HEAD`
-6. after tags exist, run `mc step:publish-readiness --from HEAD --output <path>` and then `mc publish` for package registries and let tag-triggered workflows create hosted releases or other downstream assets
+6. after tags exist, run `mc step:publish-readiness --from HEAD --output <path>` and then `mc step:publish-packages` for package registries and let tag-triggered workflows create hosted releases or other downstream assets
 
 That keeps tag creation on the default branch side of the merge, which is much safer than tagging the PR branch early.
 
@@ -733,7 +736,7 @@ jobs:
         if: steps.release_record.outputs.is_release_commit != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mc release-pr
+        run: mc step:open-release-request
 
       - name: create release tags
         if: steps.release_record.outputs.is_release_commit == 'true'
@@ -762,7 +765,7 @@ release_pr_or_publish:
         mc step:publish-readiness --from HEAD --output .monochange/readiness.json
         mc publish
       else
-        mc release-pr
+        mc step:open-release-request
       fi
 ```
 
@@ -770,12 +773,12 @@ release_pr_or_publish:
 
 Use this decision rule:
 
-- **Need human review before release files land?** → use `mc release-pr`
-- **Need a durable local release commit?** → use `mc commit-release`
-- **Need package registries after merge?** → detect `ReleaseRecord` on `HEAD`, run `mc step:tag-release --from HEAD`, then run `mc step:publish-readiness --from HEAD --output <path>` and `mc publish`
-- **Need hosted provider releases from prepared release state?** → use `mc publish-release`
-- **Need to bootstrap release packages that do not exist yet?** → use `mc step:placeholder-publish --from HEAD --output <path>`; reserve names outside a release with lower-level `mc placeholder-publish`
-- **Need GitHub npm trusted publishing with the least custom glue?** → use `trusted_publishing = true` with `mc step:publish-readiness` and `mc publish`
+- **Need human review before release files land?** → use `mc step:open-release-request`
+- **Need a durable local release commit?** → use `mc step:commit-release`
+- **Need package registries after merge?** → detect `ReleaseRecord` on `HEAD`, run `mc step:tag-release --from HEAD`, then run `mc step:publish-readiness --from HEAD --output <path>` and `mc step:publish-packages`
+- **Need hosted provider releases from prepared release state?** → use `mc step:publish-release`
+- **Need to bootstrap release packages that do not exist yet?** → use `mc step:placeholder-publish --from HEAD --output <path>`; reserve names outside a release with lower-level `mc step:placeholder-publish`
+- **Need GitHub npm trusted publishing with the least custom glue?** → use `trusted_publishing = true` with `mc step:publish-readiness` and `mc step:publish-packages`
 - **Need GitLab CI with custom auth/bootstrap?** → keep `mode = "external"` as the escape hatch
 
 ## Related guides

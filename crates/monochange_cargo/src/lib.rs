@@ -2,7 +2,6 @@
 
 //! # `monochange_cargo`
 //!
-//! <!-- {=monochangeCargoCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_cargo` discovers Cargo packages and surfaces Rust-specific release evidence.
 //!
 //! Reach for this crate when you want to scan Cargo workspaces into normalized `monochange_core` records and optionally feed Rust semver evidence into release planning.
@@ -31,8 +30,6 @@
 //! - crate manifest parsing
 //! - normalized dependency extraction
 //! - Rust semver provider integration for release planning
-//! <!-- {/monochangeCargoCrateDocs} -->
-
 pub mod analysis;
 pub mod lints;
 

@@ -399,7 +399,7 @@ pub(crate) async fn create_release_tags(
 			&& existing_commit != &tag_result.target_commit
 		{
 			return Err(MonochangeError::Config(format!(
-				"tag `{}` already points to commit {}; use `mc repair-release` if you need to move an existing release tag",
+				"tag `{}` already points to commit {}; use `mc step:retarget-release` if you need to move an existing release tag",
 				tag_result.tag_name,
 				crate::short_commit_sha(existing_commit),
 			)));

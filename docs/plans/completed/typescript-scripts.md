@@ -1,5 +1,9 @@
 # TypeScript scripts
 
+## Status
+
+Completed and archived after `refactor: migrate scripts to TypeScript (#529)` landed.
+
 ## Goal
 
 Convert the repository JavaScript tooling and npm CLI launcher source to TypeScript in an isolated worktree, using native Node TypeScript execution on Node 24 instead of adding `tsx`.

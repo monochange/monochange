@@ -708,8 +708,8 @@ Typical release flow:
 
 Related commands:
   mc help step:prepare-release
-  mc help publish-readiness
-  mc help publish",
+  mc help step:publish-readiness
+  mc help step:publish-packages",
 			)
 		}
 		"step:prepare-release" => {

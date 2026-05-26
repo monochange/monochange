@@ -1,9 +1,10 @@
 ---
 source: crates/monochange/tests/cli_output.rs
+assertion_line: 113
 info:
   program: mc
   args:
-    - validate
+    - "step:validate"
   env:
     NO_COLOR: "1"
     RUST_LOG: ""
@@ -14,4 +15,3 @@ exit_code: 0
 workspace validation passed for .
 
 ----- stderr -----
-lint: no issues found

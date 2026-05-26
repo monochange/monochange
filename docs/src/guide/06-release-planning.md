@@ -194,7 +194,7 @@ A good planning loop looks like this:
 
 ```bash
 mc step:validate
-mc discover --format json
+mc step:discover --format json
 mc step:diagnose-changesets --format json
 mc release --dry-run --diff
 ```
@@ -202,7 +202,7 @@ mc release --dry-run --diff
 Use each command for a different question:
 
 - `mc step:validate` — is the config and changeset set valid?
-- `mc discover --format json` — which package ids, groups, and dependency edges exist?
+- `mc step:discover --format json` — which package ids, groups, and dependency edges exist?
 - `mc step:diagnose-changesets --format json` — who introduced these changesets and what review context is attached?
 - `mc release --dry-run --diff` — what exact files would change if I prepared the release now?
 
@@ -357,7 +357,7 @@ These commands answer different questions:
 - `mc step:release-record --from <ref>` — what did a past release commit declare durably in git history?
 - `mc step:tag-release --from HEAD` — if `HEAD` is the merged release commit, which release tags should be created now?
 
-Use diagnostics **before** you release. Use release records **after** a release exists and you need to inspect it. Use `tag-release` in post-merge CI when the release commit has landed on the default branch and you want to create the declared tag set from that durable history record.
+Use diagnostics **before** you release. Use release records **after** a release exists and you need to inspect it. Use `mc step:tag-release` in post-merge CI when the release commit has landed on the default branch and you want to create the declared tag set from that durable history record.
 
 Across release-oriented commands, global `--quiet` suppresses stdout/stderr and reuses dry-run behavior for commands that support it.
 

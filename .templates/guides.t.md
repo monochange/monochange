@@ -205,6 +205,13 @@ monochange currently supports two changelog formats:
 
 Defaults can set a repository-wide changelog path pattern and format, while package and group changelog tables can override either field.
 
+Use `[changelog.style]` to tune rendered release-note shape. `metadata_style` accepts `inline` (the default), `blockquote`, `plain`, or `omit`. The inline style renders owner, review request, and issue metadata as one `·`-separated paragraph; when a PR/MR link is available, commit links are omitted because the review link already identifies the change.
+
+```toml
+[changelog.style]
+metadata_style = "inline"
+```
+
 You can also customize release-note rendering with a workspace-wide `[release_notes]` table plus per-package or per-group `extra_changelog_sections` definitions.
 
 Supported template variables include:
@@ -493,7 +500,7 @@ Current implementation notes:
 - live GitHub release and release-request publishing uses `octocrab` with `GITHUB_TOKEN` / `GH_TOKEN`; GitLab and Gitea use direct HTTP APIs
 - release-request publishing still uses local `git` for branch, commit, and push operations before provider API updates when not in dry-run mode
 - changeset policy commands currently apply only to the GitHub provider and expect `[changesets.affected]`, a `changed_paths` command input, and reusable diagnostics for GitHub Actions consumption
-- supported command steps today are `Validate`, `Discover`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `PublishRelease`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, and `Command`
+- supported `[[cli.<command>.steps]]` types today are `Config`, `Validate`, `Discover`, `DisplayVersions`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `VerifyReleaseBranch`, `PublishRelease`, `PlaceholderPublish`, `PublishPackages`, `PlanPublishRateLimits`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, `ReleaseRecord`, `PublishReadiness`, `TagRelease`, and `Command`
 - see the [CLI step reference](../reference/cli-steps/00-index.md) for detailed per-step guidance, prerequisites, and composition examples
 
 <!-- {/configurationCurrentStatus} -->
@@ -712,9 +719,9 @@ monochange keeps source-provider automation layered on top of the same `PrepareR
 
 That means one set of `.changeset/*.md` inputs can drive all of these commands and automation flows consistently:
 
-- `mc release --dry-run --format json` refreshes the cached manifest and shows the downstream automation payload
-- `mc publish-release` previews or publishes provider releases from the structured release notes
-- `mc release-pr` previews or opens an idempotent provider release request; when `[source.pull_requests].verified_commits = true` and the command runs on GitHub Actions for the configured repository, the GitHub provider pushes a normal release branch commit as a fallback and then only moves the branch to a Git Database API replacement commit when GitHub reports that replacement as verified
+- `mc step:prepare-release --dry-run --format json` refreshes the cached manifest and shows the downstream automation payload
+- `mc step:publish-release` previews or publishes provider releases from the structured release notes
+- `mc step:open-release-request` previews or opens an idempotent provider release request; when `[source.pull_requests].verified_commits = true` and the step runs on GitHub Actions for the configured repository, the GitHub provider pushes a normal release branch commit as a fallback and then only moves the branch to a Git Database API replacement commit when GitHub reports that replacement as verified
 - `mc step:affected-packages` evaluates pull-request changeset policy from CI-supplied changed paths and labels without requiring a config-defined wrapper command
 
 <!-- {/githubAutomationOverview} -->
@@ -722,9 +729,9 @@ That means one set of `.changeset/*.md` inputs can drive all of these commands a
 <!-- {@githubAutomationWorkflowCommands} -->
 
 ```bash
-mc release --dry-run --format json
-mc publish-release --dry-run --format json
-mc release-pr --dry-run --format json
+mc step:prepare-release --dry-run --format json
+mc step:publish-release --dry-run --format json
+mc step:open-release-request --dry-run --format json
 mc step:affected-packages --format json --verify --changed-paths crates/monochange/src/lib.rs
 ```
 
@@ -961,11 +968,11 @@ This layout keeps the top-level skill small while still making the richer guidan
 
 - Read `monochange.toml` before proposing release workflow changes.
 - Run `mc step:validate` before and after release-affecting edits.
-- Use `mc discover --format json` to inspect package ids, group ownership, and dependency edges.
+- Use `mc step:discover --format json` to inspect package ids, group ownership, and dependency edges.
 - Use `mc step:diagnose-changesets --format json` or `monochange_diagnostics` for a structured view of all pending changesets with git and review context.
 - Use `monochange_lint_catalog` and `monochange_lint_explain` when you need lint metadata without shelling out.
 - Prefer `mc change` plus `.changeset/*.md` files over ad hoc release notes.
-- Use `mc release --dry-run --format json` before mutating release state.
+- Use `mc step:prepare-release --dry-run --format json` before mutating release state.
 
 <!-- {/assistantRepoGuidance} -->
 
@@ -1419,11 +1426,13 @@ Example:
 
 **Why:** monorepos usually want one consistent policy for how internal Dart packages reference each other.
 
-**Default policy:** strict mode expects internal packages to use `path:` references.
+**Default policy:** strict mode expects internal packages to use `path:` references unless the pubspec declares `resolution: workspace`.
+
+With Dart workspace resolution, Dart resolves versioned internal dependencies to local workspace packages automatically. In that mode, monochange requires version constraints and reports `path:` references with the message "use version constraints (not `path:`) when resolution is workspace".
 
 **Useful option:**
 
-- `mode` — choose `"path"` or `"hosted"`
+- `mode` — choose `"path"` or `"hosted"` for packages that do not use `resolution: workspace`
 
 Example:
 
@@ -1436,7 +1445,7 @@ Example:
 
 **Why:** when workspace packages reference each other with hosted version ranges, those ranges should not drift away from the current workspace version.
 
-**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches.
+**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `mc sync versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
 
 ### Flutter-only rules
 
@@ -1490,7 +1499,7 @@ For repository work:
 ```bash
 mc step:validate
 mc check
-mc release --dry-run --diff
+mc step:prepare-release --dry-run --diff
 ```
 
 If you changed shared docs too:

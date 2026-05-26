@@ -971,10 +971,14 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				),
 			],
 			tips: &[
-				"Run readiness before mutating registry state with mc publish.",
+				"Run readiness before mutating registry state with mc step:publish-packages.",
 				"Already-published versions are reported as resumable instead of blocking.",
 			],
-			see_also: &["publish-plan", "publish", "placeholder-publish"],
+			see_also: &[
+				"step:plan-publish-rate-limits",
+				"step:publish-packages",
+				"step:placeholder-publish",
+			],
 		},
 		CommandHelp {
 			name: "step:placeholder-publish",
@@ -1026,14 +1030,13 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				),
 			],
 			tips: &[
-				"Run mc step:publish-readiness again after bootstrap before mc publish.",
+				"Run mc step:publish-readiness again after bootstrap before mc step:publish-packages.",
 				"Existing placeholder versions are skipped and treated as resumable.",
 			],
 			see_also: &[
 				"step:publish-readiness",
-				"publish-plan",
-				"publish",
-				"placeholder-publish",
+				"step:plan-publish-rate-limits",
+				"step:publish-packages",
 			],
 		},
 		CommandHelp {
@@ -1519,7 +1522,7 @@ fn step_details(kebab: &str) -> StepDetails {
 	match kebab {
 		"publish-release" => {
 			StepDetails {
-				description: "PublishRelease converts a prepared release into hosted provider release operations.\n\nFor example, with a configured source provider it can create or update the outward release objects that correspond to monochange's prepared release targets. It does not publish package artifacts to registries; package publishing lives in `mc step:publish-readiness`, `mc publish --readiness <path>`, and `mc placeholder-publish`.\n\nUse it when you want monochange to handle provider-aware publication rather than stitching together release API calls manually. It needs a previous PrepareRelease step in the same workflow and `[source]` configuration.",
+				description: "PublishRelease converts a prepared release into hosted provider release operations.\n\nFor example, with a configured source provider it can create or update the outward release objects that correspond to monochange's prepared release targets. It does not publish package artifacts to registries; package publishing lives in `mc step:publish-readiness`, `mc step:publish-packages`, and `mc step:placeholder-publish`.\n\nUse it when you want monochange to handle provider-aware publication rather than stitching together release API calls manually. It needs a previous PrepareRelease step in the same workflow and `[source]` configuration.",
 				examples: &[
 					(
 						"Preview provider release payloads:",
@@ -1532,10 +1535,14 @@ fn step_details(kebab: &str) -> StepDetails {
 				],
 				tips: &[
 					"PublishRelease handles hosted/source-provider releases such as GitHub releases, not package registries.",
-					"Use `mc step:publish-readiness --from HEAD --output <path>` followed by `mc publish --readiness <path>` for crates.io, npm, JSR, or pub.dev packages.",
+					"Use `mc step:publish-readiness --from HEAD --output <path>` followed by `mc step:publish-packages --output <path>` for crates.io, npm, JSR, or pub.dev packages.",
 					"Dry-run output stays aligned with the prepared release state and release target model.",
 				],
-				see_also: &["step:prepare-release", "step:publish-readiness", "publish"],
+				see_also: &[
+					"step:prepare-release",
+					"step:publish-readiness",
+					"step:publish-packages",
+				],
 			}
 		}
 		"prepare-release" => {

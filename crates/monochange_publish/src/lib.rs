@@ -338,7 +338,7 @@ pub fn enforce_release_attestation_prerequisites(
 	let capability_message = trusted_publishing_capability_message(&registry, &identity);
 	if !identity.is_verifiable_by_env() {
 		return Err(MonochangeError::Config(format!(
-			"`{}` requires registry-native package provenance from a verifiable CI/OIDC identity, but the current publishing context is local or unverifiable. {capability_message} Run `mc publish` from the configured CI workflow or set `publish.attestations.require_registry_provenance = false` to opt out.",
+			"`{}` requires registry-native package provenance from a verifiable CI/OIDC identity, but the current publishing context is local or unverifiable. {capability_message} Run `mc step:publish-packages` from the configured CI workflow or set `publish.attestations.require_registry_provenance = false` to opt out.",
 			request.package_id,
 		)));
 	}
@@ -1385,7 +1385,7 @@ impl PublishAdapter for NpmPublishAdapter {
 	fn registry_notes(&self) -> Vec<String> {
 		[
 			"npm trusted publishing supports GitHub Actions and GitLab CI/CD".to_string(),
-			"monochange can verify and automate npm GitHub trusted-publisher setup with npm CLI trust commands".to_string(),
+			"monochange verifies npm trusted-publishing context and reports npm CLI trust repair commands, but real publish runs do not execute npm trust".to_string(),
 		].to_vec()
 	}
 }
@@ -2370,7 +2370,7 @@ pub fn resume_publish_requests(
 pub fn validate_resume_report(report: &PackagePublishReport) -> MonochangeResult<()> {
 	if report.mode != PackagePublishRunMode::Release {
 		return Err(MonochangeError::Config(
-			"package publish resume artifact must come from `mc publish`".to_string(),
+			"package publish resume artifact must come from `mc step:publish-packages`".to_string(),
 		));
 	}
 	if report.dry_run {

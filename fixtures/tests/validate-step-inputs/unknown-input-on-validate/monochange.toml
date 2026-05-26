@@ -14,4 +14,4 @@ default = "text"
 
 [[cli.inspect.steps]]
 type = "Validate"
-inputs = { format = "json" }
+inputs = { mode = "json" }

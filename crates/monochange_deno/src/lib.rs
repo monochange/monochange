@@ -2,7 +2,6 @@
 
 //! # `monochange_deno`
 //!
-//! <!-- {=monochangeDenoCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_deno` discovers Deno packages and workspace members for the shared planner.
 //!
 //! Reach for this crate when you need to scan `deno.json` or `deno.jsonc` files, expand Deno workspaces, and normalize Deno dependencies into `monochange_core` records.
@@ -29,8 +28,6 @@
 //! - `deno.json` and `deno.jsonc`
 //! - workspace glob expansion
 //! - normalized dependency and import extraction
-//! <!-- {/monochangeDenoCrateDocs} -->
-
 pub mod analysis;
 
 use std::collections::BTreeMap;

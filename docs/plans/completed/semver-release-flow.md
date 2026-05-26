@@ -1,5 +1,9 @@
 # Semantic SemVer release-flow guardrails
 
+## Status
+
+Completed and archived after `feat: add semantic semver release guardrails (#523)` landed.
+
 ## Goal
 
 Use existing ecosystem semantic analyzers as release guardrails without replacing human-authored changesets. The first rollout is advisory: release planning keeps working, but release previews include compatibility evidence and warnings when semantic analysis suggests a stronger bump or finds uncovered package changes.

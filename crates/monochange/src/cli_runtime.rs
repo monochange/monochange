@@ -2470,7 +2470,7 @@ fn render_github_actions_publish_batches(
 		"      - name: publish planned batch".to_string(),
 		"        run: |".to_string(),
 		"          # For batches after the first, trigger a later workflow run instead of sleeping in CI.".to_string(),
-		"          mc publish ${{ matrix.packages }} --format json".to_string(),
+		"          mc step:publish-packages ${{ matrix.packages }} --format json".to_string(),
 	]);
 	lines.join("\n")
 }
@@ -2505,7 +2505,7 @@ fn render_gitlab_ci_publish_batches(report: &monochange_core::PublishRateLimitRe
 	lines.extend([
 		"  script:".to_string(),
 		"    - '# For batches after the first, run a later pipeline instead of sleeping inside CI.'".to_string(),
-		"    - mc publish $PACKAGES --format json".to_string(),
+		"    - mc step:publish-packages $PACKAGES --format json".to_string(),
 	]);
 	lines.join("\n")
 }
@@ -2814,7 +2814,7 @@ fn render_package_publish_report(report: &package_publish::PackagePublishReport)
 		}
 		if let Some(setup_url) = &package.trusted_publishing.setup_url {
 			lines.push(format!("  setup: {setup_url}"));
-			lines.push("  next: open the setup URL, configure trusted publishing for this package, then rerun `mc publish`".to_string());
+			lines.push("  next: open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`".to_string());
 		}
 	}
 
@@ -2938,7 +2938,7 @@ fn render_package_publish_report_markdown(
 				paint_markdown_inline(&format!("`{setup_url}`"), MarkdownStyle::Code, color,)
 			));
 			lines.push(
-				"- **Next:** open the setup URL, configure trusted publishing for this package, then rerun `mc publish`"
+				"- **Next:** open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`"
 					.to_string(),
 			);
 		}

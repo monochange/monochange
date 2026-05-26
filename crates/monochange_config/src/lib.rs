@@ -2,7 +2,6 @@
 
 //! # `monochange_config`
 //!
-//! <!-- {=monochangeConfigCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_config` parses and validates the inputs that drive planning and release commands.
 //!
 //! Reach for this crate when you need to load `monochange.toml`, resolve package references, or turn `.changeset/*.md` files into validated change signals for the planner.
@@ -72,8 +71,6 @@
 //!
 //! let _ = std::fs::remove_dir_all(&root);
 //! ```
-//! <!-- {/monochangeConfigCrateDocs} -->
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
@@ -4370,12 +4367,25 @@ fn validate_step_input_overrides(
 	let valid_names = step.valid_input_names();
 
 	for (name, value) in overrides {
-		// Reject unknown input names (Command steps accept anything).
+		let command_input = cli_command_input(cli_command, name);
+
+		// Reject names that are neither real step inputs nor command inputs used by
+		// `when` conditions/templates. `Command` steps still accept any input name.
 		if let Some(names) = valid_names
 			&& !names.contains(&name.as_str())
+			&& command_input.is_none()
 		{
 			let available = if names.is_empty() {
-				"this step accepts no inputs".to_string()
+				let command_inputs = cli_command
+					.inputs
+					.iter()
+					.map(|input| input.name.as_str())
+					.collect::<Vec<_>>();
+				if command_inputs.is_empty() {
+					"this step accepts no inputs".to_string()
+				} else {
+					format!("valid inputs: {}", command_inputs.join(", "))
+				}
 			} else {
 				format!("valid inputs: {}", names.join(", "))
 			};
@@ -4390,7 +4400,7 @@ fn validate_step_input_overrides(
 
 		// Validate inherited command inputs and literal override types against the step schema.
 		if matches!(value, CliStepInputValue::Inherited) {
-			let Some(command_input) = cli_command_input(cli_command, name) else {
+			let Some(command_input) = command_input else {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` step `{}` inherits input `{}` but the command does not declare it",
 					cli_command.name,

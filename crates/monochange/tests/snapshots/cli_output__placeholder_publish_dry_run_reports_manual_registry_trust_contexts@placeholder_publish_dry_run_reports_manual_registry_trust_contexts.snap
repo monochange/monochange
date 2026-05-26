@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/cli_output.rs
+assertion_line: 129
 info:
   program: mc
   args:
@@ -10,10 +11,10 @@ info:
   env:
     GITHUB_JOB: release
     GITHUB_WORKFLOW_REF: ifiokjr/monochange/.github/workflows/publish.yml@refs/heads/main
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:58769"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:58769"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:58769"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:58769"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:58318"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:58318"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:58318"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:58318"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---
@@ -32,7 +33,7 @@ placeholder publishing:
   workflow: publish.yml
   environment: publisher
   setup: https://crates.io/crates/core
-  next: open the setup URL, configure trusted publishing for this package, then rerun `mc publish`
+  next: open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`
 - npm_pkg 0.0.0 via npm -> planned
   ecosystem: npm
   placeholder: yes
@@ -43,7 +44,7 @@ placeholder publishing:
   workflow: publish.yml
   environment: publisher
   setup: https://www.npmjs.com/package/npm-pkg/access
-  next: open the setup URL, configure trusted publishing for this package, then rerun `mc publish`
+  next: open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`
 publish rate limits:
 - crates_io placeholder_publish pending=1 batches=1 confidence=High
   limit: 10

@@ -27,9 +27,9 @@ Reach for this crate when you want one API and CLI surface that discovers packag
 ```bash
 mc init
 mc skill -a pi -y
-mc discover --format json
+mc step:discover --format json
 mc change --package monochange --bump patch --reason "describe the change"
-mc release --dry-run --format json
+mc step:prepare-release --dry-run --format json
 mc mcp
 ```
 
@@ -293,7 +293,7 @@ Reach for this crate when you want to preview or publish GitHub releases and rel
 
 ## Best for
 
-- building GitHub release automation on top of `mc release`
+- building GitHub release automation on top of prepared monochange release state
 - previewing would-be GitHub releases and release PRs in CI before publishing
 - converting grouped or package release targets into repository automation payloads
 
@@ -383,7 +383,7 @@ Reach for this crate when you want to preview or publish Gitea releases and rele
 
 ## Best for
 
-- building Gitea release automation on top of `mc release`
+- building Gitea release automation on top of prepared monochange release state
 - previewing would-be Gitea releases and release PRs in CI before publishing
 - self-hosted Gitea instances that need the same release workflow as GitHub or GitLab
 
@@ -410,7 +410,7 @@ Reach for this crate when you want to preview or publish GitLab releases and mer
 
 ## Best for
 
-- building GitLab release automation on top of `mc release`
+- building GitLab release automation on top of prepared monochange release state
 - previewing would-be GitLab releases and merge requests in CI before publishing
 - self-hosted GitLab instances that need the same release workflow as GitHub
 
@@ -754,7 +754,7 @@ Reach for this crate when you want to preview or publish Forgejo releases and re
 
 ## Best for
 
-- building Forgejo release automation on top of `mc release`
+- building Forgejo release automation on top of prepared monochange release state
 - previewing would-be Forgejo releases and release PRs in CI before publishing
 - self-hosted Forgejo instances that need the same release workflow as GitHub or GitLab
 
@@ -766,3 +766,62 @@ Reach for this crate when you want to preview or publish Forgejo releases and re
 - `source_capabilities()` returns provider feature flags
 
 <!-- {/monochangeForgejoCrateDocs} -->
+
+<!-- {@monochangeLintCrateDocs} -->
+
+`monochange_lint` runs ecosystem-agnostic manifest lint suites for `monochange`.
+
+Reach for this crate when you want to validate workspace manifests against configurable rules, discover preset and custom lint suites, or apply autofixes across packages.
+
+## Why use it?
+
+- centralize lint suite registration and execution in one engine
+- merge workspace-scoped and package-scoped `[lints]` configuration
+- run all registered suites in one pass instead of wiring each crate separately
+
+## Best for
+
+- enforcing manifest quality checks across multi-ecosystem monorepos
+- building custom lint suites that plug into the shared lint pipeline
+- applying autofixes for common manifest problems in CI
+
+## Public entry points
+
+- `lint_workspace(root, config)` runs all registered lint suites against the workspace
+- `discover_lint_suites()` lists available preset and custom suites
+- `apply_autofixes(root, diagnostics)` applies suggested fixes for reported diagnostics
+
+## Scope
+
+- lint suite registration and discovery
+- workspace-wide and scoped configuration merging
+- autofix application
+- ecosystem-agnostic rule dispatch
+
+<!-- {/monochangeLintCrateDocs} -->
+
+<!-- {@monochangeLintingCrateDocs} -->
+
+`monochange_linting` provides authoring helpers and macros for `monochange` lint suites.
+
+Reach for this crate when you are implementing lint rules for an ecosystem adapter and want to reduce declaration boilerplate for metadata, diagnostics, and fixture loading.
+
+## Why use it?
+
+- keep lint rule declarations small with `declare_lint_rule!`
+- share `LintRule` construction patterns across ecosystem crates
+- focus rule implementations on behavior instead of repeated metadata plumbing
+
+## Best for
+
+- declaring lint rules in ecosystem adapters with minimal boilerplate
+- writing lint rule tests with shared snapshot and fixture helpers
+- extending the lint pipeline with custom rules that follow the same contract
+
+## Guidance
+
+- Use `declare_lint_rule!` for straightforward rules whose custom behavior mostly lives in `run(...)`.
+- The Cargo suite uses the macro for real rules, so the helper now reflects actual ecosystem code instead of scaffolding-only examples.
+- If a rule eventually needs extra construction state or a custom constructor, an explicit `struct` plus `LintRule::new(...)` is still fine.
+
+<!-- {/monochangeLintingCrateDocs} -->

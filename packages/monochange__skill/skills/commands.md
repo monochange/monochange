@@ -112,6 +112,12 @@ A few built-ins are deliberately narrow:
 - `mc step:publish-readiness` and `mc step:placeholder-publish` operate from an existing release record, so run them after a release has been prepared and committed.
 - `mc step:release-record` is useful when debugging publish jobs because it tells you which packages and versions a commit or tag is supposed to release.
 
+## Internal dependency version sync
+
+Recent monochange versions include `mc sync versions` for ad hoc internal dependency range repair outside the release flow. Run `mc sync versions --dry-run` first to preview edits, then rerun without `--dry-run` to update supported manifests. The command currently supports Dart and npm packages, with `--strategy <default|exact|caret|compatible>` controlling the generated constraint style.
+
+Dart sync scans `dependencies`, `dev_dependencies`, and `dependency_overrides`. When `resolution: workspace` is present, internal `path:` references are converted to version constraints so Dart workspace resolution can resolve local packages without publish-hostile path dependencies. npm sync scans `dependencies`, `devDependencies`, and `peerDependencies`, while leaving `workspace:*` protocol references unchanged.
+
 ## Built-in step commands
 
 | Step command                       | Step type               | Purpose                                                                 |
@@ -132,6 +138,9 @@ A few built-ins are deliberately narrow:
 | `mc step:comment-released-issues`  | `CommentReleasedIssues` | Comment on issues referenced by released changesets.                    |
 | `mc step:affected-packages`        | `AffectedPackages`      | Evaluate affected packages and changeset coverage.                      |
 | `mc step:diagnose-changesets`      | `DiagnoseChangesets`    | Inspect changeset provenance and review metadata.                       |
+| `mc step:release-record`           | `ReleaseRecord`         | Inspect an embedded release record from a commit or tag.                |
+| `mc step:publish-readiness`        | `PublishReadiness`      | Check registry readiness without publishing packages.                   |
+| `mc step:tag-release`              | `TagRelease`            | Create and push release tags from an embedded release record.           |
 | `mc step:retarget-release`         | `RetargetRelease`       | Repair release tags by retargeting a release.                           |
 
 `Command` is a valid workflow step type but does not have a standalone `mc step:command` command.
@@ -158,6 +167,9 @@ These are the current `CliStepDefinition` variants accepted in `monochange.toml`
 - `CommentReleasedIssues`
 - `AffectedPackages`
 - `DiagnoseChangesets`
+- `ReleaseRecord`
+- `PublishReadiness`
+- `TagRelease`
 - `RetargetRelease`
 - `Command`
 

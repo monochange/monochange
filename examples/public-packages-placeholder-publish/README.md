@@ -22,7 +22,7 @@ mc release --dry-run --diff
 When you want to inspect the placeholder plan without publishing anything:
 
 ```bash
-mc placeholder-publish --dry-run --format json
+mc step:placeholder-publish --dry-run --format json
 ```
 
 ## Why this example is opinionated

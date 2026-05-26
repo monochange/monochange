@@ -1,6 +1,5 @@
 //! # `monochange_telemetry`
 //!
-//! <!-- {=monochangeTelemetryCrateDocs|trim|linePrefix:"//! ":true} -->
 //! `monochange_telemetry` provides local-only telemetry primitives for the `monochange` CLI.
 //!
 //! Reach for this crate when you need the reusable event sink, event payloads, and privacy-preserving error classification that power opt-in local JSONL telemetry. The crate intentionally keeps transport simple: it appends OpenTelemetry-style JSON Lines records to a local file and does not send telemetry over the network.
@@ -49,8 +48,6 @@
 //!     error: None,
 //! });
 //! ```
-//! <!-- {/monochangeTelemetryCrateDocs} -->
-
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
