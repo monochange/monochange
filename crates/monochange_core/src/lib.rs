@@ -1677,13 +1677,26 @@ impl ChangelogSettings {
 	}
 }
 
+/// Whether monochange's built-in publisher handles release publishing for a package.
+///
+/// - `Builtin` – monochange runs the ecosystem-specific publish command (e.g. `npm
+///   publish`, `cargo publish`) during `PublishPackages`.
+/// - `External` – the package is skipped during `PublishPackages`; your own CI or
+///   scripts handle release publishing instead.
+///
+/// This setting does **not** affect placeholder publishing (`PlaceholderPublish`),
+/// which processes all packages with `publish.enabled = true` regardless of mode.
+/// Placeholder publishing is a bootstrap utility, not a release publishing step.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum PublishMode {
 	#[default]
+	/// monochange runs the built-in publish command during release publishing.
 	Builtin,
+	/// The package is skipped during `PublishPackages`; external CI/scripts
+	/// handle release publishing. Placeholder publishing is not affected.
 	External,
 }
 

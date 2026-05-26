@@ -214,6 +214,12 @@ Because `PublishPackages` understands:
 - dry-run behavior for safe CI previews
 - trusted publishing setup and configuration
 
+## Interaction with `publish.mode`
+
+Packages with `publish.mode = "external"` are skipped by `PublishPackages`. If your CI or scripts handle publishing for a package, set `mode = "external"` to tell monochange not to publish that package during release publishing.
+
+Placeholder publishing (`PlaceholderPublish`) is not affected by `publish.mode` — it processes all packages with `publish.enabled = true` regardless of mode. This is because placeholder publishing is a one-time bootstrap step, not a release publishing step.
+
 ## Common mistakes
 
 - confusing `PublishPackages` with `PublishRelease`: the former publishes to package registries, the latter creates hosted provider releases (such as GitHub releases)
