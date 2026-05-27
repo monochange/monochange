@@ -315,7 +315,10 @@ pub(crate) fn sync_context_error(
 	))
 }
 
-fn version_prefix_for_strategy(ecosystem: Ecosystem, strategy: VersionStrategy) -> &'static str {
+pub(crate) fn version_prefix_for_strategy(
+	ecosystem: Ecosystem,
+	strategy: VersionStrategy,
+) -> &'static str {
 	if strategy == VersionStrategy::Exact {
 		return "";
 	}
@@ -335,7 +338,11 @@ fn version_prefix_for_strategy(ecosystem: Ecosystem, strategy: VersionStrategy) 
 	}
 }
 
-fn target_constraint(ecosystem: Ecosystem, version: &str, strategy: VersionStrategy) -> String {
+pub(crate) fn target_constraint(
+	ecosystem: Ecosystem,
+	version: &str,
+	strategy: VersionStrategy,
+) -> String {
 	let version = if ecosystem == Ecosystem::Go && !version.starts_with('v') {
 		format!("v{version}")
 	} else {
@@ -373,7 +380,7 @@ fn parse_python_dependency_name(spec: &str) -> Option<String> {
 	(!name.is_empty()).then_some(name)
 }
 
-fn normalize_python_package_name(name: &str) -> String {
+pub(crate) fn normalize_python_package_name(name: &str) -> String {
 	let mut result = String::with_capacity(name.len());
 	let mut prev_was_separator = false;
 	for ch in name.chars() {
@@ -390,7 +397,7 @@ fn normalize_python_package_name(name: &str) -> String {
 	result
 }
 
-fn extract_python_version_constraint(spec: &str, name: &str) -> Option<String> {
+pub(crate) fn extract_python_version_constraint(spec: &str, name: &str) -> Option<String> {
 	let mut rest = spec.get(name.len()..)?.trim_start();
 	if rest.starts_with('[') {
 		let extras_end = rest.find(']')? + 1;

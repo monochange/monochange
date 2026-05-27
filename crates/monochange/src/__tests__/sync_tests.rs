@@ -898,3 +898,444 @@ fn write_manifest_reports_missing_parent() {
 
 	assert!(error.to_string().contains("failed to write"));
 }
+
+#[test]
+#[test]
+fn detect_python_changes_with_empty_dep_name_skips() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("mypkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("mypkg".to_string());
+	// Empty string in dependencies array should be skipped
+	let contents = "[project]\ndependencies = [\"\"]\n";
+	let result = sync::detect_python_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_go_changes_with_non_workspace_require_skips() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("example.com/pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("example.com/pkg".to_string());
+	// require with a package not in workspace_package_names
+	let contents = "module test\n\nrequire other.com/pkg v1.0.0\n";
+	let result = sync::detect_go_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_deno_changes_with_non_string_import_skips() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("mypkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("mypkg".to_string());
+	// Import value is not a string
+	let contents = r#"{"imports": {"mypkg": 123}}"#;
+	let result = sync::detect_deno_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_deno_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn apply_sync_changes_with_go_ecosystem_returns_contents() {
+	// Go doesn't have a sync adapter, so it should return contents unchanged
+	let contents = "module test\n";
+	let result = sync::apply_sync_changes(contents, &[], monochange_core::Ecosystem::Go)
+		.unwrap_or_else(|error| panic!("apply_sync_changes: {error}"));
+	assert_eq!(result, contents);
+}
+
+#[test]
+fn detect_python_changes_with_invalid_toml_returns_error() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("pkg".to_string());
+	let result = sync::detect_python_changes(
+		"not valid toml [[[[",
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	);
+	assert!(result.is_err());
+}
+
+#[test]
+fn detect_python_changes_with_non_matching_dep_name_skips() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("other-pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("other-pkg".to_string());
+	let contents = "[project]\ndependencies = [\"mypkg>=1.0\"]\n";
+	let result = sync::detect_python_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_python_changes_with_no_version_in_map_skips() {
+	let version_map = std::collections::BTreeMap::new();
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("mypkg".to_string());
+	let contents = "[project]\ndependencies = [\"mypkg>=1.0\"]\n";
+	let result = sync::detect_python_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_go_changes_with_no_matching_require_skips() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("example.com/pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("example.com/pkg".to_string());
+	let contents = "module test\n";
+	let result = sync::detect_go_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_deno_changes_with_non_matching_import_skips() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("other-pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("other-pkg".to_string());
+	let contents = r#"{"imports": {"mypkg": "npm:mypkg@1.0.0"}}"#;
+	let result = sync::detect_deno_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_deno_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn apply_sync_changes_with_unsupported_ecosystem_returns_contents() {
+	let contents = "test contents";
+	let result = sync::apply_sync_changes(contents, &[], monochange_core::Ecosystem::Go)
+		.unwrap_or_else(|error| panic!("apply_sync_changes: {error}"));
+	assert_eq!(result, contents);
+}
+
+#[test]
+fn normalize_python_package_name_normalizes_separators() {
+	assert_eq!(sync::normalize_python_package_name("foo-bar"), "foo-bar");
+	assert_eq!(sync::normalize_python_package_name("foo_bar"), "foo-bar");
+	assert_eq!(sync::normalize_python_package_name("foo.bar"), "foo-bar");
+	assert_eq!(sync::normalize_python_package_name("FOO-BAR"), "foo-bar");
+	assert_eq!(sync::normalize_python_package_name("foo--bar"), "foo-bar");
+}
+
+#[test]
+fn extract_python_version_constraint_parses_version() {
+	assert_eq!(
+		sync::extract_python_version_constraint("mypackage>=1.0", "mypackage"),
+		Some(">=1.0".to_string()),
+	);
+	assert_eq!(
+		sync::extract_python_version_constraint("mypackage", "mypackage"),
+		None,
+	);
+	assert_eq!(
+		sync::extract_python_version_constraint("mypackage[extra]>=1.0", "mypackage"),
+		Some(">=1.0".to_string()),
+	);
+}
+
+#[test]
+fn version_prefix_for_strategy_exact_returns_empty() {
+	assert_eq!(
+		sync::version_prefix_for_strategy(
+			monochange_core::Ecosystem::Npm,
+			monochange_core::VersionStrategy::Exact
+		),
+		""
+	);
+}
+
+#[test]
+fn version_prefix_for_strategy_cargo_compatible_returns_gte() {
+	assert_eq!(
+		sync::version_prefix_for_strategy(
+			monochange_core::Ecosystem::Cargo,
+			monochange_core::VersionStrategy::Compatible
+		),
+		">="
+	);
+}
+
+#[test]
+fn version_prefix_for_strategy_go_compatible_returns_gte() {
+	assert_eq!(
+		sync::version_prefix_for_strategy(
+			monochange_core::Ecosystem::Go,
+			monochange_core::VersionStrategy::Compatible
+		),
+		">="
+	);
+}
+
+#[test]
+fn version_prefix_for_strategy_cargo_default_returns_empty() {
+	assert_eq!(
+		sync::version_prefix_for_strategy(
+			monochange_core::Ecosystem::Cargo,
+			monochange_core::VersionStrategy::Default
+		),
+		""
+	);
+}
+
+#[test]
+fn version_prefix_for_strategy_go_default_returns_empty() {
+	assert_eq!(
+		sync::version_prefix_for_strategy(
+			monochange_core::Ecosystem::Go,
+			monochange_core::VersionStrategy::Default
+		),
+		""
+	);
+}
+
+#[test]
+fn target_constraint_go_prepends_v() {
+	let result = sync::target_constraint(
+		monochange_core::Ecosystem::Go,
+		"1.0.0",
+		monochange_core::VersionStrategy::Default,
+	);
+	assert!(
+		result.starts_with('v'),
+		"Go versions should start with v, got: {result}"
+	);
+}
+
+#[test]
+fn target_constraint_go_with_v_prefix_keeps_it() {
+	let result = sync::target_constraint(
+		monochange_core::Ecosystem::Go,
+		"v1.0.0",
+		monochange_core::VersionStrategy::Default,
+	);
+	assert!(
+		result.starts_with("v1"),
+		"Go versions with v prefix should keep it, got: {result}"
+	);
+}
+
+#[test]
+fn target_constraint_npm_exact_returns_version() {
+	let result = sync::target_constraint(
+		monochange_core::Ecosystem::Npm,
+		"1.2.3",
+		monochange_core::VersionStrategy::Exact,
+	);
+	assert_eq!(result, "1.2.3");
+}
+
+#[test]
+fn target_constraint_npm_compatible_returns_caret() {
+	let result = sync::target_constraint(
+		monochange_core::Ecosystem::Npm,
+		"1.2.3",
+		monochange_core::VersionStrategy::Compatible,
+	);
+	assert!(
+		result.starts_with('^'),
+		"Compatible for npm should start with ^, got: {result}"
+	);
+}
+
+#[test]
+fn target_constraint_npm_caret_returns_caret() {
+	let result = sync::target_constraint(
+		monochange_core::Ecosystem::Npm,
+		"1.2.3",
+		monochange_core::VersionStrategy::Caret,
+	);
+	assert!(
+		result.starts_with('^'),
+		"Caret should start with ^, got: {result}"
+	);
+}
+
+#[test]
+fn detect_cargo_changes_with_invalid_toml_returns_error() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("pkg".to_string());
+	let result = sync::detect_cargo_changes(
+		"not valid toml [[[[",
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	);
+	assert!(result.is_err());
+}
+
+#[test]
+fn detect_cargo_changes_with_missing_table_returns_empty() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("pkg".to_string());
+	let contents = "[package]\nname = 'test'";
+	let result = sync::detect_cargo_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_cargo_changes_with_missing_dep_returns_empty() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("other-pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("other-pkg".to_string());
+	let contents = "[dependencies]\npkg = '1.0.0'";
+	let result = sync::detect_cargo_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_cargo_changes_with_missing_version_in_map_returns_empty() {
+	let version_map = std::collections::BTreeMap::new();
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("pkg".to_string());
+	let contents = "[dependencies]\npkg = '1.0.0'";
+	let result = sync::detect_cargo_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_cargo_changes_with_inline_table_version() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("pkg".to_string(), "2.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("pkg".to_string());
+	let contents = "[dependencies]\npkg = { version = '1.0.0', path = '../pkg' }";
+	let result = sync::detect_cargo_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
+	assert_eq!(result.len(), 1);
+	assert_eq!(result[0].dependency_name, "pkg");
+}
+
+#[test]
+fn detect_python_changes_with_missing_project_section_returns_empty() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("pkg".to_string());
+	let contents = "[tool]\nruff = true";
+	let result = sync::detect_python_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_python_changes_with_missing_dependencies_returns_empty() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("pkg".to_string());
+	let contents = "[project]\nname = 'test'";
+	let result = sync::detect_python_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_go_changes_with_package_not_in_workspace_skips() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("example.com/pkg".to_string(), "1.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("example.com/pkg".to_string());
+	let contents = "module test\n\nrequire other.com/pkg v1.0.0\n";
+	let result = sync::detect_go_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_deno_changes_with_invalid_json_returns_error() {
+	let result = sync::detect_deno_changes(
+		"not json",
+		&Default::default(),
+		&Default::default(),
+		monochange_core::VersionStrategy::Default,
+	);
+	assert!(result.is_err());
+}
