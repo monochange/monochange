@@ -87,11 +87,11 @@ in
     "tailwindcss" = {
       exec = ''
         set -euo pipefail
-        app_tailwind="$DEVENV_ROOT/apps/monochange_app/node_modules/.bin/tailwindcss"
+        app_tailwind="$DEVENV_ROOT/app/node_modules/.bin/tailwindcss"
         if [ -x "$app_tailwind" ]; then
           exec "$app_tailwind" "$@"
         fi
-        exec pnpm --dir "$DEVENV_ROOT/apps/monochange_app" exec tailwindcss "$@"
+        exec pnpm --dir "$DEVENV_ROOT/app" exec tailwindcss "$@"
       '';
       description = "Run the monochange app Tailwind CSS CLI.";
       binary = "bash";

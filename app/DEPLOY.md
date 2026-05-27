@@ -97,7 +97,7 @@ Create a cloud firewall before starting the app. By default this allows SSH, HTT
 # export SSH_SOURCES="$(curl -fsS https://ifconfig.me)/32"
 
 DROPLET_NAME=$DROPLET_NAME \
-  apps/monochange_app/deploy/digitalocean/create-firewall.sh
+  app/deploy/digitalocean/create-firewall.sh
 ```
 
 Cloud firewall rules:
@@ -111,7 +111,7 @@ Cloud firewall rules:
 Run the hardened setup script on the Droplet. It installs Docker, configures SSH key-only access, creates the `deploy` user, enables UFW/fail2ban/unattended upgrades, creates app directories, and installs backup/deploy helper scripts.
 
 ```bash
-scp apps/monochange_app/deploy/digitalocean/harden-droplet.sh root@$DROPLET_IP:/root/harden-droplet.sh
+scp app/deploy/digitalocean/harden-droplet.sh root@$DROPLET_IP:/root/harden-droplet.sh
 ssh root@$DROPLET_IP 'chmod +x /root/harden-droplet.sh && /root/harden-droplet.sh'
 ```
 
@@ -134,8 +134,8 @@ After this step, use `deploy@$DROPLET_IP` for ordinary deployment and `root@$DRO
 ## 4. copy deploy files and bootstrap the 1Password token
 
 ```bash
-scp apps/monochange_app/deploy/digitalocean/docker-compose.yml deploy@$DROPLET_IP:/tmp/docker-compose.yml
-scp apps/monochange_app/deploy/digitalocean/Caddyfile deploy@$DROPLET_IP:/tmp/Caddyfile
+scp app/deploy/digitalocean/docker-compose.yml deploy@$DROPLET_IP:/tmp/docker-compose.yml
+scp app/deploy/digitalocean/Caddyfile deploy@$DROPLET_IP:/tmp/Caddyfile
 ssh root@$DROPLET_IP 'mv /tmp/docker-compose.yml /opt/monochange/docker-compose.yml && mv /tmp/Caddyfile /opt/monochange/Caddyfile'
 ```
 

@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - "apps/monochange_app/**"
+      - "app/**"
   pull_request:
     paths:
-      - "apps/monochange_app/**"
+      - "app/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -50,7 +50,7 @@ jobs:
 
       - name: cargo test (unit)
         run: |
-          cd apps/monochange_app
+          cd app
           cargo test --workspace --lib
         shell: devenv shell -- bash -e {0}
 
@@ -69,19 +69,19 @@ jobs:
 
       - name: install cargo-leptos
         run: |
-          cd apps/monochange_app
+          cd app
           cargo binstall cargo-leptos@0.3.6 -y --force
         shell: devenv shell -- bash -e {0}
 
       - name: cargo check
         run: |
-          cd apps/monochange_app
+          cd app
           cargo check --workspace
         shell: devenv shell -- bash -e {0}
 
       - name: cargo leptos build (frontend-only)
         run: |
-          cd apps/monochange_app
+          cd app
           ~/.cargo/bin/cargo-leptos build --frontend-only
         shell: devenv shell -- bash -e {0}
 
@@ -121,19 +121,19 @@ jobs:
 
       - name: install cargo-leptos
         run: |
-          cd apps/monochange_app
+          cd app
           cargo binstall cargo-leptos@0.3.6 -y --force
         shell: devenv shell -- bash -e {0}
 
       - name: install playwright browsers
         run: |
-          cd apps/monochange_app
+          cd app
           pnpm exec playwright install chromium
         shell: devenv shell -- bash -e {0}
 
       - name: run end-to-end tests
         run: |
-          cd apps/monochange_app
+          cd app
           pnpm exec playwright test
         shell: devenv shell -- bash -e {0}
 
@@ -172,14 +172,14 @@ jobs:
 
       - name: generate coverage
         run: |
-          cd apps/monochange_app
+          cd app
           $HOME/.cargo/bin/cargo-llvm-cov llvm-cov --workspace --lcov --output-path lcov.info
         shell: devenv shell -- bash -e {0}
 
       - name: upload coverage to codecov
         uses: codecov/codecov-action@v5
         with:
-          working-directory: apps/monochange_app
+          working-directory: app
           files: lcov.info
           flags: monochange_app
           fail_ci_if_error: false

@@ -82,9 +82,9 @@ monochange_app_automation = { path = "crates/monochange_app_automation" }
 monochange_app_db = { path = "crates/monochange_app_db" }
 
 # monochange crates (path deps from parent workspace)
-monochange_core = { path = "../../crates/monochange_core" }
-monochange_github = { path = "../../crates/monochange_github" }
-monochange_hosting = { path = "../../crates/monochange_hosting" }
+monochange_core = { path = "../crates/monochange_core" }
+monochange_github = { path = "../crates/monochange_github" }
+monochange_hosting = { path = "../crates/monochange_hosting" }
 
 # cargo-leptos metadata
 [workspace.metadata.leptos]

@@ -16,6 +16,6 @@
 		"esbuild": "^0.25.0",
 		"typescript": "^5.7.0"
 	},
-	"repository": "https://github.com/monochange/monochange/tree/main/apps/monochange_app/embed",
+	"repository": "https://github.com/monochange/monochange/tree/main/app/embed",
 	"license": "Unlicense"
 }

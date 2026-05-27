@@ -9,7 +9,7 @@
 | #  | Decision           | Choice                                                       |
 | -- | ------------------ | ------------------------------------------------------------ |
 | 1  | MVP slice          | GitHub App → automated changesets + release PRs              |
-| 2  | Workspace layout   | Separate `apps/monochange_app` workspace                     |
+| 2  | Workspace layout   | Separate `app` workspace                                     |
 | 3  | Database           | PostgreSQL with Welds ORM                                    |
 | 4  | Deployment         | Fly.io                                                       |
 | 5  | LLM                | OpenRouter API first, Ollama for local dev                   |
@@ -26,7 +26,7 @@
 ### 0.1 — Scaffold the workspace
 
 ```
-apps/monochange_app/
+app/
 ├── Cargo.toml              # [workspace] with members = ["crates/*"]
 ├── Cargo.lock
 ├── rust-toolchain.toml     # Pin stable Rust
@@ -214,7 +214,7 @@ pub struct FeedbackForm {
 
 ### 0.3 — Core infrastructure tasks
 
-- [ ] Create `apps/monochange_app/Cargo.toml` workspace
+- [ ] Create `app/Cargo.toml` workspace
 - [ ] Wire `monochange_core`, `monochange_github`, `monochange_hosting` as path deps
 - [ ] Set up `sqlx` + `welds` with PostgreSQL connection pool
 - [ ] Create initial Welds migrations (users, organizations, installations, repositories)
@@ -481,7 +481,7 @@ Structure all AI prompts with `response_format: { type: "json_schema", json_sche
 
 1. **Register the GitHub App** — create a placeholder app on GitHub, get App ID + private key
 2. **Buy `monochange.dev`** — check availability, register
-3. **Scaffold `apps/monochange_app/`** — empty workspace, get cargo build passing
+3. **Scaffold `app/`** — empty workspace, get cargo build passing
 4. **Wire up Fly.io** — `fly launch`, provision Postgres, get deployment working with a "hello world" Leptos page
 5. **Implement OAuth flow** — sign in with GitHub, create user record
 6. **Implement webhook receiver** — verify HMAC, log events

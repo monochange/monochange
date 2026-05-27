@@ -48,8 +48,8 @@ export default defineConfig({
 				},
 				command: process.env.CI
 					? "$HOME/.cargo/bin/cargo-leptos serve"
-					: "devenv shell cargo leptos --manifest-path apps/monochange_app/crates/monochange_app/Cargo.toml serve",
-				cwd: process.env.CI ? join(repoRoot, "apps/monochange_app") : repoRoot,
+					: "devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve",
+				cwd: process.env.CI ? join(repoRoot, "app") : repoRoot,
 				reuseExistingServer: !process.env.CI,
 				timeout: 300_000,
 				url: baseURL,

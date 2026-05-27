@@ -14,6 +14,6 @@
 		"@types/node": "^24.12.2"
 	},
 	"description": "monochange web app frontend package configuration",
-	"repository": "https://github.com/monochange/monochange/tree/main/apps/monochange_app",
+	"repository": "https://github.com/monochange/monochange/tree/main/app",
 	"license": "Unlicense"
 }

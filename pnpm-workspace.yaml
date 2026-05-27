@@ -1,5 +1,5 @@
 packages:
-  - "apps/monochange_app"
+  - "app"
   - "packages/*"
 allowBuilds:
   "@parcel/watcher": true

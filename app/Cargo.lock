@@ -2627,7 +2627,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "async-trait",
  "ignore",
@@ -2643,7 +2643,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "async-trait",
  "monochange_core",
@@ -2662,7 +2662,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "monochange_core",
  "reqwest",
@@ -2672,7 +2672,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_publish"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "monochange_core",
  "reqwest",
@@ -2687,7 +2687,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_schema"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -3407,7 +3407,9 @@ checksum = "62e0021ea2c22aed41653bc7e1419abb2c97e038ff2c33d0e1309e49a97deec0"
 dependencies = [
  "base64",
  "bytes",
+ "futures-channel",
  "futures-core",
+ "futures-util",
  "http",
  "http-body",
  "http-body-util",

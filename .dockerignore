@@ -11,6 +11,6 @@ playwright/.cache/
 *.png
 *.jpg
 *.svg
-!apps/monochange_app/crates/monochange_app/public/**/*.svg
-!apps/monochange_app/crates/monochange_app/public/**/*.png
-!apps/monochange_app/crates/monochange_app/public/**/*.jpg
+!app/crates/monochange_app/public/**/*.svg
+!app/crates/monochange_app/public/**/*.png
+!app/crates/monochange_app/public/**/*.jpg

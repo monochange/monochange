@@ -29,10 +29,10 @@ WORKDIR /app
 # Copy workspace files
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ crates/
-COPY apps/monochange_app/ apps/monochange_app/
+COPY app/ app/
 
 # Build the Leptos SSR application
-WORKDIR /app/apps/monochange_app
+WORKDIR /app/app
 RUN cargo leptos build --release
 
 # ── Final stage ────────────────────────────────────────────────────────────
@@ -59,10 +59,10 @@ RUN apt-get update \
 RUN useradd -m -u 1000 app
 
 # Copy static assets and binary from builder
-COPY --from=builder /app/apps/monochange_app/target/site /app/site
-COPY --from=builder /app/apps/monochange_app/target/release/monochange_app /app/monochange_app
-COPY apps/monochange_app/secretspec.toml /app/secretspec.toml
-COPY apps/monochange_app/deploy/docker-entrypoint.sh /usr/local/bin/monochange-app-entrypoint
+COPY --from=builder /app/app/target/site /app/site
+COPY --from=builder /app/app/target/release/monochange_app /app/monochange_app
+COPY app/secretspec.toml /app/secretspec.toml
+COPY app/deploy/docker-entrypoint.sh /usr/local/bin/monochange-app-entrypoint
 
 # Ensure correct permissions and create the SQLite data directory.
 RUN mkdir -p /data \
