@@ -1346,3 +1346,36 @@ fn detect_deno_changes_with_version_not_in_map_skips() {
 	.unwrap_or_else(|error| panic!("detect_deno_changes: {error}"));
 	assert!(result.is_empty());
 }
+
+#[test]
+fn detect_cargo_changes_with_inline_table_without_version_skips() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("pkg".to_string(), "2.0.0".to_string());
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("pkg".to_string());
+	let contents = "[dependencies]\npkg = { path = '../pkg' }";
+	let result = sync::detect_cargo_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_go_changes_with_version_not_in_map_skips() {
+	let version_map = std::collections::BTreeMap::new();
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("example.com/pkg".to_string());
+	let contents = "module test\n\nrequire example.com/pkg v1.0.0\n";
+	let result = sync::detect_go_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
+	assert!(result.is_empty());
+}
