@@ -900,7 +900,6 @@ fn write_manifest_reports_missing_parent() {
 }
 
 #[test]
-#[test]
 fn detect_python_changes_with_empty_dep_name_skips() {
 	let mut version_map = std::collections::BTreeMap::new();
 	version_map.insert("mypkg".to_string(), "1.0.0".to_string());
@@ -1333,8 +1332,8 @@ fn detect_go_changes_with_package_not_in_workspace_skips() {
 fn detect_deno_changes_with_invalid_json_returns_error() {
 	let result = sync::detect_deno_changes(
 		"not json",
-		&Default::default(),
-		&Default::default(),
+		&std::collections::BTreeMap::new(),
+		&std::collections::BTreeSet::new(),
 		monochange_core::VersionStrategy::Default,
 	);
 	assert!(result.is_err());
