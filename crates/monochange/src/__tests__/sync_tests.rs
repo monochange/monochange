@@ -1045,14 +1045,6 @@ fn detect_deno_changes_with_non_matching_import_skips() {
 }
 
 #[test]
-fn apply_sync_changes_with_unsupported_ecosystem_returns_contents() {
-	let contents = "test contents";
-	let result = sync::apply_sync_changes(contents, &[], monochange_core::Ecosystem::Go)
-		.unwrap_or_else(|error| panic!("apply_sync_changes: {error}"));
-	assert_eq!(result, contents);
-}
-
-#[test]
 fn normalize_python_package_name_normalizes_separators() {
 	assert_eq!(sync::normalize_python_package_name("foo-bar"), "foo-bar");
 	assert_eq!(sync::normalize_python_package_name("foo_bar"), "foo-bar");
@@ -1337,4 +1329,20 @@ fn detect_deno_changes_with_invalid_json_returns_error() {
 		monochange_core::VersionStrategy::Default,
 	);
 	assert!(result.is_err());
+}
+
+#[test]
+fn detect_deno_changes_with_version_not_in_map_skips() {
+	let version_map = std::collections::BTreeMap::new();
+	let mut names = std::collections::BTreeSet::new();
+	names.insert("mypkg".to_string());
+	let contents = r#"{"imports": {"mypkg": "npm:mypkg@1.0.0"}}"#;
+	let result = sync::detect_deno_changes(
+		contents,
+		&version_map,
+		&names,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_deno_changes: {error}"));
+	assert!(result.is_empty());
 }

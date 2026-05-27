@@ -17,7 +17,6 @@ use monochange_core::DiscoveryReport;
 use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
-use monochange_core::PackageRecord;
 use monochange_core::VersionStrategy;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
@@ -116,51 +115,52 @@ struct VersionSyncAdapter {
 }
 
 impl VersionSyncAdapter {
-	fn for_ecosystem(ecosystem: Ecosystem) -> Option<Self> {
+	fn for_ecosystem(ecosystem: Ecosystem) -> Self {
 		match ecosystem {
 			Ecosystem::Cargo => {
-				Some(Self {
+				Self {
 					ecosystem,
 					detect_changes: detect_cargo_changes,
 					apply_changes: apply_cargo_changes,
-				})
+				}
 			}
 			Ecosystem::Dart => {
-				Some(Self {
+				Self {
 					ecosystem,
 					detect_changes: detect_dart_changes,
 					apply_changes: apply_dart_changes,
-				})
+				}
 			}
 			Ecosystem::Deno => {
-				Some(Self {
+				Self {
 					ecosystem,
 					detect_changes: detect_deno_changes,
 					apply_changes: apply_deno_changes,
-				})
+				}
 			}
 			Ecosystem::Go => {
-				Some(Self {
+				Self {
 					ecosystem,
 					detect_changes: detect_go_changes,
 					apply_changes: apply_go_changes,
-				})
+				}
 			}
 			Ecosystem::Npm => {
-				Some(Self {
+				Self {
 					ecosystem,
 					detect_changes: detect_npm_changes,
 					apply_changes: apply_npm_changes,
-				})
+				}
 			}
 			Ecosystem::Python => {
-				Some(Self {
+				Self {
 					ecosystem,
 					detect_changes: detect_python_changes,
 					apply_changes: apply_python_changes,
-				})
+				}
 			}
-			_ => None,
+			// All Ecosystem variants are handled above; this arm satisfies #[non_exhaustive].
+			_ => unreachable!("unexpected ecosystem: {ecosystem:?}"),
 		}
 	}
 }
@@ -196,16 +196,10 @@ pub(crate) fn plan_discovered_workspace_versions(
 	let version_map = package_version_map(discovery);
 	let workspace_package_names = workspace_package_names(discovery);
 	let mut files = Vec::with_capacity(discovery.packages.len());
-	let mut skipped = Vec::new();
+	let skipped = Vec::new();
 
 	for package in &discovery.packages {
-		let Some(adapter) = VersionSyncAdapter::for_ecosystem(package.ecosystem) else {
-			skipped.push(skipped_package(
-				package,
-				"ecosystem sync is not implemented yet",
-			));
-			continue;
-		};
+		let adapter = VersionSyncAdapter::for_ecosystem(package.ecosystem);
 
 		if version_map.is_empty() {
 			continue;
@@ -293,15 +287,6 @@ fn workspace_package_names(discovery: &DiscoveryReport) -> BTreeSet<String> {
 		.collect()
 }
 
-fn skipped_package(package: &PackageRecord, reason: &str) -> SkippedSyncPackage {
-	SkippedSyncPackage {
-		path: package.manifest_path.to_string_lossy().to_string(),
-		package_name: package.name.clone(),
-		ecosystem: package.ecosystem,
-		reason: reason.to_string(),
-	}
-}
-
 pub(crate) fn sync_context_error(
 	operation: &str,
 	ecosystem: Ecosystem,
@@ -334,7 +319,10 @@ pub(crate) fn version_prefix_for_strategy(
 		Ecosystem::Deno => monochange_deno::default_dependency_version_prefix(),
 		Ecosystem::Npm => monochange_npm::default_dependency_version_prefix(),
 		Ecosystem::Python => monochange_python::default_dependency_version_prefix(),
-		_ => "",
+		// Cargo and Go don't use version prefixes for caret/compatible strategies.
+		Ecosystem::Cargo | Ecosystem::Go => "",
+		// All Ecosystem variants are handled above.
+		_ => unreachable!("unexpected ecosystem: {ecosystem:?}"),
 	}
 }
 
@@ -706,9 +694,7 @@ pub fn apply_sync_changes(
 	changes: &[DependencySyncChange],
 	ecosystem: Ecosystem,
 ) -> MonochangeResult<String> {
-	let Some(adapter) = VersionSyncAdapter::for_ecosystem(ecosystem) else {
-		return Ok(contents.to_string());
-	};
+	let adapter = VersionSyncAdapter::for_ecosystem(ecosystem);
 	(adapter.apply_changes)(contents, changes)
 }
 
