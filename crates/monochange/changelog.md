@@ -4,6 +4,96 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
+
+### 🚀 Feature
+
+#### Add `mc sync versions` command for internal dependency synchronization
+
+Add a new CLI subcommand `mc sync versions` that synchronizes internal dependency version references across workspace packages to match each package's canonical version.
+
+- **`VersionStrategy` enum** in `monochange_core` controls constraint format: `Default`, `Exact`, `Caret`, `Compatible`.
+- **`DependencySyncChange` struct** in `monochange_core` reports what changed (dependency name, section, old value, new value).
+- **`sync_internal_dependency_versions()`** in `monochange_dart` scans pubspec.yaml `dependencies`, `dev_dependencies`, and `dependency_overrides` for internal workspace references and computes the target version constraint. Under `resolution: workspace`, `path:` references are converted to versioned constraints.
+- **`sync_internal_dependency_versions()`** in `monochange_npm` scans package.json for internal workspace dependencies, skipping `workspace:*` protocol references.
+- **CLI subcommand** `mc sync versions [--dry-run] [--strategy <default|exact|caret|compatible>]` orchestrates discovery, version map building, and per-ecosystem sync.
+- **`--dry-run`** flag shows what would change without writing files.
+
+Currently supports **Dart** and **npm** ecosystems. Other ecosystems will be added in follow-up changes.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #538](https://github.com/monochange/monochange/pull/538) · _Related issues:_ [#536](https://github.com/monochange/monochange/issues/536), [#537](https://github.com/monochange/monochange/issues/537)
+
+### 🐛 Fixed
+
+#### Refresh documentation audit coverage
+
+Updates documentation, CLI help text, package README content, and packaged skill guidance so the documented command surface matches the current monochange CLI and release workflow behavior.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #546](https://github.com/monochange/monochange/pull/546)
+
+#### Add `Inline` metadata style and make it the default
+
+Context blocks in changelog entries now render as a single inline paragraph joined with `·` instead of separate lines.
+
+When a review request (PR/MR) link is available, commit links are omitted since the PR already identifies the change. When no review request link exists, commit links are included as before.
+
+The existing `Plain` and `Blockquote` styles continue to render commit links unconditionally. The `Omit` style hides all metadata as before.
+
+**Before (default: `plain`):**
+
+```markdown
+# Add release summary panel
+
+_Owner:_ @user _Review:_ [PR #123](https://...) _Introduced in:_ [`abc1234`](https://...) _Related issues: #456
+```
+
+**After (default: `inline`):**
+
+```markdown
+# Add release summary panel
+
+_Owner:_ @user · _Review:_ [PR #123](https://...) · _Related issues: #456
+```
+
+Set `metadata_style = "inline"` (now the default), `"plain"`, `"blockquote"`, or `"omit"` under `[changelog.style]` in `monochange.toml`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #532](https://github.com/monochange/monochange/pull/532) · _Related issues:_ [#123](https://github.com/monochange/monochange/issues/123), [#456](https://github.com/monochange/monochange/issues/456)
+
+#### Enforce version constraints for Dart workspace resolution internal deps
+
+The `dart/internal-path-dependency-policy` lint rule now enforces version constraints (not `path:` references) when a pubspec declares `resolution:
+workspace`. Dart workspace resolution resolves versioned internal dependencies to local workspace packages automatically, so `path:` references are redundant and can cause publishing issues.
+
+**Before:** With `resolution: workspace`, internal deps using either `path:` or version constraints would pass the lint.
+
+**After:** With `resolution: workspace`, internal deps must use version constraints — `path:` references now produce a lint failure with the message "use version constraints (not `path:`) when resolution is workspace".
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #536](https://github.com/monochange/monochange/pull/536)
+
+#### Allow Dart workspace resolution for internal dependencies
+
+Dart linting now treats `resolution: workspace` as a valid internal package resolution mode, so versioned internal dependencies in `pubspec.yaml` files no longer fail the internal path dependency policy when Dart will resolve them from the workspace.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #534](https://github.com/monochange/monochange/pull/534)
+
+#### Skip gitignored release staging paths
+
+Release staging now skips gitignored paths before git inspection, avoiding failures on ignored symlink descendants such as FVM Flutter SDK files.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #545](https://github.com/monochange/monochange/pull/545) · _Closed issues:_ [#541](https://github.com/monochange/monochange/issues/541)
+
+#### Fix placeholder publish skipping external-mode packages
+
+Previously, `mc step:placeholder-publish` skipped packages configured with `publish.mode = "external"`, showing messages like "package opted out of built-in publishing". This was incorrect because placeholder publishing is a bootstrap utility separate from normal release publishing.
+
+Now placeholder publishing proceeds for all publishable packages regardless of `publish.mode`. The following safeguards remain in effect:
+
+- `publish.enabled = false` still opts out completely
+- Private/unpublishable package metadata is still respected
+- Registry support limitations are still enforced
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #543](https://github.com/monochange/monochange/pull/543) · _Closed issues:_ [#542](https://github.com/monochange/monochange/issues/542)
+
 ## [0.6.1](https://github.com/monochange/monochange/releases/tag/v0.6.1) (2026-05-24)
 
 ### 🚀 Feature
