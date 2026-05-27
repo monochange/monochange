@@ -235,13 +235,26 @@ pub fn build_changelog_updates(
 			.group_id
 			.as_deref()
 			.and_then(|group_id| group_definitions_by_id.get(group_id).copied());
+		// For group members, per-package changelogs should only include changes
+		// from changesets that directly target this package (kind=Package),
+		// not changes propagated from group-level targeting (kind=Group).
+		// Changes from group-targeted changesets appear in the group changelog instead.
+		let package_changes = if group_definition.is_some() {
+			filter_direct_package_changes(
+				release_note_changes.get(&decision.package_id),
+				&package_id,
+				&changeset_targets_by_path,
+			)
+		} else {
+			release_note_changes.get(&decision.package_id).cloned()
+		};
 		let changes = package_release_note_changes(
 			context.configuration,
 			package_definition,
 			group_definition,
 			decision,
 			package,
-			release_note_changes.get(&decision.package_id),
+			package_changes.as_ref(),
 			&planned_version.to_string(),
 		);
 		let changelog_title = context
@@ -1148,6 +1161,46 @@ pub fn group_changelog_include_allows(
 				.all(|package_id| selected.contains(package_id))
 		}
 	}
+}
+
+/// Filter changes for a per-package changelog to only include changes from
+/// changesets that directly target this package (kind=Package), excluding
+/// changes propagated from group-level targeting (kind=Group).
+///
+/// Group-level changes are already rendered in the group changelog, so
+/// including them in each member's per-package changelog would duplicate
+/// content across all member changelogs.
+///
+/// `config_id` is the package's configuration ID (e.g., "core" from
+/// `[package.core]`), used to match against `PreparedChangesetTarget.id`
+/// which also uses config IDs.
+pub fn filter_direct_package_changes(
+	changes: Option<&Vec<ReleaseNoteChange>>,
+	config_id: &str,
+	changeset_targets_by_path: &BTreeMap<PathBuf, Vec<PreparedChangesetTarget>>,
+) -> Option<Vec<ReleaseNoteChange>> {
+	let changes = changes?;
+	let mut filtered = Vec::new();
+	for change in changes {
+		let is_direct = match change.source_path.as_ref() {
+			Some(source_path) => {
+				let path = PathBuf::from(source_path);
+				match changeset_targets_by_path.get(&path) {
+					Some(targets) => {
+						targets
+							.iter()
+							.any(|t| t.kind == ChangesetTargetKind::Package && t.id == config_id)
+					}
+					None => true, // Unknown source: include by default
+				}
+			}
+			None => true, // No source path: include by default
+		};
+		if is_direct {
+			filtered.push(change.clone());
+		}
+	}
+	Some(filtered)
 }
 
 pub fn render_group_filtered_update_message(group_id: &str) -> String {
