@@ -144,6 +144,7 @@ pub(crate) fn build_command_with_cli(
 	cli: &[CliCommandDefinition],
 ) -> Command {
 	let mut command = Command::new(bin_name)
+		.version(env!("CARGO_PKG_VERSION"))
 		.about("Manage versions and releases for your multiplatform, multilanguage monorepo")
 		.styles(monochange_styles())
 		.color(ColorChoice::Auto)

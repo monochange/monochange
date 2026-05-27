@@ -626,3 +626,17 @@ fn multiline_indent_indents_continuation_lines() {
 fn multiline_indent_with_single_line() {
 	assert_eq!(multiline_indent("hello", 4), "hello");
 }
+
+#[test]
+fn version_flag_outputs_version() {
+	let command = crate::cli::build_command_with_cli("mc", &[]);
+	let error = command
+		.try_get_matches_from(["mc", "--version"])
+		.err()
+		.unwrap_or_else(|| panic!("expected version output"));
+	assert_eq!(error.kind(), clap::error::ErrorKind::DisplayVersion);
+	assert!(
+		error.to_string().contains(env!("CARGO_PKG_VERSION")),
+		"version output should contain the crate version"
+	);
+}
