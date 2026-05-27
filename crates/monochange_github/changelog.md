@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
+
+### 🐛 Fixed
+
+#### Refresh documentation audit coverage
+
+Updates documentation, CLI help text, package README content, and packaged skill guidance so the documented command surface matches the current monochange CLI and release workflow behavior.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #546](https://github.com/monochange/monochange/pull/546)
+
+#### Skip gitignored release staging paths
+
+Release staging now skips gitignored paths before git inspection, avoiding failures on ignored symlink descendants such as FVM Flutter SDK files.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #545](https://github.com/monochange/monochange/pull/545) · _Closed issues:_ [#541](https://github.com/monochange/monochange/issues/541)
+
 ## [0.6.1](https://github.com/monochange/monochange/releases/tag/v0.6.1) (2026-05-24)
 
 ### Changed

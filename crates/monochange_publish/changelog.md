@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
+
+### 🐛 Fixed
+
+#### Refresh documentation audit coverage
+
+Updates documentation, CLI help text, package README content, and packaged skill guidance so the documented command surface matches the current monochange CLI and release workflow behavior.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #546](https://github.com/monochange/monochange/pull/546)
+
+#### Include required files in placeholder publish directories
+
+Placeholder publish directories now include a `LICENSE` and `CHANGELOG.md` alongside the placeholder `README.md` and registry manifest. This lets Dart placeholder packages pass pub.dev's required-file validation during `mc step:placeholder-publish`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #547](https://github.com/monochange/monochange/pull/547)
+
+#### Fix placeholder publish skipping external-mode packages
+
+Previously, `mc step:placeholder-publish` skipped packages configured with `publish.mode = "external"`, showing messages like "package opted out of built-in publishing". This was incorrect because placeholder publishing is a bootstrap utility separate from normal release publishing.
+
+Now placeholder publishing proceeds for all publishable packages regardless of `publish.mode`. The following safeguards remain in effect:
+
+- `publish.enabled = false` still opts out completely
+- Private/unpublishable package metadata is still respected
+- Registry support limitations are still enforced
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #543](https://github.com/monochange/monochange/pull/543) · _Closed issues:_ [#542](https://github.com/monochange/monochange/issues/542)
+
 ## [0.6.1](https://github.com/monochange/monochange/releases/tag/v0.6.1) (2026-05-24)
 
 ### 🚀 Feature

@@ -590,3 +590,35 @@ type = "dart"
 ```
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #530](https://github.com/monochange/monochange/pull/530) _Introduced in:_ [`7a1ef20`](https://github.com/monochange/monochange/commit/7a1ef2061ac22a0bb9918b113009d468aa471083)
+
+## monochange_schema [0.3.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.3.2) (2026-05-27)
+
+### 🐛 Fixed
+
+#### Add `Inline` metadata style and make it the default
+
+Context blocks in changelog entries now render as a single inline paragraph joined with `·` instead of separate lines.
+
+When a review request (PR/MR) link is available, commit links are omitted since the PR already identifies the change. When no review request link exists, commit links are included as before.
+
+The existing `Plain` and `Blockquote` styles continue to render commit links unconditionally. The `Omit` style hides all metadata as before.
+
+**Before (default: `plain`):**
+
+```markdown
+# Add release summary panel
+
+_Owner:_ @user _Review:_ [PR #123](https://...) _Introduced in:_ [`abc1234`](https://...) _Related issues: #456
+```
+
+**After (default: `inline`):**
+
+```markdown
+# Add release summary panel
+
+_Owner:_ @user · _Review:_ [PR #123](https://...) · _Related issues: #456
+```
+
+Set `metadata_style = "inline"` (now the default), `"plain"`, `"blockquote"`, or `"omit"` under `[changelog.style]` in `monochange.toml`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #532](https://github.com/monochange/monochange/pull/532) · _Related issues:_ [#123](https://github.com/monochange/monochange/issues/123), [#456](https://github.com/monochange/monochange/issues/456)

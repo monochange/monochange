@@ -86,6 +86,16 @@ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #207](https://gith
 
 - No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.0.3.
 
+## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
+
+### 🐛 Fixed
+
+#### Refresh documentation audit coverage
+
+Updates documentation, CLI help text, package README content, and packaged skill guidance so the documented command surface matches the current monochange CLI and release workflow behavior.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #546](https://github.com/monochange/monochange/pull/546)
+
 ## [0.6.1](https://github.com/monochange/monochange/releases/tag/v0.6.1) (2026-05-24)
 
 ### Changed
