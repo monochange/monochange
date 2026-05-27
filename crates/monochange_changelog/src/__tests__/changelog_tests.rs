@@ -4,6 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
+use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::ChangelogFormat;
 use monochange_core::ChangelogSectionDef;
@@ -1984,4 +1985,280 @@ fn snapshot_metadata_styles_render_context_blocks() {
 	let inline_no_pr =
 		build_rendered_changeset_context(tempdir.path(), &changeset_no_pr, MetadataStyle::Inline);
 	insta::assert_snapshot!("metadata_style_inline_no_pr", inline_no_pr.context);
+}
+
+// --- filter_direct_package_changes tests ---
+
+#[test]
+fn filter_direct_package_changes_includes_changes_from_package_targeted_changeset() {
+	// A changeset that directly targets "pkg-a" (kind=Package) should be included
+	let changes = Some(vec![sample_change(
+		"pkg-a-record",
+		"pkg-a",
+		".changeset/feature.md",
+	)]);
+
+	let targets_by_path = BTreeMap::from([(
+		PathBuf::from(".changeset/feature.md"),
+		vec![PreparedChangesetTarget {
+			id: "pkg-a".to_string(),
+			kind: ChangesetTargetKind::Package,
+			bump: Some(BumpSeverity::Minor),
+			origin: "changeset".to_string(),
+			evidence_refs: Vec::new(),
+			change_type: None,
+			caused_by: Vec::new(),
+		}],
+	)]);
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-a", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert_eq!(
+		filtered.len(),
+		1,
+		"direct package change should be included"
+	);
+	assert_eq!(filtered[0].package_name, "pkg-a");
+}
+
+#[test]
+fn filter_direct_package_changes_excludes_changes_from_group_targeted_changeset() {
+	// A changeset that targets the group "sdk" (kind=Group) should be excluded
+	// from the per-package changelog — group changes go in the group changelog.
+	let changes = Some(vec![sample_change(
+		"pkg-a-record",
+		"pkg-a",
+		".changeset/group.md",
+	)]);
+
+	let targets_by_path = BTreeMap::from([(
+		PathBuf::from(".changeset/group.md"),
+		vec![PreparedChangesetTarget {
+			id: "sdk".to_string(),
+			kind: ChangesetTargetKind::Group,
+			bump: Some(BumpSeverity::Minor),
+			origin: "changeset".to_string(),
+			evidence_refs: Vec::new(),
+			change_type: None,
+			caused_by: Vec::new(),
+		}],
+	)]);
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-a", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert!(
+		filtered.is_empty(),
+		"group-targeted change should be excluded from per-package changelog"
+	);
+}
+
+#[test]
+fn filter_direct_package_changes_excludes_changes_targeting_different_package() {
+	// A changeset targeting "pkg-b" (kind=Package) should NOT be included in
+	// pkg-a's per-package changelog.
+	let changes = Some(vec![sample_change(
+		"pkg-a-record",
+		"pkg-a",
+		".changeset/other.md",
+	)]);
+
+	let targets_by_path = BTreeMap::from([(
+		PathBuf::from(".changeset/other.md"),
+		vec![PreparedChangesetTarget {
+			id: "pkg-b".to_string(),
+			kind: ChangesetTargetKind::Package,
+			bump: Some(BumpSeverity::Minor),
+			origin: "changeset".to_string(),
+			evidence_refs: Vec::new(),
+			change_type: None,
+			caused_by: Vec::new(),
+		}],
+	)]);
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-a", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert!(
+		filtered.is_empty(),
+		"change targeting a different package should be excluded"
+	);
+}
+
+#[test]
+fn filter_direct_package_changes_includes_changes_with_no_source_path() {
+	// Changes without a source_path should be included by default (defensive)
+	let mut change = sample_change("pkg-a-record", "pkg-a", ".changeset/feature.md");
+	change.source_path = None;
+	let changes = Some(vec![change]);
+
+	let targets_by_path = BTreeMap::new();
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-a", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert_eq!(
+		filtered.len(),
+		1,
+		"change with no source_path should be included"
+	);
+}
+
+#[test]
+fn filter_direct_package_changes_includes_changes_with_unknown_source_path() {
+	// Changes with a source_path not found in changeset_targets_by_path should be
+	// included by default (defensive — this shouldn't normally happen)
+	let changes = Some(vec![sample_change(
+		"pkg-a-record",
+		"pkg-a",
+		".changeset/unknown.md",
+	)]);
+
+	let targets_by_path = BTreeMap::new();
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-a", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert_eq!(
+		filtered.len(),
+		1,
+		"change with unknown source_path should be included"
+	);
+}
+
+#[test]
+fn filter_direct_package_changes_returns_none_when_changes_is_none() {
+	let targets_by_path = BTreeMap::<PathBuf, Vec<PreparedChangesetTarget>>::new();
+
+	let result = filter_direct_package_changes(None, "pkg-a", &targets_by_path);
+	assert!(result.is_none(), "should return None when changes is None");
+}
+
+#[test]
+fn filter_direct_package_changes_returns_empty_vec_for_empty_changes() {
+	let changes = Some(vec![]);
+	let targets_by_path = BTreeMap::<PathBuf, Vec<PreparedChangesetTarget>>::new();
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-a", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert!(
+		filtered.is_empty(),
+		"should return empty vec for empty input"
+	);
+}
+
+#[test]
+fn filter_direct_package_changes_filters_mixed_changes() {
+	// A package that has both direct changes (kind=Package) and group-propagated
+	// changes (kind=Group) should only retain the direct changes.
+	let direct_change = sample_change("pkg-a-record", "pkg-a", ".changeset/direct.md");
+	let group_change = sample_change("pkg-a-record", "pkg-a", ".changeset/group.md");
+	let changes = Some(vec![direct_change.clone(), group_change]);
+
+	let targets_by_path = BTreeMap::from([
+		(
+			PathBuf::from(".changeset/direct.md"),
+			vec![PreparedChangesetTarget {
+				id: "pkg-a".to_string(),
+				kind: ChangesetTargetKind::Package,
+				bump: Some(BumpSeverity::Minor),
+				origin: "changeset".to_string(),
+				evidence_refs: Vec::new(),
+				change_type: None,
+				caused_by: Vec::new(),
+			}],
+		),
+		(
+			PathBuf::from(".changeset/group.md"),
+			vec![PreparedChangesetTarget {
+				id: "sdk".to_string(),
+				kind: ChangesetTargetKind::Group,
+				bump: Some(BumpSeverity::Minor),
+				origin: "changeset".to_string(),
+				evidence_refs: Vec::new(),
+				change_type: None,
+				caused_by: Vec::new(),
+			}],
+		),
+	]);
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-a", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert_eq!(filtered.len(), 1, "only direct change should remain");
+	assert_eq!(filtered[0].source_path, direct_change.source_path);
+}
+
+#[test]
+fn filter_direct_package_changes_with_multi_target_changeset() {
+	// A changeset that targets both pkg-a and pkg-b directly (kind=Package)
+	// should be included for pkg-a.
+	let change = sample_change("pkg-a-record", "pkg-a", ".changeset/multi.md");
+	let changes = Some(vec![change]);
+
+	let targets_by_path = BTreeMap::from([(
+		PathBuf::from(".changeset/multi.md"),
+		vec![
+			PreparedChangesetTarget {
+				id: "pkg-a".to_string(),
+				kind: ChangesetTargetKind::Package,
+				bump: Some(BumpSeverity::Minor),
+				origin: "changeset".to_string(),
+				evidence_refs: Vec::new(),
+				change_type: None,
+				caused_by: Vec::new(),
+			},
+			PreparedChangesetTarget {
+				id: "pkg-b".to_string(),
+				kind: ChangesetTargetKind::Package,
+				bump: Some(BumpSeverity::Patch),
+				origin: "changeset".to_string(),
+				evidence_refs: Vec::new(),
+				change_type: None,
+				caused_by: Vec::new(),
+			},
+		],
+	)]);
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-a", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert_eq!(
+		filtered.len(),
+		1,
+		"multi-target changeset should be included for pkg-a"
+	);
+}
+
+#[test]
+fn filter_direct_package_changes_skips_multi_target_changeset_for_non_target() {
+	// A changeset that targets both pkg-a and pkg-b should NOT be included
+	// for pkg-c's per-package changelog.
+	let change = sample_change("pkg-c-record", "pkg-c", ".changeset/multi.md");
+	let changes = Some(vec![change]);
+
+	let targets_by_path = BTreeMap::from([(
+		PathBuf::from(".changeset/multi.md"),
+		vec![
+			PreparedChangesetTarget {
+				id: "pkg-a".to_string(),
+				kind: ChangesetTargetKind::Package,
+				bump: Some(BumpSeverity::Minor),
+				origin: "changeset".to_string(),
+				evidence_refs: Vec::new(),
+				change_type: None,
+				caused_by: Vec::new(),
+			},
+			PreparedChangesetTarget {
+				id: "pkg-b".to_string(),
+				kind: ChangesetTargetKind::Package,
+				bump: Some(BumpSeverity::Patch),
+				origin: "changeset".to_string(),
+				evidence_refs: Vec::new(),
+				change_type: None,
+				caused_by: Vec::new(),
+			},
+		],
+	)]);
+
+	let result = filter_direct_package_changes(changes.as_ref(), "pkg-c", &targets_by_path);
+	let filtered = result.expect("should return Some");
+	assert!(
+		filtered.is_empty(),
+		"changeset targeting pkg-a and pkg-b should not appear in pkg-c's changelog"
+	);
 }
