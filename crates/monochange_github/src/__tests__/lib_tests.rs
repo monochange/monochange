@@ -2086,14 +2086,23 @@ fn git_stage_paths_skips_missing_untracked_paths_and_ignored_untracked_files() {
 	git(&repo, &["config", "user.email", "monochange@example.com"]);
 	git(&repo, &["config", "commit.gpgsign", "false"]);
 	must_ok(
-		fs::write(repo.join(".gitignore"), ".monochange/local/\n"),
+		fs::write(repo.join(".gitignore"), ".monochange/\n"),
 		"write gitignore",
 	);
 	must_ok(
 		fs::write(repo.join("release.txt"), "before\n"),
 		"write release file",
 	);
+	must_ok(
+		fs::create_dir_all(repo.join(".monochange/releases")),
+		"create release state dir",
+	);
+	must_ok(
+		fs::write(repo.join(".monochange/releases/release.json"), "{}\n"),
+		"write release state",
+	);
 	git(&repo, &["add", "."]);
+	git(&repo, &["add", "-f", ".monochange/releases/release.json"]);
 	git(&repo, &["commit", "-m", "initial"]);
 	must_ok(
 		fs::create_dir_all(repo.join(".monochange/local")),
@@ -2103,6 +2112,17 @@ fn git_stage_paths_skips_missing_untracked_paths_and_ignored_untracked_files() {
 		fs::write(repo.join(".monochange/local/release-manifest.json"), "{}\n"),
 		"write manifest",
 	);
+	must_ok(
+		fs::write(
+			repo.join(".monochange/releases/release.json"),
+			"{\"released\":true}\n",
+		),
+		"update release state",
+	);
+	must_ok(
+		fs::write(repo.join("release.txt"), "after\n"),
+		"update release file",
+	);
 
 	must_ok(
 		tokio::runtime::Runtime::new()
@@ -2111,8 +2131,65 @@ fn git_stage_paths_skips_missing_untracked_paths_and_ignored_untracked_files() {
 				&repo,
 				&[
 					PathBuf::from(".monochange/local/release-manifest.json"),
+					PathBuf::from(".monochange/releases/release.json"),
+					repo.join("release.txt"),
 					PathBuf::from(".changeset/missing.md"),
 				],
+				false,
+			)),
+		"stage paths",
+	);
+
+	assert_eq!(
+		git_output(&repo, &["diff", "--cached", "--name-only"]).trim(),
+		".monochange/releases/release.json\nrelease.txt"
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn git_stage_paths_skips_gitignored_symlink_descendants() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let repo = tempdir.path().join("repo");
+	git(tempdir.path(), &["init", repo.to_string_lossy().as_ref()]);
+	git(&repo, &["config", "user.name", "monochange Tests"]);
+	git(&repo, &["config", "user.email", "monochange@example.com"]);
+	git(&repo, &["config", "commit.gpgsign", "false"]);
+	must_ok(
+		fs::write(repo.join(".gitignore"), ".fvm/\n"),
+		"write gitignore",
+	);
+	git(&repo, &["add", ".gitignore"]);
+	git(&repo, &["commit", "-m", "initial"]);
+
+	let sdk_metadata = tempdir
+		.path()
+		.join("flutter-sdk/bin/cache/dart-sdk/lib/_internal/sdk_library_metadata");
+	must_ok(fs::create_dir_all(&sdk_metadata), "create sdk metadata dir");
+	must_ok(
+		fs::write(
+			sdk_metadata.join("pubspec.yaml"),
+			"name: sdk_library_metadata\n",
+		),
+		"write sdk pubspec",
+	);
+	must_ok(fs::create_dir_all(repo.join(".fvm")), "create fvm dir");
+	must_ok(
+		std::os::unix::fs::symlink(
+			tempdir.path().join("flutter-sdk"),
+			repo.join(".fvm/flutter_sdk"),
+		),
+		"create flutter sdk symlink",
+	);
+
+	must_ok(
+		tokio::runtime::Runtime::new()
+			.unwrap()
+			.block_on(git_stage_paths(
+				&repo,
+				&[PathBuf::from(
+					".fvm/flutter_sdk/bin/cache/dart-sdk/lib/_internal/sdk_library_metadata/pubspec.yaml",
+				)],
 				false,
 			)),
 		"stage paths",
