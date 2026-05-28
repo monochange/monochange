@@ -47,7 +47,7 @@ export default defineConfig({
 					SECRETSPEC_PROVIDER: process.env.SECRETSPEC_PROVIDER ?? "env://",
 				},
 				command: process.env.CI
-					? ["cargo-leptos", "serve"]
+					? "$HOME/.cargo/bin/cargo-leptos serve"
 					: "devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve",
 				cwd: process.env.CI ? join(repoRoot, "app") : repoRoot,
 				reuseExistingServer: !process.env.CI,
