@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.3](https://github.com/monochange/monochange/releases/tag/v0.6.3) (2026-05-28)
+
+### 🚀 Feature
+
+#### Polish `mc versions` command
+
+Rename `mc sync versions` to top-level `mc versions` with plan/apply abstraction, `--format text|json` output, unsupported ecosystem reporting, and snapshot-tested CLI output. Add Criterion benchmark coverage and documentation.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #540](https://github.com/monochange/monochange/pull/540) · _Related issues:_ [#539](https://github.com/monochange/monochange/issues/539)
+
 ## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
 
 ### 🚀 Feature

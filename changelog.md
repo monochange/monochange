@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.3](https://github.com/monochange/monochange/releases/tag/v0.6.3) (2026-05-28)
+
+Grouped release for `main`.
+
+### 🚀 Feature
+
+#### Polish `mc versions` command
+
+_Packages:_ _monochange_, _monochange_core_
+
+Rename `mc sync versions` to top-level `mc versions` with plan/apply abstraction, `--format text|json` output, unsupported ecosystem reporting, and snapshot-tested CLI output. Add Criterion benchmark coverage and documentation.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #540](https://github.com/monochange/monochange/pull/540) · _Related issues:_ [#539](https://github.com/monochange/monochange/issues/539)
+
+### 🐛 Fixed
+
+#### Document `mc versions` command with full ecosystem coverage
+
+_Packages:_ _@monochange/skill_, _monochange_
+
+Update documentation and skill to accurately describe the `mc versions` command:
+
+- **All ecosystems supported**: Cargo, Dart, Deno, Go, npm, and Python
+- **Usage examples**: `--dry-run`, `--format json`, `--strategy exact/caret/compatible`
+- **Ecosystem details**: Each adapter's manifest scanning behavior documented
+
+Fix incorrect reference in start-here guide that described `mc versions` as read-only (it actually writes to manifests).
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #552](https://github.com/monochange/monochange/pull/552)
+
+#### Polish `mc versions` command
+
+_Packages:_ _@monochange/skill_
+
+Rename `mc sync versions` to top-level `mc versions` with plan/apply abstraction, `--format text|json` output, unsupported ecosystem reporting, and snapshot-tested CLI output. Add Criterion benchmark coverage and documentation.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #540](https://github.com/monochange/monochange/pull/540) · _Related issues:_ [#539](https://github.com/monochange/monochange/issues/539)
+
+#### Support `--version` flag on mc CLI
+
+_Packages:_ _monochange_
+
+The root clap command was missing `.version()`, causing `mc --version` to be rejected as an unexpected argument. Added `CARGO_PKG_VERSION` registration so the flag now works correctly.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #551](https://github.com/monochange/monochange/pull/551)
+
+#### Filter group-propagated changes from per-package changelogs
+
+_Packages:_ _monochange_changelog_
+
+When a package is a member of a version group, its per-package changelog now only includes changes from changesets that directly target that package (kind=Package), not changes propagated from group-level targeting (kind=Group). Group-level changes appear exclusively in the group changelog, eliminating content duplication across member changelogs.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #549](https://github.com/monochange/monochange/pull/549) · _Closed issues:_ [#548](https://github.com/monochange/monochange/issues/548)
+
 ## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
 
 Grouped release for `main`.
