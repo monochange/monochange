@@ -159,8 +159,8 @@ impl VersionSyncAdapter {
 					apply_changes: apply_python_changes,
 				}
 			}
-			// All Ecosystem variants are handled above; this arm satisfies #[non_exhaustive].
-			_ => unreachable!("unexpected ecosystem: {ecosystem:?}"),
+			#[allow(unreachable_patterns)]
+			_ => panic!("unsupported ecosystem: {ecosystem:?}"),
 		}
 	}
 }
@@ -321,8 +321,8 @@ pub(crate) fn version_prefix_for_strategy(
 		Ecosystem::Python => monochange_python::default_dependency_version_prefix(),
 		// Cargo and Go don't use version prefixes for caret/compatible strategies.
 		Ecosystem::Cargo | Ecosystem::Go => "",
-		// All Ecosystem variants are handled above.
-		_ => unreachable!("unexpected ecosystem: {ecosystem:?}"),
+		#[allow(unreachable_patterns)]
+		_ => panic!("unsupported ecosystem: {ecosystem:?}"),
 	}
 }
 
