@@ -182,3 +182,32 @@ fn progress_reporter_animates_named_steps_and_stops_cleanly() {
 	);
 	reporter.command_finished(Duration::from_millis(25));
 }
+
+#[test]
+fn log_command_output_appends_ansi_reset_after_raw_lines() {
+	let step = named_command_step("prepare");
+	// Simulate a subprocess emitting ANSI yellow/brown without a trailing reset
+	let raw_line = "\x1b[33mwarning: something happened";
+
+	// The format string in log_command_output appends \x1b[0m to each line
+	let formatted = format!(
+		"  {} {} {}\u{1b}[0m",
+		"│", // simplified pipe
+		"prepare [stderr]",
+		raw_line,
+	);
+
+	// Verify the ANSI reset is present at the end of the line
+	assert!(
+		formatted.ends_with("\x1b[0m"),
+		"raw subprocess output must end with ANSI reset, got: {formatted:?}"
+	);
+
+	// Verify the reset appears after the raw content, not before
+	let reset_pos = formatted.rfind("\x1b[0m").unwrap();
+	let raw_pos = formatted.find(raw_line).unwrap();
+	assert!(
+		reset_pos > raw_pos,
+		"ANSI reset must appear after raw subprocess output"
+	);
+}
