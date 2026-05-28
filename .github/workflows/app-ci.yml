@@ -135,7 +135,7 @@ jobs:
       - name: start web server
         run: |
           cd app
-          cargo leptos --manifest-path crates/monochange_app/Cargo.toml serve &
+          ~/.cargo/bin/cargo-leptos --manifest-path crates/monochange_app/Cargo.toml serve &
           sleep 30
         shell: bash
 
