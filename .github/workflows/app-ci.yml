@@ -108,7 +108,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/monochange_test
       JWT_SECRET: ci-test-jwt-secret-key-123
       GITHUB_CLIENT_ID: ci-test-client-id
-      GITHUB_CLIENT_SECRET: ci-test-client-secret
+      MONOCHANGE_APP_SKIP_WEB_SERVER: "1"
 
     steps:
       - name: checkout repository
@@ -131,11 +131,18 @@ jobs:
           pnpm exec playwright install chromium
         shell: devenv shell -- bash -e {0}
 
+      - name: start web server
+        run: |
+          cd app
+          cargo leptos --manifest-path crates/monochange_app/Cargo.toml serve &
+          sleep 30
+        shell: devenv shell -- bash -e {0}
+
       - name: run end-to-end tests
         run: |
           cd app
           pnpm exec playwright test
-        shell: bash
+        shell: devenv shell -- bash -e {0}
 
   coverage:
     timeout-minutes: 30
