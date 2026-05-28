@@ -345,6 +345,117 @@ fn summary_rule_reports_length_period_and_prefix_issues_together() {
 }
 
 #[test]
+fn summary_rule_enforces_default_max_length_of_60() {
+	let rule = SummaryRule::new();
+	let long_heading = format!("# {}", "a".repeat(61));
+	let results = run_rule(
+		&rule,
+		&lint_file(&long_heading, Vec::new()),
+		&severity(LintSeverity::Error),
+	);
+
+	assert!(
+		results
+			.iter()
+			.any(|result| { result.message == "changeset summary must be at most 60 characters" }),
+		"expected default max_length of 60, got: {results:?}"
+	);
+}
+
+#[test]
+fn summary_rule_allows_explicit_max_length_override() {
+	let rule = SummaryRule::new();
+	let heading = format!("# {}", "a".repeat(61));
+	let mut options = BTreeMap::new();
+	options.insert("max_length".to_string(), json!(80));
+	let results = run_rule(&rule, &lint_file(&heading, Vec::new()), &detailed(options));
+
+	assert!(
+		!results
+			.iter()
+			.any(|result| { result.message.contains("at most") }),
+		"explicit max_length should override default"
+	);
+}
+
+#[test]
+fn summary_rule_require_description_passes_with_paragraph_after_heading() {
+	let rule = SummaryRule::new();
+	let mut options = BTreeMap::new();
+	options.insert("require_description".to_string(), json!(true));
+	let body = "# Fix CLI version flag\n\nThe root clap command was missing.";
+	let results = run_rule(&rule, &lint_file(body, Vec::new()), &detailed(options));
+
+	assert!(
+		results
+			.iter()
+			.all(|result| { !result.message.contains("description") }),
+		"should pass when description follows heading, got: {results:?}"
+	);
+}
+
+#[test]
+fn summary_rule_require_description_fails_when_only_heading() {
+	let rule = SummaryRule::new();
+	let mut options = BTreeMap::new();
+	options.insert("require_description".to_string(), json!(true));
+	let results = run_rule(
+		&rule,
+		&lint_file("# Fix CLI version flag", Vec::new()),
+		&detailed(options),
+	);
+
+	assert!(results.iter().any(|result| {
+		result.message == "changeset summary must be followed by a description paragraph"
+	}));
+}
+
+#[test]
+fn summary_rule_require_description_fails_when_only_empty_lines_after_heading() {
+	let rule = SummaryRule::new();
+	let mut options = BTreeMap::new();
+	options.insert("require_description".to_string(), json!(true));
+	let body = "# Fix CLI version flag\n\n\n";
+	let results = run_rule(&rule, &lint_file(body, Vec::new()), &detailed(options));
+
+	assert!(results.iter().any(|result| {
+		result.message == "changeset summary must be followed by a description paragraph"
+	}));
+}
+
+#[test]
+fn summary_rule_require_description_fails_when_next_line_is_heading() {
+	let rule = SummaryRule::new();
+	let mut options = BTreeMap::new();
+	options.insert("require_description".to_string(), json!(true));
+	let body = "# Summary\n\n## Details";
+	let results = run_rule(&rule, &lint_file(body, Vec::new()), &detailed(options));
+
+	assert!(results.iter().any(|result| {
+		result.message == "changeset summary must be followed by a description paragraph"
+	}));
+}
+
+#[test]
+fn summary_rule_require_description_skipped_when_disabled() {
+	let rule = SummaryRule::new();
+	let mut options = BTreeMap::new();
+	options.insert("require_description".to_string(), json!(false));
+	let results = run_rule(
+		&rule,
+		&lint_file("# Fix CLI version flag", Vec::new()),
+		&detailed(options),
+	);
+
+	assert!(
+		!results
+			.iter()
+			.any(|result| { result.message.contains("description") }),
+		"should not check for description when disabled"
+	);
+}
+
+#[test]
 fn no_section_headings_rule_reports_unique_change_type_headings() {
 	let rule = NoSectionHeadingsRule::new();
 	let file = lint_file(
