@@ -358,7 +358,7 @@ impl CliProgressReporter {
 		));
 		for phase in summarized_phase_timings(phase_timings) {
 			self.print_line(&format!(
-				"  {} {} {}",
+				"  {} {} {}\u{1b}[0m",
 				self.paint(self.symbols.bullet, Style::Muted),
 				self.paint(&phase.label, Style::Detail),
 				self.paint(&format_duration(phase.duration), Style::Muted),
@@ -445,7 +445,7 @@ impl CliProgressReporter {
 		let step_label = step.display_name();
 		for line in text.lines() {
 			self.print_line(&format!(
-				"  {} {} {}",
+				"  {} {} {}\u{1b}[0m",
 				self.paint(self.symbols.log_pipe, Style::Muted),
 				self.paint(&format!("{step_label} [{stream_label}]"), Style::Detail),
 				line,
@@ -489,7 +489,7 @@ impl CliProgressReporter {
 				}
 				with_stderr_lock(&writer_lock, || {
 					eprint!(
-						"\r\u{1b}[2K{} {}",
+						"\r\u{1b}[2K\u{1b}[0m{} {}",
 						paint_text(frame, Style::Accent, color),
 						message,
 					);
@@ -514,7 +514,7 @@ impl CliProgressReporter {
 		let _ = spinner.handle.join();
 		if spinner.rendered.load(Ordering::Relaxed) {
 			with_stderr_lock(&self.writer_lock, || {
-				eprint!("\r\u{1b}[2K");
+				eprint!("\r\u{1b}[2K\u{1b}[0m");
 				let _ = io::stderr().flush();
 			});
 		}
@@ -522,7 +522,7 @@ impl CliProgressReporter {
 
 	fn print_line(&self, text: &str) {
 		with_stderr_lock(&self.writer_lock, || {
-			eprint!("\r\u{1b}[2K");
+			eprint!("\r\u{1b}[2K\u{1b}[0m");
 			eprintln!("{text}");
 			let _ = io::stderr().flush();
 		});
