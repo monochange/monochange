@@ -118,31 +118,32 @@ jobs:
         uses: ./.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          activate: "true"
 
       - name: install cargo-leptos
         run: |
           cd app
           cargo binstall cargo-leptos@0.3.6 -y --force
-        shell: devenv shell -- bash -e {0}
+        shell: bash
 
       - name: install playwright browsers
         run: |
           cd app
           pnpm exec playwright install chromium
-        shell: devenv shell -- bash -e {0}
+        shell: bash
 
       - name: start web server
         run: |
           cd app
           cargo leptos --manifest-path crates/monochange_app/Cargo.toml serve &
           sleep 30
-        shell: devenv shell -- bash -e {0}
+        shell: bash
 
       - name: run end-to-end tests
         run: |
           cd app
           pnpm exec playwright test
-        shell: devenv shell -- bash -e {0}
+        shell: bash
 
   coverage:
     timeout-minutes: 30
