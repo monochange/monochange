@@ -185,7 +185,7 @@ fn progress_reporter_animates_named_steps_and_stops_cleanly() {
 
 #[test]
 fn log_command_output_appends_ansi_reset_after_raw_lines() {
-	let step = named_command_step("prepare");
+	let _step = named_command_step("prepare");
 	// Simulate a subprocess emitting ANSI yellow/brown without a trailing reset
 	let raw_line = "\x1b[33mwarning: something happened";
 
