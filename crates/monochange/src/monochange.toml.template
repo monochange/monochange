@@ -11,6 +11,7 @@
     package_ids_toml -- pre-formatted TOML array contents
     has_cargo / has_npm / has_deno / has_dart / has_python -- ecosystem detected flags
 #}
+#:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
 # =============================================================================
 # monochange.toml — repository configuration for monochange
 # =============================================================================
