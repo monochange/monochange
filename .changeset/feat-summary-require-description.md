@@ -2,7 +2,7 @@
 monochange_config: minor
 ---
 
-# Add `require_description` option and default `max_length` to `changesets/summary` lint rule
+# Add require_description to summary lint rule
 
 The `changesets/summary` lint rule now supports a `require_description` option that ensures the summary heading is followed by at least one non-empty paragraph (not another heading). When enabled, a changeset with only a heading and no description body will fail validation.
 
