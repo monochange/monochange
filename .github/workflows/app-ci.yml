@@ -82,7 +82,7 @@ jobs:
       - name: cargo leptos build (frontend-only)
         run: |
           cd app
-          ~/.cargo/bin/cargo-leptos build --frontend-only
+          cargo leptos build --frontend-only
         shell: devenv shell -- bash -e {0}
 
   e2e:
@@ -108,6 +108,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/monochange_test
       JWT_SECRET: ci-test-jwt-secret-key-123
       GITHUB_CLIENT_ID: ci-test-client-id
+      GITHUB_CLIENT_SECRET: ci-test-client-secret
       MONOCHANGE_APP_SKIP_WEB_SERVER: "1"
 
     steps:
@@ -118,26 +119,28 @@ jobs:
         uses: ./.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          activate: "true"
 
       - name: install cargo-leptos
         run: |
           cd app
           cargo binstall cargo-leptos@0.3.6 -y --force
-        shell: bash
+        shell: devenv shell -- bash -e {0}
 
       - name: install playwright browsers
         run: |
           cd app
           pnpm exec playwright install chromium
-        shell: bash
+        shell: devenv shell -- bash -e {0}
 
       - name: start web server
         run: |
           cd app
-          ~/.cargo/bin/cargo-leptos --manifest-path crates/monochange_app/Cargo.toml serve &
+          cargo leptos --manifest-path crates/monochange_app/Cargo.toml serve &
           sleep 30
-        shell: bash
+        shell: devenv shell -- bash -e {0}
+
+      - name: install pnpm globally
+        run: npm install -g pnpm
 
       - name: run end-to-end tests
         run: |
