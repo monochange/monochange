@@ -257,7 +257,9 @@ impl LintRuleRunner for SummaryRule {
 		let max_length = config
 			.option("max_length")
 			.and_then(serde_json::Value::as_u64)
-			.map(|v| v as usize);
+			.map(|v| v as usize)
+			.or(Some(60));
+		let require_description = config.bool_option("require_description", false);
 		let forbid_trailing_period = config.bool_option("forbid_trailing_period", false);
 		let forbid_conventional_commit_prefix =
 			config.bool_option("forbid_conventional_commit_prefix", false);
@@ -348,6 +350,25 @@ impl LintRuleRunner for SummaryRule {
 				"changeset summary must not use a conventional-commit prefix",
 				severity,
 			));
+		}
+
+		if require_description {
+			let has_description = body
+				.lines()
+				.skip(1) // skip the heading line itself
+				.any(|line| {
+					let trimmed = line.trim();
+					!trimmed.is_empty() && !trimmed.starts_with('#')
+				});
+
+			if !has_description {
+				results.push(LintResult::new(
+					self.rule.id.clone(),
+					LintLocation::new(ctx.manifest_path, 1, 1),
+					"changeset summary must be followed by a description paragraph",
+					severity,
+				));
+			}
 		}
 
 		results
