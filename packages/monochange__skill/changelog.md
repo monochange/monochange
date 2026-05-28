@@ -8,6 +8,12 @@
 - Documented verified built-in commands, step commands, MCP tools, user-defined command behavior, and all current CLI step types.
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 
+## [0.6.4](https://github.com/monochange/monochange/releases/tag/v0.6.4) (2026-05-28)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.4 as part of group `main`.
+
 ## [0.6.3](https://github.com/monochange/monochange/releases/tag/v0.6.3) (2026-05-28)
 
 ### 🐛 Fixed

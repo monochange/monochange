@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.4](https://github.com/monochange/monochange/releases/tag/v0.6.4) (2026-05-28)
+
+Grouped release for `main`.
+
+### 🐛 Fixed
+
+#### Fix ANSI color bleeding between CLI step outputs
+
+_Packages:_ _monochange_
+
+When subprocess output (e.g. from cargo, git) contained ANSI color codes without trailing reset sequences, the color state would leak into subsequent step output, spinner rendering, and progress lines. This caused brownish/yellowish color bleeding visible when Prepare Release ran before other steps.
+
+Added `\x1b[0m` (ANSI reset) to all output paths:
+
+- Raw subprocess log lines in `log_command_output`
+- Line-clear sequences in `print_line` and `stop_spinner`
+- Spinner rendering in the animation thread
+- Phase timing detail lines
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #553](https://github.com/monochange/monochange/pull/553)
+
 ## [0.6.3](https://github.com/monochange/monochange/releases/tag/v0.6.3) (2026-05-28)
 
 Grouped release for `main`.
