@@ -132,19 +132,14 @@ jobs:
           pnpm exec playwright install chromium
         shell: devenv shell -- bash -e {0}
 
-      - name: start web server
-        run: |
-          cd app
-          cargo leptos --manifest-path crates/monochange_app/Cargo.toml serve &
-          sleep 30
-        shell: devenv shell -- bash -e {0}
-
       - name: install pnpm globally
         run: npm install -g pnpm
 
       - name: run end-to-end tests
         run: |
           cd app
+          ~/.cargo/bin/cargo-leptos --manifest-path crates/monochange_app/Cargo.toml serve &
+          sleep 60
           pnpm exec playwright test
         shell: bash
 
