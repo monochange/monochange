@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Dark rounded square -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="#1a1a2e"/>
+  <!-- Central node — white -->
+  <circle cx="256" cy="256" r="28" fill="white"/>
+  <!-- Three radial nodes — symmetrical, white -->
+  <circle cx="256" cy="136" r="24" fill="white" opacity="0.6"/>
+  <circle cx="360" cy="316" r="24" fill="white" opacity="0.6"/>
+  <circle cx="152" cy="316" r="24" fill="white" opacity="0.6"/>
+  <!-- Connecting lines — white, bold -->
+  <line x1="256" y1="256" x2="256" y2="136" stroke="white" stroke-width="10" opacity="0.4"/>
+  <line x1="256" y1="256" x2="360" y2="316" stroke="white" stroke-width="10" opacity="0.4"/>
+  <line x1="256" y1="256" x2="152" y2="316" stroke="white" stroke-width="10" opacity="0.4"/>
+</svg>

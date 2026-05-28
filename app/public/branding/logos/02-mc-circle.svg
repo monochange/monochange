@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Dark circle -->
+  <circle cx="256" cy="256" r="240" fill="#1a1a2e"/>
+  <!-- MC — solid white, bold -->
+  <text x="256" y="300" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="240" letter-spacing="-12" fill="white">MC</text>
+  <!-- Solid white underline -->
+  <rect x="120" y="340" width="272" height="10" rx="5" fill="white" opacity="0.6"/>
+</svg>
