@@ -33,6 +33,7 @@ in
       taplo
       unzip
       zip
+      zizmor
     ]
     ++ lib.optionals stdenv.isDarwin [
       coreutils
