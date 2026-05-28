@@ -113,9 +113,32 @@ A few built-ins are deliberately narrow:
 
 ## Internal dependency version sync
 
-Recent monochange versions include `mc sync versions` for ad hoc internal dependency range repair outside the release flow. Run `mc sync versions --dry-run` first to preview edits, then rerun without `--dry-run` to update supported manifests. The command currently supports Dart and npm packages, with `--strategy <default|exact|caret|compatible>` controlling the generated constraint style.
+`mc versions` synchronizes internal workspace dependency constraints across all supported ecosystems (Cargo, Dart, Deno, Go, npm, and Python). Run `mc versions --dry-run` first to preview edits, then rerun without `--dry-run` to update manifests.
 
-Dart sync scans `dependencies`, `dev_dependencies`, and `dependency_overrides`. When `resolution: workspace` is present, internal `path:` references are converted to version constraints so Dart workspace resolution can resolve local packages without publish-hostile path dependencies. npm sync scans `dependencies`, `devDependencies`, and `peerDependencies`, while leaving `workspace:*` protocol references unchanged.
+```bash
+# Preview dependency version updates
+mc versions --dry-run
+
+# Apply version updates
+mc versions
+
+# JSON output for CI/scripts
+mc versions --dry-run --format json
+
+# Use a specific constraint strategy
+mc versions --strategy exact      # 1.2.3
+mc versions --strategy caret      # ^1.2.3 (npm default)
+mc versions --strategy compatible # >=1.2.3
+```
+
+Each ecosystem adapter scans its native manifest format:
+
+- **Cargo**: `[dependencies]` in `Cargo.toml` (inline table and string forms)
+- **Dart**: `dependencies`, `dev_dependencies`, `dependency_overrides` in `pubspec.yaml`; converts `path:` refs under `resolution: workspace`
+- **Deno**: `imports`, `dependencies` in `deno.json` (strips JSON comments)
+- **Go**: `require` directives in `go.mod`
+- **npm**: `dependencies`, `devDependencies`, `peerDependencies` in `package.json`; preserves `workspace:*` protocol
+- **Python**: `project.dependencies` in `pyproject.toml` (PEP 508 parsing)
 
 ## Built-in step commands
 

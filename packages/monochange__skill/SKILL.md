@@ -61,6 +61,7 @@ Built-in commands in the current CLI:
 - `mc step:validate` — validate `monochange.toml` and changeset targets.
 - `mc step:publish-readiness` — verify publishability from a release record without publishing.
 - `mc step:placeholder-publish` — publish first-time placeholder versions for packages in a release record.
+- `mc versions` — synchronize internal workspace dependency constraints across all supported ecosystems.
 
 Built-in step commands:
 
