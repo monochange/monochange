@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <!-- Dark rounded square -->
   <rect x="16" y="16" width="480" height="480" rx="96" fill="#1a1a2e"/>
-  <!-- MC mark — white, bold, with horizontal line through center -->
-  <text x="256" y="270" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="200" letter-spacing="-10" fill="white">MC</text>
-  <!-- Horizontal divider through center -->
-  <rect x="100" y="252" width="312" height="6" rx="3" fill="white" opacity="0.3"/>
+  <!-- MC — white, bold, centered vertically -->
+  <text x="256" y="290" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="220" letter-spacing="-10" fill="white">MC</text>
+  <!-- Subtle underline beneath MC — positioned below text baseline -->
+  <rect x="140" y="320" width="232" height="8" rx="4" fill="white" opacity="0.4"/>
 </svg>

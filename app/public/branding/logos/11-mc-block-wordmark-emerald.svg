@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 256" fill="none">
+  <rect x="0" y="0" width="768" height="256" rx="48" fill="#0A2540"/>
+  <rect x="40" y="48" width="160" height="160" rx="32" fill="#028A0F" opacity="0.15"/>
+  <text x="120" y="155" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="80" letter-spacing="-4" fill="#028A0F">MC</text>
+  <text x="464" y="155" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="64" letter-spacing="-2" fill="#028A0F">monochange</text>
+</svg>

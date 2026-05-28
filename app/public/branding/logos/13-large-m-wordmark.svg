@@ -3,8 +3,6 @@
   <rect x="0" y="0" width="512" height="512" fill="white"/>
   <!-- Bold border -->
   <rect x="16" y="16" width="480" height="480" rx="96" fill="none" stroke="#1a1a2e" stroke-width="10"/>
-  <!-- Large M — solid dark, with underline creating "MC" illusion -->
-  <text x="256" y="290" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="280" letter-spacing="-12" fill="#1a1a2e">M</text>
-  <!-- Horizontal bar creating a "C" shadow -->
-  <rect x="200" y="310" width="200" height="10" rx="5" fill="#1a1a2e" opacity="0.3"/>
+  <!-- Large M — solid dark, heavy weight, well-centered -->
+  <text x="256" y="310" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="300" letter-spacing="-14" fill="#1a1a2e">M</text>
 </svg>
