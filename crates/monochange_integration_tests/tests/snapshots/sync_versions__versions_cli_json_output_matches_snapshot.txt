@@ -1,0 +1,31 @@
+{
+  "applied": false,
+  "strategy": "Default",
+  "changes": [
+    {
+      "path": "[workspace]/packages/version_mismatch/pubspec.yaml",
+      "ecosystem": "dart",
+      "changes": [
+        {
+          "dependency_name": "core",
+          "section": "dependencies",
+          "old_value": "^1.1.0",
+          "new_value": "^1.2.3"
+        }
+      ]
+    },
+    {
+      "path": "[workspace]/packages/workspace_path_fail/pubspec.yaml",
+      "ecosystem": "dart",
+      "changes": [
+        {
+          "dependency_name": "core",
+          "section": "dependencies",
+          "old_value": "path: ../core",
+          "new_value": "^1.2.3"
+        }
+      ]
+    }
+  ],
+  "skipped": []
+}

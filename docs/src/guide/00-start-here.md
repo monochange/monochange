@@ -116,7 +116,7 @@ mc change \
 mc release --dry-run
 ```
 
-By default this now renders a human-friendly markdown preview in the terminal. Use `--format json` when you want structured output for tooling, `--format text` when you explicitly want the older plain-text rendering, or `mc versions` when you only need the planned package and group versions. `mc versions` is read-only, so it will not update release files.
+By default this now renders a human-friendly markdown preview in the terminal. Use `--format json` when you want structured output for tooling, `--format text` when you explicitly want the older plain-text rendering, or `mc step:display-versions` when you only need the planned package and group versions. Use `mc versions --dry-run` when you want to preview internal dependency constraint updates without modifying manifests.
 
 When you want to see the exact file patch without mutating the workspace, add `--diff`:
 

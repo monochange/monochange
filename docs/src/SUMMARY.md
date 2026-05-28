@@ -25,6 +25,7 @@
 # Reference
 
 - [Manifest linting with `mc check`](reference/linting.md)
+- [Internal dependency versions with `mc versions`](reference/versions.md)
 - [Progress output](reference/progress-output.md)
 - [Telemetry](reference/telemetry.md)
 - [Hosted release benchmarks](reference/hosted-release-benchmarks.md)

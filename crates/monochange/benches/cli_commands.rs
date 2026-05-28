@@ -344,6 +344,33 @@ fn bench_changeset_loading(c: &mut Criterion) {
 	group.finish();
 }
 
+fn bench_versions_dry_run_json(c: &mut Criterion) {
+	let mut group = c.benchmark_group("versions_dry_run_json");
+	group.sample_size(10);
+
+	group.bench_function("dart_workspace", |b| {
+		b.iter_batched(
+			|| setup_scenario_workspace("dart-lints/advanced-workspace-flutter/workspace"),
+			|tempdir| {
+				let _ = run_command(tempdir.path(), "versions", true);
+			},
+			BatchSize::LargeInput,
+		);
+	});
+
+	group.bench_function("mixed_unsupported_workspace", |b| {
+		b.iter_batched(
+			|| setup_scenario_workspace("cli-output/discover-mixed"),
+			|tempdir| {
+				let _ = run_command(tempdir.path(), "versions", true);
+			},
+			BatchSize::LargeInput,
+		);
+	});
+
+	group.finish();
+}
+
 fn bench_prepare_release_dry_run(c: &mut Criterion) {
 	let mut group = c.benchmark_group("prepare_release_dry_run");
 	group.sample_size(10);
@@ -679,6 +706,7 @@ criterion_group!(
 	bench_discover,
 	bench_validate,
 	bench_changeset_loading,
+	bench_versions_dry_run_json,
 	bench_prepare_release_dry_run,
 	bench_prepare_release_apply,
 	bench_prepare_release_apply_cargo_lockfile_refresh,

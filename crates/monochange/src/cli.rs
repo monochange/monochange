@@ -225,7 +225,7 @@ When provided, the generated config includes:\n\
 		.subcommand(build_analyze_subcommand())
 		.subcommand(build_migrate_subcommand())
 		.subcommand(build_lint_subcommand())
-		.subcommand(build_sync_subcommand())
+		.subcommand(build_versions_subcommand())
 		.subcommand({
 			#[cfg(feature = "mcp")]
 			{
@@ -257,6 +257,9 @@ When provided, the generated config includes:\n\
 
 	command = command.next_help_heading("User-defined Commands");
 	for cli_command in cli {
+		if cli_command.name == "versions" {
+			continue;
+		}
 		command = command.subcommand(build_cli_command_subcommand(cli_command));
 	}
 
@@ -776,13 +779,14 @@ Planning reminders:
 		"versions" => {
 			Some(
 				r"Examples:
+  mc versions --dry-run
   mc versions
-  mc versions --format markdown
-  mc versions --format json
+  mc versions --dry-run --format json
 
 Summary notes:
-  - This command is read-only and does not update manifests or changelogs.
-  - It computes the same planned versions used by monochange release workflows.",
+  - This command syncs internal workspace dependency constraints.
+  - Use --dry-run to preview manifest edits before writing files.
+  - Strategy precedence is package config, ecosystem config, ecosystem default; --strategy overrides.",
 			)
 		}
 		"commit-release" => {
@@ -951,27 +955,43 @@ fn leak_string(value: impl Into<String>) -> &'static str {
 	Box::leak(value.into().into_boxed_str())
 }
 
-pub(crate) fn build_sync_subcommand() -> Command {
-	Command::new("sync")
-		.about("Synchronize workspace dependency versions")
-		.subcommand_required(true)
-		.arg_required_else_help(true)
-		.subcommand(
-			Command::new("versions")
-				.about("Update internal dependency version references to match canonical versions")
-				.arg(
-					Arg::new("dry-run")
-						.long("dry-run")
-						.help("Show what would change without modifying files")
-						.action(ArgAction::SetTrue),
+pub(crate) fn build_versions_subcommand() -> Command {
+	Command::new("versions")
+		.about("Sync internal dependency constraints to package versions")
+		.long_about(
+			"Update internal workspace dependency references to match canonical package versions. \
+Use this when migrating to monochange, checking whether manifests are already in sync, \
+or normalizing constraints before grouping packages for shared releases.",
+		)
+		.after_help(
+			"Examples:\n  mc versions --dry-run\n  mc versions --dry-run --format json\n  mc versions --strategy exact\n\n\
+This command syncs internal workspace dependency constraints. Strategy precedence is package config, \
+then ecosystem config, then the ecosystem default unless --strategy forces one style for this run.",
+		)
+		.arg(
+			Arg::new("dry-run")
+				.long("dry-run")
+				.help("Show what would change without modifying files")
+				.action(ArgAction::SetTrue),
+		)
+		.arg(
+			Arg::new("format")
+				.long("format")
+				.help("Output format")
+				.default_value("text")
+				.value_parser(["text", "json"]),
+		)
+		.arg(
+			Arg::new("strategy")
+				.long("strategy")
+				.help("Override version constraint strategy: default, exact, caret, compatible")
+				.long_help(
+					"Override the version constraint strategy. With `default`, monochange uses \
+package config first, then ecosystem config, then the ecosystem default. Use \
+`exact`, `caret`, or `compatible` to force one style for this run.",
 				)
-				.arg(
-					Arg::new("strategy")
-						.long("strategy")
-						.help("Version constraint strategy: default, exact, caret, compatible")
-						.default_value("default")
-						.value_parser(["default", "exact", "caret", "compatible"]),
-				),
+				.default_value("default")
+				.value_parser(["default", "exact", "caret", "compatible"]),
 		)
 }
 

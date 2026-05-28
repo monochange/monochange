@@ -84,7 +84,7 @@ When you are ready to prepare the release locally, run `mc release`.
 
 <!-- {/projectCoreWorkflow} -->
 
-For human-readable local output, `mc release --dry-run` now defaults to terminal-friendly markdown. Use `--format json` for automation, `--format text` when you explicitly want the older plain-text rendering, `mc versions` when you only need planned package and group versions, and `--quiet` when you want dry-run behavior without stdout/stderr output. `mc versions` is a dedicated non-mutating summary command and also supports `--format markdown` and `--format json`.
+For human-readable local output, `mc release --dry-run` now defaults to terminal-friendly markdown. Use `--format json` for automation, `--format text` when you explicitly want the older plain-text rendering, and `--quiet` when you want dry-run behavior without stdout/stderr output. Use `mc step:display-versions` when you only need planned package and group versions; use `mc versions --dry-run` when you want to preview internal dependency constraint updates before writing them.
 
 This book is maintained with `mdt` so shared content blocks stay synchronized across pages. See the [Configuration reference](guide/04-configuration.md#shared-documentation) for how template updates work.
 
