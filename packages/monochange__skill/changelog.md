@@ -8,6 +8,28 @@
 - Documented verified built-in commands, step commands, MCP tools, user-defined command behavior, and all current CLI step types.
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 
+## [0.6.3](https://github.com/monochange/monochange/releases/tag/v0.6.3) (2026-05-28)
+
+### 🐛 Fixed
+
+#### Document `mc versions` command with full ecosystem coverage
+
+Update documentation and skill to accurately describe the `mc versions` command:
+
+- **All ecosystems supported**: Cargo, Dart, Deno, Go, npm, and Python
+- **Usage examples**: `--dry-run`, `--format json`, `--strategy exact/caret/compatible`
+- **Ecosystem details**: Each adapter's manifest scanning behavior documented
+
+Fix incorrect reference in start-here guide that described `mc versions` as read-only (it actually writes to manifests).
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #552](https://github.com/monochange/monochange/pull/552)
+
+#### Polish `mc versions` command
+
+Rename `mc sync versions` to top-level `mc versions` with plan/apply abstraction, `--format text|json` output, unsupported ecosystem reporting, and snapshot-tested CLI output. Add Criterion benchmark coverage and documentation.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #540](https://github.com/monochange/monochange/pull/540) · _Related issues:_ [#539](https://github.com/monochange/monochange/issues/539)
+
 ## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
 
 ### 🐛 Fixed

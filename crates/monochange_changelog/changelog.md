@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.3](https://github.com/monochange/monochange/releases/tag/v0.6.3) (2026-05-28)
+
+### 🐛 Fixed
+
+#### Filter group-propagated changes from per-package changelogs
+
+When a package is a member of a version group, its per-package changelog now only includes changes from changesets that directly target that package (kind=Package), not changes propagated from group-level targeting (kind=Group). Group-level changes appear exclusively in the group changelog, eliminating content duplication across member changelogs.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #549](https://github.com/monochange/monochange/pull/549) · _Closed issues:_ [#548](https://github.com/monochange/monochange/issues/548)
+
 ## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
 
 ### 🚀 Feature
