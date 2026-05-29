@@ -1,0 +1,54 @@
+name: large_dart_monorepo
+publish_to: none
+
+workspace:
+  - packages/pkg_001
+  - packages/pkg_002
+  - packages/pkg_003
+  - packages/pkg_004
+  - packages/pkg_005
+  - packages/pkg_006
+  - packages/pkg_007
+  - packages/pkg_008
+  - packages/pkg_009
+  - packages/pkg_010
+  - packages/pkg_011
+  - packages/pkg_012
+  - packages/pkg_013
+  - packages/pkg_014
+  - packages/pkg_015
+  - packages/pkg_016
+  - packages/pkg_017
+  - packages/pkg_018
+  - packages/pkg_019
+  - packages/pkg_020
+  - packages/pkg_021
+  - packages/pkg_022
+  - packages/pkg_023
+  - packages/pkg_024
+  - packages/pkg_025
+  - packages/pkg_026
+  - packages/pkg_027
+  - packages/pkg_028
+  - packages/pkg_029
+  - packages/pkg_030
+  - packages/pkg_031
+  - packages/pkg_032
+  - packages/pkg_033
+  - packages/pkg_034
+  - packages/pkg_035
+  - packages/pkg_036
+  - packages/pkg_037
+  - packages/pkg_038
+  - packages/pkg_039
+  - packages/pkg_040
+  - packages/pkg_041
+  - packages/pkg_042
+  - packages/pkg_043
+  - packages/pkg_044
+  - packages/pkg_045
+  - packages/pkg_046
+  - packages/pkg_047
+  - packages/pkg_048
+  - packages/pkg_049
+  - packages/pkg_050

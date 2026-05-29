@@ -646,11 +646,23 @@ impl EcosystemAdapter for NpmAdapter {
 #[must_use = "the discovery result must be checked"]
 /// Discover npm, pnpm, and Bun packages rooted at `root`.
 pub fn discover_npm_packages(root: &Path) -> MonochangeResult<AdapterDiscovery> {
+	// Walk the directory tree once and reuse the results for workspace
+	// discovery (npm + pnpm) and standalone package discovery.
+	let all_package_json = find_all_package_json(root);
+
+	let npm_workspace_manifests: Vec<PathBuf> = all_package_json
+		.iter()
+		.filter(|path| package_json_declares_workspaces(path).unwrap_or(false))
+		.cloned()
+		.collect();
+
+	let pnpm_workspace_manifests: Vec<PathBuf> = find_pnpm_workspaces(root);
+
 	let mut included_manifests = HashSet::new();
 	let mut packages = Vec::new();
 	let mut warnings = Vec::new();
 
-	for workspace_manifest in find_package_json_workspaces(root) {
+	for workspace_manifest in npm_workspace_manifests {
 		let (workspace_packages, workspace_warnings) =
 			discover_package_json_workspace(&workspace_manifest)?;
 		warnings.extend(workspace_warnings);
@@ -660,7 +672,7 @@ pub fn discover_npm_packages(root: &Path) -> MonochangeResult<AdapterDiscovery> 
 		}
 	}
 
-	for workspace_manifest in find_pnpm_workspaces(root) {
+	for workspace_manifest in pnpm_workspace_manifests {
 		let (workspace_packages, workspace_warnings) =
 			discover_pnpm_workspace(&workspace_manifest)?;
 		warnings.extend(workspace_warnings);
@@ -670,7 +682,7 @@ pub fn discover_npm_packages(root: &Path) -> MonochangeResult<AdapterDiscovery> 
 		}
 	}
 
-	for manifest_path in find_all_package_json(root) {
+	for manifest_path in all_package_json {
 		if included_manifests.contains(&manifest_path) {
 			continue;
 		}
@@ -931,15 +943,6 @@ fn detect_npm_manager(workspace_root: &Path) -> &'static str {
 	} else {
 		"npm"
 	}
-}
-
-fn find_package_json_workspaces(root: &Path) -> Vec<PathBuf> {
-	let mut manifests = find_all_package_json(root)
-		.into_iter()
-		.filter(|manifest_path| package_json_declares_workspaces(manifest_path).unwrap_or(false))
-		.collect::<Vec<_>>();
-	manifests.sort();
-	manifests
 }
 
 fn package_json_declares_workspaces(manifest_path: &Path) -> MonochangeResult<bool> {

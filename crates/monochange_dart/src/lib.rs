@@ -487,7 +487,17 @@ impl EcosystemAdapter for DartAdapter {
 #[must_use = "the discovery result must be checked"]
 /// Discover Dart and Flutter packages rooted at `root`.
 pub fn discover_dart_packages(root: &Path) -> MonochangeResult<AdapterDiscovery> {
-	let workspace_manifests = find_workspace_manifests(root);
+	// Walk the directory tree once and reuse the results for both workspace
+	// manifest discovery and standalone package discovery.  The previous
+	// implementation called `find_all_manifests` twice which doubled the
+	// wall-clock time for large Dart monorepos.
+	let all_manifests = find_all_manifests(root);
+	let workspace_manifests: Vec<PathBuf> = all_manifests
+		.iter()
+		.filter(|path| has_workspace_section(path).unwrap_or(false))
+		.cloned()
+		.collect();
+
 	let mut included_manifests = HashSet::new();
 	let mut packages = Vec::new();
 	let mut warnings = Vec::new();
@@ -502,7 +512,7 @@ pub fn discover_dart_packages(root: &Path) -> MonochangeResult<AdapterDiscovery>
 		}
 	}
 
-	for manifest_path in find_all_manifests(root) {
+	for manifest_path in all_manifests {
 		if included_manifests.contains(&manifest_path) {
 			continue;
 		}
@@ -534,15 +544,6 @@ pub fn load_configured_dart_package(
 			package_path.join(PUBSPEC_FILE)
 		};
 	parse_manifest(&manifest_path, manifest_path.parent().unwrap_or(root))
-}
-
-fn find_workspace_manifests(root: &Path) -> Vec<PathBuf> {
-	let mut manifests = find_all_manifests(root)
-		.into_iter()
-		.filter(|manifest_path| has_workspace_section(manifest_path).unwrap_or(false))
-		.collect::<Vec<_>>();
-	manifests.sort();
-	manifests
 }
 
 fn discover_workspace_packages(
@@ -917,3 +918,7 @@ mod sync_tests;
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "__tests__/benchmark_tests.rs"]
+mod benchmark_tests;
