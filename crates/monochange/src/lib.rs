@@ -824,15 +824,8 @@ where
 	// Fast path: try parsing with the base command first (no config load).
 	// This handles --version and root-level --help without touching disk.
 	let base_command = build_command_for_root(bin_name, root);
-	let root_help_requested = is_root_help_request(&args);
 	if let Err(error) = base_command.try_get_matches_from(args.clone()) {
 		if matches!(error.kind(), ErrorKind::DisplayVersion) {
-			return Ok(format_clap_error(
-				&error,
-				!cfg!(test) && std::io::stdout().is_terminal(),
-			));
-		}
-		if root_help_requested && matches!(error.kind(), ErrorKind::DisplayHelp) {
 			return Ok(format_clap_error(
 				&error,
 				!cfg!(test) && std::io::stdout().is_terminal(),
@@ -844,6 +837,7 @@ where
 	let configuration = load_workspace_configuration(root);
 	let cli = cli_commands_from_config(&configuration);
 	let quiet = extract_quiet_from_args(args.iter().cloned());
+	let root_help_requested = is_root_help_request(&args);
 	let matches = match build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone()) {
 		Ok(matches) => matches,
 		Err(error)
