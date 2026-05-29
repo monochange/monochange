@@ -23,9 +23,13 @@ fn bench_dart_discovery(c: &mut Criterion) {
 	// Small fixture: 2 packages
 	let small = fixture_path("dart/workspace");
 	if small.exists() {
-		group.bench_with_input(BenchmarkId::new("discover", "2_packages"), &small, |b, root| {
-			b.iter(|| monochange_dart::discover_dart_packages(root).unwrap());
-		});
+		group.bench_with_input(
+			BenchmarkId::new("discover", "2_packages"),
+			&small,
+			|b, root| {
+				b.iter(|| monochange_dart::discover_dart_packages(root).unwrap());
+			},
+		);
 	}
 
 	// Medium fixture: 11 packages
