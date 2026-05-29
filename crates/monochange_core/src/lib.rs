@@ -433,18 +433,7 @@ pub fn normalize_path(path: &Path) -> PathBuf {
 	} else {
 		env::current_dir().map_or_else(|_| path.to_path_buf(), |cwd| cwd.join(path))
 	};
-	// Only canonicalize if the path might contain `..` or `.` components,
-	// since canonicalize is a filesystem syscall.
-	if absolute.components().any(|c| {
-		matches!(
-			c,
-			std::path::Component::ParentDir | std::path::Component::CurDir
-		)
-	}) {
-		fs::canonicalize(&absolute).unwrap_or(absolute)
-	} else {
-		absolute
-	}
+	fs::canonicalize(&absolute).unwrap_or(absolute)
 }
 
 /// Return `path` relative to `root` after normalizing both paths.
