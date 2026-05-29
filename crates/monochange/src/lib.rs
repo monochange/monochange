@@ -822,15 +822,15 @@ where
 	let args = args.into_iter().collect::<Vec<_>>();
 
 	// Fast path: try parsing with the base command first (no config load).
-	// This handles --version and root-level --help without touching disk.
+	// This handles --version without touching disk.
 	let base_command = build_command_for_root(bin_name, root);
-	if let Err(error) = base_command.try_get_matches_from(args.clone()) {
-		if matches!(error.kind(), ErrorKind::DisplayVersion) {
-			return Ok(format_clap_error(
-				&error,
-				!cfg!(test) && std::io::stdout().is_terminal(),
-			));
-		}
+	if let Err(error) = base_command.try_get_matches_from(args.clone())
+		&& matches!(error.kind(), ErrorKind::DisplayVersion)
+	{
+		return Ok(format_clap_error(
+			&error,
+			!cfg!(test) && std::io::stdout().is_terminal(),
+		));
 	}
 
 	// Slow path: load workspace configuration for subcommand dispatch.
