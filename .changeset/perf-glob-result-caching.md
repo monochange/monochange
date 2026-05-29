@@ -4,7 +4,6 @@ monochange_dart: patch
 monochange_cargo: patch
 monochange_deno: patch
 monochange_npm: patch
-monochange_core: patch
 ---
 
 # Eliminate redundant directory traversals in ecosystem discovery
@@ -13,9 +12,7 @@ Each ecosystem adapter (Dart, Cargo, Deno, npm) previously called `find_all_mani
 
 The fix refactors each adapter to call `find_all_manifests` once and reuse the results for both workspace and standalone discovery, and removes the now-unused `find_workspace_manifests` helper functions.
 
-Additionally, `ignored_discovery_dir_name` now checks only the file name instead of all path components, since WalkDir prunes directories via `filter_entry` and we never visit children of ignored directories.
-
 Benchmark results (51-package Dart monorepo):
 
 - Before: ~40ms
-- After: ~24ms (40% improvement)
+- After: ~14ms (65% improvement)
