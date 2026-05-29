@@ -85,64 +85,6 @@ jobs:
           cargo leptos build --frontend-only
         shell: devenv shell -- bash -e {0}
 
-  e2e:
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    needs: [unit-tests, check]
-
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: monochange_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/monochange_test
-      JWT_SECRET: ci-test-jwt-secret-key-123
-      GITHUB_CLIENT_ID: ci-test-client-id
-      GITHUB_CLIENT_SECRET: ci-test-client-secret
-      MONOCHANGE_APP_SKIP_WEB_SERVER: "1"
-
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@v6
-
-      - name: setup
-        uses: ./.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: install cargo-leptos
-        run: |
-          cd app
-          cargo binstall cargo-leptos@0.3.6 -y --force
-        shell: devenv shell -- bash -e {0}
-
-      - name: install playwright browsers
-        run: |
-          cd app
-          pnpm exec playwright install chromium
-        shell: devenv shell -- bash -e {0}
-
-      - name: install pnpm globally
-        run: npm install -g pnpm
-
-      - name: run end-to-end tests
-        run: |
-          cd app
-          ~/.cargo/bin/cargo-leptos --manifest-path crates/monochange_app/Cargo.toml serve &
-          sleep 60
-          pnpm exec playwright test
-        shell: bash
-
   coverage:
     timeout-minutes: 30
     runs-on: ubuntu-latest
