@@ -24,26 +24,31 @@ fn init_git_repo(root: &Path) {
 		.current_dir(root)
 		.output()
 		.unwrap_or_else(|error| panic!("git init: {error}"));
+
 	std::process::Command::new("git")
 		.args(["config", "user.name", "Test"])
 		.current_dir(root)
 		.output()
 		.unwrap_or_else(|error| panic!("git config: {error}"));
+
 	std::process::Command::new("git")
 		.args(["config", "user.email", "test@test.com"])
 		.current_dir(root)
 		.output()
 		.unwrap_or_else(|error| panic!("git config: {error}"));
+
 	std::process::Command::new("git")
 		.args(["config", "commit.gpgsign", "false"])
 		.current_dir(root)
 		.output()
 		.unwrap_or_else(|error| panic!("git config: {error}"));
+
 	std::process::Command::new("git")
 		.args(["add", "."])
 		.current_dir(root)
 		.output()
 		.unwrap_or_else(|error| panic!("git add: {error}"));
+
 	std::process::Command::new("git")
 		.args(["commit", "-m", "initial"])
 		.current_dir(root)

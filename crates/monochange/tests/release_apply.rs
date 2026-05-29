@@ -43,8 +43,8 @@ fn release_apply_with_github_source_updates_workspace_and_deletes_changesets() {
 	assert!(
 		fs::read_to_string(root.join("crates/core/extra.toml"))
 			.unwrap_or_else(|error| panic!("read crates/core/extra.toml: {error}"))
-			.contains("version = \"1.1.0\""),
-		"expected release apply to update configured package versioned files"
+			.contains("version = \"1.0.0\""),
+		"expected release apply to preserve implicit package versioned file version fields"
 	);
 	assert!(
 		fs::read_to_string(root.join("group.toml"))

@@ -2052,13 +2052,8 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		|| {
 			rayon::join(
 				|| {
-					capture_prepare_phase("build versioned file updates", || {
-						build_versioned_file_updates(
-							root,
-							&configuration,
-							&discovery.packages,
-							&plan,
-						)
+					capture_prepare_phase("defer versioned file updates", || {
+						Ok(Vec::<FileUpdate>::new())
 					})
 				},
 				|| {
@@ -2091,7 +2086,16 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		if configuration.prerelease.enabled && !configuration.prerelease.write_manifests {
 			Vec::new()
 		} else {
-			versioned_file_updates_result.0?
+			let _deferred_versioned_file_updates = versioned_file_updates_result.0?;
+			measure_prepare_phase(&mut phase_timings, "build versioned file updates", || {
+				build_versioned_file_updates_with_base_updates(
+					root,
+					&configuration,
+					&discovery.packages,
+					&plan,
+					&manifest_updates,
+				)
+			})?
 		};
 	let release_targets = measure_async_prepare_phase(
 		&mut phase_timings,
@@ -2173,7 +2177,6 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		.map(|prepared| vec![prepared.state_update.clone()])
 		.unwrap_or_default();
 	let base_updates = [
-		manifest_updates.clone(),
 		versioned_file_updates.clone(),
 		changelog_file_updates.clone(),
 		prerelease_state_updates,
