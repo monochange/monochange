@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.5](https://github.com/monochange/monochange/releases/tag/v0.6.5) (2026-05-29)
+
+### 🐛 Fixed
+
+#### Eliminate redundant directory traversals in ecosystem discovery
+
+Each ecosystem adapter (Dart, Cargo, Deno, npm) previously called `find_all_manifests` twice during package discovery — once to find workspace manifests and again to find all manifests for standalone packages. This doubled the wall-clock time for large monorepos.
+
+The fix refactors each adapter to call `find_all_manifests` once and reuse the results for both workspace and standalone discovery, and removes the now-unused `find_workspace_manifests` helper functions.
+
+Benchmark results (51-package Dart monorepo):
+
+- Before: ~40ms
+- After: ~14ms (65% improvement)
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #558](https://github.com/monochange/monochange/pull/558)
+
 ## [0.6.4](https://github.com/monochange/monochange/releases/tag/v0.6.4) (2026-05-28)
 
 ### Changed

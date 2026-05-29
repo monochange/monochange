@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.5](https://github.com/monochange/monochange/releases/tag/v0.6.5) (2026-05-29)
+
+### 🚀 Feature
+
+#### Add require_description to summary lint rule
+
+The `changesets/summary` lint rule now supports a `require_description` option that ensures the summary heading is followed by at least one non-empty paragraph (not another heading). When enabled, a changeset with only a heading and no description body will fail validation.
+
+Additionally, `max_length` now defaults to 60 characters when the rule is activated. Users can override this by setting `max_length` explicitly in the rule options.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #555](https://github.com/monochange/monochange/pull/555)
+
 ## [0.6.4](https://github.com/monochange/monochange/releases/tag/v0.6.4) (2026-05-28)
 
 ### Changed
