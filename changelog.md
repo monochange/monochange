@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.6](https://github.com/monochange/monochange/releases/tag/v0.6.6) (2026-05-29)
+
+Grouped release for `main`.
+
+### 🐛 Fixed
+
+#### Preserve native manifest updates before versioned_files
+
+_Packages:_ _monochange_
+
+Apply `versioned_files` changes on top of native manifest updates so dependency constraints can be rewritten without clobbering package version fields.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #562](https://github.com/monochange/monochange/pull/562)
+
+#### Fix versioned_files clobbering version field
+
+_Packages:_ _monochange_
+
+Prevent `versioned_files` from updating the `version` field in native manifests unless explicitly specified in the `fields` configuration. This applies to all ecosystems: Cargo, Dart, Deno, npm, Python, and Go.
+
+Previously, the version field would be overwritten whenever a group had `versioned_files` listed, even without `version` in the `fields` array.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #560](https://github.com/monochange/monochange/pull/560)
+
+#### Skip config loading for --version and --help flags
+
+_Packages:_ _monochange_
+
+Previously, every CLI invocation loaded workspace configuration from disk before parsing arguments. This meant `mc --version` and `mc --help` paid the cost of reading and parsing monochange.toml even though they don't need configuration.
+
+The fix adds a fast path that parses arguments with the base command (no config-loaded subcommands) first. If the result is --version or root-level --help, it returns immediately without touching disk.
+
+Benchmark results (release build, 50 runs each):
+
+- --version: 8ms (was already fast in release, but avoids config I/O)
+- --help: 8ms
+- init --help: 9ms
+- check --help: 9ms
+- step:validate --help: 9ms
+
+Also exports build_command_for_root for production use and adds scripts/benchmark-commands.sh for PR regression detection.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #561](https://github.com/monochange/monochange/pull/561)
+
+#### Skip async initialization for --version flag
+
+_Packages:_ _monochange_
+
+Previously, `mc --version` initialized the full Tokio runtime, rustls crypto provider, and tracing subscriber before printing the version. Now a synchronous fast path checks for --version/-V before any async initialization, reducing latency from ~7ms to ~4ms.
+
+Also removed the redundant rustls crypto provider installation from run_cli_binary_from_env — it's already lazily installed by build_http_client in monochange_hosting when an HTTP request is made.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #563](https://github.com/monochange/monochange/pull/563)
+
 ## [0.6.5](https://github.com/monochange/monochange/releases/tag/v0.6.5) (2026-05-29)
 
 Grouped release for `main`.

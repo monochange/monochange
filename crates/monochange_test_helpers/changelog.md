@@ -86,6 +86,12 @@ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #207](https://gith
 
 - No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.0.3.
 
+## [0.6.6](https://github.com/monochange/monochange/releases/tag/v0.6.6) (2026-05-29)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.6.6 as part of group `main`.
+
 ## [0.6.5](https://github.com/monochange/monochange/releases/tag/v0.6.5) (2026-05-29)
 
 ### Changed
