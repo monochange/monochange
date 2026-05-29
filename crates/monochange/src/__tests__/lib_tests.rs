@@ -9388,11 +9388,12 @@ fn build_versioned_file_updates_skips_unreleased_package_definitions() {
 		compatibility_evidence: Vec::new(),
 	};
 
-	let updates = crate::build_versioned_file_updates(
+	let updates = crate::build_versioned_file_updates_with_base_updates(
 		tempdir.path(),
 		&configuration,
 		&discovery.packages,
 		&plan,
+		&[],
 	)
 	.unwrap_or_else(|error| panic!("versioned file updates: {error}"));
 

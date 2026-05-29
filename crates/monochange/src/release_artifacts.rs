@@ -718,7 +718,7 @@ pub(crate) fn build_npm_manifest_updates(
 ) -> MonochangeResult<Vec<FileUpdate>> {
 	use rayon::prelude::*;
 
-	let released_versions = released_versions_by_record_id(plan);
+	let released_versions = released_versions_by_package_id(plan, packages);
 	packages
 		.iter()
 		.filter(|package| package.ecosystem == Ecosystem::Npm)
@@ -762,7 +762,7 @@ pub(crate) fn build_deno_manifest_updates(
 ) -> MonochangeResult<Vec<FileUpdate>> {
 	use rayon::prelude::*;
 
-	let released_versions = released_versions_by_record_id(plan);
+	let released_versions = released_versions_by_package_id(plan, packages);
 	packages
 		.iter()
 		.filter(|package| package.ecosystem == Ecosystem::Deno)
@@ -806,7 +806,7 @@ pub(crate) fn build_dart_manifest_updates(
 ) -> MonochangeResult<Vec<FileUpdate>> {
 	use rayon::prelude::*;
 
-	let released_versions = released_versions_by_record_id(plan);
+	let released_versions = released_versions_by_package_id(plan, packages);
 	packages
 		.iter()
 		.filter(|package| package.ecosystem == Ecosystem::Dart)

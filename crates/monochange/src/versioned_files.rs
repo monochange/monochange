@@ -97,13 +97,59 @@ fn dedup_versioned_file_definitions(
 		.collect()
 }
 
-pub(crate) fn build_versioned_file_updates(
+fn cached_document_key(path: &Path) -> PathBuf {
+	fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+fn take_cached_document(
+	updates: &mut BTreeMap<PathBuf, CachedDocument>,
+	path: &Path,
+) -> Option<CachedDocument> {
+	if let Some(cached) = updates.remove(path) {
+		return Some(cached);
+	}
+
+	let cache_key = cached_document_key(path);
+	let equivalent_path = updates
+		.keys()
+		.find(|cached_path| cached_document_key(cached_path) == cache_key)
+		.cloned();
+	equivalent_path.and_then(|path| updates.remove(&path))
+}
+
+fn seed_cached_text_updates(
+	root: &Path,
+	updates: &mut BTreeMap<PathBuf, CachedDocument>,
+	base_updates: &[FileUpdate],
+) -> MonochangeResult<()> {
+	for update in base_updates {
+		let contents = String::from_utf8(update.content.clone()).map_err(|error| {
+			MonochangeError::Config(format!(
+				"failed to parse {} as text: {error}",
+				update.path.display()
+			))
+		})?;
+		let path = if update.path.is_absolute() {
+			update.path.clone()
+		} else {
+			root.join(&update.path)
+		};
+		updates.insert(path, CachedDocument::Text(contents));
+	}
+	Ok(())
+}
+
+pub(crate) fn build_versioned_file_updates_with_base_updates(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 	packages: &[PackageRecord],
 	plan: &ReleasePlan,
+	base_updates: &[FileUpdate],
 ) -> MonochangeResult<Vec<FileUpdate>> {
-	if configuration.packages.is_empty() && configuration.groups.is_empty() {
+	if configuration.packages.is_empty()
+		&& configuration.groups.is_empty()
+		&& base_updates.is_empty()
+	{
 		return Ok(Vec::new());
 	}
 
@@ -165,6 +211,7 @@ pub(crate) fn build_versioned_file_updates(
 	};
 
 	let mut updates = BTreeMap::<PathBuf, CachedDocument>::new();
+	seed_cached_text_updates(root, &mut updates, base_updates)?;
 
 	for package_definition in &configuration.packages {
 		let Some(version) = released_versions_by_config_id.get(package_definition.id.as_str())
@@ -427,7 +474,7 @@ pub(crate) fn read_cached_text_document(
 	updates: &mut BTreeMap<PathBuf, CachedDocument>,
 	path: &Path,
 ) -> MonochangeResult<String> {
-	if let Some(cached) = updates.remove(path) {
+	if let Some(cached) = take_cached_document(updates, path) {
 		return render_cached_document_text(path, cached);
 	}
 	let contents = fs::read(path).map_err(|error| {
@@ -446,7 +493,7 @@ pub(crate) fn read_cached_document(
 	path: &Path,
 	ecosystem_type: monochange_core::EcosystemType,
 ) -> MonochangeResult<CachedDocument> {
-	if let Some(cached) = updates.remove(path) {
+	if let Some(cached) = take_cached_document(updates, path) {
 		return Ok(cached);
 	}
 
@@ -1099,7 +1146,8 @@ pub(crate) fn apply_versioned_file_definition(
 }
 
 pub(crate) fn released_versions_by_record_id(plan: &ReleasePlan) -> BTreeMap<String, String> {
-	plan.decisions
+	let mut released_versions = plan
+		.decisions
 		.iter()
 		.filter(|decision| decision.recommended_bump.is_release())
 		.filter_map(|decision| {
@@ -1108,7 +1156,50 @@ pub(crate) fn released_versions_by_record_id(plan: &ReleasePlan) -> BTreeMap<Str
 				.as_ref()
 				.map(|version| (decision.package_id.clone(), version.to_string()))
 		})
-		.collect()
+		.collect::<BTreeMap<_, _>>();
+
+	for group in &plan.groups {
+		let Some(version) = group.planned_version.as_ref() else {
+			continue;
+		};
+		for member in &group.members {
+			released_versions.insert(member.clone(), version.to_string());
+		}
+	}
+
+	released_versions
+}
+
+pub(crate) fn released_versions_by_package_id(
+	plan: &ReleasePlan,
+	packages: &[PackageRecord],
+) -> BTreeMap<String, String> {
+	let mut released_versions = released_versions_by_record_id(plan);
+	let mut package_id_by_member_name = packages
+		.iter()
+		.map(|package| (package.name.as_str(), package.id.as_str()))
+		.collect::<BTreeMap<_, _>>();
+	package_id_by_member_name.extend(packages.iter().filter_map(|package| {
+		package
+			.metadata
+			.get("config_id")
+			.map(|config_id| (config_id.as_str(), package.id.as_str()))
+	}));
+
+	for group in &plan.groups {
+		let Some(version) = group.planned_version.as_ref() else {
+			continue;
+		};
+		for member in &group.members {
+			let package_id = package_id_by_member_name
+				.get(member.as_str())
+				.copied()
+				.unwrap_or(member.as_str());
+			released_versions.insert(package_id.to_string(), version.to_string());
+		}
+	}
+
+	released_versions
 }
 
 #[cfg(test)]

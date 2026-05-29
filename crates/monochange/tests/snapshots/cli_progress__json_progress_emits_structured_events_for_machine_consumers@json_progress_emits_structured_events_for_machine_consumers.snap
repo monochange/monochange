@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/cli_progress.rs
+assertion_line: 325
 expression: redacted
 ---
 [
@@ -86,6 +87,10 @@ expression: redacted
       {
         "durationMs": "[duration_ms]",
         "label": "load prerelease state"
+      },
+      {
+        "durationMs": "[duration_ms]",
+        "label": "defer versioned file updates"
       }
     ],
     "sequence": "[sequence:2]",

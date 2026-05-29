@@ -7,18 +7,103 @@ use monochange_core::Ecosystem;
 use monochange_core::EcosystemType;
 
 use super::CachedDocument;
+use super::FileUpdate;
 use super::VersionedFileUpdateContext;
 use super::apply_versioned_file_definition;
-use super::build_versioned_file_updates;
+use super::build_versioned_file_updates_with_base_updates;
 use super::inferred_lockfile_ecosystem_type;
 use super::inferred_lockfile_paths;
 use super::read_cached_document;
+use super::released_versions_by_package_id;
+use super::released_versions_by_record_id;
+use super::seed_cached_text_updates;
 use super::versioned_file_kind;
 
 fn fixture_path(relative: &str) -> PathBuf {
 	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 		.join("../../fixtures/tests")
 		.join(relative)
+}
+
+#[test]
+fn build_versioned_file_updates_returns_empty_for_empty_configuration() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(
+		root.join("monochange.toml"),
+		"[defaults]\npackage_type = \"npm\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let plan = monochange_core::ReleasePlan {
+		workspace_root: root.to_path_buf(),
+		decisions: Vec::new(),
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+
+	let updates =
+		build_versioned_file_updates_with_base_updates(root, &configuration, &[], &plan, &[])
+			.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
+
+	assert!(updates.is_empty());
+}
+
+#[test]
+fn seed_cached_text_updates_rejects_invalid_utf8_and_resolves_relative_paths() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let relative_update = FileUpdate {
+		path: PathBuf::from("pubspec.yaml"),
+		content: b"name: app\n".to_vec(),
+	};
+	let mut updates = BTreeMap::new();
+
+	seed_cached_text_updates(root, &mut updates, &[relative_update])
+		.unwrap_or_else(|error| panic!("seed relative update: {error}"));
+
+	assert!(matches!(
+		updates.get(&root.join("pubspec.yaml")),
+		Some(CachedDocument::Text(contents)) if contents == "name: app\n"
+	));
+
+	let invalid_update = FileUpdate {
+		path: PathBuf::from("invalid.yaml"),
+		content: vec![0xff, 0xfe],
+	};
+	let error = seed_cached_text_updates(root, &mut updates, &[invalid_update])
+		.expect_err("invalid seeded text update should fail");
+
+	assert!(
+		error
+			.to_string()
+			.contains("failed to parse invalid.yaml as text")
+	);
+}
+
+#[test]
+fn released_version_maps_skip_unplanned_groups() {
+	let plan = monochange_core::ReleasePlan {
+		workspace_root: PathBuf::from("/workspace"),
+		decisions: Vec::new(),
+		groups: vec![monochange_core::PlannedVersionGroup {
+			group_id: "sdk".to_string(),
+			display_name: "SDK".to_string(),
+			members: vec!["core".to_string()],
+			mismatch_detected: false,
+			planned_version: None,
+			recommended_bump: monochange_core::BumpSeverity::None,
+		}],
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+
+	assert!(released_versions_by_record_id(&plan).is_empty());
+	assert!(released_versions_by_package_id(&plan, &[]).is_empty());
 }
 
 #[test]
@@ -281,9 +366,14 @@ enabled = true
 		compatibility_evidence: Vec::new(),
 	};
 
-	let updates =
-		build_versioned_file_updates(root, &configuration, std::slice::from_ref(&package), &plan)
-			.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
+	let updates = build_versioned_file_updates_with_base_updates(
+		root,
+		&configuration,
+		std::slice::from_ref(&package),
+		&plan,
+		&[],
+	)
+	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
 	assert_eq!(updates.len(), 1);
 	assert_eq!(updates[0].path, manifest_path);
@@ -294,8 +384,14 @@ enabled = true
 
 	std::fs::write(&manifest_path, "{")
 		.unwrap_or_else(|error| panic!("write invalid package manifest: {error}"));
-	let error = build_versioned_file_updates(root, &configuration, &[package], &plan)
-		.expect_err("invalid overridden versioned file should fail");
+	let error = build_versioned_file_updates_with_base_updates(
+		root,
+		&configuration,
+		&[package],
+		&plan,
+		&[],
+	)
+	.expect_err("invalid overridden versioned file should fail");
 	assert!(error.to_string().contains("failed to parse"));
 }
 
