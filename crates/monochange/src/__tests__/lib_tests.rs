@@ -3362,6 +3362,7 @@ fn command_release_updates_manifests_changelogs_and_deletes_changesets() {
 	assert!(!group_changelog.contains("Changed members:"));
 	assert!(!group_changelog.contains("Synchronized members:"));
 	assert!(group_versioned_file.contains("version = \"1.1.0\""));
+	// Package versioned file has version updated because it's a package-level versioned file
 	assert!(package_versioned_file.contains("version = \"1.1.0\""));
 	assert!(!tempdir.path().join(".changeset/feature.md").exists());
 }
@@ -10040,6 +10041,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 			None,
 			&["core".to_string()],
 			&context,
+			true,
 		)
 		.err()
 		.unwrap_or_else(|| panic!("expected parse error for {file_name}"));
@@ -10074,6 +10076,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		None,
 		&["core".to_string()],
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected cached cargo parse error"));
@@ -10102,6 +10105,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		None,
 		&["core".to_string()],
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected cached pnpm parse error"));
@@ -10131,6 +10135,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		None,
 		&["core".to_string()],
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected cached dart parse error"));
@@ -10250,6 +10255,7 @@ fn apply_versioned_file_definition_returns_early_without_matching_versions() {
 		None,
 		&dep_names,
 		&context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("no-op versioned file update: {error}"));
 	assert!(updates.is_empty());
@@ -10281,6 +10287,7 @@ fn apply_versioned_file_definition_rejects_invalid_glob_patterns() {
 		None,
 		&dep_names,
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected invalid glob error"));
@@ -10318,6 +10325,7 @@ fn apply_versioned_file_definition_rejects_unsupported_glob_matches() {
 			None,
 			&dep_names,
 			&context,
+			true,
 		)
 		.err()
 		.unwrap_or_else(|| panic!("expected unsupported match error"));
@@ -10359,6 +10367,7 @@ monochange = { path = "crates/monochange", version = "1.0.0" }
 		None,
 		&["monochange".to_string()],
 		&context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("cargo shorthand update: {error}"));
 	let document = updates
@@ -10415,6 +10424,7 @@ extra = { path = "crates/extra", version = "1.0.0" }
 		Some(&shared_version),
 		&["core".to_string(), "extra".to_string()],
 		&context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("cargo field template update: {error}"));
 	let document = updates
@@ -10467,6 +10477,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 		None,
 		&["app".to_string()],
 		&bun_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("bun lockb update: {error}"));
 	let bun_document = bun_updates
@@ -10500,6 +10511,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 		None,
 		&["core".to_string()],
 		&deno_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("deno manifest text update: {error}"));
 	let deno_document = deno_updates
@@ -10546,6 +10558,7 @@ fn apply_versioned_file_definition_updates_regex_versioned_files_from_cached_tex
 		None,
 		&[] as &[&str],
 		&context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("regex versioned file update: {error}"));
 	let updated_document = updates
@@ -10586,6 +10599,7 @@ fn apply_versioned_file_definition_reports_invalid_regex_patterns() {
 		None,
 		&[] as &[&str],
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected invalid regex error"));
@@ -10624,6 +10638,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		None,
 		&manifest_dep_names,
 		&manifest_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("npm manifest update: {error}"));
 	let manifest_path = manifest_tempdir.path().join("package.json");
@@ -10670,6 +10685,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		None,
 		&package_lock_dep_names,
 		&package_lock_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("package lock update: {error}"));
 	let package_lock_path = package_lock_tempdir
@@ -10710,6 +10726,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		None,
 		&pnpm_dep_names,
 		&pnpm_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("pnpm lock update: {error}"));
 	let pnpm_path = pnpm_tempdir.path().join("pnpm-lock.yaml");
@@ -10747,6 +10764,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		None,
 		&bun_dep_names,
 		&bun_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("bun lock update: {error}"));
 	let bun_path = bun_tempdir.path().join("packages/app/bun.lock");
@@ -10799,6 +10817,7 @@ dependencies = ["python-core>=1.0.0"]
 		None,
 		&dep_names,
 		&context,
+		false,
 	)
 	.unwrap_or_else(|error| panic!("python manifest update: {error}"));
 	let manifest_document = updates
@@ -10807,7 +10826,7 @@ dependencies = ["python-core>=1.0.0"]
 	assert!(matches!(
 		manifest_document,
 		crate::CachedDocument::Text(contents)
-			if contents.contains("version = \"2.0.0\"")
+			if contents.contains("version = \"1.0.0\"")
 				&& contents.contains("python-core>=2.0.0")
 	));
 
@@ -10827,6 +10846,7 @@ dependencies = ["python-core>=1.0.0"]
 		None,
 		&dep_names,
 		&context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("python lock update: {error}"));
 	let lock_document = updates
@@ -10868,6 +10888,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 		None,
 		&dep_names,
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected unsupported python path error"));
@@ -10899,6 +10920,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 		None,
 		&dep_names,
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected invalid python manifest error"));
@@ -10933,6 +10955,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		None,
 		&deno_manifest_dep_names,
 		&deno_manifest_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("deno manifest update: {error}"));
 	let deno_manifest_path = deno_manifest_tempdir.path().join("deno.json");
@@ -10969,6 +10992,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		None,
 		&deno_lock_dep_names,
 		&deno_lock_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("deno lock update: {error}"));
 	let deno_lock_path = deno_lock_tempdir.path().join("packages/app/deno.lock");
@@ -11004,6 +11028,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		None,
 		&dart_manifest_dep_names,
 		&dart_manifest_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("dart manifest update: {error}"));
 	let dart_manifest_path = dart_manifest_tempdir
@@ -11042,6 +11067,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		None,
 		&dart_lock_dep_names,
 		&dart_lock_context,
+		true,
 	)
 	.unwrap_or_else(|error| panic!("dart lock update: {error}"));
 	let dart_lock_path = dart_lock_tempdir.path().join("packages/app/pubspec.lock");
@@ -13344,6 +13370,7 @@ fn apply_versioned_file_definition_reports_invalid_glob_pattern() {
 		None,
 		&[] as &[&str],
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected glob error"));
@@ -13373,6 +13400,7 @@ fn apply_versioned_file_definition_reports_missing_ecosystem_type() {
 		None,
 		&[] as &[&str],
 		&context,
+		true,
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected missing ecosystem type error"));

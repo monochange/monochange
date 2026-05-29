@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/cli_output.rs
-assertion_line: 129
 info:
   program: mc
   args:
@@ -11,10 +10,10 @@ info:
   env:
     GITHUB_JOB: release
     GITHUB_WORKFLOW_REF: ifiokjr/monochange/.github/workflows/publish.yml@refs/heads/main
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:58318"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:58318"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:58318"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:58318"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:64141"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:64141"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:64141"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:64141"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---

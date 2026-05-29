@@ -1,6 +1,5 @@
 ---
-source: crates/monochange/src/__tests/cli_runtime.rs
-assertion_line: 633
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
 expression: parsed
 ---
 {

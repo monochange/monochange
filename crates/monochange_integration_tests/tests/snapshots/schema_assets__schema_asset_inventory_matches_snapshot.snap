@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/schema_assets.rs
-assertion_line: 440
 expression: inventory
 ---
 {

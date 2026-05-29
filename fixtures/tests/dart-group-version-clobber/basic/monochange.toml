@@ -1,0 +1,18 @@
+[defaults]
+parent_bump = "patch"
+package_type = "dart"
+
+[ecosystems.dart]
+enabled = true
+
+[package.app]
+path = "packages/app"
+
+[package.core]
+path = "packages/core"
+
+[group.sdk]
+packages = ["app", "core"]
+versioned_files = [
+	{ path = "packages/app/pubspec.yaml", type = "dart" },
+]

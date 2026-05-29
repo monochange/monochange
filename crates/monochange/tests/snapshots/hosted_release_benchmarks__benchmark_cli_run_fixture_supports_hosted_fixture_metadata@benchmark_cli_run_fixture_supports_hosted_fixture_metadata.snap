@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/hosted_release_benchmarks.rs
-assertion_line: 326
 expression: rendered
 ---
 ## Binary Benchmark: main vs PR
