@@ -27,9 +27,7 @@ fn discover_dart_packages_large_monorepo_benchmark() {
 	let elapsed = start.elapsed();
 	let avg_per_iter = elapsed / iterations;
 
-	println!(
-		"Dart discovery (50 packages): {elapsed:?} total, {avg_per_iter:?} per iteration"
-	);
+	println!("Dart discovery (50 packages): {elapsed:?} total, {avg_per_iter:?} per iteration");
 
 	// The optimization should keep this well under 100ms per iteration
 	// even on CI. Before the fix, each iteration would do 2 full WalkDir

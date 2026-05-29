@@ -7,11 +7,6 @@ monochange_npm: patch
 
 # Eliminate redundant directory traversals in ecosystem discovery
 
-Each ecosystem adapter (Dart, Cargo, Deno, npm) previously called
-`find_all_manifests` twice during package discovery — once to find workspace
-manifests and again to find all manifests for standalone packages. This
-doubled the wall-clock time for large monorepos.
+Each ecosystem adapter (Dart, Cargo, Deno, npm) previously called `find_all_manifests` twice during package discovery — once to find workspace manifests and again to find all manifests for standalone packages. This doubled the wall-clock time for large monorepos.
 
-The fix refactors each adapter to call `find_all_manifests` once and reuse
-the results for both workspace and standalone discovery, and also removes
-the now-unused `find_workspace_manifests` helper functions.
+The fix refactors each adapter to call `find_all_manifests` once and reuse the results for both workspace and standalone discovery, and also removes the now-unused `find_workspace_manifests` helper functions.
