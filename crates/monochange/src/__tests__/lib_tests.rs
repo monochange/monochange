@@ -3362,7 +3362,8 @@ fn command_release_updates_manifests_changelogs_and_deletes_changesets() {
 	assert!(!group_changelog.contains("Changed members:"));
 	assert!(!group_changelog.contains("Synchronized members:"));
 	assert!(group_versioned_file.contains("version = \"1.1.0\""));
-	assert!(package_versioned_file.contains("version = \"1.1.0\""));
+	// Package versioned file should NOT have version updated because "version" is not in fields
+	assert!(package_versioned_file.contains("version = \"1.0.0\""));
 	assert!(!tempdir.path().join(".changeset/feature.md").exists());
 }
 
@@ -10807,7 +10808,7 @@ dependencies = ["python-core>=1.0.0"]
 	assert!(matches!(
 		manifest_document,
 		crate::CachedDocument::Text(contents)
-			if contents.contains("version = \"2.0.0\"")
+			if contents.contains("version = \"1.0.0\"")
 				&& contents.contains("python-core>=2.0.0")
 	));
 

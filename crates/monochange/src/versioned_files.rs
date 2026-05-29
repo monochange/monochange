@@ -858,6 +858,15 @@ pub(crate) fn apply_versioned_file_definition(
 		.iter()
 		.map(String::as_str)
 		.collect::<Vec<_>>();
+	// Only update the version field if explicitly requested in fields.
+	// The version field should never be updated by versioned_files unless
+	// the user explicitly specifies it in the fields configuration.
+	let update_version = fields.contains(&"version");
+	let effective_owner_version = if update_version {
+		Some(owner_version)
+	} else {
+		None
+	};
 	let versioned_deps: BTreeMap<String, String> = dep_names
 		.iter()
 		.filter_map(|name| {
@@ -942,7 +951,7 @@ pub(crate) fn apply_versioned_file_definition(
 					contents,
 					kind,
 					&fields,
-					Some(owner_version),
+					effective_owner_version,
 					shared_release_version.map(String::as_str),
 					&versioned_deps,
 					&raw_versions,
@@ -1015,9 +1024,7 @@ pub(crate) fn apply_versioned_file_definition(
 			) => {
 				*contents = monochange_core::update_json_manifest_text(
 					contents,
-					shared_release_version
-						.map(String::as_str)
-						.or(Some(owner_version)),
+					effective_owner_version.or_else(|| shared_release_version.map(String::as_str)),
 					&fields,
 					&versioned_deps,
 				)
@@ -1042,9 +1049,7 @@ pub(crate) fn apply_versioned_file_definition(
 			) => {
 				*contents = monochange_dart::update_manifest_text(
 					contents,
-					shared_release_version
-						.map(String::as_str)
-						.or(Some(owner_version)),
+					effective_owner_version.or_else(|| shared_release_version.map(String::as_str)),
 					&fields,
 					&versioned_deps,
 				)
@@ -1074,7 +1079,7 @@ pub(crate) fn apply_versioned_file_definition(
 				*contents = monochange_python::update_versioned_file_text(
 					contents,
 					kind,
-					Some(owner_version),
+					effective_owner_version,
 					&versioned_deps,
 				)
 				.map_err(|error| {
