@@ -84,7 +84,6 @@ pub(crate) use cli::apply_runtime_prepare_release_markdown_defaults;
 #[cfg(test)]
 pub(crate) use cli::build_cli_command_subcommand;
 pub use cli::build_command;
-#[cfg(test)]
 pub(crate) use cli::build_command_for_root;
 use cli::build_command_with_cli;
 #[cfg(test)]
@@ -811,6 +810,7 @@ fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String 
 /// and command execution.
 #[doc(hidden)]
 #[allow(clippy::redundant_closure_for_method_calls)]
+#[tracing::instrument(skip_all, fields(bin_name))]
 pub async fn run_with_args_in_dir<I>(
 	bin_name: &'static str,
 	args: I,
@@ -820,6 +820,20 @@ where
 	I: IntoIterator<Item = OsString>,
 {
 	let args = args.into_iter().collect::<Vec<_>>();
+
+	// Fast path: try parsing with the base command first (no config load).
+	// This handles --version without touching disk.
+	let base_command = build_command_for_root(bin_name, root);
+	if let Err(error) = base_command.try_get_matches_from(args.clone())
+		&& matches!(error.kind(), ErrorKind::DisplayVersion)
+	{
+		return Ok(format_clap_error(
+			&error,
+			!cfg!(test) && std::io::stdout().is_terminal(),
+		));
+	}
+
+	// Slow path: load workspace configuration for subcommand dispatch.
 	let configuration = load_workspace_configuration(root);
 	let cli = cli_commands_from_config(&configuration);
 	let quiet = extract_quiet_from_args(args.iter().cloned());
