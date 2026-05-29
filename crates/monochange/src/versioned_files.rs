@@ -817,6 +817,7 @@ fn update_versioned_file_regex(
 		.into_owned())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn apply_versioned_file_definition(
 	root: &Path,
 	updates: &mut BTreeMap<PathBuf, CachedDocument>,
