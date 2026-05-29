@@ -867,7 +867,7 @@ pub(crate) fn apply_versioned_file_definition(
 	// Only update the version field if explicitly requested in fields.
 	// The version field should never be updated by versioned_files unless
 	// the user explicitly specifies it in the fields configuration.
-	let update_version = fields.contains(&"version");
+	let update_version = force_version_update || fields.contains(&"version");
 	let effective_owner_version = if update_version {
 		Some(owner_version)
 	} else {
