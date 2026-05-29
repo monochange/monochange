@@ -548,16 +548,14 @@ impl DiscoveryPathFilter {
 }
 
 fn ignored_discovery_dir_name(path: &Path) -> bool {
-	// Check only the file_name (last component) since WalkDir prunes
-	// directories, so if a parent is ignored we never visit its children.
-	path.file_name()
-		.and_then(|name| name.to_str())
-		.is_some_and(|name| {
+	path.components().any(|component| {
+		component.as_os_str().to_str().is_some_and(|name| {
 			matches!(
 				name,
 				".git" | "target" | "node_modules" | ".devenv" | ".claude" | "book"
 			)
 		})
+	})
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
