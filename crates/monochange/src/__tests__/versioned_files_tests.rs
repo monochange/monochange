@@ -155,7 +155,6 @@ fn apply_versioned_file_definition_reports_go_for_unsupported_glob_match() {
 		None,
 		&["lib".to_string()],
 		&context,
-		true,
 	)
 	.expect_err("unsupported go glob match");
 
@@ -201,7 +200,6 @@ fn apply_versioned_file_definition_updates_go_mod_dependencies() {
 		None,
 		&["lib".to_string()],
 		&context,
-		true,
 	)
 	.unwrap_or_else(|error| panic!("apply go update: {error}"));
 	let updated_document = updates
