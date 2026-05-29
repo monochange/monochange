@@ -3,7 +3,7 @@ source: crates/monochange/tests/cli_output.rs
 info:
   program: mc
   args:
-    - validate
+    - "step:validate"
   env:
     NO_COLOR: "1"
     RUST_LOG: ""

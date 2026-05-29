@@ -52,7 +52,7 @@ fn forgejo_fixture_loads_and_validates_source_configuration() {
 		"api_url": &source.api_url,
 		"release_notes_source": source.releases.source,
 		"pull_request_base": &source.pull_requests.base,
-	}), @r###"
+	}), @r#"
 	{
 	  "api_url": null,
 	  "host": "https://codeberg.org",
@@ -62,7 +62,7 @@ fn forgejo_fixture_loads_and_validates_source_configuration() {
 	  "release_notes_source": "monochange",
 	  "repo": "monochange"
 	}
-	"###);
+	"#);
 	monochange_forgejo::validate_source_configuration(&source)
 		.unwrap_or_else(|error| panic!("validate forgejo source: {error}"));
 }
@@ -94,14 +94,14 @@ fn forgejo_urls_use_configured_host_and_gitea_compatible_routes() {
 		"compare": monochange_forgejo::compare_url(&source, "v1.2.2", "v1.2.3"),
 		"commit": monochange_forgejo::forgejo_commit_url(&source, "abc123"),
 		"host_name": monochange_forgejo::forgejo_host_name(&source),
-	}), @r###"
+	}), @r#"
 	{
 	  "commit": "https://codeberg.org/org/monochange/commit/abc123",
 	  "compare": "https://codeberg.org/org/monochange/compare/v1.2.2...v1.2.3",
 	  "host_name": "codeberg.org",
 	  "tag": "https://codeberg.org/org/monochange/releases/tag/v1.2.3"
 	}
-	"###);
+	"#);
 }
 
 #[test]
@@ -112,7 +112,7 @@ fn forgejo_rejects_unsupported_source_features() {
 		monochange_forgejo::validate_source_configuration(&generated_notes)
 			.unwrap_err()
 			.to_string(),
-		@"config error: provider-generated release notes are not supported for `provider = \"forgejo\"`; use `source = \"monochange\"`"
+		@r#"config error: provider-generated release notes are not supported for `provider = "forgejo"`; use `source = "monochange"`"#
 	);
 
 	let mut auto_merge = forgejo_source();
@@ -121,13 +121,13 @@ fn forgejo_rejects_unsupported_source_features() {
 		monochange_forgejo::validate_source_configuration(&auto_merge)
 			.unwrap_err()
 			.to_string(),
-		@"config error: [source.pull_requests].auto_merge is not supported for `provider = \"forgejo\"`"
+		@r#"config error: [source.pull_requests].auto_merge is not supported for `provider = "forgejo"`"#
 	);
 }
 
 #[test]
 fn forgejo_capabilities_match_hosted_support_without_trusted_publishing_claims() {
-	assert_json_snapshot!(monochange_forgejo::source_capabilities(), @r###"
+	assert_json_snapshot!(monochange_forgejo::source_capabilities(), @r#"
 	{
 	  "draft_releases": true,
 	  "prereleases": true,
@@ -136,8 +136,8 @@ fn forgejo_capabilities_match_hosted_support_without_trusted_publishing_claims()
 	  "released_issue_comments": false,
 	  "requires_host": true
 	}
-	"###);
-	assert_json_snapshot!(monochange_forgejo::forgejo_hosting_capabilities(), @r###"
+	"#);
+	assert_json_snapshot!(monochange_forgejo::forgejo_hosting_capabilities(), @r#"
 	{
 	  "commitWebUrls": true,
 	  "actorProfiles": false,
@@ -145,5 +145,5 @@ fn forgejo_capabilities_match_hosted_support_without_trusted_publishing_claims()
 	  "relatedIssues": false,
 	  "issueComments": false
 	}
-	"###);
+	"#);
 }

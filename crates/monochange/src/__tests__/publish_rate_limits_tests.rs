@@ -383,24 +383,24 @@ fn publish_plan_batches_current_project_dependencies_in_registry_order() {
 
 	insta::assert_snapshot!(
 		&rendered,
-		@r###"
-dependency ranks:
-  crates_io:
-    rank 0: monochange_schema
-    rank 1: monochange_core
-    rank 2: monochange_changelog, monochange_ecmascript, monochange_go, monochange_hosting, monochange_lint, monochange_linting, monochange_publish, monochange_python, monochange_semver, monochange_telemetry, monochange_test_helpers
-    rank 3: monochange_cargo, monochange_config, monochange_dart, monochange_deno, monochange_forgejo, monochange_gitea, monochange_github, monochange_gitlab, monochange_graph, monochange_npm
-    rank 4: monochange_analysis
-    rank 5: monochange
-  npm:
-    rank 0: monochange__cli-darwin-arm64, monochange__cli-darwin-x64, monochange__cli-linux-arm64-gnu, monochange__cli-linux-arm64-musl, monochange__cli-linux-x64-gnu, monochange__cli-linux-x64-musl, monochange__cli-win32-arm64-msvc, monochange__cli-win32-x64-msvc, monochange__skill
-    rank 1: monochange__cli
-planned batches:
-  crates_io batch 1/3: monochange_schema, monochange_core, monochange_changelog, monochange_ecmascript, monochange_go, monochange_hosting, monochange_lint, monochange_linting, monochange_publish, monochange_python
-  crates_io batch 2/3: monochange_semver, monochange_telemetry, monochange_test_helpers, monochange_deno, monochange_npm, monochange_forgejo, monochange_gitea, monochange_github, monochange_gitlab, monochange_cargo
-  crates_io batch 3/3: monochange_config, monochange_dart, monochange_graph, monochange_analysis, monochange
-  npm batch 1/1: monochange__cli-darwin-arm64, monochange__cli-darwin-x64, monochange__cli-linux-arm64-gnu, monochange__cli-linux-arm64-musl, monochange__cli-linux-x64-gnu, monochange__cli-linux-x64-musl, monochange__cli-win32-arm64-msvc, monochange__cli-win32-x64-msvc, monochange__skill, monochange__cli
-"###
+		@"
+	dependency ranks:
+	  crates_io:
+	    rank 0: monochange_schema
+	    rank 1: monochange_core
+	    rank 2: monochange_changelog, monochange_ecmascript, monochange_go, monochange_hosting, monochange_lint, monochange_linting, monochange_publish, monochange_python, monochange_semver, monochange_telemetry, monochange_test_helpers
+	    rank 3: monochange_cargo, monochange_config, monochange_dart, monochange_deno, monochange_forgejo, monochange_gitea, monochange_github, monochange_gitlab, monochange_graph, monochange_npm
+	    rank 4: monochange_analysis
+	    rank 5: monochange
+	  npm:
+	    rank 0: monochange__cli-darwin-arm64, monochange__cli-darwin-x64, monochange__cli-linux-arm64-gnu, monochange__cli-linux-arm64-musl, monochange__cli-linux-x64-gnu, monochange__cli-linux-x64-musl, monochange__cli-win32-arm64-msvc, monochange__cli-win32-x64-msvc, monochange__skill
+	    rank 1: monochange__cli
+	planned batches:
+	  crates_io batch 1/3: monochange_schema, monochange_core, monochange_changelog, monochange_ecmascript, monochange_go, monochange_hosting, monochange_lint, monochange_linting, monochange_publish, monochange_python
+	  crates_io batch 2/3: monochange_semver, monochange_telemetry, monochange_test_helpers, monochange_deno, monochange_npm, monochange_forgejo, monochange_gitea, monochange_github, monochange_gitlab, monochange_cargo
+	  crates_io batch 3/3: monochange_config, monochange_dart, monochange_graph, monochange_analysis, monochange
+	  npm batch 1/1: monochange__cli-darwin-arm64, monochange__cli-darwin-x64, monochange__cli-linux-arm64-gnu, monochange__cli-linux-arm64-musl, monochange__cli-linux-x64-gnu, monochange__cli-linux-x64-musl, monochange__cli-win32-arm64-msvc, monochange__cli-win32-x64-msvc, monochange__skill, monochange__cli
+	"
 	);
 }
 
@@ -507,22 +507,22 @@ fn publish_plan_orders_current_project_dependencies_without_batching() {
 
 	insta::assert_snapshot!(
 		&rendered,
-		@r###"
-dependency ranks:
-  crates_io:
-    rank 0: monochange_schema
-    rank 1: monochange_core
-    rank 2: monochange_changelog, monochange_ecmascript, monochange_go, monochange_hosting, monochange_lint, monochange_linting, monochange_publish, monochange_python, monochange_semver, monochange_telemetry, monochange_test_helpers
-    rank 3: monochange_cargo, monochange_config, monochange_dart, monochange_deno, monochange_forgejo, monochange_gitea, monochange_github, monochange_gitlab, monochange_graph, monochange_npm
-    rank 4: monochange_analysis
-    rank 5: monochange
-  npm:
-    rank 0: monochange__cli-darwin-arm64, monochange__cli-linux-x64-gnu, monochange__skill
-    rank 1: monochange__cli
-planned batches:
-  crates_io batch 1/1: monochange_schema, monochange_core, monochange_changelog, monochange_ecmascript, monochange_go, monochange_hosting, monochange_lint, monochange_linting, monochange_publish, monochange_python, monochange_semver, monochange_telemetry, monochange_test_helpers, monochange_deno, monochange_npm, monochange_forgejo, monochange_gitea, monochange_github, monochange_gitlab, monochange_cargo, monochange_config, monochange_dart, monochange_graph, monochange_analysis, monochange
-  npm batch 1/1: monochange__cli-darwin-arm64, monochange__cli-linux-x64-gnu, monochange__skill, monochange__cli
-"###
+		@"
+	dependency ranks:
+	  crates_io:
+	    rank 0: monochange_schema
+	    rank 1: monochange_core
+	    rank 2: monochange_changelog, monochange_ecmascript, monochange_go, monochange_hosting, monochange_lint, monochange_linting, monochange_publish, monochange_python, monochange_semver, monochange_telemetry, monochange_test_helpers
+	    rank 3: monochange_cargo, monochange_config, monochange_dart, monochange_deno, monochange_forgejo, monochange_gitea, monochange_github, monochange_gitlab, monochange_graph, monochange_npm
+	    rank 4: monochange_analysis
+	    rank 5: monochange
+	  npm:
+	    rank 0: monochange__cli-darwin-arm64, monochange__cli-linux-x64-gnu, monochange__skill
+	    rank 1: monochange__cli
+	planned batches:
+	  crates_io batch 1/1: monochange_schema, monochange_core, monochange_changelog, monochange_ecmascript, monochange_go, monochange_hosting, monochange_lint, monochange_linting, monochange_publish, monochange_python, monochange_semver, monochange_telemetry, monochange_test_helpers, monochange_deno, monochange_npm, monochange_forgejo, monochange_gitea, monochange_github, monochange_gitlab, monochange_cargo, monochange_config, monochange_dart, monochange_graph, monochange_analysis, monochange
+	  npm batch 1/1: monochange__cli-darwin-arm64, monochange__cli-linux-x64-gnu, monochange__skill, monochange__cli
+	"
 	);
 }
 

@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/src/__tests__/lib_tests.rs
-assertion_line: 892
 expression: output
 ---
 Generate repo-local monochange subagents and agent guidance files

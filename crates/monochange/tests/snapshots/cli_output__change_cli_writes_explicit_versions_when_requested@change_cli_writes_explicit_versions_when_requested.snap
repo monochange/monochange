@@ -13,7 +13,7 @@ info:
     - "--reason"
     - promote to stable
     - "--output"
-    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmp5XMrpH/versioned.md
+    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpXD2ZvE/versioned.md
   env:
     NO_COLOR: "1"
     RUST_LOG: ""

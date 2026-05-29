@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/github_releases.rs
-assertion_line: 26
 expression: redacted
 ---
 {

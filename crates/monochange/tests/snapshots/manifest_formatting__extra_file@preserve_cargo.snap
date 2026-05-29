@@ -4,7 +4,7 @@ expression: extra_file
 ---
 [package]
 name = "workflow-core"
-version = "1.1.0"
+version = "1.0.0"
 
 [dependencies]
 workflow-app = { version = "1.0.0", path = "../app" }

@@ -11,7 +11,7 @@ info:
     - "--reason"
     - document cli snapshots
     - "--output"
-    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpdPnFU2/feature.md
+    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpgLg4ZB/feature.md
   env:
     NO_COLOR: "1"
     RUST_LOG: ""
