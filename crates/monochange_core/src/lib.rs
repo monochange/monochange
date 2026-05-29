@@ -433,7 +433,18 @@ pub fn normalize_path(path: &Path) -> PathBuf {
 	} else {
 		env::current_dir().map_or_else(|_| path.to_path_buf(), |cwd| cwd.join(path))
 	};
-	fs::canonicalize(&absolute).unwrap_or(absolute)
+	// Only canonicalize if the path might contain `..` or `.` components,
+	// since canonicalize is a filesystem syscall.
+	if absolute.components().any(|c| {
+		matches!(
+			c,
+			std::path::Component::ParentDir | std::path::Component::CurDir
+		)
+	}) {
+		fs::canonicalize(&absolute).unwrap_or(absolute)
+	} else {
+		absolute
+	}
 }
 
 /// Return `path` relative to `root` after normalizing both paths.
@@ -548,14 +559,16 @@ impl DiscoveryPathFilter {
 }
 
 fn ignored_discovery_dir_name(path: &Path) -> bool {
-	path.components().any(|component| {
-		component.as_os_str().to_str().is_some_and(|name| {
+	// Check only the file_name (last component) since WalkDir prunes
+	// directories, so if a parent is ignored we never visit its children.
+	path.file_name()
+		.and_then(|name| name.to_str())
+		.is_some_and(|name| {
 			matches!(
 				name,
 				".git" | "target" | "node_modules" | ".devenv" | ".claude" | "book"
 			)
 		})
-	})
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

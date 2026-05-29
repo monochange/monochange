@@ -122,5 +122,9 @@ temp-env = { workspace = true, default-features = true }
 name = "cli_commands"
 harness = false
 
+[[bench]]
+name = "ecosystem_discovery"
+harness = false
+
 [lints]
 workspace = true
