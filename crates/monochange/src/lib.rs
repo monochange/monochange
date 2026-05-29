@@ -826,10 +826,7 @@ where
 	let base_command = build_command_for_root(bin_name, root);
 	let root_help_requested = is_root_help_request(&args);
 	if let Err(error) = base_command.try_get_matches_from(args.clone()) {
-		if matches!(
-			error.kind(),
-			ErrorKind::DisplayVersion
-		) {
+		if matches!(error.kind(), ErrorKind::DisplayVersion) {
 			return Ok(format_clap_error(
 				&error,
 				!cfg!(test) && std::io::stdout().is_terminal(),
