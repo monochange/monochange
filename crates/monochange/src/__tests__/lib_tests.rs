@@ -3362,8 +3362,8 @@ fn command_release_updates_manifests_changelogs_and_deletes_changesets() {
 	assert!(!group_changelog.contains("Changed members:"));
 	assert!(!group_changelog.contains("Synchronized members:"));
 	assert!(group_versioned_file.contains("version = \"1.1.0\""));
-	// Package versioned file has version updated because it's a package-level versioned file
-	assert!(package_versioned_file.contains("version = \"1.1.0\""));
+	// Package versioned file should NOT have version updated because "version" is not in fields
+	assert!(package_versioned_file.contains("version = \"1.0.0\""));
 	assert!(!tempdir.path().join(".changeset/feature.md").exists());
 }
 
