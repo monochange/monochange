@@ -142,3 +142,35 @@ fn dart_group_versioned_files_updates_version_when_explicitly_in_fields() {
 		"version field should be updated when explicitly in fields. Got: {updated_contents}"
 	);
 }
+
+#[test]
+fn dart_group_regex_versioned_files_updates_readme() {
+	let fixture = setup_fixture("with-regex");
+	let root = fixture.path();
+	init_git_repo(root);
+
+	create_changeset(root, "core", "minor", "Add new feature to core");
+
+	let readme_path = root.join("README.md");
+	let original_readme =
+		std::fs::read_to_string(&readme_path).unwrap_or_else(|error| panic!("read: {error}"));
+
+	assert!(
+		original_readme.contains("sdk@1.0.0"),
+		"README should start with sdk@1.0.0, got: {original_readme}"
+	);
+
+	let _release_output = run_prepare_release(root);
+
+	let updated_readme =
+		std::fs::read_to_string(&readme_path).unwrap_or_else(|error| panic!("read: {error}"));
+
+	assert!(
+		updated_readme.contains("sdk@1.1.0"),
+		"README should contain sdk@1.1.0 after group minor bump, got: {updated_readme}"
+	);
+	assert!(
+		!updated_readme.contains("sdk@1.0.0"),
+		"README should not retain the old SDK version, got: {updated_readme}"
+	);
+}
