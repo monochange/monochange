@@ -1755,6 +1755,33 @@ type = "dart"
 	assert_eq!(package.versioned_files.len(), 1);
 }
 
+#[cfg(unix)]
+#[test]
+fn collect_workspace_files_reports_walk_errors() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let unreadable_dir = root.join("unreadable");
+	std::fs::create_dir(&unreadable_dir)
+		.unwrap_or_else(|error| panic!("create unreadable dir: {error}"));
+
+	use std::os::unix::fs::PermissionsExt;
+	let readable_permissions = std::fs::metadata(&unreadable_dir)
+		.unwrap_or_else(|error| panic!("read permissions: {error}"))
+		.permissions();
+	std::fs::set_permissions(&unreadable_dir, std::fs::Permissions::from_mode(0o000))
+		.unwrap_or_else(|error| panic!("make unreadable: {error}"));
+
+	let result = crate::collect_workspace_files(root);
+
+	std::fs::set_permissions(&unreadable_dir, readable_permissions)
+		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
+	let error = result.expect_err("unreadable directories should report walk errors");
+	assert!(
+		error.to_string().contains("failed to walk"),
+		"unexpected error: {error}"
+	);
+}
+
 #[test]
 fn versioned_file_validation_cache_matches_workspace_files_once() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
