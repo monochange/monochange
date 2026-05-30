@@ -1756,6 +1756,76 @@ type = "dart"
 }
 
 #[test]
+fn versioned_file_validation_cache_matches_workspace_files_once() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::create_dir_all(root.join("packages/web"))
+		.unwrap_or_else(|error| panic!("create package: {error}"));
+	std::fs::create_dir_all(root.join("generated"))
+		.unwrap_or_else(|error| panic!("create generated: {error}"));
+	std::fs::write(root.join(".gitignore"), "generated/\n")
+		.unwrap_or_else(|error| panic!("write gitignore: {error}"));
+	std::fs::write(
+		root.join("packages/web/package.json"),
+		"{\"version\":\"1.0.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package: {error}"));
+	std::fs::write(root.join("packages/web/README.md"), "# web\n")
+		.unwrap_or_else(|error| panic!("write readme: {error}"));
+	std::fs::write(root.join("generated/README.md"), "# generated\n")
+		.unwrap_or_else(|error| panic!("write generated: {error}"));
+
+	assert_eq!(
+		crate::normalize_relative_glob("././packages/**/*.md"),
+		"packages/**/*.md"
+	);
+
+	let workspace_files = crate::collect_workspace_files(root)
+		.unwrap_or_else(|error| panic!("collect workspace files: {error}"));
+	assert!(
+		workspace_files
+			.iter()
+			.any(|path| path == Path::new("packages/web/package.json"))
+	);
+	assert!(
+		workspace_files
+			.iter()
+			.any(|path| path == Path::new("packages/web/README.md"))
+	);
+	assert!(
+		!workspace_files
+			.iter()
+			.any(|path| path == Path::new("generated/README.md"))
+	);
+
+	let mut cache = crate::VersionedFileValidationCache::default();
+	assert!(cache.insert_checked_glob("packages/**/*.json".to_string(), "npm"));
+	assert!(!cache.insert_checked_glob("packages/**/*.json".to_string(), "npm"));
+
+	let relative_match = cache
+		.unsupported_glob_match(root, "././packages/**/*.md", EcosystemType::Npm)
+		.unwrap_or_else(|error| panic!("relative glob match: {error}"));
+	assert_eq!(
+		relative_match.as_deref(),
+		Some(root.join("packages/web/README.md").as_path())
+	);
+
+	let absolute_glob = root.join("packages/**/*.md").to_string_lossy().to_string();
+	let absolute_match = cache
+		.unsupported_glob_match(root, &absolute_glob, EcosystemType::Npm)
+		.unwrap_or_else(|error| panic!("absolute glob match: {error}"));
+	assert_eq!(
+		absolute_match.as_deref(),
+		Some(root.join("packages/web/README.md").as_path())
+	);
+
+	let supported_match = cache
+		.unsupported_glob_match(root, "packages/**/*.json", EcosystemType::Npm)
+		.unwrap_or_else(|error| panic!("supported glob match: {error}"));
+	assert!(supported_match.is_none());
+}
+
+#[test]
 fn apply_version_groups_assigns_group_ids_and_detects_mismatched_versions() {
 	let root = fixture_path("config/version-groups");
 	let configuration = load_workspace_configuration(&root)
