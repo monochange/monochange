@@ -146,6 +146,46 @@ fn resolve_step_inputs_returns_empty_without_template_context_for_empty_inputs()
 }
 
 #[test]
+fn resolve_step_inputs_uses_lazy_template_context_for_overrides() {
+	let mut context = cli_context();
+	context
+		.inputs
+		.insert("from_cli".to_string(), vec!["cli-value".to_string()]);
+	let step = CliStepDefinition::Command {
+		show_progress: None,
+		name: None,
+		when: None,
+		always_run: false,
+		command: "echo ok".to_string(),
+		dry_run_command: None,
+		shell: ShellConfig::Default,
+		id: None,
+		variables: None,
+		inputs: BTreeMap::from([
+			(
+				"literal".to_string(),
+				CliStepInputValue::String("HEAD".to_string()),
+			),
+			(
+				"list".to_string(),
+				CliStepInputValue::List(vec![
+					"{{ inputs.from_cli }}".to_string(),
+					"tail".to_string(),
+				]),
+			),
+		]),
+	};
+
+	let resolved = resolve_step_inputs(&context, &step)
+		.unwrap_or_else(|error| panic!("resolve step inputs: {error}"));
+	assert_eq!(resolved["literal"], vec!["HEAD".to_string()]);
+	assert_eq!(
+		resolved["list"],
+		vec!["cli-value".to_string(), "tail".to_string()]
+	);
+}
+
+#[test]
 fn evaluate_fast_cli_step_condition_handles_changeset_count_and_inputs() {
 	let mut context = cli_context();
 	let mut prepared_release = sample_prepared_release();
@@ -165,6 +205,30 @@ fn evaluate_fast_cli_step_condition_handles_changeset_count_and_inputs() {
 			&context,
 			&step_inputs,
 		),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ changeset_count <= 1 }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ changeset_count == 1 }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ changeset_count != 0 }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ changeset_count < 2 }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ !inputs.push }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ not inputs.push }}", &context, &step_inputs),
 		Some(true)
 	);
 	assert_eq!(
@@ -211,6 +275,26 @@ fn evaluate_fast_cli_step_condition_falls_back_for_complex_conditions() {
 		None
 	);
 	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ (inputs.commit) }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ inputs.commit && }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ releases > 0 }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ release }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ inputs.commit }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
 		evaluate_fast_cli_step_condition("{{ inputs.missing }}", &context, &BTreeMap::new()),
 		None
 	);
@@ -225,6 +309,22 @@ fn evaluate_fast_cli_step_condition_falls_back_for_complex_conditions() {
 		),
 		None
 	);
+}
+
+#[test]
+fn evaluate_cli_step_condition_returns_fast_path_result() {
+	let mut context = cli_context();
+	let mut prepared_release = sample_prepared_release();
+	prepared_release
+		.changeset_paths
+		.push(PathBuf::from(".changeset/release.md"));
+	context.prepared_release = Some(prepared_release);
+
+	let result =
+		evaluate_cli_step_condition("{{ changeset_count > 0 }}", &context, &BTreeMap::new())
+			.unwrap_or_else(|error| panic!("evaluate condition: {error}"));
+
+	assert!(result);
 }
 
 #[test]

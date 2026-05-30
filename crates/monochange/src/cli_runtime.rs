@@ -1708,15 +1708,20 @@ fn evaluate_fast_changeset_count_comparison(operand: &str, context: &CliContext)
 			return None;
 		}
 		let expected = right.trim().parse::<u64>().ok()?;
-		return match operator {
-			">=" => Some(count >= expected),
-			"<=" => Some(count <= expected),
-			"==" => Some(count == expected),
-			"!=" => Some(count != expected),
-			">" => Some(count > expected),
-			"<" => Some(count < expected),
-			_ => None,
+		let matches = if operator == ">=" {
+			count >= expected
+		} else if operator == "<=" {
+			count <= expected
+		} else if operator == "==" {
+			count == expected
+		} else if operator == "!=" {
+			count != expected
+		} else if operator == ">" {
+			count > expected
+		} else {
+			count < expected
 		};
+		return Some(matches);
 	}
 
 	None
