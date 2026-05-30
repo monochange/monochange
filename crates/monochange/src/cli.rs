@@ -6,7 +6,7 @@ use clap::Arg;
 use clap::ArgAction;
 use clap::ColorChoice;
 use clap::Command;
-use monochange_config::load_workspace_configuration;
+use monochange_config::load_cli_commands;
 use monochange_core::CliCommandDefinition;
 use monochange_core::CliInputDefinition;
 use monochange_core::CliInputKind;
@@ -62,8 +62,7 @@ pub(crate) fn apply_runtime_change_type_choices(
 }
 
 pub(crate) fn cli_commands_for_root(root: &Path) -> Vec<CliCommandDefinition> {
-	let configuration = load_workspace_configuration(root);
-	cli_commands_from_config(&configuration)
+	load_cli_commands(root).unwrap_or_else(|_| default_cli_commands())
 }
 
 /// Extract CLI commands from an already-loaded configuration result, avoiding

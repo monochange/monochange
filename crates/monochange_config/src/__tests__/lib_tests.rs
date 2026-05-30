@@ -99,6 +99,47 @@ use crate::validate_step_input_overrides;
 use crate::validate_step_override_kind;
 use crate::validate_workspace;
 
+fn validate_package_and_group_definitions_for_test(
+	root: &Path,
+	config_contents: &str,
+	packages: &[monochange_core::PackageDefinition],
+	groups: &[GroupDefinition],
+) -> MonochangeResult<()> {
+	let declared_packages = packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<std::collections::BTreeSet<_>>();
+	let mut cache = crate::VersionedFileValidationCache::default();
+	crate::validate_package_and_group_definitions_with_cache(
+		root,
+		config_contents,
+		packages,
+		groups,
+		&declared_packages,
+		&mut cache,
+	)
+}
+
+fn validate_versioned_files_for_test(
+	root: &Path,
+	config_contents: &str,
+	versioned_files: &[monochange_core::VersionedFileDefinition],
+	declared_packages: &std::collections::BTreeSet<&str>,
+	owner_kind: &str,
+	owner_id: &str,
+) -> MonochangeResult<()> {
+	let mut cache = crate::VersionedFileValidationCache::default();
+	crate::validate_versioned_files_with_cache(
+		root,
+		config_contents,
+		versioned_files,
+		declared_packages,
+		owner_kind,
+		owner_id,
+		&mut cache,
+	)
+}
+
 fn validate_step() -> CliStepDefinition {
 	CliStepDefinition::Validate {
 		name: None,
@@ -1674,6 +1715,141 @@ fn load_workspace_configuration_rejects_globs_that_match_unsupported_files_for_a
 
 	assert!(rendered.contains("matched unsupported file"));
 	assert!(rendered.contains("narrow the glob"));
+}
+
+#[test]
+fn load_workspace_configuration_ignores_gitignored_versioned_file_glob_matches() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::create_dir_all(root.join("packages/app"))
+		.unwrap_or_else(|error| panic!("create package: {error}"));
+	std::fs::create_dir_all(root.join("generated"))
+		.unwrap_or_else(|error| panic!("create generated: {error}"));
+	std::fs::write(root.join(".gitignore"), "generated/\n")
+		.unwrap_or_else(|error| panic!("write gitignore: {error}"));
+	std::fs::write(
+		root.join("packages/app/pubspec.yaml"),
+		"name: app\nversion: 1.0.0\n",
+	)
+	.unwrap_or_else(|error| panic!("write pubspec: {error}"));
+	std::fs::write(root.join("generated/not-a-pubspec.yaml"), "not: dart\n")
+		.unwrap_or_else(|error| panic!("write ignored yaml: {error}"));
+	std::fs::write(
+		root.join("monochange.toml"),
+		r#"[ecosystems.dart]
+versioned_files = [{ path = "./**/*.yaml", type = "dart" }]
+
+[package.app]
+path = "packages/app"
+type = "dart"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+	let package = configuration
+		.package_by_id("app")
+		.unwrap_or_else(|| panic!("expected app package"));
+
+	assert_eq!(package.versioned_files.len(), 1);
+}
+
+#[cfg(unix)]
+#[test]
+fn collect_workspace_files_reports_walk_errors() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let unreadable_dir = root.join("unreadable");
+	std::fs::create_dir(&unreadable_dir)
+		.unwrap_or_else(|error| panic!("create unreadable dir: {error}"));
+
+	use std::os::unix::fs::PermissionsExt;
+	let readable_permissions = std::fs::metadata(&unreadable_dir)
+		.unwrap_or_else(|error| panic!("read permissions: {error}"))
+		.permissions();
+	std::fs::set_permissions(&unreadable_dir, std::fs::Permissions::from_mode(0o000))
+		.unwrap_or_else(|error| panic!("make unreadable: {error}"));
+
+	let result = crate::collect_workspace_files(root);
+
+	std::fs::set_permissions(&unreadable_dir, readable_permissions)
+		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
+	let error = result.expect_err("unreadable directories should report walk errors");
+	assert!(
+		error.to_string().contains("failed to walk"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn versioned_file_validation_cache_matches_workspace_files_once() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::create_dir_all(root.join("packages/web"))
+		.unwrap_or_else(|error| panic!("create package: {error}"));
+	std::fs::create_dir_all(root.join("generated"))
+		.unwrap_or_else(|error| panic!("create generated: {error}"));
+	std::fs::write(root.join(".gitignore"), "generated/\n")
+		.unwrap_or_else(|error| panic!("write gitignore: {error}"));
+	std::fs::write(
+		root.join("packages/web/package.json"),
+		"{\"version\":\"1.0.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package: {error}"));
+	std::fs::write(root.join("packages/web/README.md"), "# web\n")
+		.unwrap_or_else(|error| panic!("write readme: {error}"));
+	std::fs::write(root.join("generated/README.md"), "# generated\n")
+		.unwrap_or_else(|error| panic!("write generated: {error}"));
+
+	assert_eq!(
+		crate::normalize_relative_glob("././packages/**/*.md"),
+		"packages/**/*.md"
+	);
+
+	let workspace_files = crate::collect_workspace_files(root)
+		.unwrap_or_else(|error| panic!("collect workspace files: {error}"));
+	assert!(
+		workspace_files
+			.iter()
+			.any(|path| path == Path::new("packages/web/package.json"))
+	);
+	assert!(
+		workspace_files
+			.iter()
+			.any(|path| path == Path::new("packages/web/README.md"))
+	);
+	assert!(
+		!workspace_files
+			.iter()
+			.any(|path| path == Path::new("generated/README.md"))
+	);
+
+	let mut cache = crate::VersionedFileValidationCache::default();
+	assert!(cache.insert_checked_glob("packages/**/*.json".to_string(), "npm"));
+	assert!(!cache.insert_checked_glob("packages/**/*.json".to_string(), "npm"));
+
+	let relative_match = cache
+		.unsupported_glob_match(root, "././packages/**/*.md", EcosystemType::Npm)
+		.unwrap_or_else(|error| panic!("relative glob match: {error}"));
+	assert_eq!(
+		relative_match.as_deref(),
+		Some(root.join("packages/web/README.md").as_path())
+	);
+
+	let absolute_glob = root.join("packages/**/*.md").to_string_lossy().to_string();
+	let absolute_match = cache
+		.unsupported_glob_match(root, &absolute_glob, EcosystemType::Npm)
+		.unwrap_or_else(|error| panic!("absolute glob match: {error}"));
+	assert_eq!(
+		absolute_match.as_deref(),
+		Some(root.join("packages/web/README.md").as_path())
+	);
+
+	let supported_match = cache
+		.unsupported_glob_match(root, "packages/**/*.json", EcosystemType::Npm)
+		.unwrap_or_else(|error| panic!("supported glob match: {error}"));
+	assert!(supported_match.is_none());
 }
 
 #[test]
@@ -5628,7 +5804,7 @@ fn validate_cli_runtime_requirements_enforce_affected_package_inputs() {
 fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 	let root = fixture_path("config/validation-helper-branches");
 
-	let duplicate_path_error = crate::validate_package_and_group_definitions(
+	let duplicate_path_error = validate_package_and_group_definitions_for_test(
 		&root,
 		"[package.core]\npath = 'crates/core'\n\n[package.util]\npath = 'crates/core'\n",
 		&[
@@ -5649,7 +5825,7 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 	primary_core.version_format = monochange_core::VersionFormat::Primary;
 	let mut primary_util = package_definition("util", "crates/util");
 	primary_util.version_format = monochange_core::VersionFormat::Primary;
-	let duplicate_primary_error = crate::validate_package_and_group_definitions(
+	let duplicate_primary_error = validate_package_and_group_definitions_for_test(
 		&root,
 		"[package.core]\nversion_format = 'primary'\n\n[package.util]\nversion_format = 'primary'\n",
 		&[primary_core, primary_util],
@@ -5695,7 +5871,7 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 			.contains("[package.core].ignored_paths must not include empty values")
 	);
 
-	let duplicate_id_error = crate::validate_package_and_group_definitions(
+	let duplicate_id_error = validate_package_and_group_definitions_for_test(
 		&root,
 		"[package.core]\npath = 'crates/core'\n",
 		&[
@@ -5715,7 +5891,7 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	std::fs::create_dir_all(tempdir.path().join("crates/core"))
 		.unwrap_or_else(|error| panic!("mkdir core dir: {error}"));
-	let missing_manifest_error = crate::validate_package_and_group_definitions(
+	let missing_manifest_error = validate_package_and_group_definitions_for_test(
 		tempdir.path(),
 		"[package.core]\npath = 'crates/core'\ntype = 'cargo'\n",
 		&[package_definition("core", "crates/core")],
@@ -6099,7 +6275,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 	let config_contents = "[package.core]\npath = 'crates/core'\n";
 	let declared_packages = std::collections::BTreeSet::from(["core"]);
 
-	let missing_type = crate::validate_versioned_files(
+	let missing_type = validate_versioned_files_for_test(
 		&root,
 		config_contents,
 		&[monochange_core::VersionedFileDefinition {
@@ -6123,7 +6299,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			.contains("versioned_files must set `type`")
 	);
 
-	let invalid_glob = crate::validate_versioned_files(
+	let invalid_glob = validate_versioned_files_for_test(
 		&root,
 		config_contents,
 		&[monochange_core::VersionedFileDefinition {
@@ -6147,6 +6323,33 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			.contains("invalid glob pattern `[`")
 	);
 
+	let duplicate_glob_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::create_dir_all(duplicate_glob_dir.path().join("packages/web"))
+		.unwrap_or_else(|error| panic!("mkdir duplicate glob fixture: {error}"));
+	std::fs::write(
+		duplicate_glob_dir.path().join("packages/web/package.json"),
+		"{\"name\":\"web\",\"version\":\"1.0.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write duplicate glob package: {error}"));
+	let duplicate_glob = monochange_core::VersionedFileDefinition {
+		path: "packages/**/package.json".to_string(),
+		ecosystem_type: Some(EcosystemType::Npm),
+		format: None,
+		name: None,
+		fields: None,
+		prefix: None,
+		regex: None,
+	};
+	validate_versioned_files_for_test(
+		duplicate_glob_dir.path(),
+		config_contents,
+		&[duplicate_glob.clone(), duplicate_glob],
+		&declared_packages,
+		"package",
+		"core",
+	)
+	.unwrap_or_else(|error| panic!("duplicate glob validation should be cached: {error}"));
+
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	std::fs::create_dir_all(tempdir.path().join("packages/web"))
 		.unwrap_or_else(|error| panic!("mkdir web package: {error}"));
@@ -6155,7 +6358,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		"{\"name\":\"web\",\"version\":\"1.0.0\"}\n",
 	)
 	.unwrap_or_else(|error| panic!("write package.json: {error}"));
-	let unsupported_match = crate::validate_versioned_files(
+	let unsupported_match = validate_versioned_files_for_test(
 		tempdir.path(),
 		config_contents,
 		&[monochange_core::VersionedFileDefinition {
@@ -6188,7 +6391,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		Path::new("pubspec.yaml"),
 		EcosystemType::Dart
 	));
-	let dart_unsupported_match = crate::validate_versioned_files(
+	let dart_unsupported_match = validate_versioned_files_for_test(
 		tempdir.path(),
 		config_contents,
 		&[monochange_core::VersionedFileDefinition {
@@ -6216,7 +6419,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		Path::new("go.mod"),
 		EcosystemType::Go
 	));
-	let go_unsupported_match = crate::validate_versioned_files(
+	let go_unsupported_match = validate_versioned_files_for_test(
 		tempdir.path(),
 		config_contents,
 		&[monochange_core::VersionedFileDefinition {
@@ -7137,7 +7340,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		regex: None,
 	};
-	crate::validate_versioned_files(
+	validate_versioned_files_for_test(
 		&root,
 		config_contents,
 		&[valid],
@@ -7156,7 +7359,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		regex: None,
 	};
-	let error = crate::validate_versioned_files(
+	let error = validate_versioned_files_for_test(
 		&root,
 		config_contents,
 		&[mixed_type],
@@ -7176,7 +7379,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		regex: Some("version = (?<version>.*)".to_string()),
 	};
-	let error = crate::validate_versioned_files(
+	let error = validate_versioned_files_for_test(
 		&root,
 		config_contents,
 		&[mixed_regex],
@@ -7196,7 +7399,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		regex: None,
 	};
-	let error = crate::validate_versioned_files(
+	let error = validate_versioned_files_for_test(
 		&root,
 		config_contents,
 		&[missing_fields],
@@ -7216,7 +7419,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		regex: None,
 	};
-	let error = crate::validate_versioned_files(
+	let error = validate_versioned_files_for_test(
 		&root,
 		config_contents,
 		&[empty_fields],
@@ -7226,4 +7429,28 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 	)
 	.expect_err("format mode should reject empty fields");
 	assert!(error.to_string().contains("fields must be non-empty"));
+}
+
+#[test]
+fn load_cli_commands_skips_package_and_versioned_file_validation() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[cli.custom]
+help_text = "Custom command help"
+
+[package.missing]
+path = "missing"
+versioned_files = [
+	{ path = "**/not-a-manifest.txt", type = "cargo" },
+]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let cli = crate::load_cli_commands(tempdir.path())
+		.unwrap_or_else(|error| panic!("load cli commands: {error}"));
+
+	assert!(cli.iter().any(|command| command.name == "custom"));
 }

@@ -1383,8 +1383,8 @@ fn mcp_and_root_command_support_quiet_and_missing_subcommands() {
 	assert!(quiet_command_output.is_empty());
 
 	let no_subcommand = run_cli(tempdir.path(), [OsString::from("mc")])
-		.expect_err("missing subcommand should fail");
-	assert!(no_subcommand.to_string().contains("Usage: mc"));
+		.unwrap_or_else(|error| panic!("missing subcommand help: {error}"));
+	assert!(no_subcommand.contains("Usage: mc"));
 }
 
 #[test]
@@ -15000,4 +15000,62 @@ async fn execute_cli_command_retarget_release_applies_git_updates_without_provid
 		git_output_in_temp_repo(&root, &["rev-parse", "v1.2.3"]),
 		target_commit
 	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn version_and_root_help_skip_workspace_validation() {
+	let help_command = [
+		OsString::from("mc"),
+		OsString::from("help"),
+		OsString::from("--help"),
+	];
+	assert_eq!(crate::command_help_request(&help_command), None);
+
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[cli.custom]
+help_text = "Custom command help"
+
+[package.missing]
+path = "missing"
+versioned_files = [
+	{ path = "**/not-a-manifest.txt", type = "cargo" },
+]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let version = run_with_args_in_dir(
+		"mc",
+		[OsString::from("mc"), OsString::from("--version")],
+		tempdir.path(),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("version output: {error}"));
+	assert!(version.contains("mc "));
+
+	let help = run_with_args_in_dir(
+		"mc",
+		[OsString::from("mc"), OsString::from("--help")],
+		tempdir.path(),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("help output: {error}"));
+	assert!(help.contains("custom"));
+
+	let traced_help = run_with_args_in_dir(
+		"mc",
+		[
+			OsString::from("mc"),
+			OsString::from("--log-level"),
+			OsString::from("trace"),
+			OsString::from("--help"),
+		],
+		tempdir.path(),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("traced help output: {error}"));
+	assert!(traced_help.contains("custom"));
 }

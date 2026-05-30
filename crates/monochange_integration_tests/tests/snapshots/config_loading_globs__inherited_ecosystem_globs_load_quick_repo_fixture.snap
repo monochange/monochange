@@ -1,0 +1,37 @@
+---
+source: crates/monochange_integration_tests/tests/config_loading_globs.rs
+assertion_line: 40
+expression: packages
+---
+[
+  {
+    "id": "cargo-core",
+    "inherited_globs": 1,
+    "type": "Cargo"
+  },
+  {
+    "id": "dart-app",
+    "inherited_globs": 1,
+    "type": "Dart"
+  },
+  {
+    "id": "deno-tool",
+    "inherited_globs": 1,
+    "type": "Deno"
+  },
+  {
+    "id": "go-service",
+    "inherited_globs": 1,
+    "type": "Go"
+  },
+  {
+    "id": "npm-ui",
+    "inherited_globs": 1,
+    "type": "Npm"
+  },
+  {
+    "id": "python-lib",
+    "inherited_globs": 1,
+    "type": "Python"
+  }
+]

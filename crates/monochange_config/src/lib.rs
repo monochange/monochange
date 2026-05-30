@@ -81,6 +81,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use glob::Pattern;
+use ignore::WalkBuilder;
 use miette::LabeledSpan;
 use miette::SourceSpan;
 use monochange_core::BumpSeverity;
@@ -96,6 +97,7 @@ use monochange_core::CliInputDefinition;
 use monochange_core::CliInputKind;
 use monochange_core::CliStepDefinition;
 use monochange_core::CliStepInputValue;
+use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemSettings;
 use monochange_core::EcosystemType;
@@ -1065,6 +1067,17 @@ fn load_raw_configuration(root: &Path) -> MonochangeResult<(String, RawWorkspace
 	Ok((contents, raw))
 }
 
+/// Load only CLI command metadata from `monochange.toml`.
+///
+/// This intentionally skips package, group, ecosystem, and versioned-file
+/// validation so CLI help and command pre-parsing stay independent of expensive
+/// workspace discovery.
+#[must_use = "the CLI command result must be checked"]
+pub fn load_cli_commands(root: &Path) -> MonochangeResult<Vec<CliCommandDefinition>> {
+	let (_, raw) = load_raw_configuration(root)?;
+	Ok(merge_cli_commands(raw.cli))
+}
+
 #[allow(clippy::too_many_arguments, clippy::option_as_ref_cloned)]
 fn build_package_definitions(
 	contents: &str,
@@ -1350,6 +1363,11 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	let changeset_lints = changeset_lint_settings_from_rules(&lints.rules)?;
 	validate_changeset_lint_settings(&changeset_lints, &changelog)?;
 	validate_source_configuration(source.as_ref())?;
+	let declared_packages = packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<BTreeSet<_>>();
+	let mut versioned_file_cache = VersionedFileValidationCache::default();
 	for (ecosystem_id, ecosystem_settings) in [
 		("cargo", &cargo_ecosystem),
 		("npm", &npm_ecosystem),
@@ -1358,21 +1376,25 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		("python", &python_ecosystem),
 		("go", &go_ecosystem),
 	] {
-		let declared_packages = packages
-			.iter()
-			.map(|package| package.id.as_str())
-			.collect::<BTreeSet<_>>();
-		validate_versioned_files(
+		validate_versioned_files_with_cache(
 			root,
 			&contents,
 			&ecosystem_settings.versioned_files,
 			&declared_packages,
 			"ecosystems",
 			ecosystem_id,
+			&mut versioned_file_cache,
 		)?;
 		validate_lockfile_commands(root, ecosystem_id, &ecosystem_settings.lockfile_commands)?;
 	}
-	validate_package_and_group_definitions(root, &contents, &packages, &groups)?;
+	validate_package_and_group_definitions_with_cache(
+		root,
+		&contents,
+		&packages,
+		&groups,
+		&declared_packages,
+		&mut versioned_file_cache,
+	)?;
 	validate_cli_runtime_requirements(&cli, &changesets, source.as_ref())?;
 
 	Ok(WorkspaceConfiguration {
@@ -2991,11 +3013,13 @@ pub(crate) fn parse_bump_severity(value: &str) -> Option<BumpSeverity> {
 	}
 }
 
-fn validate_package_and_group_definitions(
+fn validate_package_and_group_definitions_with_cache(
 	root: &Path,
 	config_contents: &str,
 	packages: &[PackageDefinition],
 	groups: &[GroupDefinition],
+	declared_packages: &BTreeSet<&str>,
+	versioned_file_cache: &mut VersionedFileValidationCache,
 ) -> MonochangeResult<()> {
 	let mut ids = BTreeSet::new();
 	let mut package_paths = BTreeMap::<PathBuf, String>::new();
@@ -3088,29 +3112,27 @@ fn validate_package_and_group_definitions(
 		}
 	}
 
-	let declared_packages = packages
-		.iter()
-		.map(|package| package.id.as_str())
-		.collect::<BTreeSet<_>>();
 	for package in packages {
-		validate_versioned_files(
+		validate_versioned_files_with_cache(
 			root,
 			config_contents,
 			&package.versioned_files,
-			&declared_packages,
+			declared_packages,
 			"package",
 			&package.id,
+			versioned_file_cache,
 		)?;
 	}
 	let mut assigned_packages = BTreeMap::<String, String>::new();
 	for group in groups {
-		validate_versioned_files(
+		validate_versioned_files_with_cache(
 			root,
 			config_contents,
 			&group.versioned_files,
-			&declared_packages,
+			declared_packages,
 			"group",
 			&group.id,
+			versioned_file_cache,
 		)?;
 		if !ids.insert(group.id.clone()) {
 			return Err(config_diagnostic(
@@ -3260,6 +3282,101 @@ fn path_uses_glob(path: &str) -> bool {
 	path.contains('*') || path.contains('?') || path.contains('[')
 }
 
+#[derive(Default)]
+struct VersionedFileValidationCache {
+	checked_globs: BTreeSet<(String, &'static str)>,
+	workspace_files: Option<Vec<PathBuf>>,
+}
+
+impl VersionedFileValidationCache {
+	fn insert_checked_glob(&mut self, pattern: String, ecosystem_name: &'static str) -> bool {
+		self.checked_globs.insert((pattern, ecosystem_name))
+	}
+
+	fn unsupported_glob_match(
+		&mut self,
+		root: &Path,
+		glob_path: &str,
+		ecosystem_type: EcosystemType,
+	) -> MonochangeResult<Option<PathBuf>> {
+		let pattern_path = Path::new(glob_path);
+		let pattern_text = if pattern_path.is_absolute() {
+			glob_path
+		} else {
+			normalize_relative_glob(glob_path)
+		};
+		let pattern = Pattern::new(pattern_text).map_err(|error| {
+			MonochangeError::Config(format!("invalid glob pattern `{glob_path}`: {error}"))
+		})?;
+
+		if pattern_path.is_absolute() {
+			let root = root.to_path_buf();
+			return Ok(self
+				.workspace_files(root.as_path())?
+				.iter()
+				.find_map(|relative_path| {
+					let absolute_path = root.join(relative_path);
+					(pattern.matches_path(&absolute_path)
+						&& !path_is_supported_for_ecosystem(&absolute_path, ecosystem_type))
+					.then_some(absolute_path)
+				}));
+		}
+
+		Ok(self
+			.workspace_files(root)?
+			.iter()
+			.find_map(|relative_path| {
+				(pattern.matches_path(relative_path)
+					&& !path_is_supported_for_ecosystem(relative_path, ecosystem_type))
+				.then(|| root.join(relative_path))
+			}))
+	}
+
+	fn workspace_files(&mut self, root: &Path) -> MonochangeResult<&[PathBuf]> {
+		if self.workspace_files.is_none() {
+			self.workspace_files = Some(collect_workspace_files(root)?);
+		}
+
+		Ok(self.workspace_files.as_deref().unwrap_or(&[]))
+	}
+}
+
+fn normalize_relative_glob(path: &str) -> &str {
+	let mut normalized = path;
+	while let Some(stripped) = normalized.strip_prefix("./") {
+		normalized = stripped;
+	}
+	normalized
+}
+
+fn collect_workspace_files(root: &Path) -> MonochangeResult<Vec<PathBuf>> {
+	let path_filter = DiscoveryPathFilter::new(root);
+	let mut builder = WalkBuilder::new(root);
+	builder
+		.hidden(false)
+		.ignore(true)
+		.git_ignore(true)
+		.git_exclude(true)
+		.git_global(false)
+		.parents(true)
+		.filter_entry(move |entry| entry.depth() == 0 || path_filter.should_descend(entry.path()));
+
+	let mut files = Vec::new();
+	for entry in builder.build() {
+		let entry = entry.map_err(|error| {
+			MonochangeError::Io(format!("failed to walk {}: {error}", root.display()))
+		})?;
+		if entry
+			.file_type()
+			.is_some_and(|file_type| file_type.is_file())
+			&& let Ok(relative_path) = entry.path().strip_prefix(root)
+		{
+			files.push(relative_path.to_path_buf());
+		}
+	}
+	Ok(files)
+}
+
 fn path_is_supported_for_ecosystem(path: &Path, ecosystem_type: EcosystemType) -> bool {
 	let file_name = path
 		.file_name()
@@ -3320,13 +3437,14 @@ fn source_capabilities(provider: SourceProvider) -> SourceCapabilities {
 	}
 }
 
-fn validate_versioned_files(
+fn validate_versioned_files_with_cache(
 	root: &Path,
 	config_contents: &str,
 	versioned_files: &[VersionedFileDefinition],
 	declared_packages: &BTreeSet<&str>,
 	owner_kind: &str,
 	owner_id: &str,
+	cache: &mut VersionedFileValidationCache,
 ) -> MonochangeResult<()> {
 	for versioned_file in versioned_files {
 		if versioned_file.format.is_some() {
@@ -3384,18 +3502,12 @@ fn validate_versioned_files(
 				.join(&versioned_file.path)
 				.to_string_lossy()
 				.to_string();
-			let matches = glob::glob(&pattern)
-				.map_err(|error| {
-					MonochangeError::Config(format!(
-						"invalid glob pattern `{}`: {error}",
-						versioned_file.path
-					))
-				})?
-				.filter_map(Result::ok)
-				.collect::<Vec<_>>();
-			if let Some(unsupported_path) = matches
-				.into_iter()
-				.find(|matched_path| !path_is_supported_for_ecosystem(matched_path, ecosystem_type))
+			let ecosystem_name = Ecosystem::from(ecosystem_type).as_str();
+			if !cache.insert_checked_glob(pattern, ecosystem_name) {
+				continue;
+			}
+			if let Some(unsupported_path) =
+				cache.unsupported_glob_match(root, &versioned_file.path, ecosystem_type)?
 			{
 				return Err(config_diagnostic(
 					config_contents,
@@ -3403,15 +3515,7 @@ fn validate_versioned_files(
 						"{owner_kind} `{owner_id}` versioned_files glob `{}` matched unsupported file `{}` for ecosystem `{}`",
 						versioned_file.path,
 						unsupported_path.display(),
-						match ecosystem_type {
-							EcosystemType::Cargo => "cargo",
-							EcosystemType::Npm => "npm",
-							EcosystemType::Deno => "deno",
-							EcosystemType::Dart => "dart",
-							EcosystemType::Python => "python",
-							EcosystemType::Go => "go",
-							_ => "unknown",
-						}
+						ecosystem_name
 					),
 					vec![config_section_label(
 						config_contents,
