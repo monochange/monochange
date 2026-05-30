@@ -978,18 +978,23 @@ This layout keeps the top-level skill small while still making the richer guidan
 
 <!-- {@lintingPolicyReference} -->
 
-Use this guide when the task is to configure or explain monochange's **manifest lint rules**.
+Use this guide when the task is to configure or explain monochange's **lint rules**.
 
-These are the rules that run through **`mc check`** and are configured in `monochange.toml` under the top-level **`[lints]`** section.
+These are the rules that run through **`mc check`** and are configured in `monochange.toml` under the top-level **`[lints]`** section. They are separate from Rust compiler or Clippy lints used to develop monochange itself.
 
-They are separate from Rust compiler or Clippy lints used to develop monochange itself.
+This page is the human-readable companion to the live lint catalog. For machine-readable output or to verify the exact catalog in the installed binary, run:
+
+```bash
+mc lint list --format json
+mc lint explain <rule-or-preset-id>
+```
 
 ## What `mc check` does
 
 `mc check` runs two phases:
 
 1. normal workspace validation, similar to `mc step:validate`
-2. manifest lint rules for supported package ecosystems
+2. changeset and manifest lint rules for configured package ecosystems
 
 Common commands:
 
@@ -1001,7 +1006,7 @@ mc lint list
 mc lint explain cargo/recommended
 ```
 
-Use `--fix` when you want monochange to apply auto-fixes where a rule supports them.
+Use `--fix` when you want monochange to apply auto-fixes where a rule supports them. Rules that are not autofixable still report diagnostics and suggested remediation.
 
 ## Where lint rules live
 
@@ -1009,7 +1014,13 @@ Configure presets, global rules, and scoped overrides in the top-level `[lints]`
 
 ```toml
 [lints]
-use = ["cargo/recommended", "npm/recommended", "dart/recommended"]
+use = [
+	"changesets/recommended",
+	"cargo/recommended",
+	"npm/recommended",
+	"dart/recommended",
+]
+exclude = ["fixtures/**"]
 
 [lints.rules]
 "cargo/internal-dependency-workspace" = "error"
@@ -1028,38 +1039,121 @@ Rule configuration supports two forms:
 - simple severity: `"rule-id" = "error"`, `"warning"`, or `"off"`
 - detailed config: `{ level = "error", ...rule_specific_options }`
 
+Preset rules provide the baseline. Explicit entries in `[lints.rules]` override that baseline. Scoped rules let a subset of packages be stricter or looser than the workspace default.
+
+## Presets
+
+| Preset                   | What it is for                                                  | Rules enabled                                                                                                                                                                                                                                                                                                                           |
+| ------------------------ | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `changesets/recommended` | Baseline changeset hygiene.                                     | `changesets/summary = error`                                                                                                                                                                                                                                                                                                            |
+| `cargo/recommended`      | Balanced Cargo manifest policy for most workspaces.             | `cargo/internal-dependency-workspace = error`, `cargo/publishable-dependencies = error`, `cargo/required-package-fields = error`, `cargo/dependency-field-order = warning`, `cargo/sorted-dependencies = warning`, `cargo/unlisted-package-private = warning`                                                                           |
+| `cargo/strict`           | Cargo policy with style rules promoted to errors.               | Same as `cargo/recommended`, but `cargo/dependency-field-order` and `cargo/sorted-dependencies` are `error`.                                                                                                                                                                                                                            |
+| `npm/recommended`        | Balanced npm-family manifest policy.                            | `npm/workspace-protocol = error`, `npm/no-duplicate-dependencies = error`, `npm/required-package-fields = error`, `npm/root-no-prod-deps = error`, `npm/sorted-dependencies = warning`, `npm/unlisted-package-private = warning`                                                                                                        |
+| `npm/strict`             | npm-family policy with dependency sorting promoted to an error. | Same as `npm/recommended`, but `npm/sorted-dependencies` is `error`.                                                                                                                                                                                                                                                                    |
+| `dart/recommended`       | Baseline Dart metadata, publishability, and SDK hygiene.        | `dart/sdk-constraint-present = error`, `dart/required-package-fields = error`, `dart/no-git-dependencies-in-published-packages = error`, `dart/unlisted-package-private = error`, `dart/dependency-sorted = warning`                                                                                                                    |
+| `dart/strict`            | Dart policy with workspace and Flutter policy rules enforced.   | Everything in `dart/recommended`, plus `dart/sdk-constraint-modern`, `dart/no-unexpected-dependency-overrides`, `dart/internal-path-dependency-policy`, `dart/workspace-internal-version-consistency`, `dart/flutter-package-metadata-consistent`, and `dart/assets-sorted` as errors; `dart/dependency-sorted` is promoted to `error`. |
+
+## Available rules at a glance
+
+| Rule id                                          | Ecosystem      | Category      | Autofix | Summary                                                                                                                             |
+| ------------------------------------------------ | -------------- | ------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `changesets/summary`                             | changesets     | correctness   | no      | Requires a changeset body to start with a summary heading.                                                                          |
+| `changesets/no_section_headings`                 | changesets     | correctness   | no      | Rejects change-type headings inside changeset bodies.                                                                               |
+| `changesets/bump/none`                           | changesets     | correctness   | no      | Applies scoped body policy to `none` bump entries.                                                                                  |
+| `changesets/bump/patch`                          | changesets     | correctness   | no      | Applies scoped body policy to `patch` bump entries.                                                                                 |
+| `changesets/bump/minor`                          | changesets     | correctness   | no      | Applies scoped body policy to `minor` bump entries.                                                                                 |
+| `changesets/bump/major`                          | changesets     | correctness   | no      | Applies scoped body policy to `major` bump entries.                                                                                 |
+| `changesets/types/<type>`                        | changesets     | correctness   | no      | Applies scoped body policy to a configured changelog type.                                                                          |
+| `changesets/duplicate`                           | changesets     | correctness   | no      | Recognized compatibility switch for duplicate target validation; workspace validation rejects duplicate package entries regardless. |
+| `cargo/dependency-field-order`                   | Cargo          | style         | yes     | Orders keys inside inline dependency tables.                                                                                        |
+| `cargo/internal-dependency-workspace`            | Cargo          | correctness   | yes     | Requires internal crate dependencies to use `workspace = true`.                                                                     |
+| `cargo/publishable-dependencies`                 | Cargo          | correctness   | no      | Prevents publishable crates from depending on unpublished workspace crates.                                                         |
+| `cargo/required-package-fields`                  | Cargo          | correctness   | no      | Requires selected `[package]` metadata fields.                                                                                      |
+| `cargo/sorted-dependencies`                      | Cargo          | style         | yes     | Sorts dependency tables alphabetically.                                                                                             |
+| `cargo/unlisted-package-private`                 | Cargo          | correctness   | yes     | Requires unmanaged crates to set `publish = false`.                                                                                 |
+| `npm/workspace-protocol`                         | npm-family     | correctness   | yes     | Requires internal dependencies to use `workspace:` ranges.                                                                          |
+| `npm/sorted-dependencies`                        | npm-family     | style         | yes     | Sorts dependency sections alphabetically.                                                                                           |
+| `npm/required-package-fields`                    | npm-family     | correctness   | no      | Requires selected `package.json` metadata fields.                                                                                   |
+| `npm/root-no-prod-deps`                          | npm-family     | best practice | yes     | Keeps production dependencies out of the workspace root package.                                                                    |
+| `npm/no-duplicate-dependencies`                  | npm-family     | correctness   | yes     | Prevents the same dependency from appearing in multiple dependency sections.                                                        |
+| `npm/unlisted-package-private`                   | npm-family     | correctness   | yes     | Requires unmanaged packages to set `private: true`.                                                                                 |
+| `dart/sdk-constraint-present`                    | Dart           | correctness   | no      | Requires `environment.sdk` in `pubspec.yaml`.                                                                                       |
+| `dart/sdk-constraint-modern`                     | Dart           | best practice | no      | Enforces a modern SDK lower bound and, by default, an upper bound.                                                                  |
+| `dart/dependency-sorted`                         | Dart           | style         | yes     | Sorts dependency sections in `pubspec.yaml`.                                                                                        |
+| `dart/required-package-fields`                   | Dart           | correctness   | no      | Requires selected `pubspec.yaml` metadata fields.                                                                                   |
+| `dart/no-git-dependencies-in-published-packages` | Dart           | correctness   | no      | Blocks `git:` dependencies in publishable packages unless allowed.                                                                  |
+| `dart/unlisted-package-private`                  | Dart           | correctness   | yes     | Requires unmanaged packages to set `publish_to: none`.                                                                              |
+| `dart/no-unexpected-dependency-overrides`        | Dart           | best practice | no      | Allows `dependency_overrides` only in approved packages.                                                                            |
+| `dart/internal-path-dependency-policy`           | Dart           | best practice | no      | Enforces one policy for internal Dart dependency references.                                                                        |
+| `dart/workspace-internal-version-consistency`    | Dart           | correctness   | no      | Requires internal hosted dependency ranges to match workspace package versions.                                                     |
+| `dart/flutter-package-metadata-consistent`       | Dart / Flutter | correctness   | no      | Requires Flutter packages to declare the Flutter SDK dependency consistently.                                                       |
+| `dart/assets-sorted`                             | Dart / Flutter | style         | yes     | Sorts Flutter assets and fonts.                                                                                                     |
+
 ## Changeset lint rules
 
 Changeset lint rules use the same `[lints.rules]` table as manifest rules. They are evaluated while markdown changesets are loaded by validation and release workflows.
 
 ```toml
+[lints]
+use = ["changesets/recommended"]
+
 [lints.rules]
-"changesets/duplicate" = "error"
 "changesets/no_section_headings" = "error"
-"changesets/summary" = { level = "error", required = true, heading_level = 2, min_length = 12, max_length = 80, forbid_trailing_period = true, forbid_conventional_commit_prefix = true }
+"changesets/summary" = { level = "error", required = true, heading_level = 2, min_length = 12, max_length = 80, forbid_trailing_period = true, forbid_conventional_commit_prefix = true, require_description = true }
 "changesets/bump/major" = { level = "error", required_sections = ["Impact", "Migration"], min_body_chars = 120, require_code_block = true }
 "changesets/types/breaking" = { level = "error", forbidden_headings = ["Breaking", "Breaking changes"], required_sections = ["Impact", "Migration"], required_bump = "major" }
 ```
 
-Supported changeset rule ids:
+### `changesets/summary`
 
-- `changesets/duplicate` — validates that a changeset does not target the same effective package more than once.
-- `changesets/no_section_headings` — rejects headings that duplicate a change type used by that changeset.
-- `changesets/summary` — configures the one-line summary heading. Options: `required`, `heading_level`, `min_length`, `max_length`, `forbid_trailing_period`, `forbid_conventional_commit_prefix`.
-- `changesets/bump/<severity>` — configures rules for `major`, `minor`, or `patch` entries. Options: `required_sections`, `forbidden_headings`, `min_body_chars`, `max_body_chars`, `require_code_block`, `required_bump`.
-- `changesets/types/<type>` — configures rules for a configured changelog type such as `breaking`, `feature`, `fix`, `security`, or a custom type like `unicorns`. It accepts the same scoped options as bump rules. The `<type>` segment must match a configured changelog type.
+**Why:** every changeset should be understandable from a compact, release-note-ready heading.
 
-## Current rule coverage
+**What it checks:** the first heading in a changeset body. It can require a heading, constrain its level and length, ban trailing periods, ban conventional-commit prefixes, and require descriptive body text after the heading.
 
-Today, built-in manifest lint rules exist for:
+**Useful options:**
 
-- **Cargo** manifests (`Cargo.toml`)
-- **npm-family** manifests (`package.json`)
-- **Dart / Flutter** manifests (`pubspec.yaml`)
+- `required` — require the summary heading.
+- `heading_level` — require a Markdown heading level from `1` to `6`.
+- `min_length` / `max_length` — constrain summary text length.
+- `forbid_trailing_period` — reject summaries ending in `.`.
+- `forbid_conventional_commit_prefix` — reject summaries such as `feat: add parser`.
+- `require_description` — require a non-empty paragraph after the heading.
 
-Lint suites still live in ecosystem crates, but monochange routes all manifest lint configuration through the top-level `[lints]` section via preset selection, rule overrides, and scoped matches.
+### `changesets/no_section_headings`
+
+**Why:** change types already come from the changeset entries. Repeating them as body headings creates noisy generated changelogs.
+
+**With the rule:** headings that duplicate configured changelog types, such as `## Breaking` or `## Fix`, are rejected.
+
+### `changesets/bump/<severity>`
+
+**Why:** different bump severities can require different explanation standards. A `major` bump often needs impact and migration notes, while a `patch` bump may only need a concise description.
+
+**Supported severities:** `none`, `patch`, `minor`, and `major`.
+
+**Useful options:**
+
+- `required_sections` — headings that must appear in the body.
+- `forbidden_headings` — headings that must not appear in the body.
+- `min_body_chars` / `max_body_chars` — body length bounds.
+- `require_code_block` — require a fenced code block.
+- `required_bump` — require entries governed by this rule to use a specific bump severity.
+
+### `changesets/types/<type>`
+
+**Why:** changelog types can carry their own policy. For example, a `breaking` type can require migration notes even if a repository has multiple bump severities.
+
+The `<type>` segment must match a configured changelog type. It accepts the same scoped options as `changesets/bump/<severity>`.
+
+### `changesets/duplicate`
+
+**Why:** a changeset should not target the same effective package more than once.
+
+Duplicate package entries are rejected by workspace validation. The rule id remains recognized in `[lints.rules]` for compatibility with existing configurations that explicitly turn it on or off.
 
 ## Cargo manifest lint rules
+
+Cargo rules apply to discovered `Cargo.toml` package manifests and, where needed, the workspace package graph.
 
 ### `cargo/dependency-field-order`
 
@@ -1084,9 +1178,9 @@ serde = { features = ["derive"], workspace = true }
 serde = { workspace = true, features = ["derive"] }
 ```
 
-**Useful option:**
+**Options:**
 
-- `fix` — defaults to `true`
+- `fix` — defaults to `true`; rewrites the dependency entry when safe.
 
 ### `cargo/internal-dependency-workspace`
 
@@ -1108,10 +1202,38 @@ monochange_core = { workspace = true }
 
 **When to use it:** when the repository wants one workspace-owned version source for internal crates.
 
-**Useful options:**
+**Options:**
 
-- `require_workspace` — defaults to `true`
-- `fix` — defaults to `true`
+- `require_workspace` — defaults to `true`; require internal dependencies to use `workspace = true`.
+- `fix` — defaults to `true`; rewrites safe internal dependency entries.
+
+### `cargo/publishable-dependencies`
+
+**Why:** a crate that can be published should not depend on an internal workspace crate that cannot be published. That leaves registry consumers unable to resolve the dependency.
+
+**What it checks:** publishable Cargo packages and their internal Cargo dependencies. If the dependent package is publishable, any internal dependency it relies on must also be publishable.
+
+**Without the rule:**
+
+```toml
+# crates/app/Cargo.toml
+[package]
+name = "app"
+version = "0.1.0"
+
+[dependencies]
+internal_helper = { workspace = true }
+
+# crates/internal_helper/Cargo.toml
+[package]
+name = "internal_helper"
+version = "0.1.0"
+publish = false
+```
+
+**With the rule:** either make `internal_helper` publishable, remove the dependency from the publishable crate, or mark the depending crate private too.
+
+**Autofix:** no. This is a release policy decision, so monochange reports the dependency chain instead of changing publishability for you.
 
 ### `cargo/required-package-fields`
 
@@ -1133,9 +1255,9 @@ version = "0.1.0"
 
 **With the rule:** monochange reports the missing fields so package metadata stays consistent.
 
-**Useful option:**
+**Options:**
 
-- `fields` — replace the default required-field list
+- `fields` — replace the default required-field list.
 
 Example:
 
@@ -1166,20 +1288,18 @@ mmmm = "1.0"
 zzzz = "1.0"
 ```
 
-**Useful option:**
+**Options:**
 
-- `fix` — defaults to `true`
+- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
 
 ### `cargo/unlisted-package-private`
 
 **Why:** a Cargo package that is not listed in `monochange.toml` should not be accidentally publishable.
 
-**Without the rule:** an unmanaged crate can remain publicly publishable by accident.
-
 **With the rule:** monochange requires either:
 
 - adding the package to `monochange.toml`, or
-- marking it private with `publish = false`
+- marking it private with `publish = false`.
 
 **Without the rule:**
 
@@ -1198,11 +1318,13 @@ version = "0.1.0"
 publish = false
 ```
 
-**Useful option:**
+**Options:**
 
-- `fix` — defaults to `true`
+- `fix` — defaults to `true`; inserts `publish = false` when safe.
 
 ## npm-family manifest lint rules
+
+npm-family rules apply to `package.json` manifests discovered through npm, pnpm, yarn, Bun, and Deno/npm-style package graphs.
 
 ### `npm/workspace-protocol`
 
@@ -1228,12 +1350,12 @@ publish = false
 }
 ```
 
-**When to use it:** npm, pnpm, and Bun workspaces where internal packages should not drift to plain registry ranges.
+**When to use it:** npm, pnpm, yarn, and Bun workspaces where internal packages should not drift to plain registry ranges.
 
-**Useful options:**
+**Options:**
 
-- `require_for_private` — defaults to `false`
-- `fix` — defaults to `true`
+- `require_for_private` — defaults to `false`; also enforce the rule for private packages.
+- `fix` — defaults to `true`; rewrites internal dependency ranges to `workspace:` ranges.
 
 ### `npm/sorted-dependencies`
 
@@ -1261,9 +1383,9 @@ publish = false
 }
 ```
 
-**Useful option:**
+**Options:**
 
-- `fix` — defaults to `true`
+- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
 
 ### `npm/required-package-fields`
 
@@ -1286,9 +1408,9 @@ publish = false
 
 **With the rule:** monochange reports the missing metadata fields.
 
-**Useful option:**
+**Options:**
 
-- `fields` — replace the default required-field list
+- `fields` — replace the default required-field list.
 
 ### `npm/root-no-prod-deps`
 
@@ -1306,9 +1428,9 @@ publish = false
 
 **With the rule:** move those to `devDependencies` when the root package is only a workspace manager.
 
-**Useful option:**
+**Options:**
 
-- `fix` — defaults to `true`
+- `fix` — defaults to `true`; moves root `dependencies` into `devDependencies`.
 
 ### `npm/no-duplicate-dependencies`
 
@@ -1327,22 +1449,20 @@ publish = false
 }
 ```
 
-**With the rule:** monochange reports the duplicate and can suggest removing the redundant non-dev entry when appropriate.
+**With the rule:** monochange reports the duplicate and can remove redundant entries from later sections when safe.
 
-**Useful option:**
+**Options:**
 
-- `fix` — defaults to `true`
+- `fix` — defaults to `true`; removes duplicate entries from later sections.
 
 ### `npm/unlisted-package-private`
 
 **Why:** a package not declared in `monochange.toml` should not remain publishable by accident.
 
-**Without the rule:** an unmanaged package can still look publishable.
-
 **With the rule:** monochange requires either:
 
 - adding the package to `monochange.toml`, or
-- marking it private in `package.json`
+- marking it private in `package.json`.
 
 **Without the rule:**
 
@@ -1363,17 +1483,35 @@ publish = false
 }
 ```
 
-**Useful option:**
+**Options:**
 
-- `fix` — defaults to `true`
+- `fix` — defaults to `true`; inserts `private: true` when safe.
 
 ## Dart manifest lint rules
+
+Dart rules apply to `pubspec.yaml` manifests, including Flutter packages when a pubspec has Flutter-specific metadata.
 
 ### `dart/sdk-constraint-present`
 
 **Why:** every managed Dart package should declare the SDK range it expects rather than inheriting whatever the developer machine happens to provide.
 
 **With the rule:** monochange reports any `pubspec.yaml` that omits `environment.sdk`.
+
+**Without the rule:**
+
+```yaml
+name: app
+version: 1.0.0
+```
+
+**With the rule:**
+
+```yaml
+name: app
+version: 1.0.0
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+```
 
 ### `dart/sdk-constraint-modern`
 
@@ -1384,10 +1522,10 @@ publish = false
 - minimum lower bound: `3.0.0`
 - upper bound required by default
 
-**Useful options:**
+**Options:**
 
-- `minimum` — override the minimum lower bound for your workspace
-- `require_upper_bound` — set to `false` if your policy intentionally omits an upper bound
+- `minimum` — override the minimum lower bound for your workspace.
+- `require_upper_bound` — set to `false` if your policy intentionally omits an upper bound.
 
 Example:
 
@@ -1400,18 +1538,120 @@ Example:
 
 **Why:** alphabetized `dependencies`, `dev_dependencies`, and `dependency_overrides` blocks reduce review noise and make Dart manifest diffs easier to scan.
 
-**Useful option:**
+**Without the rule:**
 
-- `fix` — defaults to `true`
+```yaml
+dependencies:
+  zeta: ^1.0.0
+  alpha: ^1.0.0
+```
+
+**With the rule:**
+
+```yaml
+dependencies:
+  alpha: ^1.0.0
+  zeta: ^1.0.0
+```
+
+**Options:**
+
+- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
+
+### `dart/required-package-fields`
+
+**Why:** managed publishable Dart packages should carry the metadata your repository expects before release.
+
+**Default required fields:**
+
+- `description`
+- `repository`
+- `license`
+
+**Without the rule:**
+
+```yaml
+name: app
+version: 1.0.0
+```
+
+**With the rule:** monochange reports missing metadata fields for publishable packages.
+
+**Options:**
+
+- `fields` — replace the default required-field list.
+
+Example:
+
+```toml
+[lints.rules]
+"dart/required-package-fields" = { level = "error", fields = ["description", "repository"] }
+```
+
+### `dart/no-git-dependencies-in-published-packages`
+
+**Why:** published Dart packages should resolve from hosted dependencies, not source-control dependencies, unless the repository explicitly allows an exception.
+
+**Without the rule:**
+
+```yaml
+dependencies:
+  shared:
+    git:
+      url: https://github.com/acme/shared.git
+```
+
+**With the rule:** monochange reports `git:` dependencies in publishable packages unless the dependency name appears in the allow list.
+
+**Options:**
+
+- `allow` — list dependency names that may use `git:` sources.
+
+Example:
+
+```toml
+[lints.rules]
+"dart/no-git-dependencies-in-published-packages" = { level = "error", allow = ["shared"] }
+```
+
+### `dart/unlisted-package-private`
+
+**Why:** a Dart package that is not listed in `monochange.toml` should not be accidentally publishable.
+
+**With the rule:** monochange requires either:
+
+- adding the package to `monochange.toml`, or
+- marking it private with `publish_to: none`.
+
+**Without the rule:**
+
+```yaml
+name: experimental
+version: 0.1.0
+```
+
+**With the rule:**
+
+```yaml
+name: experimental
+version: 0.1.0
+publish_to: none
+```
+
+**Options:**
+
+- `fix` — defaults to `true`; inserts `publish_to: none` when safe.
 
 ### `dart/no-unexpected-dependency-overrides`
 
 **Why:** `dependency_overrides` are sometimes necessary, but they should usually be limited to private packages or a small allow list of explicitly approved packages.
 
-**Useful options:**
+**With the rule:** monochange reports `dependency_overrides` unless they are allowed by privacy or package name.
 
-- `allow_for_private` — defaults to `true`
-- `allow_packages` — list package names that may keep `dependency_overrides`
+**Options:**
+
+- `allow_for_private` — defaults to `true`; allow overrides in private packages.
+- `allow_packages` — list package names that may keep `dependency_overrides`.
 
 Example:
 
@@ -1419,8 +1659,6 @@ Example:
 [lints.rules]
 "dart/no-unexpected-dependency-overrides" = { level = "warning", allow_for_private = true, allow_packages = ["app_shell"] }
 ```
-
-### Workspace-aware Dart rules
 
 ### `dart/internal-path-dependency-policy`
 
@@ -1430,9 +1668,9 @@ Example:
 
 With Dart workspace resolution, Dart resolves versioned internal dependencies to local workspace packages automatically. In that mode, monochange requires version constraints and reports `path:` references with the message "use version constraints (not `path:`) when resolution is workspace".
 
-**Useful option:**
+**Options:**
 
-- `mode` — choose `"path"` or `"hosted"` for packages that do not use `resolution: workspace`
+- `mode` — choose `"path"` or `"hosted"` for packages that do not use `resolution: workspace`.
 
 Example:
 
@@ -1445,9 +1683,7 @@ Example:
 
 **Why:** when workspace packages reference each other with hosted version ranges, those ranges should not drift away from the current workspace version.
 
-**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `mc sync versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
-
-### Flutter-only rules
+**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `mc versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
 
 ### `dart/flutter-package-metadata-consistent`
 
@@ -1455,20 +1691,52 @@ Example:
 
 **With the rule:** monochange requires `dependencies.flutter = { sdk = flutter }` in `pubspec.yaml` terms, expressed as the YAML mapping form.
 
+**Without the rule:**
+
+```yaml
+name: widgets
+flutter:
+  assets:
+    - assets/logo.png
+```
+
+**With the rule:**
+
+```yaml
+name: widgets
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  assets:
+    - assets/logo.png
+```
+
 ### `dart/assets-sorted`
 
 **Why:** stable ordering for `flutter.assets` and `flutter.fonts` reduces noisy diffs in Flutter packages.
 
-**Useful option:**
+**Without the rule:**
 
-- `fix` — defaults to `true`
+```yaml
+flutter:
+  assets:
+    - assets/zeta.png
+    - assets/alpha.png
+```
 
-### Dart presets
+**With the rule:**
 
-- `dart/recommended` enables metadata/publishability checks, `dart/sdk-constraint-present`, and `dart/dependency-sorted` as a warning.
-- `dart/strict` adds `dart/sdk-constraint-modern`, `dart/no-unexpected-dependency-overrides`, `dart/internal-path-dependency-policy`, `dart/workspace-internal-version-consistency`, `dart/flutter-package-metadata-consistent`, and `dart/assets-sorted`, while promoting `dart/dependency-sorted` to an error.
+```yaml
+flutter:
+  assets:
+    - assets/alpha.png
+    - assets/zeta.png
+```
 
-Use `mc lint list` to inspect registered rules and presets, and `mc lint explain <id>` to understand a rule or preset before enabling it.
+**Options:**
+
+- `fix` — defaults to `true`; rewrites Flutter assets and fonts in sorted order.
 
 ## What `mc check` looks like in practice
 
