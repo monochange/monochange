@@ -9294,6 +9294,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 	let explicit = monochange_core::VersionedFileDefinition {
 		path: "packages/app/package.json".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: Some("~".to_string()),
 		fields: None,
 		name: None,
@@ -9304,6 +9305,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 	let ecosystem = monochange_core::VersionedFileDefinition {
 		path: "packages/app/package.json".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -9317,6 +9319,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 	let fallback = monochange_core::VersionedFileDefinition {
 		path: "packages/app/deno.json".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Deno),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -9330,6 +9333,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 	let python = monochange_core::VersionedFileDefinition {
 		path: "packages/app/pyproject.toml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Python),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -9340,6 +9344,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 	let go = monochange_core::VersionedFileDefinition {
 		path: "packages/app/go.mod".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Go),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -9975,6 +9980,7 @@ fn expand_versioned_file_fields_supports_name_templates_and_passthrough_fields()
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "Cargo.toml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Cargo),
+		format: None,
 		prefix: None,
 		fields: Some(vec![
 			"workspace.dependencies.{{name}}.version".to_string(),
@@ -9994,6 +10000,7 @@ fn expand_versioned_file_fields_supports_name_templates_and_passthrough_fields()
 	let go = monochange_core::VersionedFileDefinition {
 		path: "go.mod".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Go),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10029,6 +10036,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		let definition = monochange_core::VersionedFileDefinition {
 			path: file_name.to_string(),
 			ecosystem_type: Some(ecosystem_type),
+			format: None,
 			prefix: None,
 			fields: None,
 			name: None,
@@ -10063,6 +10071,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "Cargo.toml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Cargo),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10091,6 +10100,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 	let pnpm_definition = monochange_core::VersionedFileDefinition {
 		path: "pnpm-lock.yaml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10120,6 +10130,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "pubspec.yaml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Dart),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10237,6 +10248,7 @@ fn apply_versioned_file_definition_returns_early_without_matching_versions() {
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "package.json".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10269,6 +10281,7 @@ fn apply_versioned_file_definition_rejects_invalid_glob_patterns() {
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "[".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10307,6 +10320,7 @@ fn apply_versioned_file_definition_rejects_unsupported_glob_matches() {
 		let definition = monochange_core::VersionedFileDefinition {
 			path: "*.txt".to_string(),
 			ecosystem_type: Some(ecosystem_type),
+			format: None,
 			prefix: None,
 			fields: None,
 			name: None,
@@ -10347,6 +10361,7 @@ monochange = { path = "crates/monochange", version = "1.0.0" }
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "Cargo.toml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Cargo),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10399,6 +10414,7 @@ extra = { path = "crates/extra", version = "1.0.0" }
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "Cargo.toml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Cargo),
+		format: None,
 		prefix: None,
 		fields: Some(vec![
 			"workspace.version".to_string(),
@@ -10452,6 +10468,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 	let bun_definition = monochange_core::VersionedFileDefinition {
 		path: "packages/app/bun.lockb".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10488,6 +10505,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 	let deno_definition = monochange_core::VersionedFileDefinition {
 		path: "deno.json".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Deno),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10527,6 +10545,7 @@ fn apply_versioned_file_definition_updates_regex_versioned_files_from_cached_tex
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "README.md".to_string(),
 		ecosystem_type: None,
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10574,6 +10593,7 @@ fn apply_versioned_file_definition_reports_invalid_regex_patterns() {
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "README.md".to_string(),
 		ecosystem_type: None,
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10611,6 +10631,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let manifest_definition = monochange_core::VersionedFileDefinition {
 		path: "package.json".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10657,6 +10678,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let package_lock_definition = monochange_core::VersionedFileDefinition {
 		path: "packages/app/package-lock.json".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10697,6 +10719,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let pnpm_definition = monochange_core::VersionedFileDefinition {
 		path: "pnpm-lock.yaml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10734,6 +10757,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let bun_definition = monochange_core::VersionedFileDefinition {
 		path: "packages/app/bun.lock".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10786,6 +10810,7 @@ dependencies = ["python-core>=1.0.0"]
 	let manifest_definition = monochange_core::VersionedFileDefinition {
 		path: "pyproject.toml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Python),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10816,6 +10841,7 @@ dependencies = ["python-core>=1.0.0"]
 	let lock_definition = monochange_core::VersionedFileDefinition {
 		path: "uv.lock".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Python),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10857,6 +10883,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 	let unsupported_definition = monochange_core::VersionedFileDefinition {
 		path: "unknown.txt".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Python),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10884,6 +10911,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 	let manifest_definition = monochange_core::VersionedFileDefinition {
 		path: "pyproject.toml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Python),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10920,6 +10948,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	let deno_manifest_definition = monochange_core::VersionedFileDefinition {
 		path: "deno.json".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Deno),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10956,6 +10985,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	let deno_lock_definition = monochange_core::VersionedFileDefinition {
 		path: "packages/app/deno.lock".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Deno),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -10991,6 +11021,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	let dart_manifest_definition = monochange_core::VersionedFileDefinition {
 		path: "packages/app/pubspec.yaml".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Dart),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -11029,6 +11060,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	let dart_lock_definition = monochange_core::VersionedFileDefinition {
 		path: "packages/app/pubspec.lock".to_string(),
 		ecosystem_type: Some(monochange_core::EcosystemType::Dart),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -13332,6 +13364,7 @@ fn apply_versioned_file_definition_reports_invalid_glob_pattern() {
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "[invalid".to_string(),
 		ecosystem_type: None,
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -13361,6 +13394,7 @@ fn apply_versioned_file_definition_reports_missing_ecosystem_type() {
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "Cargo.toml".to_string(),
 		ecosystem_type: None,
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,

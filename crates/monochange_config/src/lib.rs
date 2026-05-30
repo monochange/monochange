@@ -845,6 +845,7 @@ fn normalize_versioned_files(
 				Ok(VersionedFileDefinition {
 					path,
 					ecosystem_type: Some(inferred_ecosystem_type),
+					format: None,
 					prefix: None,
 					fields: None,
 					name: None,
@@ -3328,6 +3329,11 @@ fn validate_versioned_files(
 	owner_id: &str,
 ) -> MonochangeResult<()> {
 	for versioned_file in versioned_files {
+		if versioned_file.format.is_some() {
+			validate_format_versioned_file(config_contents, versioned_file, owner_kind, owner_id)?;
+			continue;
+		}
+
 		if let Some(regex) = versioned_file.regex.as_deref() {
 			validate_regex_versioned_file(
 				config_contents,
@@ -4000,6 +4006,71 @@ fn validate_changeset_scoped_lint_settings(
 }
 
 #[allow(clippy::match_same_arms)]
+fn validate_format_versioned_file(
+	config_contents: &str,
+	versioned_file: &VersionedFileDefinition,
+	owner_kind: &str,
+	owner_id: &str,
+) -> MonochangeResult<()> {
+	if versioned_file.ecosystem_type.is_some() {
+		return Err(config_diagnostic(
+			config_contents,
+			format!("{owner_kind} `{owner_id}` format versioned_files cannot also set `type`"),
+			vec![config_section_label(
+				config_contents,
+				owner_kind,
+				owner_id,
+				"format versioned_files cannot set `type`",
+			)],
+			Some("remove `type` when using `format`; format versioned_files update explicit fields without ecosystem-specific parsing".to_string()),
+		));
+	}
+
+	if versioned_file.regex.is_some() {
+		return Err(config_diagnostic(
+			config_contents,
+			format!("{owner_kind} `{owner_id}` format versioned_files cannot also set `regex`"),
+			vec![config_section_label(
+				config_contents,
+				owner_kind,
+				owner_id,
+				"format versioned_files cannot set `regex`",
+			)],
+			Some("choose either `format` with explicit `fields`, or `regex` with a named version capture".to_string()),
+		));
+	}
+
+	let Some(fields) = versioned_file.fields.as_ref() else {
+		return Err(config_diagnostic(
+			config_contents,
+			format!("{owner_kind} `{owner_id}` format versioned_files must set `fields`"),
+			vec![config_section_label(
+				config_contents,
+				owner_kind,
+				owner_id,
+				"format versioned_files must set `fields`",
+			)],
+			Some("add at least one explicit field path, such as `fields = [\"release.version\"]` or `fields = [\"VERSION\"]` for env files".to_string()),
+		));
+	};
+
+	if fields.is_empty() || fields.iter().any(|field| field.trim().is_empty()) {
+		return Err(config_diagnostic(
+			config_contents,
+			format!("{owner_kind} `{owner_id}` format versioned_files fields must be non-empty"),
+			vec![config_section_label(
+				config_contents,
+				owner_kind,
+				owner_id,
+				"format versioned_files fields must be non-empty",
+			)],
+			Some("remove empty field entries or replace them with explicit keys like `version` or `release.version`".to_string()),
+		));
+	}
+
+	Ok(())
+}
+
 fn validate_regex_versioned_file(
 	config_contents: &str,
 	versioned_file: &VersionedFileDefinition,
@@ -4007,17 +4078,17 @@ fn validate_regex_versioned_file(
 	owner_id: &str,
 	regex: &str,
 ) -> MonochangeResult<()> {
-	if versioned_file.ecosystem_type.is_some() {
+	if versioned_file.ecosystem_type.is_some() || versioned_file.format.is_some() {
 		return Err(config_diagnostic(
 			config_contents,
-			format!("{owner_kind} `{owner_id}` regex versioned_files cannot also set `type`"),
+			format!("{owner_kind} `{owner_id}` regex versioned_files cannot also set `type` or `format`"),
 			vec![config_section_label(
 				config_contents,
 				owner_kind,
 				owner_id,
-				"regex versioned_files cannot set `type`",
+				"regex versioned_files cannot set `type` or `format`",
 			)],
-			Some("remove `type` when using `regex`; regex versioned_files operate on plain text files without ecosystem-specific parsing".to_string()),
+			Some("remove `type` and `format` when using `regex`; regex versioned_files operate on plain text files without ecosystem-specific parsing".to_string()),
 		));
 	}
 

@@ -73,6 +73,7 @@ use crate::SourceConfiguration;
 use crate::SourceProvider;
 use crate::VersionFormat;
 use crate::VersionedFileDefinition;
+use crate::VersionedFileFormat;
 use crate::WorkspaceConfiguration;
 use crate::WorkspaceDefaults;
 use crate::default_cli_commands;
@@ -709,6 +710,7 @@ fn versioned_file_definition_uses_regex_returns_true_when_set() {
 	let definition = VersionedFileDefinition {
 		path: "README.md".to_string(),
 		ecosystem_type: None,
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -722,12 +724,27 @@ fn versioned_file_definition_uses_regex_returns_false_when_unset() {
 	let definition = VersionedFileDefinition {
 		path: "Cargo.toml".to_string(),
 		ecosystem_type: Some(EcosystemType::Cargo),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
 		regex: None,
 	};
 	assert!(!definition.uses_regex());
+}
+
+#[test]
+fn versioned_file_definition_uses_format_returns_true_when_set() {
+	let definition = VersionedFileDefinition {
+		path: "metadata.json".to_string(),
+		ecosystem_type: None,
+		format: Some(VersionedFileFormat::Json),
+		prefix: None,
+		fields: Some(vec!["release.version".to_string()]),
+		name: None,
+		regex: None,
+	};
+	assert!(definition.uses_format());
 }
 
 #[test]

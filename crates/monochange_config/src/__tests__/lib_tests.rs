@@ -6105,6 +6105,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		&[monochange_core::VersionedFileDefinition {
 			path: "README.md".to_string(),
 			ecosystem_type: None,
+			format: None,
 			name: None,
 			fields: None,
 			prefix: None,
@@ -6128,6 +6129,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		&[monochange_core::VersionedFileDefinition {
 			path: "[".to_string(),
 			ecosystem_type: Some(EcosystemType::Cargo),
+			format: None,
 			name: None,
 			fields: None,
 			prefix: None,
@@ -6159,6 +6161,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		&[monochange_core::VersionedFileDefinition {
 			path: "packages/*/package.json".to_string(),
 			ecosystem_type: Some(EcosystemType::Cargo),
+			format: None,
 			name: None,
 			fields: None,
 			prefix: None,
@@ -6191,6 +6194,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		&[monochange_core::VersionedFileDefinition {
 			path: "packages/*/package.json".to_string(),
 			ecosystem_type: Some(EcosystemType::Dart),
+			format: None,
 			name: None,
 			fields: None,
 			prefix: None,
@@ -6218,6 +6222,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		&[monochange_core::VersionedFileDefinition {
 			path: "packages/*/package.json".to_string(),
 			ecosystem_type: Some(EcosystemType::Go),
+			format: None,
 			name: None,
 			fields: None,
 			prefix: None,
@@ -7116,4 +7121,109 @@ fn validate_workspace_configuration_rejects_leftover_prerelease_state_when_disab
 		error.to_string().contains("prerelease state exists"),
 		"error: {error}"
 	);
+}
+
+#[test]
+fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations() {
+	let root = fixture_path("config/validation-helper-branches");
+	let config_contents = "[package.core]\npath = 'crates/core'\n";
+	let declared_packages = std::collections::BTreeSet::from(["core"]);
+	let valid = monochange_core::VersionedFileDefinition {
+		path: "metadata.json".to_string(),
+		ecosystem_type: None,
+		format: Some(monochange_core::VersionedFileFormat::Json),
+		name: None,
+		fields: Some(vec!["release.version".to_string()]),
+		prefix: None,
+		regex: None,
+	};
+	crate::validate_versioned_files(
+		&root,
+		config_contents,
+		&[valid],
+		&declared_packages,
+		"package",
+		"core",
+	)
+	.unwrap_or_else(|error| panic!("format versioned file should validate: {error}"));
+
+	let mixed_type = monochange_core::VersionedFileDefinition {
+		path: "metadata.json".to_string(),
+		ecosystem_type: Some(EcosystemType::Npm),
+		format: Some(monochange_core::VersionedFileFormat::Json),
+		name: None,
+		fields: Some(vec!["release.version".to_string()]),
+		prefix: None,
+		regex: None,
+	};
+	let error = crate::validate_versioned_files(
+		&root,
+		config_contents,
+		&[mixed_type],
+		&declared_packages,
+		"package",
+		"core",
+	)
+	.expect_err("format and type should be mutually exclusive");
+	assert!(error.to_string().contains("cannot also set `type`"));
+
+	let mixed_regex = monochange_core::VersionedFileDefinition {
+		path: "metadata.json".to_string(),
+		ecosystem_type: None,
+		format: Some(monochange_core::VersionedFileFormat::Json),
+		name: None,
+		fields: Some(vec!["release.version".to_string()]),
+		prefix: None,
+		regex: Some("version = (?<version>.*)".to_string()),
+	};
+	let error = crate::validate_versioned_files(
+		&root,
+		config_contents,
+		&[mixed_regex],
+		&declared_packages,
+		"package",
+		"core",
+	)
+	.expect_err("format and regex should be mutually exclusive");
+	assert!(error.to_string().contains("cannot also set `regex`"));
+
+	let missing_fields = monochange_core::VersionedFileDefinition {
+		path: ".env".to_string(),
+		ecosystem_type: None,
+		format: Some(monochange_core::VersionedFileFormat::Env),
+		name: None,
+		fields: None,
+		prefix: None,
+		regex: None,
+	};
+	let error = crate::validate_versioned_files(
+		&root,
+		config_contents,
+		&[missing_fields],
+		&declared_packages,
+		"package",
+		"core",
+	)
+	.expect_err("format mode should require fields");
+	assert!(error.to_string().contains("must set `fields`"));
+
+	let empty_fields = monochange_core::VersionedFileDefinition {
+		path: ".env".to_string(),
+		ecosystem_type: None,
+		format: Some(monochange_core::VersionedFileFormat::Env),
+		name: None,
+		fields: Some(Vec::new()),
+		prefix: None,
+		regex: None,
+	};
+	let error = crate::validate_versioned_files(
+		&root,
+		config_contents,
+		&[empty_fields],
+		&declared_packages,
+		"package",
+		"core",
+	)
+	.expect_err("format mode should reject empty fields");
+	assert!(error.to_string().contains("fields must be non-empty"));
 }
