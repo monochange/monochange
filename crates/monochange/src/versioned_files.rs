@@ -1030,7 +1030,9 @@ fn update_format_versioned_file_text(
 				update_json_field_path(&mut value, &field, version)?;
 			}
 			let mut output = serde_json::to_string_pretty(&value).unwrap_or_else(|error| {
+				// patch-coverage:ignore-start -- serde_json::Value serialization is infallible for supported values.
 				panic!("serializing serde_json::Value should not fail: {error}")
+				// patch-coverage:ignore-end
 			});
 			output.push('\n');
 			Ok(output)
@@ -1057,7 +1059,9 @@ fn update_format_versioned_file_text(
 				update_yaml_field_path(&mut value, &field, version)?;
 			}
 			Ok(serde_yaml_ng::to_string(&value).unwrap_or_else(|error| {
+				// patch-coverage:ignore-start -- serde_yaml_ng::Value serialization is infallible for supported values.
 				panic!("serializing serde_yaml_ng::Value should not fail: {error}")
+				// patch-coverage:ignore-end
 			}))
 		}
 		monochange_core::VersionedFileFormat::Env => {

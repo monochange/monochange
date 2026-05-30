@@ -107,6 +107,20 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 	.expect_err("json traversal through a string should fail");
 	assert!(json_non_object.to_string().contains("non-object value"));
 
+	let json_non_object_segment = update_format_versioned_file_text(
+		"{\"release\":{\"metadata\":\"1.0.0\"}}",
+		monochange_core::VersionedFileFormat::Json,
+		&["release.metadata.inner.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("json traversal after a string segment should fail");
+	assert!(
+		json_non_object_segment
+			.to_string()
+			.contains("non-object segment `inner`")
+	);
+
 	let json_missing_segment = update_format_versioned_file_text(
 		"{\"release\":{\"version\":\"1.0.0\"}}",
 		monochange_core::VersionedFileFormat::Json,
@@ -202,6 +216,20 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 	)
 	.expect_err("yaml traversal through a scalar should fail");
 	assert!(yaml_non_mapping.to_string().contains("non-mapping value"));
+
+	let yaml_non_mapping_segment = update_format_versioned_file_text(
+		"release:\n  metadata: 1.0.0\n",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["release.metadata.inner.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("yaml traversal after a scalar segment should fail");
+	assert!(
+		yaml_non_mapping_segment
+			.to_string()
+			.contains("non-mapping segment `inner`")
+	);
 
 	let yaml_missing_segment = update_format_versioned_file_text(
 		"release:\n  version: 1.0.0\n",
