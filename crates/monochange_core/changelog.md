@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.7](https://github.com/monochange/monochange/releases/tag/v0.6.7) (2026-05-30)
+
+### 🚀 Feature
+
+#### Add generic format versioned files
+
+Add `versioned_files` format mode for explicit version updates in JSON, TOML, YAML/YML, and env files without ecosystem-specific dependency handling.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #569](https://github.com/monochange/monochange/pull/569)
+
 ## [0.6.6](https://github.com/monochange/monochange/releases/tag/v0.6.6) (2026-05-29)
 
 ### Changed
