@@ -438,12 +438,41 @@ versioned_files = [
 	{ path = "package.json", type = "npm", fields = ["metadata.bin.monochange.version"] },
 ]
 
+# generic format entries update explicit fields in non-ecosystem files
+versioned_files = [
+	{ path = "metadata.json", format = "json", fields = ["release.version"] },
+	{ path = "tools.toml", format = "toml", fields = ["tool.sdk.version"] },
+	{ path = "pubspec-overrides.yaml", format = "yaml", fields = ["metadata.sdkVersion"] },
+	{ path = ".env", format = "env", fields = ["VERSION"] },
+]
+
 # ecosystem-level defaults inherited by matching packages
 [ecosystems.npm]
 versioned_files = ["**/packages/*/package.json"]
 ```
 
 Typed manifest entries can update dependency sections and arbitrary string fields inside TOML or JSON manifests. Dependency targets in `versioned_files` must reference declared package ids. Groups must use explicit typed entries because monochange cannot infer a group ecosystem from a bare string.
+
+### Format versioned files
+
+Use `format` when a version lives in a structured or key/value file that should not receive ecosystem-specific dependency handling. Supported values are `json`, `toml`, `yaml`, `yml`, and `env`.
+
+```toml
+[package.core]
+path = "crates/core"
+versioned_files = [
+	{ path = "metadata.json", format = "json", fields = ["release.version"] },
+	{ path = ".env", format = "env", fields = ["VERSION"] },
+]
+```
+
+Key rules:
+
+- `format` entries cannot set `type` or `regex`
+- `fields` is required and must name every value to update; monochange does not infer ecosystem defaults in format mode
+- JSON, TOML, YAML, and YML fields use dot-separated object/table paths such as `release.version`
+- env fields use exact keys such as `VERSION` and update existing `KEY=value` or `export KEY=value` lines
+- field names can include `{{ name }}` and `{{ version }}` placeholders for simple context-aware paths or keys
 
 ### Regex versioned files
 
@@ -912,7 +941,7 @@ mc step:validate
 - package and group declarations
 - manifest presence for each package type
 - group membership rules
-- `versioned_files` structural rules (type/regex conflicts, capture groups)
+- `versioned_files` structural rules (type/format/regex conflicts, required format fields, capture groups)
 - `versioned_files` content checks: file existence, version field readability, regex pattern matching
 - `.changeset/*.md` targets and overlap rules
 - Cargo workspace version-group constraints

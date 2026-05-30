@@ -1101,11 +1101,25 @@ fn json_span_is_object(contents: &str, span: JsonSpan) -> bool {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VersionedFileFormat {
+	Json,
+	Toml,
+	Yaml,
+	#[serde(alias = "yml")]
+	Yml,
+	Env,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct VersionedFileDefinition {
 	pub path: String,
 	#[serde(rename = "type", default)]
 	pub ecosystem_type: Option<EcosystemType>,
+	#[serde(default)]
+	pub format: Option<VersionedFileFormat>,
 	#[serde(default)]
 	pub prefix: Option<String>,
 	#[serde(default)]
@@ -1121,6 +1135,12 @@ impl VersionedFileDefinition {
 	#[must_use]
 	pub fn uses_regex(&self) -> bool {
 		self.regex.is_some()
+	}
+
+	/// Return `true` when the definition uses generic format mode.
+	#[must_use]
+	pub fn uses_format(&self) -> bool {
+		self.format.is_some()
 	}
 }
 

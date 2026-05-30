@@ -17,12 +17,375 @@ use super::read_cached_document;
 use super::released_versions_by_package_id;
 use super::released_versions_by_record_id;
 use super::seed_cached_text_updates;
+use super::update_format_versioned_file_text;
 use super::versioned_file_kind;
 
 fn fixture_path(relative: &str) -> PathBuf {
 	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 		.join("../../fixtures/tests")
 		.join(relative)
+}
+
+#[test]
+fn format_versioned_file_updates_json_toml_yaml_and_env_fields() {
+	let json = update_format_versioned_file_text(
+		"{\"release\":{\"version\":\"1.0.0\"}}",
+		monochange_core::VersionedFileFormat::Json,
+		&["release.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.unwrap_or_else(|error| panic!("update json: {error}"));
+	assert!(json.contains("\"version\": \"1.2.3\""));
+
+	let toml = update_format_versioned_file_text(
+		"[tool.app]\nversion = \"1.0.0\"\n",
+		monochange_core::VersionedFileFormat::Toml,
+		&["tool.app.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.unwrap_or_else(|error| panic!("update toml: {error}"));
+	assert!(toml.contains("version = \"1.2.3\""));
+
+	let yaml = update_format_versioned_file_text(
+		"release:\n  version: 1.0.0\n",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["release.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.unwrap_or_else(|error| panic!("update yaml: {error}"));
+	assert!(yaml.contains("version: 1.2.3"));
+
+	let env = update_format_versioned_file_text(
+		"APP=demo\nexport VERSION=1.0.0\n",
+		monochange_core::VersionedFileFormat::Env,
+		&["VERSION".to_string()],
+		"1.2.3",
+		None,
+	)
+	.unwrap_or_else(|error| panic!("update env: {error}"));
+	assert_eq!(env, "APP=demo\nexport VERSION=1.2.3\n");
+}
+
+#[test]
+fn format_versioned_file_renders_name_and_version_templates_in_fields() {
+	let json = update_format_versioned_file_text(
+		"{\"packages\":{\"app\":{\"version\":\"1.0.0\"}}}",
+		monochange_core::VersionedFileFormat::Json,
+		&["packages.{{ name }}.version".to_string()],
+		"1.2.3",
+		Some("app"),
+	)
+	.unwrap_or_else(|error| panic!("update templated json field: {error}"));
+	assert!(json.contains("\"version\": \"1.2.3\""));
+}
+
+#[test]
+fn format_versioned_file_reports_missing_fields() {
+	let error = update_format_versioned_file_text(
+		"{\"release\":{\"version\":\"1.0.0\"}}",
+		monochange_core::VersionedFileFormat::Json,
+		&["release.missing".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("missing json field should fail");
+	assert!(error.to_string().contains("missing leaf `missing`"));
+}
+
+#[test]
+fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
+	let json_non_object = update_format_versioned_file_text(
+		"{\"release\":\"1.0.0\"}",
+		monochange_core::VersionedFileFormat::Json,
+		&["release.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("json traversal through a string should fail");
+	assert!(json_non_object.to_string().contains("non-object value"));
+
+	let json_non_object_segment = update_format_versioned_file_text(
+		"{\"release\":{\"metadata\":\"1.0.0\"}}",
+		monochange_core::VersionedFileFormat::Json,
+		&["release.metadata.inner.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("json traversal after a string segment should fail");
+	assert!(
+		json_non_object_segment
+			.to_string()
+			.contains("non-object segment `inner`")
+	);
+
+	let json_missing_segment = update_format_versioned_file_text(
+		"{\"release\":{\"version\":\"1.0.0\"}}",
+		monochange_core::VersionedFileFormat::Json,
+		&["missing.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("json missing parent should fail");
+	assert!(
+		json_missing_segment
+			.to_string()
+			.contains("missing segment `missing`")
+	);
+
+	let json_root_scalar = update_format_versioned_file_text(
+		"\"1.0.0\"",
+		monochange_core::VersionedFileFormat::Json,
+		&["version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("json scalar root should fail");
+	assert!(json_root_scalar.to_string().contains("non-object value"));
+
+	let json_parse = update_format_versioned_file_text(
+		"{",
+		monochange_core::VersionedFileFormat::Json,
+		&["version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("invalid json should fail");
+	assert!(json_parse.to_string().contains("failed to parse json"));
+
+	let toml_missing_segment = update_format_versioned_file_text(
+		"[tool.app]\nversion = \"1.0.0\"\n",
+		monochange_core::VersionedFileFormat::Toml,
+		&["tool.missing.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("toml missing parent should fail");
+	assert!(
+		toml_missing_segment
+			.to_string()
+			.contains("missing segment `missing`")
+	);
+
+	let toml_non_table = update_format_versioned_file_text(
+		"[tool]\napp = \"1.0.0\"\n",
+		monochange_core::VersionedFileFormat::Toml,
+		&["tool.app.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("toml traversal through a string should fail");
+	assert!(
+		toml_non_table
+			.to_string()
+			.contains("non-table segment `app`")
+	);
+
+	let toml_missing_leaf = update_format_versioned_file_text(
+		"[tool.app]\nversion = \"1.0.0\"\n",
+		monochange_core::VersionedFileFormat::Toml,
+		&["tool.app.missing".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("toml missing leaf should fail");
+	assert!(
+		toml_missing_leaf
+			.to_string()
+			.contains("missing leaf `missing`")
+	);
+
+	let toml_parse = update_format_versioned_file_text(
+		"[tool",
+		monochange_core::VersionedFileFormat::Toml,
+		&["tool.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("invalid toml should fail");
+	assert!(toml_parse.to_string().contains("failed to parse toml"));
+
+	let yaml_non_mapping = update_format_versioned_file_text(
+		"release: 1.0.0\n",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["release.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("yaml traversal through a scalar should fail");
+	assert!(yaml_non_mapping.to_string().contains("non-mapping value"));
+
+	let yaml_non_mapping_segment = update_format_versioned_file_text(
+		"release:\n  metadata: 1.0.0\n",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["release.metadata.inner.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("yaml traversal after a scalar segment should fail");
+	assert!(
+		yaml_non_mapping_segment
+			.to_string()
+			.contains("non-mapping segment `inner`")
+	);
+
+	let yaml_missing_segment = update_format_versioned_file_text(
+		"release:\n  version: 1.0.0\n",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["missing.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("yaml missing parent should fail");
+	assert!(
+		yaml_missing_segment
+			.to_string()
+			.contains("missing segment `missing`")
+	);
+
+	let yaml_root_scalar = update_format_versioned_file_text(
+		"1.0.0\n",
+		monochange_core::VersionedFileFormat::Yml,
+		&["version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("yaml scalar root should fail");
+	assert!(yaml_root_scalar.to_string().contains("non-mapping value"));
+
+	let yaml_missing_leaf = update_format_versioned_file_text(
+		"release:\n  version: 1.0.0\n",
+		monochange_core::VersionedFileFormat::Yml,
+		&["release.missing".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("yaml missing leaf should fail");
+	assert!(
+		yaml_missing_leaf
+			.to_string()
+			.contains("missing leaf `missing`")
+	);
+
+	let yaml_parse = update_format_versioned_file_text(
+		"release: [",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["release.version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("invalid yaml should fail");
+	assert!(yaml_parse.to_string().contains("failed to parse yaml"));
+
+	let empty_segment = update_format_versioned_file_text(
+		"{\"release\":{\"version\":\"1.0.0\"}}",
+		monochange_core::VersionedFileFormat::Json,
+		&["release..version".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("empty path segment should fail");
+	assert!(
+		empty_segment
+			.to_string()
+			.contains("non-empty dot-separated segments")
+	);
+
+	let env = update_format_versioned_file_text(
+		"# comment\nAPP=demo\n",
+		monochange_core::VersionedFileFormat::Env,
+		&["VERSION".to_string()],
+		"1.2.3",
+		None,
+	)
+	.expect_err("missing env key should fail");
+	assert!(
+		env.to_string()
+			.contains("env field `VERSION` was not found")
+	);
+}
+
+#[test]
+fn apply_versioned_file_definition_supports_format_mode_and_reports_format_errors() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(
+		root.join("metadata.json"),
+		"{\"release\":{\"version\":\"1.0.0\"}}",
+	)
+	.unwrap_or_else(|error| panic!("write metadata: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+	};
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "*.json".to_string(),
+		ecosystem_type: None,
+		format: Some(monochange_core::VersionedFileFormat::Json),
+		prefix: None,
+		fields: Some(vec!["release.version".to_string()]),
+		name: None,
+		regex: None,
+	};
+	let mut updates = BTreeMap::new();
+	apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"1.2.3",
+		None,
+		&["metadata".to_string()],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply format definition: {error}"));
+	assert!(matches!(
+		updates.get(&root.join("metadata.json")),
+		Some(CachedDocument::Text(contents)) if contents.contains("\"version\": \"1.2.3\"")
+	));
+
+	let missing_fields = monochange_core::VersionedFileDefinition {
+		fields: None,
+		..definition.clone()
+	};
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&missing_fields,
+		"1.2.3",
+		None,
+		&["metadata".to_string()],
+		&context,
+	)
+	.expect_err("format definition without fields should fail");
+	assert!(
+		error
+			.to_string()
+			.contains("with format mode is missing fields")
+	);
+
+	let invalid_glob = monochange_core::VersionedFileDefinition {
+		path: "[".to_string(),
+		..definition
+	};
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&invalid_glob,
+		"1.2.3",
+		None,
+		&["metadata".to_string()],
+		&context,
+	)
+	.expect_err("invalid format glob should fail");
+	assert!(error.to_string().contains("invalid glob pattern"));
 }
 
 #[test]
@@ -225,6 +588,7 @@ fn apply_versioned_file_definition_reports_go_for_unsupported_glob_match() {
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "*.txt".to_string(),
 		ecosystem_type: Some(EcosystemType::Go),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,
@@ -270,6 +634,7 @@ fn apply_versioned_file_definition_updates_go_mod_dependencies() {
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "go.mod".to_string(),
 		ecosystem_type: Some(EcosystemType::Go),
+		format: None,
 		prefix: None,
 		fields: None,
 		name: None,

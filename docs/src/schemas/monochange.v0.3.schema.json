@@ -1624,6 +1624,17 @@
 						"null"
 					]
 				},
+				"format": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/VersionedFileFormat"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
 				"name": {
 					"default": null,
 					"type": [
@@ -1664,6 +1675,16 @@
 				"path"
 			],
 			"type": "object"
+		},
+		"VersionedFileFormat": {
+			"enum": [
+				"json",
+				"toml",
+				"yaml",
+				"yml",
+				"env"
+			],
+			"type": "string"
 		},
 		"changelogConfig": {
 			"anyOf": [

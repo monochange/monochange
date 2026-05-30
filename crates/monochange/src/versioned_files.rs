@@ -350,6 +350,7 @@ fn apply_inferred_lockfile_updates(
 		let definition = VersionedFileDefinition {
 			path: lockfile_path.display().to_string(),
 			ecosystem_type: Some(ecosystem_type),
+			format: None,
 			prefix: None,
 			fields: None,
 			name: None,
@@ -835,6 +836,245 @@ pub(crate) fn expand_versioned_file_fields<N: AsRef<str>>(
 }
 // patch-coverage:ignore-end
 
+fn update_json_field_path(
+	value: &mut serde_json::Value,
+	path: &str,
+	version: &str,
+) -> MonochangeResult<()> {
+	let segments = field_path_segments(path)?;
+	let (leaf, parent_segments) = segments
+		.split_last()
+		.expect("validated field paths contain at least one segment");
+	let leaf = *leaf;
+	let mut cursor = value;
+	for segment in parent_segments {
+		let object = cursor.as_object_mut().ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` cannot traverse non-object segment `{segment}`"
+			))
+		})?;
+		cursor = object.get_mut(*segment).ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` is missing segment `{segment}`"
+			))
+		})?;
+	}
+
+	let object = cursor.as_object_mut().ok_or_else(|| {
+		MonochangeError::Config(format!(
+			"versioned_files field `{path}` cannot set `{leaf}` on a non-object value"
+		))
+	})?;
+	if !object.contains_key(leaf) {
+		return Err(MonochangeError::Config(format!(
+			"versioned_files field `{path}` is missing leaf `{leaf}`"
+		)));
+	}
+	object.insert(
+		leaf.to_string(),
+		serde_json::Value::String(version.to_string()),
+	);
+	Ok(())
+}
+
+fn update_toml_field_path(
+	document: &mut toml_edit::DocumentMut,
+	path: &str,
+	version: &str,
+) -> MonochangeResult<()> {
+	let segments = field_path_segments(path)?;
+	let (leaf, parent_segments) = segments
+		.split_last()
+		.expect("validated field paths contain at least one segment");
+	let leaf = *leaf;
+	let mut table: &mut dyn toml_edit::TableLike = document.as_table_mut();
+	for segment in parent_segments {
+		let item = table.get_mut(segment).ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` is missing segment `{segment}`"
+			))
+		})?;
+		table = item.as_table_like_mut().ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` cannot traverse non-table segment `{segment}`"
+			))
+		})?;
+	}
+
+	if !table.contains_key(leaf) {
+		return Err(MonochangeError::Config(format!(
+			"versioned_files field `{path}` is missing leaf `{leaf}`"
+		)));
+	}
+	table.insert(leaf, toml_edit::value(version));
+	Ok(())
+}
+
+fn update_yaml_field_path(
+	value: &mut serde_yaml_ng::Value,
+	path: &str,
+	version: &str,
+) -> MonochangeResult<()> {
+	let segments = field_path_segments(path)?;
+	let (leaf, parent_segments) = segments
+		.split_last()
+		.expect("validated field paths contain at least one segment");
+	let leaf = *leaf;
+	let mut cursor = value;
+	for segment in parent_segments {
+		let mapping = cursor.as_mapping_mut().ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` cannot traverse non-mapping segment `{segment}`"
+			))
+		})?;
+		let key = serde_yaml_ng::Value::String((*segment).to_string());
+		cursor = mapping.get_mut(&key).ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` is missing segment `{segment}`"
+			))
+		})?;
+	}
+
+	let mapping = cursor.as_mapping_mut().ok_or_else(|| {
+		MonochangeError::Config(format!(
+			"versioned_files field `{path}` cannot set `{leaf}` on a non-mapping value"
+		))
+	})?;
+	let key = serde_yaml_ng::Value::String(leaf.to_string());
+	if !mapping.contains_key(&key) {
+		return Err(MonochangeError::Config(format!(
+			"versioned_files field `{path}` is missing leaf `{leaf}`"
+		)));
+	}
+	mapping.insert(key, serde_yaml_ng::Value::String(version.to_string()));
+	Ok(())
+}
+
+fn field_path_segments(path: &str) -> MonochangeResult<Vec<&str>> {
+	let segments = path.split('.').map(str::trim).collect::<Vec<_>>();
+	if segments.is_empty() || segments.iter().any(|segment| segment.is_empty()) {
+		return Err(MonochangeError::Config(format!(
+			"versioned_files field path `{path}` must contain non-empty dot-separated segments"
+		)));
+	}
+	Ok(segments)
+}
+
+fn render_versioned_template(template: &str, name: Option<&str>, version: &str) -> String {
+	template
+		.replace("{{ version }}", version)
+		.replace("{{version}}", version)
+		.replace("{{ name }}", name.unwrap_or_default())
+		.replace("{{name}}", name.unwrap_or_default())
+}
+
+fn update_env_key(contents: &str, key: &str, version: &str) -> MonochangeResult<String> {
+	let mut found = false;
+	let mut output = String::with_capacity(contents.len());
+	for line in contents.split_inclusive('\n') {
+		let (body, ending) = line
+			.strip_suffix('\n')
+			.map_or((line, ""), |body| (body, "\n"));
+		let trimmed_start = body.trim_start();
+		let export_prefix = "export ";
+		let assignment = trimmed_start
+			.strip_prefix(export_prefix)
+			.unwrap_or(trimmed_start);
+		let Some((candidate, _old_value)) = assignment.split_once('=') else {
+			output.push_str(body);
+			output.push_str(ending);
+			continue;
+		};
+
+		if candidate.trim() != key {
+			output.push_str(body);
+			output.push_str(ending);
+			continue;
+		}
+
+		found = true;
+		let leading_len = body.len() - trimmed_start.len();
+		output.push_str(&body[..leading_len]);
+		if trimmed_start.starts_with(export_prefix) {
+			output.push_str(export_prefix);
+		}
+		output.push_str(candidate);
+		output.push('=');
+		output.push_str(version);
+		output.push_str(ending);
+	}
+
+	if !found {
+		return Err(MonochangeError::Config(format!(
+			"versioned_files env field `{key}` was not found"
+		)));
+	}
+	Ok(output)
+}
+
+fn update_format_versioned_file_text(
+	contents: &str,
+	format: monochange_core::VersionedFileFormat,
+	fields: &[String],
+	version: &str,
+	name: Option<&str>,
+) -> MonochangeResult<String> {
+	match format {
+		monochange_core::VersionedFileFormat::Json => {
+			let mut value =
+				serde_json::from_str::<serde_json::Value>(contents).map_err(|error| {
+					MonochangeError::Config(format!("failed to parse json versioned file: {error}"))
+				})?;
+			for field in fields {
+				let field = render_versioned_template(field, name, version);
+				update_json_field_path(&mut value, &field, version)?;
+			}
+			let mut output = serde_json::to_string_pretty(&value).unwrap_or_else(|error| {
+				// patch-coverage:ignore-start -- serde_json::Value serialization is infallible for supported values.
+				panic!("serializing serde_json::Value should not fail: {error}")
+				// patch-coverage:ignore-end
+			});
+			output.push('\n');
+			Ok(output)
+		}
+		monochange_core::VersionedFileFormat::Toml => {
+			let mut document = contents
+				.parse::<toml_edit::DocumentMut>()
+				.map_err(|error| {
+					MonochangeError::Config(format!("failed to parse toml versioned file: {error}"))
+				})?;
+			for field in fields {
+				let field = render_versioned_template(field, name, version);
+				update_toml_field_path(&mut document, &field, version)?;
+			}
+			Ok(document.to_string())
+		}
+		monochange_core::VersionedFileFormat::Yaml | monochange_core::VersionedFileFormat::Yml => {
+			let mut value =
+				serde_yaml_ng::from_str::<serde_yaml_ng::Value>(contents).map_err(|error| {
+					MonochangeError::Config(format!("failed to parse yaml versioned file: {error}"))
+				})?;
+			for field in fields {
+				let field = render_versioned_template(field, name, version);
+				update_yaml_field_path(&mut value, &field, version)?;
+			}
+			Ok(serde_yaml_ng::to_string(&value).unwrap_or_else(|error| {
+				// patch-coverage:ignore-start -- serde_yaml_ng::Value serialization is infallible for supported values.
+				panic!("serializing serde_yaml_ng::Value should not fail: {error}")
+				// patch-coverage:ignore-end
+			}))
+		}
+		monochange_core::VersionedFileFormat::Env => {
+			let mut output = contents.to_string();
+			for field in fields {
+				let key = render_versioned_template(field, name, version);
+				output = update_env_key(&output, &key, version)?;
+			}
+			Ok(output)
+		}
+	}
+}
+
 fn update_versioned_file_regex(
 	contents: &str,
 	pattern: &str,
@@ -889,6 +1129,32 @@ pub(crate) fn apply_versioned_file_definition(
 					owner_version,
 				)?),
 			);
+		}
+		return Ok(());
+	}
+
+	if let Some(format) = definition.format {
+		let fields = definition.fields.as_ref().ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned file `{}` with format mode is missing fields",
+				definition.path
+			))
+		})?;
+		let name = dep_names.first().map(AsRef::as_ref);
+		let glob_pattern = root.join(&definition.path).to_string_lossy().to_string();
+		let matched_paths = glob::glob(&glob_pattern).map_err(|error| {
+			MonochangeError::Config(format!(
+				"invalid glob pattern `{}`: {error}",
+				definition.path
+			))
+		})?;
+		for resolved_path in matched_paths {
+			let resolved_path =
+				resolved_path.map_err(|error| MonochangeError::Config(error.to_string()))?;
+			let contents = read_cached_text_document(updates, &resolved_path)?;
+			let changed_text =
+				update_format_versioned_file_text(&contents, format, fields, owner_version, name)?;
+			updates.insert(resolved_path, CachedDocument::Text(changed_text));
 		}
 		return Ok(());
 	}
