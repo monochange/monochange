@@ -246,6 +246,81 @@ fn run_release_pr_command(root: &Path, dry_run: bool, github_api_url: Option<&st
 const SCALES: &[(usize, usize)] = &[(5, 10), (20, 50), (50, 200)];
 const LOCKFILE_COMPARE_SCALE: (usize, usize) = (20, 50);
 
+fn generate_inherited_glob_fixture(
+	root: &Path,
+	ecosystem: &str,
+	manifest: &str,
+	package_count: usize,
+) {
+	use std::fmt::Write;
+
+	let mut config = String::from("[defaults]\nchangelog = false\n\n");
+	let _ = writeln!(
+		config,
+		"[ecosystems.{ecosystem}]\nversioned_files = [{{ path = \"packages/**/{manifest}\", type = \"{ecosystem}\" }}]\n"
+	);
+	for index in 0..package_count {
+		let _ = writeln!(
+			config,
+			"[package.pkg-{index}]\npath = \"packages/pkg-{index}\"\ntype = \"{ecosystem}\"\n"
+		);
+	}
+	fs::write(root.join("monochange.toml"), config).unwrap();
+
+	for index in 0..package_count {
+		let package_dir = root.join(format!("packages/pkg-{index}"));
+		fs::create_dir_all(&package_dir).unwrap();
+		write_ecosystem_manifest(&package_dir.join(manifest), ecosystem, index);
+		let generated_dir = root.join(format!("packages/generated/pkg-{index}"));
+		fs::create_dir_all(&generated_dir).unwrap();
+		write_ecosystem_manifest(
+			&generated_dir.join(manifest),
+			ecosystem,
+			index + package_count,
+		);
+	}
+}
+
+fn write_ecosystem_manifest(path: &Path, ecosystem: &str, index: usize) {
+	let content = match ecosystem {
+		"cargo" => {
+			format!("[package]\nname = \"pkg-{index}\"\nversion = \"1.0.0\"\nedition = \"2021\"\n")
+		}
+		"npm" => format!("{{\"name\":\"pkg-{index}\",\"version\":\"1.0.0\"}}\n"),
+		"deno" => format!("{{\"name\":\"@scope/pkg-{index}\",\"version\":\"1.0.0\"}}\n"),
+		"dart" => format!("name: pkg_{index}\nversion: 1.0.0\nenvironment:\n  sdk: ^3.0.0\n"),
+		"python" => format!("[project]\nname = \"pkg-{index}\"\nversion = \"1.0.0\"\n"),
+		"go" => format!("module example.com/pkg-{index}\n\ngo 1.22\n"),
+		_ => unreachable!("unknown ecosystem {ecosystem}"),
+	};
+	fs::write(path, content).unwrap();
+}
+
+fn bench_inherited_glob_config_load(c: &mut Criterion) {
+	let mut group = c.benchmark_group("config_load_inherited_globs");
+	group.sample_size(10);
+
+	for (ecosystem, manifest) in [
+		("cargo", "Cargo.toml"),
+		("npm", "package.json"),
+		("deno", "deno.json"),
+		("dart", "pubspec.yaml"),
+		("python", "pyproject.toml"),
+		("go", "go.mod"),
+	] {
+		group.bench_with_input(
+			BenchmarkId::from_parameter(ecosystem),
+			&ecosystem,
+			|b, ecosystem| {
+				let tempdir = tempfile::tempdir().unwrap();
+				generate_inherited_glob_fixture(tempdir.path(), ecosystem, manifest, 20);
+				b.iter(|| monochange_config::load_workspace_configuration(tempdir.path()).unwrap());
+			},
+		);
+	}
+	group.finish();
+}
+
 fn bench_config_load(c: &mut Criterion) {
 	let mut group = c.benchmark_group("config_load");
 	group.sample_size(10);
@@ -700,8 +775,48 @@ fn bench_prepared_release_cache(c: &mut Criterion) {
 	group.finish();
 }
 
+fn bench_cli_startup_help(c: &mut Criterion) {
+	let mut group = c.benchmark_group("cli_startup_help");
+	group.sample_size(10);
+
+	for (label, args) in [
+		(
+			"mc_version",
+			vec![OsString::from("mc"), OsString::from("--version")],
+		),
+		(
+			"mc_root_help",
+			vec![OsString::from("mc"), OsString::from("--help")],
+		),
+		(
+			"mc_release_help",
+			vec![
+				OsString::from("mc"),
+				OsString::from("release"),
+				OsString::from("--help"),
+			],
+		),
+	] {
+		let tempdir = tempfile::tempdir().unwrap();
+		generate_fixture(tempdir.path(), 20, 5);
+		group.bench_with_input(BenchmarkId::from_parameter(label), &args, |b, args| {
+			b.iter(|| {
+				block_on_bench(monochange::run_with_args_in_dir(
+					"mc",
+					args.clone(),
+					tempdir.path(),
+				))
+				.unwrap()
+			});
+		});
+	}
+	group.finish();
+}
+
 criterion_group!(
 	benches,
+	bench_cli_startup_help,
+	bench_inherited_glob_config_load,
 	bench_config_load,
 	bench_discover,
 	bench_validate,

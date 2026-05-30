@@ -84,6 +84,7 @@ pub(crate) use cli::apply_runtime_prepare_release_markdown_defaults;
 #[cfg(test)]
 pub(crate) use cli::build_cli_command_subcommand;
 pub use cli::build_command;
+#[cfg(test)]
 pub(crate) use cli::build_command_for_root;
 use cli::build_command_with_cli;
 #[cfg(test)]
@@ -92,8 +93,7 @@ pub(crate) use cli::build_skill_subcommand;
 pub(crate) use cli::build_subagents_subcommand;
 #[cfg(test)]
 pub(crate) use cli::cli_command_after_help;
-#[cfg(test)]
-pub(crate) use cli::cli_commands_for_root;
+use cli::cli_commands_for_root;
 use cli::cli_commands_from_config;
 #[cfg(test)]
 pub(crate) use cli::configured_change_type_choices;
@@ -667,8 +667,26 @@ fn quiet_from_os_arg(arg: &OsString) -> bool {
 }
 
 fn is_root_help_request(args: &[OsString]) -> bool {
-	let mut positional = args.iter().skip(1).filter_map(|arg| arg.to_str());
-	matches!(positional.next(), None | Some("-h" | "--help")) && positional.next().is_none()
+	let mut command_args = command_args_after_globals(args);
+	matches!(command_args.next(), None | Some("-h" | "--help")) && command_args.next().is_none()
+}
+
+fn command_args_after_globals(args: &[OsString]) -> impl Iterator<Item = &str> {
+	let mut skip_value = false;
+	args.iter()
+		.skip(1)
+		.filter_map(|arg| arg.to_str())
+		.skip_while(move |arg| {
+			if skip_value {
+				skip_value = false;
+				return true;
+			}
+			if matches!(*arg, "--log-level" | "--format") {
+				skip_value = true;
+				return true;
+			}
+			matches!(*arg, "--quiet" | "-q")
+		})
 }
 
 fn extract_quiet_from_args<I>(args: I) -> bool
@@ -779,6 +797,44 @@ fn render_custom_command_argument_error(
 	)
 }
 
+fn help_command_requested(args: &[OsString]) -> bool {
+	command_args_after_globals(args)
+		.find(|arg| !arg.starts_with('-'))
+		.is_some_and(|arg| arg == "help")
+}
+
+fn command_help_request(args: &[OsString]) -> Option<&str> {
+	let command_args = command_args_after_globals(args).collect::<Vec<_>>();
+	let command_name = command_args.iter().find(|arg| !arg.starts_with('-'))?;
+	if *command_name == "help" {
+		return None;
+	}
+	command_args
+		.iter()
+		.any(|arg| matches!(*arg, "--help" | "-h"))
+		.then_some(*command_name)
+}
+
+fn command_help_requires_workspace_configuration(command_name: &str) -> bool {
+	matches!(command_name, "change")
+}
+
+fn render_help_command(
+	bin_name: &'static str,
+	args: &[OsString],
+	cli: &[CliCommandDefinition],
+) -> String {
+	let command_name = command_args_after_globals(args)
+		.skip_while(|arg| *arg != "help")
+		.nth(1)
+		.unwrap_or_default();
+	if command_name.is_empty() {
+		cli_help::render_overview_help_with_cli(bin_name, cli)
+	} else {
+		cli_help::render_command_help_with_cli(bin_name, command_name, cli)
+	}
+}
+
 fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String {
 	if result.added_commands.is_empty() {
 		format!(
@@ -816,23 +872,64 @@ where
 {
 	let args = args.into_iter().collect::<Vec<_>>();
 
-	// Fast path: try parsing with the base command first (no config load).
-	// This handles --version without touching disk.
-	let base_command = build_command_for_root(bin_name, root);
-	if let Err(error) = base_command.try_get_matches_from(args.clone())
-		&& matches!(error.kind(), ErrorKind::DisplayVersion)
-	{
-		return Ok(format_clap_error(
-			&error,
-			!cfg!(test) && std::io::stdout().is_terminal(),
-		));
+	let root_help_requested = is_root_help_request(&args);
+	if root_help_requested {
+		let cli = cli_commands_for_root(root);
+		return Ok(cli_help::render_overview_help_with_cli(bin_name, &cli));
+	}
+	if help_command_requested(&args) {
+		let cli = cli_commands_for_root(root);
+		return Ok(render_help_command(bin_name, &args, &cli));
+	}
+	// Fast path: parse config-free command shapes before any workspace loading.
+	// This keeps version and root help responsive even in repositories with costly
+	// package or glob validation.
+	let base_command = build_command_with_cli(bin_name, &monochange_core::default_cli_commands());
+	if let Err(error) = base_command.try_get_matches_from(args.clone()) {
+		if matches!(error.kind(), ErrorKind::DisplayVersion) {
+			return Ok(format_clap_error(
+				&error,
+				!cfg!(test) && std::io::stdout().is_terminal(),
+			));
+		}
+		if matches!(error.kind(), ErrorKind::DisplayHelp)
+			&& !command_help_request(&args)
+				.is_some_and(command_help_requires_workspace_configuration)
+		{
+			let cli = cli_commands_for_root(root);
+			if is_root_help_request(&args) {
+				return Ok(cli_help::render_overview_help_with_cli(bin_name, &cli));
+			}
+			if let Err(help_error) =
+				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
+				&& matches!(help_error.kind(), ErrorKind::DisplayHelp)
+			{
+				return Ok(format_clap_error(
+					&help_error,
+					!cfg!(test) && std::io::stdout().is_terminal(),
+				));
+			}
+		}
+		if let Some(command_name) = command_help_request(&args)
+			&& !command_help_requires_workspace_configuration(command_name)
+		{
+			let cli = cli_commands_for_root(root);
+			if let Err(help_error) =
+				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
+				&& matches!(help_error.kind(), ErrorKind::DisplayHelp)
+			{
+				return Ok(format_clap_error(
+					&help_error,
+					!cfg!(test) && std::io::stdout().is_terminal(),
+				));
+			}
+		}
 	}
 
-	// Slow path: load workspace configuration for subcommand dispatch.
+	// Slow path: load workspace configuration for command execution.
 	let configuration = load_workspace_configuration(root);
 	let cli = cli_commands_from_config(&configuration);
 	let quiet = extract_quiet_from_args(args.iter().cloned());
-	let root_help_requested = is_root_help_request(&args);
 	let matches = match build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone()) {
 		Ok(matches) => matches,
 		Err(error)

@@ -1065,6 +1065,17 @@ fn load_raw_configuration(root: &Path) -> MonochangeResult<(String, RawWorkspace
 	Ok((contents, raw))
 }
 
+/// Load only CLI command metadata from `monochange.toml`.
+///
+/// This intentionally skips package, group, ecosystem, and versioned-file
+/// validation so CLI help and command pre-parsing stay independent of expensive
+/// workspace discovery.
+#[must_use = "the CLI command result must be checked"]
+pub fn load_cli_commands(root: &Path) -> MonochangeResult<Vec<CliCommandDefinition>> {
+	let (_, raw) = load_raw_configuration(root)?;
+	Ok(merge_cli_commands(raw.cli))
+}
+
 #[allow(clippy::too_many_arguments, clippy::option_as_ref_cloned)]
 fn build_package_definitions(
 	contents: &str,
@@ -2997,6 +3008,7 @@ fn validate_package_and_group_definitions(
 	packages: &[PackageDefinition],
 	groups: &[GroupDefinition],
 ) -> MonochangeResult<()> {
+	let mut versioned_file_glob_cache = BTreeSet::new();
 	let mut ids = BTreeSet::new();
 	let mut package_paths = BTreeMap::<PathBuf, String>::new();
 	let mut primary_owner = Option::<String>::None;
@@ -3093,24 +3105,26 @@ fn validate_package_and_group_definitions(
 		.map(|package| package.id.as_str())
 		.collect::<BTreeSet<_>>();
 	for package in packages {
-		validate_versioned_files(
+		validate_versioned_files_with_cache(
 			root,
 			config_contents,
 			&package.versioned_files,
 			&declared_packages,
 			"package",
 			&package.id,
+			&mut versioned_file_glob_cache,
 		)?;
 	}
 	let mut assigned_packages = BTreeMap::<String, String>::new();
 	for group in groups {
-		validate_versioned_files(
+		validate_versioned_files_with_cache(
 			root,
 			config_contents,
 			&group.versioned_files,
 			&declared_packages,
 			"group",
 			&group.id,
+			&mut versioned_file_glob_cache,
 		)?;
 		if !ids.insert(group.id.clone()) {
 			return Err(config_diagnostic(
@@ -3328,6 +3342,27 @@ fn validate_versioned_files(
 	owner_kind: &str,
 	owner_id: &str,
 ) -> MonochangeResult<()> {
+	let mut glob_cache = BTreeSet::new();
+	validate_versioned_files_with_cache(
+		root,
+		config_contents,
+		versioned_files,
+		declared_packages,
+		owner_kind,
+		owner_id,
+		&mut glob_cache,
+	)
+}
+
+fn validate_versioned_files_with_cache(
+	root: &Path,
+	config_contents: &str,
+	versioned_files: &[VersionedFileDefinition],
+	declared_packages: &BTreeSet<&str>,
+	owner_kind: &str,
+	owner_id: &str,
+	glob_cache: &mut BTreeSet<(String, &'static str)>,
+) -> MonochangeResult<()> {
 	for versioned_file in versioned_files {
 		if versioned_file.format.is_some() {
 			validate_format_versioned_file(config_contents, versioned_file, owner_kind, owner_id)?;
@@ -3384,6 +3419,10 @@ fn validate_versioned_files(
 				.join(&versioned_file.path)
 				.to_string_lossy()
 				.to_string();
+			let ecosystem_name = Ecosystem::from(ecosystem_type).as_str();
+			if !glob_cache.insert((pattern.clone(), ecosystem_name)) {
+				continue;
+			}
 			let matches = glob::glob(&pattern)
 				.map_err(|error| {
 					MonochangeError::Config(format!(
@@ -3403,15 +3442,7 @@ fn validate_versioned_files(
 						"{owner_kind} `{owner_id}` versioned_files glob `{}` matched unsupported file `{}` for ecosystem `{}`",
 						versioned_file.path,
 						unsupported_path.display(),
-						match ecosystem_type {
-							EcosystemType::Cargo => "cargo",
-							EcosystemType::Npm => "npm",
-							EcosystemType::Deno => "deno",
-							EcosystemType::Dart => "dart",
-							EcosystemType::Python => "python",
-							EcosystemType::Go => "go",
-							_ => "unknown",
-						}
+						ecosystem_name
 					),
 					vec![config_section_label(
 						config_contents,

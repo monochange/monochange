@@ -6147,6 +6147,33 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			.contains("invalid glob pattern `[`")
 	);
 
+	let duplicate_glob_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::create_dir_all(duplicate_glob_dir.path().join("packages/web"))
+		.unwrap_or_else(|error| panic!("mkdir duplicate glob fixture: {error}"));
+	std::fs::write(
+		duplicate_glob_dir.path().join("packages/web/package.json"),
+		"{\"name\":\"web\",\"version\":\"1.0.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write duplicate glob package: {error}"));
+	let duplicate_glob = monochange_core::VersionedFileDefinition {
+		path: "packages/**/package.json".to_string(),
+		ecosystem_type: Some(EcosystemType::Npm),
+		format: None,
+		name: None,
+		fields: None,
+		prefix: None,
+		regex: None,
+	};
+	crate::validate_versioned_files(
+		duplicate_glob_dir.path(),
+		config_contents,
+		&[duplicate_glob.clone(), duplicate_glob],
+		&declared_packages,
+		"package",
+		"core",
+	)
+	.unwrap_or_else(|error| panic!("duplicate glob validation should be cached: {error}"));
+
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	std::fs::create_dir_all(tempdir.path().join("packages/web"))
 		.unwrap_or_else(|error| panic!("mkdir web package: {error}"));
@@ -7226,4 +7253,28 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 	)
 	.expect_err("format mode should reject empty fields");
 	assert!(error.to_string().contains("fields must be non-empty"));
+}
+
+#[test]
+fn load_cli_commands_skips_package_and_versioned_file_validation() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[cli.custom]
+help_text = "Custom command help"
+
+[package.missing]
+path = "missing"
+versioned_files = [
+	{ path = "**/not-a-manifest.txt", type = "cargo" },
+]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let cli = crate::load_cli_commands(tempdir.path())
+		.unwrap_or_else(|error| panic!("load cli commands: {error}"));
+
+	assert!(cli.iter().any(|command| command.name == "custom"));
 }

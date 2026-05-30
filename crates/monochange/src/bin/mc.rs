@@ -10,7 +10,7 @@ use std::process::ExitCode;
 fn try_sync_version() -> Option<ExitCode> {
 	let args: Vec<String> = std::env::args().collect();
 	if args.get(1).is_some_and(|a| a == "--version" || a == "-V") {
-		eprintln!("mc {}", env!("CARGO_PKG_VERSION"));
+		println!("mc {}", env!("CARGO_PKG_VERSION"));
 		return Some(ExitCode::SUCCESS);
 	}
 	None

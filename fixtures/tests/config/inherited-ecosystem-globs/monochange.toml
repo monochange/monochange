@@ -1,0 +1,49 @@
+[defaults]
+changelog = false
+
+[package.cargo-core]
+path = "packages/cargo-core"
+type = "cargo"
+
+[package.npm-ui]
+path = "packages/npm-ui"
+type = "npm"
+
+[package.deno-tool]
+path = "packages/deno-tool"
+type = "deno"
+
+[package.dart-app]
+path = "packages/dart-app"
+type = "dart"
+
+[package.python-lib]
+path = "packages/python-lib"
+type = "python"
+
+[package.go-service]
+path = "packages/go-service"
+type = "go"
+
+[ecosystems.cargo]
+versioned_files = [{ path = "packages/**/Cargo.toml", type = "cargo" }]
+
+[ecosystems.npm]
+versioned_files = [{ path = "packages/**/package.json", type = "npm" }]
+
+[ecosystems.deno]
+versioned_files = [{ path = "packages/**/deno.json", type = "deno" }]
+
+[ecosystems.dart]
+versioned_files = [{ path = "packages/**/pubspec.yaml", type = "dart" }]
+
+[ecosystems.python]
+versioned_files = [{ path = "packages/**/pyproject.toml", type = "python" }]
+
+[ecosystems.go]
+versioned_files = [{ path = "packages/**/go.mod", type = "go" }]
+
+[cli.deploy]
+help_text = "Deploy fixture packages"
+[[cli.deploy.steps]]
+type = "PrepareRelease"
