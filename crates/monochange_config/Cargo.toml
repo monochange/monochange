@@ -17,6 +17,7 @@ schema = ["dep:schemars", "monochange_core/schema"]
 
 [dependencies]
 glob = { workspace = true, default-features = true }
+ignore = { workspace = true, default-features = true }
 miette = { workspace = true, default-features = true }
 monochange_core = { workspace = true }
 regex = { workspace = true, default-features = true }

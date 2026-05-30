@@ -244,8 +244,8 @@ fn run_release_pr_command(root: &Path, dry_run: bool, github_api_url: Option<&st
 }
 
 const SCALES: &[(usize, usize)] = &[(5, 10), (20, 50), (50, 200)];
+const INHERITED_GLOB_PACKAGE_COUNTS: &[usize] = &[20, 50, 500];
 const LOCKFILE_COMPARE_SCALE: (usize, usize) = (20, 50);
-
 fn generate_inherited_glob_fixture(
 	root: &Path,
 	ecosystem: &str,
@@ -308,15 +308,25 @@ fn bench_inherited_glob_config_load(c: &mut Criterion) {
 		("python", "pyproject.toml"),
 		("go", "go.mod"),
 	] {
-		group.bench_with_input(
-			BenchmarkId::from_parameter(ecosystem),
-			&ecosystem,
-			|b, ecosystem| {
-				let tempdir = tempfile::tempdir().unwrap();
-				generate_inherited_glob_fixture(tempdir.path(), ecosystem, manifest, 20);
-				b.iter(|| monochange_config::load_workspace_configuration(tempdir.path()).unwrap());
-			},
-		);
+		for &package_count in INHERITED_GLOB_PACKAGE_COUNTS {
+			let label = format!("{ecosystem}_{package_count}pkg");
+			group.bench_with_input(
+				BenchmarkId::from_parameter(label),
+				&(ecosystem, package_count),
+				|b, &(ecosystem, package_count)| {
+					let tempdir = tempfile::tempdir().unwrap();
+					generate_inherited_glob_fixture(
+						tempdir.path(),
+						ecosystem,
+						manifest,
+						package_count,
+					);
+					b.iter(|| {
+						monochange_config::load_workspace_configuration(tempdir.path()).unwrap()
+					});
+				},
+			);
+		}
 	}
 	group.finish();
 }
