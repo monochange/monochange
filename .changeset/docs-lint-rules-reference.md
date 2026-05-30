@@ -1,5 +1,5 @@
 ---
-monochange: patch
+monochange: docs
 ---
 
 # Document lint rule catalog
