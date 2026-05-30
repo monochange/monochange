@@ -114,11 +114,11 @@ jobs:
       - name: upload binaries
         uses: taiki-e/upload-rust-binary-action@f0d45ae91ee7b8ee928de7a9d04d893a08bcbec6 # v1.30.2
         with:
-          bin: monochange
+          bin: monochange,mc
           manifest-path: crates/monochange/Cargo.toml
           profile: dist
           ref: refs/tags/${{ env.RELEASE_TAG }}
-          archive: $bin-$target-$tag
+          archive: monochange-$target-$tag
           target: ${{ matrix.target }}
           tar: all
           zip: windows
