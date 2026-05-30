@@ -209,14 +209,18 @@ fn resolve_step_inputs(
 	context: &CliContext,
 	step: &CliStepDefinition,
 ) -> MonochangeResult<BTreeMap<String, Vec<String>>> {
+	if step.inputs().is_empty() {
+		return Ok(BTreeMap::new());
+	}
+
 	let mut resolved = BTreeMap::new();
-	let template_context = build_cli_template_context(context, &context.inputs, None);
+	let mut template_context = None;
 	for (input_name, input_value) in step.inputs() {
 		let values = match input_value {
 			CliStepInputValue::Inherited => {
 				context.inputs.get(input_name).cloned().unwrap_or_default()
 			}
-			_ => resolve_step_input_override(input_value, &template_context)?,
+			_ => resolve_step_input_override(input_value, context, &mut template_context)?,
 		};
 		resolved.insert(input_name.clone(), values);
 	}
@@ -226,7 +230,8 @@ fn resolve_step_inputs(
 
 fn resolve_step_input_override(
 	input_value: &CliStepInputValue,
-	template_context: &serde_json::Map<String, serde_json::Value>,
+	context: &CliContext,
+	template_context: &mut Option<serde_json::Map<String, serde_json::Value>>,
 ) -> MonochangeResult<Vec<String>> {
 	match input_value {
 		CliStepInputValue::Inherited => Ok(Vec::new()),
@@ -234,18 +239,31 @@ fn resolve_step_input_override(
 		CliStepInputValue::List(values) => {
 			let mut resolved = Vec::new();
 			for value in values {
-				resolved.extend(resolve_step_input_template(value, template_context)?);
+				let values = resolve_step_input_template(value, context, template_context)?;
+				resolved.extend(values);
 			}
 			Ok(resolved)
 		}
-		CliStepInputValue::String(value) => resolve_step_input_template(value, template_context),
+		CliStepInputValue::String(value) => {
+			resolve_step_input_template(value, context, template_context)
+		}
 	}
 }
 
 fn resolve_step_input_template(
 	template: &str,
-	template_context: &serde_json::Map<String, serde_json::Value>,
+	context: &CliContext,
+	template_context: &mut Option<serde_json::Map<String, serde_json::Value>>,
 ) -> MonochangeResult<Vec<String>> {
+	if !command_contains_template(template) {
+		return Ok(vec![template.to_string()]);
+	}
+	if let Some(input_name) = parse_direct_input_template_reference(template) {
+		return Ok(context.inputs.get(input_name).cloned().unwrap_or_default());
+	}
+
+	let template_context = template_context
+		.get_or_insert_with(|| build_cli_template_context(context, &context.inputs, None));
 	if let Some(path) = parse_direct_template_reference(template) {
 		return Ok(lookup_template_value(
 			&serde_json::Value::Object(template_context.clone()),
@@ -257,6 +275,15 @@ fn resolve_step_input_template(
 	let jinja_context =
 		minijinja::Value::from_serialize(serde_json::Value::Object(template_context.clone()));
 	Ok(vec![render_jinja_template(template, &jinja_context)?])
+}
+
+fn parse_direct_input_template_reference(template: &str) -> Option<&str> {
+	let input_name = parse_direct_template_reference(template)?.strip_prefix("inputs.")?;
+	if input_name.contains('.') {
+		None
+	} else {
+		Some(input_name)
+	}
 }
 
 pub(crate) fn parse_direct_template_reference(template: &str) -> Option<&str> {
@@ -630,6 +657,12 @@ pub(crate) async fn execute_cli_command_with_options(
 	let mut output = None;
 	let command_started_at = Instant::now();
 	let mut progress = CliProgressReporter::new(cli_command, dry_run, quiet, progress_format);
+	// Release can spend noticeable time resolving early steps before the first
+	// step-level progress event, so show the command header immediately without
+	// changing interactive command output.
+	if cli_command.name == "release" {
+		progress.command_started();
+	}
 	let telemetry = CliTelemetry::new(
 		TelemetrySink::from_env(),
 		cli_command,
@@ -1557,6 +1590,10 @@ fn evaluate_cli_step_condition(
 	if trimmed.is_empty() {
 		return Ok(false);
 	}
+	if let Some(result) = evaluate_fast_cli_step_condition(trimmed, context, step_inputs) {
+		return Ok(result);
+	}
+
 	let condition_inputs = cli_step_condition_inputs(context, step_inputs);
 	let template_context = build_cli_template_context(context, &condition_inputs, None);
 	let template_context_json = serde_json::Value::Object(template_context.clone());
@@ -1582,6 +1619,107 @@ fn cli_step_condition_inputs(
 	let mut inputs = context.inputs.clone();
 	inputs.extend(step_inputs.clone());
 	inputs
+}
+
+fn evaluate_fast_cli_step_condition(
+	condition: &str,
+	context: &CliContext,
+	step_inputs: &BTreeMap<String, Vec<String>>,
+) -> Option<bool> {
+	let expression = trim_template_expression(condition)?;
+	if expression.contains('(') || expression.contains(')') {
+		return None;
+	}
+
+	let inputs = cli_step_condition_inputs(context, step_inputs);
+	let mut saw_operand = false;
+	for or_group in expression.split("||") {
+		let mut group_value = true;
+		for operand in or_group.split("&&") {
+			saw_operand = true;
+			if !group_value {
+				break;
+			}
+			group_value = evaluate_fast_cli_condition_operand(operand, context, &inputs)?;
+		}
+		if group_value {
+			return Some(true);
+		}
+	}
+
+	if saw_operand { Some(false) } else { None }
+}
+
+fn trim_template_expression(condition: &str) -> Option<&str> {
+	let trimmed = condition.trim();
+	let inner = trimmed
+		.strip_prefix("{{")
+		.and_then(|value| value.strip_suffix("}}"))
+		.unwrap_or(trimmed)
+		.trim();
+
+	if inner.is_empty() { None } else { Some(inner) }
+}
+
+fn evaluate_fast_cli_condition_operand(
+	operand: &str,
+	context: &CliContext,
+	inputs: &BTreeMap<String, Vec<String>>,
+) -> Option<bool> {
+	let operand = operand.trim();
+	if operand.is_empty() {
+		return None;
+	}
+	if let Some(operand) = operand.strip_prefix('!') {
+		return Some(!evaluate_fast_cli_condition_operand(
+			operand, context, inputs,
+		)?);
+	}
+	if let Some(operand) = operand.strip_prefix("not ") {
+		return Some(!evaluate_fast_cli_condition_operand(
+			operand, context, inputs,
+		)?);
+	}
+	if let Some(name) = operand.strip_prefix("inputs.") {
+		return parse_fast_condition_input(name, inputs);
+	}
+
+	evaluate_fast_changeset_count_comparison(operand, context)
+}
+
+fn parse_fast_condition_input(name: &str, inputs: &BTreeMap<String, Vec<String>>) -> Option<bool> {
+	let values = inputs.get(name)?;
+	match values.as_slice() {
+		[] => Some(false),
+		[value] => parse_string_as_boolean(value, name).ok(),
+		_ => None,
+	}
+}
+
+fn evaluate_fast_changeset_count_comparison(operand: &str, context: &CliContext) -> Option<bool> {
+	let prepared = context.prepared_release.as_ref()?;
+	let count = prepared.changeset_paths.len() as u64;
+	for operator in [">=", "<=", "==", "!=", ">", "<"] {
+		let Some((left, right)) = operand.split_once(operator) else {
+			continue;
+		};
+		let variable = left.trim();
+		if !matches!(variable, "number_of_changesets" | "changeset_count") {
+			return None;
+		}
+		let expected = right.trim().parse::<u64>().ok()?;
+		return match operator {
+			">=" => Some(count >= expected),
+			"<=" => Some(count <= expected),
+			"==" => Some(count == expected),
+			"!=" => Some(count != expected),
+			">" => Some(count > expected),
+			"<" => Some(count < expected),
+			_ => None,
+		};
+	}
+
+	None
 }
 
 fn parse_template_as_boolean(value: &serde_json::Value, condition: &str) -> MonochangeResult<bool> {
@@ -3048,10 +3186,18 @@ fn interpolate_cli_command_command(
 	variables: Option<&BTreeMap<String, CommandVariable>>,
 	step_inputs: &BTreeMap<String, Vec<String>>,
 ) -> String {
+	if !command_contains_template(command) {
+		return command.to_string();
+	}
+
 	let template_context = build_cli_template_context(context, step_inputs, variables);
 	let jinja_context =
 		minijinja::Value::from_serialize(serde_json::Value::Object(template_context));
 	render_jinja_template(command, &jinja_context).unwrap_or_else(|_| command.to_string())
+}
+
+fn command_contains_template(command: &str) -> bool {
+	command.contains("{{") || command.contains("{#") || command.contains("{%")
 }
 
 fn cli_command_variable_value(context: &CliContext, variable: CommandVariable) -> String {
