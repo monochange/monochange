@@ -59,10 +59,282 @@ fn cli_context() -> CliContext {
 
 #[test]
 fn resolve_step_input_override_treats_inherited_as_empty() {
-	let template_context = serde_json::Map::new();
-	let values = resolve_step_input_override(&CliStepInputValue::Inherited, &template_context)
-		.unwrap_or_else(|error| panic!("resolve inherited step input: {error}"));
+	let context = cli_context();
+	let mut template_context = None;
+	let values = resolve_step_input_override(
+		&CliStepInputValue::Inherited,
+		&context,
+		&mut template_context,
+	)
+	.unwrap_or_else(|error| panic!("resolve inherited step input: {error}"));
 	assert!(values.is_empty());
+}
+
+#[test]
+fn resolve_step_input_override_handles_boolean_and_list_values() {
+	let context = cli_context();
+	let mut template_context = None;
+	let values = resolve_step_input_override(
+		&CliStepInputValue::Boolean(true),
+		&context,
+		&mut template_context,
+	)
+	.unwrap_or_else(|error| panic!("resolve boolean step input: {error}"));
+
+	assert_eq!(values, vec!["true".to_string()]);
+	assert!(template_context.is_none());
+
+	let values = resolve_step_input_override(
+		&CliStepInputValue::List(vec!["HEAD".to_string()]),
+		&context,
+		&mut template_context,
+	)
+	.unwrap_or_else(|error| panic!("resolve list step input: {error}"));
+
+	assert_eq!(values, vec!["HEAD".to_string()]);
+	assert!(template_context.is_none());
+}
+
+#[test]
+fn resolve_step_input_template_uses_fast_paths_for_literals_and_inputs() {
+	let mut context = cli_context();
+	context
+		.inputs
+		.insert("no_verify".to_string(), vec!["true".to_string()]);
+	let mut template_context = None;
+
+	let literal = resolve_step_input_template("HEAD", &context, &mut template_context)
+		.unwrap_or_else(|error| panic!("resolve literal input: {error}"));
+	assert_eq!(literal, vec!["HEAD".to_string()]);
+	assert!(template_context.is_none());
+
+	let inherited =
+		resolve_step_input_template("{{ inputs.no_verify }}", &context, &mut template_context)
+			.unwrap_or_else(|error| panic!("resolve direct input template: {error}"));
+	assert_eq!(inherited, vec!["true".to_string()]);
+	assert!(template_context.is_none());
+
+	let nested_input_path = resolve_step_input_template(
+		"{{ inputs.no_verify.enabled }}",
+		&context,
+		&mut template_context,
+	)
+	.unwrap_or_else(|error| panic!("resolve nested input path template: {error}"));
+	assert!(nested_input_path.is_empty());
+	assert!(template_context.is_some());
+}
+
+#[test]
+fn resolve_step_inputs_returns_empty_without_template_context_for_empty_inputs() {
+	let context = cli_context();
+	let step = CliStepDefinition::Command {
+		show_progress: None,
+		name: None,
+		when: None,
+		always_run: false,
+		command: "echo ok".to_string(),
+		dry_run_command: None,
+		shell: ShellConfig::Default,
+		id: None,
+		variables: None,
+		inputs: BTreeMap::new(),
+	};
+
+	let resolved = resolve_step_inputs(&context, &step)
+		.unwrap_or_else(|error| panic!("resolve empty step inputs: {error}"));
+	assert!(resolved.is_empty());
+}
+
+#[test]
+fn resolve_step_inputs_uses_lazy_template_context_for_overrides() {
+	let mut context = cli_context();
+	context
+		.inputs
+		.insert("from_cli".to_string(), vec!["cli-value".to_string()]);
+	let step = CliStepDefinition::Command {
+		show_progress: None,
+		name: None,
+		when: None,
+		always_run: false,
+		command: "echo ok".to_string(),
+		dry_run_command: None,
+		shell: ShellConfig::Default,
+		id: None,
+		variables: None,
+		inputs: BTreeMap::from([
+			(
+				"literal".to_string(),
+				CliStepInputValue::String("HEAD".to_string()),
+			),
+			(
+				"list".to_string(),
+				CliStepInputValue::List(vec![
+					"{{ inputs.from_cli }}".to_string(),
+					"tail".to_string(),
+				]),
+			),
+		]),
+	};
+
+	let resolved = resolve_step_inputs(&context, &step)
+		.unwrap_or_else(|error| panic!("resolve step inputs: {error}"));
+	assert_eq!(resolved["literal"], vec!["HEAD".to_string()]);
+	assert_eq!(
+		resolved["list"],
+		vec!["cli-value".to_string(), "tail".to_string()]
+	);
+}
+
+#[test]
+fn evaluate_fast_cli_step_condition_handles_changeset_count_and_inputs() {
+	let mut context = cli_context();
+	let mut prepared_release = sample_prepared_release();
+	prepared_release
+		.changeset_paths
+		.push(PathBuf::from(".changeset/release.md"));
+	context.prepared_release = Some(prepared_release);
+	context
+		.inputs
+		.insert("commit".to_string(), vec!["true".to_string()]);
+	let step_inputs = BTreeMap::from([("push".to_string(), vec!["false".to_string()])]);
+	context.inputs.insert("tag".to_string(), Vec::new());
+
+	assert_eq!(
+		evaluate_fast_cli_step_condition(
+			"{{ number_of_changesets > 0 && inputs.commit }}",
+			&context,
+			&step_inputs,
+		),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ changeset_count <= 1 }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ changeset_count == 1 }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ changeset_count != 0 }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ changeset_count < 2 }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ !inputs.push }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ not inputs.push }}", &context, &step_inputs),
+		Some(true)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition(
+			"{{ number_of_changesets > 0 && inputs.commit && inputs.push }}",
+			&context,
+			&step_inputs,
+		),
+		Some(false)
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition(
+			"{{ number_of_changesets > 0 && inputs.tag }}",
+			&context,
+			&step_inputs,
+		),
+		Some(false)
+	);
+	context
+		.prepared_release
+		.as_mut()
+		.unwrap()
+		.changeset_paths
+		.clear();
+	assert_eq!(
+		evaluate_fast_cli_step_condition(
+			"{{ number_of_changesets > 0 && inputs.missing }}",
+			&context,
+			&BTreeMap::new(),
+		),
+		Some(false)
+	);
+}
+
+#[test]
+fn evaluate_fast_cli_step_condition_falls_back_for_complex_conditions() {
+	let context = cli_context();
+	assert_eq!(
+		evaluate_fast_cli_step_condition(
+			"{{ release.targets | length > 0 }}",
+			&context,
+			&BTreeMap::new(),
+		),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ (inputs.commit) }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ inputs.commit && }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ releases > 0 }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ release }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ inputs.commit }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition("{{ inputs.missing }}", &context, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		evaluate_fast_cli_step_condition(
+			"{{ inputs.multi }}",
+			&context,
+			&BTreeMap::from([(
+				"multi".to_string(),
+				vec!["true".to_string(), "false".to_string()],
+			)]),
+		),
+		None
+	);
+}
+
+#[test]
+fn evaluate_cli_step_condition_returns_fast_path_result() {
+	let mut context = cli_context();
+	let mut prepared_release = sample_prepared_release();
+	prepared_release
+		.changeset_paths
+		.push(PathBuf::from(".changeset/release.md"));
+	context.prepared_release = Some(prepared_release);
+
+	let result =
+		evaluate_cli_step_condition("{{ changeset_count > 0 }}", &context, &BTreeMap::new())
+			.unwrap_or_else(|error| panic!("evaluate condition: {error}"));
+
+	assert!(result);
+}
+
+#[test]
+fn command_contains_template_detects_jinja_delimiters() {
+	assert!(!command_contains_template("pnpm install --lockfile-only"));
+	assert!(command_contains_template("echo {{ version }}"));
+	assert!(command_contains_template(
+		"{% if true %}echo yes{% endif %}"
+	));
+	assert!(command_contains_template("echo {# comment #}"));
 }
 
 fn sample_source_configuration() -> SourceConfiguration {
