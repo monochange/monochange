@@ -126,5 +126,9 @@ harness = false
 name = "ecosystem_discovery"
 harness = false
 
+[[bench]]
+name = "check_validation"
+harness = false
+
 [lints]
 workspace = true
