@@ -345,7 +345,7 @@ fn summary_rule_reports_length_period_and_prefix_issues_together() {
 }
 
 #[test]
-fn summary_rule_enforces_default_max_length_of_60() {
+fn summary_rule_enforces_default_max_heading_length_of_60() {
 	let rule = SummaryRule::new();
 	let long_heading = format!("# {}", "a".repeat(61));
 	let results = run_rule(
@@ -358,23 +358,39 @@ fn summary_rule_enforces_default_max_length_of_60() {
 		results
 			.iter()
 			.any(|result| { result.message == "changeset summary must be at most 60 characters" }),
-		"expected default max_length of 60, got: {results:?}"
+		"expected default max_heading_length of 60 for headings, got: {results:?}"
 	);
 }
 
 #[test]
-fn summary_rule_allows_explicit_max_length_override() {
+fn summary_rule_allows_long_non_heading_summary_by_default() {
+	let rule = SummaryRule::new();
+	let long_paragraph = "a".repeat(61);
+	let results = run_rule(
+		&rule,
+		&lint_file(&long_paragraph, Vec::new()),
+		&severity(LintSeverity::Error),
+	);
+
+	assert!(
+		results.is_empty(),
+		"expected no max_length violations for non-heading summary by default, got: {results:?}"
+	);
+}
+
+#[test]
+fn summary_rule_enforces_explicit_max_length() {
 	let rule = SummaryRule::new();
 	let heading = format!("# {}", "a".repeat(61));
 	let mut options = BTreeMap::new();
-	options.insert("max_length".to_string(), json!(80));
+	options.insert("max_length".to_string(), json!(60));
 	let results = run_rule(&rule, &lint_file(&heading, Vec::new()), &detailed(options));
 
 	assert!(
-		!results
+		results
 			.iter()
-			.any(|result| { result.message.contains("at most") }),
-		"explicit max_length should override default"
+			.any(|result| { result.message == "changeset summary must be at most 60 characters" }),
+		"explicit max_length should be enforced, got: {results:?}"
 	);
 }
 

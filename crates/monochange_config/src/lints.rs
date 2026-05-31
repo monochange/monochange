@@ -254,11 +254,15 @@ impl LintRuleRunner for SummaryRule {
 			.option("min_length")
 			.and_then(serde_json::Value::as_u64)
 			.map(|v| v as usize);
-		let max_length = config
-			.option("max_length")
+		let max_heading_length = config
+			.option("max_heading_length")
 			.and_then(serde_json::Value::as_u64)
 			.map(|v| v as usize)
 			.or(Some(60));
+		let max_length = config
+			.option("max_length")
+			.and_then(serde_json::Value::as_u64)
+			.map(|v| v as usize);
 		let require_description = config.bool_option("require_description", false);
 		let forbid_trailing_period = config.bool_option("forbid_trailing_period", false);
 		let forbid_conventional_commit_prefix =
@@ -323,7 +327,12 @@ impl LintRuleRunner for SummaryRule {
 			));
 		}
 
-		if let Some(max) = max_length
+		let effective_max_length = if heading.is_some() {
+			max_length.or(max_heading_length)
+		} else {
+			max_length
+		};
+		if let Some(max) = effective_max_length
 			&& summary.chars().count() > max
 		{
 			results.push(LintResult::new(
