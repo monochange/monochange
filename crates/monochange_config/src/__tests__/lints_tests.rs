@@ -453,6 +453,59 @@ fn summary_rule_require_description_fails_when_next_line_is_heading() {
 }
 
 #[test]
+fn summary_rule_reports_heading_level_and_length_issues_together() {
+	let rule = SummaryRule::new();
+	let mut options = BTreeMap::new();
+	options.insert("required".to_string(), json!(true));
+	options.insert("heading_level".to_string(), json!(1));
+	options.insert("max_heading_length".to_string(), json!(5));
+	let results = run_rule(
+		&rule,
+		&lint_file("## This heading is way too long", Vec::new()),
+		&detailed(options),
+	);
+
+	// Should report both: wrong heading level AND heading too long.
+	// Previously only the heading level error was reported due to early return.
+	assert!(results.iter().any(|result| {
+		result
+			.message
+			.contains("changeset summary heading must use level 1, found level 2")
+	}));
+	assert!(results.iter().any(|result| {
+		result
+			.message
+			.contains("changeset summary must be at most 5 characters")
+	}));
+}
+
+#[test]
+fn summary_rule_reports_missing_heading_and_length_issues_together() {
+	let rule = SummaryRule::new();
+	let mut options = BTreeMap::new();
+	options.insert("required".to_string(), json!(true));
+	options.insert("min_length".to_string(), json!(20));
+	let results = run_rule(
+		&rule,
+		&lint_file("short summary", Vec::new()),
+		&detailed(options),
+	);
+
+	// Should report both: must start with heading AND too short.
+	// Previously only the heading error was reported due to early return.
+	assert!(results.iter().any(|result| {
+		result
+			.message
+			.contains("changeset body must start with a summary heading")
+	}));
+	assert!(results.iter().any(|result| {
+		result
+			.message
+			.contains("changeset summary must be at least 20 characters")
+	}));
+}
+
+#[test]
 fn summary_rule_require_description_skipped_when_disabled() {
 	let rule = SummaryRule::new();
 	let mut options = BTreeMap::new();

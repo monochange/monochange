@@ -296,7 +296,6 @@ impl LintRuleRunner for SummaryRule {
 				"changeset body must start with a summary heading",
 				severity,
 			));
-			return results;
 		}
 
 		if let (Some(required_level), Some(actual_level)) = (heading_level, heading)
@@ -310,7 +309,6 @@ impl LintRuleRunner for SummaryRule {
 				),
 				severity,
 			));
-			return results;
 		}
 
 		let summary =
