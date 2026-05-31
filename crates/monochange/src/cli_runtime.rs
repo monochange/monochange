@@ -48,6 +48,7 @@ use crate::cli_progress::ProgressFormat;
 use crate::maybe_load_prepared_release_execution;
 use crate::release_branch_policy;
 use crate::save_prepared_release_execution;
+use crate::workspace_ops::validate_cargo_workspace_version_groups;
 use crate::*;
 
 /// Runs a future to completion, safely handling both inside and outside a Tokio runtime.
@@ -756,8 +757,12 @@ pub(crate) async fn execute_cli_command_with_options(
 					Ok(())
 				}
 				CliStepDefinition::Validate { .. } => {
-					let (warnings, validation_errors) =
-						lint::collect_workspace_validation_issues(root);
+					let (warnings, mut validation_errors) =
+						lint::collect_workspace_validation_issues(root, configuration);
+					#[cfg(feature = "cargo")]
+					if let Err(error) = validate_cargo_workspace_version_groups(root) {
+						validation_errors.push(error.render());
+					}
 					if !context.quiet {
 						for warning in &warnings {
 							eprintln!("warning: {warning}");

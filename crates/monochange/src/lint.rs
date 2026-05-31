@@ -42,15 +42,18 @@ fn build_linter(
 	Linter::new(lint_suites(), configuration.lints.clone()).with_selection(selection)
 }
 
-pub(crate) fn collect_workspace_validation_issues(root: &Path) -> (Vec<String>, Vec<String>) {
+pub(crate) fn collect_workspace_validation_issues(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+) -> (Vec<String>, Vec<String>) {
 	let mut warnings = Vec::new();
 	let mut errors = Vec::new();
 
-	if let Err(error) = monochange_config::validate_workspace(root) {
+	if let Err(error) = monochange_config::validate_workspace_with_config(root, configuration) {
 		errors.push(error.render());
 	}
 
-	match monochange_config::validate_versioned_files_content(root) {
+	match monochange_config::validate_versioned_files_content_with_config(root, configuration) {
 		Ok(mut collected_warnings) => warnings.append(&mut collected_warnings),
 		Err(error) => errors.push(error.render()),
 	}
@@ -114,7 +117,13 @@ pub(crate) fn run_check_command(
 	let configuration = load_workspace_configuration(root)?;
 	let mut output = String::new();
 
-	let (validation_warnings, validation_errors) = collect_workspace_validation_issues(root);
+	let show_progress = matches!(format, OutputFormat::Text | OutputFormat::Markdown);
+	if show_progress {
+		eprintln!("\u{2139} Validating workspace…");
+	}
+
+	let (validation_warnings, validation_errors) =
+		collect_workspace_validation_issues(root, &configuration);
 	for warning in &validation_warnings {
 		let _ = writeln!(output, "warning: {warning}");
 	}

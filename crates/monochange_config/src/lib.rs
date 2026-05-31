@@ -5203,8 +5203,20 @@ fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageTyp
 
 #[must_use = "the validation result must be checked"]
 /// Validate configured changesets and their targets for `root`.
+/// Validate workspace configuration, loading the configuration from disk.
 pub fn validate_workspace(root: &Path) -> MonochangeResult<()> {
 	let configuration = load_workspace_configuration(root)?;
+	validate_workspace_with_config(root, &configuration)
+}
+
+/// Validate workspace configuration using a pre-loaded configuration.
+///
+/// Use this when the configuration has already been loaded to avoid redundant I/O.
+#[must_use = "the validation result must be checked"]
+pub fn validate_workspace_with_config(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+) -> MonochangeResult<()> {
 	// patch-coverage:ignore-start -- stale prerelease state rejection is covered by config and CLI integration tests; the closing branch marker is compiler-generated.
 	if !configuration.prerelease.enabled {
 		let prerelease_state_path = root.join(".monochange/prerelease-state.json");
@@ -5234,6 +5246,7 @@ pub fn validate_workspace(root: &Path) -> MonochangeResult<()> {
 		.collect::<Vec<_>>();
 	let mut errors = Vec::new();
 	for changeset_path in changeset_paths {
+		#[allow(clippy::needless_borrow)]
 		if let Err(error) = validate_changeset_targets(&configuration, &changeset_path) {
 			errors.push(error.render());
 		}
@@ -5258,8 +5271,21 @@ pub fn validate_workspace(root: &Path) -> MonochangeResult<()> {
 /// run during the explicit `mc validate` command, not on every config load.
 #[must_use = "the validation result must be checked"]
 /// Validate versioned-file paths and parsers against real files on disk.
+/// Validate versioned-file paths and parsers against real files on disk, loading the configuration from disk.
 pub fn validate_versioned_files_content(root: &Path) -> MonochangeResult<Vec<String>> {
 	let configuration = load_workspace_configuration(root)?;
+	validate_versioned_files_content_with_config(root, &configuration)
+}
+
+/// Validate versioned-file paths and parsers against real files on disk,
+/// using a pre-loaded configuration.
+///
+/// Use this when the configuration has already been loaded to avoid redundant I/O.
+#[must_use = "the validation result must be checked"]
+pub fn validate_versioned_files_content_with_config(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+) -> MonochangeResult<Vec<String>> {
 	let mut warnings = Vec::new();
 
 	// Collect all (owner_kind, owner_id, definitions) triples.
