@@ -2,7 +2,7 @@
 "monochange": patch
 ---
 
-Add criterion benchmarks for check/validation pipeline performance
+# Add criterion benchmarks for check/validation pipeline
 
 Adds `check_validation` benchmarks to measure:
 
