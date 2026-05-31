@@ -6,8 +6,8 @@
 //! particularly the O(P×G) glob deduplication that was fixed to avoid
 //! re-validating the same glob pattern for every package.
 
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 use criterion::BenchmarkId;
 use criterion::Criterion;
