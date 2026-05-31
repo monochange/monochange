@@ -6704,6 +6704,19 @@ fn validate_versioned_files_content_warns_on_empty_glob() {
 }
 
 #[test]
+fn validate_versioned_files_content_with_config_deduplicates_glob_patterns() {
+	// When multiple packages inherit the same ecosystem-level glob pattern,
+	// validate_versioned_files_content_with_config should only validate each
+	// unique glob once (deduplicating via seen_globs).
+	let root = fixture_path("config/inherited-ecosystem-globs");
+	let configuration =
+		load_workspace_configuration(&root).unwrap_or_else(|error| panic!("load config: {error}"));
+	// Should succeed — the inherited globs expand to files that exist.
+	let result = crate::validate_versioned_files_content_with_config(&root, &configuration);
+	assert!(result.is_ok(), "expected Ok, got error: {result:?}");
+}
+
+#[test]
 fn validate_changeset_targets_reports_missing_file_read_errors() {
 	let root = fixture_path("changeset-target-metadata/render-workspace");
 	let configuration = load_workspace_configuration(&root)
