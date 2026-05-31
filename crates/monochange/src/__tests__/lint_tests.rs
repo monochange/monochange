@@ -150,7 +150,10 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 	)
 	.unwrap_or_else(|error| panic!("expected changeset to be written: {error}"));
 
-	let (warnings, errors) = collect_workspace_validation_issues(root);
+	let (warnings, errors) = collect_workspace_validation_issues(
+		root,
+		&monochange_config::load_workspace_configuration(root).unwrap(),
+	);
 	assert!(warnings.is_empty());
 	assert!(
 		errors
