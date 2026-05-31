@@ -2181,6 +2181,26 @@ fn lint_markdown_summary_returns_ok_for_valid_heading() {
 }
 
 #[test]
+fn lint_markdown_summary_max_heading_length_does_not_limit_non_heading_by_default() {
+	let path = Path::new("change.md");
+	let changes = [raw_change(Some(BumpSeverity::Minor), Some("Feature"))];
+	let settings = ChangesetLintSettings {
+		summary: ChangesetSummaryLintSettings {
+			max_heading_length: Some(60),
+			..ChangesetSummaryLintSettings::default()
+		},
+		..ChangesetLintSettings::default()
+	};
+
+	// A non-heading summary longer than 60 chars should pass because
+	// max_heading_length only applies to headings, not plain text.
+	let long_text = "a".repeat(100);
+	crate::lint_markdown_changeset(&long_text, &changes, &settings, path).unwrap_or_else(|error| {
+		panic!("non-heading summary should pass with max_heading_length set, got: {error}")
+	});
+}
+
+#[test]
 fn lint_markdown_changeset_covers_summary_type_and_scope_failures() {
 	let path = Path::new("change.md");
 	let changes = [raw_change(Some(BumpSeverity::Minor), Some("Feature"))];
