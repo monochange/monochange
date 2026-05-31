@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
+
+### 🐛 Fixed
+
+#### Fix summary max_length default for headings
+
+The changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.
+
+A new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #575](https://github.com/monochange/monochange/pull/575)
+
 ## [0.6.7](https://github.com/monochange/monochange/releases/tag/v0.6.7) (2026-05-30)
 
 ### 🚀 Feature

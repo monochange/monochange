@@ -4,6 +4,84 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
+
+Grouped release for `main`.
+
+### 🚀 Feature
+
+#### Add `step:validate` to `mc check` by default
+
+_Packages:_ _monochange_
+
+`mc check` now includes Cargo version-group validation that was previously only run by `mc step:validate`. This means `mc check` catches inconsistent workspace version groups in Cargo manifests that the lint step alone would miss.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #574](https://github.com/monochange/monochange/pull/574)
+
+### 🐛 Fixed
+
+#### Document lint rule catalog
+
+_Packages:_ _monochange_
+
+Expand the linting reference with the available presets, every built-in lint rule, and the `changesets/summary.require_description` option.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #570](https://github.com/monochange/monochange/pull/570)
+
+#### Add criterion benchmarks for check/validation pipeline
+
+_Packages:_ _monochange_
+
+Adds `check_validation` benchmarks to measure:
+
+- `validate_versioned_files_content_with_config` with increasing package counts (10, 50, 100) to verify glob deduplication stays O(N)
+- `validate_workspace_with_config` with pre-loaded config vs reloading
+- Config load vs validate comparison to quantify the `_with_config` optimization benefit (60µs vs 5.7ms — 95% reduction)
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #578](https://github.com/monochange/monochange/pull/578) · _Related issues:_ [#576](https://github.com/monochange/monochange/issues/576)
+
+#### Eliminate redundant config loads and deduplicate glob validation in `mc check`
+
+_Packages:_ _monochange_, _monochange_config_
+
+The `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.
+
+This change adds `validate_workspace_with_config` and `validate_versioned_files_content_with_config` variants that accept a pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.
+
+Additionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are now deduplicated across all packages. In repos with 50+ packages, each inheriting the same ecosystem-level glob pattern, the glob was expanded separately for every package — walking the entire repo directory tree each time. Deduplicating to validate each unique glob once eliminates this O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large monorepos (a ~90% improvement).
+
+Also adds a progress message ("Validating workspace…") during the validation phase of `mc check`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #576](https://github.com/monochange/monochange/pull/576)
+
+#### Cover group regex versioned files
+
+_Packages:_ _monochange_
+
+Add integration coverage for group-level regex `versioned_files` updates alongside Dart manifest versioned files.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #572](https://github.com/monochange/monochange/pull/572) · _Related issues:_ [#559](https://github.com/monochange/monochange/issues/559)
+
+#### Fix summary lint to report all violations at once
+
+_Packages:_ _monochange_config_
+
+The `changesets/summary` lint rule used early returns that stopped checking after the first structural violation (wrong heading level, missing heading). This meant fixing one issue and re-running would reveal the next, requiring multiple iterations to surface all problems.
+
+Now the rule collects all applicable violations in a single pass and reports them all together, matching user expectations that `mc check` surfaces every problem at once.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #577](https://github.com/monochange/monochange/pull/577)
+
+#### Fix summary max_length default for headings
+
+_Packages:_ _monochange_config_, _monochange_core_
+
+The changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.
+
+A new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #575](https://github.com/monochange/monochange/pull/575)
+
 ## [0.6.7](https://github.com/monochange/monochange/releases/tag/v0.6.7) (2026-05-30)
 
 Grouped release for `main`.
