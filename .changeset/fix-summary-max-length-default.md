@@ -2,6 +2,8 @@
 "monochange_config": patch
 ---
 
-Remove default 60-character max_length on changeset summary headings
+Fix summary lint max_length to apply only to headings by default
 
-The changesets/summary lint rule no longer enforces a 60-character maximum on summary heading text by default. Set `max_length` explicitly in your lint configuration if you want to enforce a heading length limit.
+The `changeset/summary` lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default. Users can still set `max_length` explicitly to enforce a limit on any summary text, regardless of heading format.
+
+A new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_heading_length` to override the default heading length without affecting non-heading summaries.

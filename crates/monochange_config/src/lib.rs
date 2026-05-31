@@ -2416,6 +2416,7 @@ fn changeset_summary_lint_settings_from_rule(
 		heading_level: lint_usize_option(rule_id, config, "heading_level")?,
 		min_length: lint_usize_option(rule_id, config, "min_length")?,
 		max_length: lint_usize_option(rule_id, config, "max_length")?,
+		max_heading_length: lint_usize_option(rule_id, config, "max_heading_length")?,
 		forbid_trailing_period: lint_bool_option(rule_id, config, "forbid_trailing_period")?
 			.unwrap_or(false),
 		forbid_conventional_commit_prefix: lint_bool_option(
@@ -2628,12 +2629,19 @@ fn lint_markdown_summary(
 			format!("changeset summary must be at least {min_length} characters"),
 		));
 	}
-	if let Some(max_length) = summary_settings.max_length
-		&& summary.chars().count() > max_length
+	let effective_max_length = if heading_level.is_some() {
+		summary_settings
+			.max_length
+			.or(summary_settings.max_heading_length)
+	} else {
+		summary_settings.max_length
+	};
+	if let Some(max) = effective_max_length
+		&& summary.chars().count() > max
 	{
 		return Err(changeset_lint_error(
 			changes_path,
-			format!("changeset summary must be at most {max_length} characters"),
+			format!("changeset summary must be at most {max} characters"),
 		));
 	}
 	if summary_settings.forbid_trailing_period && summary.ends_with('.') {
@@ -3940,6 +3948,16 @@ fn validate_changeset_lint_settings(
 	{
 		return Err(MonochangeError::Config(
 			"[lints.rules].changesets/summary.min_length must not exceed max_length".to_string(),
+		));
+	}
+	if let (Some(min_length), Some(max_heading_length)) = (
+		settings.summary.min_length,
+		settings.summary.max_heading_length,
+	) && min_length > max_heading_length
+	{
+		return Err(MonochangeError::Config(
+			"[lints.rules].changesets/summary.min_length must not exceed max_heading_length"
+				.to_string(),
 		));
 	}
 	for (bump, scoped) in &settings.bump {

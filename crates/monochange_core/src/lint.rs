@@ -494,6 +494,11 @@ pub struct ChangesetSummaryLintSettings {
 	pub min_length: Option<usize>,
 	#[serde(default)]
 	pub max_length: Option<usize>,
+	/// Maximum length for summary heading text.
+	/// Defaults to 60 when the first line is a markdown heading.
+	/// When the first line is not a heading, `max_length` applies instead.
+	#[serde(default)]
+	pub max_heading_length: Option<usize>,
 	#[serde(default)]
 	pub forbid_trailing_period: bool,
 	#[serde(default)]

@@ -345,7 +345,7 @@ fn summary_rule_reports_length_period_and_prefix_issues_together() {
 }
 
 #[test]
-fn summary_rule_has_no_default_max_length() {
+fn summary_rule_enforces_default_max_heading_length_of_60() {
 	let rule = SummaryRule::new();
 	let long_heading = format!("# {}", "a".repeat(61));
 	let results = run_rule(
@@ -355,8 +355,26 @@ fn summary_rule_has_no_default_max_length() {
 	);
 
 	assert!(
+		results
+			.iter()
+			.any(|result| { result.message == "changeset summary must be at most 60 characters" }),
+		"expected default max_heading_length of 60 for headings, got: {results:?}"
+	);
+}
+
+#[test]
+fn summary_rule_allows_long_non_heading_summary_by_default() {
+	let rule = SummaryRule::new();
+	let long_paragraph = "a".repeat(61);
+	let results = run_rule(
+		&rule,
+		&lint_file(&long_paragraph, Vec::new()),
+		&severity(LintSeverity::Error),
+	);
+
+	assert!(
 		results.is_empty(),
-		"expected no max_length violations by default, got: {results:?}"
+		"expected no max_length violations for non-heading summary by default, got: {results:?}"
 	);
 }
 
