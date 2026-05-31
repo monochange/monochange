@@ -756,12 +756,8 @@ pub(crate) async fn execute_cli_command_with_options(
 					Ok(())
 				}
 				CliStepDefinition::Validate { .. } => {
-					let (warnings, mut validation_errors) =
+					let (warnings, validation_errors) =
 						lint::collect_workspace_validation_issues(root);
-					#[cfg(feature = "cargo")]
-					if let Err(error) = validate_cargo_workspace_version_groups(root) {
-						validation_errors.push(error.render());
-					}
 					if !context.quiet {
 						for warning in &warnings {
 							eprintln!("warning: {warning}");
