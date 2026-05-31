@@ -2175,8 +2175,9 @@ fn lint_markdown_summary_returns_ok_for_valid_heading() {
 	// A valid heading under the default 60-char max_heading_length limit
 	// should pass lint_markdown_summary and reach the Ok(()) path.
 	let body = "# A short heading\n\nSome description text.";
-	crate::lint_markdown_changeset(body, &changes, &settings, path)
-		.expect("valid heading should pass all summary lint checks");
+	crate::lint_markdown_changeset(body, &changes, &settings, path).unwrap_or_else(|error| {
+		panic!("valid heading should pass all summary lint checks: {error}")
+	});
 }
 
 #[test]
