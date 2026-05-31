@@ -5311,9 +5311,20 @@ pub fn validate_versioned_files_content_with_config(
 		}
 	}
 
+	// Deduplicate glob versioned files across all sources.
+	// Packages inherit ecosystem versioned_files (e.g. `**/*.pubspec.yaml`),
+	// so the same glob pattern may appear 50+ times. Only validate it once.
+	let mut seen_globs: Vec<String> = Vec::new();
+
 	let mut errors = Vec::new();
 	for (owner_kind, owner_id, definitions) in &sources {
 		for definition in *definitions {
+			if path_uses_glob(&definition.path) {
+				if seen_globs.contains(&definition.path) {
+					continue;
+				}
+				seen_globs.push(definition.path.clone());
+			}
 			if let Err(error) = validate_single_versioned_file_content(
 				root,
 				definition,

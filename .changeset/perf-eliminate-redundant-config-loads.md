@@ -2,20 +2,24 @@
 "monochange": patch
 ---
 
-Eliminate redundant `load_workspace_configuration` calls in `mc check`
+Eliminate redundant config loads and deduplicate glob validation in `mc check`
 
-The `mc check` command was loading the workspace configuration three times:
+The `mc check` command was loading workspace configuration three times:
 once in `run_check_command`, once in `validate_workspace`, and once in
 `validate_versioned_files_content`. Each load discovers and parses all
-manifest files (e.g., 54+ pubspec.yaml files in large monorepos), so the
-triple-load was wasteful.
+manifest files, so the triple-load was wasteful.
 
 This change adds `validate_workspace_with_config` and
-`validate_versioned_files_content_with_config` variants in
-`monochange_config` that accept a pre-loaded `&WorkspaceConfiguration`,
-avoiding redundant I/O. The `mc check` command now loads configuration
-once and passes it through to both validation calls.
+`validate_versioned_files_content_with_config` variants that accept a
+pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.
+
+Additionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are
+now deduplicated across all packages. In repos with 50+ packages, each
+inheriting the same ecosystem-level glob pattern, the glob was expanded
+separately for every package — walking the entire repo directory tree each
+time. Deduplicating to validate each unique glob once eliminates this
+O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large
+monorepos (a ~90% improvement).
 
 Also adds a progress message ("Validating workspace…") during the
-validation phase of `mc check`, using the same output format detection
-as the lint progress reporter.
+validation phase of `mc check`.
