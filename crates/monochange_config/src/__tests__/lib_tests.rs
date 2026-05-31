@@ -2092,6 +2092,17 @@ fn changeset_lint_validation_covers_summary_and_scoped_rule_errors() {
 			},
 			"min_length must not exceed max_length",
 		),
+		(
+			ChangesetLintSettings {
+				summary: ChangesetSummaryLintSettings {
+					min_length: Some(80),
+					max_heading_length: Some(60),
+					..ChangesetSummaryLintSettings::default()
+				},
+				..ChangesetLintSettings::default()
+			},
+			"min_length must not exceed max_heading_length",
+		),
 	];
 	for (settings, expected) in invalid_cases {
 		let error = crate::validate_changeset_lint_settings(&settings, &changelog)
@@ -2147,6 +2158,25 @@ fn changeset_lint_validation_covers_summary_and_scoped_rule_errors() {
 		error.contains("changesets/types/feat.required_sections must not include empty values"),
 		"unexpected error: {error}"
 	);
+}
+
+#[test]
+fn lint_markdown_summary_returns_ok_for_valid_heading() {
+	let path = Path::new("change.md");
+	let changes = [raw_change(Some(BumpSeverity::Minor), Some("Feature"))];
+	let settings = ChangesetLintSettings {
+		summary: ChangesetSummaryLintSettings {
+			required: true,
+			..ChangesetSummaryLintSettings::default()
+		},
+		..ChangesetLintSettings::default()
+	};
+
+	// A valid heading under the default 60-char max_heading_length limit
+	// should pass lint_markdown_summary and reach the Ok(()) path.
+	let body = "# A short heading\n\nSome description text.";
+	crate::lint_markdown_changeset(body, &changes, &settings, path)
+		.expect("valid heading should pass all summary lint checks");
 }
 
 #[test]
