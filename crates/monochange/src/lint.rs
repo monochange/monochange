@@ -55,6 +55,11 @@ pub(crate) fn collect_workspace_validation_issues(root: &Path) -> (Vec<String>, 
 		Err(error) => errors.push(error.render()),
 	}
 
+	#[cfg(feature = "cargo")]
+	if let Err(error) = crate::workspace_ops::validate_cargo_workspace_version_groups(root) {
+		errors.push(error.render());
+	}
+
 	(warnings, errors)
 }
 
