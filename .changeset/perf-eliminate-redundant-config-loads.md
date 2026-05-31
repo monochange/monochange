@@ -3,7 +3,7 @@
 "monochange_config": patch
 ---
 
-Eliminate redundant config loads and deduplicate glob validation in `mc check`
+# Eliminate redundant config loads and deduplicate glob validation in `mc check`
 
 The `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.
 
