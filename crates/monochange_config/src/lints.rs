@@ -257,8 +257,7 @@ impl LintRuleRunner for SummaryRule {
 		let max_length = config
 			.option("max_length")
 			.and_then(serde_json::Value::as_u64)
-			.map(|v| v as usize)
-			.or(Some(60));
+			.map(|v| v as usize);
 		let require_description = config.bool_option("require_description", false);
 		let forbid_trailing_period = config.bool_option("forbid_trailing_period", false);
 		let forbid_conventional_commit_prefix =
