@@ -1,0 +1,2161 @@
+{
+	"schemaVersion": "0.3",
+	"kind": "monochange.releaseRecord",
+	"createdAt": "2026-05-31T23:15:16Z",
+	"command": "release",
+	"version": "0.6.8",
+	"versions": {
+		"main": "0.6.8"
+	},
+	"releaseTargets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.6.8",
+			"versionFormat": "primary",
+			"tag": true,
+			"release": true,
+			"tagName": "v0.6.8",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		}
+	],
+	"releasedPackages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changedFiles": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"packagePublications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.8",
+			"mode": "builtin",
+			"trustedPublishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updatedChangelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deletedChangesets": [
+		".changeset/docs-lint-rules-reference.md",
+		".changeset/feat-mc-check-step-validate.md",
+		".changeset/fix-lint-gather-all-failures.md",
+		".changeset/fix-summary-max-length-default.md",
+		".changeset/perf-add-check-validation-benchmarks.md",
+		".changeset/perf-eliminate-redundant-config-loads.md",
+		".changeset/test-group-regex-versioned-files.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/docs-lint-rules-reference.md",
+			"summary": "Document lint rule catalog",
+			"details": "Expand the linting reference with the available presets, every built-in lint rule, and the `changesets/summary.require_description` option.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commitWebUrls": true,
+					"actorProfiles": true,
+					"reviewRequestLookup": true,
+					"relatedIssues": true,
+					"issueComments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b7b5076a32a27f00c350769b9c838f1370cc6dc5",
+						"shortSha": "b7b5076",
+						"url": "https://github.com/monochange/monochange/commit/b7b5076a32a27f00c350769b9c838f1370cc6dc5",
+						"authoredAt": "2026-05-30T10:40:22+01:00",
+						"committedAt": "2026-05-30T09:40:22Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#570",
+						"title": "docs: document lint rule catalog",
+						"url": "https://github.com/monochange/monochange/pull/570",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"lastUpdated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7747557b1ae094bdf336736246621b8d8a59f133",
+						"shortSha": "7747557",
+						"url": "https://github.com/monochange/monochange/commit/7747557b1ae094bdf336736246621b8d8a59f133",
+						"authoredAt": "2026-05-31T18:27:16+01:00",
+						"committedAt": "2026-05-31T17:27:16Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#574",
+						"title": "feat: add step:validate to mc check by default",
+						"url": "https://github.com/monochange/monochange/pull/574",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"relatedIssues": []
+			}
+		},
+		{
+			"path": ".changeset/feat-mc-check-step-validate.md",
+			"summary": "Add `step:validate` to `mc check` by default",
+			"details": "`mc check` now includes Cargo version-group validation that was previously only run by `mc step:validate`. This means `mc check` catches inconsistent workspace version groups in Cargo manifests that the lint step alone would miss.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commitWebUrls": true,
+					"actorProfiles": true,
+					"reviewRequestLookup": true,
+					"relatedIssues": true,
+					"issueComments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7747557b1ae094bdf336736246621b8d8a59f133",
+						"shortSha": "7747557",
+						"url": "https://github.com/monochange/monochange/commit/7747557b1ae094bdf336736246621b8d8a59f133",
+						"authoredAt": "2026-05-31T18:27:16+01:00",
+						"committedAt": "2026-05-31T17:27:16Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#574",
+						"title": "feat: add step:validate to mc check by default",
+						"url": "https://github.com/monochange/monochange/pull/574",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"lastUpdated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7747557b1ae094bdf336736246621b8d8a59f133",
+						"shortSha": "7747557",
+						"url": "https://github.com/monochange/monochange/commit/7747557b1ae094bdf336736246621b8d8a59f133",
+						"authoredAt": "2026-05-31T18:27:16+01:00",
+						"committedAt": "2026-05-31T17:27:16Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#574",
+						"title": "feat: add step:validate to mc check by default",
+						"url": "https://github.com/monochange/monochange/pull/574",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"relatedIssues": []
+			}
+		},
+		{
+			"path": ".changeset/fix-lint-gather-all-failures.md",
+			"summary": "Fix summary lint to report all violations at once",
+			"details": "The `changesets/summary` lint rule used early returns that stopped checking after the first structural violation (wrong heading level, missing heading). This meant fixing one issue and re-running would reveal the next, requiring multiple iterations to surface all problems.\n\nNow the rule collects all applicable violations in a single pass and reports them all together, matching user expectations that `mc check` surfaces every problem at once.",
+			"targets": [
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commitWebUrls": true,
+					"actorProfiles": true,
+					"reviewRequestLookup": true,
+					"relatedIssues": true,
+					"issueComments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ebb053ce5734afbf9293e2064b886a1c8b178348",
+						"shortSha": "ebb053c",
+						"url": "https://github.com/monochange/monochange/commit/ebb053ce5734afbf9293e2064b886a1c8b178348",
+						"authoredAt": "2026-05-31T19:48:21+01:00",
+						"committedAt": "2026-05-31T18:48:21Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#577",
+						"title": "fix: report all summary lint violations instead of stopping at the first failure",
+						"url": "https://github.com/monochange/monochange/pull/577",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"lastUpdated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ebb053ce5734afbf9293e2064b886a1c8b178348",
+						"shortSha": "ebb053c",
+						"url": "https://github.com/monochange/monochange/commit/ebb053ce5734afbf9293e2064b886a1c8b178348",
+						"authoredAt": "2026-05-31T19:48:21+01:00",
+						"committedAt": "2026-05-31T18:48:21Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#577",
+						"title": "fix: report all summary lint violations instead of stopping at the first failure",
+						"url": "https://github.com/monochange/monochange/pull/577",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"relatedIssues": []
+			}
+		},
+		{
+			"path": ".changeset/fix-summary-max-length-default.md",
+			"summary": "Fix summary max_length default for headings",
+			"details": "The changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.\n\nA new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.",
+			"targets": [
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commitWebUrls": true,
+					"actorProfiles": true,
+					"reviewRequestLookup": true,
+					"relatedIssues": true,
+					"issueComments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "68a6378b3bb57c771e23b15c1fca381a25b1c79f",
+						"shortSha": "68a6378",
+						"url": "https://github.com/monochange/monochange/commit/68a6378b3bb57c771e23b15c1fca381a25b1c79f",
+						"authoredAt": "2026-05-31T18:29:58+01:00",
+						"committedAt": "2026-05-31T17:29:58Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#575",
+						"title": "fix: remove default 60-char max_length from changesets/summary lint",
+						"url": "https://github.com/monochange/monochange/pull/575",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"lastUpdated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "68a6378b3bb57c771e23b15c1fca381a25b1c79f",
+						"shortSha": "68a6378",
+						"url": "https://github.com/monochange/monochange/commit/68a6378b3bb57c771e23b15c1fca381a25b1c79f",
+						"authoredAt": "2026-05-31T18:29:58+01:00",
+						"committedAt": "2026-05-31T17:29:58Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#575",
+						"title": "fix: remove default 60-char max_length from changesets/summary lint",
+						"url": "https://github.com/monochange/monochange/pull/575",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"relatedIssues": []
+			}
+		},
+		{
+			"path": ".changeset/perf-add-check-validation-benchmarks.md",
+			"summary": "Add criterion benchmarks for check/validation pipeline",
+			"details": "Adds `check_validation` benchmarks to measure:\n\n- `validate_versioned_files_content_with_config` with increasing package counts (10, 50, 100) to verify glob deduplication stays O(N)\n- `validate_workspace_with_config` with pre-loaded config vs reloading\n- Config load vs validate comparison to quantify the `_with_config` optimization benefit (60µs vs 5.7ms — 95% reduction)",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commitWebUrls": true,
+					"actorProfiles": true,
+					"reviewRequestLookup": true,
+					"relatedIssues": true,
+					"issueComments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "aefe4db456cb0211b1ec2a0e3746b2ef2ec00421",
+						"shortSha": "aefe4db",
+						"url": "https://github.com/monochange/monochange/commit/aefe4db456cb0211b1ec2a0e3746b2ef2ec00421",
+						"authoredAt": "2026-06-01T00:07:07+01:00",
+						"committedAt": "2026-06-01T00:07:07+01:00",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#578",
+						"title": "perf: add criterion benchmarks for check/validation pipeline",
+						"url": "https://github.com/monochange/monochange/pull/578",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"lastUpdated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "aefe4db456cb0211b1ec2a0e3746b2ef2ec00421",
+						"shortSha": "aefe4db",
+						"url": "https://github.com/monochange/monochange/commit/aefe4db456cb0211b1ec2a0e3746b2ef2ec00421",
+						"authoredAt": "2026-06-01T00:07:07+01:00",
+						"committedAt": "2026-06-01T00:07:07+01:00",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#578",
+						"title": "perf: add criterion benchmarks for check/validation pipeline",
+						"url": "https://github.com/monochange/monochange/pull/578",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"relatedIssues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#576",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/576",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/perf-eliminate-redundant-config-loads.md",
+			"summary": "Eliminate redundant config loads and deduplicate glob validation in `mc check`",
+			"details": "The `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.\n\nThis change adds `validate_workspace_with_config` and `validate_versioned_files_content_with_config` variants that accept a pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.\n\nAdditionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are now deduplicated across all packages. In repos with 50+ packages, each inheriting the same ecosystem-level glob pattern, the glob was expanded separately for every package — walking the entire repo directory tree each time. Deduplicating to validate each unique glob once eliminates this O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large monorepos (a ~90% improvement).\n\nAlso adds a progress message (\"Validating workspace…\") during the validation phase of `mc check`.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commitWebUrls": true,
+					"actorProfiles": true,
+					"reviewRequestLookup": true,
+					"relatedIssues": true,
+					"issueComments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "d55a7c3f3c5f43436a14a271d899a998dcbfb452",
+						"shortSha": "d55a7c3",
+						"url": "https://github.com/monochange/monochange/commit/d55a7c3f3c5f43436a14a271d899a998dcbfb452",
+						"authoredAt": "2026-05-31T19:11:01+01:00",
+						"committedAt": "2026-05-31T18:11:01Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#576",
+						"title": "perf: eliminate redundant config loads in mc check",
+						"url": "https://github.com/monochange/monochange/pull/576",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"lastUpdated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "d55a7c3f3c5f43436a14a271d899a998dcbfb452",
+						"shortSha": "d55a7c3",
+						"url": "https://github.com/monochange/monochange/commit/d55a7c3f3c5f43436a14a271d899a998dcbfb452",
+						"authoredAt": "2026-05-31T19:11:01+01:00",
+						"committedAt": "2026-05-31T18:11:01Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#576",
+						"title": "perf: eliminate redundant config loads in mc check",
+						"url": "https://github.com/monochange/monochange/pull/576",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"relatedIssues": []
+			}
+		},
+		{
+			"path": ".changeset/test-group-regex-versioned-files.md",
+			"summary": "Cover group regex versioned files",
+			"details": "Add integration coverage for group-level regex `versioned_files` updates alongside Dart manifest versioned files.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commitWebUrls": true,
+					"actorProfiles": true,
+					"reviewRequestLookup": true,
+					"relatedIssues": true,
+					"issueComments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "53e5bd84b54dcbe2c5756eb57fd5ae0d04823158",
+						"shortSha": "53e5bd8",
+						"url": "https://github.com/monochange/monochange/commit/53e5bd84b54dcbe2c5756eb57fd5ae0d04823158",
+						"authoredAt": "2026-05-31T06:26:02+01:00",
+						"committedAt": "2026-05-31T05:26:02Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#572",
+						"title": "test: cover group regex versioned files",
+						"url": "https://github.com/monochange/monochange/pull/572",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"lastUpdated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"displayName": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "53e5bd84b54dcbe2c5756eb57fd5ae0d04823158",
+						"shortSha": "53e5bd8",
+						"url": "https://github.com/monochange/monochange/commit/53e5bd84b54dcbe2c5756eb57fd5ae0d04823158",
+						"authoredAt": "2026-05-31T06:26:02+01:00",
+						"committedAt": "2026-05-31T05:26:02Z",
+						"authorName": "Ifiok Jr.",
+						"authorEmail": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"reviewRequest": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#572",
+						"title": "test: cover group regex versioned files",
+						"url": "https://github.com/monochange/monochange/pull/572",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"displayName": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"relatedIssues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#559",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/559",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"ownerId": "main",
+			"ownerKind": "group",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add `step:validate` to `mc check` by default\n_Packages:_ _monochange_\n\n`mc check` now includes Cargo version-group validation that was previously only run by `mc step:validate`. This means `mc check` catches inconsistent workspace version groups in Cargo manifests that the lint step alone would miss.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #574](https://github.com/monochange/monochange/pull/574)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Document lint rule catalog\n_Packages:_ _monochange_\n\nExpand the linting reference with the available presets, every built-in lint rule, and the `changesets/summary.require_description` option.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #570](https://github.com/monochange/monochange/pull/570)",
+							"#### Add criterion benchmarks for check/validation pipeline\n_Packages:_ _monochange_\n\nAdds `check_validation` benchmarks to measure:\n\n- `validate_versioned_files_content_with_config` with increasing package counts (10, 50, 100) to verify glob deduplication stays O(N)\n- `validate_workspace_with_config` with pre-loaded config vs reloading\n- Config load vs validate comparison to quantify the `_with_config` optimization benefit (60µs vs 5.7ms — 95% reduction)\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #578](https://github.com/monochange/monochange/pull/578) · _Related issues:_ [#576](https://github.com/monochange/monochange/issues/576)",
+							"#### Eliminate redundant config loads and deduplicate glob validation in `mc check`\n_Packages:_ _monochange_, _monochange_config_\n\nThe `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.\n\nThis change adds `validate_workspace_with_config` and `validate_versioned_files_content_with_config` variants that accept a pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.\n\nAdditionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are now deduplicated across all packages. In repos with 50+ packages, each inheriting the same ecosystem-level glob pattern, the glob was expanded separately for every package — walking the entire repo directory tree each time. Deduplicating to validate each unique glob once eliminates this O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large monorepos (a ~90% improvement).\n\nAlso adds a progress message (\"Validating workspace…\") during the validation phase of `mc check`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #576](https://github.com/monochange/monochange/pull/576)",
+							"#### Cover group regex versioned files\n_Packages:_ _monochange_\n\nAdd integration coverage for group-level regex `versioned_files` updates alongside Dart manifest versioned files.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #572](https://github.com/monochange/monochange/pull/572) · _Related issues:_ [#559](https://github.com/monochange/monochange/issues/559)",
+							"#### Fix summary lint to report all violations at once\n_Packages:_ _monochange_config_\n\nThe `changesets/summary` lint rule used early returns that stopped checking after the first structural violation (wrong heading level, missing heading). This meant fixing one issue and re-running would reveal the next, requiring multiple iterations to surface all problems.\n\nNow the rule collects all applicable violations in a single pass and reports them all together, matching user expectations that `mc check` surfaces every problem at once.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #577](https://github.com/monochange/monochange/pull/577)",
+							"#### Fix summary max_length default for headings\n_Packages:_ _monochange_config_, _monochange_core_\n\nThe changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.\n\nA new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #575](https://github.com/monochange/monochange/pull/575)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\nGrouped release for `main`.\n### 🚀 Feature\n\n#### Add `step:validate` to `mc check` by default\n_Packages:_ _monochange_\n\n`mc check` now includes Cargo version-group validation that was previously only run by `mc step:validate`. This means `mc check` catches inconsistent workspace version groups in Cargo manifests that the lint step alone would miss.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #574](https://github.com/monochange/monochange/pull/574)\n\n### 🐛 Fixed\n\n#### Document lint rule catalog\n_Packages:_ _monochange_\n\nExpand the linting reference with the available presets, every built-in lint rule, and the `changesets/summary.require_description` option.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #570](https://github.com/monochange/monochange/pull/570)\n\n#### Add criterion benchmarks for check/validation pipeline\n_Packages:_ _monochange_\n\nAdds `check_validation` benchmarks to measure:\n\n- `validate_versioned_files_content_with_config` with increasing package counts (10, 50, 100) to verify glob deduplication stays O(N)\n- `validate_workspace_with_config` with pre-loaded config vs reloading\n- Config load vs validate comparison to quantify the `_with_config` optimization benefit (60µs vs 5.7ms — 95% reduction)\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #578](https://github.com/monochange/monochange/pull/578) · _Related issues:_ [#576](https://github.com/monochange/monochange/issues/576)\n\n#### Eliminate redundant config loads and deduplicate glob validation in `mc check`\n_Packages:_ _monochange_, _monochange_config_\n\nThe `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.\n\nThis change adds `validate_workspace_with_config` and `validate_versioned_files_content_with_config` variants that accept a pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.\n\nAdditionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are now deduplicated across all packages. In repos with 50+ packages, each inheriting the same ecosystem-level glob pattern, the glob was expanded separately for every package — walking the entire repo directory tree each time. Deduplicating to validate each unique glob once eliminates this O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large monorepos (a ~90% improvement).\n\nAlso adds a progress message (\"Validating workspace…\") during the validation phase of `mc check`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #576](https://github.com/monochange/monochange/pull/576)\n\n#### Cover group regex versioned files\n_Packages:_ _monochange_\n\nAdd integration coverage for group-level regex `versioned_files` updates alongside Dart manifest versioned files.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #572](https://github.com/monochange/monochange/pull/572) · _Related issues:_ [#559](https://github.com/monochange/monochange/issues/559)\n\n#### Fix summary lint to report all violations at once\n_Packages:_ _monochange_config_\n\nThe `changesets/summary` lint rule used early returns that stopped checking after the first structural violation (wrong heading level, missing heading). This meant fixing one issue and re-running would reveal the next, requiring multiple iterations to surface all problems.\n\nNow the rule collects all applicable violations in a single pass and reports them all together, matching user expectations that `mc check` surfaces every problem at once.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #577](https://github.com/monochange/monochange/pull/577)\n\n#### Fix summary max_length default for headings\n_Packages:_ _monochange_config_, _monochange_core_\n\nThe changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.\n\nA new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #575](https://github.com/monochange/monochange/pull/575)"
+		},
+		{
+			"ownerId": "monochange",
+			"ownerKind": "package",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add `step:validate` to `mc check` by default\n\n`mc check` now includes Cargo version-group validation that was previously only run by `mc step:validate`. This means `mc check` catches inconsistent workspace version groups in Cargo manifests that the lint step alone would miss.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #574](https://github.com/monochange/monochange/pull/574)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Document lint rule catalog\n\nExpand the linting reference with the available presets, every built-in lint rule, and the `changesets/summary.require_description` option.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #570](https://github.com/monochange/monochange/pull/570)",
+							"#### Add criterion benchmarks for check/validation pipeline\n\nAdds `check_validation` benchmarks to measure:\n\n- `validate_versioned_files_content_with_config` with increasing package counts (10, 50, 100) to verify glob deduplication stays O(N)\n- `validate_workspace_with_config` with pre-loaded config vs reloading\n- Config load vs validate comparison to quantify the `_with_config` optimization benefit (60µs vs 5.7ms — 95% reduction)\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #578](https://github.com/monochange/monochange/pull/578) · _Related issues:_ [#576](https://github.com/monochange/monochange/issues/576)",
+							"#### Eliminate redundant config loads and deduplicate glob validation in `mc check`\n\nThe `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.\n\nThis change adds `validate_workspace_with_config` and `validate_versioned_files_content_with_config` variants that accept a pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.\n\nAdditionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are now deduplicated across all packages. In repos with 50+ packages, each inheriting the same ecosystem-level glob pattern, the glob was expanded separately for every package — walking the entire repo directory tree each time. Deduplicating to validate each unique glob once eliminates this O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large monorepos (a ~90% improvement).\n\nAlso adds a progress message (\"Validating workspace…\") during the validation phase of `mc check`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #576](https://github.com/monochange/monochange/pull/576)",
+							"#### Cover group regex versioned files\n\nAdd integration coverage for group-level regex `versioned_files` updates alongside Dart manifest versioned files.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #572](https://github.com/monochange/monochange/pull/572) · _Related issues:_ [#559](https://github.com/monochange/monochange/issues/559)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### 🚀 Feature\n\n#### Add `step:validate` to `mc check` by default\n\n`mc check` now includes Cargo version-group validation that was previously only run by `mc step:validate`. This means `mc check` catches inconsistent workspace version groups in Cargo manifests that the lint step alone would miss.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #574](https://github.com/monochange/monochange/pull/574)\n\n### 🐛 Fixed\n\n#### Document lint rule catalog\n\nExpand the linting reference with the available presets, every built-in lint rule, and the `changesets/summary.require_description` option.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #570](https://github.com/monochange/monochange/pull/570)\n\n#### Add criterion benchmarks for check/validation pipeline\n\nAdds `check_validation` benchmarks to measure:\n\n- `validate_versioned_files_content_with_config` with increasing package counts (10, 50, 100) to verify glob deduplication stays O(N)\n- `validate_workspace_with_config` with pre-loaded config vs reloading\n- Config load vs validate comparison to quantify the `_with_config` optimization benefit (60µs vs 5.7ms — 95% reduction)\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #578](https://github.com/monochange/monochange/pull/578) · _Related issues:_ [#576](https://github.com/monochange/monochange/issues/576)\n\n#### Eliminate redundant config loads and deduplicate glob validation in `mc check`\n\nThe `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.\n\nThis change adds `validate_workspace_with_config` and `validate_versioned_files_content_with_config` variants that accept a pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.\n\nAdditionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are now deduplicated across all packages. In repos with 50+ packages, each inheriting the same ecosystem-level glob pattern, the glob was expanded separately for every package — walking the entire repo directory tree each time. Deduplicating to validate each unique glob once eliminates this O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large monorepos (a ~90% improvement).\n\nAlso adds a progress message (\"Validating workspace…\") during the validation phase of `mc check`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #576](https://github.com/monochange/monochange/pull/576)\n\n#### Cover group regex versioned files\n\nAdd integration coverage for group-level regex `versioned_files` updates alongside Dart manifest versioned files.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #572](https://github.com/monochange/monochange/pull/572) · _Related issues:_ [#559](https://github.com/monochange/monochange/issues/559)"
+		},
+		{
+			"ownerId": "monochange_analysis",
+			"ownerKind": "package",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_analysis` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_analysis` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_cargo",
+			"ownerKind": "package",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_cargo` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_cargo` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_changelog",
+			"ownerKind": "package",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_changelog` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_changelog` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_config",
+			"ownerKind": "package",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Fix summary lint to report all violations at once\n\nThe `changesets/summary` lint rule used early returns that stopped checking after the first structural violation (wrong heading level, missing heading). This meant fixing one issue and re-running would reveal the next, requiring multiple iterations to surface all problems.\n\nNow the rule collects all applicable violations in a single pass and reports them all together, matching user expectations that `mc check` surfaces every problem at once.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #577](https://github.com/monochange/monochange/pull/577)",
+							"#### Fix summary max_length default for headings\n\nThe changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.\n\nA new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #575](https://github.com/monochange/monochange/pull/575)",
+							"#### Eliminate redundant config loads and deduplicate glob validation in `mc check`\n\nThe `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.\n\nThis change adds `validate_workspace_with_config` and `validate_versioned_files_content_with_config` variants that accept a pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.\n\nAdditionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are now deduplicated across all packages. In repos with 50+ packages, each inheriting the same ecosystem-level glob pattern, the glob was expanded separately for every package — walking the entire repo directory tree each time. Deduplicating to validate each unique glob once eliminates this O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large monorepos (a ~90% improvement).\n\nAlso adds a progress message (\"Validating workspace…\") during the validation phase of `mc check`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #576](https://github.com/monochange/monochange/pull/576)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### 🐛 Fixed\n\n#### Fix summary lint to report all violations at once\n\nThe `changesets/summary` lint rule used early returns that stopped checking after the first structural violation (wrong heading level, missing heading). This meant fixing one issue and re-running would reveal the next, requiring multiple iterations to surface all problems.\n\nNow the rule collects all applicable violations in a single pass and reports them all together, matching user expectations that `mc check` surfaces every problem at once.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #577](https://github.com/monochange/monochange/pull/577)\n\n#### Fix summary max_length default for headings\n\nThe changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.\n\nA new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #575](https://github.com/monochange/monochange/pull/575)\n\n#### Eliminate redundant config loads and deduplicate glob validation in `mc check`\n\nThe `mc check` command was loading workspace configuration three times: once in `run_check_command`, once in `validate_workspace`, and once in `validate_versioned_files_content`. Each load discovers and parses all manifest files, so the triple-load was wasteful.\n\nThis change adds `validate_workspace_with_config` and `validate_versioned_files_content_with_config` variants that accept a pre-loaded `&WorkspaceConfiguration`, avoiding redundant I/O.\n\nAdditionally, versioned file glob patterns (e.g. `**/*.pubspec.yaml`) are now deduplicated across all packages. In repos with 50+ packages, each inheriting the same ecosystem-level glob pattern, the glob was expanded separately for every package — walking the entire repo directory tree each time. Deduplicating to validate each unique glob once eliminates this O(P×G) blowup, reducing `mc check` time from ~28s to ~3s on large monorepos (a ~90% improvement).\n\nAlso adds a progress message (\"Validating workspace…\") during the validation phase of `mc check`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #576](https://github.com/monochange/monochange/pull/576)"
+		},
+		{
+			"ownerId": "monochange_core",
+			"ownerKind": "package",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Fix summary max_length default for headings\n\nThe changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.\n\nA new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #575](https://github.com/monochange/monochange/pull/575)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### 🐛 Fixed\n\n#### Fix summary max_length default for headings\n\nThe changesets/summary lint rule now only applies the default 60-character length limit to markdown headings. Non-heading summary text (plain first lines) is no longer limited by default.\n\nA new `max_heading_length` option (default: 60) controls the heading-specific length limit independently. Set `max_length` explicitly to enforce a length limit on any summary text, regardless of heading format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #575](https://github.com/monochange/monochange/pull/575)"
+		},
+		{
+			"ownerId": "monochange_dart",
+			"ownerKind": "package",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_dart` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_dart` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_deno",
+			"ownerKind": "package",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_deno` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_deno` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_ecmascript",
+			"ownerKind": "package",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_forgejo",
+			"ownerKind": "package",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_gitea",
+			"ownerKind": "package",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitea` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitea` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_github",
+			"ownerKind": "package",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_github` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_github` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_gitlab",
+			"ownerKind": "package",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_go",
+			"ownerKind": "package",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_go` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_go` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_graph",
+			"ownerKind": "package",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_graph` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_graph` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_hosting",
+			"ownerKind": "package",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_hosting` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_hosting` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_lint",
+			"ownerKind": "package",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_lint` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_lint` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_linting",
+			"ownerKind": "package",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_linting` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_linting` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_npm",
+			"ownerKind": "package",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_npm` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_npm` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_publish",
+			"ownerKind": "package",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_publish` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_publish` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_python",
+			"ownerKind": "package",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_python` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_python` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_semver",
+			"ownerKind": "package",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_semver` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_semver` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_telemetry",
+			"ownerKind": "package",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "monochange_test_helpers",
+			"ownerKind": "package",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli-darwin-arm64",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli-darwin-x64",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli-linux-arm64-gnu",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli-linux-arm64-musl",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli-linux-x64-gnu",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli-linux-x64-musl",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli-win32-arm64-msvc",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/cli-win32-x64-msvc",
+			"ownerKind": "package",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.6.8 as part of group `main`."
+		},
+		{
+			"ownerId": "@monochange/skill",
+			"ownerKind": "package",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.8 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.8 as part of group `main`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
