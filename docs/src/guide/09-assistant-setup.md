@@ -131,6 +131,7 @@ The MCP server is JSON-first and focuses on reviewable operations:
 - `monochange_lint_catalog` — list registered manifest lint rules and presets
 - `monochange_lint_explain` — explain one manifest lint rule or preset
 - `monochange_analyze_changes` — analyze git diff state and return ecosystem-specific semantic changes
+- `monochange_classify_changes` — classify API-impacting changes and recommend package bumps
 - `monochange_validate_changeset` — validate one changeset against the current semantic diff
 
 <!-- {/mcpToolsList} -->

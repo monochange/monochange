@@ -346,3 +346,37 @@ fn module_prefix_diff_and_manifest_helpers_cover_remaining_branches() {
 	assert!(change.summary.contains("removed"));
 	assert_eq!(describe_manifest_value(&Value::Boolean(true)), "true");
 }
+
+#[test]
+fn api_snapshot_extracts_public_symbols_from_snapshot() {
+	let package = PackageRecord::new(
+		Ecosystem::Cargo,
+		"core",
+		PathBuf::from("/repo/crates/core/Cargo.toml"),
+		PathBuf::from("/repo"),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	let snapshot = PackageSnapshot {
+		label: "HEAD".to_string(),
+		files: vec![PackageSnapshotFile {
+			path: PathBuf::from("src/lib.rs"),
+			contents: "pub fn greet() {}\npub struct Greeter;".to_string(),
+		}],
+	};
+	let context = PackageAnalysisContext {
+		repo_root: Path::new("/repo"),
+		package: &package,
+		detection_level: DetectionLevel::Signature,
+		changed_files: &[],
+		before_snapshot: None,
+		after_snapshot: Some(&snapshot),
+	};
+
+	let snapshot = api_snapshot(&context);
+
+	assert_eq!(snapshot.package_id, "cargo:crates/core/Cargo.toml");
+	assert_eq!(snapshot.analyzer_id, "cargo/public-api");
+	assert!(snapshot.items.iter().any(|item| item.path == "greet"));
+	assert!(snapshot.items.iter().any(|item| item.path == "Greeter"));
+}
