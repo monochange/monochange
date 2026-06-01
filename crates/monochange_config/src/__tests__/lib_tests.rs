@@ -7773,3 +7773,162 @@ fn normalize_auto_discover_settings_converts_defaults() {
 		Some(monochange_core::VersionFormat::Primary)
 	);
 }
+
+#[test]
+fn discover_packages_from_ecosystem_falls_back_to_path_id_when_name_is_missing() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let service_dir = tempdir.path().join("services").join("billing-api");
+	std::fs::create_dir_all(&service_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	std::fs::write(service_dir.join("go.mod"), "module example.com/billing\n")
+		.unwrap_or_else(|error| panic!("write go.mod: {error}"));
+
+	let auto_discover = AutoDiscoverSettings {
+		include: vec!["services/*".to_string()],
+		exclude: vec![],
+		id_from: AutoDiscoverIdFrom::Name,
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+
+	let discovered =
+		crate::discover_packages_from_ecosystem(tempdir.path(), EcosystemType::Go, &auto_discover)
+			.unwrap_or_else(|error| panic!("discover_packages: {error}"));
+
+	assert_eq!(discovered.len(), 1);
+	assert_eq!(discovered[0].id, "billing-api");
+	assert_eq!(discovered[0].path, PathBuf::from("services/billing-api"));
+}
+
+#[test]
+fn load_workspace_configuration_auto_discovers_cargo_packages_and_explicit_overrides() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+
+	for (path, name, version) in [
+		("crates/core", "core-lib", "1.0.0"),
+		("crates/util", "util-lib", "2.0.0"),
+		("crates/ignored", "ignored-lib", "3.0.0"),
+	] {
+		let package_dir = root.join(path);
+		std::fs::create_dir_all(&package_dir)
+			.unwrap_or_else(|error| panic!("create package dir: {error}"));
+		std::fs::write(
+			package_dir.join("Cargo.toml"),
+			format!("[package]\nname = \"{name}\"\nversion = \"{version}\"\n"),
+		)
+		.unwrap_or_else(|error| panic!("write manifest: {error}"));
+	}
+
+	std::fs::write(
+		root.join("monochange.toml"),
+		r#"
+[defaults]
+package_type = "cargo"
+changelog = "{{ path }}/CHANGELOG.md"
+
+[ecosystems.cargo]
+versioned_files = ["Cargo.toml"]
+
+[ecosystems.cargo.auto_discover]
+include = ["crates/*"]
+exclude = ["crates/ignored"]
+
+[package.core-lib]
+path = "crates/core"
+type = "cargo"
+tag = false
+release = false
+version_format = "primary"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+	let core_package = configuration
+		.packages
+		.iter()
+		.find(|package| package.id == "core-lib")
+		.unwrap_or_else(|| panic!("missing explicit package"));
+	let util_package = configuration
+		.packages
+		.iter()
+		.find(|package| package.id == "util-lib")
+		.unwrap_or_else(|| panic!("missing auto-discovered package"));
+
+	assert_eq!(configuration.packages.len(), 2);
+	assert_eq!(core_package.path, PathBuf::from("crates/core"));
+	assert!(!core_package.tag);
+	assert!(!core_package.release);
+	assert_eq!(util_package.path, PathBuf::from("crates/util"));
+	assert!(util_package.tag);
+	assert!(util_package.release);
+	assert_eq!(
+		util_package.ignored_paths,
+		vec![PathBuf::from("crates/ignored")]
+	);
+	assert_eq!(util_package.versioned_files.len(), 1);
+	assert_eq!(
+		util_package.version_format,
+		monochange_core::VersionFormat::Namespaced
+	);
+	assert_eq!(
+		util_package
+			.changelog
+			.as_ref()
+			.unwrap_or_else(|| panic!("missing changelog"))
+			.path,
+		PathBuf::from("crates/util/CHANGELOG.md")
+	);
+	assert!(
+		configuration
+			.packages
+			.iter()
+			.all(|package| package.id != "ignored-lib")
+	);
+}
+
+#[test]
+fn load_workspace_configuration_auto_discovers_npm_packages_with_primary_version_format() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let package_dir = root.join("packages").join("web-app");
+	std::fs::create_dir_all(&package_dir)
+		.unwrap_or_else(|error| panic!("create package dir: {error}"));
+	std::fs::write(
+		package_dir.join("package.json"),
+		r#"{
+	"name": "@scope/web-app",
+	"version": "1.2.3"
+}
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	std::fs::write(
+		root.join("monochange.toml"),
+		r#"
+[defaults]
+package_type = "npm"
+
+[ecosystems.npm.auto_discover]
+include = ["packages/*"]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+	let package = configuration
+		.packages
+		.iter()
+		.find(|package| package.id == "@scope/web-app")
+		.unwrap_or_else(|| panic!("missing auto-discovered package"));
+
+	assert_eq!(configuration.packages.len(), 1);
+	assert_eq!(package.package_type, monochange_core::PackageType::Npm);
+	assert_eq!(package.path, PathBuf::from("packages/web-app"));
+	assert!(package.versioned_files.is_empty());
+	assert_eq!(
+		package.version_format,
+		monochange_core::VersionFormat::Primary
+	);
+}
