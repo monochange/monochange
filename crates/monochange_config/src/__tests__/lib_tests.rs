@@ -7958,7 +7958,7 @@ fn auto_discover_manifest_name_helpers_cover_comments_and_missing_values() {
 	);
 	assert_eq!(
 		crate::render_auto_discover_id(
-			"{{ ecosystem }}:{{ name }}:{{ path }}:{{ sanitizedPath }}:{{ manifest }}",
+			"{{ ecosystem }}:{{ name }}:{{ path }}:{{ sanitized_path }}:{{ manifest }}",
 			"core-lib",
 			Path::new("crates/core lib"),
 			Path::new("crates/core lib/Cargo.toml"),

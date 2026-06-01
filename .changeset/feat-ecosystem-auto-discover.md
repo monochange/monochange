@@ -26,7 +26,7 @@ The `auto_discover` table supports:
 
 - `include` (required): glob patterns for directories to scan
 - `exclude`: glob patterns to skip within included paths
-- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitizedPath`, `manifest`, and `ecosystem` variables
+- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables
 - `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)
 
 Precedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`
