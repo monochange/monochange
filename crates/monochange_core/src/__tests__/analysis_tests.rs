@@ -191,3 +191,25 @@ fn diff_api_snapshots_reports_added_removed_modified_and_warnings() {
 	);
 	assert_eq!(diff.warnings, vec!["before warning", "after warning"]);
 }
+
+#[test]
+fn api_diff_is_empty_when_no_changes_are_present() {
+	let before = ApiSnapshot::new(
+		"core",
+		"core",
+		Ecosystem::Cargo,
+		"cargo/public-api",
+		vec![ApiItem::new(
+			"function",
+			"crate::same",
+			Some("pub fn same()".to_string()),
+		)],
+		Vec::new(),
+	);
+	let after = before.clone();
+
+	let diff = diff_api_snapshots(&before, &after);
+
+	assert!(diff.is_empty());
+	assert_eq!(diff.suggested_bump, BumpSeverity::None);
+}

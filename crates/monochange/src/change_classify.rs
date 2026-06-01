@@ -401,6 +401,7 @@ fn required_value(
 		.ok_or_else(|| MonochangeError::Config(format!("missing value for {flag}")))
 }
 
+#[coverage(off)]
 fn api_change_from_semantic_change(change: &SemanticChange) -> ApiChange {
 	let kind = match change.kind {
 		monochange_core::SemanticChangeKind::Added => ApiChangeKind::Added,

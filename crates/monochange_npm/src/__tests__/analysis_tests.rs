@@ -213,3 +213,31 @@ fn api_snapshot_combines_ecmascript_and_manifest_items() {
 			.any(|item| item.kind == "dependency" && item.path == "react")
 	);
 }
+
+#[test]
+fn api_snapshot_handles_missing_manifest_file() {
+	let package = PackageRecord::new(
+		Ecosystem::Npm,
+		"@acme/web",
+		PathBuf::from("/repo/packages/web/package.json"),
+		PathBuf::from("/repo"),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	let snapshot = PackageSnapshot {
+		label: "HEAD".to_string(),
+		files: Vec::new(),
+	};
+	let context = PackageAnalysisContext {
+		repo_root: Path::new("/repo"),
+		package: &package,
+		detection_level: DetectionLevel::Signature,
+		changed_files: &[],
+		before_snapshot: None,
+		after_snapshot: Some(&snapshot),
+	};
+
+	let snapshot = api_snapshot(&context);
+
+	assert!(snapshot.items.is_empty());
+}

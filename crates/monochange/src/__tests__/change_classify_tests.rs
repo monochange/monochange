@@ -1,6 +1,8 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
+use monochange_core::ApiChangeKind;
+use monochange_core::ApiConfidence;
 use monochange_core::BumpSeverity;
 use monochange_core::Ecosystem;
 use monochange_core::SemanticChange;
@@ -163,4 +165,35 @@ fn added_export_change() -> SemanticChange {
 		before_signature: None,
 		after_signature: Some("export function render()".to_string()),
 	}
+}
+
+#[test]
+fn api_change_mapping_handles_modified_patch_and_low_confidence_changes() {
+	let modified = SemanticChange {
+		category: SemanticChangeCategory::Dependency,
+		kind: SemanticChangeKind::Modified,
+		item_kind: "dependency".to_string(),
+		item_path: "serde".to_string(),
+		summary: "changed dependency `serde`".to_string(),
+		file_path: PathBuf::from("Cargo.toml"),
+		before_signature: Some("serde = 1".to_string()),
+		after_signature: Some("serde = 2".to_string()),
+	};
+	let unchanged = SemanticChange {
+		category: SemanticChangeCategory::Metadata,
+		kind: SemanticChangeKind::Modified,
+		item_kind: "implementation".to_string(),
+		item_path: "crate::detail".to_string(),
+		summary: "changed internal implementation".to_string(),
+		file_path: PathBuf::from("src/lib.rs"),
+		before_signature: None,
+		after_signature: None,
+	};
+
+	let dependency_change = api_change_from_semantic_change(&modified);
+	let metadata_change = api_change_from_semantic_change(&unchanged);
+
+	assert_eq!(dependency_change.kind, ApiChangeKind::Modified);
+	assert_eq!(dependency_change.confidence, ApiConfidence::Medium);
+	assert_eq!(metadata_change.confidence, ApiConfidence::Medium);
 }
