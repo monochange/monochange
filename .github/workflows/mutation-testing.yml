@@ -107,9 +107,7 @@ jobs:
       - name: install cargo-mutants
         run: |
           set -euo pipefail
-          if ! devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; command -v cargo-mutants >/dev/null'; then
-            devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; cargo binstall cargo-mutants --no-confirm || cargo install cargo-mutants --locked'
-          fi
+          devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; cargo binstall cargo-mutants --no-confirm --force || cargo install cargo-mutants --locked --force'
           devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; cargo mutants --version'
 
       - name: run mutation testing for ${{ matrix.crate }}
