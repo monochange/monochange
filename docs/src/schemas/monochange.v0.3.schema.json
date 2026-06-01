@@ -1196,7 +1196,7 @@
 				},
 				{
 					"const": "inline",
-					"description": "Render metadata as an inline paragraph joined with ` · `.\n\nWhen a review request (PR/MR) link is available, commit links are\nomitted since the PR already identifies the change. When no review\nrequest link exists, commit links are included.",
+					"description": "Render metadata as an inline paragraph joined with ` \u00b7 `.\n\nWhen a review request (PR/MR) link is available, commit links are\nomitted since the PR already identifies the change. When no review\nrequest link exists, commit links are included.",
 					"type": "string"
 				},
 				{
@@ -1428,7 +1428,7 @@
 			"type": "object"
 		},
 		"PublishMode": {
-			"description": "Whether monochange's built-in publisher handles release publishing for a package.\n\n- `Builtin` – monochange runs the ecosystem-specific publish command (e.g. `npm\n  publish`, `cargo publish`) during `PublishPackages`.\n- `External` – the package is skipped during `PublishPackages`; your own CI or\n  scripts handle release publishing instead.\n\nThis setting does **not** affect placeholder publishing (`PlaceholderPublish`),\nwhich processes all packages with `publish.enabled = true` regardless of mode.\nPlaceholder publishing is a bootstrap utility, not a release publishing step.",
+			"description": "Whether monochange's built-in publisher handles release publishing for a package.\n\n- `Builtin` \u2013 monochange runs the ecosystem-specific publish command (e.g. `npm\n  publish`, `cargo publish`) during `PublishPackages`.\n- `External` \u2013 the package is skipped during `PublishPackages`; your own CI or\n  scripts handle release publishing instead.\n\nThis setting does **not** affect placeholder publishing (`PlaceholderPublish`),\nwhich processes all packages with `publish.enabled = true` regardless of mode.\nPlaceholder publishing is a bootstrap utility, not a release publishing step.",
 			"oneOf": [
 				{
 					"const": "builtin",
@@ -1552,7 +1552,7 @@
 			"type": "object"
 		},
 		"SectionSeparator": {
-			"description": "How to format section headings in rendered changelogs.\nNote: Section headings are plain strings — include emoji directly in the `heading` field\nof `ChangelogSectionDef` if desired (e.g. `\"🚀 Added\"`, `\"🐛 Fixed\"`).",
+			"description": "How to format section headings in rendered changelogs.\nNote: Section headings are plain strings \u2014 include emoji directly in the `heading` field\nof `ChangelogSectionDef` if desired (e.g. `\"\ud83d\ude80 Added\"`, `\"\ud83d\udc1b Fixed\"`).",
 			"oneOf": [
 				{
 					"const": "blank_line",
@@ -1685,6 +1685,74 @@
 				"env"
 			],
 			"type": "string"
+		},
+		"autoDiscoverPackageDefaults": {
+			"additionalProperties": false,
+			"properties": {
+				"release": {
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
+				},
+				"tag": {
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
+				},
+				"version_format": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/VersionFormat"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				}
+			},
+			"type": "object"
+		},
+		"autoDiscoverSettings": {
+			"additionalProperties": false,
+			"properties": {
+				"defaults": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/autoDiscoverPackageDefaults"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"exclude": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"id": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"include": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				}
+			},
+			"type": "object"
 		},
 		"changelogConfig": {
 			"anyOf": [
@@ -1906,6 +1974,16 @@
 		"ecosystemSettings": {
 			"additionalProperties": false,
 			"properties": {
+				"auto_discover": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/autoDiscoverSettings"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
 				"dependency_version_prefix": {
 					"default": null,
 					"type": [

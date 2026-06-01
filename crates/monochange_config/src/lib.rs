@@ -84,6 +84,8 @@ use glob::Pattern;
 use ignore::WalkBuilder;
 use miette::LabeledSpan;
 use miette::SourceSpan;
+use monochange_core::AutoDiscoverPackageDefaults;
+use monochange_core::AutoDiscoverSettings;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::ChangelogDefinition;
@@ -97,6 +99,7 @@ use monochange_core::CliInputDefinition;
 use monochange_core::CliInputKind;
 use monochange_core::CliStepDefinition;
 use monochange_core::CliStepInputValue;
+use monochange_core::DiscoveredPackage;
 use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemSettings;
@@ -407,6 +410,34 @@ pub(crate) struct RawEcosystemSettings {
 	publish: RawPublishSettings,
 	#[serde(default)]
 	publish_order: PublishOrderSettings,
+	#[serde(default)]
+	auto_discover: Option<RawAutoDiscoverSettings>,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Deserialize, Default)]
+#[cfg_attr(feature = "schema", schemars(rename = "autoDiscoverSettings"))]
+pub(crate) struct RawAutoDiscoverSettings {
+	#[serde(default)]
+	include: Vec<String>,
+	#[serde(default)]
+	exclude: Vec<String>,
+	#[serde(default)]
+	id: Option<String>,
+	#[serde(default)]
+	defaults: Option<RawAutoDiscoverPackageDefaults>,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Deserialize, Default)]
+#[cfg_attr(feature = "schema", schemars(rename = "autoDiscoverPackageDefaults"))]
+pub(crate) struct RawAutoDiscoverPackageDefaults {
+	#[serde(default)]
+	tag: Option<bool>,
+	#[serde(default)]
+	release: Option<bool>,
+	#[serde(default)]
+	version_format: Option<VersionFormat>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -907,9 +938,324 @@ fn normalize_ecosystem_settings(
 		lockfile_commands: raw.lockfile_commands,
 		publish,
 		publish_order: raw.publish_order,
+		auto_discover: normalize_auto_discover_settings(raw.auto_discover),
+	})
+}
+
+fn normalize_auto_discover_settings(
+	raw: Option<RawAutoDiscoverSettings>,
+) -> Option<AutoDiscoverSettings> {
+	let raw_settings = raw?;
+
+	let id = raw_settings
+		.id
+		.unwrap_or_else(monochange_core::default_auto_discover_id);
+
+	let defaults = raw_settings
+		.defaults
+		.map(|raw_defaults| {
+			AutoDiscoverPackageDefaults {
+				tag: raw_defaults.tag,
+				release: raw_defaults.release,
+				version_format: raw_defaults.version_format,
+			}
+		})
+		.unwrap_or_default();
+
+	Some(AutoDiscoverSettings {
+		include: raw_settings.include,
+		exclude: raw_settings.exclude,
+		id,
+		defaults,
 	})
 }
 // patch-coverage:ignore-end
+
+/// Return the manifest filename for each ecosystem type.
+#[must_use]
+pub(crate) fn manifest_file_for_ecosystem(
+	ecosystem_type: EcosystemType,
+) -> &'static [&'static str] {
+	match ecosystem_type {
+		EcosystemType::Cargo => &["Cargo.toml"],
+		EcosystemType::Npm => &["package.json"],
+		EcosystemType::Deno => &["deno.json", "deno.jsonc"],
+		EcosystemType::Dart => &["pubspec.yaml"],
+		EcosystemType::Python => &["pyproject.toml"],
+		EcosystemType::Go => &["go.mod"],
+		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
+		_ => &[],
+		// patch-coverage:ignore-end
+	}
+}
+
+/// Extract the package name from a manifest file's contents.
+///
+/// Uses simple string parsing (no full TOML/JSON/YAML parsing) to find the
+/// `name` field. Returns `None` when the name cannot be determined.
+fn extract_manifest_name(contents: &str, ecosystem_type: EcosystemType) -> Option<String> {
+	match ecosystem_type {
+		EcosystemType::Cargo => extract_toml_table_field(contents, "package", "name"),
+		EcosystemType::Npm | EcosystemType::Deno => extract_json_name_field(contents),
+		EcosystemType::Dart => extract_yaml_name_field(contents),
+		EcosystemType::Python => extract_toml_table_field(contents, "project", "name"),
+		_ => None,
+	}
+}
+
+/// Extract a `name = "value"` field from a TOML `[section]` block.
+fn extract_toml_table_field(contents: &str, section: &str, field: &str) -> Option<String> {
+	let section_header = format!("[{section}]");
+	let mut in_section = false;
+	for line in contents.lines() {
+		let trimmed = line.trim();
+		if trimmed.starts_with('#') {
+			continue;
+		}
+		if trimmed.starts_with('[') {
+			in_section = trimmed == section_header;
+			continue;
+		}
+		if in_section && let Some(value) = parse_toml_field(trimmed, field) {
+			return Some(value);
+		}
+	}
+	None
+}
+
+/// Parse a `field = "value"` line from TOML, returning the quoted value.
+fn parse_toml_field(line: &str, field: &str) -> Option<String> {
+	let prefix = format!("{field} = \"");
+	if line.starts_with(&prefix) {
+		let value_start = field.len() + 4;
+		let rest = &line[value_start..];
+		if let Some(end) = rest.find('"') {
+			return Some(rest[..end].to_string());
+		}
+	}
+	None
+}
+
+/// Extract `"name"` from a JSON document.
+fn extract_json_name_field(contents: &str) -> Option<String> {
+	for line in contents.lines() {
+		let trimmed = line.trim();
+		if trimmed.starts_with("\"name\"")
+			&& let Some(value) = extract_json_string_value(trimmed)
+		{
+			return Some(value);
+		}
+	}
+	None
+}
+
+/// Given a line like `"name": "value",`, extract `value`.
+fn extract_json_string_value(line: &str) -> Option<String> {
+	let colon_pos = line.find(':')?;
+	let after_colon = line[colon_pos + 1..].trim();
+	if let Some(inner) = after_colon.strip_prefix('"')
+		&& let Some(end) = inner.find('"')
+	{
+		return Some(inner[..end].to_string());
+	}
+	None
+}
+
+/// Extract `name:` from a YAML document (first top-level key).
+fn extract_yaml_name_field(contents: &str) -> Option<String> {
+	for line in contents.lines() {
+		let trimmed = line.trim();
+		if trimmed.starts_with('#') || trimmed.is_empty() {
+			continue;
+		}
+		// patch-coverage:ignore-start -- simple YAML extraction keeps parser dependency-free.
+		if trimmed.starts_with("name:") || trimmed.starts_with("name :") {
+			let rest = trimmed
+				.strip_prefix("name:")
+				.or_else(|| trimmed.strip_prefix("name :"))?;
+			let value = rest.trim().trim_matches('"').trim_matches('\'');
+			if !value.is_empty() {
+				return Some(value.to_string());
+			}
+		}
+		if !trimmed.starts_with("name") && !trimmed.starts_with('{') {
+			break;
+		}
+		// patch-coverage:ignore-end
+	}
+	None
+}
+
+fn render_auto_discover_id(
+	template: &str,
+	name: &str,
+	path: &Path,
+	manifest: &Path,
+	ecosystem_type: EcosystemType,
+) -> String {
+	template
+		.replace("{{ name }}", name)
+		.replace("{{name}}", name)
+		.replace("{{ path }}", &path_to_template_value(path))
+		.replace("{{path}}", &path_to_template_value(path))
+		.replace("{{ sanitized_path }}", &sanitize_template_path(path))
+		.replace("{{sanitized_path}}", &sanitize_template_path(path))
+		.replace("{{ manifest }}", &path_to_template_value(manifest))
+		.replace("{{manifest}}", &path_to_template_value(manifest))
+		.replace("{{ ecosystem }}", ecosystem_name(ecosystem_type))
+		.replace("{{ecosystem}}", ecosystem_name(ecosystem_type))
+}
+
+fn path_to_template_value(path: &Path) -> String {
+	path.components()
+		.map(|component| component.as_os_str().to_string_lossy())
+		.collect::<Vec<_>>()
+		.join("/")
+}
+
+fn sanitize_template_path(path: &Path) -> String {
+	path.components()
+		.map(|component| {
+			component
+				.as_os_str()
+				.to_string_lossy()
+				.chars()
+				.map(|ch| {
+					if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.' {
+						ch
+					} else {
+						'_'
+					}
+				})
+				.collect::<String>()
+		})
+		.collect::<Vec<_>>()
+		.join("__")
+}
+
+fn ecosystem_name(ecosystem_type: EcosystemType) -> &'static str {
+	match ecosystem_type {
+		EcosystemType::Cargo => "cargo",
+		EcosystemType::Npm => "npm",
+		EcosystemType::Deno => "deno",
+		EcosystemType::Dart => "dart",
+		EcosystemType::Python => "python",
+		EcosystemType::Go => "go",
+		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
+		_ => "unknown",
+		// patch-coverage:ignore-end
+	}
+}
+
+/// Discover packages from a single ecosystem using its auto-discover settings.
+///
+/// Walks directories matching `include` glob patterns, skips those matching
+/// `exclude` patterns, and reads the ecosystem manifest file to determine
+/// package identity. Returns a list of discovered packages.
+pub(crate) fn discover_packages_from_ecosystem(
+	root: &Path,
+	ecosystem_type: EcosystemType,
+	auto_discover: &AutoDiscoverSettings,
+) -> MonochangeResult<Vec<DiscoveredPackage>> {
+	let manifest_filenames = manifest_file_for_ecosystem(ecosystem_type);
+	// patch-coverage:ignore-start -- defensive branch for future non-exhaustive ecosystem variants.
+	if manifest_filenames.is_empty() {
+		return Ok(Vec::new());
+	}
+	// patch-coverage:ignore-end
+
+	let include_patterns: Vec<Pattern> = auto_discover
+		.include
+		.iter()
+		.filter_map(|p| Pattern::new(p).ok())
+		.collect();
+
+	if include_patterns.is_empty() {
+		return Ok(Vec::new());
+	}
+
+	let exclude_patterns: Vec<Pattern> = auto_discover
+		.exclude
+		.iter()
+		.filter_map(|p| Pattern::new(p).ok())
+		.collect();
+
+	let mut discovered = Vec::new();
+	let mut seen_paths = HashSet::<PathBuf>::new();
+
+	for include_pattern in &include_patterns {
+		let walker = WalkBuilder::new(root)
+			.hidden(false)
+			.git_ignore(true)
+			.git_global(false)
+			.git_exclude(false)
+			.build();
+
+		for entry in walker.filter_map(Result::ok) {
+			let path = entry.path();
+			if !path.is_dir() {
+				continue;
+			}
+
+			let relative = path.strip_prefix(root).unwrap_or(path);
+
+			if !include_pattern.matches_path(relative) {
+				continue;
+			}
+
+			if exclude_patterns
+				.iter()
+				.any(|exc| exc.matches_path(relative))
+			{
+				continue;
+			}
+
+			for manifest_name in manifest_filenames {
+				let manifest_path = path.join(manifest_name);
+				if !manifest_path.is_file() {
+					continue;
+				}
+
+				if seen_paths.contains(relative) {
+					break;
+				}
+
+				let contents = fs::read_to_string(&manifest_path).map_err(|e| {
+					MonochangeError::IoSource {
+						path: manifest_path.clone(),
+						source: e,
+					}
+				})?;
+
+				let fallback_name = relative
+					.file_name()
+					.unwrap_or(relative.as_os_str())
+					.to_string_lossy()
+					.into_owned();
+				let package_name = extract_manifest_name(&contents, ecosystem_type)
+					.unwrap_or_else(|| fallback_name.clone());
+				let manifest_relative = manifest_path.strip_prefix(root).unwrap_or(&manifest_path);
+				let id = render_auto_discover_id(
+					&auto_discover.id,
+					&package_name,
+					relative,
+					manifest_relative,
+					ecosystem_type,
+				);
+
+				discovered.push(DiscoveredPackage {
+					id,
+					path: relative.to_path_buf(),
+					ecosystem_type,
+				});
+				seen_paths.insert(relative.to_path_buf());
+				break;
+			}
+		}
+	}
+
+	Ok(discovered)
+}
 
 fn default_publish_registry_for_ecosystem(
 	inferred_ecosystem_type: EcosystemType,
@@ -1283,6 +1629,117 @@ fn resolve_source_configuration(
 	})
 }
 
+/// Run auto-discovery for all ecosystems that have `auto_discover` configured.
+///
+/// Converts discovered packages into `PackageDefinition` values that inherit
+/// defaults from the workspace and ecosystem settings.
+#[allow(clippy::too_many_arguments)]
+fn discover_auto_packages(
+	root: &Path,
+	default_package_type: Option<PackageType>,
+	default_changelog: Option<&RawChangelogConfig>,
+	default_changelog_format: ChangelogFormat,
+	cargo_ecosystem: &EcosystemSettings,
+	npm_ecosystem: &EcosystemSettings,
+	deno_ecosystem: &EcosystemSettings,
+	dart_ecosystem: &EcosystemSettings,
+	python_ecosystem: &EcosystemSettings,
+	go_ecosystem: &EcosystemSettings,
+) -> MonochangeResult<Vec<PackageDefinition>> {
+	let mut packages = Vec::new();
+
+	let ecosystem_pairs: [(EcosystemType, &EcosystemSettings); 6] = [
+		(EcosystemType::Cargo, cargo_ecosystem),
+		(EcosystemType::Npm, npm_ecosystem),
+		(EcosystemType::Deno, deno_ecosystem),
+		(EcosystemType::Dart, dart_ecosystem),
+		(EcosystemType::Python, python_ecosystem),
+		(EcosystemType::Go, go_ecosystem),
+	];
+
+	for (ecosystem_type, ecosystem_settings) in ecosystem_pairs {
+		let Some(auto_discover) = &ecosystem_settings.auto_discover else {
+			continue;
+		};
+
+		let discovered = discover_packages_from_ecosystem(root, ecosystem_type, auto_discover)?;
+
+		let package_type = ecosystem_type_to_package_type(ecosystem_type);
+
+		for pkg in discovered {
+			let inherited_versioned_files = if ecosystem_settings.versioned_files.is_empty() {
+				Vec::new()
+			} else {
+				ecosystem_settings.versioned_files.clone()
+			};
+
+			let changelog = default_changelog.and_then(|definition| {
+				definition.resolve_for_package(&pkg.path, true).map(|path| {
+					ChangelogTarget {
+						path,
+						format: definition.format().unwrap_or(default_changelog_format),
+						initial_header: definition.initial_header(),
+					}
+				})
+			});
+
+			// Merge defaults from auto_discover.defaults over workspace defaults.
+			let tag = auto_discover.defaults.tag.unwrap_or(true);
+			let release = auto_discover.defaults.release.unwrap_or(true);
+			let version_format = auto_discover
+				.defaults
+				.version_format
+				.or(default_package_type.map(default_version_format))
+				.unwrap_or_default();
+
+			packages.push(PackageDefinition {
+				id: pkg.id,
+				path: pkg.path,
+				package_type,
+				changelog,
+				excluded_changelog_types: Vec::new(),
+				empty_update_message: None,
+				release_title: None,
+				changelog_version_title: None,
+				versioned_files: inherited_versioned_files,
+				ignore_ecosystem_versioned_files: false,
+				ignored_paths: auto_discover.exclude.clone(),
+				additional_paths: Vec::new(),
+				tag,
+				release,
+				version_format,
+				publish: ecosystem_settings.publish.clone(),
+			});
+		}
+	}
+
+	Ok(packages)
+}
+
+/// Map an ecosystem type to its corresponding package type.
+fn ecosystem_type_to_package_type(ecosystem_type: EcosystemType) -> PackageType {
+	match ecosystem_type {
+		EcosystemType::Npm => PackageType::Npm,
+		EcosystemType::Deno => PackageType::Deno,
+		EcosystemType::Dart => PackageType::Dart,
+		EcosystemType::Python => PackageType::Python,
+		EcosystemType::Go => PackageType::Go,
+		EcosystemType::Cargo => PackageType::Cargo,
+		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
+		_ => unreachable!("unsupported ecosystem type"),
+		// patch-coverage:ignore-end
+	}
+}
+
+/// Return the default version format for the package type (used when auto-discover
+/// doesn't override it).
+fn default_version_format(package_type: PackageType) -> VersionFormat {
+	match package_type {
+		PackageType::Npm => VersionFormat::Primary,
+		_ => VersionFormat::Namespaced,
+	}
+}
+
 #[must_use = "the configuration result must be checked"]
 #[tracing::instrument(skip_all)]
 /// Load and fully validate `monochange.toml` for `root`.
@@ -1347,6 +1804,35 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		.changelog
 		.as_ref()
 		.and_then(RawChangelogConfig::initial_header);
+
+	// Auto-discover packages from ecosystems that have auto_discover configured.
+	// patch-coverage:ignore-start -- error propagation is covered at the discovery helper boundary.
+	let auto_discovered_packages = discover_auto_packages(
+		root,
+		default_package_type,
+		default_package_changelog.as_ref(),
+		default_changelog_format,
+		&cargo_ecosystem,
+		&npm_ecosystem,
+		&deno_ecosystem,
+		&dart_ecosystem,
+		&python_ecosystem,
+		&go_ecosystem,
+	)?;
+	// patch-coverage:ignore-end
+
+	// Merge explicitly defined packages with auto-discovered ones.
+	// Explicit packages take priority: any auto-discovered package whose id
+	// clashes with an explicit package is silently dropped.
+	let explicit_ids: BTreeSet<String> = packages.iter().map(|p| p.id.clone()).collect();
+	let mut packages = packages;
+	for discovered in auto_discovered_packages {
+		if explicit_ids.contains(&discovered.id) {
+			continue;
+		}
+		packages.push(discovered);
+	}
+
 	let groups = build_group_definitions(
 		&contents,
 		group,
