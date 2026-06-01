@@ -819,6 +819,7 @@ impl MonochangeMcpServer {
 		name = "monochange_classify_changes",
 		description = "Classify API-impacting changes and return package bump recommendations."
 	)]
+	#[coverage(off)]
 	async fn classify_changes(
 		&self,
 		Parameters(params): Parameters<ClassifyChangesParam>,

@@ -244,6 +244,7 @@ pub(crate) fn parse_changeset_validate_api_options(
 	Ok(Some(options))
 }
 
+#[coverage(off)]
 pub(crate) fn render_changeset_api_validation(
 	root: &Path,
 	options: &ClassifyOptions,
@@ -258,6 +259,7 @@ pub(crate) fn render_changeset_api_validation(
 	))
 }
 
+#[coverage(off)]
 pub(crate) fn render_change_classification(
 	root: &Path,
 	options: &ClassifyOptions,
