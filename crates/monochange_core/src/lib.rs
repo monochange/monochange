@@ -1988,6 +1988,60 @@ pub struct EcosystemSettings {
 	pub publish: PublishSettings,
 	#[serde(default)]
 	pub publish_order: PublishOrderSettings,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub auto_discover: Option<AutoDiscoverSettings>,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AutoDiscoverIdFrom {
+	#[default]
+	Name,
+	Path,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
+pub struct AutoDiscoverPackageDefaults {
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub tag: Option<bool>,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub release: Option<bool>,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub version_format: Option<VersionFormat>,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct AutoDiscoverSettings {
+	#[serde(default)]
+	pub include: Vec<String>,
+	#[serde(default)]
+	pub exclude: Vec<String>,
+	#[serde(default)]
+	pub id_from: AutoDiscoverIdFrom,
+	#[serde(default)]
+	pub defaults: AutoDiscoverPackageDefaults,
+}
+
+/// A package discovered through auto-discovery.
+///
+/// Contains the bare minimum information needed to register a package
+/// found by scanning the filesystem for ecosystem manifest files.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct DiscoveredPackage {
+	/// The package identifier, derived from the manifest `name` field or directory name.
+	pub id: String,
+	/// The path to the package directory, relative to the workspace root.
+	pub path: PathBuf,
+	/// The ecosystem type inferred from the manifest file found.
+	pub ecosystem_type: EcosystemType,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]

@@ -5,6 +5,9 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use miette::LabeledSpan;
+use monochange_core::AutoDiscoverIdFrom;
+use monochange_core::AutoDiscoverPackageDefaults;
+use monochange_core::AutoDiscoverSettings;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangelogDefinition;
 use monochange_core::ChangelogFormat;
@@ -7517,4 +7520,256 @@ versioned_files = [
 		.unwrap_or_else(|error| panic!("load cli commands: {error}"));
 
 	assert!(cli.iter().any(|command| command.name == "custom"));
+}
+
+// --- auto_discover tests ---
+
+#[test]
+fn manifest_file_for_ecosystem_returns_correct_filenames() {
+	use crate::manifest_file_for_ecosystem;
+
+	assert_eq!(
+		manifest_file_for_ecosystem(EcosystemType::Cargo),
+		&["Cargo.toml"]
+	);
+	assert_eq!(
+		manifest_file_for_ecosystem(EcosystemType::Npm),
+		&["package.json"]
+	);
+	assert_eq!(
+		manifest_file_for_ecosystem(EcosystemType::Deno),
+		&["deno.json", "deno.jsonc"]
+	);
+	assert_eq!(
+		manifest_file_for_ecosystem(EcosystemType::Dart),
+		&["pubspec.yaml"]
+	);
+	assert_eq!(
+		manifest_file_for_ecosystem(EcosystemType::Python),
+		&["pyproject.toml"]
+	);
+	assert_eq!(manifest_file_for_ecosystem(EcosystemType::Go), &["go.mod"]);
+}
+
+#[test]
+fn extract_manifest_name_parses_cargo_toml() {
+	let cargo_toml = r#"[package]
+name = "my-crate"
+version = "0.1.0"
+"#;
+	let name = crate::extract_manifest_name(cargo_toml, EcosystemType::Cargo);
+	assert_eq!(name, Some("my-crate".to_string()));
+}
+
+#[test]
+fn extract_manifest_name_parses_package_json() {
+	let package_json = r#"{
+  "name": "my-pkg",
+  "version": "1.0.0"
+}"#;
+	let name = crate::extract_manifest_name(package_json, EcosystemType::Npm);
+	assert_eq!(name, Some("my-pkg".to_string()));
+}
+
+#[test]
+fn extract_manifest_name_parses_deno_json() {
+	let deno_json = r#"{
+  "name": "deno-lib",
+  "version": "0.1.0"
+}"#;
+	let name = crate::extract_manifest_name(deno_json, EcosystemType::Deno);
+	assert_eq!(name, Some("deno-lib".to_string()));
+}
+
+#[test]
+fn extract_manifest_name_parses_pubspec_yaml() {
+	let pubspec = "name: my_dart_pkg\nversion: 1.0.0\n";
+	let name = crate::extract_manifest_name(pubspec, EcosystemType::Dart);
+	assert_eq!(name, Some("my_dart_pkg".to_string()));
+}
+
+#[test]
+fn extract_manifest_name_parses_pyproject_toml() {
+	let pyproject = r#"[project]
+name = "my-python-pkg"
+version = "0.2.0"
+"#;
+	let name = crate::extract_manifest_name(pyproject, EcosystemType::Python);
+	assert_eq!(name, Some("my-python-pkg".to_string()));
+}
+
+#[test]
+fn extract_manifest_name_returns_none_for_go() {
+	let go_mod = "module github.com/example/mygo\n\ngo 1.21\n";
+	let name = crate::extract_manifest_name(go_mod, EcosystemType::Go);
+	assert_eq!(name, None);
+}
+
+#[test]
+fn extract_manifest_name_returns_none_for_missing_name() {
+	let cargo_toml = "[package]\nversion = \"0.1.0\"\n";
+	let name = crate::extract_manifest_name(cargo_toml, EcosystemType::Cargo);
+	assert_eq!(name, None);
+}
+
+#[test]
+fn discover_packages_from_ecosystem_finds_cargo_packages() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let crates_dir = tempdir.path().join("crates");
+	let core_dir = crates_dir.join("core");
+	std::fs::create_dir_all(&core_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	std::fs::write(
+		core_dir.join("Cargo.toml"),
+		"[package]\nname = \"core\"\nversion = \"0.1.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+
+	let auto_discover = AutoDiscoverSettings {
+		include: vec!["crates/*".to_string()],
+		exclude: vec![],
+		id_from: AutoDiscoverIdFrom::Name,
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+
+	let discovered = crate::discover_packages_from_ecosystem(
+		tempdir.path(),
+		EcosystemType::Cargo,
+		&auto_discover,
+	)
+	.unwrap_or_else(|error| panic!("discover_packages: {error}"));
+
+	assert_eq!(discovered.len(), 1);
+	assert_eq!(discovered[0].id, "core");
+	assert_eq!(discovered[0].path, PathBuf::from("crates/core"));
+	assert_eq!(discovered[0].ecosystem_type, EcosystemType::Cargo);
+}
+
+#[test]
+fn discover_packages_from_ecosystem_uses_path_id_from() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let pkg_dir = tempdir.path().join("packages").join("my-app");
+	std::fs::create_dir_all(&pkg_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	std::fs::write(
+		pkg_dir.join("package.json"),
+		"{\"name\": \"@scope/my-app\", \"version\": \"1.0.0\"}",
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+
+	let auto_discover = AutoDiscoverSettings {
+		include: vec!["packages/*".to_string()],
+		exclude: vec![],
+		id_from: AutoDiscoverIdFrom::Path,
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+
+	let discovered =
+		crate::discover_packages_from_ecosystem(tempdir.path(), EcosystemType::Npm, &auto_discover)
+			.unwrap_or_else(|error| panic!("discover_packages: {error}"));
+
+	assert_eq!(discovered.len(), 1);
+	assert_eq!(discovered[0].id, "my-app");
+}
+
+#[test]
+fn discover_packages_from_ecosystem_respects_exclude_patterns() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let crates_dir = tempdir.path().join("crates");
+	let core_dir = crates_dir.join("core");
+	let utils_dir = crates_dir.join("utils");
+	std::fs::create_dir_all(&core_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	std::fs::create_dir_all(&utils_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	std::fs::write(
+		core_dir.join("Cargo.toml"),
+		"[package]\nname = \"core\"\nversion = \"0.1.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+	std::fs::write(
+		utils_dir.join("Cargo.toml"),
+		"[package]\nname = \"utils\"\nversion = \"0.1.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+
+	let auto_discover = AutoDiscoverSettings {
+		include: vec!["crates/*".to_string()],
+		exclude: vec!["crates/utils".to_string()],
+		id_from: AutoDiscoverIdFrom::Name,
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+
+	let discovered = crate::discover_packages_from_ecosystem(
+		tempdir.path(),
+		EcosystemType::Cargo,
+		&auto_discover,
+	)
+	.unwrap_or_else(|error| panic!("discover_packages: {error}"));
+
+	assert_eq!(discovered.len(), 1);
+	assert_eq!(discovered[0].id, "core");
+}
+
+#[test]
+fn normalize_auto_discover_settings_defaults_to_name() {
+	let raw = crate::RawAutoDiscoverSettings {
+		include: vec!["crates/*".to_string()],
+		exclude: vec![],
+		id_from: None,
+		defaults: None,
+	};
+	let result = crate::normalize_auto_discover_settings(Some(raw), "", "");
+	assert!(result.is_ok());
+	let settings = result.unwrap().unwrap();
+	assert_eq!(settings.id_from, AutoDiscoverIdFrom::Name);
+	assert!(!settings.include.is_empty());
+}
+
+#[test]
+fn normalize_auto_discover_settings_rejects_invalid_id_from() {
+	let raw = crate::RawAutoDiscoverSettings {
+		include: vec!["crates/*".to_string()],
+		exclude: vec![],
+		id_from: Some("invalid".to_string()),
+		defaults: None,
+	};
+	let result = crate::normalize_auto_discover_settings(Some(raw), "", "cargo");
+	assert!(result.is_err());
+	let err = result.unwrap_err();
+	assert!(err.to_string().contains("invalid `id_from`"));
+	assert!(err.to_string().contains("cargo"));
+}
+
+#[test]
+fn normalize_auto_discover_settings_parses_explicit_id_from_path() {
+	let raw = crate::RawAutoDiscoverSettings {
+		include: vec!["packages/*".to_string()],
+		exclude: vec![],
+		id_from: Some("path".to_string()),
+		defaults: None,
+	};
+	let result = crate::normalize_auto_discover_settings(Some(raw), "", "npm");
+	assert!(result.is_ok());
+	let settings = result.unwrap().unwrap();
+	assert_eq!(settings.id_from, AutoDiscoverIdFrom::Path);
+}
+
+#[test]
+fn normalize_auto_discover_settings_converts_defaults() {
+	let raw = crate::RawAutoDiscoverSettings {
+		include: vec!["packages/*".to_string()],
+		exclude: vec![],
+		id_from: None,
+		defaults: Some(crate::RawAutoDiscoverPackageDefaults {
+			tag: Some(false),
+			release: None,
+			version_format: Some(monochange_core::VersionFormat::Primary),
+		}),
+	};
+	let result = crate::normalize_auto_discover_settings(Some(raw), "", "npm");
+	assert!(result.is_ok());
+	let settings = result.unwrap().unwrap();
+	assert_eq!(settings.defaults.tag, Some(false));
+	assert_eq!(settings.defaults.release, None);
+	assert_eq!(
+		settings.defaults.version_format,
+		Some(monochange_core::VersionFormat::Primary)
+	);
 }

@@ -1686,6 +1686,74 @@
 			],
 			"type": "string"
 		},
+		"autoDiscoverPackageDefaults": {
+			"additionalProperties": false,
+			"properties": {
+				"release": {
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
+				},
+				"tag": {
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
+				},
+				"version_format": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/VersionFormat"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				}
+			},
+			"type": "object"
+		},
+		"autoDiscoverSettings": {
+			"additionalProperties": false,
+			"properties": {
+				"defaults": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/autoDiscoverPackageDefaults"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"exclude": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"id_from": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"include": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				}
+			},
+			"type": "object"
+		},
 		"changelogConfig": {
 			"anyOf": [
 				{
@@ -1906,6 +1974,16 @@
 		"ecosystemSettings": {
 			"additionalProperties": false,
 			"properties": {
+				"auto_discover": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/autoDiscoverSettings"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
 				"dependency_version_prefix": {
 					"default": null,
 					"type": [

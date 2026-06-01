@@ -8,6 +8,9 @@ use semver::Version;
 use serde_json::json;
 use tempfile::tempdir;
 
+use crate::AutoDiscoverIdFrom;
+use crate::AutoDiscoverPackageDefaults;
+use crate::AutoDiscoverSettings;
 use crate::BumpSeverity;
 use crate::ChangelogFormat;
 use crate::ChangelogSectionDef;
@@ -41,6 +44,7 @@ use crate::PrereleaseConfiguration;
 use crate::ProviderMergeRequestSettings;
 use crate::ProviderReleaseSettings;
 use crate::PublishMode;
+use crate::PublishOrderSettings;
 use crate::PublishSettings;
 use crate::PublishState;
 use crate::RELEASE_RECORD_END_MARKER;
@@ -3765,4 +3769,120 @@ fn generated_release_steps_report_always_run_flag() {
 	] {
 		assert!(step.always_run());
 	}
+}
+
+#[test]
+fn auto_discover_id_from_defaults_to_name() {
+	let default = AutoDiscoverIdFrom::default();
+	assert_eq!(default, AutoDiscoverIdFrom::Name);
+}
+
+#[test]
+fn auto_discover_id_from_round_trip() -> Result<(), serde_json::Error> {
+	let original = AutoDiscoverIdFrom::Path;
+	let json = serde_json::to_string(&original)?;
+	assert_eq!(json, "\"path\"");
+	let round_tripped: AutoDiscoverIdFrom = serde_json::from_str(&json)?;
+	assert_eq!(original, round_tripped);
+	Ok(())
+}
+
+#[test]
+fn auto_discover_id_from_deserializes_snake_case() -> Result<(), serde_json::Error> {
+	let name: AutoDiscoverIdFrom = serde_json::from_str("\"name\"")?;
+	assert_eq!(name, AutoDiscoverIdFrom::Name);
+	let path: AutoDiscoverIdFrom = serde_json::from_str("\"path\"")?;
+	assert_eq!(path, AutoDiscoverIdFrom::Path);
+	Ok(())
+}
+
+#[test]
+fn auto_discover_package_defaults_all_none() {
+	let defaults = AutoDiscoverPackageDefaults::default();
+	assert!(defaults.tag.is_none());
+	assert!(defaults.release.is_none());
+	assert!(defaults.version_format.is_none());
+}
+
+#[test]
+fn auto_discover_package_defaults_round_trip() -> Result<(), serde_json::Error> {
+	let defaults = AutoDiscoverPackageDefaults {
+		tag: Some(true),
+		release: Some(false),
+		version_format: Some(VersionFormat::Primary),
+	};
+	let json = serde_json::to_string(&defaults)?;
+	let round_tripped: AutoDiscoverPackageDefaults = serde_json::from_str(&json)?;
+	assert_eq!(defaults, round_tripped);
+	Ok(())
+}
+
+#[test]
+fn auto_discover_package_defaults_skips_none_fields() -> Result<(), serde_json::Error> {
+	let defaults = AutoDiscoverPackageDefaults::default();
+	let json = serde_json::to_string(&defaults)?;
+	let parsed: serde_json::Value = serde_json::from_str(&json)?;
+	assert!(parsed.as_object().is_some_and(serde_json::Map::is_empty));
+	Ok(())
+}
+
+#[test]
+fn auto_discover_settings_round_trip() -> Result<(), serde_json::Error> {
+	let settings = AutoDiscoverSettings {
+		include: vec!["packages/*".to_string()],
+		exclude: vec!["packages/internal/*".to_string()],
+		id_from: AutoDiscoverIdFrom::Name,
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+	let json = serde_json::to_string(&settings)?;
+	let round_tripped: AutoDiscoverSettings = serde_json::from_str(&json)?;
+	assert_eq!(settings, round_tripped);
+	Ok(())
+}
+
+#[test]
+fn auto_discover_settings_defaults() -> Result<(), serde_json::Error> {
+	let json = r#"{"include":["src/**"]}"#;
+	let settings: AutoDiscoverSettings = serde_json::from_str(json)?;
+	assert_eq!(settings.include, vec!["src/**"]);
+	assert!(settings.exclude.is_empty());
+	assert_eq!(settings.id_from, AutoDiscoverIdFrom::Name);
+	assert_eq!(settings.defaults, AutoDiscoverPackageDefaults::default());
+	Ok(())
+}
+
+#[test]
+fn ecosystem_settings_with_auto_discover_round_trip() -> Result<(), serde_json::Error> {
+	let settings = EcosystemSettings {
+		enabled: Some(true),
+		roots: vec![".".to_string()],
+		exclude: vec![],
+		dependency_version_prefix: None,
+		versioned_files: vec![],
+		lockfile_commands: vec![],
+		publish: PublishSettings::default(),
+		publish_order: PublishOrderSettings::default(),
+		auto_discover: Some(AutoDiscoverSettings {
+			include: vec!["packages/*".to_string()],
+			exclude: vec![],
+			id_from: AutoDiscoverIdFrom::Path,
+			defaults: AutoDiscoverPackageDefaults {
+				tag: Some(true),
+				release: None,
+				version_format: Some(VersionFormat::Namespaced),
+			},
+		}),
+	};
+	let json = serde_json::to_string(&settings)?;
+	let round_tripped: EcosystemSettings = serde_json::from_str(&json)?;
+	assert_eq!(settings, round_tripped);
+	Ok(())
+}
+
+#[test]
+fn ecosystem_settings_auto_discover_skips_when_none() -> Result<(), serde_json::Error> {
+	let settings = EcosystemSettings::default();
+	let json = serde_json::to_string(&settings)?;
+	assert!(!json.contains("auto_discover"));
+	Ok(())
 }
