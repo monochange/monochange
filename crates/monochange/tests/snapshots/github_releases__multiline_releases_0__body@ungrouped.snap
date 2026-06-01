@@ -1,9 +1,11 @@
 ---
 source: crates/monochange/tests/github_releases.rs
+assertion_line: 26
 expression: contents
 ---
-## app [1.0.1](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.1) ([DATE])
+Release target `app`
 
-### Changed
+Members: app
 
-- No package-specific changes were recorded; `workflow-app` was updated to 1.0.1.
+- depends on `cargo:crates/core/Cargo.toml`
+- add feature

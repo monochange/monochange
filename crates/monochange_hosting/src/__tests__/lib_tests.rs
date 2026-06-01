@@ -661,7 +661,7 @@ fn group_release_target(
 }
 
 #[test]
-fn release_body_appends_member_changelogs_not_already_in_group_changelog() {
+fn release_body_uses_group_changelog_without_member_rollup_when_group_has_notes() {
 	let mut manifest = sample_manifest();
 	let source = monochange_release_source();
 	let target = group_release_target("sdk 1.2.0", "sdk changelog 1.2.0");
@@ -688,15 +688,60 @@ fn release_body_appends_member_changelogs_not_already_in_group_changelog() {
 	let body = release_body(&source, &manifest, &target).expect("release body");
 
 	assert!(body.contains("## sdk changelog 1.2.0"), "body:\n{body}");
+	assert!(body.contains("Group summary"), "body:\n{body}");
+	assert!(body.contains("- group feature"), "body:\n{body}");
 	assert!(
-		body.contains("## Member package changelogs"),
+		!body.contains("## Member package changelogs"),
 		"body:\n{body}"
 	);
-	assert!(body.contains("### `core`"), "body:\n{body}");
-	assert!(body.contains("Core package summary"), "body:\n{body}");
-	assert!(body.contains("#### Features"), "body:\n{body}");
-	assert!(body.contains("- core feature"), "body:\n{body}");
-	assert!(!body.contains("#### Empty"), "body:\n{body}");
+	assert!(!body.contains("### `core`"), "body:\n{body}");
+	assert!(!body.contains("Core package summary"), "body:\n{body}");
+	assert!(!body.contains("- core feature"), "body:\n{body}");
+}
+
+#[test]
+fn release_body_uses_minimal_body_when_group_and_member_notes_are_empty_fallbacks() {
+	let mut manifest = sample_manifest();
+	let source = monochange_release_source();
+	let target = group_release_target("sdk release title", "");
+	manifest.changelogs = vec![
+		release_changelog(
+			"sdk",
+			ReleaseOwnerKind::Group,
+			vec![],
+			vec![release_section(
+				"Other",
+				vec!["No group-facing notes were recorded for this release."],
+			)],
+			"## sdk\n\nNo group-facing notes were recorded for this release.",
+		),
+		release_changelog(
+			"core",
+			ReleaseOwnerKind::Package,
+			vec![],
+			vec![release_section(
+				"Other",
+				vec![
+					"No package-specific changes were recorded; `core` was updated to 1.2.0 as part of group `sdk`.",
+				],
+			)],
+			"## core 1.2.0",
+		),
+	];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert!(body.contains("prepare release"), "body:\n{body}");
+	assert!(
+		!body.contains("## Member package changelogs"),
+		"body:\n{body}"
+	);
+	assert!(!body.contains("### `core`"), "body:\n{body}");
+	assert!(!body.contains("No group-facing notes"), "body:\n{body}");
+	assert!(
+		!body.contains("No package-specific changes"),
+		"body:\n{body}"
+	);
 }
 
 #[test]
@@ -719,8 +764,28 @@ fn release_body_uses_member_changelogs_when_group_only_has_empty_fallback() {
 			"core",
 			ReleaseOwnerKind::Package,
 			vec![],
-			vec![release_section("Fixes", vec!["- fix core bug"])],
+			vec![
+				release_section("Fixes", vec!["- fix core bug"]),
+				release_section(
+					"Other",
+					vec![
+						"No package-specific changes were recorded; `core` was updated to 1.2.0 as part of group `sdk`.",
+					],
+				),
+			],
 			"## core 1.2.0",
+		),
+		release_changelog(
+			"cli",
+			ReleaseOwnerKind::Package,
+			vec![],
+			vec![release_section(
+				"Other",
+				vec![
+					"No package-specific changes were recorded; `cli` was updated to 1.2.0 as part of group `sdk`.",
+				],
+			)],
+			"## cli 1.2.0",
 		),
 	];
 
@@ -730,7 +795,12 @@ fn release_body_uses_member_changelogs_when_group_only_has_empty_fallback() {
 	assert!(body.contains("Grouped release for `sdk`."), "body:\n{body}");
 	assert!(body.contains("### `core`"), "body:\n{body}");
 	assert!(body.contains("- fix core bug"), "body:\n{body}");
+	assert!(!body.contains("### `cli`"), "body:\n{body}");
 	assert!(!body.contains("No group-facing notes"), "body:\n{body}");
+	assert!(
+		!body.contains("No package-specific changes"),
+		"body:\n{body}"
+	);
 }
 
 #[test]

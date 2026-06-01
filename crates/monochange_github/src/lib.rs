@@ -2040,12 +2040,11 @@ fn monochange_release_body(manifest: &ReleaseManifest, target: &ReleaseManifestT
 	let member_changelogs = uncovered_member_changelogs(manifest, target, target_changelog);
 
 	match (target_changelog, member_changelogs.is_empty()) {
-		(Some(changelog), true) => changelog.rendered.clone(),
-		(Some(changelog), false) if changelog_has_release_notes(changelog) => {
-			append_member_changelogs(&changelog.rendered, &member_changelogs)
+		(Some(changelog), _) if changelog_has_release_notes(changelog) => {
+			changelog.rendered.clone()
 		}
 		(_, false) => grouped_member_release_body(target, &member_changelogs),
-		(None, true) => minimal_release_body(manifest, target),
+		(_, true) => minimal_release_body(manifest, target),
 	}
 }
 
@@ -2068,15 +2067,6 @@ fn uncovered_member_changelogs<'a>(
 				&& changelog_has_uncovered_notes(changelog, target_changelog)
 		})
 		.collect()
-}
-
-fn append_member_changelogs(
-	rendered: &str,
-	member_changelogs: &[&ReleaseManifestChangelog],
-) -> String {
-	let mut lines = vec![rendered.trim_end().to_string(), String::new()];
-	push_member_changelogs(&mut lines, member_changelogs);
-	lines.join("\n")
 }
 
 fn grouped_member_release_body(
@@ -2117,13 +2107,19 @@ fn push_changelog_notes(lines: &mut Vec<String>, changelog: &ReleaseManifestChan
 	}
 
 	for section in &changelog.notes.sections {
-		if section.entries.is_empty() {
+		let entries = section
+			.entries
+			.iter()
+			.filter(|entry| !is_empty_release_note(entry))
+			.cloned()
+			.collect::<Vec<_>>();
+		if entries.is_empty() {
 			continue;
 		}
 		lines.push(String::new());
 		lines.push(format!("#### {}", section.title));
 		lines.push(String::new());
-		push_body_entries(lines, &section.entries);
+		push_body_entries(lines, &entries);
 	}
 }
 
@@ -2132,12 +2128,14 @@ fn changelog_has_release_notes(changelog: &ReleaseManifestChangelog) -> bool {
 		section
 			.entries
 			.iter()
-			.any(|entry| !is_empty_group_release_note(entry))
+			.any(|entry| !is_empty_release_note(entry))
 	})
 }
 
-fn is_empty_group_release_note(entry: &str) -> bool {
+fn is_empty_release_note(entry: &str) -> bool {
 	entry.contains("No group-facing notes were recorded for this release")
+		|| entry.contains("No package-specific changes were recorded")
+		|| entry.contains("No significant changes")
 }
 
 fn changelog_has_uncovered_notes(
@@ -2160,6 +2158,7 @@ fn changelog_has_uncovered_notes(
 		.sections
 		.iter()
 		.flat_map(|section| &section.entries)
+		.filter(|entry| !is_empty_release_note(entry))
 		.any(|entry| !covered_entries.contains(&normalized_release_entry(entry)))
 }
 
