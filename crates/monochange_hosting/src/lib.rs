@@ -25,9 +25,11 @@
 //! - `release_pull_request_branch(prefix, command)` normalizes the change-request branch name
 //! - `get_json`, `post_json`, `patch_json`, and `put_json` wrap provider API requests
 //! - `git_checkout_branch`, `git_stage_paths`, `git_commit_paths`, and `git_push_branch` wrap shared git operations
+use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use monochange_core::CommitMessage;
 use monochange_core::MonochangeError;
@@ -50,6 +52,18 @@ use reqwest::header::HeaderMap;
 use rustls::crypto::ring::default_provider as ring_provider;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+
+/// Default total timeout for provider API requests.
+///
+/// Provider-backed release and pull-request commands should fail with context
+/// rather than appear hung forever when a non-GitHub host or network path stalls.
+pub const PROVIDER_HTTP_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Default connection timeout for provider API requests.
+///
+/// A shorter connect timeout catches unreachable self-hosted GitLab, Gitea, and
+/// Forgejo instances before the user is left waiting without feedback.
+pub const PROVIDER_HTTP_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 static RUSTLS_PROVIDER_INSTALLED: OnceLock<()> = OnceLock::new();
 
@@ -369,9 +383,17 @@ fn normalized_release_entry(entry: &str) -> String {
 pub fn build_http_client(provider: &str) -> MonochangeResult<Client> {
 	ensure_rustls_provider();
 
-	Client::builder().build().map_err(|error| {
-		MonochangeError::Config(format!("failed to build {provider} HTTP client: {error}"))
-	})
+	Client::builder()
+		.connect_timeout(PROVIDER_HTTP_CONNECT_TIMEOUT)
+		.timeout(PROVIDER_HTTP_TIMEOUT)
+		.build()
+		// patch-coverage:ignore-start -- reqwest client construction failures are platform/TLS configuration dependent.
+		.map_err(|error| http_client_build_error(provider, error))
+	// patch-coverage:ignore-end
+}
+
+fn http_client_build_error(provider: &str, error: impl Display) -> MonochangeError {
+	MonochangeError::Config(format!("failed to build {provider} HTTP client: {error}"))
 }
 
 /// Perform a GET request that treats `404` as `Ok(None)`.

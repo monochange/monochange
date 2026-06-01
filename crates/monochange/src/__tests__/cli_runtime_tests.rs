@@ -58,6 +58,109 @@ fn cli_context() -> CliContext {
 }
 
 #[test]
+fn expected_progress_phases_cover_dark_area_steps() {
+	assert_eq!(
+		expected_progress_phases(&CliStepDefinition::Discover {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+		}),
+		&[
+			"using loaded workspace configuration",
+			"scanning ecosystems for package manifests",
+			"reporting package counts",
+		]
+	);
+	assert_eq!(
+		expected_progress_phases(&CliStepDefinition::PrepareRelease {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+			allow_empty_changesets: false,
+		}),
+		&[
+			"loading changesets",
+			"computing dependency graph",
+			"planning versions",
+			"rendering changelogs",
+			"updating package files",
+			"refreshing lockfiles",
+		]
+	);
+	assert!(
+		expected_progress_phases(&CliStepDefinition::Config {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+		})
+		.is_empty()
+	);
+}
+
+#[test]
+fn expected_progress_phases_cover_provider_and_registry_steps() {
+	assert!(
+		expected_progress_phases(&CliStepDefinition::PublishRelease {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+		})
+		.contains(&"preparing source provider API client")
+	);
+	assert!(
+		expected_progress_phases(&CliStepDefinition::OpenReleaseRequest {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+			no_verify: false,
+			stage_all: false,
+		})
+		.contains(&"applying release request labels and automerge settings")
+	);
+	assert!(
+		expected_progress_phases(&CliStepDefinition::PlanPublishRateLimits {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+		})
+		.contains(&"planning registry rate limits")
+	);
+	assert!(
+		expected_progress_phases(&CliStepDefinition::PlaceholderPublish {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+		})
+		.contains(&"publishing placeholders per package")
+	);
+	assert!(
+		expected_progress_phases(&CliStepDefinition::PublishPackages {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+		})
+		.contains(&"publishing packages with bounded registry feedback")
+	);
+	assert!(
+		expected_progress_phases(&CliStepDefinition::PublishReadiness {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+		})
+		.contains(&"checking package registry readiness")
+	);
+}
+
+#[test]
 fn resolve_step_input_override_treats_inherited_as_empty() {
 	let context = cli_context();
 	let mut template_context = None;
@@ -1922,6 +2025,54 @@ fn drain_stream_events_collects_stdout_stderr_and_handles_closed_channels() {
 	let (sender, receiver) = mpsc::channel();
 	drop(sender);
 	let (stdout, stderr) = drain_stream_events(&receiver, &mut progress, 0, &step);
+	assert!(stdout.is_empty());
+	assert!(stderr.is_empty());
+}
+
+#[test]
+fn drain_stream_events_emits_heartbeats_while_command_is_silent() {
+	let cli_command = CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: Vec::new(),
+		dry_run: false,
+	};
+	let mut progress = CliProgressReporter::new(&cli_command, false, true, ProgressFormat::Json);
+	let step = CliStepDefinition::Command {
+		show_progress: None,
+		name: Some("silent command".to_string()),
+		when: None,
+		always_run: false,
+		command: "sleep 1".to_string(),
+		dry_run_command: None,
+		shell: ShellConfig::Default,
+		id: None,
+		variables: None,
+		inputs: BTreeMap::new(),
+	};
+	let (sender, receiver) = mpsc::channel();
+	let closer = std::thread::spawn(move || {
+		std::thread::sleep(Duration::from_millis(3));
+		sender
+			.send(StreamEvent::Closed(CommandStream::Stdout))
+			.unwrap_or_else(|error| panic!("close stdout: {error}"));
+		sender
+			.send(StreamEvent::Closed(CommandStream::Stderr))
+			.unwrap_or_else(|error| panic!("close stderr: {error}"));
+	});
+
+	let (stdout, stderr) = drain_stream_events_with_heartbeat_timeout(
+		&receiver,
+		&mut progress,
+		0,
+		&step,
+		Duration::from_millis(1),
+	);
+	closer
+		.join()
+		.unwrap_or_else(|error| panic!("join closer: {error:?}"));
+
 	assert!(stdout.is_empty());
 	assert!(stderr.is_empty());
 }

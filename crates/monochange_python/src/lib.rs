@@ -721,8 +721,8 @@ fn should_descend(entry: &DirEntry) -> bool {
 			| ".devenv"
 			| "book" | ".tox"
 			| "dist" | "build"
-			| ".eggs" | "*.egg-info"
-	)
+			| ".eggs"
+	) && !file_name.ends_with(".egg-info")
 }
 
 /// Return the default dependency-version prefix for this ecosystem.

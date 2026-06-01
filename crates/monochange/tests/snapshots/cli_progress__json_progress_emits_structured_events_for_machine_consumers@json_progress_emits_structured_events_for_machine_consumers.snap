@@ -25,6 +25,78 @@ expression: redacted
   {
     "command": "progress-json",
     "dryRun": false,
+    "event": "step_status",
+    "sequence": "[sequence:2]",
+    "status": "loading changesets",
+    "stepDisplayName": "plan release",
+    "stepIndex": 1,
+    "stepKind": "PrepareRelease",
+    "stepName": "plan release",
+    "totalSteps": 2
+  },
+  {
+    "command": "progress-json",
+    "dryRun": false,
+    "event": "step_status",
+    "sequence": "[sequence:3]",
+    "status": "computing dependency graph",
+    "stepDisplayName": "plan release",
+    "stepIndex": 1,
+    "stepKind": "PrepareRelease",
+    "stepName": "plan release",
+    "totalSteps": 2
+  },
+  {
+    "command": "progress-json",
+    "dryRun": false,
+    "event": "step_status",
+    "sequence": "[sequence:4]",
+    "status": "planning versions",
+    "stepDisplayName": "plan release",
+    "stepIndex": 1,
+    "stepKind": "PrepareRelease",
+    "stepName": "plan release",
+    "totalSteps": 2
+  },
+  {
+    "command": "progress-json",
+    "dryRun": false,
+    "event": "step_status",
+    "sequence": "[sequence:5]",
+    "status": "rendering changelogs",
+    "stepDisplayName": "plan release",
+    "stepIndex": 1,
+    "stepKind": "PrepareRelease",
+    "stepName": "plan release",
+    "totalSteps": 2
+  },
+  {
+    "command": "progress-json",
+    "dryRun": false,
+    "event": "step_status",
+    "sequence": "[sequence:6]",
+    "status": "updating package files",
+    "stepDisplayName": "plan release",
+    "stepIndex": 1,
+    "stepKind": "PrepareRelease",
+    "stepName": "plan release",
+    "totalSteps": 2
+  },
+  {
+    "command": "progress-json",
+    "dryRun": false,
+    "event": "step_status",
+    "sequence": "[sequence:7]",
+    "status": "refreshing lockfiles",
+    "stepDisplayName": "plan release",
+    "stepIndex": 1,
+    "stepKind": "PrepareRelease",
+    "stepName": "plan release",
+    "totalSteps": 2
+  },
+  {
+    "command": "progress-json",
+    "dryRun": false,
     "durationMs": "[duration_ms]",
     "event": "step_finished",
     "phaseTimings": [
@@ -93,7 +165,7 @@ expression: redacted
         "label": "defer versioned file updates"
       }
     ],
-    "sequence": "[sequence:2]",
+    "sequence": "[sequence:8]",
     "stepDisplayName": "plan release",
     "stepIndex": 1,
     "stepKind": "PrepareRelease",
@@ -104,7 +176,7 @@ expression: redacted
     "command": "progress-json",
     "dryRun": false,
     "event": "step_started",
-    "sequence": "[sequence:3]",
+    "sequence": "[sequence:9]",
     "stepDisplayName": "stream summary",
     "stepIndex": 2,
     "stepKind": "Command",
@@ -115,7 +187,7 @@ expression: redacted
     "command": "progress-json",
     "dryRun": false,
     "event": "command_output",
-    "sequence": "[sequence:4]",
+    "sequence": "[sequence:10]",
     "stepDisplayName": "stream summary",
     "stepIndex": 2,
     "stepKind": "Command",
@@ -128,7 +200,7 @@ expression: redacted
     "command": "progress-json",
     "dryRun": false,
     "event": "command_output",
-    "sequence": "[sequence:5]",
+    "sequence": "[sequence:11]",
     "stepDisplayName": "stream summary",
     "stepIndex": 2,
     "stepKind": "Command",
@@ -143,7 +215,7 @@ expression: redacted
     "durationMs": "[duration_ms]",
     "event": "step_finished",
     "phaseTimings": [],
-    "sequence": "[sequence:6]",
+    "sequence": "[sequence:12]",
     "stepDisplayName": "stream summary",
     "stepIndex": 2,
     "stepKind": "Command",
@@ -155,7 +227,7 @@ expression: redacted
     "dryRun": false,
     "durationMs": "[duration_ms]",
     "event": "command_finished",
-    "sequence": "[sequence:7]",
+    "sequence": "[sequence:13]",
     "totalSteps": 2
   }
 ]

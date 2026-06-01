@@ -35,6 +35,23 @@ fn empty_headers() -> HeaderMap {
 	HeaderMap::new()
 }
 
+#[test]
+fn provider_http_timeouts_are_short_enough_for_agent_feedback() {
+	let client = build_http_client("test")
+		.unwrap_or_else(|error| panic!("build timeout-enabled provider client: {error}"));
+
+	let error = http_client_build_error("test", "boom").render();
+
+	assert_eq!(PROVIDER_HTTP_CONNECT_TIMEOUT.as_secs(), 10);
+	assert_eq!(PROVIDER_HTTP_TIMEOUT.as_secs(), 30);
+	assert!(PROVIDER_HTTP_CONNECT_TIMEOUT < PROVIDER_HTTP_TIMEOUT);
+	assert_eq!(
+		error,
+		"config error: failed to build test HTTP client: boom"
+	);
+	drop(client);
+}
+
 fn sample_manifest() -> ReleaseManifest {
 	ReleaseManifest {
 		command: "release".to_string(),

@@ -16,6 +16,8 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 use std::time::Instant;
 
+const PROCESS_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+
 use clap::ArgMatches;
 use clap::parser::ValueSource;
 use monochange_core::ChangesetPolicyStatus;
@@ -746,6 +748,11 @@ pub(crate) async fn execute_cli_command_with_options(
 		}
 		tracing::debug!(step = step.kind_name(), "executing CLI step");
 		let mut step_phase_timings = Vec::new();
+		if show_progress {
+			for phase in expected_progress_phases(step) {
+				progress.step_status(step_index, step, phase);
+			}
+		}
 		let step_result: MonochangeResult<()> = async {
 			match step {
 				CliStepDefinition::Config { .. } => {
@@ -1821,6 +1828,77 @@ fn step_shows_progress(
 	step.show_progress().unwrap_or(true)
 }
 
+fn expected_progress_phases(step: &CliStepDefinition) -> &'static [&'static str] {
+	match step {
+		CliStepDefinition::Discover { .. } => {
+			&[
+				"using loaded workspace configuration",
+				"scanning ecosystems for package manifests",
+				"reporting package counts",
+			]
+		}
+		CliStepDefinition::PrepareRelease { .. } => {
+			&[
+				"loading changesets",
+				"computing dependency graph",
+				"planning versions",
+				"rendering changelogs",
+				"updating package files",
+				"refreshing lockfiles",
+			]
+		}
+		CliStepDefinition::PublishRelease { .. } => {
+			&[
+				"preparing source provider API client",
+				"looking up existing hosted releases",
+				"creating or updating hosted releases",
+			]
+		}
+		CliStepDefinition::OpenReleaseRequest { .. } => {
+			&[
+				"preparing source provider API client",
+				"looking up existing release request",
+				"creating or updating release request",
+				"applying release request labels and automerge settings",
+			]
+		}
+		CliStepDefinition::CommentReleasedIssues { .. } => {
+			&[
+				"preparing source provider API client",
+				"planning released issue comments",
+				"creating or updating released issue comments",
+			]
+		}
+		CliStepDefinition::PublishReadiness { .. } => {
+			&[
+				"checking package registry readiness",
+				"summarizing publish blockers",
+			]
+		}
+		CliStepDefinition::PlanPublishRateLimits { .. } => {
+			&[
+				"checking package registry requirements",
+				"planning registry rate limits",
+			]
+		}
+		CliStepDefinition::PlaceholderPublish { .. } => {
+			&[
+				"checking packages before placeholder publish",
+				"planning registry rate limits",
+				"publishing placeholders per package",
+			]
+		}
+		CliStepDefinition::PublishPackages { .. } => {
+			&[
+				"checking packages before publish",
+				"planning registry rate limits",
+				"publishing packages with bounded registry feedback",
+			]
+		}
+		_ => &[],
+	}
+}
+
 fn run_cli_command_command(
 	context: &mut CliContext,
 	step: &CliStepDefinition,
@@ -2076,12 +2154,29 @@ fn drain_stream_events(
 	step_index: usize,
 	step: &CliStepDefinition,
 ) -> (Vec<u8>, Vec<u8>) {
+	drain_stream_events_with_heartbeat_timeout(
+		receiver,
+		progress,
+		step_index,
+		step,
+		PROCESS_HEARTBEAT_INTERVAL,
+	)
+}
+
+fn drain_stream_events_with_heartbeat_timeout(
+	receiver: &mpsc::Receiver<StreamEvent>,
+	progress: &mut CliProgressReporter,
+	step_index: usize,
+	step: &CliStepDefinition,
+	heartbeat_interval: Duration,
+) -> (Vec<u8>, Vec<u8>) {
 	let mut stdout_buffer = Vec::new();
 	let mut stderr_buffer = Vec::new();
 	let mut stdout_closed = false;
 	let mut stderr_closed = false;
+	let started_at = Instant::now();
 	while !stdout_closed || !stderr_closed {
-		match receiver.recv() {
+		match receiver.recv_timeout(heartbeat_interval) {
 			Ok(StreamEvent::Chunk(stream, chunk)) => {
 				match stream {
 					CommandStream::Stdout => stdout_buffer.extend_from_slice(&chunk),
@@ -2100,7 +2195,17 @@ fn drain_stream_events(
 					CommandStream::Stderr => stderr_closed = true,
 				}
 			}
-			Err(_) => break,
+			Err(mpsc::RecvTimeoutError::Timeout) => {
+				progress.step_status(
+					step_index,
+					step,
+					&format!(
+						"still running external command after {:.1}s",
+						started_at.elapsed().as_secs_f64()
+					),
+				);
+			}
+			Err(mpsc::RecvTimeoutError::Disconnected) => break,
 		}
 	}
 	(stdout_buffer, stderr_buffer)
