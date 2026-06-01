@@ -7932,3 +7932,174 @@ include = ["packages/*"]
 		monochange_core::VersionFormat::Primary
 	);
 }
+
+#[test]
+fn auto_discover_manifest_name_helpers_cover_comments_and_missing_values() {
+	assert_eq!(
+		crate::extract_manifest_name(
+			"[workspace]\nmembers = []\n\n[package]\n# comment\nname = \"core-lib\"\n",
+			EcosystemType::Cargo,
+		),
+		Some("core-lib".to_string())
+	);
+	assert_eq!(
+		crate::extract_manifest_name("[package]\nname = \"unterminated\n", EcosystemType::Cargo),
+		None
+	);
+	assert_eq!(
+		crate::extract_manifest_name("{\n  \"version\": \"1.0.0\"\n}", EcosystemType::Npm),
+		None
+	);
+	assert_eq!(
+		crate::extract_manifest_name("{\n  \"name\": 123\n}", EcosystemType::Npm),
+		None
+	);
+	assert_eq!(
+		crate::extract_manifest_name("\n# package name\nname: 'dart_app'\n", EcosystemType::Dart),
+		Some("dart_app".to_string())
+	);
+	assert_eq!(
+		crate::extract_manifest_name("version: 1.0.0\nname: too-late\n", EcosystemType::Dart),
+		None
+	);
+}
+
+#[test]
+fn discover_packages_from_ecosystem_handles_empty_and_duplicate_manifest_cases() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let empty_settings = AutoDiscoverSettings {
+		include: vec!["[".to_string()],
+		exclude: vec![],
+		id_from: AutoDiscoverIdFrom::Name,
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+	let empty =
+		crate::discover_packages_from_ecosystem(root, EcosystemType::Cargo, &empty_settings)
+			.unwrap_or_else(|error| panic!("discover empty: {error}"));
+	assert!(empty.is_empty());
+
+	let deno_dir = root.join("apps").join("edge");
+	let empty_dir = root.join("apps").join("empty");
+	std::fs::create_dir_all(&deno_dir).unwrap_or_else(|error| panic!("create deno dir: {error}"));
+	std::fs::create_dir_all(&empty_dir).unwrap_or_else(|error| panic!("create empty dir: {error}"));
+	std::fs::write(
+		deno_dir.join("deno.json"),
+		"{\n  \"name\": \"edge-json\"\n}\n",
+	)
+	.unwrap_or_else(|error| panic!("write deno.json: {error}"));
+	std::fs::write(
+		deno_dir.join("deno.jsonc"),
+		"{\n  \"name\": \"edge-jsonc\"\n}\n",
+	)
+	.unwrap_or_else(|error| panic!("write deno.jsonc: {error}"));
+	let deno_settings = AutoDiscoverSettings {
+		include: vec!["apps/*".to_string(), "apps/edge".to_string()],
+		exclude: vec![],
+		id_from: AutoDiscoverIdFrom::Name,
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+
+	let discovered =
+		crate::discover_packages_from_ecosystem(root, EcosystemType::Deno, &deno_settings)
+			.unwrap_or_else(|error| panic!("discover deno: {error}"));
+
+	assert_eq!(discovered.len(), 1);
+	assert_eq!(discovered[0].id, "edge-json");
+}
+
+#[cfg(unix)]
+#[test]
+fn discover_packages_from_ecosystem_reports_manifest_read_errors() {
+	use std::os::unix::fs::PermissionsExt;
+
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let package_dir = tempdir.path().join("crates").join("private");
+	std::fs::create_dir_all(&package_dir)
+		.unwrap_or_else(|error| panic!("create package dir: {error}"));
+	let manifest = package_dir.join("Cargo.toml");
+	std::fs::write(
+		&manifest,
+		"[package]\nname = \"private\"\nversion = \"1.0.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write manifest: {error}"));
+	let mut permissions = std::fs::metadata(&manifest)
+		.unwrap_or_else(|error| panic!("metadata: {error}"))
+		.permissions();
+	permissions.set_mode(0o000);
+	std::fs::set_permissions(&manifest, permissions)
+		.unwrap_or_else(|error| panic!("set permissions: {error}"));
+
+	let settings = AutoDiscoverSettings {
+		include: vec!["crates/*".to_string()],
+		exclude: vec![],
+		id_from: AutoDiscoverIdFrom::Name,
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+	let error =
+		crate::discover_packages_from_ecosystem(tempdir.path(), EcosystemType::Cargo, &settings)
+			.err()
+			.unwrap_or_else(|| panic!("expected manifest read error"));
+
+	let mut restored = std::fs::metadata(&manifest)
+		.unwrap_or_else(|metadata_error| panic!("metadata restore: {metadata_error}"))
+		.permissions();
+	restored.set_mode(0o644);
+	std::fs::set_permissions(&manifest, restored)
+		.unwrap_or_else(|permission_error| panic!("restore permissions: {permission_error}"));
+	assert!(error.to_string().contains("Cargo.toml"));
+}
+
+#[test]
+fn ecosystem_type_to_package_type_covers_all_auto_discover_ecosystems() {
+	assert_eq!(
+		crate::ecosystem_type_to_package_type(EcosystemType::Cargo),
+		monochange_core::PackageType::Cargo
+	);
+	assert_eq!(
+		crate::ecosystem_type_to_package_type(EcosystemType::Deno),
+		monochange_core::PackageType::Deno
+	);
+	assert_eq!(
+		crate::ecosystem_type_to_package_type(EcosystemType::Dart),
+		monochange_core::PackageType::Dart
+	);
+	assert_eq!(
+		crate::ecosystem_type_to_package_type(EcosystemType::Python),
+		monochange_core::PackageType::Python
+	);
+	assert_eq!(
+		crate::ecosystem_type_to_package_type(EcosystemType::Go),
+		monochange_core::PackageType::Go
+	);
+}
+
+#[test]
+fn load_workspace_configuration_auto_discovers_go_packages() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let package_dir = root.join("modules").join("service");
+	std::fs::create_dir_all(&package_dir)
+		.unwrap_or_else(|error| panic!("create package dir: {error}"));
+	std::fs::write(package_dir.join("go.mod"), "module example.com/service\n")
+		.unwrap_or_else(|error| panic!("write go.mod: {error}"));
+	std::fs::write(
+		root.join("monochange.toml"),
+		r#"
+[ecosystems.go.auto_discover]
+include = ["modules/*"]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+	let package = configuration
+		.packages
+		.iter()
+		.find(|package| package.id == "service")
+		.unwrap_or_else(|| panic!("missing auto-discovered go package"));
+
+	assert_eq!(package.package_type, monochange_core::PackageType::Go);
+	assert_eq!(package.path, PathBuf::from("modules/service"));
+}
