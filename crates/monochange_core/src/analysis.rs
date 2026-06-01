@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::BumpSeverity;
 use crate::Ecosystem;
 use crate::MonochangeResult;
 use crate::PackageRecord;
@@ -72,6 +74,252 @@ impl PackageSnapshot {
 	#[must_use]
 	pub fn file(&self, path: &Path) -> Option<&PackageSnapshotFile> {
 		self.files.iter().find(|file| file.path == path)
+	}
+}
+
+/// Stable schema version for monochange API snapshot files.
+pub const API_SNAPSHOT_SCHEMA_VERSION: u16 = 1;
+
+/// Normalized package API surface captured by monochange.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiSnapshot {
+	/// Snapshot file schema version.
+	pub schema_version: u16,
+	/// Package identifier used in reports.
+	pub package_id: String,
+	/// Human-readable package name.
+	pub package_name: String,
+	/// Package ecosystem.
+	pub ecosystem: Ecosystem,
+	/// Analyzer that produced the snapshot.
+	pub analyzer_id: String,
+	/// Deterministically sorted public API items.
+	pub items: Vec<ApiItem>,
+	/// Non-fatal extraction warnings.
+	pub warnings: Vec<String>,
+}
+
+impl ApiSnapshot {
+	/// Create an API snapshot and sort its items for stable serialization and diffing.
+	#[must_use]
+	pub fn new(
+		package_id: impl Into<String>,
+		package_name: impl Into<String>,
+		ecosystem: Ecosystem,
+		analyzer_id: impl Into<String>,
+		items: Vec<ApiItem>,
+		warnings: Vec<String>,
+	) -> Self {
+		let mut snapshot = Self {
+			schema_version: API_SNAPSHOT_SCHEMA_VERSION,
+			package_id: package_id.into(),
+			package_name: package_name.into(),
+			ecosystem,
+			analyzer_id: analyzer_id.into(),
+			items,
+			warnings,
+		};
+		snapshot.sort_items();
+		snapshot
+	}
+
+	/// Sort items by stable id for deterministic output.
+	pub fn sort_items(&mut self) {
+		self.items.sort_by(|left, right| left.id.cmp(&right.id));
+	}
+
+	/// Diff two API snapshots keyed by stable item id.
+	#[must_use]
+	pub fn diff(&self, after: &Self) -> ApiDiff {
+		diff_api_snapshots(self, after)
+	}
+}
+
+/// One normalized public API item.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiItem {
+	/// Stable id unique within a package snapshot.
+	pub id: String,
+	/// Ecosystem-specific kind such as `function`, `export`, `bin`, or `dependency`.
+	pub kind: String,
+	/// Human-facing item path.
+	pub path: String,
+	/// Signature or descriptor, when available.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub signature: Option<String>,
+	/// Package-relative source path that contributed evidence, when available.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub source_path: Option<PathBuf>,
+	/// Additional stable item metadata.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub metadata: BTreeMap<String, String>,
+}
+
+impl ApiItem {
+	/// Create an API item using a conventional `<kind>:<path>` id.
+	#[must_use]
+	pub fn new(
+		kind: impl Into<String>,
+		path: impl Into<String>,
+		signature: Option<String>,
+	) -> Self {
+		let kind = kind.into();
+		let path = path.into();
+		Self {
+			id: format!("{kind}:{path}"),
+			kind,
+			path,
+			signature,
+			source_path: None,
+			metadata: BTreeMap::new(),
+		}
+	}
+
+	/// Attach a package-relative source path.
+	#[must_use]
+	pub fn with_source_path(mut self, source_path: impl Into<PathBuf>) -> Self {
+		self.source_path = Some(source_path.into());
+		self
+	}
+}
+
+/// Confidence level for API impact classification.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ApiConfidence {
+	Low,
+	Medium,
+	High,
+}
+
+/// API item change kind.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ApiChangeKind {
+	Added,
+	Removed,
+	Modified,
+}
+
+/// One normalized API diff entry.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiChange {
+	pub kind: ApiChangeKind,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub before: Option<ApiItem>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub after: Option<ApiItem>,
+	pub suggested_bump: BumpSeverity,
+	pub confidence: ApiConfidence,
+	pub summary: String,
+}
+
+/// Diff between two normalized API snapshots.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiDiff {
+	pub package_id: String,
+	pub package_name: String,
+	pub ecosystem: Ecosystem,
+	pub analyzer_id: String,
+	pub suggested_bump: BumpSeverity,
+	pub changes: Vec<ApiChange>,
+	pub warnings: Vec<String>,
+}
+
+impl ApiDiff {
+	/// Return true when the diff has no item-level changes.
+	#[must_use]
+	pub fn is_empty(&self) -> bool {
+		self.changes.is_empty()
+	}
+}
+
+/// Diff normalized API snapshots keyed by `ApiItem.id`.
+#[must_use]
+pub fn diff_api_snapshots(before: &ApiSnapshot, after: &ApiSnapshot) -> ApiDiff {
+	let before_items: BTreeMap<_, _> = before.items.iter().map(|item| (&item.id, item)).collect();
+	let after_items: BTreeMap<_, _> = after.items.iter().map(|item| (&item.id, item)).collect();
+	let mut changes = Vec::new();
+
+	for (id, before_item) in &before_items {
+		match after_items.get(id) {
+			Some(after_item)
+				if before_item.signature != after_item.signature
+					|| before_item.metadata != after_item.metadata =>
+			{
+				changes.push(api_change_modified(before_item, after_item));
+			}
+			Some(_) => {}
+			None => changes.push(api_change_removed(before_item)),
+		}
+	}
+
+	for (id, after_item) in &after_items {
+		if !before_items.contains_key(id) {
+			changes.push(api_change_added(after_item));
+		}
+	}
+
+	changes.sort_by(|left, right| left.summary.cmp(&right.summary));
+	let suggested_bump = changes
+		.iter()
+		.map(|change| change.suggested_bump)
+		.max()
+		.unwrap_or(BumpSeverity::None);
+	let warnings = before
+		.warnings
+		.iter()
+		.chain(after.warnings.iter())
+		.cloned()
+		.collect();
+
+	ApiDiff {
+		package_id: after.package_id.clone(),
+		package_name: after.package_name.clone(),
+		ecosystem: after.ecosystem,
+		analyzer_id: after.analyzer_id.clone(),
+		suggested_bump,
+		changes,
+		warnings,
+	}
+}
+
+fn api_change_added(item: &ApiItem) -> ApiChange {
+	ApiChange {
+		kind: ApiChangeKind::Added,
+		before: None,
+		after: Some(item.clone()),
+		suggested_bump: BumpSeverity::Minor,
+		confidence: ApiConfidence::High,
+		summary: format!("added public {} `{}`", item.kind, item.path),
+	}
+}
+
+fn api_change_removed(item: &ApiItem) -> ApiChange {
+	ApiChange {
+		kind: ApiChangeKind::Removed,
+		before: Some(item.clone()),
+		after: None,
+		suggested_bump: BumpSeverity::Major,
+		confidence: ApiConfidence::High,
+		summary: format!("removed public {} `{}`", item.kind, item.path),
+	}
+}
+
+fn api_change_modified(before: &ApiItem, after: &ApiItem) -> ApiChange {
+	ApiChange {
+		kind: ApiChangeKind::Modified,
+		before: Some(before.clone()),
+		after: Some(after.clone()),
+		suggested_bump: BumpSeverity::Major,
+		confidence: ApiConfidence::High,
+		summary: format!("changed public {} `{}`", after.kind, after.path),
 	}
 }
 

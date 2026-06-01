@@ -3,6 +3,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use monochange_core::AnalyzedFileChange;
+use monochange_core::ApiItem;
+use monochange_core::ApiSnapshot;
 use monochange_core::DetectionLevel;
 use monochange_core::Ecosystem;
 use monochange_core::MonochangeResult;
@@ -105,6 +107,31 @@ fn display_package_id(package: &PackageRecord) -> String {
 		.get("config_id")
 		.cloned()
 		.unwrap_or_else(|| package.id.clone())
+}
+
+/// Extract a monochange-owned API snapshot for a Cargo package.
+pub fn api_snapshot(context: &PackageAnalysisContext<'_>) -> ApiSnapshot {
+	let (symbols, warnings) = snapshot_public_symbols(
+		context.after_snapshot.or(context.before_snapshot),
+		context.changed_files,
+		context.detection_level,
+	);
+	let items = symbols
+		.into_values()
+		.map(|symbol| {
+			ApiItem::new(symbol.item_kind, symbol.item_path, Some(symbol.signature))
+				.with_source_path(symbol.file_path)
+		})
+		.collect();
+
+	ApiSnapshot::new(
+		display_package_id(context.package),
+		context.package.name.clone(),
+		context.package.ecosystem,
+		"cargo/public-api",
+		items,
+		warnings,
+	)
 }
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]

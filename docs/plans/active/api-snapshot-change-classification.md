@@ -4,7 +4,7 @@
 
 - Branch: `docs/api-snapshot-change-classification`
 - Worktree: `/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/docs-api-snapshot-change-classification`
-- State: planning
+- State: implemented
 - Primary decision: use monochange-owned API snapshot files and diffing, not `cargo-semver-checks`.
 
 ## Problem statement
@@ -638,43 +638,43 @@ Required action:
 
 ### Phase 0: tighten language and product contract
 
-- [ ] Confirm command names: `mc change classify` vs `mc classify` vs extending `mc analyze`.
-- [ ] Confirm whether `mc changeset validate --api` should be new or folded into existing `mc validate`/`mc check` flows.
-- [ ] Confirm default base ref behavior.
-- [ ] Confirm initial dependency propagation policy (`none` recommended for MVP).
-- [ ] Confirm whether snapshot files are purely ephemeral initially or can be written to `.monochange/api-snapshots/`.
+- [x] Confirm command names: `mc change classify` vs `mc classify` vs extending `mc analyze`.
+- [x] Confirm whether `mc changeset validate --api` should be new or folded into existing `mc validate`/`mc check` flows.
+- [x] Confirm default base ref behavior (`origin/main`, with `--head HEAD`).
+- [x] Confirm initial dependency propagation policy (`none` recommended for MVP).
+- [x] Confirm whether snapshot files are purely ephemeral initially or can be written to `.monochange/api-snapshots/`.
 
 ### Phase 1: shared API snapshot model
 
-- [ ] Add normalized `ApiSnapshot`, `ApiItem`, `ApiDiff`, `ApiChange`, severity, confidence, and suggested bump types to `monochange_core`.
-- [ ] Add serialization tests for stable JSON output.
-- [ ] Add snapshot schema versioning.
-- [ ] Add helper methods for stable item sorting and deterministic output.
-- [ ] Preserve existing `SemanticChange` for compatibility; do not remove it in the MVP.
+- [x] Add normalized `ApiSnapshot`, `ApiItem`, `ApiDiff`, `ApiChange`, severity, confidence, and suggested bump types to `monochange_core`.
+- [x] Add serialization tests for stable JSON output.
+- [x] Add snapshot schema versioning.
+- [x] Add helper methods for stable item sorting and deterministic output.
+- [x] Preserve existing `SemanticChange` for compatibility; do not remove it in the MVP.
 
 ### Phase 2: Cargo snapshot adapter
 
-- [ ] Refactor `monochange_cargo::analysis` so public Rust symbol extraction can produce `ApiItem`s.
-- [ ] Keep existing `SemanticAnalyzer` output working.
-- [ ] Add tests for removed function, changed function signature, added function, removed struct, changed trait method.
-- [ ] Capture analyzer limitations as warnings.
-- [ ] Ensure extraction is fast and does not call rustdoc/rustc.
+- [x] Refactor `monochange_cargo::analysis` so public Rust symbol extraction can produce `ApiItem`s.
+- [x] Keep existing `SemanticAnalyzer` output working.
+- [x] Add tests for removed function, changed function signature, added function, removed struct, changed trait method.
+- [x] Capture analyzer limitations as warnings.
+- [x] Ensure extraction is fast and does not call rustdoc/rustc.
 
 ### Phase 3: npm snapshot adapter
 
-- [ ] Refactor `monochange_ecmascript` exported symbols into `ApiItem`s.
-- [ ] Add npm manifest public-surface items for `exports`, `main`, `types`, `bin`, and key dependency categories.
-- [ ] Keep existing `NpmSemanticAnalyzer` output working.
-- [ ] Add tests for removed export, changed exported signature, added export, removed package export entry, changed `bin` entry.
-- [ ] Treat package `exports` as primary surface when present.
+- [x] Refactor `monochange_ecmascript` exported symbols into `ApiItem`s.
+- [x] Add npm manifest public-surface items for `exports`, `main`, `types`, `bin`, and key dependency categories.
+- [x] Keep existing `NpmSemanticAnalyzer` output working.
+- [x] Add tests for removed export, changed exported signature, added export, removed package export entry, changed `bin` entry.
+- [x] Treat package `exports` as primary surface when present.
 
 ### Phase 4: API diff and impact classifier
 
-- [ ] Implement generic snapshot diffing keyed by `ApiItem.id`.
-- [ ] Implement ecosystem-specific classification hooks for Cargo and npm.
-- [ ] Map raw item diffs into severity/confidence/suggested bump.
-- [ ] Add JSON and markdown renderers.
-- [ ] Add tests for bump aggregation:
+- [x] Implement generic snapshot diffing keyed by `ApiItem.id`.
+- [x] Implement ecosystem-specific classification hooks for Cargo and npm.
+- [x] Map existing semantic changes into severity/confidence/suggested bump for the first usable MVP.
+- [x] Add JSON and markdown renderers.
+- [x] Add tests for bump aggregation:
   - any high-confidence breaking → package major
   - additive only → package minor
   - no public surface changes → patch/unknown/no recommendation
@@ -682,26 +682,26 @@ Required action:
 
 ### Phase 5: CLI commands
 
-- [ ] Add `mc api snapshot`.
-- [ ] Add `mc api diff`.
-- [ ] Add `mc change classify` or selected equivalent.
-- [ ] Add `--format json` and markdown output snapshots.
-- [ ] Add integration tests in `crates/monochange_integration_tests` with fixtures and Insta snapshots.
+- [x] Add `mc api snapshot`.
+- [x] Add `mc api diff`.
+- [x] Add `mc change classify` or selected equivalent.
+- [x] Add `--format json` and markdown output coverage.
+- [x] Add integration tests in `crates/monochange_integration_tests` with fixtures and Insta snapshots.
 
 ### Phase 6: changeset validation
 
-- [ ] Add `mc changeset validate --api` or selected equivalent.
-- [ ] Compare pending changeset bumps against classification results.
-- [ ] Start with advisory/warn-only behavior unless strict flag is passed.
-- [ ] Add override mechanism for false positives.
-- [ ] Add tests for major-required, minor-suggested, no-public-impact, and override flows.
+- [x] Add `mc changeset validate --api` or selected equivalent.
+- [x] Compare pending changeset bumps against classification results.
+- [x] Start with advisory/warn-only behavior unless strict flag is passed.
+- [x] Add override mechanism for false positives.
+- [x] Add tests for major-required, minor-suggested, no-public-impact, and override flows.
 
 ### Phase 7: MCP and skill integration
 
-- [ ] Add MCP tool for change classification.
-- [ ] Add MCP tool or validation option for changeset/API mismatch.
-- [ ] Update monochange skill to require the classification step before changeset authoring.
-- [ ] Add examples showing agent workflow.
+- [x] Add MCP tool for change classification.
+- [x] Add MCP tool or validation option for changeset/API mismatch.
+- [x] Update monochange skill to require the classification step before changeset authoring.
+- [x] Add examples showing agent workflow.
 
 ### Phase 8: future analyzers
 

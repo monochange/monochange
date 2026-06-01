@@ -7,6 +7,9 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use monochange_core::AnalyzedFileChange;
+use monochange_core::ApiItem;
+use monochange_core::ApiSnapshot;
+use monochange_core::Ecosystem;
 use monochange_core::PackageSnapshot;
 use monochange_core::PackageSnapshotFile;
 use monochange_core::SemanticChange;
@@ -84,6 +87,35 @@ pub fn snapshot_exported_symbols(
 	}
 
 	symbols
+}
+
+/// Extract a monochange-owned API snapshot from ECMAScript exports.
+pub fn api_snapshot(
+	package_id: impl Into<String>,
+	package_name: impl Into<String>,
+	ecosystem: Ecosystem,
+	analyzer_id: impl Into<String>,
+	snapshot: Option<&PackageSnapshot>,
+	changed_files: &[AnalyzedFileChange],
+	config: &EcmascriptExportConfig,
+) -> ApiSnapshot {
+	let symbols = snapshot_exported_symbols(snapshot, changed_files, config);
+	let items = symbols
+		.into_values()
+		.map(|symbol| {
+			ApiItem::new(symbol.item_kind, symbol.item_path, Some(symbol.signature))
+				.with_source_path(symbol.file_path)
+		})
+		.collect();
+
+	ApiSnapshot::new(
+		package_id,
+		package_name,
+		ecosystem,
+		analyzer_id,
+		items,
+		Vec::new(),
+	)
 }
 
 pub fn diff_public_symbols(

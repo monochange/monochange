@@ -25,10 +25,11 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 
 1. Inspect configuration: `mc step:validate`, `mc step:config`, or `mc help`. Use this to learn package ids, enabled ecosystems, groups, and which top-level workflow commands actually exist.
 2. Inspect packages: use the configured workflow command (often `mc step:discover --format json`) or `mc step:discover --format json`. Prefer JSON when another tool or agent will consume the package graph.
-3. Create release intent: use a configured workflow command (often `mc change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
-4. Preview versioned files: use the configured workflow command (often `mc release --dry-run --format json` or `--diff`) or `mc step:prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
-5. Run validation and linting: `mc check` and `mc step:validate`. `validate` catches monochange configuration and target issues; `check` also runs manifest lint rules.
-6. Only after review, run configured commit/release/publish workflows. Keep release-record, readiness, bootstrap, plan, and publish artifacts when the workflow emits them.
+3. Classify API impact before writing release intent: run `mc change classify --base origin/main --format markdown` (or use the `monochange_classify_changes` MCP tool) and use the recommended bumps as the starting point for changesets.
+4. Create release intent: use a configured workflow command (often `mc change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
+5. Preview versioned files: use the configured workflow command (often `mc release --dry-run --format json` or `--diff`) or `mc step:prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
+6. Run validation and linting: `mc check`, `mc step:validate`, and `mc changeset validate --api --base origin/main`. `validate` catches monochange configuration and target issues; `check` also runs manifest lint rules.
+7. Only after review, run configured commit/release/publish workflows. Keep release-record, readiness, bootstrap, plan, and publish artifacts when the workflow emits them.
 
 ## What to open next
 
@@ -53,6 +54,10 @@ Built-in commands in the current CLI:
 - `mc skill` — install or update the monochange skill bundle.
 - `mc subagents` — generate repository-local agent/subagent guidance for monochange work.
 - `mc analyze` — inspect semantic changes for a package.
+- `mc change classify --base origin/main --format markdown` — classify API-impacting semantic changes and recommend package bumps.
+- `mc api diff --base origin/main --format json` — inspect API diff classification as structured data.
+- `mc api snapshot --head HEAD --format json` — inspect the current monochange API snapshot report shape.
+- `mc changeset validate --api --base origin/main` — advisory validation comparing API classification expectations with changeset intent.
 - `mc step:tag-release` — create release tags from an embedded release record.
 - `mc step:release-record` — inspect the release record reachable from a tag or commit.
 - `mc check` — validate configuration, changesets, and manifest lint rules.
@@ -99,6 +104,7 @@ The `mc mcp` server exposes these tools:
 - `monochange_lint_catalog` — list lint rules and presets.
 - `monochange_lint_explain` — explain one lint rule or preset.
 - `monochange_analyze_changes` — inspect semantic diffs for package-aware changes.
+- `monochange_classify_changes` — classify API-impacting changes and return package bump recommendations.
 - `monochange_validate_changeset` — check one changeset against the current semantic diff.
 
 Prefer MCP tools when the caller needs structured data and the shell when you need to run the exact repository workflow that maintainers use locally or in CI.

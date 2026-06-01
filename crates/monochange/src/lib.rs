@@ -60,6 +60,12 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use analyze::render_analyze_report;
+use change_classify::parse_api_diff_options;
+use change_classify::parse_api_snapshot_options;
+use change_classify::parse_change_classify_options;
+use change_classify::parse_changeset_validate_api_options;
+use change_classify::render_change_classification;
+use change_classify::render_changeset_api_validation;
 pub(crate) use monochange_changelog::ChangelogBuildContext;
 pub(crate) use monochange_changelog::build_changelog_updates;
 #[cfg(test)]
@@ -299,6 +305,7 @@ pub(crate) fn synthetic_step_command_definition(
 }
 
 mod analyze;
+mod change_classify;
 mod changeset_policy;
 mod changesets;
 mod cli;
@@ -878,6 +885,22 @@ where
 	if help_command_requested(&args) {
 		let cli = cli_commands_for_root(root);
 		return Ok(render_help_command(bin_name, &args, &cli));
+	}
+	if let Some(classify_options) = parse_change_classify_options(&args)? {
+		let output = render_change_classification(root, &classify_options)?;
+		return Ok(output);
+	}
+	if let Some(api_options) = parse_api_diff_options(&args)? {
+		let output = render_change_classification(root, &api_options)?;
+		return Ok(output);
+	}
+	if let Some(api_options) = parse_api_snapshot_options(&args)? {
+		let output = render_change_classification(root, &api_options)?;
+		return Ok(output);
+	}
+	if let Some(validate_options) = parse_changeset_validate_api_options(&args)? {
+		let output = render_changeset_api_validation(root, &validate_options)?;
+		return Ok(output);
 	}
 	// Fast path: parse config-free command shapes before any workspace loading.
 	// This keeps version and root help responsive even in repositories with costly
