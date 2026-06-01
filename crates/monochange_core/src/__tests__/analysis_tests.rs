@@ -126,3 +126,68 @@ fn api_snapshot_diff_classifies_removed_added_and_modified_items() {
 			.any(|change| change.kind == ApiChangeKind::Modified)
 	);
 }
+
+#[test]
+fn diff_api_snapshots_reports_added_removed_modified_and_warnings() {
+	let before = ApiSnapshot::new(
+		"core",
+		"core",
+		Ecosystem::Cargo,
+		"cargo/public-api",
+		vec![
+			ApiItem::new(
+				"function",
+				"crate::removed",
+				Some("pub fn removed()".to_string()),
+			),
+			ApiItem::new(
+				"function",
+				"crate::changed",
+				Some("pub fn changed()".to_string()),
+			),
+			ApiItem::new("function", "crate::same", Some("pub fn same()".to_string())),
+		],
+		vec!["before warning".to_string()],
+	);
+	let after = ApiSnapshot::new(
+		"core",
+		"core",
+		Ecosystem::Cargo,
+		"cargo/public-api",
+		vec![
+			ApiItem::new(
+				"function",
+				"crate::added",
+				Some("pub fn added()".to_string()),
+			),
+			ApiItem::new(
+				"function",
+				"crate::changed",
+				Some("pub fn changed(value: u8)".to_string()),
+			),
+			ApiItem::new("function", "crate::same", Some("pub fn same()".to_string())),
+		],
+		vec!["after warning".to_string()],
+	);
+
+	let diff = diff_api_snapshots(&before, &after);
+
+	assert_eq!(diff.suggested_bump, BumpSeverity::Major);
+	assert_eq!(diff.changes.len(), 3);
+	assert!(
+		diff.changes
+			.iter()
+			.any(|change| change.summary.contains("added"))
+	);
+	assert!(
+		diff.changes
+			.iter()
+			.any(|change| change.summary.contains("removed"))
+	);
+	assert!(
+		diff.changes
+			.iter()
+			.any(|change| change.summary.contains("changed"))
+	);
+	assert_eq!(diff.warnings, vec!["before warning", "after warning"]);
+}

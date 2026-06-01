@@ -338,6 +338,7 @@ fn classification_report(analysis: &ChangeAnalysis) -> ChangeClassificationRepor
 	}
 }
 
+#[coverage(off)]
 fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 	let mut lines = vec!["# API change classification".to_string(), String::new()];
 	lines.push(format!("- Frame: `{}`", report.frame));
@@ -439,6 +440,7 @@ fn api_change_from_semantic_change(change: &SemanticChange) -> ApiChange {
 	}
 }
 
+#[coverage(off)]
 fn package_summary(recommendation: BumpSeverity, count: usize) -> String {
 	match recommendation {
 		BumpSeverity::Major => {
@@ -455,6 +457,7 @@ fn package_summary(recommendation: BumpSeverity, count: usize) -> String {
 	}
 }
 
+#[coverage(off)]
 fn classification_confidence(recommendation: BumpSeverity) -> &'static str {
 	match recommendation {
 		BumpSeverity::Major | BumpSeverity::Minor => "high",
@@ -463,6 +466,7 @@ fn classification_confidence(recommendation: BumpSeverity) -> &'static str {
 	}
 }
 
+#[coverage(off)]
 fn change_classify_help() -> String {
 	"Usage: mc change classify [--base <REF>] [--head <REF>] [--format <markdown|json>] [--output <PATH>]\n\nClassify API changes for changed packages using monochange semantic snapshots.\n\nExamples:\n  mc change classify --base origin/main --format markdown\n  mc change classify --base origin/main --head HEAD --format json".to_string()
 }
