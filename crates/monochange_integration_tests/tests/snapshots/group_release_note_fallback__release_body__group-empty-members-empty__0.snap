@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/group_release_note_fallback.rs
+expression: body
+---
+Release target `sdk`
+
+Members: core, app
+
+- prepare release

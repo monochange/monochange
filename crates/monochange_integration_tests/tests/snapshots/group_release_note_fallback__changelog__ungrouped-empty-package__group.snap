@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/group_release_note_fallback.rs
+expression: contents
+---
+# Changelog
