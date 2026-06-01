@@ -107,10 +107,10 @@ jobs:
       - name: install cargo-mutants
         run: |
           set -euo pipefail
-          if ! devenv shell -- command -v cargo-mutants >/dev/null 2>&1; then
-            devenv shell -- cargo binstall cargo-mutants --no-confirm || devenv shell -- cargo install cargo-mutants --locked
+          if ! devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; command -v cargo-mutants >/dev/null'; then
+            devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; cargo binstall cargo-mutants --no-confirm || cargo install cargo-mutants --locked'
           fi
-          devenv shell -- cargo mutants --version
+          devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; cargo mutants --version'
 
       - name: run mutation testing for ${{ matrix.crate }}
         id: run-mutants
@@ -123,7 +123,7 @@ jobs:
           mkdir -p "$(dirname "$report_dir")"
 
           status=0
-          devenv shell -- cargo mutants \
+          devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; cargo mutants "$@"' cargo-mutants \
             -p "$MUTATION_CRATE" \
             --no-shuffle \
             --minimum-test-timeout 60 \
