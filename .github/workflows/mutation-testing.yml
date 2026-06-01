@@ -107,11 +107,10 @@ jobs:
       - name: install cargo-mutants
         run: |
           set -euo pipefail
-          if ! command -v cargo-mutants >/dev/null 2>&1; then
-            cargo binstall cargo-mutants --no-confirm || cargo install cargo-mutants --locked
+          if ! devenv shell -- command -v cargo-mutants >/dev/null 2>&1; then
+            devenv shell -- cargo binstall cargo-mutants --no-confirm || devenv shell -- cargo install cargo-mutants --locked
           fi
-          cargo mutants --version
-        shell: devenv shell -- bash -e {0}
+          devenv shell -- cargo mutants --version
 
       - name: run mutation testing for ${{ matrix.crate }}
         id: run-mutants
@@ -124,14 +123,13 @@ jobs:
           mkdir -p "$(dirname "$report_dir")"
 
           status=0
-          cargo mutants \
+          devenv shell -- cargo mutants \
             -p "$MUTATION_CRATE" \
             --no-shuffle \
             --minimum-test-timeout 60 \
             --output "$report_dir" || status=$?
 
           echo "status=$status" >> "$GITHUB_OUTPUT"
-        shell: devenv shell -- bash -e {0}
         timeout-minutes: 90
 
       - name: upload mutants report
@@ -212,4 +210,3 @@ jobs:
             echo "::error::cargo-mutants exited with status $status without reporting missed or timed-out mutants"
             exit "$status"
           fi
-        shell: devenv shell -- bash -e {0}
