@@ -8,7 +8,6 @@ use semver::Version;
 use serde_json::json;
 use tempfile::tempdir;
 
-use crate::AutoDiscoverIdFrom;
 use crate::AutoDiscoverPackageDefaults;
 use crate::AutoDiscoverSettings;
 use crate::BumpSeverity;
@@ -3772,31 +3771,6 @@ fn generated_release_steps_report_always_run_flag() {
 }
 
 #[test]
-fn auto_discover_id_from_defaults_to_name() {
-	let default = AutoDiscoverIdFrom::default();
-	assert_eq!(default, AutoDiscoverIdFrom::Name);
-}
-
-#[test]
-fn auto_discover_id_from_round_trip() -> Result<(), serde_json::Error> {
-	let original = AutoDiscoverIdFrom::Path;
-	let json = serde_json::to_string(&original)?;
-	assert_eq!(json, "\"path\"");
-	let round_tripped: AutoDiscoverIdFrom = serde_json::from_str(&json)?;
-	assert_eq!(original, round_tripped);
-	Ok(())
-}
-
-#[test]
-fn auto_discover_id_from_deserializes_snake_case() -> Result<(), serde_json::Error> {
-	let name: AutoDiscoverIdFrom = serde_json::from_str("\"name\"")?;
-	assert_eq!(name, AutoDiscoverIdFrom::Name);
-	let path: AutoDiscoverIdFrom = serde_json::from_str("\"path\"")?;
-	assert_eq!(path, AutoDiscoverIdFrom::Path);
-	Ok(())
-}
-
-#[test]
 fn auto_discover_package_defaults_all_none() {
 	let defaults = AutoDiscoverPackageDefaults::default();
 	assert!(defaults.tag.is_none());
@@ -3831,7 +3805,7 @@ fn auto_discover_settings_round_trip() -> Result<(), serde_json::Error> {
 	let settings = AutoDiscoverSettings {
 		include: vec!["packages/*".to_string()],
 		exclude: vec!["packages/internal/*".to_string()],
-		id_from: AutoDiscoverIdFrom::Name,
+		id: "cargo:{{ name }}".to_string(),
 		defaults: AutoDiscoverPackageDefaults::default(),
 	};
 	let json = serde_json::to_string(&settings)?;
@@ -3846,7 +3820,7 @@ fn auto_discover_settings_defaults() -> Result<(), serde_json::Error> {
 	let settings: AutoDiscoverSettings = serde_json::from_str(json)?;
 	assert_eq!(settings.include, vec!["src/**"]);
 	assert!(settings.exclude.is_empty());
-	assert_eq!(settings.id_from, AutoDiscoverIdFrom::Name);
+	assert_eq!(settings.id, crate::default_auto_discover_id());
 	assert_eq!(settings.defaults, AutoDiscoverPackageDefaults::default());
 	Ok(())
 }
@@ -3865,7 +3839,7 @@ fn ecosystem_settings_with_auto_discover_round_trip() -> Result<(), serde_json::
 		auto_discover: Some(AutoDiscoverSettings {
 			include: vec!["packages/*".to_string()],
 			exclude: vec![],
-			id_from: AutoDiscoverIdFrom::Path,
+			id: "{{ path }}".to_string(),
 			defaults: AutoDiscoverPackageDefaults {
 				tag: Some(true),
 				release: None,

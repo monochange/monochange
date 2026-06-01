@@ -479,9 +479,8 @@ version_format = "primary"
 #
 #     auto_discover.include — glob patterns for directories to scan (required)
 #     auto_discover.exclude — glob patterns to skip within included paths (optional)
-#     auto_discover.id_from — how to derive the package id (default: "name")
-#                           "name" reads the manifest name field,
-#                           "path" uses the directory name
+#     auto_discover.id — package id template (default: "{{ name }}")
+#                        variables: name, path, sanitizedPath, manifest, ecosystem
 #     auto_discover.defaults — package-level defaults for all discovered packages
 #                           tag — override the default tag setting (optional)
 #                           release — override the default release setting (optional)

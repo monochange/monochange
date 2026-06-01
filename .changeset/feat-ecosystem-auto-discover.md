@@ -1,6 +1,8 @@
 ---
+monochange: minor
 monochange_core: minor
 monochange_config: minor
+monochange_schema: patch
 ---
 
 # Add `auto_discover` to ecosystem configuration
@@ -24,7 +26,7 @@ The `auto_discover` table supports:
 
 - `include` (required): glob patterns for directories to scan
 - `exclude`: glob patterns to skip within included paths
-- `id_from`: `"name"` (default) reads the manifest name field, `"path"` uses the directory name
+- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitizedPath`, `manifest`, and `ecosystem` variables
 - `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)
 
 Precedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`

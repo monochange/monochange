@@ -1994,15 +1994,6 @@ pub struct EcosystemSettings {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum AutoDiscoverIdFrom {
-	#[default]
-	Name,
-	Path,
-}
-
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct AutoDiscoverPackageDefaults {
 	#[serde(default)]
@@ -2016,6 +2007,11 @@ pub struct AutoDiscoverPackageDefaults {
 	pub version_format: Option<VersionFormat>,
 }
 
+#[must_use]
+pub fn default_auto_discover_id() -> String {
+	"{{ name }}".to_string()
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct AutoDiscoverSettings {
@@ -2023,8 +2019,8 @@ pub struct AutoDiscoverSettings {
 	pub include: Vec<String>,
 	#[serde(default)]
 	pub exclude: Vec<String>,
-	#[serde(default)]
-	pub id_from: AutoDiscoverIdFrom,
+	#[serde(default = "default_auto_discover_id")]
+	pub id: String,
 	#[serde(default)]
 	pub defaults: AutoDiscoverPackageDefaults,
 }
@@ -2036,7 +2032,7 @@ pub struct AutoDiscoverSettings {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DiscoveredPackage {
-	/// The package identifier, derived from the manifest `name` field or directory name.
+	/// The package identifier, derived from the auto-discover `id` template.
 	pub id: String,
 	/// The path to the package directory, relative to the workspace root.
 	pub path: PathBuf,

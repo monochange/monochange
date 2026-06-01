@@ -1737,7 +1737,7 @@
 					},
 					"type": "array"
 				},
-				"id_from": {
+				"id": {
 					"default": null,
 					"type": [
 						"string",

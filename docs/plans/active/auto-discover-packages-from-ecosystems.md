@@ -35,11 +35,11 @@ tag = true
 [ecosystems.cargo]
 # include: glob patterns for directories to scan (required)
 # exclude: glob patterns to skip within included paths (optional)
-# id_from: how to derive the package id (default: "name" → manifest name field)
+# id: optional package id template (default: "{{ name }}")
 # defaults: package-level defaults for all auto-discovered packages (optional)
 auto_discover = { include = ["crates/*"] }
 auto_discover = { include = ["crates/*"], exclude = ["crates/monochange_test_helpers"] }
-auto_discover = { include = ["crates/*"], id_from = "path" }
+auto_discover = { include = ["crates/*"], id = "cargo:{{ name }}" }
 auto_discover = { include = ["crates/*"], defaults = { tag = true } }
 ```
 
@@ -51,14 +51,15 @@ auto_discover = { include = ["crates/*"], defaults = { tag = true } }
 
 When a package is both auto-discovered and explicitly declared, the explicit `[package.*]` entry wins for every field it sets. Fields not set in the explicit entry fall back to `ecosystem auto_discover.defaults`, then `[defaults]`.
 
-### id_from modes
+### id templates
 
-| Mode               | Behavior                                                                                                   |
-| ------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `"name"` (default) | Use the `name` field from the manifest (e.g. `package.json` → `"@scope/pkg"`, `Cargo.toml` → `"my-crate"`) |
-| `"path"`           | Use the directory name as the package id (e.g. `crates/my-crate` → `"my-crate"`)                           |
+| Template             | Behavior                                                                                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| `"{{ name }}"`       | Use the manifest package name, falling back to the discovered directory basename when no name exists. |
+| `"cargo:{{ name }}"` | Prefix IDs when multiple ecosystems can contain packages with the same manifest name.                 |
+| `"{{ path }}"`       | Use the package directory path relative to the workspace root.                                        |
 
-The `"name"` default means auto-discovered packages use the same canonical id that ecosystem tooling already knows. The `"path"` mode is useful when manifest names are scoped (e.g. `@monochange/cli`) but you want a simpler local id.
+The `{{ name }}` default means auto-discovered packages use the same canonical id that ecosystem tooling already knows. Custom templates are useful when multiple ecosystems can share package names or when a workspace wants path-derived IDs.
 
 ### Conflict handling
 
@@ -80,9 +81,9 @@ The `"name"` default means auto-discovered packages use the same canonical id th
 1. **Add `RawAutoDiscoverSettings` in `monochange_config`**:
    ```rust
    pub(crate) struct RawAutoDiscoverSettings {
-   	include: Vec<String>,    // glob patterns
-   	exclude: Vec<String>,    // glob patterns to skip
-   	id_from: Option<String>, // "name" (default) or "path"
+   	include: Vec<String>, // glob patterns
+   	exclude: Vec<String>, // glob patterns to skip
+   	id: Option<String>,   // template, default: "{{ name }}"
    	defaults: Option<RawAutoDiscoverPackageDefaults>,
    }
    ```
@@ -110,7 +111,7 @@ The `"name"` default means auto-discovered packages use the same canonical id th
 5. **Implement `discover_packages_from_ecosystem()`** in `monochange_config`**:
    - Walk directories matching `include` globs, skip `exclude` globs
    - For each matching directory, look for the ecosystem's manifest file (Cargo.toml, package.json, pubspec.yaml, etc.)
-   - Parse the manifest `name` field (or use directory name for `id_from = "path"`)
+   - Render the package ID template from manifest and path context
    - Return a list of `(id, path, ecosystem_type)` tuples
 
 6. **Merge auto-discovered packages into the package map**:

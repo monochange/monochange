@@ -5,7 +5,6 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use miette::LabeledSpan;
-use monochange_core::AutoDiscoverIdFrom;
 use monochange_core::AutoDiscoverPackageDefaults;
 use monochange_core::AutoDiscoverSettings;
 use monochange_core::BumpSeverity;
@@ -7627,7 +7626,7 @@ fn discover_packages_from_ecosystem_finds_cargo_packages() {
 	let auto_discover = AutoDiscoverSettings {
 		include: vec!["crates/*".to_string()],
 		exclude: vec![],
-		id_from: AutoDiscoverIdFrom::Name,
+		id: monochange_core::default_auto_discover_id(),
 		defaults: AutoDiscoverPackageDefaults::default(),
 	};
 
@@ -7645,7 +7644,7 @@ fn discover_packages_from_ecosystem_finds_cargo_packages() {
 }
 
 #[test]
-fn discover_packages_from_ecosystem_uses_path_id_from() {
+fn discover_packages_from_ecosystem_uses_custom_path_id_template() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let pkg_dir = tempdir.path().join("packages").join("my-app");
 	std::fs::create_dir_all(&pkg_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
@@ -7658,7 +7657,7 @@ fn discover_packages_from_ecosystem_uses_path_id_from() {
 	let auto_discover = AutoDiscoverSettings {
 		include: vec!["packages/*".to_string()],
 		exclude: vec![],
-		id_from: AutoDiscoverIdFrom::Path,
+		id: "{{ path }}".to_string(),
 		defaults: AutoDiscoverPackageDefaults::default(),
 	};
 
@@ -7667,7 +7666,7 @@ fn discover_packages_from_ecosystem_uses_path_id_from() {
 			.unwrap_or_else(|error| panic!("discover_packages: {error}"));
 
 	assert_eq!(discovered.len(), 1);
-	assert_eq!(discovered[0].id, "my-app");
+	assert_eq!(discovered[0].id, "packages/my-app");
 }
 
 #[test]
@@ -7692,7 +7691,7 @@ fn discover_packages_from_ecosystem_respects_exclude_patterns() {
 	let auto_discover = AutoDiscoverSettings {
 		include: vec!["crates/*".to_string()],
 		exclude: vec!["crates/utils".to_string()],
-		id_from: AutoDiscoverIdFrom::Name,
+		id: monochange_core::default_auto_discover_id(),
 		defaults: AutoDiscoverPackageDefaults::default(),
 	};
 
@@ -7712,43 +7711,39 @@ fn normalize_auto_discover_settings_defaults_to_name() {
 	let raw = crate::RawAutoDiscoverSettings {
 		include: vec!["crates/*".to_string()],
 		exclude: vec![],
-		id_from: None,
+		id: None,
 		defaults: None,
 	};
-	let result = crate::normalize_auto_discover_settings(Some(raw), "", "");
-	assert!(result.is_ok());
-	let settings = result.unwrap().unwrap();
-	assert_eq!(settings.id_from, AutoDiscoverIdFrom::Name);
+	let settings = crate::normalize_auto_discover_settings(Some(raw))
+		.unwrap_or_else(|| panic!("missing settings"));
+	assert_eq!(settings.id, monochange_core::default_auto_discover_id());
 	assert!(!settings.include.is_empty());
 }
 
 #[test]
-fn normalize_auto_discover_settings_rejects_invalid_id_from() {
+fn normalize_auto_discover_settings_preserves_custom_id_template() {
 	let raw = crate::RawAutoDiscoverSettings {
 		include: vec!["crates/*".to_string()],
 		exclude: vec![],
-		id_from: Some("invalid".to_string()),
+		id: Some("cargo:{{ name }}".to_string()),
 		defaults: None,
 	};
-	let result = crate::normalize_auto_discover_settings(Some(raw), "", "cargo");
-	assert!(result.is_err());
-	let err = result.unwrap_err();
-	assert!(err.to_string().contains("invalid `id_from`"));
-	assert!(err.to_string().contains("cargo"));
+	let settings = crate::normalize_auto_discover_settings(Some(raw))
+		.unwrap_or_else(|| panic!("missing settings"));
+	assert_eq!(settings.id, "cargo:{{ name }}");
 }
 
 #[test]
-fn normalize_auto_discover_settings_parses_explicit_id_from_path() {
+fn normalize_auto_discover_settings_parses_explicit_path_id_template() {
 	let raw = crate::RawAutoDiscoverSettings {
 		include: vec!["packages/*".to_string()],
 		exclude: vec![],
-		id_from: Some("path".to_string()),
+		id: Some("{{ path }}".to_string()),
 		defaults: None,
 	};
-	let result = crate::normalize_auto_discover_settings(Some(raw), "", "npm");
-	assert!(result.is_ok());
-	let settings = result.unwrap().unwrap();
-	assert_eq!(settings.id_from, AutoDiscoverIdFrom::Path);
+	let settings = crate::normalize_auto_discover_settings(Some(raw))
+		.unwrap_or_else(|| panic!("missing settings"));
+	assert_eq!(settings.id, "{{ path }}");
 }
 
 #[test]
@@ -7756,16 +7751,15 @@ fn normalize_auto_discover_settings_converts_defaults() {
 	let raw = crate::RawAutoDiscoverSettings {
 		include: vec!["packages/*".to_string()],
 		exclude: vec![],
-		id_from: None,
+		id: None,
 		defaults: Some(crate::RawAutoDiscoverPackageDefaults {
 			tag: Some(false),
 			release: None,
 			version_format: Some(monochange_core::VersionFormat::Primary),
 		}),
 	};
-	let result = crate::normalize_auto_discover_settings(Some(raw), "", "npm");
-	assert!(result.is_ok());
-	let settings = result.unwrap().unwrap();
+	let settings = crate::normalize_auto_discover_settings(Some(raw))
+		.unwrap_or_else(|| panic!("missing settings"));
 	assert_eq!(settings.defaults.tag, Some(false));
 	assert_eq!(settings.defaults.release, None);
 	assert_eq!(
@@ -7785,7 +7779,7 @@ fn discover_packages_from_ecosystem_falls_back_to_path_id_when_name_is_missing()
 	let auto_discover = AutoDiscoverSettings {
 		include: vec!["services/*".to_string()],
 		exclude: vec![],
-		id_from: AutoDiscoverIdFrom::Name,
+		id: monochange_core::default_auto_discover_id(),
 		defaults: AutoDiscoverPackageDefaults::default(),
 	};
 
@@ -7962,6 +7956,18 @@ fn auto_discover_manifest_name_helpers_cover_comments_and_missing_values() {
 		crate::extract_manifest_name("version: 1.0.0\nname: too-late\n", EcosystemType::Dart),
 		None
 	);
+	assert_eq!(
+		crate::render_auto_discover_id(
+			"{{ ecosystem }}:{{ name }}:{{ path }}:{{ sanitizedPath }}:{{ manifest }}",
+			"core-lib",
+			Path::new("crates/core lib"),
+			Path::new("crates/core lib/Cargo.toml"),
+			EcosystemType::Cargo,
+		),
+		"cargo:core-lib:crates/core lib:crates__core_lib:crates/core lib/Cargo.toml"
+	);
+	assert_eq!(crate::ecosystem_name(EcosystemType::Dart), "dart");
+	assert_eq!(crate::ecosystem_name(EcosystemType::Python), "python");
 }
 
 #[test]
@@ -7971,7 +7977,7 @@ fn discover_packages_from_ecosystem_handles_empty_and_duplicate_manifest_cases()
 	let empty_settings = AutoDiscoverSettings {
 		include: vec!["[".to_string()],
 		exclude: vec![],
-		id_from: AutoDiscoverIdFrom::Name,
+		id: monochange_core::default_auto_discover_id(),
 		defaults: AutoDiscoverPackageDefaults::default(),
 	};
 	let empty =
@@ -7996,7 +8002,7 @@ fn discover_packages_from_ecosystem_handles_empty_and_duplicate_manifest_cases()
 	let deno_settings = AutoDiscoverSettings {
 		include: vec!["apps/*".to_string(), "apps/edge".to_string()],
 		exclude: vec![],
-		id_from: AutoDiscoverIdFrom::Name,
+		id: monochange_core::default_auto_discover_id(),
 		defaults: AutoDiscoverPackageDefaults::default(),
 	};
 
@@ -8033,7 +8039,7 @@ fn discover_packages_from_ecosystem_reports_manifest_read_errors() {
 	let settings = AutoDiscoverSettings {
 		include: vec!["crates/*".to_string()],
 		exclude: vec![],
-		id_from: AutoDiscoverIdFrom::Name,
+		id: monochange_core::default_auto_discover_id(),
 		defaults: AutoDiscoverPackageDefaults::default(),
 	};
 	let error =

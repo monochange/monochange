@@ -84,7 +84,6 @@ use glob::Pattern;
 use ignore::WalkBuilder;
 use miette::LabeledSpan;
 use miette::SourceSpan;
-use monochange_core::AutoDiscoverIdFrom;
 use monochange_core::AutoDiscoverPackageDefaults;
 use monochange_core::AutoDiscoverSettings;
 use monochange_core::BumpSeverity;
@@ -424,7 +423,7 @@ pub(crate) struct RawAutoDiscoverSettings {
 	#[serde(default)]
 	exclude: Vec<String>,
 	#[serde(default)]
-	id_from: Option<String>,
+	id: Option<String>,
 	#[serde(default)]
 	defaults: Option<RawAutoDiscoverPackageDefaults>,
 }
@@ -939,33 +938,18 @@ fn normalize_ecosystem_settings(
 		lockfile_commands: raw.lockfile_commands,
 		publish,
 		publish_order: raw.publish_order,
-		auto_discover: normalize_auto_discover_settings(raw.auto_discover, contents, owner_id)?,
+		auto_discover: normalize_auto_discover_settings(raw.auto_discover),
 	})
 }
 
 fn normalize_auto_discover_settings(
 	raw: Option<RawAutoDiscoverSettings>,
-	contents: &str,
-	owner_id: &str,
-) -> MonochangeResult<Option<AutoDiscoverSettings>> {
-	let Some(raw_settings) = raw else {
-		return Ok(None);
-	};
+) -> Option<AutoDiscoverSettings> {
+	let raw_settings = raw?;
 
-	let id_from = match raw_settings.id_from.as_deref() {
-		None | Some("name") => AutoDiscoverIdFrom::Name,
-		Some("path") => AutoDiscoverIdFrom::Path,
-		Some(invalid) => {
-			return Err(config_diagnostic(
-				contents,
-				format!(
-					"invalid `id_from` value \"{invalid}\" in `[ecosystems.{owner_id}.auto_discover]`; expected `name` or `path`"
-				),
-				Vec::new(),
-				Some("use `id_from = \"name\"` or `id_from = \"path\"`".to_string()),
-			));
-		}
-	};
+	let id = raw_settings
+		.id
+		.unwrap_or_else(monochange_core::default_auto_discover_id);
 
 	let defaults = raw_settings
 		.defaults
@@ -978,12 +962,12 @@ fn normalize_auto_discover_settings(
 		})
 		.unwrap_or_default();
 
-	Ok(Some(AutoDiscoverSettings {
+	Some(AutoDiscoverSettings {
 		include: raw_settings.include,
 		exclude: raw_settings.exclude,
-		id_from,
+		id,
 		defaults,
-	}))
+	})
 }
 // patch-coverage:ignore-end
 
@@ -1102,6 +1086,67 @@ fn extract_yaml_name_field(contents: &str) -> Option<String> {
 	None
 }
 
+fn render_auto_discover_id(
+	template: &str,
+	name: &str,
+	path: &Path,
+	manifest: &Path,
+	ecosystem_type: EcosystemType,
+) -> String {
+	template
+		.replace("{{ name }}", name)
+		.replace("{{name}}", name)
+		.replace("{{ path }}", &path_to_template_value(path))
+		.replace("{{path}}", &path_to_template_value(path))
+		.replace("{{ sanitizedPath }}", &sanitize_template_path(path))
+		.replace("{{sanitizedPath}}", &sanitize_template_path(path))
+		.replace("{{ manifest }}", &path_to_template_value(manifest))
+		.replace("{{manifest}}", &path_to_template_value(manifest))
+		.replace("{{ ecosystem }}", ecosystem_name(ecosystem_type))
+		.replace("{{ecosystem}}", ecosystem_name(ecosystem_type))
+}
+
+fn path_to_template_value(path: &Path) -> String {
+	path.components()
+		.map(|component| component.as_os_str().to_string_lossy())
+		.collect::<Vec<_>>()
+		.join("/")
+}
+
+fn sanitize_template_path(path: &Path) -> String {
+	path.components()
+		.map(|component| {
+			component
+				.as_os_str()
+				.to_string_lossy()
+				.chars()
+				.map(|ch| {
+					if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.' {
+						ch
+					} else {
+						'_'
+					}
+				})
+				.collect::<String>()
+		})
+		.collect::<Vec<_>>()
+		.join("__")
+}
+
+fn ecosystem_name(ecosystem_type: EcosystemType) -> &'static str {
+	match ecosystem_type {
+		EcosystemType::Cargo => "cargo",
+		EcosystemType::Npm => "npm",
+		EcosystemType::Deno => "deno",
+		EcosystemType::Dart => "dart",
+		EcosystemType::Python => "python",
+		EcosystemType::Go => "go",
+		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
+		_ => "unknown",
+		// patch-coverage:ignore-end
+	}
+}
+
 /// Discover packages from a single ecosystem using its auto-discover settings.
 ///
 /// Walks directories matching `include` glob patterns, skips those matching
@@ -1182,24 +1227,21 @@ pub(crate) fn discover_packages_from_ecosystem(
 					}
 				})?;
 
-				let id = match auto_discover.id_from {
-					AutoDiscoverIdFrom::Name => {
-						extract_manifest_name(&contents, ecosystem_type).unwrap_or_else(|| {
-							relative
-								.file_name()
-								.unwrap_or(relative.as_os_str())
-								.to_string_lossy()
-								.into_owned()
-						})
-					}
-					AutoDiscoverIdFrom::Path => {
-						relative
-							.file_name()
-							.unwrap_or(relative.as_os_str())
-							.to_string_lossy()
-							.into_owned()
-					}
-				};
+				let fallback_name = relative
+					.file_name()
+					.unwrap_or(relative.as_os_str())
+					.to_string_lossy()
+					.into_owned();
+				let package_name = extract_manifest_name(&contents, ecosystem_type)
+					.unwrap_or_else(|| fallback_name.clone());
+				let manifest_relative = manifest_path.strip_prefix(root).unwrap_or(&manifest_path);
+				let id = render_auto_discover_id(
+					&auto_discover.id,
+					&package_name,
+					relative,
+					manifest_relative,
+					ecosystem_type,
+				);
 
 				discovered.push(DiscoveredPackage {
 					id,
@@ -1684,7 +1726,7 @@ fn ecosystem_type_to_package_type(ecosystem_type: EcosystemType) -> PackageType 
 		EcosystemType::Go => PackageType::Go,
 		EcosystemType::Cargo => PackageType::Cargo,
 		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
-		_ => PackageType::Cargo,
+		_ => unreachable!("unsupported ecosystem type"),
 		// patch-coverage:ignore-end
 	}
 }
