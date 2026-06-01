@@ -10,6 +10,8 @@ Provider API clients now set explicit connection and request timeouts so release
 
 External command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.
 
+CLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.
+
 Discovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.
 
 Python discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.

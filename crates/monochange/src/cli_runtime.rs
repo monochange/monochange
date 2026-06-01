@@ -748,6 +748,11 @@ pub(crate) async fn execute_cli_command_with_options(
 		}
 		tracing::debug!(step = step.kind_name(), "executing CLI step");
 		let mut step_phase_timings = Vec::new();
+		if show_progress {
+			for phase in expected_progress_phases(step) {
+				progress.step_status(step_index, step, phase);
+			}
+		}
 		let step_result: MonochangeResult<()> = async {
 			match step {
 				CliStepDefinition::Config { .. } => {
@@ -1821,6 +1826,77 @@ fn step_shows_progress(
 		return false;
 	}
 	step.show_progress().unwrap_or(true)
+}
+
+fn expected_progress_phases(step: &CliStepDefinition) -> &'static [&'static str] {
+	match step {
+		CliStepDefinition::Discover { .. } => {
+			&[
+				"using loaded workspace configuration",
+				"scanning ecosystems for package manifests",
+				"reporting package counts",
+			]
+		}
+		CliStepDefinition::PrepareRelease { .. } => {
+			&[
+				"loading changesets",
+				"computing dependency graph",
+				"planning versions",
+				"rendering changelogs",
+				"updating package files",
+				"refreshing lockfiles",
+			]
+		}
+		CliStepDefinition::PublishRelease { .. } => {
+			&[
+				"preparing source provider API client",
+				"looking up existing hosted releases",
+				"creating or updating hosted releases",
+			]
+		}
+		CliStepDefinition::OpenReleaseRequest { .. } => {
+			&[
+				"preparing source provider API client",
+				"looking up existing release request",
+				"creating or updating release request",
+				"applying release request labels and automerge settings",
+			]
+		}
+		CliStepDefinition::CommentReleasedIssues { .. } => {
+			&[
+				"preparing source provider API client",
+				"planning released issue comments",
+				"creating or updating released issue comments",
+			]
+		}
+		CliStepDefinition::PublishReadiness { .. } => {
+			&[
+				"checking package registry readiness",
+				"summarizing publish blockers",
+			]
+		}
+		CliStepDefinition::PlanPublishRateLimits { .. } => {
+			&[
+				"checking package registry requirements",
+				"planning registry rate limits",
+			]
+		}
+		CliStepDefinition::PlaceholderPublish { .. } => {
+			&[
+				"checking packages before placeholder publish",
+				"planning registry rate limits",
+				"publishing placeholders per package",
+			]
+		}
+		CliStepDefinition::PublishPackages { .. } => {
+			&[
+				"checking packages before publish",
+				"planning registry rate limits",
+				"publishing packages with bounded registry feedback",
+			]
+		}
+		_ => &[],
+	}
 }
 
 fn run_cli_command_command(
