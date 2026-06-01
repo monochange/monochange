@@ -112,17 +112,16 @@ jobs:
 
       - name: run mutation testing for ${{ matrix.crate }}
         id: run-mutants
-        env:
-          MUTATION_CRATE: ${{ matrix.crate }}
         run: |
           set -euo pipefail
 
-          report_dir="mutants-report/$MUTATION_CRATE"
+          mutation_crate='${{ matrix.crate }}'
+          report_dir="mutants-report/$mutation_crate"
           mkdir -p "$(dirname "$report_dir")"
 
           status=0
           devenv shell -- bash -lc 'export PATH="$HOME/.cargo/bin:$PATH"; cargo mutants "$@"' cargo-mutants \
-            -p "$MUTATION_CRATE" \
+            -p "$mutation_crate" \
             --no-shuffle \
             --minimum-test-timeout 60 \
             --output "$report_dir" || status=$?
@@ -141,22 +140,19 @@ jobs:
 
       - name: summarize and enforce mutation results
         if: always()
-        env:
-          FAIL_ON_MISSED: ${{ github.event.inputs.fail_on_missed || 'true' }}
-          MUTATION_CRATE: ${{ matrix.crate }}
-          MUTATION_PROFILE: ${{ needs.discover-crates.outputs.profile }}
-          MUTATION_STATUS: ${{ steps.run-mutants.outputs.status || '1' }}
         run: |
           set -euo pipefail
 
-          report_dir="mutants-report/$MUTATION_CRATE"
-          status="$MUTATION_STATUS"
-          fail_on_missed="$FAIL_ON_MISSED"
+          mutation_crate='${{ matrix.crate }}'
+          mutation_profile='${{ needs.discover-crates.outputs.profile }}'
+          report_dir="mutants-report/$mutation_crate"
+          status='${{ steps.run-mutants.outputs.status || '1' }}'
+          fail_on_missed='${{ github.event.inputs.fail_on_missed || 'true' }}'
 
           report_data_dir="$report_dir/mutants.out"
 
           if [ ! -d "$report_data_dir" ]; then
-            echo "::error::No mutants report directory found for $MUTATION_CRATE"
+            echo "::error::No mutants report directory found for $mutation_crate"
             exit 1
           fi
 
@@ -175,9 +171,9 @@ jobs:
           unviable=$(count_lines "$report_data_dir/unviable.txt")
 
           {
-            echo "### Mutation testing: $MUTATION_CRATE"
+            echo "### Mutation testing: $mutation_crate"
             echo
-            echo "Profile: \`$MUTATION_PROFILE\`"
+            echo "Profile: \`$mutation_profile\`"
             echo
             echo "| Outcome | Count |"
             echo "| --- | ---: |"
@@ -188,15 +184,15 @@ jobs:
             echo
           } >> "$GITHUB_STEP_SUMMARY"
 
-          echo "Mutation results for $MUTATION_CRATE: caught=$caught missed=$missed timeout=$timeout unviable=$unviable status=$status"
+          echo "Mutation results for $mutation_crate: caught=$caught missed=$missed timeout=$timeout unviable=$unviable status=$status"
 
           if [ "$missed" -gt 0 ]; then
-            echo "::error::${missed} mutants survived in $MUTATION_CRATE"
+            echo "::error::${missed} mutants survived in $mutation_crate"
             head -20 "$report_data_dir/missed.txt" || true
           fi
 
           if [ "$timeout" -gt 0 ]; then
-            echo "::error::${timeout} mutants timed out in $MUTATION_CRATE"
+            echo "::error::${timeout} mutants timed out in $mutation_crate"
             head -20 "$report_data_dir/timeout.txt" || true
           fi
 
