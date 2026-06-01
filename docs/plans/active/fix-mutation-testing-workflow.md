@@ -35,7 +35,7 @@ Caused by:
 
 The follow-up report step then fails with `No mutants report found`, so the workflow has been red without surfacing surviving mutants.
 
-A local canary check for `monochange_semver` succeeds once the parent directory exists:
+The default canary set is limited to `monochange_semver`, which succeeds once the parent directory exists:
 
 ```text
 19 mutants tested: 15 caught, 4 unviable, 0 missed

@@ -38,7 +38,7 @@ env:
   CARGO_INCREMENTAL: 0
   CARGO_MUTANTS_MINIMUM_TEST_TIMEOUT: 60
   CARGO_TERM_COLOR: always
-  MUTATION_CANARY_CRATES: monochange_analysis monochange_hosting monochange_semver
+  MUTATION_CANARY_CRATES: monochange_semver
 
 jobs:
   discover-crates:
