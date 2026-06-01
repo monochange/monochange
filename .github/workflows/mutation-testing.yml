@@ -6,17 +6,39 @@ on:
   workflow_dispatch:
     inputs:
       crate:
-        description: "Specific crate to test (leave blank for all)"
+        description: "Specific crate to test. Overrides profile when set."
         required: false
         default: ""
+      profile:
+        description: "Crate set to test when crate is blank."
+        required: false
+        type: choice
+        default: canary
+        options:
+          - canary
+          - all
       jobs:
         description: "Maximum parallel jobs"
         required: false
-        default: "4"
+        default: "3"
+      fail_on_missed:
+        description: "Fail when cargo-mutants reports missed or timed-out mutants"
+        required: false
+        type: boolean
+        default: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_MUTANTS_MINIMUM_TEST_TIMEOUT: 60
+  CARGO_TERM_COLOR: always
+  MUTATION_CANARY_CRATES: monochange_analysis monochange_hosting monochange_semver
 
 jobs:
   discover-crates:
@@ -24,21 +46,44 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.discover.outputs.matrix }}
+      profile: ${{ steps.discover.outputs.profile }}
     steps:
       - name: checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - id: discover
+        name: discover mutation crate matrix
+        env:
+          REQUESTED_CRATE: ${{ github.event.inputs.crate || '' }}
+          REQUESTED_PROFILE: ${{ github.event.inputs.profile || 'canary' }}
         run: |
-          if [ -n "${{ github.event.inputs.crate }}" ]; then
-            MATRIX=$(jq -n -c --arg crate "${{ github.event.inputs.crate }}" '{crate: [$crate]}')
+          set -euo pipefail
+
+          if [ -n "$REQUESTED_CRATE" ]; then
+            matrix=$(jq -n -c --arg crate "$REQUESTED_CRATE" '{crate: [$crate]}')
+            profile="crate:$REQUESTED_CRATE"
+          elif [ "$REQUESTED_PROFILE" = "all" ]; then
+            matrix=$(cargo metadata --format-version=1 --no-deps 2>/dev/null |
+              jq -c '[.packages[]
+                | select(.source == null)
+                | .name
+                | select(. != "monochange_book")
+                | select(. != "monochange_integration_tests")
+                | select(. != "monochange_test_helpers")
+              ] | {crate: .}')
+            profile="all"
           else
-            # Extract package name from package ID path+file:///.../crate-name#version
-            MATRIX=$(cargo metadata --format-version=1 --no-deps 2>/dev/null | \
-              jq -c '[.workspace_members[] | split("#")[0] | split("/")[-1] | select(. != "docs")] | {crate: .}')
+            matrix=$(printf '%s\n' $MUTATION_CANARY_CRATES |
+              jq -R -s -c 'split("\n") | map(select(length > 0)) | {crate: .}')
+            profile="canary"
           fi
-          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
-          echo "Discovered matrix: $MATRIX"
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "profile=$profile" >> "$GITHUB_OUTPUT"
+          echo "Discovered mutation-testing profile: $profile"
+          echo "Discovered matrix: $matrix"
 
   mutants:
     needs: discover-crates
@@ -46,11 +91,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: ${{ github.event.inputs.jobs || 4 }}
+      max-parallel: ${{ fromJson(github.event.inputs.jobs || '3') }}
       matrix: ${{ fromJson(needs.discover-crates.outputs.matrix) }}
     steps:
       - name: checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: setup
         uses: ./.github/actions/devenv
@@ -58,39 +105,111 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: install cargo-mutants
-        run: cargo install cargo-mutants --locked
+        run: |
+          set -euo pipefail
+          if ! command -v cargo-mutants >/dev/null 2>&1; then
+            cargo binstall cargo-mutants --no-confirm || cargo install cargo-mutants --locked
+          fi
+          cargo mutants --version
         shell: devenv shell -- bash -e {0}
 
       - name: run mutation testing for ${{ matrix.crate }}
+        id: run-mutants
+        env:
+          MUTATION_CRATE: ${{ matrix.crate }}
         run: |
           set -euo pipefail
-          cargo mutants -p "${{ matrix.crate }}" --no-shuffle --output "mutants-report/${{ matrix.crate }}"
+
+          report_dir="mutants-report/$MUTATION_CRATE"
+          mkdir -p "$(dirname "$report_dir")"
+
+          status=0
+          cargo mutants \
+            -p "$MUTATION_CRATE" \
+            --no-shuffle \
+            --minimum-test-timeout 60 \
+            --output "$report_dir" || status=$?
+
+          echo "status=$status" >> "$GITHUB_OUTPUT"
         shell: devenv shell -- bash -e {0}
         timeout-minutes: 90
 
       - name: upload mutants report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: mutants-report-${{ matrix.crate }}
-          path: mutants-report/${{ matrix.crate }}*
+          path: mutants-report/${{ matrix.crate }}/
           retention-days: 30
+          if-no-files-found: warn
 
-      - name: check for missed mutants
+      - name: summarize and enforce mutation results
+        if: always()
+        env:
+          FAIL_ON_MISSED: ${{ github.event.inputs.fail_on_missed || 'true' }}
+          MUTATION_CRATE: ${{ matrix.crate }}
+          MUTATION_PROFILE: ${{ needs.discover-crates.outputs.profile }}
+          MUTATION_STATUS: ${{ steps.run-mutants.outputs.status || '1' }}
         run: |
           set -euo pipefail
-          REPORT="mutants-report/${{ matrix.crate }}/mutants.out"
-          if [ -f "$REPORT" ]; then
-            MISSED=$(grep -c "^MISSED" "$REPORT" || true)
-            echo "Missed mutants for ${{ matrix.crate }}: $MISSED"
-            if [ "$MISSED" -gt 0 ]; then
-              echo "::error::${MISSED} mutants survived in ${{ matrix.crate }}"
-              grep "^MISSED" "$REPORT" | head -20
-              exit 1
-            fi
-          else
-            echo "No mutants report found"
+
+          report_dir="mutants-report/$MUTATION_CRATE"
+          status="$MUTATION_STATUS"
+          fail_on_missed="$FAIL_ON_MISSED"
+
+          report_data_dir="$report_dir/mutants.out"
+
+          if [ ! -d "$report_data_dir" ]; then
+            echo "::error::No mutants report directory found for $MUTATION_CRATE"
             exit 1
           fi
+
+          count_lines() {
+            local file="$1"
+            if [ -f "$file" ]; then
+              grep -cve '^$' "$file" || true
+            else
+              echo 0
+            fi
+          }
+
+          caught=$(count_lines "$report_data_dir/caught.txt")
+          missed=$(count_lines "$report_data_dir/missed.txt")
+          timeout=$(count_lines "$report_data_dir/timeout.txt")
+          unviable=$(count_lines "$report_data_dir/unviable.txt")
+
+          {
+            echo "### Mutation testing: $MUTATION_CRATE"
+            echo
+            echo "Profile: \`$MUTATION_PROFILE\`"
+            echo
+            echo "| Outcome | Count |"
+            echo "| --- | ---: |"
+            echo "| Caught | $caught |"
+            echo "| Missed | $missed |"
+            echo "| Timed out | $timeout |"
+            echo "| Unviable | $unviable |"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Mutation results for $MUTATION_CRATE: caught=$caught missed=$missed timeout=$timeout unviable=$unviable status=$status"
+
+          if [ "$missed" -gt 0 ]; then
+            echo "::error::${missed} mutants survived in $MUTATION_CRATE"
+            head -20 "$report_data_dir/missed.txt" || true
+          fi
+
+          if [ "$timeout" -gt 0 ]; then
+            echo "::error::${timeout} mutants timed out in $MUTATION_CRATE"
+            head -20 "$report_data_dir/timeout.txt" || true
+          fi
+
+          if [ "$fail_on_missed" = "true" ] && { [ "$missed" -gt 0 ] || [ "$timeout" -gt 0 ]; }; then
+            exit 1
+          fi
+
+          if [ "$status" -ne 0 ] && [ "$missed" -eq 0 ] && [ "$timeout" -eq 0 ]; then
+            echo "::error::cargo-mutants exited with status $status without reporting missed or timed-out mutants"
+            exit "$status"
+          fi
         shell: devenv shell -- bash -e {0}
-        if: always()
