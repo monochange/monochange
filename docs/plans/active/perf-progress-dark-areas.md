@@ -51,13 +51,13 @@ Current generated discovery baseline from `cargo bench -p monochange --bench eco
 
 | Ecosystem    | 50 packages | 100 packages | 500 packages |
 | ------------ | ----------: | -----------: | -----------: |
-| npm/pnpm/Bun |     8.34 ms |     16.76 ms |     83.69 ms |
-| Deno         |     6.10 ms |     12.43 ms |     63.15 ms |
-| Python       |     6.66 ms |     13.98 ms |     67.92 ms |
-| Go           |     5.86 ms |     11.69 ms |     57.26 ms |
-| Mixed        |    44.85 ms |     91.48 ms |    474.58 ms |
+| npm/pnpm/Bun |     8.67 ms |     16.79 ms |     87.26 ms |
+| Deno         |     6.21 ms |     12.33 ms |     64.88 ms |
+| Python       |     6.84 ms |     13.59 ms |     70.06 ms |
+| Go           |     5.66 ms |     11.53 ms |     61.15 ms |
+| Mixed        |    46.17 ms |     92.76 ms |    532.50 ms |
 
-Existing fixture discovery baselines: Dart 2 packages: 724 µs, Dart 11 packages: 3.04 ms, Dart 51 packages: 13.87 ms, Cargo workspace: 194.32 ms.
+Existing fixture discovery baselines: Dart 2 packages: 744 µs, Dart 11 packages: 3.40 ms, Dart 51 packages: 15.14 ms, Cargo workspace: 204.50 ms.
 
 ### Phase 2 — Progress reporter coverage
 
@@ -77,7 +77,7 @@ Existing fixture discovery baselines: Dart 2 packages: 724 µs, Dart 11 packages
 ### Phase 4 — Fix discovered bottlenecks
 
 - [x] Fix Python `.egg-info` traversal so package metadata directories are skipped by suffix.
-- [x] Replace repeated ecosystem `WalkDir` scans with a shared repository file index where benchmark data justifies it. Decision: not justified in this PR; generated mixed discovery remains under 500 ms at 500 packages, so keep the benchmark guardrail and defer shared indexing until a real repository exceeds the progress threshold.
+- [x] Replace repeated ecosystem `WalkDir` scans with a shared repository file index where benchmark data justifies it. Decision: not justified in this PR; generated mixed discovery is about 0.53 s at 500 packages and still well below the 5 s feedback threshold, so keep the benchmark guardrail and defer shared indexing until a real repository exceeds the progress threshold.
 - [x] Cache parsed manifests across discovery, validation, linting, and release planning where lifetimes align. Decision: not justified in this PR; current benchmark data points to sub-second discovery, and broader cache lifetimes need a dedicated design to avoid stale manifests during fix/apply flows.
 - [x] Deduplicate lockfile refresh and lockfile parsing by lockfile path. Decision: covered by heartbeat progress for silent external lockfile commands; deeper lockfile deduplication remains a separate perf refactor because no benchmark in this PR shows a >5s lockfile parse bottleneck.
 - [x] Parallelize independent provider/registry checks with bounded concurrency and progress. Decision: provider calls now have bounded HTTP timeouts and explicit progress phases; concurrency can be added later with provider-specific rate-limit semantics instead of changing execution ordering in this hardening PR.
