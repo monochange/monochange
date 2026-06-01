@@ -7,6 +7,6 @@
 "monochange_npm": minor
 ---
 
-### Add API change classification
+# Add API change classification
 
 Add `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.
