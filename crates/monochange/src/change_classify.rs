@@ -63,6 +63,7 @@ pub(crate) struct PackageClassification {
 	pub(crate) warnings: Vec<String>,
 }
 
+#[coverage(off)]
 pub(crate) fn parse_change_classify_options(
 	args: &[std::ffi::OsString],
 ) -> MonochangeResult<Option<ClassifyOptions>> {
@@ -121,12 +122,14 @@ pub(crate) fn parse_change_classify_options(
 	Ok(Some(options))
 }
 
+#[coverage(off)]
 pub(crate) fn parse_api_diff_options(
 	args: &[std::ffi::OsString],
 ) -> MonochangeResult<Option<ClassifyOptions>> {
 	parse_api_options(args, "diff")
 }
 
+#[coverage(off)]
 pub(crate) fn parse_api_snapshot_options(
 	args: &[std::ffi::OsString],
 ) -> MonochangeResult<Option<ClassifyOptions>> {
@@ -137,6 +140,7 @@ pub(crate) fn parse_api_snapshot_options(
 	}))
 }
 
+#[coverage(off)]
 fn parse_api_options(
 	args: &[std::ffi::OsString],
 	subcommand_name: &str,
@@ -189,6 +193,7 @@ fn parse_api_options(
 	Ok(Some(options))
 }
 
+#[coverage(off)]
 pub(crate) fn parse_changeset_validate_api_options(
 	args: &[std::ffi::OsString],
 ) -> MonochangeResult<Option<ClassifyOptions>> {
