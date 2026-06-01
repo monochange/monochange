@@ -766,6 +766,7 @@ fn discover_python_packages_skips_venv_and_pycache_directories() {
 		".tox",
 		"dist",
 		"build",
+		"root.egg-info",
 	] {
 		let pkg_dir = root.join(dir);
 		fs::create_dir_all(&pkg_dir).unwrap();

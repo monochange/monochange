@@ -40,11 +40,11 @@ Make monochange feel alive and predictable in lesser-used ecosystems and provide
 
 ### Phase 1 — Benchmark guardrails and audit visibility
 
-- [ ] Add benchmarks for npm/pnpm/Bun discovery at 50/100/500 packages.
-- [ ] Add benchmarks for Deno discovery at 50/100/500 packages.
-- [ ] Add benchmarks for Python discovery at 50/100/500 packages.
-- [ ] Add benchmarks for Go discovery at 50/100/500 packages.
-- [ ] Add a mixed-ecosystem discovery benchmark with all lesser-used ecosystems enabled.
+- [x] Add benchmarks for npm/pnpm/Bun discovery at 50/100/500 packages.
+- [x] Add benchmarks for Deno discovery at 50/100/500 packages.
+- [x] Add benchmarks for Python discovery at 50/100/500 packages.
+- [x] Add benchmarks for Go discovery at 50/100/500 packages.
+- [x] Add a mixed-ecosystem discovery benchmark with all lesser-used ecosystems enabled.
 - [ ] Document current benchmark baselines in PR notes.
 
 ### Phase 2 — Progress reporter coverage
@@ -57,13 +57,14 @@ Make monochange feel alive and predictable in lesser-used ecosystems and provide
 
 ### Phase 3 — Timeout and hang safety
 
-- [ ] Add default HTTP connect/request timeouts for shared provider clients.
-- [ ] Ensure GitLab/Gitea/Forgejo use shared timeout-enabled client builders.
-- [ ] Add elapsed-time heartbeat for external process steps that do not emit output.
+- [x] Add default HTTP connect/request timeouts for shared provider clients.
+- [x] Ensure GitLab/Gitea/Forgejo use shared timeout-enabled client builders.
+- [x] Add elapsed-time heartbeat for external process steps that do not emit output.
 - [ ] Add context-rich timeout errors including provider, URL class, and package/tag/PR being processed.
 
 ### Phase 4 — Fix discovered bottlenecks
 
+- [x] Fix Python `.egg-info` traversal so package metadata directories are skipped by suffix.
 - [ ] Replace repeated ecosystem `WalkDir` scans with a shared repository file index where benchmark data justifies it.
 - [ ] Cache parsed manifests across discovery, validation, linting, and release planning where lifetimes align.
 - [ ] Deduplicate lockfile refresh and lockfile parsing by lockfile path.

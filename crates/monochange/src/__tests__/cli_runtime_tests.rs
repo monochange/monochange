@@ -1927,6 +1927,54 @@ fn drain_stream_events_collects_stdout_stderr_and_handles_closed_channels() {
 }
 
 #[test]
+fn drain_stream_events_emits_heartbeats_while_command_is_silent() {
+	let cli_command = CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: Vec::new(),
+		dry_run: false,
+	};
+	let mut progress = CliProgressReporter::new(&cli_command, false, true, ProgressFormat::Json);
+	let step = CliStepDefinition::Command {
+		show_progress: None,
+		name: Some("silent command".to_string()),
+		when: None,
+		always_run: false,
+		command: "sleep 1".to_string(),
+		dry_run_command: None,
+		shell: ShellConfig::Default,
+		id: None,
+		variables: None,
+		inputs: BTreeMap::new(),
+	};
+	let (sender, receiver) = mpsc::channel();
+	let closer = std::thread::spawn(move || {
+		std::thread::sleep(Duration::from_millis(3));
+		sender
+			.send(StreamEvent::Closed(CommandStream::Stdout))
+			.unwrap_or_else(|error| panic!("close stdout: {error}"));
+		sender
+			.send(StreamEvent::Closed(CommandStream::Stderr))
+			.unwrap_or_else(|error| panic!("close stderr: {error}"));
+	});
+
+	let (stdout, stderr) = drain_stream_events_with_heartbeat_timeout(
+		&receiver,
+		&mut progress,
+		0,
+		&step,
+		Duration::from_millis(1),
+	);
+	closer
+		.join()
+		.unwrap_or_else(|error| panic!("join closer: {error:?}"));
+
+	assert!(stdout.is_empty());
+	assert!(stderr.is_empty());
+}
+
+#[test]
 fn map_process_wait_result_reports_io_failures() {
 	let error =
 		map_process_wait_result(Err(io::Error::other("wait failed")), "echo hello").unwrap_err();

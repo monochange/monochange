@@ -16,6 +16,8 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 use std::time::Instant;
 
+const PROCESS_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+
 use clap::ArgMatches;
 use clap::parser::ValueSource;
 use monochange_core::ChangesetPolicyStatus;
@@ -2076,12 +2078,29 @@ fn drain_stream_events(
 	step_index: usize,
 	step: &CliStepDefinition,
 ) -> (Vec<u8>, Vec<u8>) {
+	drain_stream_events_with_heartbeat_timeout(
+		receiver,
+		progress,
+		step_index,
+		step,
+		PROCESS_HEARTBEAT_INTERVAL,
+	)
+}
+
+fn drain_stream_events_with_heartbeat_timeout(
+	receiver: &mpsc::Receiver<StreamEvent>,
+	progress: &mut CliProgressReporter,
+	step_index: usize,
+	step: &CliStepDefinition,
+	heartbeat_interval: Duration,
+) -> (Vec<u8>, Vec<u8>) {
 	let mut stdout_buffer = Vec::new();
 	let mut stderr_buffer = Vec::new();
 	let mut stdout_closed = false;
 	let mut stderr_closed = false;
+	let started_at = Instant::now();
 	while !stdout_closed || !stderr_closed {
-		match receiver.recv() {
+		match receiver.recv_timeout(heartbeat_interval) {
 			Ok(StreamEvent::Chunk(stream, chunk)) => {
 				match stream {
 					CommandStream::Stdout => stdout_buffer.extend_from_slice(&chunk),
@@ -2100,7 +2119,17 @@ fn drain_stream_events(
 					CommandStream::Stderr => stderr_closed = true,
 				}
 			}
-			Err(_) => break,
+			Err(mpsc::RecvTimeoutError::Timeout) => {
+				progress.step_status(
+					step_index,
+					step,
+					&format!(
+						"still running external command after {:.1}s",
+						started_at.elapsed().as_secs_f64()
+					),
+				);
+			}
+			Err(mpsc::RecvTimeoutError::Disconnected) => break,
 		}
 	}
 	(stdout_buffer, stderr_buffer)
