@@ -1,0 +1,130 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+assertion_line: 100
+expression: report
+---
+{
+  "frame": "HEAD~1...HEAD",
+  "packages": [
+    {
+      "analyzerId": "npm/package-json",
+      "apiChanges": [
+        {
+          "after": {
+            "id": "script:script.build",
+            "kind": "script",
+            "path": "script.build",
+            "signature": "node scripts/build.js",
+            "sourcePath": "package.json"
+          },
+          "before": {
+            "id": "script:script.build",
+            "kind": "script",
+            "path": "script.build",
+            "signature": "node build.js",
+            "sourcePath": "package.json"
+          },
+          "confidence": "medium",
+          "kind": "modified",
+          "suggestedBump": "patch",
+          "summary": "script `script.build` modified"
+        }
+      ],
+      "confidence": "medium",
+      "ecosystem": "npm",
+      "packageId": "js_utils",
+      "packageName": "@demo/js-utils",
+      "recommendation": "patch",
+      "semanticChanges": [
+        {
+          "afterSignature": "node scripts/build.js",
+          "beforeSignature": "node build.js",
+          "category": "metadata",
+          "filePath": "package.json",
+          "itemKind": "script",
+          "itemPath": "script.build",
+          "kind": "modified",
+          "summary": "script `script.build` modified"
+        }
+      ],
+      "summary": "non-API or metadata impact inferred from 1 semantic change(s)",
+      "warnings": []
+    },
+    {
+      "analyzerId": "cargo/public-api",
+      "apiChanges": [
+        {
+          "before": {
+            "id": "function:removed_greeting",
+            "kind": "function",
+            "path": "removed_greeting",
+            "signature": "fn removed_greeting () -> & 'static str",
+            "sourcePath": "src/lib.rs"
+          },
+          "confidence": "high",
+          "kind": "removed",
+          "suggestedBump": "major",
+          "summary": "function `removed_greeting` removed"
+        }
+      ],
+      "confidence": "high",
+      "ecosystem": "cargo",
+      "packageId": "rust_core",
+      "packageName": "rust-core",
+      "recommendation": "major",
+      "semanticChanges": [
+        {
+          "afterSignature": null,
+          "beforeSignature": "fn removed_greeting () -> & 'static str",
+          "category": "public_api",
+          "filePath": "src/lib.rs",
+          "itemKind": "function",
+          "itemPath": "removed_greeting",
+          "kind": "removed",
+          "summary": "function `removed_greeting` removed"
+        }
+      ],
+      "summary": "breaking public API impact inferred from 1 semantic change(s)",
+      "warnings": []
+    },
+    {
+      "analyzerId": "npm/package-json",
+      "apiChanges": [
+        {
+          "after": {
+            "id": "interface:AdminUser",
+            "kind": "interface",
+            "path": "AdminUser",
+            "signature": "export interface AdminUser extends User { role: string; }",
+            "sourcePath": "src/index.ts"
+          },
+          "confidence": "high",
+          "kind": "added",
+          "suggestedBump": "minor",
+          "summary": "interface `AdminUser` added"
+        }
+      ],
+      "confidence": "high",
+      "ecosystem": "npm",
+      "packageId": "ts_client",
+      "packageName": "@demo/ts-client",
+      "recommendation": "minor",
+      "semanticChanges": [
+        {
+          "afterSignature": "export interface AdminUser extends User { role: string; }",
+          "beforeSignature": null,
+          "category": "public_api",
+          "filePath": "src/index.ts",
+          "itemKind": "interface",
+          "itemPath": "AdminUser",
+          "kind": "added",
+          "summary": "interface `AdminUser` added"
+        }
+      ],
+      "summary": "additive public API impact inferred from 1 semantic change(s)",
+      "warnings": []
+    }
+  ],
+  "recommendation": "major",
+  "warnings": []
+}

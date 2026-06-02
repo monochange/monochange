@@ -1,0 +1,11 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+assertion_line: 134
+expression: snapshot
+---
+{
+  "frame": "HEAD...HEAD",
+  "packages": [],
+  "recommendation": "none",
+  "warnings": []
+}

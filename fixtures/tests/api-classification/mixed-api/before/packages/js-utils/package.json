@@ -1,0 +1,10 @@
+{
+  "name": "@demo/js-utils",
+  "version": "1.0.0",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "build": "node build.js"
+  }
+}

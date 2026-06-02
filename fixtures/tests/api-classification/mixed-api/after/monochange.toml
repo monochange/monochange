@@ -1,0 +1,11 @@
+[package.rust_core]
+path = "crates/rust-core"
+type = "cargo"
+
+[package.ts_client]
+path = "packages/ts-client"
+type = "npm"
+
+[package.js_utils]
+path = "packages/js-utils"
+type = "npm"
