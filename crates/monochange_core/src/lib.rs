@@ -2911,7 +2911,7 @@ impl CliStepDefinition {
 			}
 			Self::PublishRelease { .. } => Some(&["format", "from-ref", "draft"]),
 			Self::OpenReleaseRequest { .. } => Some(&["format", "no_verify", "stage_all"]),
-			Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all"]),
+			Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all", "otp"]),
 			Self::PublishPackages { .. } => {
 				Some(&[
 					"format",
@@ -3042,6 +3042,7 @@ impl CliStepDefinition {
 					"format" => Some(CliInputKind::Choice),
 					"package" => Some(CliInputKind::StringList),
 					"show-all" => Some(CliInputKind::Boolean),
+					"otp" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}

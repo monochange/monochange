@@ -411,6 +411,28 @@ pub struct CommandSpec {
 	pub program: String,
 	pub args: Vec<String>,
 	pub cwd: PathBuf,
+	pub env: BTreeMap<String, String>,
+}
+
+const NPM_PUBLISH_OTP_METADATA_KEY: &str = "monochange:npm_publish_otp";
+
+pub fn set_npm_publish_otp_for_requests(requests: &mut [PublishRequest], otp: &str) {
+	for request in requests
+		.iter_mut()
+		.filter(|request| request.registry == RegistryKind::Npm)
+	{
+		request
+			.package_metadata
+			.insert(NPM_PUBLISH_OTP_METADATA_KEY.to_string(), otp.to_string());
+	}
+}
+
+fn npm_publish_env(request: &PublishRequest) -> BTreeMap<String, String> {
+	let mut env = BTreeMap::new();
+	if let Some(otp) = request.package_metadata.get(NPM_PUBLISH_OTP_METADATA_KEY) {
+		env.insert("NPM_CONFIG_OTP".to_string(), otp.clone());
+	}
+	env
 }
 
 pub type PlaceholderManifestWriter =
@@ -906,7 +928,7 @@ pub async fn execute_publish_requests_with_progress(
 		if !output.success {
 			progress.report(PublishProgressEvent::PackageFailed {
 				package: publish_progress_package(request),
-				message: render_command_error(&output),
+				message: render_publish_command_error(&output, request, mode),
 			});
 			tracing::error!(
 				package_name = request.package_name,
@@ -938,7 +960,7 @@ pub async fn execute_publish_requests_with_progress(
 				format!(
 					"`{}` failed: {}",
 					render_command(&publish_command),
-					render_command_error(&output)
+					render_publish_command_error(&output, request, mode)
 				),
 			);
 			outcome.command = Some(render_command(&publish_command));
@@ -1324,7 +1346,10 @@ impl CommandExecutor for ProcessCommandExecutor {
 	fn run(&mut self, spec: &CommandSpec) -> MonochangeResult<CommandOutput> {
 		use std::process::Command;
 		let mut command = Command::new(&spec.program);
-		command.args(&spec.args).current_dir(&spec.cwd);
+		command
+			.args(&spec.args)
+			.current_dir(&spec.cwd)
+			.envs(&spec.env);
 		let output = command.output().map_err(|error| {
 			MonochangeError::Io(format!(
 				"failed to run `{}` in {}: {error}",
@@ -1352,6 +1377,38 @@ pub fn render_command_error(output: &CommandOutput) -> String {
 		"command failed".to_string()
 	} else {
 		output.stderr.clone()
+	}
+}
+
+fn render_publish_command_error(
+	output: &CommandOutput,
+	request: &PublishRequest,
+	mode: PackagePublishRunMode,
+) -> String {
+	let message = render_command_error(output);
+	if !is_npm_otp_error(output, request) {
+		return message;
+	}
+
+	format!("{message}\n\n{}", npm_otp_recovery_message(mode))
+}
+
+fn is_npm_otp_error(output: &CommandOutput, request: &PublishRequest) -> bool {
+	request.registry == RegistryKind::Npm
+		&& (output.stderr.contains("EOTP")
+			|| output.stderr.contains("one-time password")
+			|| output.stdout.contains("EOTP")
+			|| output.stdout.contains("one-time password"))
+}
+
+fn npm_otp_recovery_message(mode: PackagePublishRunMode) -> &'static str {
+	match mode {
+		PackagePublishRunMode::Placeholder => {
+			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun with `mc placeholder-publish --otp <CODE>` or `mc step:placeholder-publish --otp <CODE>`. You can also set `NPM_CONFIG_OTP=<CODE>` for the command."
+		}
+		PackagePublishRunMode::Release => {
+			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun the publish command with `NPM_CONFIG_OTP=<CODE>` set in the environment."
+		}
 	}
 }
 
@@ -1647,6 +1704,7 @@ pub fn build_npm_placeholder_publish_command(
 			"public".to_string(),
 		],
 		cwd: request.package_root.clone(),
+		env: npm_publish_env(request),
 	}
 }
 
@@ -1663,6 +1721,7 @@ pub fn build_npm_release_publish_command(request: &PublishRequest) -> CommandSpe
 		program: npm_publish_program(request).to_string(),
 		args,
 		cwd: request.package_root.clone(),
+		env: npm_publish_env(request),
 	}
 }
 
@@ -1695,6 +1754,7 @@ fn build_cargo_placeholder_publish_command(
 			placeholder_path.join("Cargo.toml").display().to_string(),
 		],
 		cwd: request.package_root.clone(),
+		env: BTreeMap::new(),
 	}
 }
 
@@ -1708,6 +1768,7 @@ fn build_cargo_release_publish_command(request: &PublishRequest) -> CommandSpec 
 			request.manifest_path.display().to_string(),
 		],
 		cwd: request.package_root.clone(),
+		env: BTreeMap::new(),
 	}
 }
 
@@ -1729,6 +1790,7 @@ fn build_dart_publish_command(request: &PublishRequest, cwd: &Path) -> CommandSp
 			"--force".to_string(),
 		],
 		cwd: cwd.to_path_buf(),
+		env: BTreeMap::new(),
 	}
 }
 
@@ -1737,6 +1799,7 @@ fn build_jsr_publish_command(cwd: &Path) -> CommandSpec {
 		program: "deno".to_string(),
 		args: vec!["publish".to_string()],
 		cwd: cwd.to_path_buf(),
+		env: BTreeMap::new(),
 	}
 }
 
@@ -1753,6 +1816,7 @@ fn build_python_publish_command(request: &PublishRequest, cwd: &Path) -> Command
 		program: "sh".to_string(),
 		args: vec!["-c".to_string(), script],
 		cwd: cwd.to_path_buf(),
+		env: BTreeMap::new(),
 	}
 }
 
@@ -1761,6 +1825,7 @@ fn build_go_publish_command(request: &PublishRequest) -> CommandSpec {
 		program: "git".to_string(),
 		args: vec!["tag".to_string(), go_module_tag_name(request)],
 		cwd: request.package_root.clone(),
+		env: BTreeMap::new(),
 	}
 }
 

@@ -1025,6 +1025,11 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 					"Preview placeholder publishing without publishing",
 				),
 				(
+					"--otp",
+					"<CODE>",
+					"Pass an npm one-time password as NPM_CONFIG_OTP",
+				),
+				(
 					"--output",
 					"<PATH>",
 					"Write a JSON publish bootstrap result artifact",
@@ -1078,6 +1083,11 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 					"",
 					"Include already-published and skipped packages in the report",
 				),
+				(
+					"--otp",
+					"<CODE>",
+					"Pass an npm one-time password as NPM_CONFIG_OTP",
+				),
 				("--dry-run", "", "Preview without publishing"),
 			],
 			examples: &[
@@ -1094,6 +1104,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			tips: &[
 				"Placeholder versions are 0.0.0 by default.",
 				"Only unpublished packages are included.",
+				"Use --otp for npm accounts that require 2FA for publish operations.",
 			],
 			see_also: &["release", "publish-packages"],
 		},

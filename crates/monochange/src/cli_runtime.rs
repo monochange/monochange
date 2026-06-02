@@ -947,6 +947,10 @@ pub(crate) async fn execute_cli_command_with_options(
 				CliStepDefinition::PlaceholderPublish { .. } => {
 					let selected_packages = selected_package_ids(&step_inputs);
 					let show_all_packages = boolean_step_input(&step_inputs, "show-all");
+					let npm_otp = step_inputs
+						.get("otp")
+						.and_then(|values| values.first())
+						.map(String::as_str);
 					let rate_limit_report = publish_rate_limits::plan_publish_rate_limits(
 						root,
 						configuration,
@@ -964,11 +968,12 @@ pub(crate) async fn execute_cli_command_with_options(
 							publish_rate_limits::PublishRateLimitMode::Placeholder,
 						)?;
 					}
-					let report = package_publish::run_placeholder_publish(
+					let report = package_publish::run_placeholder_publish_with_npm_otp(
 						root,
 						configuration,
 						&selected_packages,
 						context.dry_run,
+						npm_otp,
 					)
 					.await?;
 					context.package_publish_report =
