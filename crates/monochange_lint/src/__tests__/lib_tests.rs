@@ -421,6 +421,17 @@ fn linter_warns_when_suite_target_collection_fails() {
 }
 
 #[test]
+fn fill_location_from_span_keeps_invalid_span_locations_at_default() {
+	let mut out_of_bounds = LintLocation::new("manifest.json", 1, 1).with_span(99, 100);
+	fill_location_from_span(&mut out_of_bounds, "short");
+	assert_eq!((out_of_bounds.line, out_of_bounds.column), (1, 1));
+
+	let mut non_boundary = LintLocation::new("manifest.json", 1, 1).with_span(1, 2);
+	fill_location_from_span(&mut non_boundary, "éclair");
+	assert_eq!((non_boundary.line, non_boundary.column), (1, 1));
+}
+
+#[test]
 fn apply_fixes_skips_missing_files() {
 	let root = tempfile::tempdir().unwrap();
 	let linter = Linter::new(

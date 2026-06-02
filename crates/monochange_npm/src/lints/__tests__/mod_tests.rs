@@ -83,6 +83,9 @@ fn workspace_protocol_rule_reports_internal_ranges() {
 		metadata: &target.metadata,
 		parsed: target.parsed.as_ref(),
 	};
+	let fallback_location = location_for_needle(&ctx, "missing-dependency");
+	assert_eq!((fallback_location.line, fallback_location.column), (1, 1));
+
 	let results = WorkspaceProtocolRule::new().run(&ctx, &config());
 	assert_eq!(results.len(), 1);
 	assert!(
