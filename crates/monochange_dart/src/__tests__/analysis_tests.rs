@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use monochange_core::FileChangeKind;
 use monochange_core::PublishState;
 
@@ -43,6 +45,49 @@ fn collect_public_symbols_finds_dart_types_functions_and_reexports() {
 		symbols
 			.iter()
 			.any(|symbol| symbol.item_path == "mobile_app::greet")
+	);
+}
+
+#[test]
+fn api_snapshot_extracts_public_dart_symbols() {
+	let package = PackageRecord::new(
+		Ecosystem::Dart,
+		"mobile_app",
+		PathBuf::from("/repo/packages/mobile/pubspec.yaml"),
+		PathBuf::from("/repo"),
+		None,
+		PublishState::Public,
+	);
+	let snapshot = PackageSnapshot {
+		label: "HEAD".to_string(),
+		files: vec![PackageSnapshotFile {
+			path: PathBuf::from("lib/mobile_app.dart"),
+			contents: "class Greeter {}\nString greet(String name) => 'hello $name';\n".to_string(),
+		}],
+	};
+	let context = PackageAnalysisContext {
+		repo_root: Path::new("/repo"),
+		package: &package,
+		detection_level: DetectionLevel::Signature,
+		changed_files: &[],
+		before_snapshot: None,
+		after_snapshot: Some(&snapshot),
+	};
+
+	let snapshot = api_snapshot(&context);
+
+	assert_eq!(snapshot.package_id, "dart:packages/mobile/pubspec.yaml");
+	assert!(
+		snapshot
+			.items
+			.iter()
+			.any(|item| item.id == "class:mobile_app::Greeter")
+	);
+	assert!(
+		snapshot
+			.items
+			.iter()
+			.any(|item| item.id == "function:mobile_app::greet")
 	);
 }
 

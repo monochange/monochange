@@ -559,6 +559,46 @@ fn diff_public_symbols_reports_added_modified_and_removed_entries() {
 }
 
 #[test]
+fn function_declaration_signatures_ignore_body_only_changes() {
+	let before = PackageSnapshotFile {
+		path: PathBuf::from("src/index.ts"),
+		contents: "export function greet(name: string): string { return `hello ${name}`; }\n"
+			.to_string(),
+	};
+	let after = PackageSnapshotFile {
+		path: PathBuf::from("src/index.ts"),
+		contents: "export function greet(name: string): string { return name.toUpperCase(); }\n"
+			.to_string(),
+	};
+
+	let before_signature = collect_public_symbols(&before, &NPM_CONFIG)
+		.into_iter()
+		.find(|symbol| symbol.item_path == "greet")
+		.map_or_else(
+			|| panic!("expected greet before"),
+			|symbol| symbol.signature,
+		);
+	let after_signature = collect_public_symbols(&after, &NPM_CONFIG)
+		.into_iter()
+		.find(|symbol| symbol.item_path == "greet")
+		.map_or_else(|| panic!("expected greet after"), |symbol| symbol.signature);
+
+	assert_eq!(before_signature, after_signature);
+	assert_eq!(
+		before_signature,
+		"export function greet(name: string): string;"
+	);
+	assert_eq!(
+		function_signature_without_body("export function alreadyDeclared(): void;"),
+		"export function alreadyDeclared(): void;"
+	);
+	assert_eq!(
+		function_signature_without_body("export function withSemicolon(): void; { return; }"),
+		"export function withSemicolon(): void;"
+	);
+}
+
+#[test]
 fn api_snapshot_extracts_exports_from_snapshot() {
 	let snapshot = PackageSnapshot {
 		label: "HEAD".to_string(),

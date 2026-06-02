@@ -185,6 +185,7 @@ fn sample_change_analysis(package_analysis: PackageChangeAnalysis) -> ChangeAnal
 		detection_level: DetectionLevel::Signature,
 		package_analyses: analyses_by_package,
 		warnings: Vec::new(),
+		packages: Vec::new(),
 	}
 }
 
@@ -824,6 +825,7 @@ fn validate_changeset_content_reports_missing_package_diffs() {
 		detection_level: DetectionLevel::Signature,
 		package_analyses: std::collections::BTreeMap::new(),
 		warnings: Vec::new(),
+		packages: Vec::new(),
 	};
 
 	let issues = super::validate_changeset_content(&changeset, &analysis);

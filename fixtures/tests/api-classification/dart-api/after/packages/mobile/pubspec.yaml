@@ -1,0 +1,6 @@
+name: mobile_app
+version: 1.0.0
+publish_to: https://pub.dev
+
+environment:
+  sdk: ^3.4.0

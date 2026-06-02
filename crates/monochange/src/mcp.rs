@@ -830,6 +830,7 @@ impl MonochangeMcpServer {
 			head: params.head.unwrap_or_else(|| "HEAD".to_string()),
 			format: crate::OutputFormat::Json,
 			output: None,
+			dependency_propagation: crate::change_classify::DependencyPropagation::None,
 		};
 		let output = match crate::change_classify::render_change_classification(&root, &options) {
 			Ok(output) => output,

@@ -1,0 +1,3 @@
+[package.mobile]
+path = "packages/mobile"
+type = "dart"

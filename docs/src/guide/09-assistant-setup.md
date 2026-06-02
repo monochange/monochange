@@ -5,6 +5,23 @@ monochange ships two assistant-facing surfaces:
 - `mc subagents <target...>` generates repo-local agent, subagent, or rule files for supported harnesses
 - `mc mcp` starts a stdio MCP server so assistants can call monochange tools directly
 
+## Advisory API classification in CI
+
+Start API changeset validation as advisory before making it a required gate. A CI job can run the markdown form and post the output to a pull request comment or step summary:
+
+```bash
+mc changeset validate --api --base origin/main --format markdown
+```
+
+For package graphs where public packages re-export or wrap other workspace packages, include direct public dependent propagation:
+
+```bash
+mc change classify --base origin/main --format markdown --dependency-propagation public
+mc api diff --base origin/main --format json --dependency-propagation public
+```
+
+Treat `major` and `minor` recommendations as the default changeset intent, but keep the check non-blocking while teams calibrate false positives and ecosystem coverage.
+
 ## Install the CLI and skill
 
 Install the CLI:

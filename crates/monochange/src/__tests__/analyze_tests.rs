@@ -91,6 +91,7 @@ fn filter_change_analysis_keeps_only_selected_package() {
 			detection_level: DetectionLevel::Signature,
 			package_analyses,
 			warnings: vec!["warning".to_string()],
+			packages: Vec::new(),
 		},
 		"core",
 	);
@@ -270,6 +271,7 @@ fn render_frame_section_covers_change_and_warning_paths() {
 			detection_level: DetectionLevel::Signature,
 			package_analyses,
 			warnings: vec!["frame warning".to_string()],
+			packages: Vec::new(),
 		},
 		"core",
 	);
@@ -326,6 +328,7 @@ async fn latest_release_tag_and_text_rendering_cover_warning_branches() {
 				detection_level: DetectionLevel::Signature,
 				package_analyses: std::collections::BTreeMap::new(),
 				warnings: vec!["frame warning".to_string()],
+				packages: Vec::new(),
 			},
 			release_to_head: None,
 		},
@@ -370,6 +373,7 @@ fn render_frame_section_covers_empty_lists_and_missing_warning_paths() {
 			detection_level: DetectionLevel::Signature,
 			package_analyses: std::collections::BTreeMap::new(),
 			warnings: Vec::new(),
+			packages: Vec::new(),
 		},
 		"core",
 	);
@@ -405,6 +409,7 @@ fn render_frame_section_covers_empty_lists_and_missing_warning_paths() {
 			detection_level: DetectionLevel::Signature,
 			package_analyses,
 			warnings: Vec::new(),
+			packages: Vec::new(),
 		},
 		"core",
 	);

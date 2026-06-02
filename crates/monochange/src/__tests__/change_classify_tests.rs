@@ -4,7 +4,11 @@ use std::path::PathBuf;
 use monochange_core::ApiChangeKind;
 use monochange_core::ApiConfidence;
 use monochange_core::BumpSeverity;
+use monochange_core::DependencyKind;
 use monochange_core::Ecosystem;
+use monochange_core::PackageDependency;
+use monochange_core::PackageRecord;
+use monochange_core::PublishState;
 use monochange_core::SemanticChange;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
@@ -21,6 +25,8 @@ fn parse_change_classify_options_accepts_agent_workflow_shape() {
 		OsString::from("origin/main"),
 		OsString::from("--format"),
 		OsString::from("json"),
+		OsString::from("--dependency-propagation"),
+		OsString::from("public"),
 	];
 
 	let options = parse_change_classify_options(&args)
@@ -30,6 +36,10 @@ fn parse_change_classify_options_accepts_agent_workflow_shape() {
 	assert_eq!(options.base, "origin/main");
 	assert_eq!(options.head, "HEAD");
 	assert_eq!(options.format, OutputFormat::Json);
+	assert_eq!(
+		options.dependency_propagation,
+		DependencyPropagation::Public
+	);
 }
 
 #[test]
@@ -42,6 +52,8 @@ fn parse_api_diff_options_accepts_snapshot_workflow_shape() {
 		OsString::from("origin/main"),
 		OsString::from("--format"),
 		OsString::from("json"),
+		OsString::from("--dependency-propagation"),
+		OsString::from("public"),
 	];
 
 	let options = parse_api_diff_options(&args)
@@ -50,6 +62,10 @@ fn parse_api_diff_options_accepts_snapshot_workflow_shape() {
 
 	assert_eq!(options.base, "origin/main");
 	assert_eq!(options.format, OutputFormat::Json);
+	assert_eq!(
+		options.dependency_propagation,
+		DependencyPropagation::Public
+	);
 }
 
 #[test]
@@ -61,6 +77,8 @@ fn parse_changeset_validate_api_options_accepts_advisory_workflow_shape() {
 		OsString::from("--api"),
 		OsString::from("--base"),
 		OsString::from("origin/main"),
+		OsString::from("--dependency-propagation"),
+		OsString::from("public"),
 	];
 
 	let options = parse_changeset_validate_api_options(&args)
@@ -70,6 +88,25 @@ fn parse_changeset_validate_api_options_accepts_advisory_workflow_shape() {
 	assert_eq!(options.base, "origin/main");
 	assert_eq!(options.head, "HEAD");
 	assert_eq!(options.format, OutputFormat::Markdown);
+	assert_eq!(
+		options.dependency_propagation,
+		DependencyPropagation::Public
+	);
+}
+
+#[test]
+fn parse_dependency_propagation_rejects_unknown_modes() {
+	let args = [
+		OsString::from("mc"),
+		OsString::from("change"),
+		OsString::from("classify"),
+		OsString::from("--dependency-propagation"),
+		OsString::from("transitive"),
+	];
+
+	let error = parse_change_classify_options(&args).expect_err("expected parse error");
+
+	assert!(error.render().contains("transitive"));
 }
 
 #[test]
@@ -87,15 +124,174 @@ fn classification_report_recommends_highest_api_impact() {
 		.into_iter()
 		.collect(),
 		warnings: Vec::new(),
+		packages: Vec::new(),
 	};
 
-	let report = classification_report(&analysis);
+	let report = classification_report(&analysis, DependencyPropagation::None);
 
 	assert_eq!(report.recommendation, BumpSeverity::Major);
 	assert_eq!(report.packages.len(), 1);
 	let package = report.packages.first().unwrap();
 	assert_eq!(package.confidence, "high");
 	assert_eq!(package.api_changes.len(), 1);
+}
+
+#[test]
+fn public_dependency_propagation_recommends_dependent_patch_bump() {
+	let core = PackageRecord::new(
+		Ecosystem::Npm,
+		"@acme/core",
+		PathBuf::from("/repo/packages/core/package.json"),
+		PathBuf::from("/repo"),
+		None,
+		PublishState::Public,
+	);
+	let core_id = core.id.clone();
+	let mut app = PackageRecord::new(
+		Ecosystem::Npm,
+		"@acme/app",
+		PathBuf::from("/repo/packages/app/package.json"),
+		PathBuf::from("/repo"),
+		None,
+		PublishState::Public,
+	);
+	app.declared_dependencies.push(PackageDependency {
+		name: "@acme/core".to_string(),
+		kind: DependencyKind::Runtime,
+		version_constraint: Some("workspace:*".to_string()),
+		optional: false,
+		source_field: Some("dependencies".to_string()),
+	});
+	let app_id = app.id.clone();
+	let analysis = ChangeAnalysis {
+		frame: ChangeFrame::CustomRange {
+			base: "origin/main".to_string(),
+			head: "HEAD".to_string(),
+		},
+		detection_level: monochange_analysis::DetectionLevel::Signature,
+		package_analyses: [(
+			core_id.clone(),
+			package_with_changes(&core_id, vec![added_export_change()]),
+		)]
+		.into_iter()
+		.collect(),
+		warnings: Vec::new(),
+		packages: vec![core, app],
+	};
+
+	let report = classification_report(&analysis, DependencyPropagation::Public);
+
+	assert_eq!(report.recommendation, BumpSeverity::Minor);
+	assert_package_recommendation_in_report(&report, &core_id, BumpSeverity::Minor);
+	assert_package_recommendation_in_report(&report, &app_id, BumpSeverity::Patch);
+	let propagated = report
+		.packages
+		.iter()
+		.find(|package| package.package_id == app_id)
+		.unwrap_or_else(|| panic!("expected propagated @acme/app package: {report:#?}"));
+	assert!(
+		propagated.summary.contains("public dependency"),
+		"unexpected propagated summary: {}",
+		propagated.summary
+	);
+}
+
+#[test]
+fn public_dependency_propagation_returns_early_without_package_records() {
+	let core = package_with_changes("core", vec![added_export_change()]);
+	let analysis = ChangeAnalysis {
+		frame: ChangeFrame::CustomRange {
+			base: "origin/main".to_string(),
+			head: "HEAD".to_string(),
+		},
+		detection_level: monochange_analysis::DetectionLevel::Signature,
+		package_analyses: [("core".to_string(), core)].into_iter().collect(),
+		warnings: Vec::new(),
+		packages: Vec::new(),
+	};
+	let mut packages = Vec::new();
+	let mut recommendation = BumpSeverity::None;
+
+	propagate_public_dependency_impacts(&analysis, &mut packages, &mut recommendation);
+
+	assert!(packages.is_empty());
+	assert_eq!(recommendation, BumpSeverity::None);
+}
+
+#[test]
+fn public_dependency_propagation_skips_non_public_or_already_reported_edges() {
+	let core = npm_package("@acme/core", "/repo/packages/core/package.json");
+	let core_id = core.id.clone();
+	let utils = npm_package("@acme/utils", "/repo/packages/utils/package.json");
+	let mut app = npm_package("@acme/app", "/repo/packages/app/package.json");
+	let app_id = app.id.clone();
+	app.declared_dependencies
+		.push(dependency_on("@acme/core", DependencyKind::Runtime));
+	app.declared_dependencies
+		.push(dependency_on("@acme/utils", DependencyKind::Runtime));
+	let mut docs = npm_package("@acme/docs", "/repo/packages/docs/package.json");
+	docs.declared_dependencies
+		.push(dependency_on("@acme/core", DependencyKind::Development));
+	let analysis = ChangeAnalysis {
+		frame: ChangeFrame::CustomRange {
+			base: "origin/main".to_string(),
+			head: "HEAD".to_string(),
+		},
+		detection_level: monochange_analysis::DetectionLevel::Signature,
+		package_analyses: [
+			(
+				core_id.clone(),
+				package_with_changes(&core_id, vec![added_export_change()]),
+			),
+			(
+				app_id.clone(),
+				package_with_changes(&app_id, vec![patch_dependency_change()]),
+			),
+		]
+		.into_iter()
+		.collect(),
+		warnings: Vec::new(),
+		packages: vec![core, utils, app, docs],
+	};
+
+	let report = classification_report(&analysis, DependencyPropagation::Public);
+
+	assert_eq!(report.packages.len(), 2);
+	assert_package_recommendation_in_report(&report, &core_id, BumpSeverity::Minor);
+	assert_package_recommendation_in_report(&report, &app_id, BumpSeverity::Patch);
+}
+
+#[test]
+fn public_dependency_propagation_can_set_patch_recommendation_when_called_standalone() {
+	let core = npm_package("@acme/core", "/repo/packages/core/package.json");
+	let core_id = core.id.clone();
+	let mut app = npm_package("@acme/app", "/repo/packages/app/package.json");
+	let app_id = app.id.clone();
+	app.declared_dependencies
+		.push(dependency_on("@acme/core", DependencyKind::Runtime));
+	let analysis = ChangeAnalysis {
+		frame: ChangeFrame::CustomRange {
+			base: "origin/main".to_string(),
+			head: "HEAD".to_string(),
+		},
+		detection_level: monochange_analysis::DetectionLevel::Signature,
+		package_analyses: [(
+			core_id.clone(),
+			package_with_changes(&core_id, vec![added_export_change()]),
+		)]
+		.into_iter()
+		.collect(),
+		warnings: Vec::new(),
+		packages: vec![core, app],
+	};
+	let mut packages = Vec::new();
+	let mut recommendation = BumpSeverity::None;
+
+	propagate_public_dependency_impacts(&analysis, &mut packages, &mut recommendation);
+
+	assert_eq!(recommendation, BumpSeverity::Patch);
+	assert_eq!(packages.len(), 1);
+	assert_eq!(packages[0].package_id, app_id);
 }
 
 #[test]
@@ -125,6 +321,19 @@ fn markdown_report_is_agent_readable() {
 	assert!(markdown.contains("### `ui`"));
 }
 
+fn assert_package_recommendation_in_report(
+	report: &ChangeClassificationReport,
+	package_id: &str,
+	expected: BumpSeverity,
+) {
+	let package = report
+		.packages
+		.iter()
+		.find(|package| package.package_id == package_id)
+		.unwrap_or_else(|| panic!("missing package {package_id}: {report:#?}"));
+	assert_eq!(package.recommendation, expected);
+}
+
 fn package_with_changes(
 	package_id: &str,
 	semantic_changes: Vec<SemanticChange>,
@@ -138,6 +347,27 @@ fn package_with_changes(
 		changed_files: vec![PathBuf::from("src/lib.rs")],
 		semantic_changes,
 		warnings: Vec::new(),
+	}
+}
+
+fn npm_package(name: &str, manifest_path: &str) -> PackageRecord {
+	PackageRecord::new(
+		Ecosystem::Npm,
+		name,
+		PathBuf::from(manifest_path),
+		PathBuf::from("/repo"),
+		None,
+		PublishState::Public,
+	)
+}
+
+fn dependency_on(name: &str, kind: DependencyKind) -> PackageDependency {
+	PackageDependency {
+		name: name.to_string(),
+		kind,
+		version_constraint: Some("workspace:*".to_string()),
+		optional: false,
+		source_field: Some("dependencies".to_string()),
 	}
 }
 
@@ -164,6 +394,19 @@ fn added_export_change() -> SemanticChange {
 		file_path: PathBuf::from("src/index.ts"),
 		before_signature: None,
 		after_signature: Some("export function render()".to_string()),
+	}
+}
+
+fn patch_dependency_change() -> SemanticChange {
+	SemanticChange {
+		category: SemanticChangeCategory::Dependency,
+		kind: SemanticChangeKind::Modified,
+		item_kind: "dependency".to_string(),
+		item_path: "serde".to_string(),
+		summary: "changed dependency `serde`".to_string(),
+		file_path: PathBuf::from("Cargo.toml"),
+		before_signature: Some("serde = 1".to_string()),
+		after_signature: Some("serde = 1.0.1".to_string()),
 	}
 }
 

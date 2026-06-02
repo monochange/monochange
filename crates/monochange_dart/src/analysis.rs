@@ -3,6 +3,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use monochange_core::AnalyzedFileChange;
+use monochange_core::ApiItem;
+use monochange_core::ApiSnapshot;
 use monochange_core::DetectionLevel;
 use monochange_core::Ecosystem;
 use monochange_core::MonochangeResult;
@@ -28,6 +30,30 @@ pub struct DartSemanticAnalyzer;
 #[must_use]
 pub const fn semantic_analyzer() -> DartSemanticAnalyzer {
 	DartSemanticAnalyzer
+}
+
+/// Extract a monochange-owned API snapshot for a Dart or Flutter package.
+#[must_use]
+pub fn api_snapshot(context: &PackageAnalysisContext<'_>) -> ApiSnapshot {
+	let items = snapshot_public_symbols(
+		context.after_snapshot.or(context.before_snapshot),
+		context.changed_files,
+	)
+	.into_values()
+	.map(|symbol| {
+		ApiItem::new(symbol.item_kind, symbol.item_path, Some(symbol.signature))
+			.with_source_path(symbol.file_path)
+	})
+	.collect();
+
+	ApiSnapshot::new(
+		display_package_id(context.package),
+		context.package.name.clone(),
+		Ecosystem::Dart,
+		"dart/api-snapshot",
+		items,
+		Vec::new(),
+	)
 }
 
 impl SemanticAnalyzer for DartSemanticAnalyzer {
