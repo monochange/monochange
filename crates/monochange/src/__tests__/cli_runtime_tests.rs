@@ -1041,6 +1041,85 @@ path = "crates/core"
 	assert_eq!(evaluation.uncovered_package_ids, vec!["core".to_string()]);
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_affected_packages_step_warns_when_changeset_type_overstates_api_impact() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::create_dir_all(root.join("packages/core/src"))
+		.unwrap_or_else(|error| panic!("create workspace directories: {error}"));
+	fs::create_dir_all(root.join(".changeset"))
+		.unwrap_or_else(|error| panic!("create changeset directory: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		r#"[defaults]
+package_type = "npm"
+
+[changesets.affected]
+enabled = true
+required = true
+
+[changelog.sections]
+fixes = { heading = "Fixes" }
+features = { heading = "Features" }
+
+[changelog.types]
+fix = { bump = "patch", section = "fixes" }
+feature = { bump = "minor", section = "features" }
+
+[package.core]
+path = "packages/core"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write monochange config: {error}"));
+	fs::write(
+		root.join("packages/core/package.json"),
+		r#"{"name":"core","version":"0.1.0","exports":"./src/index.ts"}
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	fs::write(
+		root.join("packages/core/src/index.ts"),
+		r#"export function version(): string { return "v1"; }
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write initial source file: {error}"));
+
+	git_in_dir(root, &["init", "-b", "main"]);
+	git_in_dir(root, &["config", "user.name", "monochange Tests"]);
+	git_in_dir(root, &["config", "user.email", "monochange@example.com"]);
+	git_in_dir(root, &["config", "commit.gpgsign", "false"]);
+	git_in_dir(root, &["add", "."]);
+	git_in_dir(root, &["commit", "-m", "initial"]);
+
+	fs::write(
+		root.join("packages/core/src/index.ts"),
+		r#"export function version(): string { return "v2"; }
+"#,
+	)
+	.unwrap_or_else(|error| panic!("update source file: {error}"));
+	fs::write(
+		root.join(".changeset/core-feature.md"),
+		"---\ncore: feature\n---\n\nOver-classified implementation-only change.\n",
+	)
+	.unwrap_or_else(|error| panic!("write changeset: {error}"));
+
+	let evaluation = execute_affected_packages_step(
+		root,
+		&BTreeMap::from([("from".to_string(), vec!["HEAD".to_string()])]),
+		true,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute affected packages step: {error}"));
+
+	assert_eq!(evaluation.status, ChangesetPolicyStatus::Passed);
+	assert!(evaluation.errors.is_empty());
+	assert!(evaluation.warnings.iter().any(|warning| {
+		warning.contains("changeset bump for `core` may be excessive")
+			&& warning.contains("requested `minor`")
+			&& warning.contains("recommends `none`")
+	}));
+}
+
 #[test]
 fn render_cli_command_results_include_release_details_policy_and_logs() {
 	let cli_command = default_cli_command("prepare-release");
@@ -1112,6 +1191,7 @@ fn render_cli_command_results_include_release_details_policy_and_logs() {
 		affected_package_ids: vec!["core".to_string()],
 		covered_package_ids: Vec::new(),
 		uncovered_package_ids: vec!["core".to_string()],
+		warnings: Vec::new(),
 		errors: vec!["missing changeset".to_string()],
 	});
 
@@ -2784,6 +2864,7 @@ fn render_cli_command_result_and_markdown_include_release_target_details_without
 		affected_package_ids: Vec::new(),
 		covered_package_ids: Vec::new(),
 		uncovered_package_ids: Vec::new(),
+		warnings: Vec::new(),
 		errors: Vec::new(),
 	});
 

@@ -6584,6 +6584,7 @@ fn template_context_exposes_manifest_affected_steps_and_custom_variables() {
 			affected_package_ids: vec!["core".to_string()],
 			covered_package_ids: vec!["core".to_string()],
 			uncovered_package_ids: Vec::new(),
+			warnings: Vec::new(),
 			errors: Vec::new(),
 		}),
 		changeset_diagnostics: None,

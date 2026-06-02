@@ -4443,6 +4443,8 @@ pub struct ChangesetPolicyEvaluation {
 	pub covered_package_ids: Vec<String>,
 	#[serde(default)]
 	pub uncovered_package_ids: Vec<String>,
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub warnings: Vec<String>,
 	#[serde(default)]
 	pub errors: Vec<String>,
 }

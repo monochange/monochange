@@ -1,0 +1,35 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+assertion_line: 137
+expression: evaluation
+---
+{
+  "affected_package_ids": [
+    "core"
+  ],
+  "changed_paths": [
+    ".changeset/core-fix.md",
+    "packages/core/src/index.ts"
+  ],
+  "changeset_paths": [
+    ".changeset/core-fix.md"
+  ],
+  "comment": null,
+  "covered_package_ids": [
+    "core"
+  ],
+  "enforce": false,
+  "errors": [
+    "changeset bump for `core` is insufficient: requested `patch`, API classification recommends `major`"
+  ],
+  "ignored_paths": [],
+  "labels": [],
+  "matched_paths": [
+    "packages/core/src/index.ts"
+  ],
+  "matched_skip_labels": [],
+  "required": true,
+  "status": "failed",
+  "summary": "changeset verification failed: one or more changeset bumps underestimate API impact",
+  "uncovered_package_ids": []
+}

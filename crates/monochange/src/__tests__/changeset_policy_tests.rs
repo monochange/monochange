@@ -1,13 +1,99 @@
 #![allow(clippy::disallowed_methods)]
+use std::collections::BTreeMap;
 use std::fs;
 use std::process::Command;
 
+use monochange_core::BumpSeverity;
+use monochange_core::ChangeSignal;
 use monochange_core::PackageDefinition;
 use monochange_core::PackageType;
 use monochange_core::SourceProvider as ProviderKind;
 use monochange_core::VersionFormat;
 
 use super::*;
+
+fn empty_policy_evaluation() -> ChangesetPolicyEvaluation {
+	ChangesetPolicyEvaluation {
+		status: ChangesetPolicyStatus::Passed,
+		required: true,
+		enforce: true,
+		summary: "changesets passed".to_string(),
+		comment: None,
+		labels: Vec::new(),
+		matched_skip_labels: Vec::new(),
+		changed_paths: Vec::new(),
+		matched_paths: Vec::new(),
+		ignored_paths: Vec::new(),
+		changeset_paths: Vec::new(),
+		affected_package_ids: Vec::new(),
+		covered_package_ids: Vec::new(),
+		uncovered_package_ids: Vec::new(),
+		warnings: Vec::new(),
+		errors: Vec::new(),
+	}
+}
+
+fn change_signal(package_id: &str, requested_bump: Option<BumpSeverity>) -> ChangeSignal {
+	ChangeSignal {
+		package_id: package_id.to_string(),
+		requested_bump,
+		explicit_version: None,
+		change_origin: "test".to_string(),
+		evidence_refs: Vec::new(),
+		notes: None,
+		details: None,
+		change_type: None,
+		caused_by: Vec::new(),
+		source_path: Path::new(".changeset/test.md").to_path_buf(),
+	}
+}
+
+#[test]
+fn requested_bumps_by_package_skips_empty_bumps_and_keeps_highest_bump() {
+	let requested_bumps = requested_bumps_by_package(&[
+		change_signal("core", None),
+		change_signal("core", Some(BumpSeverity::Patch)),
+		change_signal("core", Some(BumpSeverity::Minor)),
+		change_signal("utils", Some(BumpSeverity::Major)),
+	]);
+
+	assert_eq!(requested_bumps.get("core"), Some(&BumpSeverity::Minor));
+	assert_eq!(requested_bumps.get("utils"), Some(&BumpSeverity::Major));
+}
+
+#[test]
+fn bump_alignment_errors_when_changeset_type_understates_api_impact() {
+	let mut evaluation = empty_policy_evaluation();
+	apply_bump_alignment(
+		BTreeMap::from([("core".to_string(), BumpSeverity::Patch)]),
+		&BTreeMap::from([("core".to_string(), BumpSeverity::Minor)]),
+		&mut evaluation,
+	);
+
+	assert!(evaluation.warnings.is_empty());
+	assert!(evaluation.errors.iter().any(|error| {
+		error.contains("changeset bump for `core` is insufficient")
+			&& error.contains("requested `patch`")
+			&& error.contains("recommends `minor`")
+	}));
+}
+
+#[test]
+fn bump_alignment_warns_when_changeset_type_overstates_api_impact() {
+	let mut evaluation = empty_policy_evaluation();
+	apply_bump_alignment(
+		BTreeMap::from([("core".to_string(), BumpSeverity::Major)]),
+		&BTreeMap::from([("core".to_string(), BumpSeverity::Patch)]),
+		&mut evaluation,
+	);
+
+	assert!(evaluation.errors.is_empty());
+	assert!(evaluation.warnings.iter().any(|warning| {
+		warning.contains("changeset bump for `core` may be excessive")
+			&& warning.contains("requested `major`")
+			&& warning.contains("recommends `patch`")
+	}));
+}
 
 fn setup_fixture(relative: &str) -> tempfile::TempDir {
 	monochange_test_helpers::fs::setup_fixture_from(env!("CARGO_MANIFEST_DIR"), relative)
@@ -536,6 +622,7 @@ fn path_helpers_cover_normalization_matching_and_comment_rendering() {
 		affected_package_ids: vec!["core".to_string()],
 		covered_package_ids: Vec::new(),
 		uncovered_package_ids: vec!["core".to_string()],
+		warnings: Vec::new(),
 		errors: vec!["core is uncovered".to_string()],
 	};
 	let comment = render_changeset_verification_comment(&verify, &evaluation);
@@ -592,6 +679,7 @@ fn render_comment_includes_related_skip_guidance() {
 		affected_package_ids: Vec::new(),
 		covered_package_ids: Vec::new(),
 		uncovered_package_ids: Vec::new(),
+		warnings: Vec::new(),
 		errors: vec!["problem".to_string()],
 	};
 	let comment = render_changeset_verification_comment(&verify, &evaluation);

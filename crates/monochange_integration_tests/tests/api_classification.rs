@@ -115,6 +115,39 @@ fn api_diff_uses_the_same_classifier_for_mixed_api_impacts() {
 }
 
 #[test]
+fn affected_changeset_policy_snapshots_understated_api_bump_output() {
+	let fixture = setup_api_fixture("changeset-bump-alignment");
+
+	let evaluation = run_json(
+		fixture.path(),
+		&[
+			"step:affected-packages",
+			"--from",
+			"HEAD~1",
+			"--format",
+			"json",
+		],
+	);
+
+	assert_eq!(evaluation["status"], "failed");
+	assert_eq!(
+		evaluation["covered_package_ids"],
+		serde_json::json!(["core"])
+	);
+	assert!(evaluation["errors"].as_array().is_some_and(|errors| {
+		errors.iter().any(|error| {
+			error.as_str().is_some_and(|error| {
+				error.contains("requested `patch`") && error.contains("recommends `major`")
+			})
+		})
+	}));
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(evaluation);
+	});
+}
+
+#[test]
 fn change_classify_detects_dart_api_impacts() {
 	let fixture = setup_api_fixture("dart-api");
 

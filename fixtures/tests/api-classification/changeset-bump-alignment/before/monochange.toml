@@ -1,0 +1,17 @@
+[defaults]
+package_type = "npm"
+
+[changesets.affected]
+enabled = true
+required = true
+
+[changelog.sections]
+fixes = { heading = "Fixes" }
+features = { heading = "Features" }
+
+[changelog.types]
+fix = { bump = "patch", section = "fixes" }
+feature = { bump = "minor", section = "features" }
+
+[package.core]
+path = "packages/core"
