@@ -77,6 +77,34 @@ impl LintSuite for DartLintSuite {
 	fn presets(&self) -> Vec<LintPreset> {
 		vec![
 			LintPreset::new(
+				"dart/baseline",
+				"Dart baseline",
+				"Gentle Dart manifest linting for onboarding existing workspaces",
+				LintMaturity::Stable,
+			)
+			.with_rules(BTreeMap::from([
+				(
+					"dart/dependency-sorted".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Off),
+				),
+				(
+					"dart/no-git-dependencies-in-published-packages".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"dart/required-package-fields".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"dart/sdk-constraint-present".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"dart/unlisted-package-private".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+			])),
+			LintPreset::new(
 				"dart/recommended",
 				"Dart recommended",
 				"Balanced Dart manifest linting for metadata, publishability, and baseline SDK hygiene",

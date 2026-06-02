@@ -43,14 +43,25 @@ fn config() -> LintRuleConfig {
 #[test]
 fn presets_are_exposed() {
 	let presets = CargoLintSuite.presets();
-	assert_eq!(presets.len(), 2);
+	assert_eq!(presets.len(), 3);
 	assert_eq!(
 		presets.first().map(|preset| preset.id.as_str()),
-		Some("cargo/recommended")
+		Some("cargo/baseline")
 	);
 	assert_eq!(
 		presets.get(1).map(|preset| preset.id.as_str()),
-		Some("cargo/strict")
+		Some("cargo/recommended")
+	);
+	let baseline = presets
+		.first()
+		.unwrap_or_else(|| panic!("expected cargo baseline preset"));
+	assert_eq!(
+		baseline.rules.get("cargo/required-package-fields"),
+		Some(&LintRuleConfig::Severity(LintSeverity::Warning))
+	);
+	assert_eq!(
+		baseline.rules.get("cargo/sorted-dependencies"),
+		Some(&LintRuleConfig::Severity(LintSeverity::Off))
 	);
 }
 

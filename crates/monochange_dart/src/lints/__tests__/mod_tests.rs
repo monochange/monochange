@@ -75,9 +75,24 @@ fn config() -> LintRuleConfig {
 #[test]
 fn presets_are_exposed() {
 	let presets = DartLintSuite.presets();
-	assert_eq!(presets.len(), 2);
+	assert_eq!(presets.len(), 3);
 
-	let recommended = presets.first().expect("expected recommended preset");
+	let baseline = presets
+		.first()
+		.unwrap_or_else(|| panic!("expected baseline preset"));
+	assert_eq!(baseline.id, "dart/baseline");
+	assert_eq!(
+		baseline.rules.get("dart/sdk-constraint-present"),
+		Some(&LintRuleConfig::Severity(LintSeverity::Warning))
+	);
+	assert_eq!(
+		baseline.rules.get("dart/dependency-sorted"),
+		Some(&LintRuleConfig::Severity(LintSeverity::Off))
+	);
+
+	let recommended = presets
+		.get(1)
+		.unwrap_or_else(|| panic!("expected recommended preset"));
 	assert_eq!(recommended.id, "dart/recommended");
 	assert_eq!(
 		recommended.rules.get("dart/dependency-sorted"),
@@ -93,7 +108,9 @@ fn presets_are_exposed() {
 			.contains_key("dart/internal-path-dependency-policy")
 	);
 
-	let strict = presets.get(1).expect("expected strict preset");
+	let strict = presets
+		.get(2)
+		.unwrap_or_else(|| panic!("expected strict preset"));
 	assert_eq!(strict.id, "dart/strict");
 	assert!(strict.rules.contains_key("dart/assets-sorted"));
 	assert!(

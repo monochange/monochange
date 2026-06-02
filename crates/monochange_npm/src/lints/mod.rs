@@ -69,6 +69,38 @@ impl LintSuite for NpmLintSuite {
 	fn presets(&self) -> Vec<LintPreset> {
 		vec![
 			LintPreset::new(
+				"npm/baseline",
+				"npm baseline",
+				"Gentle npm-family manifest linting for onboarding existing workspaces",
+				LintMaturity::Stable,
+			)
+			.with_rules(BTreeMap::from([
+				(
+					"npm/workspace-protocol".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Off),
+				),
+				(
+					"npm/sorted-dependencies".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Off),
+				),
+				(
+					"npm/required-package-fields".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"npm/root-no-prod-deps".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"npm/no-duplicate-dependencies".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"npm/unlisted-package-private".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+			])),
+			LintPreset::new(
 				"npm/recommended",
 				"npm recommended",
 				"Balanced npm-family manifest linting for typical JavaScript workspaces",

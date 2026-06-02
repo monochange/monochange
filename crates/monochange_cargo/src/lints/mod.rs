@@ -71,6 +71,38 @@ impl LintSuite for CargoLintSuite {
 	fn presets(&self) -> Vec<LintPreset> {
 		vec![
 			LintPreset::new(
+				"cargo/baseline",
+				"Cargo baseline",
+				"Gentle Cargo manifest linting for onboarding existing workspaces",
+				LintMaturity::Stable,
+			)
+			.with_rules(BTreeMap::from([
+				(
+					"cargo/dependency-field-order".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Off),
+				),
+				(
+					"cargo/sorted-dependencies".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Off),
+				),
+				(
+					"cargo/internal-dependency-workspace".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"cargo/publishable-dependencies".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"cargo/required-package-fields".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"cargo/unlisted-package-private".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+			])),
+			LintPreset::new(
 				"cargo/recommended",
 				"Cargo recommended",
 				"Balanced Cargo manifest linting for most workspaces",

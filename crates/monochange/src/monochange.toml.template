@@ -499,8 +499,11 @@ version_format = "primary"
 # manifests. Lint suites live in ecosystem crates, but configuration lives in
 # this top-level section.
 #
-# [lints]
-# use = ["cargo/recommended", "npm/recommended"]
+[lints]
+# Start with baseline presets so existing repositories can adopt `mc check`
+# without turning formatting preferences into blocking errors. Upgrade to
+# `*/recommended` or `*/strict` when the workspace is ready to enforce policy.
+use = ["cargo/baseline", "npm/baseline", "dart/baseline"]
 # include = ["crates/**", "packages/**"]
 # exclude = ["examples/**"]
 # disable_gitignore = false
