@@ -253,6 +253,15 @@ fn run_check_command_applies_fixes_without_progress_reporter() {
 }
 
 #[test]
+fn run_lint_step_reports_successful_check_output() {
+	let clean_workspace = clean_lint_workspace();
+	let (output, has_errors) = run_lint_step(clean_workspace.path(), false)
+		.unwrap_or_else(|error| panic!("expected lint step to succeed: {error}"));
+	assert!(!has_errors);
+	assert!(output.contains("no issues found"));
+}
+
+#[test]
 fn run_lint_step_supports_fix_write_failures() {
 	let tempdir = readonly_fix_workspace();
 	let cargo_toml = tempdir.path().join("crates/example/Cargo.toml");
