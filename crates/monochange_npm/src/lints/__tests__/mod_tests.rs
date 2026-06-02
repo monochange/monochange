@@ -169,6 +169,30 @@ fn sorted_dependencies_fix_preserves_top_level_package_json_order() {
 }
 
 #[test]
+fn dependency_fix_helpers_cover_minimal_and_missing_sections() {
+	let contents = r#"{"dependencies":{"zeta":"1","alpha":"2"}}"#;
+	assert_eq!(
+		dependency_value_span(contents, "dependencies", "zeta", "1"),
+		Some((24, 27))
+	);
+	assert_eq!(dependency_section_object_span(contents, "missing"), None);
+	assert_eq!(
+		dependency_value_span(contents, "dependencies", "missing", "1"),
+		None
+	);
+
+	let empty = Map::new();
+	let replacement =
+		sorted_dependency_section_text(r#"{"dependencies":{}}"#, "dependencies", &empty, &[])
+			.unwrap_or_else(|| panic!("expected replacement for empty dependency section"));
+	assert_eq!(replacement, "{\n}");
+	assert_eq!(
+		dependency_section_object_span(r#"{"dependencies":{"alpha":"1""#, "dependencies"),
+		None
+	);
+}
+
+#[test]
 fn required_package_fields_rule_supports_custom_fields() {
 	let target = npm_target(r#"{"name":"example","description":"ok"}"#, true, false);
 	let ctx = LintContext {
