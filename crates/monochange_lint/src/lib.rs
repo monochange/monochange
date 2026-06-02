@@ -17,6 +17,7 @@ use ignore::gitignore::Gitignore;
 use ignore::gitignore::GitignoreBuilder;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::lint::LintContext;
+use monochange_core::lint::LintEdit;
 use monochange_core::lint::LintFix;
 use monochange_core::lint::LintPreset;
 use monochange_core::lint::LintProgressReporter;
@@ -578,16 +579,34 @@ fn selector_matches(selector: &LintSelector, target: &LintTarget) -> bool {
 }
 
 fn apply_fixes_to_content(contents: &str, fixes: &[LintFix]) -> String {
+	let edits = non_overlapping_edits(contents, fixes);
+	let mut result = contents.to_string();
+	for edit in edits {
+		result.replace_range(edit.span.0..edit.span.1, &edit.replacement);
+	}
+	result
+}
+
+fn non_overlapping_edits<'a>(contents: &str, fixes: &'a [LintFix]) -> Vec<&'a LintEdit> {
 	let mut edits: Vec<_> = fixes.iter().flat_map(|fix| fix.edits.iter()).collect();
 	edits.sort_by_key(|edit| std::cmp::Reverse(edit.span.0));
 
-	let mut result = contents.to_string();
+	let mut next_allowed_start = contents.len();
+	let mut retained = Vec::new();
 	for edit in edits {
-		if edit.span.0 < result.len() && edit.span.1 <= result.len() {
-			result.replace_range(edit.span.0..edit.span.1, &edit.replacement);
+		let (start, end) = edit.span;
+		if start > end
+			|| end > contents.len()
+			|| end > next_allowed_start
+			|| !contents.is_char_boundary(start)
+			|| !contents.is_char_boundary(end)
+		{
+			continue;
 		}
+		next_allowed_start = start;
+		retained.push(edit);
 	}
-	result
+	retained
 }
 
 #[cfg(test)]

@@ -441,6 +441,26 @@ fn apply_fixes_skips_missing_files() {
 }
 
 #[test]
+fn apply_fixes_skips_overlapping_full_file_edits() {
+	let contents = "{\n  \"name\": \"example\",\n  \"version\": \"0.0.0\"\n}\n";
+	let first = LintFix::single(
+		"sort manifest",
+		(0, contents.len()),
+		"{\n  \"version\": \"0.0.0\",\n  \"name\": \"example\"\n}\n",
+	);
+	let second = LintFix::single(
+		"rewrite dependency",
+		(0, contents.len()),
+		"{\n  \"name\": \"example\",\n  \"version\": \"0.0.0\",\n  \"dependencies\": {}\n}\n",
+	);
+
+	let fixed = apply_fixes_to_content(contents, &[first, second]);
+	assert!(fixed.ends_with("}\n"));
+	assert_eq!(fixed.matches("\"name\"").count(), 1);
+	assert_eq!(fixed.matches("}\n").count(), 1);
+}
+
+#[test]
 fn merge_config_and_selector_helpers_cover_edge_cases() {
 	assert!(merge_config(None, None).is_none());
 	assert!(!lint_path_pattern_matches(

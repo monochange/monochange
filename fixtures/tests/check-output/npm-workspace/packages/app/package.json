@@ -1,0 +1,13 @@
+{
+    "name": "app",
+    "version": "0.0.0",
+    "type": "module",
+    "description": "Application package",
+    "dependencies": {
+        "zeta": "1.0.0",
+        "shared": "^0.0.0"
+    },
+    "devDependencies": {
+        "vitest": "1.0.0"
+    }
+}

@@ -239,6 +239,31 @@ fn location(ctx: &LintContext<'_>) -> LintLocation {
 	LintLocation::new(ctx.manifest_path, 1, 1)
 }
 
+fn location_for_needle(ctx: &LintContext<'_>, needle: &str) -> LintLocation {
+	let Some(start) = ctx.contents.find(needle) else {
+		return location(ctx);
+	};
+	let (line, column) = line_column_for_offset(ctx.contents, start).unwrap_or((1, 1));
+	LintLocation::new(ctx.manifest_path, line, column).with_span(start, start + needle.len())
+}
+
+fn line_column_for_offset(contents: &str, offset: usize) -> Option<(usize, usize)> {
+	if offset > contents.len() || !contents.is_char_boundary(offset) {
+		return None;
+	}
+	let mut line = 1usize;
+	let mut column = 1usize;
+	for character in contents[..offset].chars() {
+		if character == '\n' {
+			line += 1;
+			column = 1;
+		} else {
+			column += 1;
+		}
+	}
+	Some((line, column))
+}
+
 fn manifest_object_mut(value: &mut Value) -> Option<&mut Map<String, Value>> {
 	value.as_object_mut()
 }
@@ -346,7 +371,7 @@ impl LintRuleRunner for WorkspaceProtocolRule {
 
 				let mut result = LintResult::new(
 					self.rule.id.clone(),
-					location(ctx),
+					location_for_needle(ctx, dep_name),
 					format!(
 						"internal dependency `{dep_name}` should use the workspace: protocol (found `{version}`)"
 					),
@@ -427,7 +452,7 @@ impl LintRuleRunner for SortedDependenciesRule {
 
 			let mut result = LintResult::new(
 				self.rule.id.clone(),
-				location(ctx),
+				location_for_needle(ctx, section),
 				format!("dependencies in `{section}` are not sorted alphabetically"),
 				config.severity(),
 			);
@@ -561,7 +586,7 @@ impl LintRuleRunner for RootNoProdDepsRule {
 
 		let mut result = LintResult::new(
 			self.rule.id.clone(),
-			location(ctx),
+			location_for_needle(ctx, "dependencies"),
 			"root package.json should not have production dependencies; move them to devDependencies",
 			config.severity(),
 		);
@@ -643,7 +668,7 @@ impl LintRuleRunner for NoDuplicateDependenciesRule {
 			}
 			let mut result = LintResult::new(
 				self.rule.id.clone(),
-				location(ctx),
+				location_for_needle(ctx, &dep_name),
 				format!(
 					"dependency `{dep_name}` appears in multiple sections: {}",
 					sections.join(", ")

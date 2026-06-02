@@ -1,0 +1,17 @@
+---
+source: crates/monochange_integration_tests/tests/check_lint_output.rs
+expression: contents
+---
+{
+  "dependencies": {
+    "shared": "workspace:*",
+    "zeta": "1.0.0"
+  },
+  "description": "Application package",
+  "devDependencies": {
+    "vitest": "1.0.0"
+  },
+  "name": "app",
+  "type": "module",
+  "version": "0.0.0"
+}
