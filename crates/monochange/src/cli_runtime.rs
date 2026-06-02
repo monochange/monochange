@@ -2619,7 +2619,7 @@ fn build_package_publish_template_value(
 		&& let Some(object) = value.as_object_mut()
 	{
 		object.insert(
-			"rateLimits".to_string(),
+			"rate_limits".to_string(),
 			serde_json::to_value(rate_limit_report).unwrap_or(serde_json::Value::Null),
 		);
 	}
@@ -2641,8 +2641,8 @@ fn render_publish_command_json(
 ) -> MonochangeResult<String> {
 	render_json_output(
 		&serde_json::json!({
-			"packagePublish": package_publish,
-			"publishRateLimits": rate_limit_report,
+			"package_publish": package_publish,
+			"publish_rate_limits": rate_limit_report,
 		}),
 		"combined publish output",
 	)

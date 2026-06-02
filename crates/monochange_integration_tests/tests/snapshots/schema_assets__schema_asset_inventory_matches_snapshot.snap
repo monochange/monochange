@@ -12,16 +12,16 @@ expression: inventory
     ],
     "schemaId": "https://monochange.github.io/monochange/schemas/monochange.schema.json"
   },
-  "currentSchemaVersion": "[schema version]",
+  "current_schema_version": "[schema version]",
   "releaseRecord": {
     "additionalProperties": false,
     "kind": "monochange.releaseRecord",
     "required": [
-      "createdAt",
+      "created_at",
       "command",
-      "releaseTargets",
-      "releasedPackages",
-      "changedFiles"
+      "release_targets",
+      "released_packages",
+      "changed_files"
     ],
     "schemaId": "https://monochange.github.io/monochange/schemas/release-record.schema.json"
   },

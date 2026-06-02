@@ -139,11 +139,11 @@ fn forgejo_capabilities_match_hosted_support_without_trusted_publishing_claims()
 	"#);
 	assert_json_snapshot!(monochange_forgejo::forgejo_hosting_capabilities(), @r#"
 	{
-	  "commitWebUrls": true,
-	  "actorProfiles": false,
-	  "reviewRequestLookup": false,
-	  "relatedIssues": false,
-	  "issueComments": false
+	  "commit_web_urls": true,
+	  "actor_profiles": false,
+	  "review_request_lookup": false,
+	  "related_issues": false,
+	  "issue_comments": false
 	}
 	"#);
 }

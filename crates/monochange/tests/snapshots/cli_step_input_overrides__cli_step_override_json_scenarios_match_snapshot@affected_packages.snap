@@ -3,27 +3,27 @@ source: crates/monochange/tests/cli_step_input_overrides.rs
 expression: redacted
 ---
 {
-  "affectedPackageIds": [],
-  "changedPaths": [
+  "affected_package_ids": [],
+  "changed_paths": [
     "crates/core/CHANGELOG.md"
   ],
-  "changesetPaths": [],
+  "changeset_paths": [],
   "comment": null,
-  "coveredPackageIds": [],
+  "covered_package_ids": [],
   "enforce": true,
   "errors": [],
-  "ignoredPaths": [
+  "ignored_paths": [
     "crates/core/CHANGELOG.md"
   ],
   "labels": [
     "no-changeset-required"
   ],
-  "matchedPaths": [],
-  "matchedSkipLabels": [
+  "matched_paths": [],
+  "matched_skip_labels": [
     "no-changeset-required"
   ],
   "required": false,
   "status": "skipped",
   "summary": "changeset verification skipped because the change has an allowed label: no-changeset-required",
-  "uncoveredPackageIds": []
+  "uncovered_package_ids": []
 }

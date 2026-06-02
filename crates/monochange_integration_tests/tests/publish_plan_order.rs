@@ -74,7 +74,7 @@ fn publish_plan_integration_preserves_dependency_order_across_grouped_batches() 
 	);
 	let value: Value = serde_json::from_slice(&output.stdout)
 		.unwrap_or_else(|error| panic!("parse publish plan json: {error}"));
-	let publish_rate_limits = &value["publishRateLimits"];
+	let publish_rate_limits = &value["publish_rate_limits"];
 	let expected = [
 		"zeta_transport",
 		"yaml_config",
@@ -115,7 +115,7 @@ fn publish_plan_all_integration_includes_every_configured_package() {
 	);
 	let value: Value = serde_json::from_slice(&output.stdout)
 		.unwrap_or_else(|error| panic!("parse publish all plan json: {error}"));
-	let mut packages = value["publishRateLimits"]["batches"]
+	let mut packages = value["publish_rate_limits"]["batches"]
 		.as_array()
 		.unwrap_or_else(|| panic!("publish all plan batches should be an array"))
 		.iter()
@@ -172,7 +172,7 @@ fn publish_all_integration_plans_every_configured_package() {
 	);
 	let value: Value = serde_json::from_slice(&output.stdout)
 		.unwrap_or_else(|error| panic!("parse publish all json: {error}"));
-	let mut packages = value["packagePublish"]["packages"]
+	let mut packages = value["package_publish"]["packages"]
 		.as_array()
 		.unwrap_or_else(|| panic!("package publish packages should be an array"))
 		.iter()

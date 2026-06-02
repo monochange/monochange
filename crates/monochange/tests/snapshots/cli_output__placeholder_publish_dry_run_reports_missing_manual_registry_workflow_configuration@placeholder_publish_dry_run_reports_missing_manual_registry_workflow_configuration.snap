@@ -15,10 +15,10 @@ info:
     GITHUB_RUN_ID: ""
     GITHUB_WORKFLOW: ""
     GITHUB_WORKFLOW_REF: ""
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:64143"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:64143"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:64143"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:64143"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:61525"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:61525"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:61525"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:61525"
     MONOCHANGE_TRUSTED_PUBLISHING_ENVIRONMENT: ""
     NO_COLOR: "1"
     RUST_LOG: ""
@@ -27,8 +27,8 @@ success: true
 exit_code: 0
 ----- stdout -----
 {
-  "packagePublish": {
-    "dryRun": true,
+  "package_publish": {
+    "dry_run": true,
     "mode": "placeholder",
     "packages": [
       {
@@ -38,11 +38,11 @@ exit_code: 0
         "placeholder": true,
         "registry": "crates_io",
         "status": "planned",
-        "trustedPublishing": {
+        "trusted_publishing": {
           "environment": null,
           "message": "configure trusted publishing manually for `core` before the next built-in release publish; open https://crates.io/crates/core and finish the GitHub context setup first: config error: trusted publishing could not determine the GitHub workflow; set `publish.trusted_publishing.workflow`. No supported CI provider identity was detected for crates_io trusted publishing; supported providers: GitHub Actions.",
           "repository": null,
-          "setupUrl": "https://crates.io/crates/core",
+          "setup_url": "https://crates.io/crates/core",
           "status": "manual_action_required",
           "workflow": null
         },
@@ -55,11 +55,11 @@ exit_code: 0
         "placeholder": true,
         "registry": "npm",
         "status": "planned",
-        "trustedPublishing": {
+        "trusted_publishing": {
           "environment": null,
           "message": "configure trusted publishing manually for `npm-pkg` before the next built-in release publish; open https://www.npmjs.com/package/npm-pkg/access and finish the GitHub context setup first: config error: trusted publishing could not determine the GitHub workflow; set `publish.trusted_publishing.workflow`. No supported CI provider identity was detected for npm trusted publishing; supported providers: GitHub Actions, GitLab CI/CD.",
           "repository": null,
-          "setupUrl": "https://www.npmjs.com/package/npm-pkg/access",
+          "setup_url": "https://www.npmjs.com/package/npm-pkg/access",
           "status": "manual_action_required",
           "workflow": null
         },
@@ -67,34 +67,34 @@ exit_code: 0
       }
     ]
   },
-  "publishRateLimits": {
+  "publish_rate_limits": {
     "batches": [
       {
-        "batchIndex": 1,
+        "batch_index": 1,
         "operation": "placeholder_publish",
         "packages": [
           "core"
         ],
-        "recommendedWaitSeconds": null,
+        "recommended_wait_seconds": null,
         "registry": "crates_io",
-        "totalBatches": 1
+        "total_batches": 1
       },
       {
-        "batchIndex": 1,
+        "batch_index": 1,
         "operation": "placeholder_publish",
         "packages": [
           "npm_pkg"
         ],
-        "recommendedWaitSeconds": null,
+        "recommended_wait_seconds": null,
         "registry": "npm",
-        "totalBatches": 1
+        "total_batches": 1
       }
     ],
-    "dryRun": true,
+    "dry_run": true,
     "warnings": [],
     "windows": [
       {
-        "batchesRequired": 1,
+        "batches_required": 1,
         "confidence": "high",
         "evidence": [
           {
@@ -104,16 +104,16 @@ exit_code: 0
             "url": "https://github.com/rust-lang/crates.io"
           }
         ],
-        "fitsSingleWindow": true,
+        "fits_single_window": true,
         "limit": 10,
         "notes": "crates.io source enforces 10 uploads per minute for existing crates",
         "operation": "placeholder_publish",
         "pending": 1,
         "registry": "crates_io",
-        "windowSeconds": 60
+        "window_seconds": 60
       },
       {
-        "batchesRequired": 1,
+        "batches_required": 1,
         "confidence": "low",
         "evidence": [
           {
@@ -123,13 +123,13 @@ exit_code: 0
             "url": "https://docs.npmjs.com/trusted-publishers"
           }
         ],
-        "fitsSingleWindow": true,
+        "fits_single_window": true,
         "limit": null,
         "notes": "npm does not publish a precise package publish quota; use sequential CI publishing with retries",
         "operation": "placeholder_publish",
         "pending": 1,
         "registry": "npm",
-        "windowSeconds": null
+        "window_seconds": null
       }
     ]
   }

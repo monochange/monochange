@@ -3,31 +3,31 @@ source: crates/monochange/tests/changeset_policy.rs
 expression: redacted
 ---
 {
-  "affectedPackageIds": [
+  "affected_package_ids": [
     "core"
   ],
-  "changedPaths": [
+  "changed_paths": [
     "crates/core/src/lib.rs"
   ],
-  "changesetPaths": [],
+  "changeset_paths": [],
   "comment": null,
-  "coveredPackageIds": [],
+  "covered_package_ids": [],
   "enforce": false,
   "errors": [],
-  "ignoredPaths": [],
+  "ignored_paths": [],
   "labels": [
     "no-changeset-required"
   ],
-  "matchedPaths": [
+  "matched_paths": [
     "crates/core/src/lib.rs"
   ],
-  "matchedSkipLabels": [
+  "matched_skip_labels": [
     "no-changeset-required"
   ],
   "required": false,
   "status": "skipped",
   "summary": "changeset verification skipped because the change has an allowed label: no-changeset-required",
-  "uncoveredPackageIds": [
+  "uncovered_package_ids": [
     "core"
   ]
 }

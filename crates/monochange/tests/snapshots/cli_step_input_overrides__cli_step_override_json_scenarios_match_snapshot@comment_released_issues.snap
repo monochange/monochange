@@ -3,7 +3,7 @@ source: crates/monochange/tests/cli_step_input_overrides.rs
 expression: redacted
 ---
 {
-  "changedFiles": [
+  "changed_files": [
     "Cargo.toml",
     "crates/core/CHANGELOG.md",
     "crates/core/Cargo.toml"
@@ -24,8 +24,8 @@ expression: redacted
         "summary": [],
         "title": "core [1.1.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.1.0) ([DATE])"
       },
-      "ownerId": "core",
-      "ownerKind": "package",
+      "owner_id": "core",
+      "owner_kind": "package",
       "path": "crates/core/CHANGELOG.md",
       "rendered": "[multiline text]"
     }
@@ -34,17 +34,17 @@ expression: redacted
     {
       "context": {
         "capabilities": {
-          "actorProfiles": true,
-          "commitWebUrls": true,
-          "issueComments": true,
-          "relatedIssues": true,
-          "reviewRequestLookup": true
+          "actor_profiles": true,
+          "commit_web_urls": true,
+          "issue_comments": true,
+          "related_issues": true,
+          "review_request_lookup": true
         },
         "host": "github.com",
         "introduced": null,
-        "lastUpdated": null,
+        "last_updated": null,
         "provider": "github",
-        "relatedIssues": []
+        "related_issues": []
       },
       "details": null,
       "path": ".changeset/feature.md",
@@ -52,8 +52,8 @@ expression: redacted
       "targets": [
         {
           "bump": "minor",
-          "changeType": "minor",
-          "evidenceRefs": [],
+          "change_type": "minor",
+          "evidence_refs": [],
           "id": "core",
           "kind": "package",
           "origin": "direct-change"
@@ -62,16 +62,16 @@ expression: redacted
     }
   ],
   "command": "release-comments",
-  "deletedChangesets": [],
-  "dryRun": true,
-  "groupVersion": null,
-  "packagePublications": [
+  "deleted_changesets": [],
+  "dry_run": true,
+  "group_version": null,
+  "package_publications": [
     {
       "ecosystem": "cargo",
       "mode": "builtin",
       "package": "core",
       "registry": "crates_io",
-      "trustedPublishing": {
+      "trusted_publishing": {
         "enabled": true,
         "environment": null,
         "repository": null,
@@ -81,27 +81,27 @@ expression: redacted
     }
   ],
   "plan": {
-    "compatibilityEvidence": [],
+    "compatibility_evidence": [],
     "decisions": [
       {
         "bump": "minor",
         "package": "cargo:crates/core/Cargo.toml",
-        "plannedVersion": "1.1.0",
+        "planned_version": "1.1.0",
         "reasons": [
           "add github fixture coverage"
         ],
         "trigger": "direct-change",
-        "upstreamSources": [
+        "upstream_sources": [
           "cargo:crates/core/Cargo.toml"
         ]
       }
     ],
     "groups": [],
-    "unresolvedItems": [],
+    "unresolved_items": [],
     "warnings": [],
-    "workspaceRoot": "."
+    "workspace_root": "."
   },
-  "releaseTargets": [
+  "release_targets": [
     {
       "id": "core",
       "kind": "package",
@@ -109,15 +109,15 @@ expression: redacted
         "core"
       ],
       "release": true,
-      "renderedChangelogTitle": "core [1.1.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.1.0) ([DATE])",
-      "renderedTitle": "core 1.1.0 ([DATE])",
+      "rendered_changelog_title": "core [1.1.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.1.0) ([DATE])",
+      "rendered_title": "core 1.1.0 ([DATE])",
       "tag": true,
-      "tagName": "core/v1.1.0",
+      "tag_name": "core/v1.1.0",
       "version": "1.1.0",
-      "versionFormat": "namespaced"
+      "version_format": "namespaced"
     }
   ],
-  "releasedPackages": [
+  "released_packages": [
     "workflow-core"
   ],
   "version": "1.1.0"

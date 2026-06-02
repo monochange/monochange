@@ -49,12 +49,12 @@ mc step:diagnose-changesets --format json
 
 The JSON envelope includes:
 
-- `requestedChangesets` — the resolved paths that were queried
+- `requested_changesets` — the resolved paths that were queried
 - `changesets` — full `PreparedChangeset` records, each with:
   - `path` — workspace-relative path to the changeset file
   - `summary` — the first paragraph of the markdown body
   - `details` — optional follow-up paragraphs
-  - `targets` — package/group bump entries, each with `kind`, `id`, `bump`, `origin`, and optional `evidenceRefs`
+  - `targets` — package/group bump entries, each with `kind`, `id`, `bump`, `origin`, and optional `evidence_refs`
   - `context` — git and review context (see below)
 
 ## Context fields
@@ -62,14 +62,14 @@ The JSON envelope includes:
 When a changeset has been committed to a git repository, each `context` record contains:
 
 - `introduced` — revision where the changeset file was first committed
-- `lastUpdated` — revision where it was most recently changed (omitted when same as `introduced`)
-- `relatedIssues` — issues linked by the changeset or the PR that introduced it
+- `last_updated` — revision where it was most recently changed (omitted when same as `introduced`)
+- `related_issues` — issues linked by the changeset or the PR that introduced it
 
 Each revision record includes:
 
 - `commit.sha` — full commit SHA
-- `commit.shortSha` — short SHA for display
-- `reviewRequest` — PR/MR number and URL when the commit is associated with a pull request
+- `commit.short_sha` — short SHA for display
+- `review_request` — PR/MR number and URL when the commit is associated with a pull request
 
 ## Command
 
@@ -105,5 +105,5 @@ mc step:diagnose-changesets --format json | jq '[.changesets[] | select(.targets
 
 ```bash
 mc step:diagnose-changesets --format json \
-  | jq '[.changesets[].context?.introduced?.reviewRequest? | select(. != null) | .id] | unique'
+  | jq '[.changesets[].context?.introduced?.review_request? | select(. != null) | .id] | unique'
 ```

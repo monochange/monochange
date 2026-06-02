@@ -273,8 +273,8 @@ pub(crate) fn render_config_step_json(
 		.to_string();
 	let config_path = monochange_config::config_path(root).display().to_string();
 	let output = serde_json::json!({
-		"projectRoot": project_root,
-		"configPath": config_path,
+		"project_root": project_root,
+		"config_path": config_path,
 		"config": configuration,
 	});
 
@@ -498,7 +498,7 @@ pub struct PreparedRelease {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct PreparedFileDiff {
 	path: PathBuf,
 	diff: String,
@@ -526,7 +526,7 @@ struct FileUpdate {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct ChangesetDiagnosticsReport {
 	pub(crate) requested_changesets: Vec<PathBuf>,
 	pub(crate) changesets: Vec<PreparedChangeset>,
@@ -534,7 +534,7 @@ pub(crate) struct ChangesetDiagnosticsReport {
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct RetargetReleaseReport {
 	from: String,
 	target: String,
@@ -553,7 +553,7 @@ struct RetargetReleaseReport {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct CommitReleaseReport {
 	subject: String,
 	body: String,

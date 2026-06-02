@@ -695,7 +695,7 @@ fn render_release_cli_command_json_includes_publish_rate_limits_when_present() {
 		},
 	)
 	.unwrap_or_else(|error| panic!("release cli json: {error}"));
-	assert!(json.contains("publishRateLimits"));
+	assert!(json.contains("publish_rate_limits"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -946,12 +946,12 @@ fn deduplicate_uses_persistent_index_to_skip_scan() {
 	let stale_dir = root.join(".monochange/releases/stale");
 	fs::create_dir_all(&stale_dir).unwrap();
 	let stale_record = r#"{
-		"schemaVersion": 1,
+		"schema_version": 1,
 		"kind": "monochange.releaseRecord",
-		"createdAt": "2026-01-01T00:00:00Z",
+		"created_at": "2026-01-01T00:00:00Z",
 		"command": "prepare-release",
 		"version": "1.0.0",
-		"releaseTargets": [
+		"release_targets": [
 			{"id":"pkg-a","kind":"Package","version":"1.0.0","tag":true,"release":true,"tag_name":"v1.0.0","version_format":"primary","members":[],"rendered_title":"Release pkg-a 1.0.0","rendered_changelog_title":"pkg-a 1.0.0"}
 		]
 	}"#;
@@ -1214,7 +1214,7 @@ fn validate_release_record_file_fast_path_detects_missing_id() {
 	let path = write_release_record_file(root, None, &manifest).unwrap();
 
 	// Overwrite with a record whose target is missing the `id` field.
-	let mutated = r#"{"schemaVersion":1,"kind":"monochange.releaseRecord","createdAt":"2026-01-01T00:00:00Z","command":"prepare-release","version":"1.0.0","releaseTargets":[{"kind":"npm","version":"1.0.0"}]}"#;
+	let mutated = r#"{"schema_version":1,"kind":"monochange.releaseRecord","created_at":"2026-01-01T00:00:00Z","command":"prepare-release","version":"1.0.0","release_targets":[{"kind":"npm","version":"1.0.0"}]}"#;
 	fs::write(&path, mutated).unwrap();
 
 	let validated = validate_release_record_file(root, None, &manifest, true).unwrap();
@@ -1234,14 +1234,14 @@ fn validate_release_record_file_fast_path_detects_missing_kind() {
 	let path = write_release_record_file(root, None, &manifest).unwrap();
 
 	// Overwrite with a record whose target is missing the `kind` field.
-	let mutated = r#"{"schemaVersion":1,"kind":"monochange.releaseRecord","createdAt":"2026-01-01T00:00:00Z","command":"prepare-release","version":"1.0.0","releaseTargets":[{"id":"pkg-a","version":"1.0.0"}]}"#;
+	let mutated = r#"{"schema_version":1,"kind":"monochange.releaseRecord","created_at":"2026-01-01T00:00:00Z","command":"prepare-release","version":"1.0.0","release_targets":[{"id":"pkg-a","version":"1.0.0"}]}"#;
 	fs::write(&path, mutated).unwrap();
 
 	let validated = validate_release_record_file(root, None, &manifest, true).unwrap();
 	assert_eq!(validated, path);
 
 	let content = fs::read_to_string(&path).unwrap();
-	assert!(content.contains("Package"));
+	assert!(content.contains("package"));
 }
 
 #[test]
@@ -1253,7 +1253,7 @@ fn validate_release_record_file_fast_path_detects_missing_version() {
 	let path = write_release_record_file(root, None, &manifest).unwrap();
 
 	// Overwrite with a record whose target is missing the `version` field.
-	let mutated = r#"{"schemaVersion":1,"kind":"monochange.releaseRecord","createdAt":"2026-01-01T00:00:00Z","command":"prepare-release","version":"1.0.0","releaseTargets":[{"id":"pkg-a","kind":"Package"}]}"#;
+	let mutated = r#"{"schema_version":1,"kind":"monochange.releaseRecord","created_at":"2026-01-01T00:00:00Z","command":"prepare-release","version":"1.0.0","release_targets":[{"id":"pkg-a","kind":"Package"}]}"#;
 	fs::write(&path, mutated).unwrap();
 
 	let validated = validate_release_record_file(root, None, &manifest, true).unwrap();
@@ -1272,7 +1272,7 @@ fn validate_release_record_file_fast_path_detects_mismatched_target_count() {
 	let path = write_release_record_file(root, None, &manifest).unwrap();
 
 	// Overwrite with a record that has MORE targets than the manifest.
-	let mutated = r#"{"schemaVersion":1,"kind":"monochange.releaseRecord","createdAt":"2026-01-01T00:00:00Z","command":"prepare-release","version":"1.0.0","releaseTargets":[{"id":"pkg-a","kind":"Package","version":"1.0.0"},{"id":"pkg-b","kind":"Package","version":"2.0.0"}]}"#;
+	let mutated = r#"{"schema_version":1,"kind":"monochange.releaseRecord","created_at":"2026-01-01T00:00:00Z","command":"prepare-release","version":"1.0.0","release_targets":[{"id":"pkg-a","kind":"Package","version":"1.0.0"},{"id":"pkg-b","kind":"Package","version":"2.0.0"}]}"#;
 	fs::write(&path, mutated).unwrap();
 
 	let validated = validate_release_record_file(root, None, &manifest, true).unwrap();

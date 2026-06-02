@@ -38,56 +38,56 @@ exit_code: 0
     {
       "ecosystem": "cargo",
       "id": "cargo:cargo/sdk-core/Cargo.toml",
-      "manifestPath": "cargo/sdk-core/Cargo.toml",
+      "manifest_path": "cargo/sdk-core/Cargo.toml",
       "name": "sdk-core",
-      "publishState": "public",
+      "publish_state": "public",
       "version": "1.0.0",
-      "versionGroup": "sdk",
-      "workspaceRoot": "."
+      "version_group": "sdk",
+      "workspace_root": "."
     },
     {
       "ecosystem": "dart",
       "id": "dart:dart/mobile_sdk/pubspec.yaml",
-      "manifestPath": "dart/mobile_sdk/pubspec.yaml",
+      "manifest_path": "dart/mobile_sdk/pubspec.yaml",
       "name": "mobile_sdk",
-      "publishState": "public",
+      "publish_state": "public",
       "version": "1.0.0",
-      "versionGroup": null,
-      "workspaceRoot": "."
+      "version_group": null,
+      "workspace_root": "."
     },
     {
       "ecosystem": "deno",
       "id": "deno:deno/tool/deno.json",
-      "manifestPath": "deno/tool/deno.json",
+      "manifest_path": "deno/tool/deno.json",
       "name": "deno-tool",
-      "publishState": "public",
+      "publish_state": "public",
       "version": "1.0.0",
-      "versionGroup": null,
-      "workspaceRoot": "."
+      "version_group": null,
+      "workspace_root": "."
     },
     {
       "ecosystem": "npm",
       "id": "npm:packages/web-sdk/package.json",
-      "manifestPath": "packages/web-sdk/package.json",
+      "manifest_path": "packages/web-sdk/package.json",
       "name": "web-sdk",
-      "publishState": "public",
+      "publish_state": "public",
       "version": "1.0.0",
-      "versionGroup": "sdk",
-      "workspaceRoot": "."
+      "version_group": "sdk",
+      "workspace_root": "."
     }
   ],
-  "versionGroups": [
+  "version_groups": [
     {
       "id": "sdk",
       "members": [
         "cargo:cargo/sdk-core/Cargo.toml",
         "npm:packages/web-sdk/package.json"
       ],
-      "mismatchDetected": false
+      "mismatch_detected": false
     }
   ],
   "warnings": [],
-  "workspaceRoot": "."
+  "workspace_root": "."
 }
 
 ----- stderr -----

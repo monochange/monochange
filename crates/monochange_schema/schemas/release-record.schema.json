@@ -21,11 +21,11 @@
 				"capabilities": {
 					"$ref": "#/$defs/HostingCapabilities",
 					"default": {
-						"actorProfiles": false,
-						"commitWebUrls": false,
-						"issueComments": false,
-						"relatedIssues": false,
-						"reviewRequestLookup": false
+						"actor_profiles": false,
+						"commit_web_urls": false,
+						"issue_comments": false,
+						"related_issues": false,
+						"review_request_lookup": false
 					}
 				},
 				"host": {
@@ -46,7 +46,7 @@
 					],
 					"default": null
 				},
-				"lastUpdated": {
+				"last_updated": {
 					"anyOf": [
 						{
 							"$ref": "#/$defs/ChangesetRevision"
@@ -60,7 +60,7 @@
 				"provider": {
 					"$ref": "#/$defs/HostingProviderKind"
 				},
-				"relatedIssues": {
+				"related_issues": {
 					"default": [],
 					"items": {
 						"$ref": "#/$defs/HostedIssueRef"
@@ -97,7 +97,7 @@
 					],
 					"default": null
 				},
-				"reviewRequest": {
+				"review_request": {
 					"anyOf": [
 						{
 							"$ref": "#/$defs/HostedReviewRequestRef"
@@ -131,7 +131,7 @@
 		},
 		"HostedActorRef": {
 			"properties": {
-				"displayName": {
+				"display_name": {
 					"default": null,
 					"type": [
 						"string",
@@ -189,28 +189,28 @@
 		},
 		"HostedCommitRef": {
 			"properties": {
-				"authorEmail": {
+				"author_email": {
 					"default": null,
 					"type": [
 						"string",
 						"null"
 					]
 				},
-				"authorName": {
+				"author_name": {
 					"default": null,
 					"type": [
 						"string",
 						"null"
 					]
 				},
-				"authoredAt": {
+				"authored_at": {
 					"default": null,
 					"type": [
 						"string",
 						"null"
 					]
 				},
-				"committedAt": {
+				"committed_at": {
 					"default": null,
 					"type": [
 						"string",
@@ -230,7 +230,7 @@
 				"sha": {
 					"type": "string"
 				},
-				"shortSha": {
+				"short_sha": {
 					"type": "string"
 				},
 				"url": {
@@ -244,7 +244,7 @@
 			"required": [
 				"provider",
 				"sha",
-				"shortSha"
+				"short_sha"
 			],
 			"type": "object"
 		},
@@ -357,28 +357,28 @@
 		},
 		"HostingCapabilities": {
 			"properties": {
-				"actorProfiles": {
+				"actor_profiles": {
 					"type": "boolean"
 				},
-				"commitWebUrls": {
+				"commit_web_urls": {
 					"type": "boolean"
 				},
-				"issueComments": {
+				"issue_comments": {
 					"type": "boolean"
 				},
-				"relatedIssues": {
+				"related_issues": {
 					"type": "boolean"
 				},
-				"reviewRequestLookup": {
+				"review_request_lookup": {
 					"type": "boolean"
 				}
 			},
 			"required": [
-				"commitWebUrls",
-				"actorProfiles",
-				"reviewRequestLookup",
-				"relatedIssues",
-				"issueComments"
+				"commit_web_urls",
+				"actor_profiles",
+				"review_request_lookup",
+				"related_issues",
+				"issue_comments"
 			],
 			"type": "object"
 		},
@@ -419,7 +419,7 @@
 					],
 					"default": null
 				},
-				"trustedPublishing": {
+				"trusted_publishing": {
 					"$ref": "#/$defs/TrustedPublishingSettings",
 					"default": {
 						"enabled": true,
@@ -495,20 +495,20 @@
 					],
 					"default": null
 				},
-				"causedBy": {
+				"caused_by": {
 					"items": {
 						"type": "string"
 					},
 					"type": "array"
 				},
-				"changeType": {
+				"change_type": {
 					"default": null,
 					"type": [
 						"string",
 						"null"
 					]
 				},
-				"evidenceRefs": {
+				"evidence_refs": {
 					"default": [],
 					"items": {
 						"type": "string"
@@ -585,10 +585,10 @@
 				"notes": {
 					"$ref": "#/$defs/ReleaseNotesDocument"
 				},
-				"ownerId": {
+				"owner_id": {
 					"type": "string"
 				},
-				"ownerKind": {
+				"owner_kind": {
 					"$ref": "#/$defs/ReleaseOwnerKind"
 				},
 				"path": {
@@ -599,8 +599,8 @@
 				}
 			},
 			"required": [
-				"ownerId",
-				"ownerKind",
+				"owner_id",
+				"owner_kind",
 				"path",
 				"format",
 				"notes",
@@ -709,13 +709,13 @@
 				"tag": {
 					"type": "boolean"
 				},
-				"tagName": {
+				"tag_name": {
 					"type": "string"
 				},
 				"version": {
 					"type": "string"
 				},
-				"versionFormat": {
+				"version_format": {
 					"$ref": "#/$defs/VersionFormat"
 				}
 			},
@@ -723,10 +723,10 @@
 				"id",
 				"kind",
 				"version",
-				"versionFormat",
+				"version_format",
 				"tag",
 				"release",
-				"tagName"
+				"tag_name"
 			],
 			"type": "object"
 		},
@@ -782,7 +782,7 @@
 	"additionalProperties": false,
 	"description": "Durable commit-embedded release record schema for monochange release records.",
 	"properties": {
-		"changedFiles": {
+		"changed_files": {
 			"items": {
 				"type": "string"
 			},
@@ -805,10 +805,10 @@
 		"command": {
 			"type": "string"
 		},
-		"createdAt": {
+		"created_at": {
 			"type": "string"
 		},
-		"deletedChangesets": {
+		"deleted_changesets": {
 			"default": [],
 			"items": {
 				"type": "string"
@@ -819,7 +819,7 @@
 			"const": "monochange.releaseRecord",
 			"type": "string"
 		},
-		"packagePublications": {
+		"package_publications": {
 			"default": [],
 			"items": {
 				"$ref": "#/$defs/PackagePublicationTarget"
@@ -837,23 +837,23 @@
 			],
 			"default": null
 		},
-		"releaseTargets": {
+		"release_targets": {
 			"items": {
 				"$ref": "#/$defs/ReleaseRecordTarget"
 			},
 			"type": "array"
 		},
-		"releasedPackages": {
+		"released_packages": {
 			"items": {
 				"type": "string"
 			},
 			"type": "array"
 		},
-		"schemaVersion": {
-			"default": "0.3",
+		"schema_version": {
+			"default": "0.4",
 			"type": "string"
 		},
-		"updatedChangelogs": {
+		"updated_changelogs": {
 			"default": [],
 			"items": {
 				"type": "string"
@@ -876,11 +876,11 @@
 		}
 	},
 	"required": [
-		"createdAt",
+		"created_at",
 		"command",
-		"releaseTargets",
-		"releasedPackages",
-		"changedFiles"
+		"release_targets",
+		"released_packages",
+		"changed_files"
 	],
 	"title": "monochange release record",
 	"type": "object"

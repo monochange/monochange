@@ -263,12 +263,12 @@ fn migrate_release_records_rewrites_legacy_records() {
 	fs::write(
 		&record_path,
 		r#"{
-  "schemaVersion": 1,
+  "schema_version": 1,
   "kind": "monochange.releaseRecord",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "changedFiles": []
+  "release_targets": [],
+  "changed_files": []
 }"#,
 	)
 	.unwrap_or_else(|error| panic!("write legacy release record: {error}"));
@@ -294,17 +294,17 @@ fn migrate_release_records_rewrites_legacy_records() {
 		serde_json::json!("migrated")
 	);
 	assert_eq!(
-		parsed["records"][0]["fromSchemaVersion"],
+		parsed["records"][0]["from_schema_version"],
 		serde_json::json!("legacy-1")
 	);
 
 	let migrated = fs::read_to_string(&record_path)
 		.unwrap_or_else(|error| panic!("read migrated release record: {error}"));
 	assert!(migrated.contains(&format!(
-		r#""schemaVersion": "{}""#,
+		r#""schema_version": "{}""#,
 		monochange_core::RELEASE_RECORD_SCHEMA_VERSION
 	)));
-	assert!(!migrated.contains(r#""schemaVersion": 1"#));
+	assert!(!migrated.contains(r#""schema_version": 1"#));
 }
 
 #[test]
@@ -336,12 +336,12 @@ fn migrate_release_records_reports_dry_run_and_current_records() {
 		&current_record_path,
 		format!(
 			r#"{{
-  "schemaVersion": "{}",
+  "schema_version": "{}",
   "kind": "monochange.releaseRecord",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "changedFiles": []
+  "release_targets": [],
+  "changed_files": []
 }}"#,
 			monochange_core::RELEASE_RECORD_SCHEMA_VERSION
 		),
@@ -352,11 +352,11 @@ fn migrate_release_records_reports_dry_run_and_current_records() {
 		r#"{
   "v": "0.0",
   "kind": "monochange.releaseRecord",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }"#,
 	)
 	.unwrap_or_else(|error| panic!("write legacy release record: {error}"));
@@ -419,10 +419,10 @@ fn migrate_release_records_reports_schema_version_errors() {
 		&record_path,
 		r#"{
   "kind": "monochange.releaseRecord",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "changedFiles": []
+  "release_targets": [],
+  "changed_files": []
 }"#,
 	)
 	.unwrap_or_else(|error| panic!("write missing-version release record: {error}"));
@@ -430,7 +430,7 @@ fn migrate_release_records_reports_schema_version_errors() {
 	assert!(
 		error
 			.to_string()
-			.contains("release record is missing `schemaVersion` or legacy `v`")
+			.contains("release record is missing `schema_version` or legacy `schemaVersion`/`v`")
 	);
 }
 
@@ -446,11 +446,11 @@ fn migrate_release_records_reports_migration_and_rendering_branches() {
 		r#"{
   "v": "0.0",
   "kind": "monochange.releaseRecord",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }"#,
 	)
 	.unwrap_or_else(|error| panic!("write legacy release record: {error}"));
@@ -483,12 +483,12 @@ fn migrate_release_records_reports_migration_errors() {
 	fs::write(
 		&record_path,
 		r#"{
-  "schemaVersion": "0.0",
+  "schema_version": "0.0",
   "kind": "example.other",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "changedFiles": []
+  "release_targets": [],
+  "changed_files": []
 }"#,
 	)
 	.unwrap_or_else(|error| panic!("write unsupported release record: {error}"));
@@ -540,11 +540,11 @@ fn migrate_release_records_reports_file_write_errors() {
 		r#"{
   "v": "0.0",
   "kind": "monochange.releaseRecord",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }"#,
 	)
 	.unwrap_or_else(|error| panic!("write readonly release record: {error}"));
@@ -1539,8 +1539,8 @@ fn release_record_supports_json_output() {
 	.unwrap_or_else(|error| panic!("release-record json output: {error}"));
 
 	assert!(output.contains("\"record\""));
-	assert!(output.contains("\"recordCommit\""));
-	assert!(output.contains("\"resolvedCommit\""));
+	assert!(output.contains("\"record_commit\""));
+	assert!(output.contains("\"resolved_commit\""));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -1572,7 +1572,7 @@ async fn release_record_jq_filters_json_output_for_ci() {
 			OsString::from("json"),
 			OsString::from("--jq"),
 			OsString::from(
-				r#".record.releaseTargets[] | select(.id == "main" and .kind == "group" and .release == true) | .tagName"#,
+				r#".record.release_targets[] | select(.id == "main" and .kind == "group" and .release == true) | .tag_name"#,
 			),
 		],
 	)
@@ -1589,7 +1589,7 @@ async fn release_record_jq_filters_json_output_for_ci() {
 			OsString::from("--format"),
 			OsString::from("json"),
 			OsString::from("--jq"),
-			OsString::from(".resolvedCommit == .recordCommit"),
+			OsString::from(".resolved_commit == .record_commit"),
 		],
 	)
 	.unwrap_or_else(|error| panic!("release-record jq commit output: {error}"));
@@ -2150,16 +2150,16 @@ fn workspace_discover_json_output_contains_contract_fields() {
 	let parsed: serde_json::Value =
 		serde_json::from_str(&output).unwrap_or_else(|error| panic!("json: {error}"));
 
-	assert_eq!(parsed["workspaceRoot"].as_str(), Some("."));
+	assert_eq!(parsed["workspace_root"].as_str(), Some("."));
 	assert_eq!(parsed["packages"].as_array().map(Vec::len), Some(4));
-	assert_eq!(parsed["versionGroups"].as_array().map(Vec::len), Some(1));
+	assert_eq!(parsed["version_groups"].as_array().map(Vec::len), Some(1));
 	assert_eq!(parsed["dependencies"].as_array().map(Vec::len), Some(3));
 	assert!(
 		parsed["packages"]
 			.as_array()
 			.unwrap_or_else(|| panic!("packages array"))
 			.iter()
-			.all(|package| package.get("manifestPath").is_some())
+			.all(|package| package.get("manifest_path").is_some())
 	);
 	assert!(
 		parsed["packages"]
@@ -3192,8 +3192,8 @@ fn command_config_reports_resolved_configuration_json() {
 		.to_string();
 	let config_path = tempdir.path().join("monochange.toml").display().to_string();
 
-	assert_eq!(parsed["projectRoot"], serde_json::json!(project_root));
-	assert_eq!(parsed["configPath"], serde_json::json!(config_path));
+	assert_eq!(parsed["project_root"], serde_json::json!(project_root));
+	assert_eq!(parsed["config_path"], serde_json::json!(config_path));
 	assert_eq!(
 		parsed["config"]["packages"][0]["id"],
 		serde_json::json!("app")
@@ -3213,11 +3213,11 @@ fn render_config_step_json_falls_back_to_uncanonicalized_root() {
 		serde_json::from_str(&output).unwrap_or_else(|error| panic!("config json: {error}"));
 
 	assert_eq!(
-		parsed["projectRoot"],
+		parsed["project_root"],
 		serde_json::json!(missing_root.display().to_string())
 	);
 	assert_eq!(
-		parsed["configPath"],
+		parsed["config_path"],
 		serde_json::json!(missing_root.join("monochange.toml").display().to_string())
 	);
 }
@@ -3627,7 +3627,7 @@ fn command_diagnostics_reports_multiple_changesets_in_json() {
 	let parsed: serde_json::Value =
 		serde_json::from_str(&output).unwrap_or_else(|error| panic!("diagnostics json: {error}"));
 
-	let requested = parsed["requestedChangesets"]
+	let requested = parsed["requested_changesets"]
 		.as_array()
 		.unwrap_or_else(|| panic!("requested"));
 	assert_eq!(requested.len(), 2);
@@ -3661,7 +3661,7 @@ fn command_diagnostics_deduplicates_duplicate_requested_paths() {
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 	let parsed: serde_json::Value =
 		serde_json::from_str(&output).unwrap_or_else(|error| panic!("diagnostics json: {error}"));
-	let requested = parsed["requestedChangesets"]
+	let requested = parsed["requested_changesets"]
 		.as_array()
 		.unwrap_or_else(|| panic!("requested"));
 
@@ -4224,7 +4224,7 @@ fn source_github_release_comments_command_supports_provider_neutral_source_confi
 	)
 	.unwrap_or_else(|error| panic!("release comments output: {error}"));
 
-	assert!(output.contains("released_packages") || output.contains("releaseTargets"));
+	assert!(output.contains("released_packages") || output.contains("release_targets"));
 }
 
 #[test]
@@ -4670,7 +4670,7 @@ fn step_override_with_literal_list_uses_list_as_changed_paths() {
 	.unwrap_or_else(|error| panic!("pr-check output: {error}"));
 	let json: serde_json::Value = serde_json::from_str(&output)
 		.unwrap_or_else(|error| panic!("json: {error}; output={output}"));
-	assert_eq!(json["affectedPackageIds"][0], "core");
+	assert_eq!(json["affected_package_ids"][0], "core");
 }
 
 #[test]
@@ -4712,7 +4712,7 @@ fn step_override_forwards_multi_value_list_reference_as_list() {
 	let json: serde_json::Value = serde_json::from_str(&output)
 		.unwrap_or_else(|error| panic!("json: {error}; output={output}"));
 	assert!(
-		json["matchedPaths"]
+		json["matched_paths"]
 			.as_array()
 			.is_some_and(|p| p.iter().any(|v| v == "crates/core/src/lib.rs"))
 	);
@@ -4730,7 +4730,10 @@ fn step_override_missing_template_reference_produces_empty_changed_paths() {
 	.unwrap_or_else(|error| panic!("pr-check output: {error}"));
 	let json: serde_json::Value = serde_json::from_str(&output)
 		.unwrap_or_else(|error| panic!("json: {error}; output={output}"));
-	assert_eq!(json["affectedPackageIds"].as_array().map(Vec::len), Some(0));
+	assert_eq!(
+		json["affected_package_ids"].as_array().map(Vec::len),
+		Some(0)
+	);
 }
 
 // Unit tests for private helper functions in the input-override pipeline.
@@ -6083,7 +6086,7 @@ fn validate_release_record_file_reports_write_error_when_file_is_readonly() {
 		.unwrap_or_else(|error| panic!("write record: {error}"));
 	fs::write(
 		&expected_path,
-		r#"{"schemaVersion":"0.1","kind":"monochange.releaseRecord","createdAt":"2026-01-01T00:00:00Z","command":"test","releaseTargets":[],"releasedPackages":[],"changedFiles":[]}"#,
+		r#"{"schema_version":"0.1","kind":"monochange.releaseRecord","created_at":"2026-01-01T00:00:00Z","command":"test","release_targets":[],"released_packages":[],"changed_files":[]}"#,
 	)
 	.unwrap_or_else(|error| panic!("corrupt record: {error}"));
 	let mut permissions = fs::metadata(&expected_path).unwrap().permissions();
@@ -6129,7 +6132,7 @@ fn validate_release_record_file_errors_when_update_release_json_is_false_and_rec
 		.unwrap_or_else(|error| panic!("write record: {error}"));
 	fs::write(
 		&expected_path,
-		r#"{"schemaVersion":"0.1","kind":"monochange.releaseRecord","createdAt":"2026-01-01T00:00:00Z","command":"test","releaseTargets":[],"releasedPackages":[],"changedFiles":[]}"#,
+		r#"{"schema_version":"0.1","kind":"monochange.releaseRecord","created_at":"2026-01-01T00:00:00Z","command":"test","release_targets":[],"released_packages":[],"changed_files":[]}"#,
 	)
 	.unwrap_or_else(|error| panic!("corrupt record: {error}"));
 	let result = validate_release_record_file(root, None, &manifest, false);
@@ -6524,14 +6527,14 @@ fn template_context_exposes_publish_namespace() {
 	assert_eq!(
 		template_context
 			.get("publish")
-			.and_then(|value| value.pointer("/packages/0/trustedPublishing/status"))
+			.and_then(|value| value.pointer("/packages/0/trusted_publishing/status"))
 			.and_then(serde_json::Value::as_str),
 		Some("planned")
 	);
 	assert_eq!(
 		template_context
 			.get("publish")
-			.and_then(|value| value.pointer("/rateLimits/batches/0/packages/0"))
+			.and_then(|value| value.pointer("/rate_limits/batches/0/packages/0"))
 			.and_then(serde_json::Value::as_str),
 		Some("@monochange/skill")
 	);
@@ -7359,7 +7362,7 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 	assert!(render_output.contains("release manifest: .monochange/local/release-manifest.json"));
 	let manifest_contents =
 		fs::read_to_string(&manifest_path).unwrap_or_else(|error| panic!("read manifest: {error}"));
-	assert!(manifest_contents.contains("\"releaseTargets\""));
+	assert!(manifest_contents.contains("\"release_targets\""));
 
 	let publish_release = CliCommandDefinition {
 		name: "publish-release".to_string(),
@@ -7761,7 +7764,7 @@ async fn release_follow_up_helpers_render_real_operation_outputs() {
 		fs::read_to_string(tempdir.path().join(&written_path)).unwrap_or_else(|error| {
 			panic!("read written manifest {}: {error}", written_path.display())
 		});
-	assert!(manifest_contents.contains("\"releaseTargets\""));
+	assert!(manifest_contents.contains("\"release_targets\""));
 
 	let release_requests = vec![monochange_core::SourceReleaseRequest {
 		provider: monochange_core::SourceProvider::GitHub,
@@ -12366,8 +12369,8 @@ async fn render_release_record_discovery_supports_text_and_json_formats() {
 		.await
 		.unwrap_or_else(|error| panic!("release-record json: {error}"));
 	assert!(json.contains("\"record\""));
-	assert!(json.contains("\"resolvedCommit\""));
-	assert!(json.contains("\"inputRef\": "));
+	assert!(json.contains("\"resolved_commit\""));
+	assert!(json.contains("\"input_ref\": "));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -12399,7 +12402,7 @@ async fn render_release_tag_report_supports_text_and_json_formats() {
 	)
 	.await
 	.unwrap_or_else(|error| panic!("tag-release json: {error}"));
-	assert!(json.contains("\"recordCommit\": "));
+	assert!(json.contains("\"record_commit\": "));
 	assert!(json.contains("\"push\": false"));
 	assert!(json.contains("\"status\": \"dry_run\""));
 	assert!(json.contains("\"tags\": {"));
@@ -12953,7 +12956,7 @@ fn render_discovery_report_supports_json_and_text_formats() {
 	};
 	let json = crate::render_discovery_report(&report, crate::OutputFormat::Json)
 		.unwrap_or_else(|error| panic!("json discovery: {error}"));
-	assert!(json.contains("\"workspaceRoot\""));
+	assert!(json.contains("\"workspace_root\""));
 	assert!(json.contains("\"warning text\""));
 
 	let text = crate::render_discovery_report(&report, crate::OutputFormat::Text)
@@ -13205,7 +13208,7 @@ fn discovery_report_helpers_include_version_groups_and_warnings() {
 	};
 
 	let json = crate::json_discovery_report(&report);
-	assert_eq!(json["versionGroups"][0]["id"], "sdk");
+	assert_eq!(json["version_groups"][0]["id"], "sdk");
 	assert_eq!(json["warnings"][0], "workspace warning");
 
 	let text = crate::text_discovery_report(&report);
@@ -14790,11 +14793,11 @@ fn write_release_record_file_snapshot_matches_expected_content() {
 	let value: serde_json::Value =
 		serde_json::from_str(&content).unwrap_or_else(|error| panic!("parse record: {error}"));
 	let mut value = value;
-	value["createdAt"] = serde_json::Value::String("[timestamp]".to_string());
-	// The on-disk schemaVersion follows the release package version. Redacting it
+	value["created_at"] = serde_json::Value::String("[timestamp]".to_string());
+	// The on-disk schema_version follows the release package version. Redacting it
 	// keeps this snapshot focused on record shape instead of failing every schema
 	// crate bump in release PRs.
-	value["schemaVersion"] = serde_json::Value::String("[schema version]".to_string());
+	value["schema_version"] = serde_json::Value::String("[schema version]".to_string());
 	insta::assert_json_snapshot!("release_record_file_snapshot", value);
 }
 

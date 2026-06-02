@@ -176,7 +176,7 @@ fn release_record_command_skips_malformed_file_based_record_in_ancestry() {
 		panic!("json: {error}\n{}", String::from_utf8_lossy(&output.stdout))
 	});
 	assert_eq!(
-		parsed["recordCommit"].as_str(),
+		parsed["record_commit"].as_str(),
 		Some(record_commit.as_str()),
 		"expected malformed file-based release record to be skipped"
 	);
@@ -195,11 +195,11 @@ fn release_record_command_reports_unsupported_schema_version() {
 		r#"{{
   "v": "{schema_version}",
   "kind": "monochange.releaseRecord",
-  "createdAt": "2026-04-07T08:00:00Z",
+  "created_at": "2026-04-07T08:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}"#
 	);
 	commit_file_based_record_raw(repo, &json_text, "release-record/commit-body");
@@ -527,7 +527,7 @@ fn release_record_command_detects_file_based_record_in_merge_commit() {
 		panic!("json: {error}\n{}", String::from_utf8_lossy(&output.stdout))
 	});
 	assert_eq!(
-		parsed["recordCommit"].as_str(),
+		parsed["record_commit"].as_str(),
 		Some(record_commit.as_str()),
 		"expected merge commit to resolve to the release record commit"
 	);
@@ -613,7 +613,7 @@ fn release_record_command_walks_back_many_non_release_commits() {
 		panic!("json: {error}\n{}", String::from_utf8_lossy(&output.stdout))
 	});
 	assert_eq!(
-		parsed["recordCommit"].as_str(),
+		parsed["record_commit"].as_str(),
 		Some(record_commit.as_str()),
 		"expected to find the release record commit through 5 non-release commits"
 	);
@@ -624,9 +624,9 @@ fn release_record_command_walks_back_many_non_release_commits() {
 	);
 	let head_commit = git_output_trimmed(repo, &["rev-parse", "HEAD"]);
 	assert_eq!(
-		parsed["resolvedCommit"].as_str(),
+		parsed["resolved_commit"].as_str(),
 		Some(head_commit.as_str()),
-		"expected resolvedCommit to be HEAD itself"
+		"expected resolved_commit to be HEAD itself"
 	);
 }
 
@@ -685,7 +685,7 @@ fn release_record_command_finds_most_recent_among_multiple_releases() {
 
 	// Should resolve to the SECOND (most recent) release, not the first
 	assert_eq!(
-		parsed["recordCommit"].as_str(),
+		parsed["record_commit"].as_str(),
 		Some(second_commit.as_str()),
 		"expected most recent release (v0.6.0), not the older one (v0.5.0)"
 	);
@@ -701,7 +701,7 @@ fn release_record_command_finds_most_recent_among_multiple_releases() {
 	let first_parsed: Value = serde_json::from_slice(&first_output.stdout)
 		.unwrap_or_else(|error| panic!("first json: {error}"));
 	assert_eq!(
-		first_parsed["recordCommit"].as_str(),
+		first_parsed["record_commit"].as_str(),
 		Some(first_commit.as_str()),
 		"expected record at first_commit to be the first release"
 	);

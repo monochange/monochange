@@ -4,7 +4,7 @@ expression: "Value::Object(snapshots)"
 ---
 {
   "group-empty-members-empty": {
-    "changedFiles": [
+    "changed_files": [
       "Cargo.toml",
       "changelog.md",
       "crates/app/CHANGELOG.md",
@@ -18,7 +18,7 @@ expression: "Value::Object(snapshots)"
       "core": true,
       "group": true
     },
-    "releaseTargets": [
+    "release_targets": [
       {
         "id": "sdk",
         "kind": "group",
@@ -27,17 +27,17 @@ expression: "Value::Object(snapshots)"
           "app"
         ],
         "release": true,
-        "renderedChangelogTitle": "[1.0.1](https://github.com/ifiokjr/monochange/releases/tag/v1.0.1) (2026-04-06)",
-        "renderedTitle": "1.0.1 (2026-04-06)",
+        "rendered_changelog_title": "[1.0.1](https://github.com/ifiokjr/monochange/releases/tag/v1.0.1) (2026-04-06)",
+        "rendered_title": "1.0.1 (2026-04-06)",
         "tag": true,
-        "tagName": "v1.0.1",
+        "tag_name": "v1.0.1",
         "version": "1.0.1",
-        "versionFormat": "primary"
+        "version_format": "primary"
       }
     ]
   },
   "group-empty-one-member-note": {
-    "changedFiles": [
+    "changed_files": [
       "Cargo.toml",
       "changelog.md",
       "crates/app/CHANGELOG.md",
@@ -51,7 +51,7 @@ expression: "Value::Object(snapshots)"
       "core": true,
       "group": true
     },
-    "releaseTargets": [
+    "release_targets": [
       {
         "id": "sdk",
         "kind": "group",
@@ -60,17 +60,17 @@ expression: "Value::Object(snapshots)"
           "app"
         ],
         "release": true,
-        "renderedChangelogTitle": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) (2026-04-06)",
-        "renderedTitle": "1.1.0 (2026-04-06)",
+        "rendered_changelog_title": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) (2026-04-06)",
+        "rendered_title": "1.1.0 (2026-04-06)",
         "tag": true,
-        "tagName": "v1.1.0",
+        "tag_name": "v1.1.0",
         "version": "1.1.0",
-        "versionFormat": "primary"
+        "version_format": "primary"
       }
     ]
   },
   "group-real-member-note": {
-    "changedFiles": [
+    "changed_files": [
       "Cargo.toml",
       "changelog.md",
       "crates/app/CHANGELOG.md",
@@ -84,7 +84,7 @@ expression: "Value::Object(snapshots)"
       "core": true,
       "group": true
     },
-    "releaseTargets": [
+    "release_targets": [
       {
         "id": "sdk",
         "kind": "group",
@@ -93,17 +93,17 @@ expression: "Value::Object(snapshots)"
           "app"
         ],
         "release": true,
-        "renderedChangelogTitle": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) (2026-04-06)",
-        "renderedTitle": "1.1.0 (2026-04-06)",
+        "rendered_changelog_title": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) (2026-04-06)",
+        "rendered_title": "1.1.0 (2026-04-06)",
         "tag": true,
-        "tagName": "v1.1.0",
+        "tag_name": "v1.1.0",
         "version": "1.1.0",
-        "versionFormat": "primary"
+        "version_format": "primary"
       }
     ]
   },
   "ungrouped-empty-package": {
-    "changedFiles": [
+    "changed_files": [
       "Cargo.toml",
       "crates/app/CHANGELOG.md",
       "crates/app/Cargo.toml"
@@ -113,7 +113,7 @@ expression: "Value::Object(snapshots)"
       "core": true,
       "group": true
     },
-    "releaseTargets": [
+    "release_targets": [
       {
         "id": "app",
         "kind": "package",
@@ -121,12 +121,12 @@ expression: "Value::Object(snapshots)"
           "app"
         ],
         "release": false,
-        "renderedChangelogTitle": "app [1.0.1](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.1) (2026-04-06)",
-        "renderedTitle": "app 1.0.1 (2026-04-06)",
+        "rendered_changelog_title": "app [1.0.1](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.1) (2026-04-06)",
+        "rendered_title": "app 1.0.1 (2026-04-06)",
         "tag": false,
-        "tagName": "app/v1.0.1",
+        "tag_name": "app/v1.0.1",
         "version": "1.0.1",
-        "versionFormat": "namespaced"
+        "version_format": "namespaced"
       }
     ]
   }

@@ -1,6 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/api_classification.rs
-assertion_line: 100
+assertion_line: 96
 expression: report
 ---
 {
@@ -37,12 +37,12 @@ expression: report
       "recommendation": "patch",
       "semanticChanges": [
         {
-          "afterSignature": "node scripts/build.js",
-          "beforeSignature": "node build.js",
+          "after_signature": "node scripts/build.js",
+          "before_signature": "node build.js",
           "category": "metadata",
-          "filePath": "package.json",
-          "itemKind": "script",
-          "itemPath": "script.build",
+          "file_path": "package.json",
+          "item_kind": "script",
+          "item_path": "script.build",
           "kind": "modified",
           "summary": "script `script.build` modified"
         }
@@ -74,12 +74,12 @@ expression: report
       "recommendation": "major",
       "semanticChanges": [
         {
-          "afterSignature": null,
-          "beforeSignature": "fn removed_greeting () -> & 'static str",
+          "after_signature": null,
+          "before_signature": "fn removed_greeting () -> & 'static str",
           "category": "public_api",
-          "filePath": "src/lib.rs",
-          "itemKind": "function",
-          "itemPath": "removed_greeting",
+          "file_path": "src/lib.rs",
+          "item_kind": "function",
+          "item_path": "removed_greeting",
           "kind": "removed",
           "summary": "function `removed_greeting` removed"
         }
@@ -111,12 +111,12 @@ expression: report
       "recommendation": "minor",
       "semanticChanges": [
         {
-          "afterSignature": "export interface AdminUser extends User { role: string; }",
-          "beforeSignature": null,
+          "after_signature": "export interface AdminUser extends User { role: string; }",
+          "before_signature": null,
           "category": "public_api",
-          "filePath": "src/index.ts",
-          "itemKind": "interface",
-          "itemPath": "AdminUser",
+          "file_path": "src/index.ts",
+          "item_kind": "interface",
+          "item_path": "AdminUser",
           "kind": "added",
           "summary": "interface `AdminUser` added"
         }

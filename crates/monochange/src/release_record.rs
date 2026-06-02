@@ -87,7 +87,7 @@ pub async fn discover_release_record(
 			}
 			Err(monochange_core::ReleaseRecordError::UnsupportedSchemaVersionValue(version)) => {
 				return Err(MonochangeError::Discovery(format!(
-					"release record in commit {} uses unsupported schemaVersion {} (upgrade monochange to read this record)",
+					"release record in commit {} uses unsupported schema_version {} (upgrade monochange to read this record)",
 					crate::short_commit_sha(&commit),
 					version
 				)));
@@ -318,7 +318,7 @@ pub(crate) enum ReleaseTagOperation {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct ReleaseTagResult {
 	pub tag_name: String,
 	pub target_commit: String,
@@ -329,7 +329,7 @@ pub(crate) struct ReleaseTagResult {
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct ReleaseTagReport {
 	pub from: String,
 	pub resolved_from_commit: String,

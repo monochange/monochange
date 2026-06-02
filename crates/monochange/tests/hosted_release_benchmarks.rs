@@ -237,7 +237,7 @@ if [ "${1:-}" = "release" ]; then
     duration=120
     phase=60
   fi
-  printf '{"event":"step_finished","stepKind":"PrepareRelease","durationMs":%s,"phaseTimings":[{"label":"enrich changeset context via github","durationMs":%s}]}\n' "$duration" "$phase" >&2
+  printf '{"event":"step_finished","step_kind":"PrepareRelease","duration_ms":%s,"phase_timings":[{"label":"enrich changeset context via github","duration_ms":%s}]}\n' "$duration" "$phase" >&2
 fi
 "#;
 	let fake_pr_script = r#"#!/usr/bin/env bash
@@ -256,7 +256,7 @@ if [ "${1:-}" = "release" ]; then
     duration=110
     phase=55
   fi
-  printf '{"event":"step_finished","stepKind":"PrepareRelease","durationMs":%s,"phaseTimings":[{"label":"enrich changeset context via github","durationMs":%s}]}\n' "$duration" "$phase" >&2
+  printf '{"event":"step_finished","step_kind":"PrepareRelease","duration_ms":%s,"phase_timings":[{"label":"enrich changeset context via github","duration_ms":%s}]}\n' "$duration" "$phase" >&2
 fi
 "#;
 	let fake_hyperfine_script = r#"#!/usr/bin/env bash

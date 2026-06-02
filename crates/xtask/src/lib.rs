@@ -57,7 +57,7 @@ pub fn post_process_release(
 		return;
 	};
 	if let Some(schema_version_obj) = props
-		.get_mut("schemaVersion")
+		.get_mut("schema_version")
 		.and_then(|schema_version| schema_version.as_object_mut())
 	{
 		schema_version_obj.insert(
@@ -574,10 +574,10 @@ fn release_record_artifact_fixture(
 	variant: &ReleaseRecordVariant,
 ) -> String {
 	let mut root = Map::new();
-	root.insert("schemaVersion".to_string(), json!(version));
+	root.insert("schema_version".to_string(), json!(version));
 	root.insert("kind".to_string(), json!("monochange.releaseRecord"));
 	root.insert(
-		"createdAt".to_string(),
+		"created_at".to_string(),
 		json!(format!("2026-01-{fixture_index:02}T00:00:00Z")),
 	);
 	root.insert("command".to_string(), json!(&variant.command));
@@ -600,7 +600,7 @@ fn release_record_artifact_fixture(
 		} else {
 			&variant.version_format
 		};
-		target.insert("versionFormat".to_string(), json!(vfmt));
+		target.insert("version_format".to_string(), json!(vfmt));
 		target.insert("tag".to_string(), json!(true));
 		target.insert("release".to_string(), json!(true));
 		let tag_name = if id == "main" {
@@ -608,23 +608,23 @@ fn release_record_artifact_fixture(
 		} else {
 			format!("{id}/v{version}.{fixture_index}")
 		};
-		target.insert("tagName".to_string(), json!(tag_name));
+		target.insert("tag_name".to_string(), json!(tag_name));
 		target.insert("members".to_string(), json!(Vec::<String>::new()));
 		release_targets.push(Value::Object(target));
 	}
-	root.insert("releaseTargets".to_string(), json!(release_targets));
+	root.insert("release_targets".to_string(), json!(release_targets));
 
 	// released packages
 	let released_packages: Vec<String> = (0..variant.released_package_count)
 		.map(|i| format!("{}_{}", variant.owner, i))
 		.collect();
-	root.insert("releasedPackages".to_string(), json!(released_packages));
+	root.insert("released_packages".to_string(), json!(released_packages));
 
 	// changed files
 	let changed_files: Vec<String> = (0..variant.changed_file_count)
 		.map(|i| format!("crates/{}_{}/src/lib.rs", variant.owner, i))
 		.collect();
-	root.insert("changedFiles".to_string(), json!(changed_files));
+	root.insert("changed_files".to_string(), json!(changed_files));
 
 	// provider — always present
 	{
@@ -693,16 +693,16 @@ fn release_record_artifact_fixture(
 		cs_target.insert("bump".to_string(), json!(bump));
 	}
 	if let Some(ref change_type) = variant.change_type {
-		cs_target.insert("changeType".to_string(), json!(change_type));
+		cs_target.insert("change_type".to_string(), json!(change_type));
 	}
 	if variant.with_caused_by {
 		cs_target.insert(
-			"causedBy".to_string(),
+			"caused_by".to_string(),
 			json!([format!("{}-schema-compat", variant.owner)]),
 		);
 	}
 	cs_target.insert(
-		"evidenceRefs".to_string(),
+		"evidence_refs".to_string(),
 		json!([format!("crates/{}_0/src/lib.rs", variant.owner)]),
 	);
 
@@ -722,8 +722,8 @@ fn release_record_artifact_fixture(
 	// changelogs — ReleaseManifestChangelog objects
 	if variant.with_changelogs {
 		let mut changelog = Map::new();
-		changelog.insert("ownerId".to_string(), json!("main"));
-		changelog.insert("ownerKind".to_string(), json!("group"));
+		changelog.insert("owner_id".to_string(), json!("main"));
+		changelog.insert("owner_kind".to_string(), json!("group"));
 		changelog.insert(
 			"path".to_string(),
 			json!(format!("fixtures/changelog-{fixture_index}.md")),
@@ -751,7 +751,7 @@ fn release_record_artifact_fixture(
 		root.insert("changelogs".to_string(), json!(Vec::<String>::new()));
 	}
 
-	// packagePublications
+	// package_publications
 	if variant.with_publications {
 		let publications: Vec<Value> = (0..variant.released_package_count)
 			.map(|i| {
@@ -768,23 +768,23 @@ fn release_record_artifact_fixture(
 				Value::Object(pub_entry)
 			})
 			.collect();
-		root.insert("packagePublications".to_string(), json!(publications));
+		root.insert("package_publications".to_string(), json!(publications));
 	} else {
 		root.insert(
-			"packagePublications".to_string(),
+			"package_publications".to_string(),
 			json!(Vec::<String>::new()),
 		);
 	}
 
-	// deletedChangesets
+	// deleted_changesets
 	root.insert(
-		"deletedChangesets".to_string(),
+		"deleted_changesets".to_string(),
 		json!([format!(".changeset/schema-artifact-{fixture_index}.md")]),
 	);
 
-	// updatedChangelogs
+	// updated_changelogs
 	root.insert(
-		"updatedChangelogs".to_string(),
+		"updated_changelogs".to_string(),
 		json!([format!("fixtures/changelog-{fixture_index}.md")]),
 	);
 
@@ -878,17 +878,17 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 	if variant.with_changelog {
 		let mut changelog = Map::new();
 		let mut style = Map::new();
-		style.insert("sectionSeparator".to_string(), json!("thematic_break"));
+		style.insert("section_separator".to_string(), json!("thematic_break"));
 		style.insert(
-			"packageLabelPlacement".to_string(),
+			"package_label_placement".to_string(),
 			json!(&variant.package_label_placement),
 		);
 		style.insert(
-			"collapsedSectionStyle".to_string(),
+			"collapsed_section_style".to_string(),
 			json!(&variant.changelog_style),
 		);
-		style.insert("packageLabelStyle".to_string(), json!("badge"));
-		style.insert("metadataStyle".to_string(), json!("blockquote"));
+		style.insert("package_label_style".to_string(), json!("badge"));
+		style.insert("metadata_style".to_string(), json!("blockquote"));
 		changelog.insert("style".to_string(), Value::Object(style));
 
 		let mut types = Map::new();

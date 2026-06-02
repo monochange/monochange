@@ -49,7 +49,7 @@ pub(crate) enum PublishReadinessPackageStatus {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct PublishReadinessPackage {
 	pub package: String,
 	pub ecosystem: Ecosystem,
@@ -60,7 +60,7 @@ pub(crate) struct PublishReadinessPackage {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct PublishReadinessReport {
 	#[serde(default = "publish_readiness_schema_version")]
 	pub schema_version: u64,

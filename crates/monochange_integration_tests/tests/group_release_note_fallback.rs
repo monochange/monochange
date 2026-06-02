@@ -33,6 +33,7 @@ fn setup_case(case: &str) -> TempDir {
 	git(root, &["init"]);
 	git(root, &["config", "user.name", "test"]);
 	git(root, &["config", "user.email", "test@example.com"]);
+	git(root, &["config", "commit.gpgsign", "false"]);
 	git(root, &["add", "."]);
 	let output = Command::new("git")
 		.current_dir(root)
@@ -94,7 +95,7 @@ fn publish_release_dry_run(root: &Path) -> Value {
 			serde_json::json!({
 				"targetId": release.target_id,
 				"targetKind": release.target_kind,
-				"tagName": release.tag_name,
+				"tag_name": release.tag_name,
 				"name": release.name,
 				"body": release.body.unwrap_or_default(),
 			})
@@ -159,14 +160,14 @@ fn release_summary(output: &Value) -> Value {
 			serde_json::json!({
 				"targetId": release["targetId"],
 				"targetKind": release["targetKind"],
-				"tagName": release["tagName"],
+				"tag_name": release["tag_name"],
 				"name": release["name"],
 				"body": "[see string snapshot]",
 			})
 		})
 		.collect::<Vec<_>>();
 	serde_json::json!({
-		"releaseTargets": output["manifest"]["releaseTargets"],
+		"release_targets": output["manifest"]["release_targets"],
 		"changelogs": output["manifest"]["changelogs"].as_array().unwrap_or_else(|| panic!("changelogs was not an array: {output:#?}")).iter().map(|changelog| {
 			let sections = changelog["notes"]["sections"]
 				.as_array()
@@ -194,8 +195,8 @@ fn release_summary(output: &Value) -> Value {
 				})
 				.collect::<Vec<_>>();
 			serde_json::json!({
-				"ownerId": changelog["ownerId"],
-				"ownerKind": changelog["ownerKind"],
+				"owner_id": changelog["owner_id"],
+				"owner_kind": changelog["owner_kind"],
 				"path": changelog["path"],
 				"sections": sections,
 				"rendered": "[see string snapshot]",
@@ -248,8 +249,8 @@ fn group_release_note_fallback_scenarios_snapshot_generated_changelogs() {
 		snapshots.insert(
 			(*case).to_string(),
 			serde_json::json!({
-				"releaseTargets": output["releaseTargets"],
-				"changedFiles": output["changedFiles"],
+				"release_targets": output["release_targets"],
+				"changed_files": output["changed_files"],
 				"changelogFiles": changelog_snapshots(root),
 			}),
 		);

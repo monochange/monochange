@@ -4,24 +4,24 @@ expression: redacted
 ---
 {
   "distance": 0,
-  "dryRun": true,
+  "dry_run": true,
   "from": "HEAD",
   "push": false,
-  "recordCommit": "[SHA]",
-  "resolvedFromCommit": "[SHA]",
+  "record_commit": "[SHA]",
+  "resolved_from_commit": "[SHA]",
   "status": "dry_run",
-  "tagResults": [
+  "tag_results": [
     {
-      "existingCommit": null,
+      "existing_commit": null,
       "operation": "planned",
-      "tagName": "cli/v2.0.0",
-      "targetCommit": "[SHA]"
+      "tag_name": "cli/v2.0.0",
+      "target_commit": "[SHA]"
     },
     {
-      "existingCommit": null,
+      "existing_commit": null,
       "operation": "planned",
-      "tagName": "v1.2.3",
-      "targetCommit": "[SHA]"
+      "tag_name": "v1.2.3",
+      "target_commit": "[SHA]"
     }
   ],
   "tags": {

@@ -329,9 +329,9 @@ fn deserialize_report_uses_schema_and_kind_defaults() {
 	let report: PublishReadinessReport = serde_json::from_value(serde_json::json!({
 		"status": "ready",
 		"from": "HEAD",
-		"resolvedCommit": "resolved123",
-		"recordCommit": "record123",
-		"packageSetFingerprint": "packages:none",
+		"resolved_commit": "resolved123",
+		"record_commit": "record123",
+		"package_set_fingerprint": "packages:none",
 		"packages": []
 	}))
 	.unwrap_or_else(|error| panic!("deserialize defaulted report: {error}"));

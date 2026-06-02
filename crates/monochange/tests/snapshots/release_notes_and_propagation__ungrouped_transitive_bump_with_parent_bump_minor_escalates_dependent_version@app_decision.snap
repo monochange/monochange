@@ -5,12 +5,12 @@ expression: redacted
 {
   "bump": "minor",
   "package": "cargo:crates/app/Cargo.toml",
-  "plannedVersion": "1.1.0",
+  "planned_version": "1.1.0",
   "reasons": [
     "depends on `cargo:crates/core/Cargo.toml`"
   ],
   "trigger": "transitive-dependency",
-  "upstreamSources": [
+  "upstream_sources": [
     "cargo:crates/core/Cargo.toml"
   ]
 }

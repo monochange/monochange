@@ -3,9 +3,9 @@ source: crates/monochange/tests/source_providers.rs
 expression: redacted
 ---
 {
-  "issueComments": [],
+  "issue_comments": [],
   "manifest": {
-    "changedFiles": [
+    "changed_files": [
       "Cargo.toml",
       "crates/core/CHANGELOG.md",
       "crates/core/Cargo.toml"
@@ -26,8 +26,8 @@ expression: redacted
           "summary": [],
           "title": "core [1.0.1](https://codeberg.org/org/monochange/releases/tag/core/v1.0.1) ([DATE])"
         },
-        "ownerId": "core",
-        "ownerKind": "package",
+        "owner_id": "core",
+        "owner_kind": "package",
         "path": "crates/core/CHANGELOG.md",
         "rendered": "[multiline text]"
       }
@@ -36,17 +36,17 @@ expression: redacted
       {
         "context": {
           "capabilities": {
-            "actorProfiles": false,
-            "commitWebUrls": true,
-            "issueComments": false,
-            "relatedIssues": false,
-            "reviewRequestLookup": false
+            "actor_profiles": false,
+            "commit_web_urls": true,
+            "issue_comments": false,
+            "related_issues": false,
+            "review_request_lookup": false
           },
           "host": "codeberg.org",
           "introduced": null,
-          "lastUpdated": null,
+          "last_updated": null,
           "provider": "gitea",
-          "relatedIssues": []
+          "related_issues": []
         },
         "details": null,
         "path": ".changeset/feature.md",
@@ -54,8 +54,8 @@ expression: redacted
         "targets": [
           {
             "bump": "patch",
-            "changeType": "patch",
-            "evidenceRefs": [],
+            "change_type": "patch",
+            "evidence_refs": [],
             "id": "core",
             "kind": "package",
             "origin": "direct-change"
@@ -64,16 +64,16 @@ expression: redacted
       }
     ],
     "command": "release-pr",
-    "deletedChangesets": [],
-    "dryRun": true,
-    "groupVersion": null,
-    "packagePublications": [
+    "deleted_changesets": [],
+    "dry_run": true,
+    "group_version": null,
+    "package_publications": [
       {
         "ecosystem": "cargo",
         "mode": "builtin",
         "package": "core",
         "registry": "crates_io",
-        "trustedPublishing": {
+        "trusted_publishing": {
           "enabled": true,
           "environment": null,
           "repository": null,
@@ -83,27 +83,27 @@ expression: redacted
       }
     ],
     "plan": {
-      "compatibilityEvidence": [],
+      "compatibility_evidence": [],
       "decisions": [
         {
           "bump": "patch",
           "package": "cargo:crates/core/Cargo.toml",
-          "plannedVersion": "1.0.1",
+          "planned_version": "1.0.1",
           "reasons": [
             "add gitea fixture coverage"
           ],
           "trigger": "direct-change",
-          "upstreamSources": [
+          "upstream_sources": [
             "cargo:crates/core/Cargo.toml"
           ]
         }
       ],
       "groups": [],
-      "unresolvedItems": [],
+      "unresolved_items": [],
       "warnings": [],
-      "workspaceRoot": "."
+      "workspace_root": "."
     },
-    "releaseTargets": [
+    "release_targets": [
       {
         "id": "core",
         "kind": "package",
@@ -111,31 +111,31 @@ expression: redacted
           "core"
         ],
         "release": true,
-        "renderedChangelogTitle": "core [1.0.1](https://codeberg.org/org/monochange/releases/tag/core/v1.0.1) ([DATE])",
-        "renderedTitle": "core 1.0.1 ([DATE])",
+        "rendered_changelog_title": "core [1.0.1](https://codeberg.org/org/monochange/releases/tag/core/v1.0.1) ([DATE])",
+        "rendered_title": "core 1.0.1 ([DATE])",
         "tag": true,
-        "tagName": "core/v1.0.1",
+        "tag_name": "core/v1.0.1",
         "version": "1.0.1",
-        "versionFormat": "namespaced"
+        "version_format": "namespaced"
       }
     ],
-    "releasedPackages": [
+    "released_packages": [
       "workflow-core"
     ],
     "version": "1.0.1"
   },
-  "packagePublish": null,
-  "publishRateLimits": null,
-  "releaseCommit": null,
-  "releaseRequest": {
-    "autoMerge": false,
-    "baseBranch": "main",
+  "package_publish": null,
+  "publish_rate_limits": null,
+  "release_commit": null,
+  "release_request": {
+    "auto_merge": false,
+    "base_branch": "main",
     "body": "[multiline text]",
-    "commitMessage": {
+    "commit_message": {
       "body": "[multiline text]",
       "subject": "chore(release): prepare release"
     },
-    "headBranch": "monochange/release/release-pr",
+    "head_branch": "monochange/release/release-pr",
     "labels": [
       "release"
     ],

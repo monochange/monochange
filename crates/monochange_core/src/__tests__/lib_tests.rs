@@ -2581,11 +2581,11 @@ fn cli_step_command_without_id_has_none() {
 fn release_record_deserializes_defaults_for_schema_and_kind() {
 	let record: ReleaseRecord = serde_json::from_str(
 		r#"{
-		  "createdAt": "2026-04-06T12:00:00Z",
+		  "created_at": "2026-04-06T12:00:00Z",
 		  "command": "release-pr",
-		  "releaseTargets": [],
-		  "releasedPackages": [],
-		  "changedFiles": []
+		  "release_targets": [],
+		  "released_packages": [],
+		  "changed_files": []
 		}"#,
 	)
 	.unwrap_or_else(|error| panic!("deserialize release record defaults: {error}"));
@@ -2616,7 +2616,7 @@ fn render_release_record_block_writes_current_schema_version_header() {
 		.unwrap_or_else(|error| panic!("render release record: {error}"));
 
 	assert!(rendered.contains(&format!(
-		r#""schemaVersion": "{}""#,
+		r#""schema_version": "{}""#,
 		monochange_schema::CURRENT_SCHEMA_VERSION_TEXT
 	)));
 	assert!(!rendered.contains("\"v\""));
@@ -2631,13 +2631,13 @@ fn parse_release_record_block_accepts_current_schema_version_header() {
 {RELEASE_RECORD_START_MARKER}
 ```json
 {{
-  "schemaVersion": "{schema_version}",
+  "schema_version": "{schema_version}",
   "kind": "{RELEASE_RECORD_KIND}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}
 ```
 {RELEASE_RECORD_END_MARKER}"#
@@ -2658,13 +2658,13 @@ fn parse_release_record_block_accepts_older_schema_version_header() {
 {RELEASE_RECORD_START_MARKER}
 ```json
 {{
-  "schemaVersion": "0.1",
+  "schema_version": "0.1",
   "kind": "{RELEASE_RECORD_KIND}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}
 ```
 {RELEASE_RECORD_END_MARKER}"#
@@ -2685,13 +2685,13 @@ fn parse_release_record_block_rejects_future_schema_version_header() {
 {RELEASE_RECORD_START_MARKER}
 ```json
 {{
-  "schemaVersion": "9.0",
+  "schema_version": "9.0",
   "kind": "{RELEASE_RECORD_KIND}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}
 ```
 {RELEASE_RECORD_END_MARKER}"#
@@ -2760,13 +2760,13 @@ fn parse_release_record_block_rejects_unsupported_kind() {
 {start}
 ```json
 {{
-  "schemaVersion": "{schema_version}",
+  "schema_version": "{schema_version}",
   "kind": "monochange.otherRecord",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}
 ```
 {end}"#
@@ -2785,13 +2785,13 @@ fn parse_release_record_json_rejects_unsupported_kind() {
 	let schema_version = monochange_schema::CURRENT_SCHEMA_VERSION_TEXT;
 	let invalid_kind = format!(
 		r#"{{
-  "schemaVersion": "{schema_version}",
+  "schema_version": "{schema_version}",
   "kind": "monochange.otherRecord",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}"#
 	);
 	let error = crate::parse_release_record_json(&invalid_kind)
@@ -2816,13 +2816,13 @@ fn parse_release_record_block_rejects_unsupported_schema_version() {
 {start}
 ```json
 {{
-  "schemaVersion": "{schema_version}",
+  "schema_version": "{schema_version}",
   "kind": "{kind}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}
 ```
 {end}"#
@@ -2849,13 +2849,13 @@ fn parse_release_record_block_ignores_unknown_fields() {
 {start}
 ```json
 {{
-  "schemaVersion": "{schema_version}",
+  "schema_version": "{schema_version}",
   "kind": "{kind}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": [],
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": [],
   "unknownField": "ignored"
 }}
 ```
@@ -2873,17 +2873,18 @@ fn parse_release_record_json_normalizes_integer_schema_version() {
 	let kind = RELEASE_RECORD_KIND;
 	let json_text = format!(
 		r#"{{
-  "schemaVersion": 1,
+  "schema_version": 1,
   "kind": "{kind}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}"#
 	);
-	let parsed = crate::parse_release_record_json(&json_text)
-		.unwrap_or_else(|error| panic!("parse release record with integer schemaVersion: {error}"));
+	let parsed = crate::parse_release_record_json(&json_text).unwrap_or_else(|error| {
+		panic!("parse release record with integer schema_version: {error}")
+	});
 	assert_eq!(parsed.schema_version, RELEASE_RECORD_SCHEMA_VERSION);
 }
 
@@ -2901,11 +2902,11 @@ fn parse_release_record_json_normalizes_legacy_v_field() {
 		r#"{{
   "v": "{schema_version}",
   "kind": "{kind}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}"#
 	);
 	let parsed = crate::parse_release_record_json(&json_text)
@@ -3015,12 +3016,12 @@ fn parse_release_record_block_rejects_missing_kind() {
 {RELEASE_RECORD_START_MARKER}
 ```json
 {{
-  "schemaVersion": "{schema_version}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "schema_version": "{schema_version}",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}
 ```
 {RELEASE_RECORD_END_MARKER}"#
@@ -3040,11 +3041,11 @@ fn parse_release_record_block_rejects_missing_schema_version() {
 ```json
 {{
   "kind": "{RELEASE_RECORD_KIND}",
-  "createdAt": "2026-04-06T12:00:00Z",
+  "created_at": "2026-04-06T12:00:00Z",
   "command": "release-pr",
-  "releaseTargets": [],
-  "releasedPackages": [],
-  "changedFiles": []
+  "release_targets": [],
+  "released_packages": [],
+  "changed_files": []
 }}
 ```
 {RELEASE_RECORD_END_MARKER}"#
@@ -3157,7 +3158,7 @@ fn parse_release_record_block_rejects_missing_closing_json_fence() {
 }
 
 #[test]
-fn release_record_discovery_serializes_with_camel_case_keys() {
+fn release_record_discovery_serializes_with_snake_case_keys() {
 	let discovery = ReleaseRecordDiscovery {
 		input_ref: "v1.2.3".to_string(),
 		resolved_commit: "abc1234567890".to_string(),
@@ -3168,16 +3169,16 @@ fn release_record_discovery_serializes_with_camel_case_keys() {
 	let value = serde_json::to_value(&discovery)
 		.unwrap_or_else(|error| panic!("serialize release record discovery: {error}"));
 	let input_ref = value
-		.get("inputRef")
-		.unwrap_or_else(|| panic!("expected inputRef"));
+		.get("input_ref")
+		.unwrap_or_else(|| panic!("expected input_ref"));
 	assert_eq!(input_ref, "v1.2.3");
 	let resolved_commit = value
-		.get("resolvedCommit")
-		.unwrap_or_else(|| panic!("expected resolvedCommit"));
+		.get("resolved_commit")
+		.unwrap_or_else(|| panic!("expected resolved_commit"));
 	assert_eq!(resolved_commit, "abc1234567890");
 	let record_commit = value
-		.get("recordCommit")
-		.unwrap_or_else(|| panic!("expected recordCommit"));
+		.get("record_commit")
+		.unwrap_or_else(|| panic!("expected record_commit"));
 	assert_eq!(record_commit, "abc1234567890");
 	let distance = value
 		.get("distance")
@@ -3217,7 +3218,7 @@ fn release_record_tag_helpers_deduplicate_tags() {
 }
 
 #[test]
-fn retarget_plan_and_result_serialize_with_camel_case_keys() {
+fn retarget_plan_and_result_serialize_with_snake_case_keys() {
 	let tag_result = RetargetTagResult {
 		tag_name: "v1.2.3".to_string(),
 		from_commit: "abc1234".to_string(),
@@ -3257,26 +3258,26 @@ fn retarget_plan_and_result_serialize_with_camel_case_keys() {
 		serde_json::to_value(&plan).unwrap_or_else(|error| panic!("serialize plan: {error}"));
 	assert_eq!(
 		plan_value
-			.get("recordCommit")
-			.unwrap_or_else(|| panic!("expected recordCommit")),
+			.get("record_commit")
+			.unwrap_or_else(|| panic!("expected record_commit")),
 		"abc1234"
 	);
 	assert_eq!(
 		plan_value
-			.get("isDescendant")
-			.unwrap_or_else(|| panic!("expected isDescendant")),
+			.get("is_descendant")
+			.unwrap_or_else(|| panic!("expected is_descendant")),
 		true
 	);
 	assert_eq!(
 		plan_value
-			.pointer("/gitTagUpdates/0/operation")
-			.unwrap_or_else(|| panic!("expected gitTagUpdates[0].operation")),
+			.pointer("/git_tag_updates/0/operation")
+			.unwrap_or_else(|| panic!("expected git_tag_updates[0].operation")),
 		"planned"
 	);
 	assert_eq!(
 		plan_value
-			.pointer("/providerUpdates/0/operation")
-			.unwrap_or_else(|| panic!("expected providerUpdates[0].operation")),
+			.pointer("/provider_updates/0/operation")
+			.unwrap_or_else(|| panic!("expected provider_updates[0].operation")),
 		"planned"
 	);
 
@@ -3284,14 +3285,14 @@ fn retarget_plan_and_result_serialize_with_camel_case_keys() {
 		serde_json::to_value(&result).unwrap_or_else(|error| panic!("serialize result: {error}"));
 	assert_eq!(
 		result_value
-			.pointer("/gitTagResults/0/operation")
-			.unwrap_or_else(|| panic!("expected gitTagResults[0].operation")),
+			.pointer("/git_tag_results/0/operation")
+			.unwrap_or_else(|| panic!("expected git_tag_results[0].operation")),
 		"planned"
 	);
 	assert_eq!(
 		result_value
-			.pointer("/providerResults/0/operation")
-			.unwrap_or_else(|| panic!("expected providerResults[0].operation")),
+			.pointer("/provider_results/0/operation")
+			.unwrap_or_else(|| panic!("expected provider_results[0].operation")),
 		"planned"
 	);
 }

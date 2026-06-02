@@ -188,7 +188,7 @@ pub enum TrustedPublishingStatus {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct TrustedPublishingOutcome {
 	pub status: TrustedPublishingStatus,
 	pub repository: Option<String>,
@@ -199,7 +199,7 @@ pub struct TrustedPublishingOutcome {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PackagePublishOutcome {
 	pub package: String,
 	pub ecosystem: Ecosystem,
@@ -218,7 +218,7 @@ pub struct PackagePublishOutcome {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PackagePublishReport {
 	pub mode: PackagePublishRunMode,
 	pub dry_run: bool,
@@ -1917,7 +1917,7 @@ impl TrustedPublishingIdentity {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 #[allow(
 	clippy::struct_excessive_bools,
 	reason = "capability matrix reports independent registry booleans"
@@ -1934,7 +1934,7 @@ pub struct RegistryTrustCapabilities {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 #[allow(
 	clippy::struct_excessive_bools,
 	reason = "capability matrix reports independent provider/registry booleans"

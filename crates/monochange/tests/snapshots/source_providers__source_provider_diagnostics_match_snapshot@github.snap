@@ -7,17 +7,17 @@ expression: redacted
     {
       "context": {
         "capabilities": {
-          "actorProfiles": true,
-          "commitWebUrls": true,
-          "issueComments": true,
-          "relatedIssues": true,
-          "reviewRequestLookup": true
+          "actor_profiles": true,
+          "commit_web_urls": true,
+          "issue_comments": true,
+          "related_issues": true,
+          "review_request_lookup": true
         },
         "host": "github.com",
         "introduced": null,
-        "lastUpdated": null,
+        "last_updated": null,
         "provider": "github",
-        "relatedIssues": []
+        "related_issues": []
       },
       "details": null,
       "path": ".changeset/feature.md",
@@ -25,8 +25,8 @@ expression: redacted
       "targets": [
         {
           "bump": "minor",
-          "changeType": "minor",
-          "evidenceRefs": [],
+          "change_type": "minor",
+          "evidence_refs": [],
           "id": "core",
           "kind": "package",
           "origin": "direct-change"
@@ -34,7 +34,7 @@ expression: redacted
       ]
     }
   ],
-  "requestedChangesets": [
+  "requested_changesets": [
     ".changeset/feature.md"
   ]
 }

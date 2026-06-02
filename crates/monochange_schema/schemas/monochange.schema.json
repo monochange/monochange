@@ -71,23 +71,23 @@
 			"additionalProperties": false,
 			"description": "Rendering style options for changelog output.\n\nControls visual formatting of changelogs: section separators, package labels,\nmetadata lines, and collapsed section rendering. These are purely presentation\nconcerns; data-level configuration (sections, types, thresholds) lives in\n`ChangelogSettings`.\n\nA `ChangelogStyle::rules()` method produces a human-readable description of\nthe active style, suitable for feeding to an AI agent when reformatting\nexisting changelogs.",
 			"properties": {
-				"collapsedSectionStyle": {
+				"collapsed_section_style": {
 					"$ref": "#/$defs/CollapsedSectionStyle",
 					"default": "details"
 				},
-				"metadataStyle": {
+				"metadata_style": {
 					"$ref": "#/$defs/MetadataStyle",
 					"default": "inline"
 				},
-				"packageLabelPlacement": {
+				"package_label_placement": {
 					"$ref": "#/$defs/PackageLabelPlacement",
 					"default": "after_heading"
 				},
-				"packageLabelStyle": {
+				"package_label_style": {
 					"$ref": "#/$defs/PackageLabelStyle",
 					"default": "inline"
 				},
-				"sectionSeparator": {
+				"section_separator": {
 					"$ref": "#/$defs/SectionSeparator",
 					"default": "blank_line"
 				}
@@ -1493,7 +1493,7 @@
 			"additionalProperties": false,
 			"description": "Release notes-specific style overrides.\n\nAny unset field inherits from the base `ChangelogStyle` configured under\n`[changelog.style]`.",
 			"properties": {
-				"collapsedSectionStyle": {
+				"collapsed_section_style": {
 					"anyOf": [
 						{
 							"$ref": "#/$defs/CollapsedSectionStyle"
@@ -1504,7 +1504,7 @@
 					],
 					"default": null
 				},
-				"metadataStyle": {
+				"metadata_style": {
 					"anyOf": [
 						{
 							"$ref": "#/$defs/MetadataStyle"
@@ -1515,7 +1515,7 @@
 					],
 					"default": null
 				},
-				"packageLabelPlacement": {
+				"package_label_placement": {
 					"anyOf": [
 						{
 							"$ref": "#/$defs/PackageLabelPlacement"
@@ -1526,7 +1526,7 @@
 					],
 					"default": null
 				},
-				"packageLabelStyle": {
+				"package_label_style": {
 					"anyOf": [
 						{
 							"$ref": "#/$defs/PackageLabelStyle"
@@ -1537,7 +1537,7 @@
 					],
 					"default": null
 				},
-				"sectionSeparator": {
+				"section_separator": {
 					"anyOf": [
 						{
 							"$ref": "#/$defs/SectionSeparator"
@@ -1686,7 +1686,7 @@
 			],
 			"type": "string"
 		},
-		"autoDiscoverPackageDefaults": {
+		"auto_discover_package_defaults": {
 			"additionalProperties": false,
 			"properties": {
 				"release": {
@@ -1717,13 +1717,13 @@
 			},
 			"type": "object"
 		},
-		"autoDiscoverSettings": {
+		"auto_discover_settings": {
 			"additionalProperties": false,
 			"properties": {
 				"defaults": {
 					"anyOf": [
 						{
-							"$ref": "#/$defs/autoDiscoverPackageDefaults"
+							"$ref": "#/$defs/auto_discover_package_defaults"
 						},
 						{
 							"type": "null"
@@ -1754,17 +1754,17 @@
 			},
 			"type": "object"
 		},
-		"changelogConfig": {
+		"changelog_config": {
 			"anyOf": [
 				{
-					"$ref": "#/$defs/changelogDefinition"
+					"$ref": "#/$defs/changelog_definition"
 				},
 				{
-					"$ref": "#/$defs/changelogTable"
+					"$ref": "#/$defs/changelog_table"
 				}
 			]
 		},
-		"changelogDefinition": {
+		"changelog_definition": {
 			"anyOf": [
 				{
 					"type": "boolean"
@@ -1774,17 +1774,17 @@
 				}
 			]
 		},
-		"changelogSettings": {
+		"changelog_settings": {
 			"additionalProperties": false,
 			"properties": {
 				"release_notes": {
 					"$ref": "#/$defs/ReleaseNotesStyleOverrides",
 					"default": {
-						"collapsedSectionStyle": null,
-						"metadataStyle": null,
-						"packageLabelPlacement": null,
-						"packageLabelStyle": null,
-						"sectionSeparator": null
+						"collapsed_section_style": null,
+						"metadata_style": null,
+						"package_label_placement": null,
+						"package_label_style": null,
+						"section_separator": null
 					}
 				},
 				"section_thresholds": {
@@ -1804,11 +1804,11 @@
 				"style": {
 					"$ref": "#/$defs/ChangelogStyle",
 					"default": {
-						"collapsedSectionStyle": "details",
-						"metadataStyle": "inline",
-						"packageLabelPlacement": "after_heading",
-						"packageLabelStyle": "inline",
-						"sectionSeparator": "blank_line"
+						"collapsed_section_style": "details",
+						"metadata_style": "inline",
+						"package_label_placement": "after_heading",
+						"package_label_style": "inline",
+						"section_separator": "blank_line"
 					}
 				},
 				"templates": {
@@ -1828,7 +1828,7 @@
 			},
 			"type": "object"
 		},
-		"changelogTable": {
+		"changelog_table": {
 			"additionalProperties": false,
 			"properties": {
 				"enabled": {
@@ -1852,7 +1852,7 @@
 				"include": {
 					"anyOf": [
 						{
-							"$ref": "#/$defs/groupChangelogInclude"
+							"$ref": "#/$defs/group_changelog_include"
 						},
 						{
 							"type": "null"
@@ -1876,7 +1876,7 @@
 			},
 			"type": "object"
 		},
-		"cliCommand": {
+		"cli_command": {
 			"additionalProperties": false,
 			"properties": {
 				"dry_run": {
@@ -1913,7 +1913,7 @@
 				"changelog": {
 					"anyOf": [
 						{
-							"$ref": "#/$defs/changelogConfig"
+							"$ref": "#/$defs/changelog_config"
 						},
 						{
 							"type": "null"
@@ -1971,13 +1971,13 @@
 			},
 			"type": "object"
 		},
-		"ecosystemSettings": {
+		"ecosystem_settings": {
 			"additionalProperties": false,
 			"properties": {
 				"auto_discover": {
 					"anyOf": [
 						{
-							"$ref": "#/$defs/autoDiscoverSettings"
+							"$ref": "#/$defs/auto_discover_settings"
 						},
 						{
 							"type": "null"
@@ -2013,7 +2013,7 @@
 					"type": "array"
 				},
 				"publish": {
-					"$ref": "#/$defs/publishSettings"
+					"$ref": "#/$defs/publish_settings"
 				},
 				"publish_order": {
 					"$ref": "#/$defs/PublishOrderSettings",
@@ -2030,7 +2030,7 @@
 				},
 				"versioned_files": {
 					"items": {
-						"$ref": "#/$defs/versionedFileDefinition"
+						"$ref": "#/$defs/versioned_file_definition"
 					},
 					"type": "array"
 				}
@@ -2041,27 +2041,27 @@
 			"additionalProperties": false,
 			"properties": {
 				"cargo": {
-					"$ref": "#/$defs/ecosystemSettings"
+					"$ref": "#/$defs/ecosystem_settings"
 				},
 				"dart": {
-					"$ref": "#/$defs/ecosystemSettings"
+					"$ref": "#/$defs/ecosystem_settings"
 				},
 				"deno": {
-					"$ref": "#/$defs/ecosystemSettings"
+					"$ref": "#/$defs/ecosystem_settings"
 				},
 				"go": {
-					"$ref": "#/$defs/ecosystemSettings"
+					"$ref": "#/$defs/ecosystem_settings"
 				},
 				"npm": {
-					"$ref": "#/$defs/ecosystemSettings"
+					"$ref": "#/$defs/ecosystem_settings"
 				},
 				"python": {
-					"$ref": "#/$defs/ecosystemSettings"
+					"$ref": "#/$defs/ecosystem_settings"
 				}
 			},
 			"type": "object"
 		},
-		"groupChangelogInclude": {
+		"group_changelog_include": {
 			"anyOf": [
 				{
 					"type": "string"
@@ -2074,13 +2074,13 @@
 				}
 			]
 		},
-		"groupDefinition": {
+		"group_definition": {
 			"additionalProperties": false,
 			"properties": {
 				"changelog": {
 					"anyOf": [
 						{
-							"$ref": "#/$defs/changelogConfig"
+							"$ref": "#/$defs/changelog_config"
 						},
 						{
 							"type": "null"
@@ -2135,7 +2135,7 @@
 				},
 				"versioned_files": {
 					"items": {
-						"$ref": "#/$defs/versionedFileDefinition"
+						"$ref": "#/$defs/versioned_file_definition"
 					},
 					"type": "array"
 				}
@@ -2145,7 +2145,7 @@
 			],
 			"type": "object"
 		},
-		"packageDefinition": {
+		"package_definition": {
 			"additionalProperties": false,
 			"properties": {
 				"additional_paths": {
@@ -2158,7 +2158,7 @@
 				"changelog": {
 					"anyOf": [
 						{
-							"$ref": "#/$defs/changelogConfig"
+							"$ref": "#/$defs/changelog_config"
 						},
 						{
 							"type": "null"
@@ -2201,7 +2201,7 @@
 					"type": "string"
 				},
 				"publish": {
-					"$ref": "#/$defs/publishSettings"
+					"$ref": "#/$defs/publish_settings"
 				},
 				"release": {
 					"default": false,
@@ -2234,7 +2234,7 @@
 				},
 				"versioned_files": {
 					"items": {
-						"$ref": "#/$defs/versionedFileDefinition"
+						"$ref": "#/$defs/versioned_file_definition"
 					},
 					"type": "array"
 				}
@@ -2244,7 +2244,7 @@
 			],
 			"type": "object"
 		},
-		"placeholderSettings": {
+		"placeholder_settings": {
 			"additionalProperties": false,
 			"properties": {
 				"readme": {
@@ -2264,7 +2264,7 @@
 			},
 			"type": "object"
 		},
-		"publishAttestationSettings": {
+		"publish_attestation_settings": {
 			"additionalProperties": false,
 			"properties": {
 				"require_registry_provenance": {
@@ -2277,7 +2277,7 @@
 			},
 			"type": "object"
 		},
-		"publishRateLimitSettings": {
+		"publish_rate_limit_settings": {
 			"additionalProperties": false,
 			"properties": {
 				"enforce": {
@@ -2290,11 +2290,11 @@
 			},
 			"type": "object"
 		},
-		"publishSettings": {
+		"publish_settings": {
 			"additionalProperties": false,
 			"properties": {
 				"attestations": {
-					"$ref": "#/$defs/publishAttestationSettings"
+					"$ref": "#/$defs/publish_attestation_settings"
 				},
 				"enabled": {
 					"default": null,
@@ -2315,10 +2315,10 @@
 					"default": null
 				},
 				"placeholder": {
-					"$ref": "#/$defs/placeholderSettings"
+					"$ref": "#/$defs/placeholder_settings"
 				},
 				"rate_limits": {
-					"$ref": "#/$defs/publishRateLimitSettings"
+					"$ref": "#/$defs/publish_rate_limit_settings"
 				},
 				"registry": {
 					"anyOf": [
@@ -2334,7 +2334,7 @@
 				"trusted_publishing": {
 					"anyOf": [
 						{
-							"$ref": "#/$defs/trustedPublishingSettings"
+							"$ref": "#/$defs/trusted_publishing_settings"
 						},
 						{
 							"type": "null"
@@ -2410,7 +2410,7 @@
 			],
 			"type": "object"
 		},
-		"trustedPublishingDetails": {
+		"trusted_publishing_details": {
 			"additionalProperties": false,
 			"properties": {
 				"enabled": {
@@ -2444,17 +2444,17 @@
 			},
 			"type": "object"
 		},
-		"trustedPublishingSettings": {
+		"trusted_publishing_settings": {
 			"anyOf": [
 				{
 					"type": "boolean"
 				},
 				{
-					"$ref": "#/$defs/trustedPublishingDetails"
+					"$ref": "#/$defs/trusted_publishing_details"
 				}
 			]
 		},
-		"versionedFileDefinition": {
+		"versioned_file_definition": {
 			"anyOf": [
 				{
 					"type": "string"
@@ -2471,7 +2471,7 @@
 	"description": "JSON Schema for monochange.toml workspace configuration files.",
 	"properties": {
 		"changelog": {
-			"$ref": "#/$defs/changelogSettings"
+			"$ref": "#/$defs/changelog_settings"
 		},
 		"changesets": {
 			"$ref": "#/$defs/ChangesetSettings",
@@ -2488,7 +2488,7 @@
 		},
 		"cli": {
 			"additionalProperties": {
-				"$ref": "#/$defs/cliCommand"
+				"$ref": "#/$defs/cli_command"
 			},
 			"type": "object"
 		},
@@ -2500,7 +2500,7 @@
 		},
 		"group": {
 			"additionalProperties": {
-				"$ref": "#/$defs/groupDefinition"
+				"$ref": "#/$defs/group_definition"
 			},
 			"type": "object"
 		},
@@ -2516,7 +2516,7 @@
 		},
 		"package": {
 			"additionalProperties": {
-				"$ref": "#/$defs/packageDefinition"
+				"$ref": "#/$defs/package_definition"
 			},
 			"type": "object"
 		},

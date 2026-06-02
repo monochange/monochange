@@ -117,7 +117,7 @@ struct SpinnerState {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct ProgressPhaseTiming {
 	label: String,
 	duration_ms: u64,
@@ -186,8 +186,8 @@ impl CliProgressReporter {
 				"sequence": sequence,
 				"event": "command_started",
 				"command": self.command_name,
-				"dryRun": self.dry_run,
-				"totalSteps": self.total_steps,
+				"dry_run": self.dry_run,
+				"total_steps": self.total_steps,
 			}));
 			return;
 		}
@@ -212,9 +212,9 @@ impl CliProgressReporter {
 				"sequence": sequence,
 				"event": "command_finished",
 				"command": self.command_name,
-				"dryRun": self.dry_run,
-				"totalSteps": self.total_steps,
-				"durationMs": duration_millis(duration),
+				"dry_run": self.dry_run,
+				"total_steps": self.total_steps,
+				"duration_ms": duration_millis(duration),
 			}));
 			return;
 		}
@@ -329,11 +329,11 @@ impl CliProgressReporter {
 		if self.render_mode == ProgressRenderMode::Json {
 			let mut payload = serde_json::Map::new();
 			payload.insert(
-				"durationMs".to_string(),
+				"duration_ms".to_string(),
 				serde_json::Value::from(duration_millis(duration)),
 			);
 			payload.insert(
-				"phaseTimings".to_string(),
+				"phase_timings".to_string(),
 				serde_json::to_value(
 					phase_timings
 						.iter()
@@ -381,7 +381,7 @@ impl CliProgressReporter {
 		if self.render_mode == ProgressRenderMode::Json {
 			let mut payload = serde_json::Map::new();
 			payload.insert(
-				"durationMs".to_string(),
+				"duration_ms".to_string(),
 				serde_json::Value::from(duration_millis(duration)),
 			);
 			payload.insert(
@@ -557,25 +557,25 @@ impl CliProgressReporter {
 			"command".to_string(),
 			serde_json::Value::String(self.command_name.clone()),
 		);
-		payload.insert("dryRun".to_string(), serde_json::Value::Bool(self.dry_run));
+		payload.insert("dry_run".to_string(), serde_json::Value::Bool(self.dry_run));
 		payload.insert(
-			"stepIndex".to_string(),
+			"step_index".to_string(),
 			serde_json::Value::from(step_index + 1),
 		);
 		payload.insert(
-			"totalSteps".to_string(),
+			"total_steps".to_string(),
 			serde_json::Value::from(self.total_steps),
 		);
 		payload.insert(
-			"stepKind".to_string(),
+			"step_kind".to_string(),
 			serde_json::Value::String(step.kind_name().to_string()),
 		);
 		payload.insert(
-			"stepDisplayName".to_string(),
+			"step_display_name".to_string(),
 			serde_json::Value::String(step.display_name().to_string()),
 		);
 		payload.insert(
-			"stepName".to_string(),
+			"step_name".to_string(),
 			step.name().map_or(serde_json::Value::Null, |name| {
 				serde_json::Value::String(name.to_string())
 			}),

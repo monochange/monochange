@@ -1,38 +1,8 @@
 ---
 source: crates/monochange_integration_tests/tests/release_record_artifacts.rs
-expression: "serde_json::json!({\n    \"firstReleaseTargets\": first[\"releaseTargets\"], \"firstState\":\n    redact_prerelease_state(first_state), \"secondReleaseTargets\":\n    second[\"releaseTargets\"], \"secondState\":\n    redact_prerelease_state(second_state),\n})"
+expression: "serde_json::json!({\n    \"first_release_targets\": first[\"release_targets\"], \"firstState\":\n    redact_prerelease_state(first_state), \"second_release_targets\":\n    second[\"release_targets\"], \"secondState\":\n    redact_prerelease_state(second_state),\n})"
 ---
 {
-  "firstReleaseTargets": [
-    {
-      "id": "app",
-      "kind": "package",
-      "members": [
-        "app"
-      ],
-      "release": true,
-      "renderedChangelogTitle": "app [1.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.0-alpha.0) (2026-04-07)",
-      "renderedTitle": "app 1.0.0-alpha.0 (2026-04-07)",
-      "tag": false,
-      "tagName": "app/v1.0.0-alpha.0",
-      "version": "1.0.0-alpha.0",
-      "versionFormat": "namespaced"
-    },
-    {
-      "id": "core",
-      "kind": "package",
-      "members": [
-        "core"
-      ],
-      "release": true,
-      "renderedChangelogTitle": "core [1.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.0.0-alpha.0) (2026-04-07)",
-      "renderedTitle": "core 1.0.0-alpha.0 (2026-04-07)",
-      "tag": true,
-      "tagName": "core/v1.0.0-alpha.0",
-      "version": "1.0.0-alpha.0",
-      "versionFormat": "namespaced"
-    }
-  ],
   "firstState": {
     "base": "planned",
     "channel": "alpha",
@@ -54,7 +24,7 @@ expression: "serde_json::json!({\n    \"firstReleaseTargets\": first[\"releaseTa
     "schema_version": 1,
     "updated_at": "[timestamp]"
   },
-  "secondReleaseTargets": [
+  "first_release_targets": [
     {
       "id": "app",
       "kind": "package",
@@ -62,12 +32,12 @@ expression: "serde_json::json!({\n    \"firstReleaseTargets\": first[\"releaseTa
         "app"
       ],
       "release": true,
-      "renderedChangelogTitle": "app [1.0.0-alpha.1](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.0-alpha.1) (2026-04-07)",
-      "renderedTitle": "app 1.0.0-alpha.1 (2026-04-07)",
+      "rendered_changelog_title": "app [1.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.0-alpha.0) (2026-04-07)",
+      "rendered_title": "app 1.0.0-alpha.0 (2026-04-07)",
       "tag": false,
-      "tagName": "app/v1.0.0-alpha.1",
-      "version": "1.0.0-alpha.1",
-      "versionFormat": "namespaced"
+      "tag_name": "app/v1.0.0-alpha.0",
+      "version": "1.0.0-alpha.0",
+      "version_format": "namespaced"
     },
     {
       "id": "core",
@@ -76,12 +46,12 @@ expression: "serde_json::json!({\n    \"firstReleaseTargets\": first[\"releaseTa
         "core"
       ],
       "release": true,
-      "renderedChangelogTitle": "core [1.0.0-alpha.1](https://github.com/ifiokjr/monochange/releases/tag/core/v1.0.0-alpha.1) (2026-04-07)",
-      "renderedTitle": "core 1.0.0-alpha.1 (2026-04-07)",
+      "rendered_changelog_title": "core [1.0.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.0.0-alpha.0) (2026-04-07)",
+      "rendered_title": "core 1.0.0-alpha.0 (2026-04-07)",
       "tag": true,
-      "tagName": "core/v1.0.0-alpha.1",
-      "version": "1.0.0-alpha.1",
-      "versionFormat": "namespaced"
+      "tag_name": "core/v1.0.0-alpha.0",
+      "version": "1.0.0-alpha.0",
+      "version_format": "namespaced"
     }
   ],
   "secondState": {
@@ -104,5 +74,35 @@ expression: "serde_json::json!({\n    \"firstReleaseTargets\": first[\"releaseTa
     },
     "schema_version": 1,
     "updated_at": "[timestamp]"
-  }
+  },
+  "second_release_targets": [
+    {
+      "id": "app",
+      "kind": "package",
+      "members": [
+        "app"
+      ],
+      "release": true,
+      "rendered_changelog_title": "app [1.0.0-alpha.1](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.0-alpha.1) (2026-04-07)",
+      "rendered_title": "app 1.0.0-alpha.1 (2026-04-07)",
+      "tag": false,
+      "tag_name": "app/v1.0.0-alpha.1",
+      "version": "1.0.0-alpha.1",
+      "version_format": "namespaced"
+    },
+    {
+      "id": "core",
+      "kind": "package",
+      "members": [
+        "core"
+      ],
+      "release": true,
+      "rendered_changelog_title": "core [1.0.0-alpha.1](https://github.com/ifiokjr/monochange/releases/tag/core/v1.0.0-alpha.1) (2026-04-07)",
+      "rendered_title": "core 1.0.0-alpha.1 (2026-04-07)",
+      "tag": true,
+      "tag_name": "core/v1.0.0-alpha.1",
+      "version": "1.0.0-alpha.1",
+      "version_format": "namespaced"
+    }
+  ]
 }

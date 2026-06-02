@@ -124,11 +124,11 @@ async fn explicit_prepared_release_artifact_drives_follow_up_release_pr() {
 	)
 	.await;
 	assert_eq!(
-		value.pointer("/releaseRequest/provider"),
+		value.pointer("/release_request/provider"),
 		Some(&serde_json::Value::String("github".to_string()))
 	);
 	assert_eq!(
-		value.pointer("/releaseRequest/headBranch"),
+		value.pointer("/release_request/head_branch"),
 		Some(&serde_json::Value::String(
 			"monochange/release/release-pr".to_string()
 		))
@@ -172,7 +172,7 @@ async fn automatic_prepared_release_cache_survives_commit_and_release_pr_follow_
 	)
 	.await;
 	assert_eq!(
-		value.pointer("/releaseRequest/title"),
+		value.pointer("/release_request/title"),
 		Some(&serde_json::Value::String(
 			"chore(release): prepare release".to_string()
 		))

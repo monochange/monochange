@@ -82,12 +82,12 @@ fn populated_release_record_artifact_uses_current_schema_version() {
 	let value: Value = serde_json::from_str(&json)
 		.unwrap_or_else(|error| panic!("parse populated release record artifact: {error}"));
 
-	assert_eq!(value["schemaVersion"], version);
+	assert_eq!(value["schema_version"], version);
 	assert_eq!(value["kind"], release_record::KIND);
-	assert_eq!(value["releaseTargets"].as_array().unwrap().len(), 2);
+	assert_eq!(value["release_targets"].as_array().unwrap().len(), 2);
 	assert_eq!(value["changesets"].as_array().unwrap().len(), 1);
 	assert!(
-		value["changedFiles"]
+		value["changed_files"]
 			.as_array()
 			.unwrap()
 			.iter()
@@ -99,7 +99,7 @@ fn populated_release_record_artifact_uses_current_schema_version() {
 			})
 	);
 	assert!(
-		!value["changedFiles"]
+		!value["changed_files"]
 			.as_array()
 			.unwrap()
 			.iter()
@@ -125,18 +125,18 @@ fn populated_config_artifact_is_deterministic() {
 #[test]
 fn release_record_accepts_current_schema_version() {
 	let migrated = release_record::migrate_value(json!({
-		"schemaVersion": CURRENT_SCHEMA_VERSION_TEXT,
+		"schema_version": CURRENT_SCHEMA_VERSION_TEXT,
 		"kind": release_record::KIND,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.unwrap_or_else(|error| panic!("validate release record: {error}"));
 
 	assert_eq!(
-		migrated.get("schemaVersion"),
+		migrated.get("schema_version"),
 		Some(&json!(CURRENT_SCHEMA_VERSION_TEXT))
 	);
 }
@@ -144,20 +144,49 @@ fn release_record_accepts_current_schema_version() {
 #[test]
 fn release_record_migrates_older_schema_versions() {
 	let migrated = release_record::migrate_value(json!({
-		"schemaVersion": "0.1",
+		"schema_version": "0.1",
 		"kind": release_record::KIND,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.unwrap_or_else(|error| panic!("migrate old release record: {error}"));
 
 	assert_eq!(
-		migrated.get("schemaVersion"),
+		migrated.get("schema_version"),
 		Some(&json!(CURRENT_SCHEMA_VERSION_TEXT))
 	);
+}
+
+#[test]
+fn release_record_migrates_legacy_camel_schema_version() {
+	let migrated = release_record::migrate_value(json!({
+		"schemaVersion": "0.3",
+		"kind": release_record::KIND,
+		"createdAt": "2026-04-06T12:00:00Z",
+		"command": "release-pr",
+		"releaseTargets": [{
+			"id": "core",
+			"kind": "package",
+			"tagName": "core/v1.0.0",
+			"versionFormat": "namespaced"
+		}],
+		"releasedPackages": [],
+		"changedFiles": []
+	}))
+	.unwrap_or_else(|error| panic!("migrate legacy camel release record: {error}"));
+
+	assert_eq!(
+		migrated.get("schema_version"),
+		Some(&json!(CURRENT_SCHEMA_VERSION_TEXT))
+	);
+	assert!(migrated.get("schemaVersion").is_none());
+	assert!(migrated.get("created_at").is_some());
+	assert!(migrated.get("createdAt").is_none());
+	assert!(migrated["release_targets"][0].get("tag_name").is_some());
+	assert!(migrated["release_targets"][0].get("tagName").is_none());
 }
 
 #[test]
@@ -165,16 +194,16 @@ fn release_record_migrates_legacy_v_only_schema_version() {
 	let migrated = release_record::migrate_value(json!({
 		"v": "0.0",
 		"kind": release_record::KIND,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.unwrap_or_else(|error| panic!("migrate legacy release record: {error}"));
 
 	assert_eq!(
-		migrated.get("schemaVersion"),
+		migrated.get("schema_version"),
 		Some(&json!(CURRENT_SCHEMA_VERSION_TEXT))
 	);
 	assert!(migrated.get("v").is_none());
@@ -207,6 +236,7 @@ fn release_record_rust_migration_edges_are_explicit_and_ordered() {
 			(SchemaVersion::new(0, 0), SchemaVersion::new(0, 1)),
 			(SchemaVersion::new(0, 1), SchemaVersion::new(0, 2)),
 			(SchemaVersion::new(0, 2), SchemaVersion::new(0, 3)),
+			(SchemaVersion::new(0, 3), SchemaVersion::new(0, 4)),
 		]
 	);
 }
@@ -215,12 +245,12 @@ fn release_record_rust_migration_edges_are_explicit_and_ordered() {
 fn release_record_rust_migration_edges_reject_missing_paths() {
 	let mut value = json!({
 		"kind": release_record::KIND,
-		"schemaVersion": "0.3"
+		"schema_version": "0.4"
 	});
 	let error = migrations::apply_release_record_edges(
 		&mut value,
-		SchemaVersion::new(0, 3),
 		SchemaVersion::new(0, 4),
+		SchemaVersion::new(0, 5),
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected missing migration path error"));
@@ -229,8 +259,8 @@ fn release_record_rust_migration_edges_reject_missing_paths() {
 		error,
 		SchemaError::MissingMigrationPath {
 			artifact: release_record::KIND,
-			from: SchemaVersion { major: 0, minor: 3 },
-			to: SchemaVersion { major: 0, minor: 4 },
+			from: SchemaVersion { major: 0, minor: 4 },
+			to: SchemaVersion { major: 0, minor: 5 },
 		}
 	));
 }
@@ -239,7 +269,7 @@ fn release_record_rust_migration_edges_reject_missing_paths() {
 fn release_record_rust_migration_edges_reject_overshooting_paths() {
 	let mut value = json!({
 		"kind": release_record::KIND,
-		"schemaVersion": "0.1"
+		"schema_version": "0.1"
 	});
 	let error = migrations::apply_release_record_edges(
 		&mut value,
@@ -276,18 +306,18 @@ fn release_record_rust_migration_helpers_reject_non_object_values() {
 #[test]
 fn release_record_render_current_value_writes_public_version_only() {
 	let rendered = release_record::render_current_value(json!({
-		"schemaVersion": 1,
+		"schema_version": 1,
 		"kind": release_record::KIND,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.unwrap_or_else(|error| panic!("render current release record: {error}"));
 
 	assert_eq!(
-		rendered.get("schemaVersion"),
+		rendered.get("schema_version"),
 		Some(&json!(CURRENT_SCHEMA_VERSION_TEXT))
 	);
 	assert!(
@@ -304,12 +334,12 @@ fn release_record_render_current_value_rejects_non_object_or_missing_kind() {
 	assert!(matches!(not_object, SchemaError::NotObject));
 
 	let missing_kind = release_record::render_current_value(json!({
-		"schemaVersion": 1,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"schema_version": 1,
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.err()
 	.unwrap_or_else(|| panic!("expected missing-kind error"));
@@ -320,11 +350,11 @@ fn release_record_render_current_value_rejects_non_object_or_missing_kind() {
 fn release_record_rejects_missing_version() {
 	let error = release_record::migrate_value(json!({
 		"kind": release_record::KIND,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.err()
 	.unwrap_or_else(|| panic!("expected missing version error"));
@@ -334,13 +364,13 @@ fn release_record_rejects_missing_version() {
 #[test]
 fn release_record_rejects_non_string_version() {
 	let error = release_record::migrate_value(json!({
-		"schemaVersion": 1,
+		"schema_version": 1,
 		"kind": release_record::KIND,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.err()
 	.unwrap_or_else(|| panic!("expected non-string version error"));
@@ -350,13 +380,13 @@ fn release_record_rejects_non_string_version() {
 #[test]
 fn release_record_rejects_invalid_version_text() {
 	let error = release_record::migrate_value(json!({
-		"schemaVersion": "0.1.0",
+		"schema_version": "0.1.0",
 		"kind": release_record::KIND,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.err()
 	.unwrap_or_else(|| panic!("expected invalid version error"));
@@ -369,13 +399,13 @@ fn release_record_rejects_invalid_version_text() {
 #[test]
 fn release_record_rejects_unsupported_kind() {
 	let error = release_record::migrate_value(json!({
-		"schemaVersion": "0.1",
+		"schema_version": "0.1",
 		"kind": "monochange.otherRecord",
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.err()
 	.unwrap_or_else(|| panic!("expected unsupported kind error"));
@@ -389,13 +419,13 @@ fn release_record_rejects_unsupported_kind() {
 #[test]
 fn release_record_rejects_future_version() {
 	let error = release_record::migrate_value(json!({
-		"schemaVersion": "9.0",
+		"schema_version": "9.0",
 		"kind": release_record::KIND,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	}))
 	.err()
 	.unwrap_or_else(|| panic!("expected unsupported version error"));
@@ -413,7 +443,7 @@ fn committed_release_record_schema_tracks_current_wire_constants() {
 
 	assert_eq!(
 		schema
-			.pointer("/properties/schemaVersion/default")
+			.pointer("/properties/schema_version/default")
 			.and_then(Value::as_str),
 		Some(CURRENT_SCHEMA_VERSION_TEXT)
 	);

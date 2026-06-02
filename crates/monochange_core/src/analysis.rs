@@ -35,7 +35,7 @@ pub enum FileChangeKind {
 
 /// One file that changed for the analyzed package.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct AnalyzedFileChange {
 	/// Repository-relative path.
 	pub path: PathBuf,
@@ -51,7 +51,7 @@ pub struct AnalyzedFileChange {
 
 /// One text file captured in a package snapshot.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PackageSnapshotFile {
 	/// Package-relative path.
 	pub path: PathBuf,
@@ -61,7 +61,7 @@ pub struct PackageSnapshotFile {
 
 /// A package snapshot at one side of the comparison.
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PackageSnapshot {
 	/// Human-readable label for this snapshot.
 	pub label: String,
@@ -346,7 +346,7 @@ pub enum SemanticChangeKind {
 
 /// One semantic diff record emitted by an ecosystem analyzer.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SemanticChange {
 	/// Broad category of change.
 	pub category: SemanticChangeCategory,
@@ -368,7 +368,7 @@ pub struct SemanticChange {
 
 /// Analyzer output for one package.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PackageAnalysisResult {
 	/// Unique analyzer identifier.
 	pub analyzer_id: String,

@@ -37,10 +37,10 @@ fn release_record_artifact_fixtures_load_through_parser() -> Result<(), Box<dyn 
 		let name = file_name(&artifact_path)?;
 		let text = std::fs::read_to_string(&artifact_path)?;
 		let raw = serde_json::from_str::<Value>(&text)?;
-		let raw_schema_version = json_str(&raw, "/schemaVersion")?;
+		let raw_schema_version = release_record_schema_version_text(&raw)?;
 		let record = monochange_core::parse_release_record_json(&text)?;
 
-		assert_artifact_schema_version_matches_path(&paths, &artifact_path, raw_schema_version)?;
+		assert_artifact_schema_version_matches_path(&paths, &artifact_path, &raw_schema_version)?;
 		assert_eq!(
 			record.schema_version,
 			monochange_schema::CURRENT_SCHEMA_VERSION_TEXT,
@@ -118,20 +118,29 @@ fn config_artifact_fixtures_are_valid_json() -> Result<(), Box<dyn Error>> {
 #[test]
 fn committed_artifact_fixtures_validate_against_their_json_schemas() -> Result<(), Box<dyn Error>> {
 	let paths = schema_asset_paths()?;
-	let release_schema = parse_json(&paths.canonical_release_schema)?;
-	let config_schema = parse_json(&paths.config_schema)?;
-	let release_validator = jsonschema::validator_for(&release_schema)
-		.map_err(|error| test_error(format!("compile release-record schema: {error}")))?;
-	let config_validator = jsonschema::validator_for(&config_schema)
-		.map_err(|error| test_error(format!("compile config schema: {error}")))?;
-
 	for artifact_path in release_record_artifact_paths(&paths)? {
+		let schema_path = release_record_schema_path_for_artifact(&paths, &artifact_path)?;
+		let schema = parse_json(&schema_path)?;
+		let validator = jsonschema::validator_for(&schema).map_err(|error| {
+			test_error(format!(
+				"compile release-record schema {}: {error}",
+				schema_path.display()
+			))
+		})?;
 		let artifact = parse_json(&artifact_path)?;
-		validate_json(&release_validator, &artifact, &artifact_path)?;
+		validate_json(&validator, &artifact, &artifact_path)?;
 	}
 	for artifact_path in config_artifact_paths(&paths)? {
+		let schema_path = config_schema_path_for_artifact(&paths, &artifact_path)?;
+		let schema = parse_json(&schema_path)?;
+		let validator = jsonschema::validator_for(&schema).map_err(|error| {
+			test_error(format!(
+				"compile config schema {}: {error}",
+				schema_path.display()
+			))
+		})?;
 		let artifact = parse_json(&artifact_path)?;
-		validate_json(&config_validator, &artifact, &artifact_path)?;
+		validate_json(&validator, &artifact, &artifact_path)?;
 	}
 
 	Ok(())
@@ -157,12 +166,12 @@ fn published_release_record_schemas_have_migration_paths_to_current() -> Result<
 		let validator = jsonschema::validator_for(&schema).map_err(|error| {
 			test_error(format!("compile release-record v{version} schema: {error}"))
 		})?;
-		let sample = sample_release_record_for_version(&version);
+		let sample = sample_release_record_for_version(&paths, &version)?;
 		validate_json(&validator, &sample, &schema_path)?;
 
 		let migrated = monochange_schema::release_record::migrate_value(sample)?;
 		assert_eq!(
-			migrated.get("schemaVersion"),
+			migrated.get("schema_version"),
 			Some(&json!(monochange_schema::CURRENT_SCHEMA_VERSION_TEXT)),
 			"release-record schema v{version} should migrate to current"
 		);
@@ -268,7 +277,7 @@ fn release_record_schema_declares_current_artifact_contract() -> Result<(), Box<
 	);
 	assert!(!json_bool(&schema, "/additionalProperties")?);
 	assert_eq!(
-		json_str(&schema, "/properties/schemaVersion/default")?,
+		json_str(&schema, "/properties/schema_version/default")?,
 		monochange_schema::CURRENT_SCHEMA_VERSION_TEXT
 	);
 	assert_eq!(
@@ -278,11 +287,11 @@ fn release_record_schema_declares_current_artifact_contract() -> Result<(), Box<
 
 	let required = json_array(&schema, "/required")?;
 	for key in [
-		"createdAt",
+		"created_at",
 		"command",
-		"releaseTargets",
-		"releasedPackages",
-		"changedFiles",
+		"release_targets",
+		"released_packages",
+		"changed_files",
 	] {
 		assert!(
 			required.iter().any(|value| value.as_str() == Some(key)),
@@ -409,10 +418,10 @@ fn config_schema_preserves_dynamic_tables_while_closing_known_shapes() -> Result
 	}
 
 	for pointer in [
-		"/$defs/packageDefinition/additionalProperties",
-		"/$defs/groupDefinition/additionalProperties",
-		"/$defs/cliCommand/additionalProperties",
-		"/$defs/ecosystemSettings/additionalProperties",
+		"/$defs/package_definition/additionalProperties",
+		"/$defs/group_definition/additionalProperties",
+		"/$defs/cli_command/additionalProperties",
+		"/$defs/ecosystem_settings/additionalProperties",
 		"/$defs/source/additionalProperties",
 		"/$defs/defaults/additionalProperties",
 	] {
@@ -428,7 +437,7 @@ fn schema_asset_inventory_matches_snapshot() -> Result<(), Box<dyn Error>> {
 	let release_schema = parse_json(&paths.canonical_release_schema)?;
 	let config_schema = parse_json(&paths.config_schema)?;
 	let inventory = json!({
-		"currentSchemaVersion": monochange_schema::CURRENT_SCHEMA_VERSION_TEXT,
+		"current_schema_version": monochange_schema::CURRENT_SCHEMA_VERSION_TEXT,
 		"schemaCrateVersion": schema_crate_version(&paths)?,
 		"releaseRecord": {
 			"kind": monochange_schema::release_record::KIND,
@@ -445,7 +454,7 @@ fn schema_asset_inventory_matches_snapshot() -> Result<(), Box<dyn Error>> {
 
 	assert_json_snapshot!(inventory, {
 		".schemaCrateVersion" => "[schema crate version]",
-		".currentSchemaVersion" => "[schema version]"
+		".current_schema_version" => "[schema version]"
 	});
 
 	Ok(())
@@ -509,7 +518,7 @@ fn schema_crate_version_stays_decoupled_from_public_schema_version() -> Result<(
 fn release_record_migration_outcomes_match_snapshot() {
 	let mut missing_version = sample_release_record();
 	if let Some(object) = missing_version.as_object_mut() {
-		object.remove("schemaVersion");
+		object.remove("schema_version");
 	}
 
 	let mut missing_kind = sample_release_record();
@@ -520,7 +529,7 @@ fn release_record_migration_outcomes_match_snapshot() {
 	let mut pre_public_shape = sample_release_record();
 	if let Some(object) = pre_public_shape.as_object_mut() {
 		object.remove("v");
-		object.insert("schemaVersion".to_string(), json!(1));
+		object.insert("schema_version".to_string(), json!(1));
 	}
 
 	let current_version = monochange_schema::CURRENT_SCHEMA_VERSION_TEXT;
@@ -567,7 +576,7 @@ fn release_record_migration_outcomes_match_snapshot() {
 					json!({
 						"scenario": scenario,
 						"status": "ok",
-						"schemaVersion": value.get("schemaVersion"),
+						"schema_version": value.get("schema_version"),
 					})
 				}
 				Err(error) => {
@@ -585,7 +594,7 @@ fn release_record_migration_outcomes_match_snapshot() {
 		.into_iter()
 		.map(|mut outcome| {
 			if let Value::Object(ref mut map) = outcome {
-				if let Some(v) = map.get_mut("schemaVersion")
+				if let Some(v) = map.get_mut("schema_version")
 					&& let Value::String(_) = v
 				{
 					*v = Value::String("[schema version]".to_string());
@@ -880,14 +889,44 @@ fn sample_release_record() -> Value {
 	)
 }
 
-fn sample_release_record_for_version(version: &str) -> Value {
-	if version != "0.0" {
-		return sample_release_record_with(version, monochange_schema::release_record::KIND);
+fn sample_release_record_for_version(
+	paths: &SchemaAssetPaths,
+	version: &str,
+) -> Result<Value, Box<dyn Error>> {
+	let artifact_dir = paths.artifacts_dir.join(version).join("release-record");
+	if !artifact_dir.is_dir() {
+		return Ok(legacy_release_record_sample(version));
 	}
-	let mut record = sample_release_record_with("0.0", monochange_schema::release_record::KIND);
+	let mut entries = std::fs::read_dir(&artifact_dir)?
+		.map(|entry| entry.map(|entry| entry.path()))
+		.collect::<Result<Vec<_>, _>>()?;
+	entries.sort();
+	let Some(path) = entries
+		.into_iter()
+		.find(|path| path.extension().and_then(|ext| ext.to_str()) == Some("json"))
+	else {
+		return Err(test_error(format!(
+			"no release-record fixture found for schema version {version}"
+		)));
+	};
+	parse_json(&path)
+}
+
+fn legacy_release_record_sample(version: &str) -> Value {
+	let mut record = json!({
+		"kind": monochange_schema::release_record::KIND,
+		"createdAt": "2026-04-06T12:00:00Z",
+		"command": "release-pr",
+		"releaseTargets": [],
+		"releasedPackages": [],
+		"changedFiles": []
+	});
 	if let Some(object) = record.as_object_mut() {
-		object.remove("schemaVersion");
-		object.insert("v".to_string(), json!("0.0"));
+		if version == "0.0" {
+			object.insert("v".to_string(), json!(version));
+		} else {
+			object.insert("schemaVersion".to_string(), json!(version));
+		}
 	}
 	record
 }
@@ -898,13 +937,13 @@ fn sample_release_record_with(version: &str, kind: &str) -> Value {
 
 fn sample_release_record_with_value(version: Value, kind: Value) -> Value {
 	json!({
-		"schemaVersion": version,
+		"schema_version": version,
 		"kind": kind,
-		"createdAt": "2026-04-06T12:00:00Z",
+		"created_at": "2026-04-06T12:00:00Z",
 		"command": "release-pr",
-		"releaseTargets": [],
-		"releasedPackages": [],
-		"changedFiles": []
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
 	})
 }
 
@@ -957,6 +996,46 @@ fn versioned_release_schema_path(paths: &SchemaAssetPaths, version: &str) -> Pat
 	paths.root.join(format!(
 		"docs/src/schemas/release-record.v{version}.schema.json"
 	))
+}
+
+fn release_record_schema_path_for_artifact(
+	paths: &SchemaAssetPaths,
+	artifact_path: &Path,
+) -> Result<PathBuf, Box<dyn Error>> {
+	let schema_dir = artifact_schema_dir(paths, artifact_path)?;
+	if schema_dir == "current" {
+		return Ok(paths.canonical_release_schema.clone());
+	}
+	Ok(versioned_release_schema_path(paths, &schema_dir))
+}
+
+fn config_schema_path_for_artifact(
+	paths: &SchemaAssetPaths,
+	artifact_path: &Path,
+) -> Result<PathBuf, Box<dyn Error>> {
+	let schema_dir = artifact_schema_dir(paths, artifact_path)?;
+	if schema_dir == "current" {
+		return Ok(paths.config_schema.clone());
+	}
+	Ok(paths.root.join(format!(
+		"docs/src/schemas/monochange.v{schema_dir}.schema.json"
+	)))
+}
+
+fn release_record_schema_version_text(value: &Value) -> Result<String, Box<dyn Error>> {
+	if let Some(version) = value.get("schema_version").and_then(Value::as_str) {
+		return Ok(version.to_string());
+	}
+	if let Some(version) = value.get("schemaVersion").and_then(Value::as_str) {
+		return Ok(version.to_string());
+	}
+	if let Some(version) = value.get("v").and_then(Value::as_str) {
+		return Ok(version.to_string());
+	}
+	if let Some(version) = value.get("v").and_then(Value::as_u64) {
+		return Ok(format!("0.{version}"));
+	}
+	Err(test_error("expected release record schema version key"))
 }
 
 fn versioned_release_schema_versions(

@@ -164,10 +164,10 @@ pub enum SchemaError {
 		expected: &'static str,
 	},
 	/// Artifact lacked the current version field.
-	#[error("artifact is missing required schema version field `schemaVersion`")]
+	#[error("artifact is missing required schema version field `schema_version`")]
 	MissingVersion,
-	/// Current `schemaVersion` field was not a string.
-	#[error("artifact schema version field `schemaVersion` must be a string")]
+	/// Current `schema_version` field was not a string.
+	#[error("artifact schema version field `schema_version` must be a string")]
 	NonStringVersion,
 	/// Current `v` field could not be parsed.
 	#[error("artifact uses invalid schema version `{version}`: {source}")]
@@ -256,7 +256,8 @@ pub mod release_record {
 
 	/// Durable artifact kind for commit-embedded release records.
 	pub const KIND: &str = "monochange.releaseRecord";
-	pub(crate) const SCHEMA_VERSION_FIELD: &str = "schemaVersion";
+	pub(crate) const SCHEMA_VERSION_FIELD: &str = "schema_version";
+	pub(crate) const LEGACY_SCHEMA_VERSION_FIELD: &str = "schemaVersion";
 	pub(crate) const LEGACY_VERSION_FIELD: &str = "v";
 
 	/// Return the current release-record schema version.
@@ -277,45 +278,45 @@ pub mod release_record {
 		let tag_name = format!("v{release_version}");
 		let schema_tag_name = format!("monochange_schema/v{release_version}");
 		let artifact = serde_json::json!({
-			"schemaVersion": version,
+			"schema_version": version,
 			"kind": KIND,
-			"createdAt": "2026-01-01T00:00:00Z",
+			"created_at": "2026-01-01T00:00:00Z",
 			"command": "mc release --commit",
 			"version": release_version.as_str(),
 			"versions": {
 				"main": release_version.as_str(),
 				"monochange_schema": release_version.as_str()
 			},
-			"releaseTargets": [
+			"release_targets": [
 				{
 					"id": "main",
 					"kind": "group",
 					"version": release_version.as_str(),
-					"versionFormat": "primary",
+					"version_format": "primary",
 					"tag": true,
 					"release": true,
-					"tagName": tag_name.as_str(),
+					"tag_name": tag_name.as_str(),
 					"members": ["monochange", "monochange_core"]
 				},
 				{
 					"id": "monochange_schema",
 					"kind": "package",
 					"version": release_version.as_str(),
-					"versionFormat": "namespaced",
+					"version_format": "namespaced",
 					"tag": false,
 					"release": false,
-					"tagName": schema_tag_name.as_str(),
+					"tag_name": schema_tag_name.as_str(),
 					"members": []
 				}
 			],
-			"releasedPackages": ["monochange", "monochange_core", "monochange_schema"],
-			"changedFiles": [
+			"released_packages": ["monochange", "monochange_core", "monochange_schema"],
+			"changed_files": [
 				"Cargo.toml",
 				"crates/monochange_schema/Cargo.toml",
 				"crates/monochange_schema/schemas/artifacts/current/release-record/01.json"
 			],
-			"updatedChangelogs": ["changelog.md"],
-			"deletedChangesets": [".changeset/release-record-schema-compat.md"],
+			"updated_changelogs": ["changelog.md"],
+			"deleted_changesets": [".changeset/release-record-schema-compat.md"],
 			"changesets": [
 				{
 					"path": ".changeset/release-record-schema-compat.md",
@@ -327,9 +328,9 @@ pub mod release_record {
 							"kind": "package",
 							"bump": "major",
 							"origin": "frontmatter",
-							"evidenceRefs": ["crates/monochange_schema/src/lib.rs"],
-							"changeType": "fix",
-							"causedBy": ["release-record-schema-compat"]
+							"evidence_refs": ["crates/monochange_schema/src/lib.rs"],
+							"change_type": "fix",
+							"caused_by": ["release-record-schema-compat"]
 						}
 					]
 				}
@@ -348,10 +349,12 @@ pub mod release_record {
 	/// Convert a release-record JSON value into the current durable wire shape.
 	///
 	/// This is intended for rendering new artifacts from existing in-memory domain
-	/// structs. It writes `schemaVersion` and removes legacy `v`.
+	/// structs. It writes `schema_version` and removes legacy `schemaVersion`/`v`.
 	pub fn render_current_value(mut value: Value) -> Result<Value, SchemaError> {
 		let object = object_mut(&mut value)?;
 		validate_kind(object, KIND)?;
+		migrations::normalize_release_record_keys(&mut value)?;
+		migrations::remove_top_level_field(&mut value, LEGACY_SCHEMA_VERSION_FIELD)?;
 		migrations::remove_top_level_field(&mut value, LEGACY_VERSION_FIELD)?;
 		let object = object_mut(&mut value)?;
 		object.insert(
@@ -364,8 +367,8 @@ pub mod release_record {
 	/// Validate a release-record JSON value against the current durable wire shape.
 	///
 	/// Release records are embedded in git commits and must remain readable by
-	/// newer monochange binaries after schema upgrades. Older `schemaVersion`
-	/// values must traverse explicit migration edges; missing edges fail instead
+	/// newer monochange binaries after schema upgrades. Older `schema_version`, `schemaVersion`,
+	/// or `v` values must traverse explicit migration edges; missing edges fail instead
 	/// of silently accepting older records. Future versions still fail so older
 	/// binaries do not silently misread newer data. Legacy `v` fields are accepted
 	/// as a compatibility bridge.
@@ -374,6 +377,7 @@ pub mod release_record {
 		validate_kind(object, KIND)?;
 		let version_value = object
 			.get(SCHEMA_VERSION_FIELD)
+			.or_else(|| object.get(LEGACY_SCHEMA_VERSION_FIELD))
 			.or_else(|| object.get(LEGACY_VERSION_FIELD))
 			.ok_or(SchemaError::MissingVersion)?;
 		let version = parse_current_version(version_value)?;
@@ -385,7 +389,9 @@ pub mod release_record {
 			});
 		}
 		migrations::apply_release_record_edges(&mut value, version, current)?;
+		migrations::normalize_release_record_keys(&mut value)?;
 
+		migrations::remove_top_level_field(&mut value, LEGACY_SCHEMA_VERSION_FIELD)?;
 		migrations::remove_top_level_field(&mut value, LEGACY_VERSION_FIELD)?;
 		let object = object_mut(&mut value)?;
 		object.insert(

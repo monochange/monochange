@@ -1,81 +1,82 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
+assertion_line: 790
 expression: content_text(&result)
 ---
 {
   "action": "analyze_changes",
   "analysis": {
-    "detectionLevel": "signature",
+    "detection_level": "signature",
     "frame": "WorkingDirectory",
-    "packageAnalyses": {
+    "package_analyses": {
       "core": {
-        "analyzerId": "cargo/public-api",
-        "changedFiles": [
+        "analyzer_id": "cargo/public-api",
+        "changed_files": [
           "Cargo.toml",
           "src/lib.rs"
         ],
         "ecosystem": "cargo",
-        "packageId": "core",
-        "packageName": "core",
-        "packageRecordId": "cargo:crates/core/Cargo.toml",
-        "semanticChanges": [
+        "package_id": "core",
+        "package_name": "core",
+        "package_record_id": "cargo:crates/core/Cargo.toml",
+        "semantic_changes": [
           {
-            "afterSignature": "pub struct Greeter ;",
-            "beforeSignature": null,
+            "after_signature": "pub struct Greeter ;",
+            "before_signature": null,
             "category": "public_api",
-            "filePath": "src/lib.rs",
-            "itemKind": "struct",
-            "itemPath": "Greeter",
+            "file_path": "src/lib.rs",
+            "item_kind": "struct",
+            "item_path": "Greeter",
             "kind": "added",
             "summary": "struct `Greeter` added"
           },
           {
-            "afterSignature": "fn greet (name : & str) -> String",
-            "beforeSignature": "fn greet () -> & 'static str",
+            "after_signature": "fn greet (name : & str) -> String",
+            "before_signature": "fn greet () -> & 'static str",
             "category": "public_api",
-            "filePath": "src/lib.rs",
-            "itemKind": "function",
-            "itemPath": "greet",
+            "file_path": "src/lib.rs",
+            "item_kind": "function",
+            "item_path": "greet",
             "kind": "modified",
             "summary": "function `greet` modified"
           },
           {
-            "afterSignature": "[dependencies] 0.1",
-            "beforeSignature": null,
+            "after_signature": "[dependencies] 0.1",
+            "before_signature": null,
             "category": "dependency",
-            "filePath": "Cargo.toml",
-            "itemKind": "dependency",
-            "itemPath": "tracing",
+            "file_path": "Cargo.toml",
+            "item_kind": "dependency",
+            "item_path": "tracing",
             "kind": "added",
             "summary": "dependency `tracing` added"
           },
           {
-            "afterSignature": "",
-            "beforeSignature": null,
+            "after_signature": "",
+            "before_signature": null,
             "category": "metadata",
-            "filePath": "Cargo.toml",
-            "itemKind": "feature",
-            "itemPath": "feature.cli",
+            "file_path": "Cargo.toml",
+            "item_kind": "feature",
+            "item_path": "feature.cli",
             "kind": "added",
             "summary": "feature `feature.cli` added"
           },
           {
-            "afterSignature": "cli",
-            "beforeSignature": "",
+            "after_signature": "cli",
+            "before_signature": "",
             "category": "metadata",
-            "filePath": "Cargo.toml",
-            "itemKind": "feature",
-            "itemPath": "feature.default",
+            "file_path": "Cargo.toml",
+            "item_kind": "feature",
+            "item_path": "feature.default",
             "kind": "modified",
             "summary": "feature `feature.default` modified"
           },
           {
-            "afterSignature": "2024",
-            "beforeSignature": "2021",
+            "after_signature": "2024",
+            "before_signature": "2021",
             "category": "metadata",
-            "filePath": "Cargo.toml",
-            "itemKind": "manifest_field",
-            "itemPath": "package.edition",
+            "file_path": "Cargo.toml",
+            "item_kind": "manifest_field",
+            "item_path": "package.edition",
             "kind": "modified",
             "summary": "manifest_field `package.edition` modified"
           }

@@ -1326,7 +1326,7 @@ pub enum CollapsedSectionStyle {
 /// existing changelogs.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(default, rename_all = "snake_case")]
 #[derive(Default)]
 pub struct ChangelogStyle {
 	#[serde(default)]
@@ -1432,7 +1432,7 @@ impl ChangelogStyle {
 /// `[changelog.style]`.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(default, rename_all = "snake_case")]
 pub struct ReleaseNotesStyleOverrides {
 	pub section_separator: Option<SectionSeparator>,
 	pub package_label_style: Option<PackageLabelStyle>,
@@ -3358,7 +3358,7 @@ impl fmt::Display for ReleaseOwnerKind {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseManifestTarget {
 	pub id: String,
 	pub kind: ReleaseOwnerKind,
@@ -3376,7 +3376,7 @@ pub struct ReleaseManifestTarget {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseManifestChangelog {
 	pub owner_id: String,
 	pub owner_kind: ReleaseOwnerKind,
@@ -3388,7 +3388,7 @@ pub struct ReleaseManifestChangelog {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PackagePublicationTarget {
 	pub package: String,
 	pub ecosystem: Ecosystem,
@@ -3449,7 +3449,7 @@ pub enum RateLimitConfidence {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct RateLimitEvidence {
 	pub title: String,
 	pub url: String,
@@ -3458,7 +3458,7 @@ pub struct RateLimitEvidence {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct RegistryRateLimitPolicy {
 	pub registry: RegistryKind,
 	pub operation: RateLimitOperation,
@@ -3470,7 +3470,7 @@ pub struct RegistryRateLimitPolicy {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct RegistryRateLimitWindowPlan {
 	pub registry: RegistryKind,
 	pub operation: RateLimitOperation,
@@ -3485,7 +3485,7 @@ pub struct RegistryRateLimitWindowPlan {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PublishRateLimitBatch {
 	pub registry: RegistryKind,
 	pub operation: RateLimitOperation,
@@ -3496,7 +3496,7 @@ pub struct PublishRateLimitBatch {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PublishRateLimitReport {
 	pub dry_run: bool,
 	pub windows: Vec<RegistryRateLimitWindowPlan>,
@@ -3547,7 +3547,7 @@ impl fmt::Display for HostingProviderKind {
 #[allow(clippy::struct_excessive_bools)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HostingCapabilities {
 	pub commit_web_urls: bool,
 	pub actor_profiles: bool,
@@ -3568,7 +3568,7 @@ pub enum HostedActorSourceKind {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HostedActorRef {
 	pub provider: HostingProviderKind,
 	#[serde(default)]
@@ -3586,7 +3586,7 @@ pub struct HostedActorRef {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HostedCommitRef {
 	pub provider: HostingProviderKind,
 	#[serde(default)]
@@ -3633,7 +3633,7 @@ impl fmt::Display for HostedReviewRequestKind {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HostedReviewRequestRef {
 	pub provider: HostingProviderKind,
 	#[serde(default)]
@@ -3680,7 +3680,7 @@ impl fmt::Display for HostedIssueRelationshipKind {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HostedIssueRef {
 	pub provider: HostingProviderKind,
 	#[serde(default)]
@@ -3695,7 +3695,7 @@ pub struct HostedIssueRef {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ChangesetRevision {
 	#[serde(default)]
 	pub actor: Option<HostedActorRef>,
@@ -3707,7 +3707,7 @@ pub struct ChangesetRevision {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ChangesetContext {
 	pub provider: HostingProviderKind,
 	#[serde(default)]
@@ -3749,7 +3749,7 @@ impl fmt::Display for ChangesetTargetKind {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PreparedChangesetTarget {
 	pub id: String,
 	pub kind: ChangesetTargetKind,
@@ -3766,7 +3766,7 @@ pub struct PreparedChangesetTarget {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PreparedChangeset {
 	pub path: PathBuf,
 	#[serde(default)]
@@ -3779,7 +3779,7 @@ pub struct PreparedChangeset {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseManifestPlanDecision {
 	pub package: String,
 	pub bump: BumpSeverity,
@@ -3790,7 +3790,7 @@ pub struct ReleaseManifestPlanDecision {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseManifestPlanGroup {
 	pub id: String,
 	pub planned_version: Option<String>,
@@ -3799,7 +3799,7 @@ pub struct ReleaseManifestPlanGroup {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseManifestCompatibilityEvidence {
 	pub package: String,
 	pub provider: String,
@@ -3810,7 +3810,7 @@ pub struct ReleaseManifestCompatibilityEvidence {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseManifestPlan {
 	pub workspace_root: PathBuf,
 	pub decisions: Vec<ReleaseManifestPlanDecision>,
@@ -3821,7 +3821,7 @@ pub struct ReleaseManifestPlan {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseManifest {
 	pub command: String,
 	pub dry_run: bool,
@@ -3883,33 +3883,37 @@ fn default_pull_request_labels() -> Vec<String> {
 
 /// Normalize legacy schema-version fields before passing to `migrate_value`.
 ///
-/// - Moves `"v"` values to `"schemaVersion"`.
-/// - Replaces the pre-public integer `schemaVersion: 1` with the current
+/// - Moves `"v"` values to `"schema_version"`.
+/// - Replaces the pre-public integer `schema_version: 1` with the current
 ///   `RELEASE_RECORD_SCHEMA_VERSION` text.
 fn normalize_legacy_schema_version(raw: &mut serde_json::Value) {
 	let Some(object) = raw.as_object_mut() else {
 		return;
 	};
-	if let Some(version) = object.get("schemaVersion")
-		&& version.is_u64()
-		&& version.as_u64() == Some(1)
-	{
+	let integer_schema_version_key = ["schema_version", "schemaVersion"].into_iter().find(|key| {
+		object
+			.get(*key)
+			.is_some_and(|version| version.is_u64() && version.as_u64() == Some(1))
+	});
+	if let Some(key) = integer_schema_version_key {
+		object.remove(key);
 		object.insert(
-			"schemaVersion".to_string(),
+			"schema_version".to_string(),
 			serde_json::Value::String(RELEASE_RECORD_SCHEMA_VERSION.to_string()),
 		);
 	}
-	if !object.contains_key("schemaVersion")
+	if !object.contains_key("schema_version")
+		&& !object.contains_key("schemaVersion")
 		&& object.contains_key("v")
 		&& let Some(v) = object.remove("v")
 	{
-		object.insert("schemaVersion".to_string(), v);
+		object.insert("schema_version".to_string(), v);
 	}
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseRecordTarget {
 	pub id: String,
 	pub kind: ReleaseOwnerKind,
@@ -3924,7 +3928,7 @@ pub struct ReleaseRecordTarget {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseRecordProvider {
 	pub kind: SourceProvider,
 	pub owner: String,
@@ -3935,7 +3939,7 @@ pub struct ReleaseRecordProvider {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseRecord {
 	#[serde(default = "release_record_schema_version")]
 	pub schema_version: String,
@@ -3966,7 +3970,7 @@ pub struct ReleaseRecord {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseRecordDiscovery {
 	pub input_ref: String,
 	pub resolved_commit: String,
@@ -3988,7 +3992,7 @@ pub enum RetargetOperation {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct RetargetTagResult {
 	pub tag_name: String,
 	pub from_commit: String,
@@ -4010,7 +4014,7 @@ pub enum RetargetProviderOperation {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct RetargetProviderResult {
 	pub provider: SourceProvider,
 	pub tag_name: String,
@@ -4024,7 +4028,7 @@ pub struct RetargetProviderResult {
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct RetargetPlan {
 	pub record_commit: String,
 	pub target_commit: String,
@@ -4038,7 +4042,7 @@ pub struct RetargetPlan {
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct RetargetResult {
 	pub record_commit: String,
 	pub target_commit: String,
@@ -4087,7 +4091,7 @@ pub enum ReleaseRecordError {
 	MissingJsonBlock,
 	#[error("release record is missing required `kind`")]
 	MissingKind,
-	#[error("release record is missing required `schemaVersion`")]
+	#[error("release record is missing required `schema_version`")]
 	MissingSchemaVersion,
 	#[error("release record uses unsupported kind `{0}`")]
 	UnsupportedKind(String),
@@ -4411,7 +4415,7 @@ fn default_changeset_context_timeout_seconds() -> u64 {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ChangesetPolicyEvaluation {
 	pub status: ChangesetPolicyStatus,
 	pub required: bool,
@@ -4505,7 +4509,7 @@ pub struct SourceConfiguration {
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HostedSourceFeatures {
 	pub batched_changeset_context_lookup: bool,
 	pub released_issue_comments: bool,
@@ -4513,7 +4517,7 @@ pub struct HostedSourceFeatures {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HostedIssueCommentPlan {
 	pub repository: String,
 	pub issue_id: String,
@@ -4532,7 +4536,7 @@ pub enum HostedIssueCommentOperation {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HostedIssueCommentOutcome {
 	pub repository: String,
 	pub issue_id: String,
@@ -4629,7 +4633,7 @@ pub trait HostedSourceAdapter: Sync {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SourceReleaseRequest {
 	pub provider: SourceProvider,
 	pub repository: String,
@@ -4653,7 +4657,7 @@ pub enum SourceReleaseOperation {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SourceReleaseOutcome {
 	pub provider: SourceProvider,
 	pub repository: String,
@@ -4663,7 +4667,7 @@ pub struct SourceReleaseOutcome {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct CommitMessage {
 	pub subject: String,
 	#[serde(default)]
@@ -4671,7 +4675,7 @@ pub struct CommitMessage {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SourceChangeRequest {
 	pub provider: SourceProvider,
 	pub repository: String,
@@ -4695,7 +4699,7 @@ pub enum SourceChangeRequestOperation {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SourceChangeRequestOutcome {
 	pub provider: SourceProvider,
 	pub repository: String,

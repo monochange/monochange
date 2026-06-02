@@ -766,7 +766,7 @@ async fn agent_eval_release_workflow_stays_machine_readable() {
 			.unwrap_or_else(|error| panic!("parse discover result: {error}")),
 		"diagnostics": serde_json::from_str::<serde_json::Value>(&content_text(&diagnostics))
 			.unwrap_or_else(|error| panic!("parse diagnostics result: {error}")),
-		"releaseManifest": serde_json::from_str::<serde_json::Value>(&content_text(&manifest))
+		"release_manifest": serde_json::from_str::<serde_json::Value>(&content_text(&manifest))
 			.unwrap_or_else(|error| panic!("parse release manifest result: {error}")),
 	});
 

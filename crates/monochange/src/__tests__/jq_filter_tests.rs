@@ -3,19 +3,19 @@ use super::*;
 
 #[test]
 fn jq_filter_extracts_array_fields_and_selects_matches() {
-	let output = r#"{"assets":[{"name":"a"},{"name":"b"}],"record":{"releaseTargets":[{"id":"main","kind":"group","release":true,"tagName":"v1.2.3"},{"id":"core","kind":"package","release":false,"tagName":"core/v1.2.3"}]},"resolvedCommit":"abc","recordCommit":"abc"}"#;
+	let output = r#"{"assets":[{"name":"a"},{"name":"b"}],"record":{"release_targets":[{"id":"main","kind":"group","release":true,"tag_name":"v1.2.3"},{"id":"core","kind":"package","release":false,"tag_name":"core/v1.2.3"}]},"resolved_commit":"abc","record_commit":"abc"}"#;
 
 	assert_eq!(apply_jq_filter(output, ".assets[].name").unwrap(), "a\nb");
 	assert_eq!(
 		apply_jq_filter(
 			output,
-			r#".record.releaseTargets[] | select(.id == "main" and .kind == "group" and .release == true) | .tagName"#,
+			r#".record.release_targets[] | select(.id == "main" and .kind == "group" and .release == true) | .tag_name"#,
 		)
 		.unwrap(),
 		"v1.2.3"
 	);
 	assert_eq!(
-		apply_jq_filter(output, ".resolvedCommit == .recordCommit").unwrap(),
+		apply_jq_filter(output, ".resolved_commit == .record_commit").unwrap(),
 		"true"
 	);
 }

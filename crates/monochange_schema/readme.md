@@ -17,7 +17,7 @@ Reach for this crate when you need to render, validate, or migrate public artifa
 ## Why use it?
 
 - keep durable wire schemas separate from internal Rust structs
-- parse schema versions in the public `major.minor` format written as `schemaVersion`
+- parse schema versions in the public `major.minor` format written as `schema_version`
 - validate commit-embedded release records before the CLI deserializes them into domain types
 - migrate older durable release-record shapes through explicit Rust migration edges
 
@@ -27,7 +27,7 @@ The crate package version and durable artifact schema version are intentionally 
 
 - The crate starts at `0.0.0` on development branches so release planning can explicitly publish the first crate release.
 - Durable release records already use public schema version `0.1` because `0.1` is the first supported wire contract.
-- Patch releases of this crate do not change a durable `schemaVersion` value.
+- Patch releases of this crate do not change a durable `schema_version` value.
 - Future breaking durable schema changes add a new `major.minor` value plus Rust migration edges.
 
 ## Public schema assets
@@ -56,16 +56,16 @@ use monochange_schema::release_record;
 use serde_json::json;
 
 let durable = release_record::render_current_value(json!({
-    "schemaVersion": 1,
+    "schema_version": 1,
     "kind": release_record::KIND,
-    "createdAt": "2026-04-06T12:00:00Z",
+    "created_at": "2026-04-06T12:00:00Z",
     "command": "release-pr",
-    "releaseTargets": [],
-    "releasedPackages": [],
-    "changedFiles": []
+    "release_targets": [],
+    "released_packages": [],
+    "changed_files": []
 }))?;
 
-assert_eq!(durable["schemaVersion"], CURRENT_SCHEMA_VERSION_TEXT);
+assert_eq!(durable["schema_version"], CURRENT_SCHEMA_VERSION_TEXT);
 assert!(durable.get("v").is_none());
 # Ok::<(), monochange_schema::SchemaError>(())
 ```

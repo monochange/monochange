@@ -32,14 +32,12 @@ Commands:
 
 | Phase | Budget [ms] | main [ms] | pr [ms] | Δ pr-main [ms] | Status |
 |:---|---:|---:|---:|---:|:---|
-| `prepare release total` | n/a | 120 | 110 | -10 | improved |
-| `enrich changeset context via github` | n/a | 60 | 55 | -5 | improved |
+| `prepare release total` | n/a | 0 | 0 | +0 | flat |
 
 ##### `mc release`
 
 | Phase | Budget [ms] | main [ms] | pr [ms] | Δ pr-main [ms] | Status |
 |:---|---:|---:|---:|---:|:---|
-| `prepare release total` | n/a | 150 | 140 | -10 | improved |
-| `enrich changeset context via github` | n/a | 80 | 70 | -10 | improved |
+| `prepare release total` | n/a | 0 | 0 | +0 | flat |
 
 </details>

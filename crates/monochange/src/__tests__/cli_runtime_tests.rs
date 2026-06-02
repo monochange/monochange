@@ -1575,16 +1575,19 @@ fn resolve_command_output_supports_package_publish_json_without_release_state() 
 	let parsed: serde_json::Value = serde_json::from_str(&rendered)
 		.unwrap_or_else(|error| panic!("parse package publish json output: {error}"));
 	assert_eq!(
-		parsed["packagePublish"]["mode"],
+		parsed["package_publish"]["mode"],
 		serde_json::json!("placeholder")
 	);
-	assert_eq!(parsed["packagePublish"]["dryRun"], serde_json::json!(true));
 	assert_eq!(
-		parsed["packagePublish"]["packages"][0]["package"],
+		parsed["package_publish"]["dry_run"],
+		serde_json::json!(true)
+	);
+	assert_eq!(
+		parsed["package_publish"]["packages"][0]["package"],
 		serde_json::json!("core")
 	);
 	assert_eq!(
-		parsed["packagePublish"]["packages"][0]["trustedPublishing"]["status"],
+		parsed["package_publish"]["packages"][0]["trusted_publishing"]["status"],
 		serde_json::json!("manual_action_required")
 	);
 }
@@ -1680,8 +1683,8 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 	context.last_step_inputs = BTreeMap::from([("format".to_string(), vec!["json".to_string()])]);
 	let json = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("rate limit json output: {error}"));
-	assert!(json.contains("batchesRequired"));
-	assert!(json.contains("publishRateLimits"));
+	assert!(json.contains("batches_required"));
+	assert!(json.contains("publish_rate_limits"));
 
 	context.last_step_inputs =
 		BTreeMap::from([("ci".to_string(), vec!["github-actions".to_string()])]);
@@ -1799,7 +1802,7 @@ fn build_cli_template_context_exposes_publish_rate_limits_without_publish_result
 		template_context
 			.get("publish_rate_limits")
 			.and_then(serde_json::Value::as_object)
-			.and_then(|value| value.get("dryRun"))
+			.and_then(|value| value.get("dry_run"))
 			.and_then(serde_json::Value::as_bool),
 		Some(true)
 	);
@@ -2121,7 +2124,7 @@ async fn configured_config_step_uses_generic_completion_without_config_json() {
 	.unwrap_or_else(|error| panic!("config command: {error}"));
 
 	assert_eq!(output, "command `configured-config` completed (dry-run)");
-	assert!(!output.contains("projectRoot"));
+	assert!(!output.contains("project_root"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
