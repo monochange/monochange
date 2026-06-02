@@ -86,7 +86,7 @@ fn post_process_release_adds_additional_properties_false() {
 	let mut schema = serde_json::json!({
 		"type": "object",
 		"properties": {
-			"schemaVersion": {"type": "string", "default": "0.1"},
+			"schema_version": {"type": "string", "default": "0.1"},
 			"kind": {"type": "string"}
 		}
 	});
@@ -113,10 +113,10 @@ fn post_process_release_adds_additional_properties_false() {
 	);
 
 	let props = obj.get("properties").unwrap().as_object().unwrap();
-	let sv = props.get("schemaVersion").unwrap().as_object().unwrap();
+	let sv = props.get("schema_version").unwrap().as_object().unwrap();
 	let kind = props.get("kind").unwrap().as_object().unwrap();
 
-	// schemaVersion keeps an overridable default so stale compiled constants do not hide drift.
+	// schema_version keeps an overridable default so stale compiled constants do not hide drift.
 	assert_eq!(sv.get("default"), Some(&serde_json::json!("9.9")));
 	assert!(!sv.contains_key("const"));
 

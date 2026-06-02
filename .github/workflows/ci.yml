@@ -150,7 +150,7 @@ jobs:
           set -euo pipefail
 
           release_record_error="$(mktemp)"
-          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step:release-record --from HEAD --format json --jq '.resolvedCommit == .recordCommit' 2>"$release_record_error")"; then
+          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step:release-record --from HEAD --format json --jq '.resolved_commit == .record_commit' 2>"$release_record_error")"; then
             echo "is_release_commit=${is_release_commit}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -572,7 +572,7 @@ jobs:
         run: |
           schema:release:check
           cargo test -p monochange_integration_tests release_record_artifact_fixtures_load_through_parser
-          is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step:release-record --from HEAD --format json --jq '.resolvedCommit == .recordCommit')"
+          is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step:release-record --from HEAD --format json --jq '.resolved_commit == .record_commit')"
           if [ "$is_release_commit" != "true" ]; then
             echo "Generated release commit was not recognized as the resolved release record commit."
             exit 1
@@ -707,7 +707,7 @@ jobs:
           set -euo pipefail
 
           release_record_error="$(mktemp)"
-          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step:release-record --from HEAD --format json --jq '.resolvedCommit == .recordCommit' 2>"$release_record_error")"; then
+          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step:release-record --from HEAD --format json --jq '.resolved_commit == .record_commit' 2>"$release_record_error")"; then
             echo "is_release_commit=${is_release_commit}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -764,7 +764,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step:release-record --from HEAD --format json --jq '.resolvedCommit == .recordCommit')"; then
+          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step:release-record --from HEAD --format json --jq '.resolved_commit == .record_commit')"; then
             echo "is_release_commit=${is_release_commit}" >> "$GITHUB_OUTPUT"
             if [ "${is_release_commit}" = "true" ]; then
               mc step:tag-release --from HEAD --push=true --format json | tee /tmp/tag-report.json

@@ -1,31 +1,32 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
+assertion_line: 655
 expression: content_text(&result)
 ---
 {
   "action": "affected_packages",
   "evaluation": {
-    "affectedPackageIds": [],
-    "changedPaths": [
+    "affected_package_ids": [],
+    "changed_paths": [
       "docs/readme.md"
     ],
-    "changesetPaths": [],
+    "changeset_paths": [],
     "comment": null,
-    "coveredPackageIds": [],
+    "covered_package_ids": [],
     "enforce": false,
     "errors": [],
-    "ignoredPaths": [],
+    "ignored_paths": [],
     "labels": [
       "no-changeset-required"
     ],
-    "matchedPaths": [],
-    "matchedSkipLabels": [
+    "matched_paths": [],
+    "matched_skip_labels": [
       "no-changeset-required"
     ],
     "required": false,
     "status": "skipped",
     "summary": "changeset verification skipped because the change has an allowed label: no-changeset-required",
-    "uncoveredPackageIds": []
+    "uncovered_package_ids": []
   },
   "ok": true,
   "summary": "changeset verification skipped because the change has an allowed label: no-changeset-required"

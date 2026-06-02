@@ -141,9 +141,9 @@ async fn render_analyze_report_supports_json_with_explicit_refs() {
 	.unwrap_or_else(|error| panic!("render analyze json: {error}"));
 
 	assert!(rendered.contains("\"release\": \"v1.0.0\""));
-	assert!(rendered.contains("\"firstRelease\": false"));
-	assert!(rendered.contains("\"releaseToHead\""));
-	assert!(rendered.contains("\"itemPath\": \"shout\""));
+	assert!(rendered.contains("\"first_release\": false"));
+	assert!(rendered.contains("\"release_to_head\""));
+	assert!(rendered.contains("\"item_path\": \"shout\""));
 }
 
 #[tokio::test(flavor = "multi_thread")]

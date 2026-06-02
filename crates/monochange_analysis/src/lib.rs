@@ -64,7 +64,7 @@ pub use monochange_core::SemanticChangeKind;
 
 /// Placeholder grouping configuration reserved for future lifecycle tooling.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct GroupingThresholds {
 	/// Maximum number of semantic changes to surface before callers may prefer summarization.
 	pub max_detailed_changes: usize,
@@ -80,7 +80,7 @@ impl Default for GroupingThresholds {
 
 /// Configuration for semantic change analysis.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct AnalysisConfig {
 	/// Requested detail level.
 	pub detection_level: DetectionLevel,
@@ -102,7 +102,7 @@ impl Default for AnalysisConfig {
 
 /// Semantic analysis for one package.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PackageChangeAnalysis {
 	/// Preferred package id for display, using the configured package id when available.
 	pub package_id: String,
@@ -124,7 +124,7 @@ pub struct PackageChangeAnalysis {
 
 /// Complete semantic analysis for the requested frame.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ChangeAnalysis {
 	/// Frame analyzed.
 	pub frame: ChangeFrame,
@@ -138,7 +138,7 @@ pub struct ChangeAnalysis {
 
 /// Explicit refs used for release-aware multi-frame semantic analysis.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseTrajectoryRefs {
 	/// Release baseline ref, usually a workspace tag.
 	pub release_ref: String,
@@ -150,7 +150,7 @@ pub struct ReleaseTrajectoryRefs {
 
 /// Release-aware semantic analyses for three comparison frames.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseTrajectoryFrames {
 	/// Semantic analysis between the last release baseline and current `main`.
 	pub release_to_main: ChangeAnalysis,
@@ -162,7 +162,7 @@ pub struct ReleaseTrajectoryFrames {
 
 /// Raw multi-frame semantic evidence for release-aware compatibility reasoning.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ReleaseTrajectoryAnalysis {
 	/// Resolved refs used for the three comparison frames.
 	pub refs: ReleaseTrajectoryRefs,

@@ -12,7 +12,7 @@ use serde::Serialize;
 use crate::git_support;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct ReleaseBranchVerificationReport {
 	pub ref_name: String,
 	pub commit: String,

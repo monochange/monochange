@@ -4,27 +4,27 @@ expression: redacted
 ---
 {
   "distance": 0,
-  "inputRef": "v1.2.3",
+  "input_ref": "v1.2.3",
   "record": {
-    "changedFiles": [
+    "changed_files": [
       "Cargo.lock"
     ],
     "changelogs": [],
     "changesets": [],
     "command": "release-pr",
-    "createdAt": "[DATETIME]Z",
-    "deletedChangesets": [
+    "created_at": "[DATETIME]Z",
+    "deleted_changesets": [
       ".changeset/feature.md"
     ],
     "kind": "monochange.releaseRecord",
-    "packagePublications": [],
+    "package_publications": [],
     "provider": {
       "host": null,
       "kind": "github",
       "owner": "ifiokjr",
       "repo": "monochange"
     },
-    "releaseTargets": [
+    "release_targets": [
       {
         "id": "sdk",
         "kind": "group",
@@ -34,17 +34,17 @@ expression: redacted
         ],
         "release": true,
         "tag": true,
-        "tagName": "v1.2.3",
+        "tag_name": "v1.2.3",
         "version": "1.2.3",
-        "versionFormat": "primary"
+        "version_format": "primary"
       }
     ],
-    "releasedPackages": [
+    "released_packages": [
       "monochange",
       "monochange_core"
     ],
-    "schemaVersion": "[SCHEMA_VERSION]",
-    "updatedChangelogs": [
+    "schema_version": "[SCHEMA_VERSION]",
+    "updated_changelogs": [
       "crates/monochange/CHANGELOG.md"
     ],
     "version": "1.2.3",
@@ -52,6 +52,6 @@ expression: redacted
       "sdk": "1.2.3"
     }
   },
-  "recordCommit": "[SHA]",
-  "resolvedCommit": "[SHA]"
+  "record_commit": "[SHA]",
+  "resolved_commit": "[SHA]"
 }

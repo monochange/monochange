@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
+assertion_line: 773
 expression: redacted
 ---
 {
@@ -11,17 +12,17 @@ expression: redacted
         {
           "context": {
             "capabilities": {
-              "actorProfiles": false,
-              "commitWebUrls": false,
-              "issueComments": false,
-              "relatedIssues": false,
-              "reviewRequestLookup": false
+              "actor_profiles": false,
+              "commit_web_urls": false,
+              "issue_comments": false,
+              "related_issues": false,
+              "review_request_lookup": false
             },
             "host": null,
             "introduced": null,
-            "lastUpdated": null,
+            "last_updated": null,
             "provider": "generic_git",
-            "relatedIssues": []
+            "related_issues": []
           },
           "details": null,
           "path": ".changeset/feature.md",
@@ -29,8 +30,8 @@ expression: redacted
           "targets": [
             {
               "bump": "patch",
-              "changeType": "patch",
-              "evidenceRefs": [],
+              "change_type": "patch",
+              "evidence_refs": [],
               "id": "core",
               "kind": "package",
               "origin": "direct-change"
@@ -38,7 +39,7 @@ expression: redacted
           ]
         }
       ],
-      "requestedChangesets": [
+      "requested_changesets": [
         ".changeset/feature.md"
       ]
     },
@@ -71,10 +72,10 @@ expression: redacted
     },
     "summary": "Discovered 1 package(s) and 0 dependency edge(s)."
   },
-  "releaseManifest": {
+  "release_manifest": {
     "action": "release_manifest",
     "manifest": {
-      "changedFiles": [
+      "changed_files": [
         "Cargo.toml",
         "crates/core/Cargo.toml"
       ],
@@ -83,17 +84,17 @@ expression: redacted
         {
           "context": {
             "capabilities": {
-              "actorProfiles": false,
-              "commitWebUrls": false,
-              "issueComments": false,
-              "relatedIssues": false,
-              "reviewRequestLookup": false
+              "actor_profiles": false,
+              "commit_web_urls": false,
+              "issue_comments": false,
+              "related_issues": false,
+              "review_request_lookup": false
             },
             "host": null,
             "introduced": null,
-            "lastUpdated": null,
+            "last_updated": null,
             "provider": "generic_git",
-            "relatedIssues": []
+            "related_issues": []
           },
           "details": null,
           "path": ".changeset/feature.md",
@@ -101,8 +102,8 @@ expression: redacted
           "targets": [
             {
               "bump": "patch",
-              "changeType": "patch",
-              "evidenceRefs": [],
+              "change_type": "patch",
+              "evidence_refs": [],
               "id": "core",
               "kind": "package",
               "origin": "direct-change"
@@ -111,16 +112,16 @@ expression: redacted
         }
       ],
       "command": "release-manifest",
-      "deletedChangesets": [],
-      "dryRun": true,
-      "groupVersion": null,
-      "packagePublications": [
+      "deleted_changesets": [],
+      "dry_run": true,
+      "group_version": null,
+      "package_publications": [
         {
           "ecosystem": "cargo",
           "mode": "builtin",
           "package": "core",
           "registry": "crates_io",
-          "trustedPublishing": {
+          "trusted_publishing": {
             "enabled": true,
             "environment": null,
             "repository": null,
@@ -130,27 +131,27 @@ expression: redacted
         }
       ],
       "plan": {
-        "compatibilityEvidence": [],
+        "compatibility_evidence": [],
         "decisions": [
           {
             "bump": "patch",
             "package": "cargo:crates/core/Cargo.toml",
-            "plannedVersion": "1.0.1",
+            "planned_version": "1.0.1",
             "reasons": [
               "Add feature"
             ],
             "trigger": "direct-change",
-            "upstreamSources": [
+            "upstream_sources": [
               "cargo:crates/core/Cargo.toml"
             ]
           }
         ],
         "groups": [],
-        "unresolvedItems": [],
+        "unresolved_items": [],
         "warnings": [],
-        "workspaceRoot": "."
+        "workspace_root": "."
       },
-      "releaseTargets": [
+      "release_targets": [
         {
           "id": "core",
           "kind": "package",
@@ -158,15 +159,15 @@ expression: redacted
             "core"
           ],
           "release": false,
-          "renderedChangelogTitle": "core 1.0.1 ([DATE])",
-          "renderedTitle": "core 1.0.1 ([DATE])",
+          "rendered_changelog_title": "core 1.0.1 ([DATE])",
+          "rendered_title": "core 1.0.1 ([DATE])",
           "tag": false,
-          "tagName": "core/v1.0.1",
+          "tag_name": "core/v1.0.1",
           "version": "1.0.1",
-          "versionFormat": "namespaced"
+          "version_format": "namespaced"
         }
       ],
-      "releasedPackages": [
+      "released_packages": [
         "core"
       ],
       "version": "1.0.1"

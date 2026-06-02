@@ -46,10 +46,13 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 		let Some(object) = event.as_object_mut() else {
 			panic!("progress event should be an object: {event}");
 		};
-		if let Some(duration) = object.get_mut("durationMs") {
+		if let Some(duration) = object.get_mut("duration_ms") {
 			*duration = Value::String("[duration_ms]".to_string());
 		}
-		if let Some(phase_timings) = object.get_mut("phaseTimings").and_then(Value::as_array_mut) {
+		if let Some(phase_timings) = object
+			.get_mut("phase_timings")
+			.and_then(Value::as_array_mut)
+		{
 			phase_timings.sort_by_key(|phase| {
 				match phase.get("label").and_then(Value::as_str) {
 					Some("load workspace configuration") => 0,
@@ -70,7 +73,7 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 				}
 			});
 			for phase in phase_timings {
-				if let Some(duration) = phase.get_mut("durationMs") {
+				if let Some(duration) = phase.get_mut("duration_ms") {
 					*duration = Value::String("[duration_ms]".to_string());
 				}
 			}
@@ -98,7 +101,7 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 			.map_or_else(Vec::new, <[_]>::to_vec);
 		output_events.sort_by(|left, right| {
 			let left_key = (
-				left.get("stepIndex")
+				left.get("step_index")
 					.and_then(Value::as_u64)
 					.unwrap_or_default(),
 				left.get("stream")
@@ -108,7 +111,7 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 			);
 			let right_key = (
 				right
-					.get("stepIndex")
+					.get("step_index")
 					.and_then(Value::as_u64)
 					.unwrap_or_default(),
 				right

@@ -1,33 +1,34 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
+assertion_line: 636
 expression: redacted
 ---
 {
   "action": "affected_packages",
   "evaluation": {
-    "affectedPackageIds": [
+    "affected_package_ids": [
       "core"
     ],
-    "changedPaths": [
+    "changed_paths": [
       "crates/core/src/lib.rs"
     ],
-    "changesetPaths": [],
+    "changeset_paths": [],
     "comment": "[multiline text]",
-    "coveredPackageIds": [],
+    "covered_package_ids": [],
     "enforce": false,
     "errors": [
       "changed packages are not covered by attached changesets: core"
     ],
-    "ignoredPaths": [],
+    "ignored_paths": [],
     "labels": [],
-    "matchedPaths": [
+    "matched_paths": [
       "crates/core/src/lib.rs"
     ],
-    "matchedSkipLabels": [],
+    "matched_skip_labels": [],
     "required": true,
     "status": "failed",
     "summary": "changeset verification failed: attached changesets do not cover 1 changed package",
-    "uncoveredPackageIds": [
+    "uncovered_package_ids": [
       "core"
     ]
   },

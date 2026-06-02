@@ -17,15 +17,15 @@ exit_code: 0
 ----- stdout -----
 {
   "package": {
-    "requestedReference": "core",
-    "packageId": "core",
-    "packageRecordId": "cargo:crates/core/Cargo.toml",
-    "packageName": "core",
+    "requested_reference": "core",
+    "package_id": "core",
+    "package_record_id": "cargo:crates/core/Cargo.toml",
+    "package_name": "core",
     "ecosystem": "cargo",
-    "manifestPath": "crates/core/Cargo.toml",
-    "versionGroupId": "sdk"
+    "manifest_path": "crates/core/Cargo.toml",
+    "version_group_id": "sdk"
   },
-  "releaseIdentity": {
+  "release_identity": {
     "owner_id": "sdk",
     "owner_kind": "group",
     "group_id": "sdk",
@@ -37,42 +37,42 @@ exit_code: 0
       "app"
     ]
   },
-  "firstRelease": true,
+  "first_release": true,
   "refs": {
     "release": null,
     "main": "main",
     "head": "HEAD"
   },
   "frames": {
-    "releaseToMain": null,
-    "mainToHead": {
+    "release_to_main": null,
+    "main_to_head": {
       "frame": {
         "CustomRange": {
           "base": "main",
           "head": "HEAD"
         }
       },
-      "detectionLevel": "signature",
-      "packageAnalyses": {
+      "detection_level": "signature",
+      "package_analyses": {
         "core": {
-          "packageId": "core",
-          "packageRecordId": "cargo:crates/core/Cargo.toml",
-          "packageName": "core",
+          "package_id": "core",
+          "package_record_id": "cargo:crates/core/Cargo.toml",
+          "package_name": "core",
           "ecosystem": "cargo",
-          "analyzerId": "cargo/public-api",
-          "changedFiles": [
+          "analyzer_id": "cargo/public-api",
+          "changed_files": [
             "src/lib.rs"
           ],
-          "semanticChanges": [
+          "semantic_changes": [
             {
               "category": "public_api",
               "kind": "added",
-              "itemKind": "function",
-              "itemPath": "shout",
+              "item_kind": "function",
+              "item_path": "shout",
               "summary": "function `shout` added",
-              "filePath": "src/lib.rs",
-              "beforeSignature": null,
-              "afterSignature": "fn shout (name : & str) -> String"
+              "file_path": "src/lib.rs",
+              "before_signature": null,
+              "after_signature": "fn shout (name : & str) -> String"
             }
           ],
           "warnings": []
@@ -80,7 +80,7 @@ exit_code: 0
       },
       "warnings": []
     },
-    "releaseToHead": null
+    "release_to_head": null
   },
   "warnings": [
     "no prior release tag found for group `sdk`; treating `core` as a first release and analyzing only `main -> HEAD`"

@@ -3,23 +3,23 @@ source: crates/monochange/tests/affected.rs
 expression: redacted
 ---
 {
-  "affectedPackageIds": [],
-  "changedPaths": [
+  "affected_package_ids": [],
+  "changed_paths": [
     "crates/core/changelog.md"
   ],
-  "changesetPaths": [],
+  "changeset_paths": [],
   "comment": null,
-  "coveredPackageIds": [],
+  "covered_package_ids": [],
   "enforce": false,
   "errors": [],
-  "ignoredPaths": [
+  "ignored_paths": [
     "crates/core/changelog.md"
   ],
   "labels": [],
-  "matchedPaths": [],
-  "matchedSkipLabels": [],
+  "matched_paths": [],
+  "matched_skip_labels": [],
   "required": false,
   "status": "not_required",
   "summary": "changeset verification passed: no configured packages were affected by the changed files",
-  "uncoveredPackageIds": []
+  "uncovered_package_ids": []
 }

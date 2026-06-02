@@ -5,7 +5,7 @@ expression: redacted_outcomes
 [
   {
     "scenario": "current",
-    "schemaVersion": "[schema version]",
+    "schema_version": "[schema version]",
     "status": "ok"
   },
   {
@@ -24,17 +24,17 @@ expression: redacted_outcomes
     "status": "error"
   },
   {
-    "error": "artifact is missing required schema version field `schemaVersion`",
+    "error": "artifact is missing required schema version field `schema_version`",
     "scenario": "missing_version",
     "status": "error"
   },
   {
-    "error": "artifact schema version field `schemaVersion` must be a string",
+    "error": "artifact schema version field `schema_version` must be a string",
     "scenario": "pre_public_schema_version_field",
     "status": "error"
   },
   {
-    "error": "artifact schema version field `schemaVersion` must be a string",
+    "error": "artifact schema version field `schema_version` must be a string",
     "scenario": "non_string_version",
     "status": "error"
   },
@@ -45,7 +45,7 @@ expression: redacted_outcomes
   },
   {
     "scenario": "old_version_without_migration_edge",
-    "schemaVersion": "[schema version]",
+    "schema_version": "[schema version]",
     "status": "ok"
   },
   {

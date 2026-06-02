@@ -36,7 +36,7 @@ pub(crate) struct LoadedPreparedReleaseExecution {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct PreparedReleaseArtifact {
 	schema_version: u32,
 	configuration_snapshot: String,
@@ -49,7 +49,7 @@ struct PreparedReleaseArtifact {
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct PreparedReleaseArtifactRef<'a> {
 	schema_version: u32,
 	configuration_snapshot: String,
@@ -61,7 +61,7 @@ struct PreparedReleaseArtifactRef<'a> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct PreparedReleaseTrackedPath {
 	path: PathBuf,
 	state: PreparedReleaseTrackedPathState,
@@ -76,7 +76,7 @@ enum PreparedReleaseTrackedPathState {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct PersistedPreparedFileDiff {
 	path: PathBuf,
 	diff: String,
@@ -103,7 +103,7 @@ impl Serialize for PreparedFileDiffsRef<'_> {
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 struct PreparedFileDiffRef<'a> {
 	path: &'a Path,
 	diff: &'a str,

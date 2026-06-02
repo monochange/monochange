@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
+assertion_line: 502
 expression: content_text(&result)
 ---
 {
@@ -10,17 +11,17 @@ expression: content_text(&result)
       {
         "context": {
           "capabilities": {
-            "actorProfiles": false,
-            "commitWebUrls": false,
-            "issueComments": false,
-            "relatedIssues": false,
-            "reviewRequestLookup": false
+            "actor_profiles": false,
+            "commit_web_urls": false,
+            "issue_comments": false,
+            "related_issues": false,
+            "review_request_lookup": false
           },
           "host": null,
           "introduced": null,
-          "lastUpdated": null,
+          "last_updated": null,
           "provider": "generic_git",
-          "relatedIssues": []
+          "related_issues": []
         },
         "details": null,
         "path": ".changeset/feature.md",
@@ -28,8 +29,8 @@ expression: content_text(&result)
         "targets": [
           {
             "bump": "patch",
-            "changeType": "patch",
-            "evidenceRefs": [],
+            "change_type": "patch",
+            "evidence_refs": [],
             "id": "core",
             "kind": "package",
             "origin": "direct-change"
@@ -37,7 +38,7 @@ expression: content_text(&result)
         ]
       }
     ],
-    "requestedChangesets": [
+    "requested_changesets": [
       ".changeset/feature.md"
     ]
   },

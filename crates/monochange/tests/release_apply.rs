@@ -29,7 +29,7 @@ fn release_apply_with_github_source_updates_workspace_and_deletes_changesets() {
 	let parsed: Value = serde_json::from_slice(&output.stdout)
 		.unwrap_or_else(|error| panic!("release json: {error}"));
 	assert_eq!(parsed["version"].as_str(), Some("1.1.0"));
-	assert_eq!(parsed["dryRun"].as_bool(), Some(false));
+	assert_eq!(parsed["dry_run"].as_bool(), Some(false));
 	assert!(
 		!root.join(".changeset/feature.md").exists(),
 		"expected release apply to delete processed changeset"

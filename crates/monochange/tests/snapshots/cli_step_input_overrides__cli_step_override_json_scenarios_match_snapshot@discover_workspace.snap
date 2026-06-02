@@ -15,34 +15,34 @@ expression: redacted
     {
       "ecosystem": "cargo",
       "id": "cargo:crates/app/Cargo.toml",
-      "manifestPath": "crates/app/Cargo.toml",
+      "manifest_path": "crates/app/Cargo.toml",
       "name": "workflow-app",
-      "publishState": "public",
+      "publish_state": "public",
       "version": "1.0.0",
-      "versionGroup": "sdk",
-      "workspaceRoot": "."
+      "version_group": "sdk",
+      "workspace_root": "."
     },
     {
       "ecosystem": "cargo",
       "id": "cargo:crates/core/Cargo.toml",
-      "manifestPath": "crates/core/Cargo.toml",
+      "manifest_path": "crates/core/Cargo.toml",
       "name": "workflow-core",
-      "publishState": "public",
+      "publish_state": "public",
       "version": "1.0.0",
-      "versionGroup": "sdk",
-      "workspaceRoot": "."
+      "version_group": "sdk",
+      "workspace_root": "."
     }
   ],
-  "versionGroups": [
+  "version_groups": [
     {
       "id": "sdk",
       "members": [
         "cargo:crates/core/Cargo.toml",
         "cargo:crates/app/Cargo.toml"
       ],
-      "mismatchDetected": false
+      "mismatch_detected": false
     }
   ],
   "warnings": [],
-  "workspaceRoot": "."
+  "workspace_root": "."
 }

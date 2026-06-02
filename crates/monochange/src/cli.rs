@@ -479,7 +479,7 @@ Audit notes:
 
 Migration notes:
   - Scans .monochange/releases/*/release.json.
-  - Rewrites only records whose schemaVersion is older than this monochange binary.
+  - Rewrites only records whose schema_version is older than this monochange binary.
   - Use --dry-run to preview which records would change.",
 				)
 				.arg(

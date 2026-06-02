@@ -4,18 +4,18 @@ expression: redacted
 ---
 {
   "distance": 0,
-  "dryRun": false,
+  "dry_run": false,
   "from": "HEAD",
   "push": true,
-  "recordCommit": "[SHA]",
-  "resolvedFromCommit": "[SHA]",
+  "record_commit": "[SHA]",
+  "resolved_from_commit": "[SHA]",
   "status": "completed",
-  "tagResults": [
+  "tag_results": [
     {
-      "existingCommit": null,
+      "existing_commit": null,
       "operation": "created",
-      "tagName": "v1.2.3",
-      "targetCommit": "[SHA]"
+      "tag_name": "v1.2.3",
+      "target_commit": "[SHA]"
     }
   ],
   "tags": {

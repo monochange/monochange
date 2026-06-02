@@ -110,7 +110,7 @@ fn prepare_release_supports_prerelease_without_changesets() {
 		outputs.insert(
 			case_name.to_string(),
 			serde_json::json!({
-				"releaseTargets": prepared["releaseTargets"],
+				"release_targets": prepared["release_targets"],
 				"state": redact_prerelease_state(state),
 			}),
 		);
@@ -132,9 +132,9 @@ fn prepare_release_increments_repeated_no_changeset_prereleases_from_json_state(
 	let second_state = read_prerelease_state(root);
 
 	assert_json_snapshot!(serde_json::json!({
-		"firstReleaseTargets": first["releaseTargets"],
+		"first_release_targets": first["release_targets"],
 		"firstState": redact_prerelease_state(first_state),
-		"secondReleaseTargets": second["releaseTargets"],
+		"second_release_targets": second["release_targets"],
 		"secondState": redact_prerelease_state(second_state),
 	}));
 }
@@ -158,8 +158,8 @@ fn prepare_stable_release_removes_prerelease_state() {
 	assert!(!root.join(".monochange/prerelease-state.json").exists());
 
 	assert_json_snapshot!(serde_json::json!({
-		"prereleaseTargets": prerelease["releaseTargets"],
-		"stableTargets": stable["releaseTargets"],
+		"prerelease_targets": prerelease["release_targets"],
+		"stable_targets": stable["release_targets"],
 		"stateExistsAfterStable": root.join(".monochange/prerelease-state.json").exists(),
 	}));
 }
@@ -207,7 +207,7 @@ fn prepare_release_persists_one_record_and_reuses_it_on_later_runs() {
 	assert_eq!(second_index, first_index);
 	assert!(first_index.contains("1b9c77930352f342"));
 	assert_eq!(
-		first["releaseTargets"], second["releaseTargets"],
+		first["release_targets"], second["release_targets"],
 		"repeat prepare-release should compute the same release target identities"
 	);
 	let index_entries = first_index
@@ -223,6 +223,6 @@ fn prepare_release_persists_one_record_and_reuses_it_on_later_runs() {
 			.unwrap_or_else(|error| panic!("strip temp root: {error}"))
 			.to_string_lossy(),
 		"index": index_entries,
-		"releaseTargets": first["releaseTargets"],
+		"release_targets": first["release_targets"],
 	}));
 }

@@ -59,11 +59,11 @@ fn prepare_release_records_git_changeset_context_and_renders_context_templates()
 		Some("generic_git")
 	);
 	assert_eq!(
-		parsed["changesets"][0]["context"]["introduced"]["commit"]["shortSha"].as_str(),
+		parsed["changesets"][0]["context"]["introduced"]["commit"]["short_sha"].as_str(),
 		Some(&introduced_sha[..7])
 	);
 	assert_eq!(
-		parsed["changesets"][0]["context"]["lastUpdated"]["commit"]["shortSha"].as_str(),
+		parsed["changesets"][0]["context"]["last_updated"]["commit"]["short_sha"].as_str(),
 		Some(&updated_sha[..7])
 	);
 	let rendered = parsed["changelogs"][0]["rendered"]
@@ -113,15 +113,15 @@ fn diagnostics_command_reports_changeset_introduction_and_last_updated() {
 		serde_json::from_str(&stdout).unwrap_or_else(|error| panic!("diagnostics json: {error}"));
 
 	assert_eq!(
-		parsed["requestedChangesets"][0].as_str(),
+		parsed["requested_changesets"][0].as_str(),
 		Some(".changeset/feature.md")
 	);
 	assert_eq!(
-		parsed["changesets"][0]["context"]["introduced"]["commit"]["shortSha"].as_str(),
+		parsed["changesets"][0]["context"]["introduced"]["commit"]["short_sha"].as_str(),
 		Some(&introduced_sha[..7])
 	);
 	assert_eq!(
-		parsed["changesets"][0]["context"]["lastUpdated"]["commit"]["shortSha"].as_str(),
+		parsed["changesets"][0]["context"]["last_updated"]["commit"]["short_sha"].as_str(),
 		Some(&updated_sha[..7])
 	);
 }
@@ -145,7 +145,7 @@ fn diagnostics_command_reports_all_changesets_and_deduplicates_explicit_inputs()
 	);
 	let parsed: Value = serde_json::from_slice(&output.stdout)
 		.unwrap_or_else(|error| panic!("diagnostics json: {error}"));
-	let requested = parsed["requestedChangesets"]
+	let requested = parsed["requested_changesets"]
 		.as_array()
 		.unwrap_or_else(|| panic!("requested changesets"));
 	assert_eq!(requested.len(), 2);
@@ -170,7 +170,7 @@ fn diagnostics_command_reports_all_changesets_and_deduplicates_explicit_inputs()
 	);
 	let duplicate_parsed: Value = serde_json::from_slice(&duplicate_output.stdout)
 		.unwrap_or_else(|error| panic!("diagnostics json: {error}"));
-	let duplicate_requested = duplicate_parsed["requestedChangesets"]
+	let duplicate_requested = duplicate_parsed["requested_changesets"]
 		.as_array()
 		.unwrap_or_else(|| panic!("requested changesets"));
 	assert_eq!(duplicate_requested.len(), 1);

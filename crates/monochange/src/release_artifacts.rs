@@ -1560,19 +1560,19 @@ pub(crate) fn render_release_cli_command_json(
 	}
 	let mut value = json!({
 		"manifest": manifest,
-		"releaseCommit": sections.release_commit,
+		"release_commit": sections.release_commit,
 		"releases": sections.releases,
-		"releaseRequest": sections.release_request,
-		"issueComments": sections.issue_comments,
-		"packagePublish": sections.package_publish,
-		"publishRateLimits": sections.publish_rate_limits,
+		"release_request": sections.release_request,
+		"issue_comments": sections.issue_comments,
+		"package_publish": sections.package_publish,
+		"publish_rate_limits": sections.publish_rate_limits,
 	});
 	if !sections.file_diffs.is_empty() {
 		value
 			.as_object_mut()
 			.unwrap_or_else(|| panic!("release json wrapper must stay object"))
 			.insert(
-				"fileDiffs".to_string(),
+				"file_diffs".to_string(),
 				serde_json::to_value(sections.file_diffs).unwrap_or_default(),
 			);
 	}
@@ -1654,7 +1654,7 @@ pub(crate) fn validate_release_record_file(
 				if let Ok(existing_value) =
 					serde_json::from_str::<serde_json::Value>(&existing_json)
 					&& let Some(existing_targets) = existing_value
-						.get("releaseTargets")
+						.get("release_targets")
 						.and_then(|v| v.as_array())
 				{
 					let manifest_targets = &manifest.release_targets;
@@ -1980,17 +1980,17 @@ pub(crate) fn tracked_release_pull_request_paths(
 
 pub(crate) fn json_discovery_report(report: &DiscoveryReport) -> serde_json::Value {
 	json!({
-		"workspaceRoot": PathBuf::from("."),
+		"workspace_root": PathBuf::from("."),
 		"packages": report.packages.iter().map(|package| {
 			json!({
 				"id": package.id,
 				"name": package.name,
 				"ecosystem": package.ecosystem.as_str(),
-				"manifestPath": root_relative(&report.workspace_root, &package.manifest_path),
-				"workspaceRoot": PathBuf::from("."),
+				"manifest_path": root_relative(&report.workspace_root, &package.manifest_path),
+				"workspace_root": PathBuf::from("."),
 				"version": package.current_version.as_ref().map(ToString::to_string),
-				"versionGroup": package.version_group_id,
-				"publishState": format_publish_state(package.publish_state),
+				"version_group": package.version_group_id,
+				"publish_state": format_publish_state(package.publish_state),
 			})
 		}).collect::<Vec<_>>(),
 		"dependencies": report.dependencies.iter().map(|edge| {
@@ -2001,11 +2001,11 @@ pub(crate) fn json_discovery_report(report: &DiscoveryReport) -> serde_json::Val
 				"direct": edge.is_direct,
 			})
 		}).collect::<Vec<_>>(),
-		"versionGroups": report.version_groups.iter().map(|group| {
+		"version_groups": report.version_groups.iter().map(|group| {
 			json!({
 				"id": group.group_id,
 				"members": group.members,
-				"mismatchDetected": group.mismatch_detected,
+				"mismatch_detected": group.mismatch_detected,
 			})
 		}).collect::<Vec<_>>(),
 		"warnings": report.warnings,

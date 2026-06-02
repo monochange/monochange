@@ -24,8 +24,8 @@ pub fn snapshot_settings() -> insta::Settings {
 	// text so snapshots assert behavior instead of the schema crate version produced by
 	// the current release PR. This keeps schema-version bumps upgrade-compatible.
 	settings.add_filter(
-		r#""schemaVersion": "\d+\.\d+""#,
-		r#""schemaVersion": "[SCHEMA_VERSION]""#,
+		r#""schema_version": "\d+\.\d+""#,
+		r#""schema_version": "[SCHEMA_VERSION]""#,
 	);
 	settings.add_filter(
 		r"schema version `\d+\.\d+(?:\.\d+)?`",
@@ -35,7 +35,10 @@ pub fn snapshot_settings() -> insta::Settings {
 		r"supported version is `\d+\.\d+`",
 		"supported version is `[SCHEMA_VERSION]`",
 	);
-	settings.add_filter(r"schemaVersion \d+\.\d+", "schemaVersion [SCHEMA_VERSION]");
+	settings.add_filter(
+		r"schema_version \d+\.\d+",
+		"schema_version [SCHEMA_VERSION]",
+	);
 
 	settings
 }

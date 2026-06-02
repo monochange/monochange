@@ -3,9 +3,9 @@ source: crates/monochange_integration_tests/tests/schema_assets.rs
 expression: "json_array(&release_schema, \"/required\")?"
 ---
 [
-  "createdAt",
+  "created_at",
   "command",
-  "releaseTargets",
-  "releasedPackages",
-  "changedFiles"
+  "release_targets",
+  "released_packages",
+  "changed_files"
 ]

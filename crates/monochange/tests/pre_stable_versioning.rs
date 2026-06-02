@@ -84,7 +84,7 @@ fn pre_stable_major_bump_keeps_expected_decisions() {
 		Some("major")
 	);
 	assert_eq!(
-		core_decision.get("plannedVersion").and_then(Value::as_str),
+		core_decision.get("planned_version").and_then(Value::as_str),
 		Some("0.2.0")
 	);
 	assert_eq!(
@@ -98,7 +98,7 @@ fn pre_stable_major_bump_keeps_expected_decisions() {
 		Some("patch")
 	);
 	assert_eq!(
-		app_decision.get("plannedVersion").and_then(Value::as_str),
+		app_decision.get("planned_version").and_then(Value::as_str),
 		Some("0.1.1")
 	);
 	assert_eq!(
@@ -118,7 +118,7 @@ fn pre_stable_minor_bump_keeps_expected_decisions() {
 		Some("minor")
 	);
 	assert_eq!(
-		core_decision.get("plannedVersion").and_then(Value::as_str),
+		core_decision.get("planned_version").and_then(Value::as_str),
 		Some("0.1.1")
 	);
 }
@@ -134,7 +134,7 @@ fn stable_major_bump_keeps_expected_decisions() {
 		Some("major")
 	);
 	assert_eq!(
-		core_decision.get("plannedVersion").and_then(Value::as_str),
+		core_decision.get("planned_version").and_then(Value::as_str),
 		Some("2.0.0")
 	);
 }

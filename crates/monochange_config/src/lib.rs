@@ -190,7 +190,7 @@ const SUPPORTED_CHANGE_TEMPLATE_VARIABLES: &[&str] = &[
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
-#[cfg_attr(feature = "schema", schemars(rename = "workspaceConfiguration"))]
+#[cfg_attr(feature = "schema", schemars(rename = "workspace_configuration"))]
 pub(crate) struct RawWorkspaceConfiguration {
 	#[serde(default)]
 	defaults: RawWorkspaceDefaults,
@@ -258,7 +258,7 @@ impl Default for RawWorkspaceDefaults {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-#[cfg_attr(feature = "schema", schemars(rename = "changelogDefinition"))]
+#[cfg_attr(feature = "schema", schemars(rename = "changelog_definition"))]
 pub(crate) enum RawChangelogDefinition {
 	Enabled(bool),
 	Path(String),
@@ -267,7 +267,7 @@ pub(crate) enum RawChangelogDefinition {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-#[cfg_attr(feature = "schema", schemars(rename = "changelogConfig"))]
+#[cfg_attr(feature = "schema", schemars(rename = "changelog_config"))]
 pub(crate) enum RawChangelogConfig {
 	Legacy(RawChangelogDefinition),
 	Detailed(RawChangelogTable),
@@ -276,7 +276,7 @@ pub(crate) enum RawChangelogConfig {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-#[cfg_attr(feature = "schema", schemars(rename = "groupChangelogInclude"))]
+#[cfg_attr(feature = "schema", schemars(rename = "group_changelog_include"))]
 pub(crate) enum RawGroupChangelogInclude {
 	Mode(String),
 	Packages(Vec<String>),
@@ -284,7 +284,7 @@ pub(crate) enum RawGroupChangelogInclude {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "changelogTable"))]
+#[cfg_attr(feature = "schema", schemars(rename = "changelog_table"))]
 pub(crate) struct RawChangelogTable {
 	#[serde(default)]
 	enabled: Option<bool>,
@@ -300,7 +300,7 @@ pub(crate) struct RawChangelogTable {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "schema", schemars(rename = "packageDefinition"))]
+#[cfg_attr(feature = "schema", schemars(rename = "package_definition"))]
 pub(crate) struct RawPackageDefinition {
 	path: PathBuf,
 	#[serde(rename = "type")]
@@ -335,7 +335,7 @@ pub(crate) struct RawPackageDefinition {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "schema", schemars(rename = "groupDefinition"))]
+#[cfg_attr(feature = "schema", schemars(rename = "group_definition"))]
 pub(crate) struct RawGroupDefinition {
 	packages: Vec<String>,
 	#[serde(default)]
@@ -360,7 +360,7 @@ pub(crate) struct RawGroupDefinition {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "cliCommand"))]
+#[cfg_attr(feature = "schema", schemars(rename = "cli_command"))]
 pub(crate) struct RawCliCommandDefinition {
 	#[serde(default)]
 	help_text: Option<String>,
@@ -392,7 +392,7 @@ pub(crate) struct RawEcosystems {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "ecosystemSettings"))]
+#[cfg_attr(feature = "schema", schemars(rename = "ecosystem_settings"))]
 pub(crate) struct RawEcosystemSettings {
 	#[serde(default)]
 	enabled: Option<bool>,
@@ -416,7 +416,7 @@ pub(crate) struct RawEcosystemSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "autoDiscoverSettings"))]
+#[cfg_attr(feature = "schema", schemars(rename = "auto_discover_settings"))]
 pub(crate) struct RawAutoDiscoverSettings {
 	#[serde(default)]
 	include: Vec<String>,
@@ -430,7 +430,10 @@ pub(crate) struct RawAutoDiscoverSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "autoDiscoverPackageDefaults"))]
+#[cfg_attr(
+	feature = "schema",
+	schemars(rename = "auto_discover_package_defaults")
+)]
 pub(crate) struct RawAutoDiscoverPackageDefaults {
 	#[serde(default)]
 	tag: Option<bool>,
@@ -442,7 +445,7 @@ pub(crate) struct RawAutoDiscoverPackageDefaults {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "placeholderSettings"))]
+#[cfg_attr(feature = "schema", schemars(rename = "placeholder_settings"))]
 pub(crate) struct RawPlaceholderSettings {
 	#[serde(default)]
 	readme: Option<String>,
@@ -452,7 +455,7 @@ pub(crate) struct RawPlaceholderSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "publishSettings"))]
+#[cfg_attr(feature = "schema", schemars(rename = "publish_settings"))]
 pub(crate) struct RawPublishSettings {
 	#[serde(default)]
 	enabled: Option<bool>,
@@ -472,7 +475,7 @@ pub(crate) struct RawPublishSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "publishAttestationSettings"))]
+#[cfg_attr(feature = "schema", schemars(rename = "publish_attestation_settings"))]
 pub(crate) struct RawPublishAttestationSettings {
 	#[serde(default)]
 	require_registry_provenance: Option<bool>,
@@ -480,7 +483,7 @@ pub(crate) struct RawPublishAttestationSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "publishRateLimitSettings"))]
+#[cfg_attr(feature = "schema", schemars(rename = "publish_rate_limit_settings"))]
 pub(crate) struct RawPublishRateLimitSettings {
 	#[serde(default)]
 	enforce: Option<bool>,
@@ -489,7 +492,7 @@ pub(crate) struct RawPublishRateLimitSettings {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-#[cfg_attr(feature = "schema", schemars(rename = "trustedPublishingSettings"))]
+#[cfg_attr(feature = "schema", schemars(rename = "trusted_publishing_settings"))]
 pub(crate) enum RawTrustedPublishingSettings {
 	Enabled(bool),
 	Detailed(RawTrustedPublishingDetails),
@@ -497,7 +500,7 @@ pub(crate) enum RawTrustedPublishingSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "trustedPublishingDetails"))]
+#[cfg_attr(feature = "schema", schemars(rename = "trusted_publishing_details"))]
 pub(crate) struct RawTrustedPublishingDetails {
 	#[serde(default)]
 	enabled: Option<bool>,
@@ -512,7 +515,7 @@ pub(crate) struct RawTrustedPublishingDetails {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-#[cfg_attr(feature = "schema", schemars(rename = "versionedFileDefinition"))]
+#[cfg_attr(feature = "schema", schemars(rename = "versioned_file_definition"))]
 pub(crate) enum RawVersionedFileDefinition {
 	Path(String),
 	Detailed(VersionedFileDefinition),
@@ -520,7 +523,7 @@ pub(crate) enum RawVersionedFileDefinition {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "changelogSettings"))]
+#[cfg_attr(feature = "schema", schemars(rename = "changelog_settings"))]
 pub(crate) struct RawChangelogSettings {
 	#[serde(default)]
 	pub templates: Vec<String>,
@@ -556,7 +559,7 @@ pub(crate) struct RawSourceConfiguration {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize, Default)]
-#[cfg_attr(feature = "schema", schemars(rename = "changeFile"))]
+#[cfg_attr(feature = "schema", schemars(rename = "change_file"))]
 pub(crate) struct RawChangeFile {
 	#[serde(default)]
 	changes: Vec<RawChangeEntry>,
@@ -564,7 +567,7 @@ pub(crate) struct RawChangeFile {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Deserialize)]
-#[cfg_attr(feature = "schema", schemars(rename = "changeEntry"))]
+#[cfg_attr(feature = "schema", schemars(rename = "change_entry"))]
 pub(crate) struct RawChangeEntry {
 	package: String,
 	#[serde(default)]

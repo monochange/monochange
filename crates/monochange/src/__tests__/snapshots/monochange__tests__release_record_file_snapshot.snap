@@ -1,20 +1,21 @@
 ---
 source: crates/monochange/src/__tests__/lib_tests.rs
+assertion_line: 14798
 expression: value
 ---
 {
-  "changedFiles": [
+  "changed_files": [
     "Cargo.lock"
   ],
   "changelogs": [],
   "changesets": [],
   "command": "release-pr",
-  "createdAt": "[timestamp]",
-  "deletedChangesets": [],
+  "created_at": "[timestamp]",
+  "deleted_changesets": [],
   "kind": "monochange.releaseRecord",
-  "packagePublications": [],
+  "package_publications": [],
   "provider": null,
-  "releaseTargets": [
+  "release_targets": [
     {
       "id": "sdk",
       "kind": "group",
@@ -24,17 +25,17 @@ expression: value
       ],
       "release": true,
       "tag": true,
-      "tagName": "v1.2.3",
+      "tag_name": "v1.2.3",
       "version": "1.2.3",
-      "versionFormat": "primary"
+      "version_format": "primary"
     }
   ],
-  "releasedPackages": [
+  "released_packages": [
     "monochange",
     "monochange_core"
   ],
-  "schemaVersion": "[schema version]",
-  "updatedChangelogs": [],
+  "schema_version": "[schema version]",
+  "updated_changelogs": [],
   "version": "1.2.3",
   "versions": {
     "sdk": "1.2.3"

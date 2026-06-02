@@ -3,34 +3,34 @@ source: crates/monochange/tests/changeset_policy.rs
 expression: redacted
 ---
 {
-  "affectedPackageIds": [
+  "affected_package_ids": [
     "core"
   ],
-  "changedPaths": [
+  "changed_paths": [
     "crates/core/src/lib.rs",
     ".changeset/feature.md"
   ],
-  "changesetPaths": [
+  "changeset_paths": [
     ".changeset/feature.md"
   ],
   "comment": "[multiline text]",
-  "coveredPackageIds": [
+  "covered_package_ids": [
     "other"
   ],
   "enforce": false,
   "errors": [
     "changed packages are not covered by attached changesets: core"
   ],
-  "ignoredPaths": [],
+  "ignored_paths": [],
   "labels": [],
-  "matchedPaths": [
+  "matched_paths": [
     "crates/core/src/lib.rs"
   ],
-  "matchedSkipLabels": [],
+  "matched_skip_labels": [],
   "required": true,
   "status": "failed",
   "summary": "changeset verification failed: attached changesets do not cover 1 changed package",
-  "uncoveredPackageIds": [
+  "uncovered_package_ids": [
     "core"
   ]
 }

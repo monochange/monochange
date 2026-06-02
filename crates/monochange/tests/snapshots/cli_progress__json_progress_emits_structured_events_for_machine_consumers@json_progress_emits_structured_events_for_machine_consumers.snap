@@ -6,228 +6,228 @@ expression: redacted
 [
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "command_started",
     "sequence": "[sequence:0]",
-    "totalSteps": 2
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "step_started",
     "sequence": "[sequence:1]",
-    "stepDisplayName": "plan release",
-    "stepIndex": 1,
-    "stepKind": "PrepareRelease",
-    "stepName": "plan release",
-    "totalSteps": 2
+    "step_display_name": "plan release",
+    "step_index": 1,
+    "step_kind": "PrepareRelease",
+    "step_name": "plan release",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "step_status",
     "sequence": "[sequence:2]",
     "status": "loading changesets",
-    "stepDisplayName": "plan release",
-    "stepIndex": 1,
-    "stepKind": "PrepareRelease",
-    "stepName": "plan release",
-    "totalSteps": 2
+    "step_display_name": "plan release",
+    "step_index": 1,
+    "step_kind": "PrepareRelease",
+    "step_name": "plan release",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "step_status",
     "sequence": "[sequence:3]",
     "status": "computing dependency graph",
-    "stepDisplayName": "plan release",
-    "stepIndex": 1,
-    "stepKind": "PrepareRelease",
-    "stepName": "plan release",
-    "totalSteps": 2
+    "step_display_name": "plan release",
+    "step_index": 1,
+    "step_kind": "PrepareRelease",
+    "step_name": "plan release",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "step_status",
     "sequence": "[sequence:4]",
     "status": "planning versions",
-    "stepDisplayName": "plan release",
-    "stepIndex": 1,
-    "stepKind": "PrepareRelease",
-    "stepName": "plan release",
-    "totalSteps": 2
+    "step_display_name": "plan release",
+    "step_index": 1,
+    "step_kind": "PrepareRelease",
+    "step_name": "plan release",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "step_status",
     "sequence": "[sequence:5]",
     "status": "rendering changelogs",
-    "stepDisplayName": "plan release",
-    "stepIndex": 1,
-    "stepKind": "PrepareRelease",
-    "stepName": "plan release",
-    "totalSteps": 2
+    "step_display_name": "plan release",
+    "step_index": 1,
+    "step_kind": "PrepareRelease",
+    "step_name": "plan release",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "step_status",
     "sequence": "[sequence:6]",
     "status": "updating package files",
-    "stepDisplayName": "plan release",
-    "stepIndex": 1,
-    "stepKind": "PrepareRelease",
-    "stepName": "plan release",
-    "totalSteps": 2
+    "step_display_name": "plan release",
+    "step_index": 1,
+    "step_kind": "PrepareRelease",
+    "step_name": "plan release",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "step_status",
     "sequence": "[sequence:7]",
     "status": "refreshing lockfiles",
-    "stepDisplayName": "plan release",
-    "stepIndex": 1,
-    "stepKind": "PrepareRelease",
-    "stepName": "plan release",
-    "totalSteps": 2
+    "step_display_name": "plan release",
+    "step_index": 1,
+    "step_kind": "PrepareRelease",
+    "step_name": "plan release",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
-    "durationMs": "[duration_ms]",
+    "dry_run": false,
+    "duration_ms": "[duration_ms]",
     "event": "step_finished",
-    "phaseTimings": [
+    "phase_timings": [
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "load workspace configuration"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "discover release workspace"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "discover changeset paths"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "read changeset files"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "parse changeset files"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "build prepared changesets"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "build release plan"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "resolve changelog targets"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "build manifest updates"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "build versioned file updates"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "build release targets"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "build lockfile refresh plan"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "build changelog updates"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "apply release changes"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "load prerelease state"
       },
       {
-        "durationMs": "[duration_ms]",
+        "duration_ms": "[duration_ms]",
         "label": "defer versioned file updates"
       }
     ],
     "sequence": "[sequence:8]",
-    "stepDisplayName": "plan release",
-    "stepIndex": 1,
-    "stepKind": "PrepareRelease",
-    "stepName": "plan release",
-    "totalSteps": 2
+    "step_display_name": "plan release",
+    "step_index": 1,
+    "step_kind": "PrepareRelease",
+    "step_name": "plan release",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "step_started",
     "sequence": "[sequence:9]",
-    "stepDisplayName": "stream summary",
-    "stepIndex": 2,
-    "stepKind": "Command",
-    "stepName": "stream summary",
-    "totalSteps": 2
+    "step_display_name": "stream summary",
+    "step_index": 2,
+    "step_kind": "Command",
+    "step_name": "stream summary",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "command_output",
     "sequence": "[sequence:10]",
-    "stepDisplayName": "stream summary",
-    "stepIndex": 2,
-    "stepKind": "Command",
-    "stepName": "stream summary",
+    "step_display_name": "stream summary",
+    "step_index": 2,
+    "step_kind": "Command",
+    "step_name": "stream summary",
     "stream": "stderr",
     "text": "[multiline text]",
-    "totalSteps": 2
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
+    "dry_run": false,
     "event": "command_output",
     "sequence": "[sequence:11]",
-    "stepDisplayName": "stream summary",
-    "stepIndex": 2,
-    "stepKind": "Command",
-    "stepName": "stream summary",
+    "step_display_name": "stream summary",
+    "step_index": 2,
+    "step_kind": "Command",
+    "step_name": "stream summary",
     "stream": "stdout",
     "text": "[multiline text]",
-    "totalSteps": 2
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
-    "durationMs": "[duration_ms]",
+    "dry_run": false,
+    "duration_ms": "[duration_ms]",
     "event": "step_finished",
-    "phaseTimings": [],
+    "phase_timings": [],
     "sequence": "[sequence:12]",
-    "stepDisplayName": "stream summary",
-    "stepIndex": 2,
-    "stepKind": "Command",
-    "stepName": "stream summary",
-    "totalSteps": 2
+    "step_display_name": "stream summary",
+    "step_index": 2,
+    "step_kind": "Command",
+    "step_name": "stream summary",
+    "total_steps": 2
   },
   {
     "command": "progress-json",
-    "dryRun": false,
-    "durationMs": "[duration_ms]",
+    "dry_run": false,
+    "duration_ms": "[duration_ms]",
     "event": "command_finished",
     "sequence": "[sequence:13]",
-    "totalSteps": 2
+    "total_steps": 2
   }
 ]

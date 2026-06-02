@@ -3,30 +3,30 @@ source: crates/monochange/tests/affected.rs
 expression: redacted
 ---
 {
-  "affectedPackageIds": [
+  "affected_package_ids": [
     "core"
   ],
-  "changedPaths": [
+  "changed_paths": [
     ".changeset/feature.md",
     "crates/core/src/lib.rs"
   ],
-  "changesetPaths": [
+  "changeset_paths": [
     ".changeset/feature.md"
   ],
   "comment": null,
-  "coveredPackageIds": [
+  "covered_package_ids": [
     "core"
   ],
   "enforce": false,
   "errors": [],
-  "ignoredPaths": [],
+  "ignored_paths": [],
   "labels": [],
-  "matchedPaths": [
+  "matched_paths": [
     "crates/core/src/lib.rs"
   ],
-  "matchedSkipLabels": [],
+  "matched_skip_labels": [],
   "required": true,
   "status": "passed",
   "summary": "changeset verification passed: attached changesets cover 1 changed package",
-  "uncoveredPackageIds": []
+  "uncovered_package_ids": []
 }

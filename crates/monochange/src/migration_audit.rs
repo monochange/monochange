@@ -22,7 +22,7 @@ pub(crate) enum MigrationAuditStatus {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct MigrationAuditReport {
 	pub status: MigrationAuditStatus,
 	pub root: String,
@@ -32,7 +32,7 @@ pub(crate) struct MigrationAuditReport {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct MigrationAuditSignal {
 	pub kind: String,
 	pub tool: String,
@@ -41,7 +41,7 @@ pub(crate) struct MigrationAuditSignal {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct MigrationAuditRecommendation {
 	pub id: String,
 	pub title: String,
@@ -57,7 +57,7 @@ pub(crate) enum ReleaseRecordMigrationStatus {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct ReleaseRecordMigrationEntry {
 	pub path: String,
 	pub status: ReleaseRecordMigrationStatus,
@@ -66,7 +66,7 @@ pub(crate) struct ReleaseRecordMigrationEntry {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct ReleaseRecordMigrationReport {
 	pub dry_run: bool,
 	pub current_schema_version: String,
@@ -212,7 +212,8 @@ fn release_record_schema_version(json_text: &str) -> MonochangeResult<ReleaseRec
 		));
 	};
 	if let Some(version) = object
-		.get("schemaVersion")
+		.get("schema_version")
+		.or_else(|| object.get("schemaVersion"))
 		.and_then(serde_json::Value::as_str)
 	{
 		return Ok(ReleaseRecordSchemaVersion {
@@ -221,7 +222,8 @@ fn release_record_schema_version(json_text: &str) -> MonochangeResult<ReleaseRec
 		});
 	}
 	if object
-		.get("schemaVersion")
+		.get("schema_version")
+		.or_else(|| object.get("schemaVersion"))
 		.and_then(serde_json::Value::as_u64)
 		== Some(1)
 	{
@@ -237,7 +239,7 @@ fn release_record_schema_version(json_text: &str) -> MonochangeResult<ReleaseRec
 		});
 	}
 	Err(MonochangeError::Config(
-		"release record is missing `schemaVersion` or legacy `v`".to_string(),
+		"release record is missing `schema_version` or legacy `schemaVersion`/`v`".to_string(),
 	))
 }
 

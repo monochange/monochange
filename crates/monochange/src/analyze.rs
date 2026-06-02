@@ -23,7 +23,7 @@ use crate::git_support::run_git_capture;
 use crate::release_artifacts::parse_tag_prefix_and_version;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct AnalyzePackageSelection {
 	requested_reference: String,
 	package_id: String,
@@ -35,7 +35,7 @@ pub(crate) struct AnalyzePackageSelection {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct AnalyzeRefs {
 	release: Option<String>,
 	main: String,
@@ -43,7 +43,7 @@ pub(crate) struct AnalyzeRefs {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct AnalyzeFrames {
 	release_to_main: Option<ChangeAnalysis>,
 	main_to_head: ChangeAnalysis,
@@ -51,7 +51,7 @@ pub(crate) struct AnalyzeFrames {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) struct AnalyzeReport {
 	package: AnalyzePackageSelection,
 	release_identity: Option<EffectiveReleaseIdentity>,

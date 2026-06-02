@@ -1,0 +1,887 @@
+{
+	"$defs": {
+		"BumpSeverity": {
+			"enum": [
+				"none",
+				"patch",
+				"minor",
+				"major"
+			],
+			"type": "string"
+		},
+		"ChangelogFormat": {
+			"enum": [
+				"monochange",
+				"keep_a_changelog"
+			],
+			"type": "string"
+		},
+		"ChangesetContext": {
+			"properties": {
+				"capabilities": {
+					"$ref": "#/$defs/HostingCapabilities",
+					"default": {
+						"actor_profiles": false,
+						"commit_web_urls": false,
+						"issue_comments": false,
+						"related_issues": false,
+						"review_request_lookup": false
+					}
+				},
+				"host": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"introduced": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/ChangesetRevision"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"last_updated": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/ChangesetRevision"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"provider": {
+					"$ref": "#/$defs/HostingProviderKind"
+				},
+				"related_issues": {
+					"default": [],
+					"items": {
+						"$ref": "#/$defs/HostedIssueRef"
+					},
+					"type": "array"
+				}
+			},
+			"required": [
+				"provider"
+			],
+			"type": "object"
+		},
+		"ChangesetRevision": {
+			"properties": {
+				"actor": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/HostedActorRef"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"commit": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/HostedCommitRef"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"review_request": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/HostedReviewRequestRef"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				}
+			},
+			"type": "object"
+		},
+		"ChangesetTargetKind": {
+			"enum": [
+				"package",
+				"group"
+			],
+			"type": "string"
+		},
+		"Ecosystem": {
+			"enum": [
+				"cargo",
+				"npm",
+				"deno",
+				"dart",
+				"python",
+				"go"
+			],
+			"type": "string"
+		},
+		"HostedActorRef": {
+			"properties": {
+				"display_name": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"host": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"id": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"login": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"provider": {
+					"$ref": "#/$defs/HostingProviderKind"
+				},
+				"source": {
+					"$ref": "#/$defs/HostedActorSourceKind"
+				},
+				"url": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"provider",
+				"source"
+			],
+			"type": "object"
+		},
+		"HostedActorSourceKind": {
+			"enum": [
+				"commit_author",
+				"commit_committer",
+				"review_request_author"
+			],
+			"type": "string"
+		},
+		"HostedCommitRef": {
+			"properties": {
+				"author_email": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"author_name": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"authored_at": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"committed_at": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"host": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"provider": {
+					"$ref": "#/$defs/HostingProviderKind"
+				},
+				"sha": {
+					"type": "string"
+				},
+				"short_sha": {
+					"type": "string"
+				},
+				"url": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"provider",
+				"sha",
+				"short_sha"
+			],
+			"type": "object"
+		},
+		"HostedIssueRef": {
+			"properties": {
+				"host": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"id": {
+					"type": "string"
+				},
+				"provider": {
+					"$ref": "#/$defs/HostingProviderKind"
+				},
+				"relationship": {
+					"$ref": "#/$defs/HostedIssueRelationshipKind"
+				},
+				"title": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"url": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"provider",
+				"id",
+				"relationship"
+			],
+			"type": "object"
+		},
+		"HostedIssueRelationshipKind": {
+			"enum": [
+				"closed_by_review_request",
+				"referenced_by_review_request",
+				"mentioned",
+				"manual"
+			],
+			"type": "string"
+		},
+		"HostedReviewRequestKind": {
+			"enum": [
+				"pull_request",
+				"merge_request"
+			],
+			"type": "string"
+		},
+		"HostedReviewRequestRef": {
+			"properties": {
+				"author": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/HostedActorRef"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"host": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"id": {
+					"type": "string"
+				},
+				"kind": {
+					"$ref": "#/$defs/HostedReviewRequestKind"
+				},
+				"provider": {
+					"$ref": "#/$defs/HostingProviderKind"
+				},
+				"title": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"url": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"provider",
+				"kind",
+				"id"
+			],
+			"type": "object"
+		},
+		"HostingCapabilities": {
+			"properties": {
+				"actor_profiles": {
+					"type": "boolean"
+				},
+				"commit_web_urls": {
+					"type": "boolean"
+				},
+				"issue_comments": {
+					"type": "boolean"
+				},
+				"related_issues": {
+					"type": "boolean"
+				},
+				"review_request_lookup": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"commit_web_urls",
+				"actor_profiles",
+				"review_request_lookup",
+				"related_issues",
+				"issue_comments"
+			],
+			"type": "object"
+		},
+		"HostingProviderKind": {
+			"enum": [
+				"generic_git",
+				"github",
+				"gitlab",
+				"gitea",
+				"forgejo",
+				"bitbucket"
+			],
+			"type": "string"
+		},
+		"PackagePublicationTarget": {
+			"properties": {
+				"attestations": {
+					"$ref": "#/$defs/PublishAttestationSettings"
+				},
+				"ecosystem": {
+					"$ref": "#/$defs/Ecosystem"
+				},
+				"mode": {
+					"$ref": "#/$defs/PublishMode",
+					"default": "builtin"
+				},
+				"package": {
+					"type": "string"
+				},
+				"registry": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/PublishRegistry"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"trusted_publishing": {
+					"$ref": "#/$defs/TrustedPublishingSettings",
+					"default": {
+						"enabled": true,
+						"environment": null,
+						"repository": null,
+						"workflow": null
+					}
+				},
+				"version": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"package",
+				"ecosystem",
+				"version"
+			],
+			"type": "object"
+		},
+		"PreparedChangeset": {
+			"properties": {
+				"context": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/ChangesetContext"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"details": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"path": {
+					"type": "string"
+				},
+				"summary": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"targets": {
+					"items": {
+						"$ref": "#/$defs/PreparedChangesetTarget"
+					},
+					"type": "array"
+				}
+			},
+			"required": [
+				"path",
+				"targets"
+			],
+			"type": "object"
+		},
+		"PreparedChangesetTarget": {
+			"properties": {
+				"bump": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"caused_by": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"change_type": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"evidence_refs": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"id": {
+					"type": "string"
+				},
+				"kind": {
+					"$ref": "#/$defs/ChangesetTargetKind"
+				},
+				"origin": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"kind",
+				"origin"
+			],
+			"type": "object"
+		},
+		"PublishAttestationSettings": {
+			"properties": {
+				"require_registry_provenance": {
+					"default": false,
+					"type": "boolean"
+				}
+			},
+			"type": "object"
+		},
+		"PublishMode": {
+			"description": "Whether monochange's built-in publisher handles release publishing for a package.\n\n- `Builtin` – monochange runs the ecosystem-specific publish command (e.g. `npm\n  publish`, `cargo publish`) during `PublishPackages`.\n- `External` – the package is skipped during `PublishPackages`; your own CI or\n  scripts handle release publishing instead.\n\nThis setting does **not** affect placeholder publishing (`PlaceholderPublish`),\nwhich processes all packages with `publish.enabled = true` regardless of mode.\nPlaceholder publishing is a bootstrap utility, not a release publishing step.",
+			"oneOf": [
+				{
+					"const": "builtin",
+					"description": "monochange runs the built-in publish command during release publishing.",
+					"type": "string"
+				},
+				{
+					"const": "external",
+					"description": "The package is skipped during `PublishPackages`; external CI/scripts\nhandle release publishing. Placeholder publishing is not affected.",
+					"type": "string"
+				}
+			]
+		},
+		"PublishRegistry": {
+			"anyOf": [
+				{
+					"$ref": "#/$defs/RegistryKind"
+				},
+				{
+					"type": "string"
+				}
+			]
+		},
+		"RegistryKind": {
+			"enum": [
+				"crates_io",
+				"npm",
+				"jsr",
+				"pub_dev",
+				"pypi",
+				"go_proxy"
+			],
+			"type": "string"
+		},
+		"ReleaseManifestChangelog": {
+			"properties": {
+				"format": {
+					"$ref": "#/$defs/ChangelogFormat"
+				},
+				"notes": {
+					"$ref": "#/$defs/ReleaseNotesDocument"
+				},
+				"owner_id": {
+					"type": "string"
+				},
+				"owner_kind": {
+					"$ref": "#/$defs/ReleaseOwnerKind"
+				},
+				"path": {
+					"type": "string"
+				},
+				"rendered": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"owner_id",
+				"owner_kind",
+				"path",
+				"format",
+				"notes",
+				"rendered"
+			],
+			"type": "object"
+		},
+		"ReleaseNotesDocument": {
+			"properties": {
+				"sections": {
+					"items": {
+						"$ref": "#/$defs/ReleaseNotesSection"
+					},
+					"type": "array"
+				},
+				"summary": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"title": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"title",
+				"summary",
+				"sections"
+			],
+			"type": "object"
+		},
+		"ReleaseNotesSection": {
+			"properties": {
+				"collapsed": {
+					"default": false,
+					"type": "boolean"
+				},
+				"entries": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"title": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"title",
+				"entries"
+			],
+			"type": "object"
+		},
+		"ReleaseOwnerKind": {
+			"enum": [
+				"package",
+				"group"
+			],
+			"type": "string"
+		},
+		"ReleaseRecordProvider": {
+			"properties": {
+				"host": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"kind": {
+					"$ref": "#/$defs/SourceProvider"
+				},
+				"owner": {
+					"type": "string"
+				},
+				"repo": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"kind",
+				"owner",
+				"repo"
+			],
+			"type": "object"
+		},
+		"ReleaseRecordTarget": {
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"kind": {
+					"$ref": "#/$defs/ReleaseOwnerKind"
+				},
+				"members": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"release": {
+					"type": "boolean"
+				},
+				"tag": {
+					"type": "boolean"
+				},
+				"tag_name": {
+					"type": "string"
+				},
+				"version": {
+					"type": "string"
+				},
+				"version_format": {
+					"$ref": "#/$defs/VersionFormat"
+				}
+			},
+			"required": [
+				"id",
+				"kind",
+				"version",
+				"version_format",
+				"tag",
+				"release",
+				"tag_name"
+			],
+			"type": "object"
+		},
+		"SourceProvider": {
+			"enum": [
+				"github",
+				"gitlab",
+				"gitea",
+				"forgejo"
+			],
+			"type": "string"
+		},
+		"TrustedPublishingSettings": {
+			"properties": {
+				"enabled": {
+					"default": true,
+					"type": "boolean"
+				},
+				"environment": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"repository": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"workflow": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"type": "object"
+		},
+		"VersionFormat": {
+			"enum": [
+				"namespaced",
+				"primary"
+			],
+			"type": "string"
+		}
+	},
+	"$id": "https://monochange.github.io/monochange/schemas/release-record.v0.4.schema.json",
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"additionalProperties": false,
+	"description": "Durable commit-embedded release record schema for monochange release records.",
+	"properties": {
+		"changed_files": {
+			"items": {
+				"type": "string"
+			},
+			"type": "array"
+		},
+		"changelogs": {
+			"default": [],
+			"items": {
+				"$ref": "#/$defs/ReleaseManifestChangelog"
+			},
+			"type": "array"
+		},
+		"changesets": {
+			"default": [],
+			"items": {
+				"$ref": "#/$defs/PreparedChangeset"
+			},
+			"type": "array"
+		},
+		"command": {
+			"type": "string"
+		},
+		"created_at": {
+			"type": "string"
+		},
+		"deleted_changesets": {
+			"default": [],
+			"items": {
+				"type": "string"
+			},
+			"type": "array"
+		},
+		"kind": {
+			"const": "monochange.releaseRecord",
+			"type": "string"
+		},
+		"package_publications": {
+			"default": [],
+			"items": {
+				"$ref": "#/$defs/PackagePublicationTarget"
+			},
+			"type": "array"
+		},
+		"provider": {
+			"anyOf": [
+				{
+					"$ref": "#/$defs/ReleaseRecordProvider"
+				},
+				{
+					"type": "null"
+				}
+			],
+			"default": null
+		},
+		"release_targets": {
+			"items": {
+				"$ref": "#/$defs/ReleaseRecordTarget"
+			},
+			"type": "array"
+		},
+		"released_packages": {
+			"items": {
+				"type": "string"
+			},
+			"type": "array"
+		},
+		"schema_version": {
+			"default": "0.4",
+			"type": "string"
+		},
+		"updated_changelogs": {
+			"default": [],
+			"items": {
+				"type": "string"
+			},
+			"type": "array"
+		},
+		"version": {
+			"default": null,
+			"type": [
+				"string",
+				"null"
+			]
+		},
+		"versions": {
+			"additionalProperties": {
+				"type": "string"
+			},
+			"default": {},
+			"type": "object"
+		}
+	},
+	"required": [
+		"created_at",
+		"command",
+		"release_targets",
+		"released_packages",
+		"changed_files"
+	],
+	"title": "monochange release record",
+	"type": "object"
+}
