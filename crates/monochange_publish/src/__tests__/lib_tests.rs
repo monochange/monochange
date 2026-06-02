@@ -415,6 +415,28 @@ fn sample_publish_request_for_registry(registry: RegistryKind) -> PublishRequest
 	}
 }
 
+#[test]
+fn render_publish_command_error_adds_npm_otp_recovery_guidance() {
+	let request = sample_publish_request_for_registry(RegistryKind::Npm);
+	let output = CommandOutput {
+		success: false,
+		stdout: String::new(),
+		stderr: "npm error code EOTP\nnpm error This operation requires a one-time password."
+			.to_string(),
+	};
+
+	let message =
+		render_publish_command_error(&output, &request, PackagePublishRunMode::Placeholder);
+
+	assert!(message.contains("npm error code EOTP"));
+	assert!(message.contains("mc step:placeholder-publish --otp <CODE>"));
+	assert!(message.contains("NPM_CONFIG_OTP=<CODE>"));
+
+	let release_message =
+		render_publish_command_error(&output, &request, PackagePublishRunMode::Release);
+	assert!(release_message.contains("rerun the publish command with `NPM_CONFIG_OTP=<CODE>`"));
+}
+
 #[derive(Default)]
 struct RecordingPublishProgressReporter {
 	events: std::sync::Mutex<Vec<PublishProgressEvent>>,

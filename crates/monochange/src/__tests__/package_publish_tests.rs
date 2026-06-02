@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use std::collections::VecDeque;
 use std::env;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 
 use httpmock::Method::GET;
@@ -50,6 +51,7 @@ use monochange_publish::render_command;
 use monochange_publish::render_command_error;
 use monochange_publish::resolve_placeholder_readme;
 use monochange_publish::resolve_registry_kind;
+use monochange_publish::set_npm_publish_otp_for_requests;
 use monochange_publish::write_publish_report_artifact;
 use monochange_test_helpers::git;
 use monochange_test_helpers::install_rustls_ring_provider;
@@ -267,6 +269,7 @@ fn build_npm_trust_list_command(request: &PublishRequest) -> CommandSpec {
 			request.package_name.clone(),
 		],
 		cwd: PathBuf::new(),
+		env: BTreeMap::new(),
 	}
 }
 
@@ -4226,10 +4229,15 @@ async fn run_placeholder_publish_uses_env_overrides_for_registry_endpoints() {
 			Some(server.base_url().as_str()),
 		)],
 		async {
-			let report =
-				run_placeholder_publish(root.path(), &configuration, &BTreeSet::new(), true)
-					.await
-					.expect("placeholder report:");
+			let report = run_placeholder_publish_with_npm_otp(
+				root.path(),
+				&configuration,
+				&BTreeSet::new(),
+				true,
+				Some("123456"),
+			)
+			.await
+			.expect("placeholder report:");
 			assert_eq!(report.mode, PackagePublishRunMode::Placeholder);
 			assert_eq!(report.packages.len(), 1);
 			assert_eq!(report.packages[0].status, PackagePublishStatus::Planned);
@@ -4377,6 +4385,7 @@ fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 				"printf stdout; printf stderr >&2".to_string(),
 			],
 			cwd: tempdir.path().to_path_buf(),
+			env: BTreeMap::new(),
 		})
 		.expect("expected command success:");
 	assert!(success.success);
@@ -4388,6 +4397,7 @@ fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 			program: "definitely-not-a-real-command".to_string(),
 			args: Vec::new(),
 			cwd: tempdir.path().to_path_buf(),
+			env: BTreeMap::new(),
 		})
 		.expect_err("expected command failure");
 	assert!(
@@ -4408,6 +4418,7 @@ fn fake_executor_reports_missing_outputs_and_render_helpers_match() {
 			"public".to_string(),
 		],
 		cwd: PathBuf::from("."),
+		env: BTreeMap::new(),
 	};
 	let error = executor
 		.run(&spec)
@@ -4454,6 +4465,28 @@ fn build_npm_placeholder_publish_command_uses_package_root_as_cwd() {
 	assert_eq!(command.program, "npm");
 	assert_eq!(command.cwd, PathBuf::from("/workspace/pkg"));
 	assert_eq!(command.args[0], "publish");
+}
+
+#[test]
+fn build_npm_placeholder_publish_command_uses_otp_as_environment() {
+	let mut requests = vec![sample_request(RegistryKind::Npm)];
+	set_npm_publish_otp_for_requests(&mut requests, "123456");
+
+	let command =
+		build_npm_placeholder_publish_command(&requests[0], Path::new("/tmp/placeholder"));
+
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["publish", "/tmp/placeholder", "--access", "public"]
+	);
+	assert_eq!(
+		command.env.get("NPM_CONFIG_OTP").map(String::as_str),
+		Some("123456")
+	);
+	assert_eq!(
+		render_command(&command),
+		"npm publish /tmp/placeholder --access public"
+	);
 }
 
 #[test]

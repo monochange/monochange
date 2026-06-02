@@ -1098,6 +1098,7 @@ fn build_npm_cli_command(request: &PublishRequest, args: Vec<String>) -> Command
 			program: "pnpm".to_string(),
 			args: wrapped_args,
 			cwd: request.package_root.clone(),
+			env: BTreeMap::new(),
 		};
 	}
 
@@ -1105,6 +1106,7 @@ fn build_npm_cli_command(request: &PublishRequest, args: Vec<String>) -> Command
 		program: "npm".to_string(),
 		args,
 		cwd: request.package_root.clone(),
+		env: BTreeMap::new(),
 	}
 }
 

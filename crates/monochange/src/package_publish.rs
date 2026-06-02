@@ -56,6 +56,7 @@ use monochange_publish::read_publish_report_artifact;
 use monochange_publish::reject_npm_token_environment;
 use monochange_publish::resume_publish_requests;
 use monochange_publish::select_release_publication_targets;
+use monochange_publish::set_npm_publish_otp_for_requests;
 use monochange_publish::trusted_publishing_capability_message;
 use monochange_publish::trusted_publishing_capability_message_for_builtin;
 use monochange_python::write_python_placeholder_manifest;
@@ -69,15 +70,19 @@ use crate::discover_release_record;
 use crate::discover_workspace;
 use crate::publish_progress::StderrPublishProgressReporter;
 
-pub(crate) async fn run_placeholder_publish(
+pub(crate) async fn run_placeholder_publish_with_npm_otp(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
 	selected_packages: &BTreeSet<String>,
 	dry_run: bool,
+	npm_otp: Option<&str>,
 ) -> MonochangeResult<PackagePublishReport> {
 	let discovery = discover_workspace(root)?;
-	let requests =
+	let mut requests =
 		build_placeholder_requests(root, configuration, &discovery.packages, selected_packages)?;
+	if let Some(otp) = npm_otp.filter(|otp| !otp.is_empty()) {
+		set_npm_publish_otp_for_requests(&mut requests, otp);
+	}
 	let progress = StderrPublishProgressReporter::new(false);
 	execute_publish_requests_with_process_and_progress(
 		root,

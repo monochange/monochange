@@ -6,8 +6,14 @@ use std::path::PathBuf;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemAdapter;
 use monochange_core::PackageRecord;
+use monochange_core::PublishAttestationSettings;
+use monochange_core::PublishMode;
 use monochange_core::PublishState;
+use monochange_core::RegistryKind;
+use monochange_core::TrustedPublishingSettings;
 use monochange_core::materialize_dependency_edges;
+use monochange_github::GitHubTrustContext;
+use monochange_publish::PublishRequest;
 use semver::Version;
 use serde_json::json;
 use serde_yaml_ng::Value as YamlValue;
@@ -982,4 +988,49 @@ fn workspace_pattern_skips_directories_without_package_json() {
 		!names.contains(&"no-package-json".to_string()),
 		"'no-package-json' should not be discovered since it has no package.json, got {names:?}"
 	);
+}
+
+#[test]
+fn npm_trust_command_wraps_npm_with_pnpm_for_pnpm_managed_packages() {
+	let request = PublishRequest {
+		package_id: "pkg".to_string(),
+		package_name: "pkg".to_string(),
+		ecosystem: Ecosystem::Npm,
+		manifest_path: PathBuf::from("package.json"),
+		package_root: PathBuf::from("."),
+		registry: RegistryKind::Npm,
+		package_manager: Some("pnpm".to_string()),
+		package_metadata: BTreeMap::new(),
+		mode: PublishMode::Builtin,
+		version: "1.0.0".to_string(),
+		placeholder: false,
+		trusted_publishing: TrustedPublishingSettings::default(),
+		attestations: PublishAttestationSettings::default(),
+		placeholder_readme: "placeholder".to_string(),
+	};
+	let context = GitHubTrustContext {
+		repository: "owner/repo".to_string(),
+		workflow: "release.yml".to_string(),
+		environment: None,
+	};
+
+	let command = crate::build_npm_trust_command(&request, &context);
+
+	assert_eq!(command.program, "pnpm");
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec![
+			"exec",
+			"npm",
+			"trust",
+			"github",
+			"pkg",
+			"--file",
+			"release.yml",
+			"--repo",
+			"owner/repo",
+			"--yes"
+		]
+	);
+	assert!(command.env.is_empty());
 }
