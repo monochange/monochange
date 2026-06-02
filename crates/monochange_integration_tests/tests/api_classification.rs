@@ -115,6 +115,21 @@ fn api_diff_uses_the_same_classifier_for_mixed_api_impacts() {
 }
 
 #[test]
+fn change_classify_detects_dart_api_impacts() {
+	let fixture = setup_api_fixture("dart-api");
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	assert_eq!(report["recommendation"], "minor");
+	assert_package_recommendation(&report, "mobile", "minor");
+}
+
+#[test]
 fn api_snapshot_command_is_callable_for_a_mixed_api_workspace() {
 	let fixture = setup_api_fixture("mixed-api");
 

@@ -130,6 +130,9 @@ pub struct ChangeAnalysis {
 	pub frame: ChangeFrame,
 	/// Requested detail level.
 	pub detection_level: DetectionLevel,
+	/// Discovered workspace packages used for dependency propagation.
+	#[serde(default, skip_serializing)]
+	pub packages: Vec<PackageRecord>,
 	/// Semantic diffs grouped by package id.
 	pub package_analyses: BTreeMap<String, PackageChangeAnalysis>,
 	/// Root-level warnings such as unmatched paths or missing analyzers.
@@ -301,6 +304,7 @@ pub fn analyze_changes(
 	Ok(ChangeAnalysis {
 		frame: frame.clone(),
 		detection_level: config.detection_level,
+		packages: workspace.packages,
 		package_analyses,
 		warnings,
 	})
