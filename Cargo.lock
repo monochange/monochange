@@ -2515,6 +2515,7 @@ dependencies = [
  "monochange_config",
  "monochange_core",
  "monochange_forgejo",
+ "monochange_github",
  "monochange_schema",
  "monochange_test_helpers",
  "serde_json",

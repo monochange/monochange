@@ -15,6 +15,7 @@ monochange = { workspace = true }
 monochange_config = { workspace = true }
 monochange_core = { workspace = true }
 monochange_forgejo = { workspace = true }
+monochange_github = { workspace = true }
 monochange_schema = { workspace = true }
 monochange_test_helpers = { workspace = true }
 serde_json = { workspace = true, default-features = true }

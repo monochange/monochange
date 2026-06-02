@@ -1,0 +1,133 @@
+---
+source: crates/monochange_integration_tests/tests/group_release_note_fallback.rs
+expression: "Value::Object(snapshots)"
+---
+{
+  "group-empty-members-empty": {
+    "changedFiles": [
+      "Cargo.toml",
+      "changelog.md",
+      "crates/app/CHANGELOG.md",
+      "crates/app/Cargo.toml",
+      "crates/core/CHANGELOG.md",
+      "crates/core/Cargo.toml",
+      "group.toml"
+    ],
+    "changelogFiles": {
+      "app": true,
+      "core": true,
+      "group": true
+    },
+    "releaseTargets": [
+      {
+        "id": "sdk",
+        "kind": "group",
+        "members": [
+          "core",
+          "app"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "[1.0.1](https://github.com/ifiokjr/monochange/releases/tag/v1.0.1) (2026-04-06)",
+        "renderedTitle": "1.0.1 (2026-04-06)",
+        "tag": true,
+        "tagName": "v1.0.1",
+        "version": "1.0.1",
+        "versionFormat": "primary"
+      }
+    ]
+  },
+  "group-empty-one-member-note": {
+    "changedFiles": [
+      "Cargo.toml",
+      "changelog.md",
+      "crates/app/CHANGELOG.md",
+      "crates/app/Cargo.toml",
+      "crates/core/CHANGELOG.md",
+      "crates/core/Cargo.toml",
+      "group.toml"
+    ],
+    "changelogFiles": {
+      "app": true,
+      "core": true,
+      "group": true
+    },
+    "releaseTargets": [
+      {
+        "id": "sdk",
+        "kind": "group",
+        "members": [
+          "core",
+          "app"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) (2026-04-06)",
+        "renderedTitle": "1.1.0 (2026-04-06)",
+        "tag": true,
+        "tagName": "v1.1.0",
+        "version": "1.1.0",
+        "versionFormat": "primary"
+      }
+    ]
+  },
+  "group-real-member-note": {
+    "changedFiles": [
+      "Cargo.toml",
+      "changelog.md",
+      "crates/app/CHANGELOG.md",
+      "crates/app/Cargo.toml",
+      "crates/core/CHANGELOG.md",
+      "crates/core/Cargo.toml",
+      "group.toml"
+    ],
+    "changelogFiles": {
+      "app": true,
+      "core": true,
+      "group": true
+    },
+    "releaseTargets": [
+      {
+        "id": "sdk",
+        "kind": "group",
+        "members": [
+          "core",
+          "app"
+        ],
+        "release": true,
+        "renderedChangelogTitle": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) (2026-04-06)",
+        "renderedTitle": "1.1.0 (2026-04-06)",
+        "tag": true,
+        "tagName": "v1.1.0",
+        "version": "1.1.0",
+        "versionFormat": "primary"
+      }
+    ]
+  },
+  "ungrouped-empty-package": {
+    "changedFiles": [
+      "Cargo.toml",
+      "crates/app/CHANGELOG.md",
+      "crates/app/Cargo.toml"
+    ],
+    "changelogFiles": {
+      "app": true,
+      "core": true,
+      "group": true
+    },
+    "releaseTargets": [
+      {
+        "id": "app",
+        "kind": "package",
+        "members": [
+          "app"
+        ],
+        "release": false,
+        "renderedChangelogTitle": "app [1.0.1](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.1) (2026-04-06)",
+        "renderedTitle": "app 1.0.1 (2026-04-06)",
+        "tag": false,
+        "tagName": "app/v1.0.1",
+        "version": "1.0.1",
+        "versionFormat": "namespaced"
+      }
+    ]
+  }
+}
