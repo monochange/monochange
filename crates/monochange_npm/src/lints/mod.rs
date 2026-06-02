@@ -4,6 +4,7 @@
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
@@ -268,13 +269,18 @@ fn manifest_object_mut(value: &mut Value) -> Option<&mut Map<String, Value>> {
 	value.as_object_mut()
 }
 
-fn source_key_order(contents: &str, section: &str, keys: &[&String]) -> Option<Vec<String>> {
+fn dependency_section_object_span(contents: &str, section: &str) -> Option<(usize, usize)> {
 	let section_anchor = format!("\"{section}\"");
 	let section_start = contents.find(&section_anchor)?;
 	let rest = &contents[section_start..];
 	let open_offset = rest.find('{')? + section_start;
 	let close_offset = matching_brace_offset(contents, open_offset)?;
-	let section_text = &contents[open_offset..=close_offset];
+	Some((open_offset, close_offset + 1))
+}
+
+fn source_key_order(contents: &str, section: &str, keys: &[&String]) -> Option<Vec<String>> {
+	let (open_offset, close_offset) = dependency_section_object_span(contents, section)?;
+	let section_text = &contents[open_offset..close_offset];
 	let mut keyed_positions = keys
 		.iter()
 		.filter_map(|key| {
@@ -290,6 +296,59 @@ fn source_key_order(contents: &str, section: &str, keys: &[&String]) -> Option<V
 			.map(|(key, _)| key)
 			.collect::<Vec<_>>(),
 	)
+}
+
+fn dependency_value_span(
+	contents: &str,
+	section: &str,
+	dep_name: &str,
+	version: &str,
+) -> Option<(usize, usize)> {
+	let (open_offset, close_offset) = dependency_section_object_span(contents, section)?;
+	let section_text = &contents[open_offset..close_offset];
+	let dep_start = section_text.find(&serde_json::to_string(dep_name).ok()?)?;
+	let after_dep = open_offset + dep_start;
+	let value_text = serde_json::to_string(version).ok()?;
+	let value_start = contents[after_dep..close_offset].find(&value_text)? + after_dep;
+	Some((value_start, value_start + value_text.len()))
+}
+
+fn leading_line_indent(contents: &str, offset: usize) -> &str {
+	let line_start = contents[..offset].rfind('\n').map_or(0, |index| index + 1);
+	let indent_end = contents[line_start..]
+		.find(|character: char| !character.is_whitespace() || character == '\n')
+		.map_or(offset, |index| line_start + index);
+	&contents[line_start..indent_end]
+}
+
+fn sorted_dependency_section_text(
+	contents: &str,
+	section: &str,
+	object: &Map<String, Value>,
+	sorted_keys: &[String],
+) -> Option<String> {
+	let (open_offset, close_offset) = dependency_section_object_span(contents, section)?;
+	let section_indent = leading_line_indent(contents, open_offset);
+	let entry_indent = contents[open_offset + 1..close_offset - 1]
+		.find('"')
+		.map_or_else(
+			|| format!("{section_indent}  "),
+			|relative| leading_line_indent(contents, open_offset + 1 + relative).to_string(),
+		);
+	let mut output = String::from("{");
+	for (index, key) in sorted_keys.iter().enumerate() {
+		let value = object.get(key)?;
+		let key_text = serde_json::to_string(key).ok()?;
+		let value_text = serde_json::to_string(value).ok()?;
+		let comma = if index + 1 == sorted_keys.len() {
+			""
+		} else {
+			","
+		};
+		write!(output, "\n{entry_indent}{key_text}: {value_text}{comma}").ok()?;
+	}
+	write!(output, "\n{section_indent}}}").ok()?;
+	Some(output)
 }
 
 fn matching_brace_offset(contents: &str, open_offset: usize) -> Option<usize> {
@@ -378,18 +437,14 @@ impl LintRuleRunner for WorkspaceProtocolRule {
 					config.severity(),
 				);
 
-				if config.bool_option("fix", true) {
-					let mut rewritten = file.manifest.clone();
-					if let Some(root) = manifest_object_mut(&mut rewritten)
-						&& let Some(section) = root.get_mut(section).and_then(Value::as_object_mut)
-					{
-						section.insert(dep_name.clone(), Value::String("workspace:*".to_string()));
-					}
+				if config.bool_option("fix", true)
+					&& let Some(span) =
+						dependency_value_span(ctx.contents, section, dep_name, version)
+				{
 					result = result.with_fix(LintFix::single(
 						"rewrite dependency to workspace:*",
-						(0, ctx.contents.len()),
-						serde_json::to_string_pretty(&rewritten)
-							.unwrap_or_else(|_| ctx.contents.to_string()),
+						span,
+						"\"workspace:*\"".to_string(),
 					));
 				}
 
@@ -456,24 +511,15 @@ impl LintRuleRunner for SortedDependenciesRule {
 				format!("dependencies in `{section}` are not sorted alphabetically"),
 				config.severity(),
 			);
-			if config.bool_option("fix", true) {
-				let mut rewritten = file.manifest.clone();
-				if let Some(root) = manifest_object_mut(&mut rewritten)
-					&& let Some(section_obj) = root.get_mut(section).and_then(Value::as_object_mut)
-				{
-					let current = section_obj.clone();
-					section_obj.clear();
-					for key in sorted_keys {
-						if let Some(value) = current.get(&key) {
-							section_obj.insert(key.clone(), value.clone());
-						}
-					}
-				}
+			if config.bool_option("fix", true)
+				&& let Some(span) = dependency_section_object_span(ctx.contents, section)
+				&& let Some(replacement) =
+					sorted_dependency_section_text(ctx.contents, section, object, &sorted_keys)
+			{
 				result = result.with_fix(LintFix::single(
 					"sort dependency section alphabetically",
-					(0, ctx.contents.len()),
-					serde_json::to_string_pretty(&rewritten)
-						.unwrap_or_else(|_| ctx.contents.to_string()),
+					span,
+					replacement,
 				));
 			}
 			results.push(result);

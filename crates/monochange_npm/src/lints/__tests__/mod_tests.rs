@@ -118,6 +118,57 @@ fn sorted_dependencies_rule_reports_unsorted_sections() {
 }
 
 #[test]
+fn sorted_dependencies_fix_preserves_top_level_package_json_order() {
+	let contents = r#"{
+  "name": "example",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "keep top-level order",
+  "dependencies": {
+    "zeta": "1.0.0",
+    "alpha": "1.0.0"
+  },
+  "devDependencies": {
+    "vitest": "1.0.0"
+  }
+}"#;
+	let target = npm_target(contents, true, false);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let results = SortedDependenciesRule::new().run(&ctx, &config());
+	let fix = results
+		.first()
+		.and_then(|result| result.fix.as_ref())
+		.unwrap_or_else(|| panic!("expected sorted dependency fix"));
+	let edit = fix
+		.edits
+		.first()
+		.unwrap_or_else(|| panic!("expected sorted dependency edit"));
+	assert_ne!(edit.span, (0, contents.len()));
+
+	let mut fixed = contents.to_string();
+	fixed.replace_range(edit.span.0..edit.span.1, &edit.replacement);
+	assert!(fixed.contains(
+		r#"  "dependencies": {
+    "alpha": "1.0.0",
+    "zeta": "1.0.0"
+  },"#
+	));
+	assert!(fixed.contains(
+		r#"  "name": "example",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "keep top-level order",
+  "dependencies""#
+	));
+}
+
+#[test]
 fn required_package_fields_rule_supports_custom_fields() {
 	let target = npm_target(r#"{"name":"example","description":"ok"}"#, true, false);
 	let ctx = LintContext {

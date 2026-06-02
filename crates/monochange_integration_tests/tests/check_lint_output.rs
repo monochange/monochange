@@ -49,6 +49,52 @@ fn check_lint_output_shows_rule_first_and_verbose_details() {
 }
 
 #[test]
+fn check_sorted_fix_preserves_package_json_field_order() {
+	let fixture = setup_fixture("check-output", "npm-workspace");
+	std::fs::write(
+		fixture.path().join("monochange.toml"),
+		r#"[lints]
+use = ["npm/recommended"]
+
+[package.app]
+path = "packages/app"
+type = "npm"
+version = "0.0.0"
+
+[package.shared]
+path = "packages/shared"
+type = "npm"
+version = "0.0.0"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+	let output = run_check(fixture.path(), &["--format", "text", "--fix"]);
+	let package_json_path = fixture.path().join("packages/app/package.json");
+	let contents = std::fs::read_to_string(&package_json_path)
+		.unwrap_or_else(|error| panic!("read package.json: {error}"));
+	let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap_or_else(|error| {
+		panic!("package.json should remain valid JSON: {error}\n{contents}")
+	});
+
+	insta::assert_snapshot!(normalize_workspace_paths(fixture.path(), output));
+	insta::assert_snapshot!(contents);
+	assert_eq!(parsed["name"], "app");
+	assert!(contents.contains(
+		r#"    "name": "app",
+    "version": "0.0.0",
+    "type": "module",
+    "description": "Application package",
+    "dependencies""#
+	));
+	assert!(contents.contains(
+		r#"    "dependencies": {
+        "shared": "^0.0.0",
+        "zeta": "1.0.0"
+    },"#
+	));
+}
+
+#[test]
 fn check_fix_preserves_package_json_when_multiple_full_file_fixes_exist() {
 	let fixture = setup_fixture("check-output", "npm-workspace");
 	let output = run_check(fixture.path(), &["--format", "text", "--fix"]);
@@ -62,4 +108,11 @@ fn check_fix_preserves_package_json_when_multiple_full_file_fixes_exist() {
 	insta::assert_snapshot!(normalize_workspace_paths(fixture.path(), output));
 	insta::assert_snapshot!(contents);
 	assert_eq!(parsed["name"], "app");
+	assert!(contents.contains(
+		r#"    "name": "app",
+    "version": "0.0.0",
+    "type": "module",
+    "description": "Application package",
+    "dependencies""#
+	));
 }
