@@ -1147,6 +1147,18 @@ fn ecosystem_name(ecosystem_type: EcosystemType) -> &'static str {
 	}
 }
 
+fn literal_auto_discover_walk_root(pattern: &str) -> PathBuf {
+	let mut prefix = PathBuf::new();
+	for component in Path::new(pattern).components() {
+		let text = component.as_os_str().to_string_lossy();
+		if text.contains('*') || text.contains('?') || text.contains('[') {
+			break;
+		}
+		prefix.push(component.as_os_str());
+	}
+	prefix
+}
+
 /// Discover packages from a single ecosystem using its auto-discover settings.
 ///
 /// Walks directories matching `include` glob patterns, skips those matching
@@ -1183,8 +1195,18 @@ pub(crate) fn discover_packages_from_ecosystem(
 	let mut discovered = Vec::new();
 	let mut seen_paths = HashSet::<PathBuf>::new();
 
-	for include_pattern in &include_patterns {
-		let walker = WalkBuilder::new(root)
+	for (include_pattern, include_text) in include_patterns.iter().zip(&auto_discover.include) {
+		let literal_walk_root = literal_auto_discover_walk_root(include_text);
+		let search_root = if literal_walk_root.as_os_str().is_empty() {
+			root.to_path_buf()
+		} else {
+			root.join(&literal_walk_root)
+		};
+		if !search_root.exists() {
+			continue;
+		}
+
+		let walker = WalkBuilder::new(&search_root)
 			.hidden(false)
 			.git_ignore(true)
 			.git_global(false)

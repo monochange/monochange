@@ -7612,6 +7612,46 @@ fn extract_manifest_name_returns_none_for_missing_name() {
 }
 
 #[test]
+fn literal_auto_discover_walk_root_stops_before_first_glob_component() {
+	assert_eq!(
+		crate::literal_auto_discover_walk_root("crates/*"),
+		PathBuf::from("crates"),
+	);
+	assert_eq!(
+		crate::literal_auto_discover_walk_root("apps/*/packages/*"),
+		PathBuf::from("apps"),
+	);
+	assert_eq!(crate::literal_auto_discover_walk_root("*"), PathBuf::new(),);
+	assert_eq!(
+		crate::literal_auto_discover_walk_root("packages/api"),
+		PathBuf::from("packages/api"),
+	);
+}
+
+#[test]
+fn discover_packages_from_ecosystem_handles_root_glob_and_missing_literal_root() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(
+		root.join("package.json"),
+		r#"{"name":"root-package","version":"1.0.0"}"#,
+	)
+	.unwrap_or_else(|error| panic!("write root package.json: {error}"));
+
+	let settings = AutoDiscoverSettings {
+		include: vec!["*".to_string(), "missing/*".to_string()],
+		exclude: vec![],
+		id: monochange_core::default_auto_discover_id(),
+		defaults: AutoDiscoverPackageDefaults::default(),
+	};
+	let discovered = crate::discover_packages_from_ecosystem(root, EcosystemType::Npm, &settings)
+		.unwrap_or_else(|error| panic!("discover npm: {error}"));
+
+	assert_eq!(discovered.len(), 1);
+	assert_eq!(discovered[0].path, PathBuf::new());
+}
+
+#[test]
 fn discover_packages_from_ecosystem_finds_cargo_packages() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let crates_dir = tempdir.path().join("crates");
