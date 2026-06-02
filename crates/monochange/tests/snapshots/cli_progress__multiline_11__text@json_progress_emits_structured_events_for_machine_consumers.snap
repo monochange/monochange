@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/cli_progress.rs
-assertion_line: 325
 expression: contents
 ---
 stdout line

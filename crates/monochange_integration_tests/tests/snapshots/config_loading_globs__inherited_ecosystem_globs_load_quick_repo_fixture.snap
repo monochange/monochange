@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/config_loading_globs.rs
-assertion_line: 40
 expression: packages
 ---
 [

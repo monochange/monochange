@@ -2959,7 +2959,7 @@ impl CliStepDefinition {
 			}
 			Self::PublishRelease { .. } => Some(&["format", "from-ref", "draft"]),
 			Self::OpenReleaseRequest { .. } => Some(&["format", "no_verify", "stage_all"]),
-Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all", "otp"]),
+			Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all", "otp"]),
 			Self::PublishPackages { .. } => {
 				Some(&[
 					"format",
