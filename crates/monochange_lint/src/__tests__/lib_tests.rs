@@ -38,10 +38,10 @@ impl LintRuleRunner for ExampleRule {
 	}
 
 	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
-		if ctx.contents.contains("bad") {
+		if let Some(start) = ctx.contents.find("bad") {
 			vec![LintResult::new(
 				self.rule.id.clone(),
-				LintLocation::new(ctx.manifest_path, 1, 1),
+				LintLocation::new(ctx.manifest_path, 1, 1).with_span(start, start + 3),
 				"found bad",
 				config.severity(),
 			)]
@@ -83,7 +83,7 @@ impl LintSuite for ExampleSuite {
 		Ok(vec![LintTarget::new(
 			workspace_root.to_path_buf(),
 			workspace_root.join("example.txt"),
-			"this is bad",
+			"first line\nthis is bad",
 			LintTargetMetadata {
 				ecosystem: "example".to_string(),
 				relative_path: PathBuf::from("example.txt"),
@@ -189,6 +189,35 @@ fn linter_runs_preset_backed_rules() {
 	let report = linter.lint_workspace(root.path(), &configuration, &NoopLintProgressReporter);
 	assert_eq!(report.error_count, 1);
 	assert_eq!(report.results.len(), 1);
+	let result = report
+		.results
+		.first()
+		.unwrap_or_else(|| panic!("expected one lint result"));
+	assert_eq!(result.location.line, 2);
+	assert_eq!(result.location.column, 9);
+}
+
+#[test]
+fn linter_skips_regular_rules_for_unmanaged_package_targets() {
+	let root = tempfile::tempdir().unwrap();
+	let configuration = sample_workspace_configuration(root.path());
+	let settings = WorkspaceLintSettings {
+		presets: vec!["example/recommended".to_string()],
+		..WorkspaceLintSettings::default()
+	};
+	let linter = Linter::new(vec![Box::new(ExampleSuite)], settings);
+	let mut target = ExampleSuite
+		.collect_targets(root.path(), &configuration)
+		.unwrap_or_else(|error| panic!("expected example suite targets: {error}"))
+		.into_iter()
+		.next()
+		.unwrap_or_else(|| panic!("expected a target"));
+	target.metadata.package_name = Some("unmanaged".to_string());
+	target.metadata.managed = false;
+
+	let report = linter.lint_target(&target);
+	assert_eq!(report.error_count, 0);
+	assert!(report.results.is_empty());
 }
 
 #[test]
@@ -392,6 +421,17 @@ fn linter_warns_when_suite_target_collection_fails() {
 }
 
 #[test]
+fn fill_location_from_span_keeps_invalid_span_locations_at_default() {
+	let mut out_of_bounds = LintLocation::new("manifest.json", 1, 1).with_span(99, 100);
+	fill_location_from_span(&mut out_of_bounds, "short");
+	assert_eq!((out_of_bounds.line, out_of_bounds.column), (1, 1));
+
+	let mut non_boundary = LintLocation::new("manifest.json", 1, 1).with_span(1, 2);
+	fill_location_from_span(&mut non_boundary, "éclair");
+	assert_eq!((non_boundary.line, non_boundary.column), (1, 1));
+}
+
+#[test]
 fn apply_fixes_skips_missing_files() {
 	let root = tempfile::tempdir().unwrap();
 	let linter = Linter::new(
@@ -409,6 +449,26 @@ fn apply_fixes_skips_missing_files() {
 		.with_fix(LintFix::single("rewrite", (0, 3), "ok")),
 	);
 	assert!(linter.apply_fixes(&report).is_empty());
+}
+
+#[test]
+fn apply_fixes_skips_overlapping_full_file_edits() {
+	let contents = "{\n  \"name\": \"example\",\n  \"version\": \"0.0.0\"\n}\n";
+	let first = LintFix::single(
+		"sort manifest",
+		(0, contents.len()),
+		"{\n  \"version\": \"0.0.0\",\n  \"name\": \"example\"\n}\n",
+	);
+	let second = LintFix::single(
+		"rewrite dependency",
+		(0, contents.len()),
+		"{\n  \"name\": \"example\",\n  \"version\": \"0.0.0\",\n  \"dependencies\": {}\n}\n",
+	);
+
+	let fixed = apply_fixes_to_content(contents, &[first, second]);
+	assert!(fixed.ends_with("}\n"));
+	assert_eq!(fixed.matches("\"name\"").count(), 1);
+	assert_eq!(fixed.matches("}\n").count(), 1);
 }
 
 #[test]

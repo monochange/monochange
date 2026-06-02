@@ -1,0 +1,15 @@
+[lints]
+use = ["npm/recommended"]
+
+[lints.rules]
+"npm/workspace-protocol" = { level = "error", fix = true }
+
+[package.app]
+path = "packages/app"
+type = "npm"
+version = "0.0.0"
+
+[package.shared]
+path = "packages/shared"
+type = "npm"
+version = "0.0.0"

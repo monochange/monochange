@@ -1,0 +1,38 @@
+---
+source: crates/monochange_integration_tests/tests/check_lint_output.rs
+expression: output
+---
+config error: check failed:
+workspace validation passed for [workspace]
+lint: 6 errors, 1 warnings
+
+[workspace]/packages/app/package.json:
+  ✗ **npm/workspace-protocol** at 8:10 [fixable]
+     internal dependency `shared` should use the workspace: protocol (found `^0.0.0`)
+     severity: error
+     span: 165..171
+     fix: rewrite dependency to workspace:*
+  ⚠ **npm/sorted-dependencies** at 6:6 [fixable]
+     dependencies in `dependencies` are not sorted alphabetically
+     severity: warning
+     span: 114..126
+     fix: sort dependency section alphabetically
+  ✗ **npm/required-package-fields** at 1:1
+     missing required package.json field `repository`
+     severity: error
+  ✗ **npm/required-package-fields** at 1:1
+     missing required package.json field `license`
+     severity: error
+
+[workspace]/packages/shared/package.json:
+  ✗ **npm/required-package-fields** at 1:1
+     missing required package.json field `description`
+     severity: error
+  ✗ **npm/required-package-fields** at 1:1
+     missing required package.json field `repository`
+     severity: error
+  ✗ **npm/required-package-fields** at 1:1
+     missing required package.json field `license`
+     severity: error
+
+2 issue(s) can be auto-fixed. Run with --fix to apply.

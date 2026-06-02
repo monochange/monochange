@@ -20,7 +20,7 @@ fn readonly_fix_workspace() -> tempfile::TempDir {
 #[test]
 fn test_format_check_report_empty() {
 	let report = LintReport::new();
-	let output = format_check_report(&report, false);
+	let output = format_check_report(&report, false, false);
 	assert!(output.contains("no issues found"));
 }
 
@@ -40,10 +40,12 @@ fn test_format_check_report_with_issues() {
 		LintSeverity::Warning,
 	));
 
-	let output = format_check_report(&report, false);
+	let output = format_check_report(&report, false, true);
 	assert!(output.contains("1 errors, 1 warnings"));
+	assert!(output.contains("✗ **test/rule** at 1:1"));
 	assert!(output.contains("Test error"));
 	assert!(output.contains("Test warning"));
+	assert!(output.contains("severity: error"));
 }
 
 #[test]
@@ -94,12 +96,26 @@ fn render_lint_explanation_supports_json() {
 #[test]
 fn run_check_command_supports_text_json_and_fix_error_paths() {
 	let clean_workspace = clean_lint_workspace();
-	let json =
-		run_check_command(clean_workspace.path(), false, &[], &[], OutputFormat::Json).unwrap();
+	let json = run_check_command(
+		clean_workspace.path(),
+		false,
+		&[],
+		&[],
+		OutputFormat::Json,
+		false,
+	)
+	.unwrap();
 	assert!(json.contains("\"error_count\": 0"));
 
-	let text =
-		run_check_command(clean_workspace.path(), false, &[], &[], OutputFormat::Text).unwrap();
+	let text = run_check_command(
+		clean_workspace.path(),
+		false,
+		&[],
+		&[],
+		OutputFormat::Text,
+		false,
+	)
+	.unwrap();
 	assert!(text.contains("workspace validation passed"));
 
 	let tempdir = readonly_fix_workspace();
@@ -107,7 +123,7 @@ fn run_check_command_supports_text_json_and_fix_error_paths() {
 	let mut permissions = fs::metadata(&cargo_toml).unwrap().permissions();
 	permissions.set_readonly(true);
 	fs::set_permissions(&cargo_toml, permissions).unwrap();
-	let error = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text)
+	let error = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text, false)
 		.expect_err("expected fix write to fail for readonly manifest");
 	assert!(error.to_string().contains("Failed to write fixed content"));
 }
@@ -191,19 +207,19 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 		repository = \"https://github.com/monochange/monochange\"\n",
 	)
 	.unwrap_or_else(|error| panic!("expected warning manifest to be written: {error}"));
-	let warning_text = run_check_command(warning_root, false, &[], &[], OutputFormat::Text)
+	let warning_text = run_check_command(warning_root, false, &[], &[], OutputFormat::Text, false)
 		.unwrap_or_else(|error| panic!("expected warning-only check to pass: {error}"));
 	assert!(warning_text.contains("warning:"));
 	assert!(warning_text.contains("matches no files"));
 
-	let text_error = run_check_command(root, false, &[], &[], OutputFormat::Text)
+	let text_error = run_check_command(root, false, &[], &[], OutputFormat::Text, false)
 		.expect_err("expected text check to fail validation");
 	let text_message = text_error.to_string();
 	assert!(text_message.contains("workspace validation failed"));
 	assert!(text_message.contains("unknown package or group `missing`"));
 	assert!(text_message.contains("missing.toml"));
 
-	let json_error = run_check_command(root, false, &[], &[], OutputFormat::Json)
+	let json_error = run_check_command(root, false, &[], &[], OutputFormat::Json, false)
 		.expect_err("expected json check to fail validation");
 	let json_message = json_error.to_string();
 	assert!(json_message.contains("check failed"));
@@ -213,7 +229,7 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 #[test]
 fn run_check_command_applies_fixes_and_reports_them() {
 	let tempdir = readonly_fix_workspace();
-	let output = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text)
+	let output = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text, false)
 		.unwrap_or_else(|error| panic!("expected fixable lint workspace to succeed: {error}"));
 	assert!(output.contains("Fixed all auto-fixable issues."));
 
@@ -225,7 +241,7 @@ fn run_check_command_applies_fixes_and_reports_them() {
 #[test]
 fn run_check_command_applies_fixes_without_progress_reporter() {
 	let tempdir = readonly_fix_workspace();
-	let result = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Json);
+	let result = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Json, false);
 	assert!(
 		result.is_ok(),
 		"expected fixable lint workspace to succeed without a reporter: {result:?}"
@@ -234,6 +250,15 @@ fn run_check_command_applies_fixes_without_progress_reporter() {
 	let manifest = fs::read_to_string(tempdir.path().join("crates/example/Cargo.toml"))
 		.unwrap_or_else(|error| panic!("expected fixed manifest to be readable: {error}"));
 	assert!(manifest.contains("publish = false"));
+}
+
+#[test]
+fn run_lint_step_reports_successful_check_output() {
+	let clean_workspace = clean_lint_workspace();
+	let (output, has_errors) = run_lint_step(clean_workspace.path(), false)
+		.unwrap_or_else(|error| panic!("expected lint step to succeed: {error}"));
+	assert!(!has_errors);
+	assert!(output.contains("no issues found"));
 }
 
 #[test]

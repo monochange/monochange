@@ -113,6 +113,7 @@ pub(crate) fn run_check_command(
 	ecosystems: &[String],
 	only_rules: &[String],
 	format: OutputFormat,
+	verbose: bool,
 ) -> MonochangeResult<String> {
 	let configuration = load_workspace_configuration(root)?;
 	let mut output = String::new();
@@ -209,7 +210,7 @@ pub(crate) fn run_check_command(
 				.unwrap_or_else(|error| panic!("serializing lint reports should succeed: {error}")))
 		}
 		OutputFormat::Text | OutputFormat::Markdown => {
-			output.push_str(&format_check_report(&report, fix));
+			output.push_str(&format_check_report(&report, fix, verbose));
 			if validation_has_errors || lint_has_errors {
 				Err(MonochangeError::Config(format!("check failed:\n{output}")))
 			} else {
@@ -244,7 +245,7 @@ pub(crate) fn run_lint_step(root: &Path, fix: bool) -> MonochangeResult<(String,
 		}
 	}
 
-	Ok((format_check_report(&report, fix), has_errors))
+	Ok((format_check_report(&report, fix, false), has_errors))
 }
 
 #[allow(clippy::unnecessary_wraps)]
@@ -492,7 +493,7 @@ impl LintRuleRunner for {struct_name} {{
 	))
 }
 
-fn format_check_report(report: &LintReport, fixed: bool) -> String {
+fn format_check_report(report: &LintReport, fixed: bool, verbose: bool) -> String {
 	if report.results.is_empty() && report.warnings.is_empty() {
 		return "lint: no issues found\n".to_string();
 	}
@@ -534,13 +535,23 @@ fn format_check_report(report: &LintReport, fixed: bool) -> String {
 			};
 			let _ = writeln!(
 				output,
-				"  {} {} at {}:{}{}",
+				"  {} **{}** at {}:{}{}",
 				severity_icon,
-				result.message,
+				result.rule_id,
 				result.location.line,
 				result.location.column,
 				fix_indicator
 			);
+			let _ = writeln!(output, "     {}", result.message);
+			if verbose {
+				let _ = writeln!(output, "     severity: {}", result.severity);
+				if let Some((start, end)) = result.location.span {
+					let _ = writeln!(output, "     span: {start}..{end}");
+				}
+				if let Some(fix) = result.fix.as_ref() {
+					let _ = writeln!(output, "     fix: {}", fix.description);
+				}
+			}
 		}
 		output.push('\n');
 	}

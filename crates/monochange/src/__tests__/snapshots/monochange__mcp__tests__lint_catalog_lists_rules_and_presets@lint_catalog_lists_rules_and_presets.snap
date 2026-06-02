@@ -89,7 +89,7 @@ expression: content_text(&result)
         "npm/root-no-prod-deps": "error",
         "npm/sorted-dependencies": "warning",
         "npm/unlisted-package-private": "warning",
-        "npm/workspace-protocol": "error"
+        "npm/workspace-protocol": "off"
       }
     },
     {
