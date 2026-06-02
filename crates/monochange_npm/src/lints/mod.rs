@@ -76,7 +76,7 @@ impl LintSuite for NpmLintSuite {
 			.with_rules(BTreeMap::from([
 				(
 					"npm/workspace-protocol".to_string(),
-					LintRuleConfig::Severity(LintSeverity::Error),
+					LintRuleConfig::Severity(LintSeverity::Off),
 				),
 				(
 					"npm/sorted-dependencies".to_string(),

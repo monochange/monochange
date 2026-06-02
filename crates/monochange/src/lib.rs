@@ -1091,6 +1091,7 @@ where
 				return Ok(String::new());
 			}
 			let fix = check_matches.get_flag("fix");
+			let verbose = check_matches.get_flag("verbose");
 			let format = check_matches
 				.get_one::<String>("format")
 				.map_or(Ok(OutputFormat::Markdown), |value| {
@@ -1104,7 +1105,7 @@ where
 				.get_many::<String>("only")
 				.map(|values| values.map(String::as_str).map(String::from).collect())
 				.unwrap_or_default();
-			lint::run_check_command(root, fix, &ecosystems, &only_rules, format)
+			lint::run_check_command(root, fix, &ecosystems, &only_rules, format, verbose)
 		}
 		Some(("lint", lint_matches)) => {
 			if quiet {

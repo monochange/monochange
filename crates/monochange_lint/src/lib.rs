@@ -300,6 +300,12 @@ impl Linter {
 			if !self.selection.allows_rule(rule_id) {
 				continue;
 			}
+			if target.metadata.package_name.is_some()
+				&& !target.metadata.managed
+				&& !rule_id.ends_with("/unlisted-package-private")
+			{
+				continue;
+			}
 
 			let config = self
 				.resolve_rule_config(target, rule_id)
@@ -320,6 +326,7 @@ impl Linter {
 			let mut rule_results = Vec::new();
 			for mut result in rule.run(&ctx, &config) {
 				result.severity = config.severity();
+				fill_location_from_span(&mut result.location, &target.contents);
 				rule_results.push(result);
 			}
 			reporter.file_rule_finished(&target.manifest_path, rule_id, rule_results.len());
@@ -416,6 +423,37 @@ impl Linter {
 
 		true
 	}
+}
+
+fn fill_location_from_span(location: &mut monochange_core::lint::LintLocation, contents: &str) {
+	if location.line != 1 || location.column != 1 {
+		return;
+	}
+	let Some((start, _)) = location.span else {
+		return;
+	};
+	let Some((line, column)) = line_column_for_offset(contents, start) else {
+		return;
+	};
+	location.line = line;
+	location.column = column;
+}
+
+fn line_column_for_offset(contents: &str, offset: usize) -> Option<(usize, usize)> {
+	if offset > contents.len() || !contents.is_char_boundary(offset) {
+		return None;
+	}
+	let mut line = 1usize;
+	let mut column = 1usize;
+	for character in contents[..offset].chars() {
+		if character == '\n' {
+			line += 1;
+			column = 1;
+		} else {
+			column += 1;
+		}
+	}
+	Some((line, column))
 }
 
 fn lint_path_pattern_matches(pattern: &str, relative_path: &str, kind: &str) -> bool {

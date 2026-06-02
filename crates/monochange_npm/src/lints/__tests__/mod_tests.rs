@@ -48,6 +48,20 @@ fn presets_are_exposed() {
 		presets.get(1).map(|preset| preset.id.as_str()),
 		Some("npm/strict")
 	);
+	let recommended = presets
+		.first()
+		.unwrap_or_else(|| panic!("expected npm recommended preset"));
+	assert_eq!(
+		recommended.rules.get("npm/workspace-protocol"),
+		Some(&LintRuleConfig::Severity(LintSeverity::Off))
+	);
+	let strict = presets
+		.get(1)
+		.unwrap_or_else(|| panic!("expected npm strict preset"));
+	assert_eq!(
+		strict.rules.get("npm/workspace-protocol"),
+		Some(&LintRuleConfig::Severity(LintSeverity::Error))
+	);
 }
 
 #[test]

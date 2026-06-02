@@ -537,6 +537,13 @@ pub(crate) fn build_check_subcommand() -> Command {
 				.value_parser(["text", "json", "markdown", "md"]),
 		)
 		.arg(
+			Arg::new("verbose")
+				.long("verbose")
+				.short('v')
+				.help("Show extra lint diagnostic details")
+				.action(ArgAction::SetTrue),
+		)
+		.arg(
 			Arg::new("sha")
 				.long("sha")
 				.help("Output only the commit SHA of the discovered release record")
