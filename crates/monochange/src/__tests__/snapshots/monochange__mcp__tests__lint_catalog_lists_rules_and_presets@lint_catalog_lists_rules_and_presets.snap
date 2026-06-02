@@ -1,11 +1,26 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
+assertion_line: 687
 expression: content_text(&result)
 ---
 {
   "action": "lint_catalog",
   "ok": true,
   "presets": [
+    {
+      "description": "Gentle Cargo manifest linting for onboarding existing workspaces",
+      "id": "cargo/baseline",
+      "maturity": "stable",
+      "name": "Cargo baseline",
+      "rules": {
+        "cargo/dependency-field-order": "off",
+        "cargo/internal-dependency-workspace": "warning",
+        "cargo/publishable-dependencies": "warning",
+        "cargo/required-package-fields": "warning",
+        "cargo/sorted-dependencies": "off",
+        "cargo/unlisted-package-private": "warning"
+      }
+    },
     {
       "description": "Balanced Cargo manifest linting for most workspaces",
       "id": "cargo/recommended",
@@ -44,6 +59,19 @@ expression: content_text(&result)
       }
     },
     {
+      "description": "Gentle Dart manifest linting for onboarding existing workspaces",
+      "id": "dart/baseline",
+      "maturity": "stable",
+      "name": "Dart baseline",
+      "rules": {
+        "dart/dependency-sorted": "off",
+        "dart/no-git-dependencies-in-published-packages": "warning",
+        "dart/required-package-fields": "warning",
+        "dart/sdk-constraint-present": "warning",
+        "dart/unlisted-package-private": "warning"
+      }
+    },
+    {
       "description": "Balanced Dart manifest linting for metadata, publishability, and baseline SDK hygiene",
       "id": "dart/recommended",
       "maturity": "stable",
@@ -76,6 +104,20 @@ expression: content_text(&result)
         "dart/sdk-constraint-present": "error",
         "dart/unlisted-package-private": "error",
         "dart/workspace-internal-version-consistency": "error"
+      }
+    },
+    {
+      "description": "Gentle npm-family manifest linting for onboarding existing workspaces",
+      "id": "npm/baseline",
+      "maturity": "stable",
+      "name": "npm baseline",
+      "rules": {
+        "npm/no-duplicate-dependencies": "warning",
+        "npm/required-package-fields": "warning",
+        "npm/root-no-prod-deps": "warning",
+        "npm/sorted-dependencies": "off",
+        "npm/unlisted-package-private": "warning",
+        "npm/workspace-protocol": "off"
       }
     },
     {
@@ -504,5 +546,5 @@ expression: content_text(&result)
       ]
     }
   ],
-  "summary": "Loaded 29 lint rule(s) and 7 preset(s)."
+  "summary": "Loaded 29 lint rule(s) and 10 preset(s)."
 }

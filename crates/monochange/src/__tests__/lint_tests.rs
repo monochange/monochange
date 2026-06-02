@@ -52,11 +52,13 @@ fn test_format_check_report_with_issues() {
 fn render_lint_catalog_lists_rules_and_presets() {
 	let text = render_lint_catalog(OutputFormat::Text).unwrap();
 	assert!(text.contains("cargo/internal-dependency-workspace"));
+	assert!(text.contains("cargo/baseline"));
 	assert!(text.contains("cargo/recommended"));
 	assert!(text.contains("dart/required-package-fields"));
 	assert!(text.contains("dart/sdk-constraint-present"));
 	assert!(text.contains("dart/internal-path-dependency-policy"));
 	assert!(text.contains("dart/flutter-package-metadata-consistent"));
+	assert!(text.contains("dart/baseline"));
 	assert!(text.contains("dart/recommended"));
 	assert!(text.contains("dart/strict"));
 
@@ -71,9 +73,20 @@ fn render_lint_explanation_supports_rules_and_presets() {
 		render_lint_explanation("cargo/internal-dependency-workspace", OutputFormat::Text).unwrap();
 	assert!(rule.contains("Internal dependency workspace"));
 
+	let baseline = render_lint_explanation("cargo/baseline", OutputFormat::Text).unwrap();
+	assert!(baseline.contains("Cargo baseline"));
+	assert!(baseline.contains("cargo/required-package-fields"));
+
 	let preset = render_lint_explanation("cargo/recommended", OutputFormat::Text).unwrap();
 	assert!(preset.contains("Cargo recommended"));
 	assert!(preset.contains("cargo/sorted-dependencies"));
+}
+
+#[test]
+fn generated_config_defaults_to_baseline_lints() {
+	let template = include_str!("../monochange.toml.template");
+	assert!(template.contains("use = [\"cargo/baseline\", \"npm/baseline\", \"dart/baseline\"]"));
+	assert!(template.contains("without turning formatting preferences into blocking errors"));
 }
 
 #[test]

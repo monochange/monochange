@@ -39,24 +39,31 @@ fn config() -> LintRuleConfig {
 #[test]
 fn presets_are_exposed() {
 	let presets = NpmLintSuite.presets();
-	assert_eq!(presets.len(), 2);
+	assert_eq!(presets.len(), 3);
 	assert_eq!(
 		presets.first().map(|preset| preset.id.as_str()),
-		Some("npm/recommended")
+		Some("npm/baseline")
 	);
 	assert_eq!(
 		presets.get(1).map(|preset| preset.id.as_str()),
-		Some("npm/strict")
+		Some("npm/recommended")
+	);
+	let baseline = presets
+		.first()
+		.unwrap_or_else(|| panic!("expected npm baseline preset"));
+	assert_eq!(
+		baseline.rules.get("npm/required-package-fields"),
+		Some(&LintRuleConfig::Severity(LintSeverity::Warning))
 	);
 	let recommended = presets
-		.first()
+		.get(1)
 		.unwrap_or_else(|| panic!("expected npm recommended preset"));
 	assert_eq!(
 		recommended.rules.get("npm/workspace-protocol"),
 		Some(&LintRuleConfig::Severity(LintSeverity::Off))
 	);
 	let strict = presets
-		.get(1)
+		.get(2)
 		.unwrap_or_else(|| panic!("expected npm strict preset"));
 	assert_eq!(
 		strict.rules.get("npm/workspace-protocol"),
