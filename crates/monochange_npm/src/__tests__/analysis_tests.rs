@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 use monochange_core::FileChangeKind;
+use monochange_core::PackageSnapshot;
+use monochange_core::PackageSnapshotFile;
 
 use super::*;
 
@@ -143,4 +145,99 @@ fn manifest_helpers_cover_parse_failures_removed_entries_and_scalar_bins() {
 	assert_eq!(describe_json_value(&serde_json::json!(3)), "3");
 	assert!(describe_json_value(&serde_json::json!(["a", "b"])).contains("a, b"));
 	assert!(describe_json_value(&serde_json::json!({"b": 2, "a": 1})).contains("a=1"));
+}
+
+#[test]
+fn api_snapshot_combines_ecmascript_and_manifest_items() {
+	let package = PackageRecord::new(
+		Ecosystem::Npm,
+		"@acme/web",
+		PathBuf::from("/repo/packages/web/package.json"),
+		PathBuf::from("/repo"),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	let snapshot = PackageSnapshot {
+		label: "HEAD".to_string(),
+		files: vec![
+			PackageSnapshotFile {
+				path: PathBuf::from("package.json"),
+				contents: serde_json::json!({
+					"name": "@acme/web",
+					"exports": {".": "./src/index.ts"},
+					"bin": {"acme-web": "./bin.js"},
+					"dependencies": {"react": "18"}
+				})
+				.to_string(),
+			},
+			PackageSnapshotFile {
+				path: PathBuf::from("src/index.ts"),
+				contents: "export function greet() {}".to_string(),
+			},
+		],
+	};
+	let context = PackageAnalysisContext {
+		repo_root: Path::new("/repo"),
+		package: &package,
+		detection_level: DetectionLevel::Signature,
+		changed_files: &[],
+		before_snapshot: None,
+		after_snapshot: Some(&snapshot),
+	};
+
+	let snapshot = api_snapshot(&context);
+
+	assert_eq!(snapshot.package_id, "npm:packages/web/package.json");
+	assert!(
+		snapshot
+			.items
+			.iter()
+			.any(|item| item.kind == "function" && item.path == "greet")
+	);
+	assert!(
+		snapshot
+			.items
+			.iter()
+			.any(|item| item.kind == "export" && item.path == ".")
+	);
+	assert!(
+		snapshot
+			.items
+			.iter()
+			.any(|item| item.kind == "command" && item.path == "acme-web")
+	);
+	assert!(
+		snapshot
+			.items
+			.iter()
+			.any(|item| item.kind == "dependency" && item.path == "react")
+	);
+}
+
+#[test]
+fn api_snapshot_handles_missing_manifest_file() {
+	let package = PackageRecord::new(
+		Ecosystem::Npm,
+		"@acme/web",
+		PathBuf::from("/repo/packages/web/package.json"),
+		PathBuf::from("/repo"),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	let snapshot = PackageSnapshot {
+		label: "HEAD".to_string(),
+		files: Vec::new(),
+	};
+	let context = PackageAnalysisContext {
+		repo_root: Path::new("/repo"),
+		package: &package,
+		detection_level: DetectionLevel::Signature,
+		changed_files: &[],
+		before_snapshot: None,
+		after_snapshot: Some(&snapshot),
+	};
+
+	let snapshot = api_snapshot(&context);
+
+	assert!(snapshot.items.is_empty());
 }

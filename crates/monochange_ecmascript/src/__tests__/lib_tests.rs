@@ -557,3 +557,28 @@ fn diff_public_symbols_reports_added_modified_and_removed_entries() {
 		change.kind == SemanticChangeKind::Removed && change.item_path == "Greeter"
 	}));
 }
+
+#[test]
+fn api_snapshot_extracts_exports_from_snapshot() {
+	let snapshot = PackageSnapshot {
+		label: "HEAD".to_string(),
+		files: vec![PackageSnapshotFile {
+			path: PathBuf::from("src/index.ts"),
+			contents: "export function greet() {}\nexport const version = \"1\";".to_string(),
+		}],
+	};
+
+	let snapshot = api_snapshot(
+		"pkg",
+		"pkg",
+		Ecosystem::Npm,
+		"npm/ecmascript-exports",
+		Some(&snapshot),
+		&[],
+		&NPM_CONFIG,
+	);
+
+	assert_eq!(snapshot.package_id, "pkg");
+	assert!(snapshot.items.iter().any(|item| item.path == "greet"));
+	assert!(snapshot.items.iter().any(|item| item.path == "version"));
+}

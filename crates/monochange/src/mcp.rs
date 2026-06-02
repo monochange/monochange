@@ -83,6 +83,16 @@ pub struct AnalyzeChangesParam {
 	pub max_suggestions: Option<usize>,
 }
 
+/// Input payload for the MCP API change classification tool.
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ClassifyChangesParam {
+	pub path: Option<String>,
+	/// Base git ref. Defaults to `origin/main`.
+	pub base: Option<String>,
+	/// Head git ref. Defaults to `HEAD`.
+	pub head: Option<String>,
+}
+
 /// Input payload for the MCP validate-changeset tool.
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct ValidateChangesetParam {
@@ -802,6 +812,44 @@ impl MonochangeMcpServer {
 				package_count,
 				semantic_change_count,
 			)
+		})))
+	}
+
+	#[tool(
+		name = "monochange_classify_changes",
+		description = "Classify API-impacting changes and return package bump recommendations."
+	)]
+	#[coverage(off)]
+	async fn classify_changes(
+		&self,
+		Parameters(params): Parameters<ClassifyChangesParam>,
+	) -> Result<CallToolResult, McpError> {
+		let root = resolve_root(params.path.as_deref());
+		let options = crate::change_classify::ClassifyOptions {
+			base: params.base.unwrap_or_else(|| "origin/main".to_string()),
+			head: params.head.unwrap_or_else(|| "HEAD".to_string()),
+			format: crate::OutputFormat::Json,
+			output: None,
+		};
+		let output = match crate::change_classify::render_change_classification(&root, &options) {
+			Ok(output) => output,
+			Err(error) => {
+				return Ok(json_error_result(json!({
+					"ok": false,
+					"action": "classify_changes",
+					"root": root,
+					"summary": format!("Classification failed: {}", error.render()),
+					"error": error.render()
+				})));
+			}
+		};
+		let report: serde_json::Value = serde_json::from_str(&output)
+			.map_err(|error| McpError::internal_error(error.to_string(), None))?;
+
+		Ok(json_result(json!({
+			"ok": true,
+			"action": "classify_changes",
+			"report": report,
 		})))
 	}
 

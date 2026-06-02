@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use monochange_core::AnalyzedFileChange;
+use monochange_core::ApiItem;
+use monochange_core::ApiSnapshot;
 use monochange_core::DetectionLevel;
 use monochange_core::Ecosystem;
 use monochange_core::MonochangeResult;
@@ -107,6 +109,54 @@ fn display_package_id(package: &PackageRecord) -> String {
 		.get("config_id")
 		.cloned()
 		.unwrap_or_else(|| package.id.clone())
+}
+
+/// Extract a monochange-owned API snapshot for an npm package.
+pub fn api_snapshot(context: &PackageAnalysisContext<'_>) -> ApiSnapshot {
+	let snapshot = context.after_snapshot.or(context.before_snapshot);
+	let mut items: Vec<ApiItem> = monochange_ecmascript::api_snapshot(
+		display_package_id(context.package),
+		context.package.name.clone(),
+		context.package.ecosystem,
+		"npm/package-json",
+		snapshot,
+		context.changed_files,
+		&NPM_ECMASCRIPT_EXPORT_CONFIG,
+	)
+	.items;
+	let mut warnings = Vec::new();
+
+	let manifest_file = snapshot.and_then(|snapshot| snapshot.file(Path::new(PACKAGE_JSON_FILE)));
+	if let Some((manifest_file, manifest)) = manifest_file.and_then(|file| {
+		parse_manifest(Some(&file.contents), &file.path, &mut warnings)
+			.map(|manifest| (file, manifest))
+	}) {
+		items.extend(
+			extract_public_exports(&manifest, &context.package.name)
+				.into_iter()
+				.map(|(path, entry)| {
+					ApiItem::new(entry.item_kind, path, Some(entry.value))
+						.with_source_path(manifest_file.path.clone())
+				}),
+		);
+		items.extend(
+			extract_dependency_entries(&manifest)
+				.into_iter()
+				.map(|(path, entry)| {
+					ApiItem::new(entry.item_kind, path, Some(entry.value))
+						.with_source_path(manifest_file.path.clone())
+				}),
+		);
+	}
+
+	ApiSnapshot::new(
+		display_package_id(context.package),
+		context.package.name.clone(),
+		context.package.ecosystem,
+		"npm/package-json",
+		items,
+		warnings,
+	)
 }
 
 const NPM_ECMASCRIPT_EXPORT_CONFIG: EcmascriptExportConfig = EcmascriptExportConfig {
