@@ -10,13 +10,17 @@ use serde::Deserialize;
 use serde::Serialize;
 
 /// Snapshot schema version emitted by this crate.
-pub const SNAPSHOT_SCHEMA_VERSION: u32 = 1;
+///
+/// The value is derived from the `monochange_snapshot` crate version by dropping
+/// the patch component. For example, crate version `0.7.0` emits snapshot schema
+/// version `0.7`.
+pub const SNAPSHOT_SCHEMA_VERSION: &str = env!("MONOCHANGE_SNAPSHOT_SCHEMA_VERSION");
 
 /// A framework-neutral command surface snapshot.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandSnapshot {
-	pub schema_version: u32,
+	pub schema_version: String,
 	pub kind: SnapshotKind,
 	pub tool: SnapshotTool,
 	pub provenance: SnapshotProvenance,
@@ -313,7 +317,7 @@ pub fn snapshot_from_clap(command: &Command) -> CommandSnapshot {
 		.collect();
 
 	CommandSnapshot {
-		schema_version: SNAPSHOT_SCHEMA_VERSION,
+		schema_version: SNAPSHOT_SCHEMA_VERSION.to_string(),
 		kind: SnapshotKind::CliSurface,
 		tool: SnapshotTool { name, version },
 		provenance: SnapshotProvenance {
@@ -772,7 +776,8 @@ fn classify_positional_changes(
 					format!("positional `{}` was added", added.name),
 				));
 			}
-			(None, None) => {}
+			// patch-coverage:ignore-start -- range upper bound makes this defensive arm unreachable.
+			(None, None) => {} // patch-coverage:ignore-end
 		}
 	}
 }

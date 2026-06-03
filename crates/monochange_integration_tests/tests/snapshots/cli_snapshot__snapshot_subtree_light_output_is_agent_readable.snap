@@ -1,6 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_snapshot.rs
-assertion_line: 46
+assertion_line: 48
 expression: value
 ---
 {
@@ -140,7 +140,7 @@ expression: value
     "confidence": "high",
     "extractor": "clap"
   },
-  "schemaVersion": 1,
+  "schemaVersion": "0.7",
   "standardEntrypoints": {
     "help": {
       "commands": [

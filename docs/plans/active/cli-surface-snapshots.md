@@ -71,7 +71,7 @@ Sketch:
 
 ```json
 {
-	"schemaVersion": 1,
+	"schemaVersion": "0.7",
 	"kind": "cli-surface",
 	"tool": {
 		"name": "mc",

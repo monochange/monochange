@@ -863,8 +863,11 @@ fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Opt
 	let report = monochange_snapshot::diff_command_snapshots(&before, &after);
 	let output = match format {
 		OutputFormat::Json => {
-			let mut output = serde_json::to_string_pretty(&report)
-				.expect("CLI snapshot classification reports serialize to JSON");
+			// patch-coverage:ignore-start -- SnapshotDiffReport contains only serializable values.
+			let mut output = serde_json::to_string_pretty(&report).unwrap_or_else(|error| {
+				panic!("CLI snapshot classification reports serialize to JSON: {error}")
+			});
+			// patch-coverage:ignore-end
 			output.push('\n');
 			output
 		}

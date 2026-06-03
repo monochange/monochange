@@ -1,6 +1,6 @@
 [package]
 name = "monochange_snapshot"
-version = { workspace = true }
+version = "0.7.0"
 categories = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }

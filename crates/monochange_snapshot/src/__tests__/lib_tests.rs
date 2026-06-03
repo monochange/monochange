@@ -11,6 +11,22 @@ fn option_names_falls_back_to_arg_id_without_visible_names() {
 }
 
 #[test]
+fn snapshot_schema_version_tracks_package_major_minor() {
+	let package_version = env!("CARGO_PKG_VERSION");
+	let mut components = package_version.split('.');
+	let expected = format!(
+		"{}.{}",
+		components
+			.next()
+			.unwrap_or_else(|| panic!("major component")),
+		components
+			.next()
+			.unwrap_or_else(|| panic!("minor component"))
+	);
+	assert_eq!(SNAPSHOT_SCHEMA_VERSION, expected);
+}
+
+#[test]
 fn snapshot_from_clap_captures_command_options_and_positionals() {
 	let command = Command::new("demo")
 		.version("1.2.3")
@@ -116,7 +132,7 @@ fn diff_classifies_description_only_change_as_patch() {
 
 fn command_snapshot(commands: Vec<CommandNode>) -> CommandSnapshot {
 	CommandSnapshot {
-		schema_version: SNAPSHOT_SCHEMA_VERSION,
+		schema_version: SNAPSHOT_SCHEMA_VERSION.to_string(),
 		kind: SnapshotKind::CliSurface,
 		tool: SnapshotTool {
 			name: "demo".to_string(),
@@ -217,6 +233,7 @@ fn clap_extractor_trait_and_json_render_are_usable() {
 	let snapshot = extractor.extract();
 
 	assert_eq!(extractor.name(), "clap");
+	assert_eq!(snapshot.schema_version, SNAPSHOT_SCHEMA_VERSION);
 	assert!(
 		snapshot
 			.to_json()
