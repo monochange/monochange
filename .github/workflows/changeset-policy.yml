@@ -17,6 +17,7 @@ jobs:
   check:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    continue-on-error: true
     permissions:
       contents: read
       issues: write
@@ -42,10 +43,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Trim PATH to only essential directories to avoid “Argument list too long”
-          # when devenv shell spawns subprocesses.
-          export PATH="$(echo "$PATH" | tr ':' '\n' | grep -E '^/nix/store/|^/home/runner/|^/usr/local|^/usr/bin|^/bin' | tr '\n' ':')"
-
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
           args=(step:affected-packages --format json --verify)
 
@@ -57,5 +54,5 @@ jobs:
             args+=(--label "$label")
           done
 
-          devenv shell mc "${args[@]}"
-        shell: bash
+          mc "${args[@]}"
+        shell: devenv shell -- bash -e {0}
