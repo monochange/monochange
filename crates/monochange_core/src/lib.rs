@@ -2903,9 +2903,8 @@ impl CliStepDefinition {
 			Self::Config { .. } | Self::Validate { .. } => Some(&[]),
 			Self::CommitRelease { .. } => Some(&["no_verify", "update_release_json", "stage_all"]),
 			Self::VerifyReleaseBranch { .. } => Some(&["from"]),
-			Self::Discover { .. } | Self::DisplayVersions { .. } | Self::PrepareRelease { .. } => {
-				Some(&["format"])
-			}
+			Self::Discover { .. } | Self::DisplayVersions { .. } => Some(&["format"]),
+			Self::PrepareRelease { .. } => Some(&["format", "write_empty_release_record"]),
 			Self::CommentReleasedIssues { .. } => {
 				Some(&["format", "from-ref", "auto-close-issues"])
 			}
@@ -3011,8 +3010,15 @@ impl CliStepDefinition {
 				}
 			}
 			Self::Config { .. } | Self::Command { .. } | Self::Validate { .. } => None,
-			Self::Discover { .. } | Self::DisplayVersions { .. } | Self::PrepareRelease { .. } => {
+			Self::Discover { .. } | Self::DisplayVersions { .. } => {
 				matches!(name, "format").then_some(CliInputKind::Choice)
+			}
+			Self::PrepareRelease { .. } => {
+				match name {
+					"format" => Some(CliInputKind::Choice),
+					"write_empty_release_record" => Some(CliInputKind::Boolean),
+					_ => None,
+				}
 			}
 			Self::CommentReleasedIssues { .. } => {
 				match name {

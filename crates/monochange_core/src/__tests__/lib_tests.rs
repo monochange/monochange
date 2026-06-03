@@ -1803,6 +1803,10 @@ fn expected_input_kind_returns_correct_types_for_display_and_publish_steps() {
 		prepare.expected_input_kind("format"),
 		Some(CliInputKind::Choice)
 	);
+	assert_eq!(
+		prepare.expected_input_kind("write_empty_release_record"),
+		Some(CliInputKind::Boolean)
+	);
 	assert_eq!(prepare.expected_input_kind("versions"), None);
 	assert_eq!(prepare.expected_input_kind("unknown"), None);
 

@@ -53,17 +53,53 @@ fn prepare_release(root: &Path) -> Value {
 
 fn release_record_paths(root: &Path) -> Vec<PathBuf> {
 	let releases_dir = root.join(".monochange/releases");
-	let mut paths = std::fs::read_dir(&releases_dir)
-		.unwrap_or_else(|error| panic!("read {}: {error}", releases_dir.display()))
+	let Ok(entries) = std::fs::read_dir(&releases_dir) else {
+		return Vec::new();
+	};
+	let mut paths = entries
 		.map(|entry| {
 			entry
 				.unwrap_or_else(|error| panic!("read release entry: {error}"))
 				.path()
 				.join("release.json")
 		})
+		.filter(|path| path.exists())
 		.collect::<Vec<_>>();
 	paths.sort();
 	paths
+}
+
+fn configure_release_command_for_empty_release_records(root: &Path) {
+	let config_path = root.join("monochange.toml");
+	let config = std::fs::read_to_string(&config_path)
+		.unwrap_or_else(|error| panic!("read config: {error}"));
+	let config = config.replace(
+		"default = \"text\"\n\n[[cli.release.steps]]",
+		"default = \"text\"\n\n[[cli.release.inputs]]\nname = \"write_empty_release_record\"\ntype = \"boolean\"\ndefault = false\n\n[[cli.release.steps]]",
+	);
+	let config = config.replace(
+		"type = \"PrepareRelease\"\ninputs = [\"format\"]",
+		"type = \"PrepareRelease\"\nallow_empty_changesets = true\ninputs = { format = \"{{ inputs.format }}\", write_empty_release_record = \"{{ inputs.write_empty_release_record }}\" }",
+	);
+	std::fs::write(&config_path, config).unwrap_or_else(|error| panic!("write config: {error}"));
+}
+
+fn run_release(root: &Path, args: &[&str]) {
+	let output = Command::new(get_cargo_bin("mc"))
+		.current_dir(root)
+		.env("NO_COLOR", "1")
+		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_RELEASE_DATE", "2026-04-07")
+		.arg("release")
+		.args(args)
+		.output()
+		.unwrap_or_else(|error| panic!("run release: {error}"));
+	assert!(
+		output.status.success(),
+		"release failed\nstdout:\n{}\nstderr:\n{}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr)
+	);
 }
 
 fn check_failure(root: &Path) -> String {
@@ -179,6 +215,45 @@ fn check_rejects_stale_prerelease_state_when_mode_is_off() {
 	assert_json_snapshot!(serde_json::json!({
 		"relevantLines": relevant_lines,
 	}));
+}
+
+#[test]
+fn release_skips_record_artifacts_for_empty_plan_by_default() {
+	let tempdir = setup_release_fixture("monochange/release-base");
+	let root = tempdir.path();
+	std::fs::remove_dir_all(root.join(".changeset"))
+		.unwrap_or_else(|error| panic!("remove changesets: {error}"));
+	configure_release_command_for_empty_release_records(root);
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "remove changesets"]);
+
+	run_release(root, &[]);
+
+	assert!(release_record_paths(root).is_empty());
+	assert!(
+		!root
+			.join(".monochange/local/release-manifest.json")
+			.exists()
+	);
+}
+
+#[test]
+fn release_writes_record_artifacts_for_empty_plan_when_requested() {
+	let tempdir = setup_release_fixture("monochange/release-base");
+	let root = tempdir.path();
+	std::fs::remove_dir_all(root.join(".changeset"))
+		.unwrap_or_else(|error| panic!("remove changesets: {error}"));
+	configure_release_command_for_empty_release_records(root);
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "remove changesets"]);
+
+	run_release(root, &["--write-empty-release-record"]);
+
+	assert_eq!(release_record_paths(root).len(), 1);
+	assert!(
+		root.join(".monochange/local/release-manifest.json")
+			.exists()
+	);
 }
 
 #[test]
