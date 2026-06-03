@@ -252,6 +252,9 @@ path = "crates/monochange"
 [package.monochange_core]
 path = "crates/monochange_core"
 
+[package.monochange_snapshot]
+path = "crates/monochange_snapshot"
+
 [package.monochange_cargo]
 path = "crates/monochange_cargo"
 
@@ -438,6 +441,7 @@ packages = [
 	"monochange_publish",
 	"monochange_python",
 	"monochange_semver",
+	"monochange_snapshot",
 	"monochange_telemetry",
 	"monochange_test_helpers",
 ]

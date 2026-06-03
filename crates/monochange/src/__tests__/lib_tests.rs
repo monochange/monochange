@@ -46,6 +46,7 @@ use tempfile::tempdir;
 
 use crate::CliContext;
 use crate::PreparedFileDiff;
+use crate::SnapshotRequest;
 use crate::add_change_file;
 use crate::add_interactive_change_file;
 use crate::affected_packages;
@@ -73,19 +74,24 @@ use crate::cli_runtime::render_retarget_release_report;
 use crate::cli_runtime::retarget_operation_label;
 use crate::cli_runtime::should_execute_cli_step;
 use crate::cli_runtime::template_value_to_input_values;
+use crate::command_path_from_matches;
 use crate::discover_workspace;
 use crate::git_support::run_git_capture;
 use crate::git_support::run_git_process;
 use crate::git_support::run_git_status;
 use crate::interactive::InteractiveChangeResult;
 use crate::interactive::InteractiveTarget;
+use crate::parse_snapshot_request;
 use crate::plan_release;
 use crate::prepare_release_execution_with_file_diffs;
 use crate::push_change_target_markdown;
 use crate::release_artifacts::validate_release_record_file;
 use crate::release_artifacts::write_release_record_file;
+use crate::render_cli_snapshot_classification;
+use crate::render_snapshot_request;
 use crate::run_with_args;
 use crate::run_with_args_in_dir;
+use crate::snapshot_view;
 use crate::workspace_ops::build_lockfile_command_executions;
 use crate::workspace_ops::change_type_default_bump;
 use crate::workspace_ops::prepare_release_execution;
@@ -15062,4 +15068,325 @@ versioned_files = [
 	.await
 	.unwrap_or_else(|error| panic!("traced help output: {error}"));
 	assert!(traced_help.contains("custom"));
+}
+
+#[tokio::test]
+async fn snapshot_command_outputs_full_cli_surface() {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/mixed");
+	let output = crate::run_with_args_in_dir(
+		"mc",
+		[
+			OsString::from("mc"),
+			OsString::from("snapshot"),
+			OsString::from("--view"),
+			OsString::from("light"),
+		],
+		&fixture_root,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("snapshot output: {error}"));
+	let value: serde_json::Value = serde_json::from_str(&output).unwrap();
+
+	assert_eq!(value["kind"], "cli-surface");
+	assert_eq!(value["tool"]["name"], "mc");
+	assert!(value["commands"].as_array().unwrap().iter().any(|command| {
+		command["path"]
+			.as_array()
+			.is_some_and(|path| path.iter().any(|segment| segment == "step:discover"))
+	}));
+}
+
+#[tokio::test]
+async fn global_snapshot_flag_outputs_subcommand_surface() {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/mixed");
+	let output = crate::run_with_args_in_dir(
+		"mc",
+		[
+			OsString::from("mc"),
+			OsString::from("step:discover"),
+			OsString::from("--snapshot"),
+		],
+		&fixture_root,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("snapshot output: {error}"));
+	let value: serde_json::Value = serde_json::from_str(&output).unwrap();
+
+	assert_eq!(
+		value["commands"][0]["path"],
+		serde_json::json!(["step:discover"])
+	);
+	assert!(
+		value["commands"][0]["options"]
+			.as_array()
+			.unwrap()
+			.iter()
+			.any(|option| {
+				option["names"]
+					.as_array()
+					.is_some_and(|names| names.iter().any(|name| name == "--format"))
+			})
+	);
+}
+
+#[test]
+fn change_classify_reports_cli_snapshot_diffs() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let before = monochange_snapshot::snapshot_from_clap(
+		&Command::new("demo").subcommand(Command::new("run").about("Run")),
+	);
+	let after = monochange_snapshot::snapshot_from_clap(
+		&Command::new("demo").subcommand(
+			Command::new("run")
+				.about("Run")
+				.arg(clap::Arg::new("format").long("format")),
+		),
+	);
+	let before_path = tempdir.path().join("before.json");
+	let after_path = tempdir.path().join("after.json");
+	fs::write(
+		&before_path,
+		serde_json::to_string(&before).unwrap_or_else(|error| panic!("serialize before: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("write before: {error}"));
+	fs::write(
+		&after_path,
+		serde_json::to_string(&after).unwrap_or_else(|error| panic!("serialize after: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("write after: {error}"));
+
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("mc"),
+			OsString::from("change"),
+			OsString::from("classify"),
+			OsString::from("--cli-snapshot-before"),
+			before_path.into_os_string(),
+			OsString::from("--cli-snapshot-after"),
+			after_path.into_os_string(),
+			OsString::from("--format"),
+			OsString::from("json"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("classify CLI snapshot: {error}"));
+
+	assert!(output.contains("\"recommendation\": \"minor\""));
+	assert!(output.contains("\"kind\": \"option-added\""));
+}
+
+#[test]
+fn snapshot_request_parsing_covers_root_subtree_and_missing_cases() {
+	let empty = vec![OsString::from("mc")];
+	assert!(parse_snapshot_request(&empty).is_none());
+
+	let root = vec![OsString::from("mc"), OsString::from("--snapshot")];
+	let request = parse_snapshot_request(&root).unwrap_or_else(|| panic!("root request"));
+	assert!(request.path.is_empty());
+	assert_eq!(request.view, monochange_snapshot::SnapshotView::Full);
+
+	let subtree = vec![
+		OsString::from("mc"),
+		OsString::from("step:discover"),
+		OsString::from("--snapshot"),
+	];
+	let request = parse_snapshot_request(&subtree).unwrap_or_else(|| panic!("subtree request"));
+	assert_eq!(request.path, vec!["step:discover"]);
+
+	assert_eq!(
+		snapshot_view("light"),
+		monochange_snapshot::SnapshotView::Light
+	);
+	assert_eq!(
+		snapshot_view("index"),
+		monochange_snapshot::SnapshotView::Index
+	);
+	assert_eq!(
+		snapshot_view("full"),
+		monochange_snapshot::SnapshotView::Full
+	);
+}
+
+#[test]
+fn snapshot_rendering_reports_missing_subtrees() {
+	let command = Command::new("mc").subcommand(Command::new("known"));
+	let request = SnapshotRequest {
+		path: vec!["missing".to_string()],
+		view: monochange_snapshot::SnapshotView::Full,
+	};
+	let error = render_snapshot_request(&command, &request).unwrap_err();
+
+	assert!(
+		error
+			.to_string()
+			.contains("snapshot command path not found: missing")
+	);
+}
+
+#[test]
+fn command_path_from_matches_collects_nested_subcommands() {
+	let matches = Command::new("mc")
+		.subcommand(Command::new("step").subcommand(Command::new("discover")))
+		.try_get_matches_from(["mc", "step", "discover"])
+		.unwrap_or_else(|error| panic!("matches: {error}"));
+
+	assert_eq!(
+		command_path_from_matches(&matches),
+		vec!["step", "discover"]
+	);
+}
+
+#[test]
+fn cli_snapshot_classification_reports_parse_and_missing_value_errors() {
+	let args = vec![
+		OsString::from("mc"),
+		OsString::from("change"),
+		OsString::from("classify"),
+		OsString::from("--cli-snapshot-before"),
+	];
+	let error = render_cli_snapshot_classification(&args).unwrap_err();
+	assert!(
+		error
+			.to_string()
+			.contains("missing value for --cli-snapshot-before")
+	);
+
+	let args = vec![
+		OsString::from("mc"),
+		OsString::from("change"),
+		OsString::from("classify"),
+		OsString::from("--cli-snapshot-after"),
+	];
+	let error = render_cli_snapshot_classification(&args).unwrap_err();
+	assert!(
+		error
+			.to_string()
+			.contains("missing value for --cli-snapshot-after")
+	);
+
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let invalid = tempdir.path().join("invalid.json");
+	fs::write(&invalid, "not json").unwrap_or_else(|error| panic!("write invalid: {error}"));
+	let args = vec![
+		OsString::from("mc"),
+		OsString::from("change"),
+		OsString::from("classify"),
+		OsString::from("--cli-snapshot-before"),
+		invalid.clone().into_os_string(),
+		OsString::from("--cli-snapshot-after"),
+		OsString::from("missing.json"),
+	];
+	let error = render_cli_snapshot_classification(&args).unwrap_err();
+	assert!(error.to_string().contains("failed to parse CLI snapshot"));
+
+	let missing = tempdir.path().join("missing.json");
+	let args = vec![
+		OsString::from("mc"),
+		OsString::from("change"),
+		OsString::from("classify"),
+		OsString::from("--cli-snapshot-before"),
+		missing.into_os_string(),
+		OsString::from("--cli-snapshot-after"),
+		invalid.into_os_string(),
+	];
+	let error = render_cli_snapshot_classification(&args).unwrap_err();
+	assert!(error.to_string().contains("failed to read CLI snapshot"));
+
+	let args = vec![OsString::from("mc")];
+	assert!(render_cli_snapshot_classification(&args).unwrap().is_none());
+
+	let args = vec![OsString::from("mc"), OsString::from("step")];
+	assert!(render_cli_snapshot_classification(&args).unwrap().is_none());
+
+	let args = vec![
+		OsString::from("mc"),
+		OsString::from("step"),
+		OsString::from("classify"),
+	];
+	assert!(render_cli_snapshot_classification(&args).unwrap().is_none());
+
+	let args = vec![
+		OsString::from("mc"),
+		OsString::from("change"),
+		OsString::from("classify"),
+		OsString::from("--ignored"),
+	];
+	assert!(render_cli_snapshot_classification(&args).unwrap().is_none());
+}
+
+#[test]
+fn cli_snapshot_classification_renders_json_output() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let before_path = tempdir.path().join("before.json");
+	let after_path = tempdir.path().join("after.json");
+	let before = monochange_snapshot::snapshot_from_clap(&Command::new("demo"));
+	let after = monochange_snapshot::snapshot_from_clap(
+		&Command::new("demo").subcommand(Command::new("run")),
+	);
+	fs::write(
+		&before_path,
+		before
+			.to_json()
+			.unwrap_or_else(|error| panic!("before json: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("write before: {error}"));
+	fs::write(
+		&after_path,
+		after
+			.to_json()
+			.unwrap_or_else(|error| panic!("after json: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("write after: {error}"));
+
+	let args = vec![
+		OsString::from("mc"),
+		OsString::from("change"),
+		OsString::from("classify"),
+		OsString::from("--format"),
+		OsString::from("json"),
+		OsString::from("--cli-snapshot-before"),
+		before_path.into_os_string(),
+		OsString::from("--cli-snapshot-after"),
+		after_path.into_os_string(),
+	];
+	let output = render_cli_snapshot_classification(&args)
+		.unwrap_or_else(|error| panic!("classification: {error}"))
+		.unwrap_or_else(|| panic!("classification output"));
+
+	assert!(output.contains("\"recommendation\": \"minor\""));
+
+	let before_path = tempdir.path().join("before-text.json");
+	let after_path = tempdir.path().join("after-text.json");
+	let before = monochange_snapshot::snapshot_from_clap(&Command::new("demo"));
+	let after = monochange_snapshot::snapshot_from_clap(
+		&Command::new("demo").subcommand(Command::new("deploy")),
+	);
+	fs::write(
+		&before_path,
+		before
+			.to_json()
+			.unwrap_or_else(|error| panic!("before text json: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("write before text: {error}"));
+	fs::write(
+		&after_path,
+		after
+			.to_json()
+			.unwrap_or_else(|error| panic!("after text json: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("write after text: {error}"));
+	let args = vec![
+		OsString::from("mc"),
+		OsString::from("change"),
+		OsString::from("classify"),
+		OsString::from("--cli-snapshot-before"),
+		before_path.into_os_string(),
+		OsString::from("--cli-snapshot-after"),
+		after_path.into_os_string(),
+	];
+	let output = render_cli_snapshot_classification(&args)
+		.unwrap_or_else(|error| panic!("text classification: {error}"))
+		.unwrap_or_else(|| panic!("text classification output"));
+	assert!(output.contains("cli snapshot recommendation: minor"));
+	assert!(output.contains("command `deploy` was added"));
 }

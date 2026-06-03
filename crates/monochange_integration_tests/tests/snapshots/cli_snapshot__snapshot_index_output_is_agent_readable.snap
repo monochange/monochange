@@ -1,0 +1,647 @@
+---
+source: crates/monochange_integration_tests/tests/cli_snapshot.rs
+assertion_line: 23
+expression: value
+---
+{
+  "commands": [
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "init"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "populate"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "command"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "skill"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "subagents"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "analyze"
+      ],
+      "stability": "stable"
+    },
+    {
+      "commands": [
+        {
+          "hidden": false,
+          "parser": {
+            "flagsArePosixNoncompliant": false,
+            "optionArgSeparators": [
+              " ",
+              "="
+            ],
+            "optionsMustPrecedeArguments": false
+          },
+          "path": [
+            "migrate",
+            "audit"
+          ],
+          "stability": "stable"
+        },
+        {
+          "hidden": false,
+          "parser": {
+            "flagsArePosixNoncompliant": false,
+            "optionArgSeparators": [
+              " ",
+              "="
+            ],
+            "optionsMustPrecedeArguments": false
+          },
+          "path": [
+            "migrate",
+            "release-records"
+          ],
+          "stability": "stable"
+        }
+      ],
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "migrate"
+      ],
+      "stability": "stable"
+    },
+    {
+      "commands": [
+        {
+          "hidden": false,
+          "parser": {
+            "flagsArePosixNoncompliant": false,
+            "optionArgSeparators": [
+              " ",
+              "="
+            ],
+            "optionsMustPrecedeArguments": false
+          },
+          "path": [
+            "lint",
+            "list"
+          ],
+          "stability": "stable"
+        },
+        {
+          "hidden": false,
+          "parser": {
+            "flagsArePosixNoncompliant": false,
+            "optionArgSeparators": [
+              " ",
+              "="
+            ],
+            "optionsMustPrecedeArguments": false
+          },
+          "path": [
+            "lint",
+            "explain"
+          ],
+          "stability": "stable"
+        },
+        {
+          "hidden": false,
+          "parser": {
+            "flagsArePosixNoncompliant": false,
+            "optionArgSeparators": [
+              " ",
+              "="
+            ],
+            "optionsMustPrecedeArguments": false
+          },
+          "path": [
+            "lint",
+            "new"
+          ],
+          "stability": "stable"
+        }
+      ],
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "lint"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "versions"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "mcp"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "check"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:config"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:validate"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:discover"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:display-versions"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:create-change-file"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:prepare-release"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:commit-release"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:verify-release-branch"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:publish-release"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:placeholder-publish"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:publish-packages"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:plan-publish-rate-limits"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:open-release-request"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:comment-released-issues"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:affected-packages"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:diagnose-changesets"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:release-record"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:publish-readiness"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:tag-release"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "step:retarget-release"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "change"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "publish-check"
+      ],
+      "stability": "stable"
+    },
+    {
+      "hidden": false,
+      "parser": {
+        "flagsArePosixNoncompliant": false,
+        "optionArgSeparators": [
+          " ",
+          "="
+        ],
+        "optionsMustPrecedeArguments": false
+      },
+      "path": [
+        "release"
+      ],
+      "stability": "stable"
+    }
+  ],
+  "kind": "cli-surface",
+  "provenance": {
+    "confidence": "high",
+    "extractor": "clap"
+  },
+  "schemaVersion": 1,
+  "standardEntrypoints": {
+    "help": {
+      "commands": [
+        [
+          "help"
+        ]
+      ],
+      "flags": [
+        "--help",
+        "-h"
+      ]
+    },
+    "snapshot": {
+      "commands": [
+        [
+          "snapshot"
+        ]
+      ],
+      "flags": [
+        "--snapshot"
+      ]
+    },
+    "version": {
+      "commands": [
+        [
+          "version"
+        ]
+      ],
+      "flags": [
+        "--version",
+        "-V"
+      ]
+    }
+  },
+  "tool": {
+    "name": "mc",
+    "version": "[version]"
+  }
+}

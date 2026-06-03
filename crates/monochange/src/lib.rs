@@ -720,6 +720,170 @@ where
 	None
 }
 
+struct SnapshotRequest {
+	path: Vec<String>,
+	view: monochange_snapshot::SnapshotView,
+}
+
+fn parse_snapshot_request(args: &[OsString]) -> Option<SnapshotRequest> {
+	let mut values = args
+		.iter()
+		.skip(1)
+		.map(|arg| arg.to_string_lossy().to_string());
+	let first = values.next()?;
+	if first == "--snapshot" {
+		return Some(SnapshotRequest {
+			path: Vec::new(),
+			view: monochange_snapshot::SnapshotView::Full,
+		});
+	}
+
+	let mut path = Vec::new();
+	if !first.starts_with('-') {
+		path.push(first);
+	}
+	for value in values {
+		if value == "--snapshot" {
+			return Some(SnapshotRequest {
+				path,
+				view: monochange_snapshot::SnapshotView::Full,
+			});
+		}
+	}
+	None
+}
+
+fn snapshot_view(value: &str) -> monochange_snapshot::SnapshotView {
+	match value {
+		"light" => monochange_snapshot::SnapshotView::Light,
+		"index" => monochange_snapshot::SnapshotView::Index,
+		_ => monochange_snapshot::SnapshotView::Full,
+	}
+}
+
+fn render_snapshot_request(
+	command: &clap::Command,
+	request: &SnapshotRequest,
+) -> MonochangeResult<String> {
+	let snapshot = monochange_snapshot::snapshot_from_clap(command);
+	let Some(snapshot) = snapshot.subtree(&request.path) else {
+		return Err(MonochangeError::Config(format!(
+			"snapshot command path not found: {}",
+			request.path.join(" ")
+		)));
+	};
+	let view = snapshot.view(request.view);
+	view.to_json()
+		.map_err(|error| MonochangeError::Config(format!("failed to render snapshot: {error}")))
+}
+
+fn command_path_from_matches(matches: &clap::ArgMatches) -> Vec<String> {
+	let mut path = Vec::new();
+	let mut current = matches;
+	while let Some((name, child)) = current.subcommand() {
+		path.push(name.to_string());
+		current = child;
+	}
+	path
+}
+
+fn cli_snapshot_required_value(
+	args: &[OsString],
+	index: usize,
+	flag: &str,
+) -> MonochangeResult<String> {
+	args.get(index)
+		.and_then(|value| value.to_str())
+		.map(ToString::to_string)
+		.ok_or_else(|| MonochangeError::Config(format!("missing value for {flag}")))
+}
+
+fn read_cli_snapshot(path: &Path) -> MonochangeResult<monochange_snapshot::CommandSnapshot> {
+	let contents = fs::read_to_string(path).map_err(|error| {
+		MonochangeError::Config(format!(
+			"failed to read CLI snapshot `{}`: {error}",
+			path.display()
+		))
+	})?;
+	serde_json::from_str(&contents).map_err(|error| {
+		MonochangeError::Config(format!(
+			"failed to parse CLI snapshot `{}`: {error}",
+			path.display()
+		))
+	})
+}
+
+fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Option<String>> {
+	let Some(command) = args.get(1).and_then(|value| value.to_str()) else {
+		return Ok(None);
+	};
+	let Some(subcommand) = args.get(2).and_then(|value| value.to_str()) else {
+		return Ok(None);
+	};
+	if command != "change" || subcommand != "classify" {
+		return Ok(None);
+	}
+
+	let mut before = None;
+	let mut after = None;
+	let mut format = OutputFormat::Markdown;
+	let mut index = 3;
+	while let Some(arg) = args.get(index).and_then(|value| value.to_str()) {
+		match arg {
+			"--cli-snapshot-before" => {
+				index += 1;
+				before = Some(PathBuf::from(cli_snapshot_required_value(
+					args,
+					index,
+					"--cli-snapshot-before",
+				)?));
+			}
+			"--cli-snapshot-after" => {
+				index += 1;
+				after = Some(PathBuf::from(cli_snapshot_required_value(
+					args,
+					index,
+					"--cli-snapshot-after",
+				)?));
+			}
+			"--format" => {
+				index += 1;
+				format =
+					parse_output_format(&cli_snapshot_required_value(args, index, "--format")?)?;
+			}
+			_ => {}
+		}
+		index += 1;
+	}
+	let (Some(before), Some(after)) = (before, after) else {
+		return Ok(None);
+	};
+	let before = read_cli_snapshot(&before)?;
+	let after = read_cli_snapshot(&after)?;
+	let report = monochange_snapshot::diff_command_snapshots(&before, &after);
+	let output = match format {
+		OutputFormat::Json => {
+			let mut output = serde_json::to_string_pretty(&report)
+				.expect("CLI snapshot classification reports serialize to JSON");
+			output.push('\n');
+			output
+		}
+		_ => render_cli_snapshot_classification_text(&report),
+	};
+	Ok(Some(output))
+}
+
+fn render_cli_snapshot_classification_text(
+	report: &monochange_snapshot::SnapshotDiffReport,
+) -> String {
+	let mut output =
+		format!("CLI snapshot recommendation: {:?}\n", report.recommendation).to_lowercase();
+	for change in &report.changes {
+		output.push_str(&format!("- {:?}: {}\n", change.severity, change.summary).to_lowercase());
+	}
+	output
+}
+
 /// Execute the `monochange` CLI with an explicit argument iterator.
 #[must_use = "the run result must be checked"]
 pub async fn run_with_args<I>(bin_name: &'static str, args: I) -> MonochangeResult<String>
@@ -886,6 +1050,15 @@ where
 		let cli = cli_commands_for_root(root);
 		return Ok(render_help_command(bin_name, &args, &cli));
 	}
+	if let Some(snapshot_request) = parse_snapshot_request(&args) {
+		let configuration = load_workspace_configuration(root);
+		let cli = cli_commands_from_config(&configuration);
+		let command = build_command_with_cli(bin_name, &cli);
+		return render_snapshot_request(&command, &snapshot_request);
+	}
+	if let Some(output) = render_cli_snapshot_classification(&args)? {
+		return Ok(output);
+	}
 	if let Some(classify_options) = parse_change_classify_options(&args)? {
 		let output = render_change_classification(root, &classify_options)?;
 		return Ok(output);
@@ -985,8 +1158,37 @@ where
 		}
 	};
 
+	if matches.get_flag("snapshot") {
+		let command = build_command_with_cli(bin_name, &cli);
+		let path = command_path_from_matches(&matches);
+		return render_snapshot_request(
+			&command,
+			&SnapshotRequest {
+				path,
+				view: monochange_snapshot::SnapshotView::Full,
+			},
+		);
+	}
+
 	let jq_expression = matches.get_one::<String>("jq").cloned();
 	let output = match matches.subcommand() {
+		Some(("snapshot", snapshot_matches)) => {
+			let view = snapshot_matches
+				.get_one::<String>("view")
+				.map_or(monochange_snapshot::SnapshotView::Full, |value| {
+					snapshot_view(value)
+				});
+			let path = snapshot_matches
+				.get_many::<String>("command")
+				.into_iter()
+				.flatten()
+				.cloned()
+				.collect();
+			render_snapshot_request(
+				&build_command_with_cli(bin_name, &cli),
+				&SnapshotRequest { path, view },
+			)
+		}
 		Some(("help", help_matches)) => {
 			let command_name = help_matches
 				.get_one::<String>("command")

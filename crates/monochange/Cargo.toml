@@ -81,6 +81,7 @@ monochange_npm = { workspace = true, optional = true }
 monochange_publish = { workspace = true }
 monochange_python = { workspace = true, optional = true }
 monochange_semver = { workspace = true }
+monochange_snapshot = { workspace = true }
 monochange_telemetry = { workspace = true }
 monochange_test_helpers = { workspace = true }
 rayon = { workspace = true }
