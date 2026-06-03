@@ -115,7 +115,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mutation_crate='${{ matrix.crate }}'
+          mutation_crate='${MATRIX_CRATE}'
           report_dir="mutants-report/$mutation_crate"
           mkdir -p "$(dirname "$report_dir")"
 
@@ -128,6 +128,8 @@ jobs:
 
           echo "status=$status" >> "$GITHUB_OUTPUT"
         timeout-minutes: 90
+        env:
+          MATRIX_CRATE: ${{ matrix.crate }}
 
       - name: upload mutants report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -143,11 +145,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          mutation_crate='${{ matrix.crate }}'
-          mutation_profile='${{ needs.discover-crates.outputs.profile }}'
+          mutation_crate='${MATRIX_CRATE}'
+          mutation_profile='${NEEDS_DISCOVER_CRATES_OUTPUTS_PROFILE}'
           report_dir="mutants-report/$mutation_crate"
-          status='${{ steps.run-mutants.outputs.status || '1' }}'
-          fail_on_missed='${{ github.event.inputs.fail_on_missed || 'true' }}'
+          status='${STEPS_RUN_MUTANTS_OUTPUTS_STATUS}'
+          fail_on_missed='${GITHUB_EVENT_INPUTS_FAIL_ON_MISSED}'
 
           report_data_dir="$report_dir/mutants.out"
 
@@ -204,3 +206,8 @@ jobs:
             echo "::error::cargo-mutants exited with status $status without reporting missed or timed-out mutants"
             exit "$status"
           fi
+        env:
+          MATRIX_CRATE: ${{ matrix.crate }}
+          NEEDS_DISCOVER_CRATES_OUTPUTS_PROFILE: ${{ needs.discover-crates.outputs.profile }}
+          STEPS_RUN_MUTANTS_OUTPUTS_STATUS: ${{ steps.run-mutants.outputs.status || '1' }}
+          GITHUB_EVENT_INPUTS_FAIL_ON_MISSED: ${{ github.event.inputs.fail_on_missed || 'true' }}

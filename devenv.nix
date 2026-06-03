@@ -7,6 +7,7 @@
 }:
 
 let
+  currentDir = builtins.dirOf __curPos.file;
   custom = inputs.ifiokjr-nixpkgs.packages.${pkgs.stdenv.system};
 in
 {
@@ -58,22 +59,22 @@ in
         entry = "${pkgs.gitleaks}/bin/gitleaks protect --staged --verbose --redact";
         stages = [ "pre-commit" ];
       };
-      dprint = {
+      "lint:format" = {
         enable = true;
         verbose = true;
         pass_filenames = true;
-        name = "dprint check";
+        name = "lint:format";
         description = "Run workspace autofixes before commit and restage the results.";
-        entry = "${pkgs.dprint}/bin/dprint check --allow-no-files";
+        entry = "${config.env.DEVENV_PROFILE}/bin/lint:format";
         stages = [ "pre-commit" ];
       };
       "lint:test" = {
         enable = true;
         verbose = true;
         pass_filenames = false;
-        name = "lint and test";
+        name = "lint:push";
         description = "Run the local CI lint rules and test suite before push.";
-        entry = "${config.env.DEVENV_PROFILE}/bin/lint:test";
+        entry = "${config.env.DEVENV_PROFILE}/bin/lint:push";
         stages = [ "pre-push" ];
       };
     };
@@ -212,7 +213,9 @@ in
     "test:cargo" = {
       exec = ''
         set -euo pipefail
-        cargo insta test --workspace --exclude xtask --all-features --test-runner nextest --unreferenced=reject
+        cargo bin --install
+        export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
+        cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
       '';
       description = "Run cargo tests with nextest and reject unreferenced snapshots.";
       binary = "bash";
@@ -220,7 +223,9 @@ in
     "test:cargo:expensive" = {
       exec = ''
         set -euo pipefail
-        MONOCHANGE_EXPENSIVE_TESTS=1 cargo insta test --workspace --exclude xtask --all-features --test-runner nextest --unreferenced=reject
+        cargo bin --install
+        export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
+        MONOCHANGE_EXPENSIVE_TESTS=1 cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
       '';
       description = "Run cargo tests with CI-only large-fixture cases enabled and reject unreferenced snapshots.";
       binary = "bash";
@@ -375,11 +380,29 @@ in
       description = "Run cargo-deny checks for security advisories and license compliance.";
       binary = "bash";
     };
-    "lint:test" = {
+    "lint:push" = {
       exec = ''
         set -euo pipefail
 
-        ${pkgs.gitleaks}/bin/gitleaks detect --verbose --redact;
+        run_step() {
+          local name="$1"
+          shift
+          echo "Currently running: $name"
+          "$@"
+        }
+
+        run_step "gitleaks detect" ${pkgs.gitleaks}/bin/gitleaks detect --verbose --redact
+        run_step "lint:clippy" ${currentDir}/.devenv/profile/bin/lint:clippy
+        run_step "schema:check" ${currentDir}/.devenv/profile/bin/schema:check
+        run_step "lint:format" ${currentDir}/.devenv/profile/bin/lint:format
+        run_step "lint:architecture" ${currentDir}/.devenv/profile/bin/lint:architecture
+        run_step "lint:root-git-config" ${currentDir}/.devenv/profile/bin/lint:root-git-config
+        run_step "lint:js" ${currentDir}/.devenv/profile/bin/lint:js
+        run_step "lint:js:types" ${currentDir}/.devenv/profile/bin/lint:js:types
+        run_step "lint:workflows" ${currentDir}/.devenv/profile/bin/lint:workflows
+        run_step "deny:check" ${currentDir}/.devenv/profile/bin/deny:check
+        run_step "docs:check" ${currentDir}/.devenv/profile/bin/docs:check
+        run_step "lint:monochange" ${currentDir}/.devenv/profile/bin/lint:monochange
       '';
       description = "Used for the pre push checks";
       binary = "bash";
@@ -387,17 +410,25 @@ in
     "lint:all" = {
       exec = ''
         set -euo pipefail
-        lint:clippy
-        schema:check
-        lint:format
-        lint:architecture
-        lint:root-git-config
-        lint:js
-        lint:js:types
-        lint:workflows
-        deny:check
-        docs:check
-        lint:monochange
+
+        run_step() {
+          local name="$1"
+          shift
+          echo "Currently running: $name"
+          "$@"
+        }
+
+        run_step "lint:clippy" lint:clippy
+        run_step "schema:check" schema:check
+        run_step "lint:format" lint:format
+        run_step "lint:architecture" lint:architecture
+        run_step "lint:root-git-config" lint:root-git-config
+        run_step "lint:js" lint:js
+        run_step "lint:js:types" lint:js:types
+        run_step "lint:workflows" lint:workflows
+        run_step "deny:check" deny:check
+        run_step "docs:check" docs:check
+        run_step "lint:monochange" lint:monochange
       '';
       description = "Run all checks.";
       binary = "bash";
@@ -405,7 +436,7 @@ in
     "lint:format" = {
       exec = ''
         set -euo pipefail
-        dprint check
+        ${pkgs.dprint}/bin/dprint check
       '';
       description = "Check that all files are formatted.";
       binary = "bash";
@@ -531,7 +562,7 @@ in
       exec = ''
         set -euo pipefail
         mdt check
-        skill:commands:check
+        cargo xtask skill commands check
         pnpm node scripts/check-agent-surface.ts
       '';
       description = "Check that shared documentation blocks are synchronized and agent-facing docs stay aligned with the repo surface.";
@@ -541,7 +572,7 @@ in
       exec = ''
         set -euo pipefail
         mdt update
-        skill:commands:update
+        cargo xtask skill commands update
       '';
       description = "Update shared documentation blocks and generated skill command inventory.";
       binary = "bash";
@@ -549,7 +580,8 @@ in
     "snapshot:review" = {
       exec = ''
         set -euo pipefail
-        cargo insta review
+        cargo bin --install
+        cargo bin cargo-insta review
       '';
       description = "Review insta snapshots.";
       binary = "bash";
@@ -557,7 +589,9 @@ in
     "snapshot:check" = {
       exec = ''
         set -euo pipefail
-        cargo insta test --workspace --exclude xtask --all-features --test-runner nextest --unreferenced=reject
+        cargo bin --install
+        export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
+        cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
       '';
       description = "Check insta snapshots and fail on unreferenced snapshot files.";
       binary = "bash";
@@ -565,7 +599,9 @@ in
     "snapshot:update" = {
       exec = ''
         set -euo pipefail
-        cargo insta test --workspace --exclude xtask --all-features --test-runner nextest --force-update-snapshots --unreferenced=delete
+        cargo bin --install
+        export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
+        cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --force-update-snapshots --unreferenced=delete
       '';
       description = "Update insta snapshots and delete unreferenced snapshot files.";
       binary = "bash";
