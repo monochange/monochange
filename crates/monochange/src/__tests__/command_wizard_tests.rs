@@ -283,12 +283,18 @@ fn command_step_with_default_inputs_adds_and_inherits_expected_inputs() {
 	let step = command_step_with_default_inputs("PrepareRelease", &mut command_inputs)
 		.unwrap_or_else(|error| panic!("step should be created: {error}"));
 
-	assert_eq!(command_inputs.len(), 1);
+	assert_eq!(command_inputs.len(), 2);
 	assert_eq!(command_inputs[0].name, "format");
 	assert_eq!(command_inputs[0].kind, "choice");
 	assert_eq!(command_inputs[0].choices[0], "text");
+	assert_eq!(command_inputs[1].name, "write_empty_release_record");
+	assert_eq!(command_inputs[1].kind, "boolean");
 	assert_eq!(
 		step.inputs.get("format"),
+		Some(&CliStepInputValue::Inherited)
+	);
+	assert_eq!(
+		step.inputs.get("write_empty_release_record"),
 		Some(&CliStepInputValue::Inherited)
 	);
 	assert_config_error(

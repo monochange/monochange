@@ -364,6 +364,13 @@ async fn write_default_release_manifest_file(
 	write_release_manifest_file(root, Path::new(DEFAULT_RELEASE_MANIFEST_PATH), manifest).await
 }
 
+fn should_write_release_record_for_prepared_release(
+	prepared_release: &PreparedRelease,
+	write_empty_release_record: bool,
+) -> bool {
+	write_empty_release_record || !prepared_release.released_packages.is_empty()
+}
+
 async fn ensure_prepared_release_for_consumer_step(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
@@ -835,6 +842,9 @@ pub(crate) async fn execute_cli_command_with_options(
 					allow_empty_changesets,
 					..
 				} => {
+					let write_empty_release_record =
+						parse_boolean_step_input(&step_inputs, "write_empty_release_record")?
+							.unwrap_or(false);
 					let build_file_diffs = context.show_diff
 						|| cli_command
 							.steps
@@ -873,12 +883,25 @@ pub(crate) async fn execute_cli_command_with_options(
 						prepared_release,
 						&context.command_logs,
 					);
-					let _record_path =
-						write_release_record_file(root, configuration.source.as_ref(), &manifest)?;
+					if should_write_release_record_for_prepared_release(
+						prepared_release,
+						write_empty_release_record,
+					) {
+						let _record_path = write_release_record_file(
+							root,
+							configuration.source.as_ref(),
+							&manifest,
+						)?;
+						context.release_manifest_path =
+							Some(write_default_release_manifest_file(root, &manifest).await?);
+					} else {
+						context
+							.command_logs
+							.push("skipped release record: no packages were released".to_string());
+						context.release_manifest_path = None;
+					}
 					let updated_prepared_release = context.prepared_release.take().unwrap();
 					context.prepared_release = Some(updated_prepared_release);
-					context.release_manifest_path =
-						Some(write_default_release_manifest_file(root, &manifest).await?);
 					output = None;
 					Ok(())
 				}

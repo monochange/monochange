@@ -3094,6 +3094,35 @@ fn command_release_dry_run_discovers_changesets_without_mutating_files() {
 	assert!(tempdir.path().join(".changeset/feature.md").exists());
 }
 
+fn release_record_json_paths(root: &Path) -> Vec<PathBuf> {
+	let release_dir = root.join(".monochange/releases");
+	let Ok(entries) = fs::read_dir(&release_dir) else {
+		return Vec::new();
+	};
+
+	entries
+		.filter_map(Result::ok)
+		.map(|entry| entry.path().join("release.json"))
+		.filter(|path| path.exists())
+		.collect()
+}
+
+fn configure_release_command_for_empty_release_records(root: &Path) {
+	let config_path = root.join("monochange.toml");
+	let config = fs::read_to_string(&config_path)
+		.unwrap_or_else(|error| panic!("read release fixture config: {error}"));
+	let config = config.replace(
+		"default = \"text\"\n\n[[cli.release.steps]]",
+		"default = \"text\"\n\n[[cli.release.inputs]]\nname = \"write_empty_release_record\"\ntype = \"boolean\"\ndefault = false\n\n[[cli.release.steps]]",
+	);
+	let config = config.replace(
+		"type = \"PrepareRelease\"\ninputs = [\"format\"]",
+		"type = \"PrepareRelease\"\nallow_empty_changesets = true\ninputs = { format = \"{{ inputs.format }}\", write_empty_release_record = \"{{ inputs.write_empty_release_record }}\" }",
+	);
+	fs::write(config_path, config)
+		.unwrap_or_else(|error| panic!("write release fixture config: {error}"));
+}
+
 #[test]
 fn prepare_release_allows_empty_changesets_when_configured() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -3126,6 +3155,56 @@ fn prepare_release_allows_empty_changesets_when_configured() {
 	assert!(execution.prepared_release.released_packages.is_empty());
 	assert!(execution.prepared_release.changed_files.is_empty());
 	assert!(execution.file_diffs.is_empty());
+}
+
+#[test]
+fn release_command_skips_release_json_when_no_packages_are_released() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	seed_release_fixture(tempdir.path(), None, false);
+	fs::remove_dir_all(tempdir.path().join(".changeset"))
+		.unwrap_or_else(|error| panic!("remove changesets: {error}"));
+	configure_release_command_for_empty_release_records(tempdir.path());
+
+	run_cli(
+		tempdir.path(),
+		[OsString::from("mc"), OsString::from("release")],
+	)
+	.unwrap_or_else(|error| panic!("release command: {error}"));
+
+	assert!(release_record_json_paths(tempdir.path()).is_empty());
+	assert!(
+		!tempdir
+			.path()
+			.join(".monochange/local/release-manifest.json")
+			.exists()
+	);
+}
+
+#[test]
+fn release_command_writes_release_json_for_empty_plan_when_requested() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	seed_release_fixture(tempdir.path(), None, false);
+	fs::remove_dir_all(tempdir.path().join(".changeset"))
+		.unwrap_or_else(|error| panic!("remove changesets: {error}"));
+	configure_release_command_for_empty_release_records(tempdir.path());
+
+	run_cli(
+		tempdir.path(),
+		[
+			OsString::from("mc"),
+			OsString::from("release"),
+			OsString::from("--write-empty-release-record"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("release command: {error}"));
+
+	assert_eq!(release_record_json_paths(tempdir.path()).len(), 1);
+	assert!(
+		tempdir
+			.path()
+			.join(".monochange/local/release-manifest.json")
+			.exists()
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
