@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 256" fill="none">
+  <!-- White background -->
+  <rect x="0" y="0" width="768" height="256" fill="white"/>
+  <!-- Solid dark accent bar left -->
+  <rect x="40" y="88" width="10" height="80" rx="5" fill="#1a1a2e"/>
+  <!-- monochange wordmark — solid dark -->
+  <text x="408" y="155" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="80" letter-spacing="-3" fill="#1a1a2e">monochange</text>
+</svg>

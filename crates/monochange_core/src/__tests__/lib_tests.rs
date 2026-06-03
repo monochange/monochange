@@ -21,12 +21,14 @@ use crate::ChangesetPolicyStatus;
 use crate::CliInputKind;
 use crate::CliStepDefinition;
 use crate::CollapsedSectionStyle;
+use crate::CommitReleaseBackend;
 use crate::DependencyKind;
 use crate::Ecosystem;
 use crate::EcosystemSettings;
 use crate::EcosystemType;
 use crate::GroupChangelogInclude;
 use crate::GroupDefinition;
+use crate::HostedCommitAuth;
 use crate::HostedIssueCommentPlan;
 use crate::HostedSourceAdapter;
 use crate::HostedSourceFeatures;
@@ -1150,6 +1152,10 @@ fn cli_step_definition_kind_name_covers_all_variants() {
 				always_run: false,
 				no_verify: false,
 				update_release_json: false,
+				commit_backend: CommitReleaseBackend::default(),
+				hosted_auth: HostedCommitAuth::default(),
+				hosted_url: None,
+				oidc_audience: None,
 				stage_all: false,
 				inputs: BTreeMap::new(),
 			},
@@ -1320,6 +1326,10 @@ fn cli_step_name_returns_explicit_names_for_all_variants() {
 			always_run: false,
 			no_verify: false,
 			update_release_json: false,
+			commit_backend: CommitReleaseBackend::default(),
+			hosted_auth: HostedCommitAuth::default(),
+			hosted_url: None,
+			oidc_audience: None,
 			stage_all: false,
 			inputs: BTreeMap::new(),
 		},
@@ -1404,23 +1414,38 @@ fn valid_input_names_returns_empty_for_validate() {
 		always_run: false,
 		inputs: BTreeMap::new(),
 	};
-	assert_eq!(step.valid_input_names(), Some([].as_slice()));
+	assert_eq!(step.valid_input_names(), Some(["fix"].as_slice()));
 }
 
 #[test]
-fn valid_input_names_returns_no_verify_and_update_release_json_for_commit_release() {
+fn valid_input_names_returns_expected_names_for_commit_release() {
 	let step = CliStepDefinition::CommitRelease {
 		name: None,
 		when: None,
 		always_run: false,
 		no_verify: false,
 		update_release_json: false,
+		commit_backend: CommitReleaseBackend::default(),
+		hosted_auth: HostedCommitAuth::default(),
+		hosted_url: None,
+		oidc_audience: None,
 		stage_all: false,
 		inputs: BTreeMap::new(),
 	};
 	assert_eq!(
 		step.valid_input_names(),
-		Some(["no_verify", "update_release_json", "stage_all"].as_slice())
+		Some(
+			[
+				"no_verify",
+				"update_release_json",
+				"stage_all",
+				"commit_backend",
+				"hosted_auth",
+				"hosted_url",
+				"oidc_audience",
+			]
+			.as_slice()
+		)
 	);
 }
 
@@ -1614,6 +1639,10 @@ fn always_run_accessor_returns_value_for_all_variants() {
 		inputs: BTreeMap::new(),
 		no_verify: false,
 		update_release_json: false,
+		commit_backend: CommitReleaseBackend::default(),
+		hosted_auth: HostedCommitAuth::default(),
+		hosted_url: None,
+		oidc_audience: None,
 		stage_all: false,
 	};
 	assert!(!commit.always_run());
@@ -1764,17 +1793,45 @@ fn expected_input_kind_returns_none_for_command_steps() {
 }
 
 #[test]
-fn expected_input_kind_returns_none_for_commit_release() {
+fn expected_input_kind_returns_expected_kinds_for_commit_release() {
 	let step = CliStepDefinition::CommitRelease {
 		name: None,
 		when: None,
 		always_run: false,
 		no_verify: false,
 		update_release_json: false,
+		commit_backend: CommitReleaseBackend::default(),
+		hosted_auth: HostedCommitAuth::default(),
+		hosted_url: None,
+		oidc_audience: None,
 		stage_all: false,
 		inputs: BTreeMap::new(),
 	};
 	assert_eq!(step.expected_input_kind("format"), None);
+	assert_eq!(
+		step.expected_input_kind("commit_backend"),
+		Some(CliInputKind::Choice)
+	);
+	assert_eq!(
+		step.expected_input_kind("hosted_auth"),
+		Some(CliInputKind::Choice)
+	);
+	assert_eq!(
+		step.expected_input_kind("hosted_url"),
+		Some(CliInputKind::String)
+	);
+	assert_eq!(
+		step.expected_input_kind("oidc_audience"),
+		Some(CliInputKind::String)
+	);
+	assert_eq!(
+		step.valid_input_choices("commit_backend"),
+		Some(["local", "hosted"].as_slice())
+	);
+	assert_eq!(
+		step.valid_input_choices("hosted_auth"),
+		Some(["auto", "oidc", "token"].as_slice())
+	);
 }
 
 #[test]

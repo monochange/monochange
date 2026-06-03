@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- White background -->
+  <rect x="0" y="0" width="512" height="512" fill="white"/>
+  <!-- Bold border -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="none" stroke="#1a1a2e" stroke-width="10"/>
+  <!-- Infinity loop — solid dark, simplified -->
+  <path d="M196 256 C196 200 156 180 156 256 C156 332 196 312 256 256 C316 196 356 180 356 256 C356 332 316 312 316 256" stroke="#1a1a2e" stroke-width="14" fill="none" stroke-linecap="round"/>
+</svg>

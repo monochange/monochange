@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 256" fill="none">
+  <!-- White background -->
+  <rect x="0" y="0" width="768" height="256" fill="white"/>
+  <!-- mono in bold dark, change in medium dark — weight differentiation, not color -->
+  <text x="384" y="155" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="100" letter-spacing="-3">
+    <tspan font-weight="900" fill="#1a1a2e">mono</tspan><tspan font-weight="600" fill="#6b7280">change</tspan>
+  </text>
+</svg>

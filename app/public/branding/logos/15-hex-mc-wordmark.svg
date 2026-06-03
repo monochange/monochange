@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 256" fill="none">
+  <!-- White background -->
+  <rect x="0" y="0" width="768" height="256" fill="white"/>
+  <!-- Hexagon icon — solid dark, no blue -->
+  <polygon points="80,128 110,80 160,80 190,128 160,176 110,176" fill="#1a1a2e" opacity="0.12" stroke="#1a1a2e" stroke-width="6"/>
+  <!-- MC inside hex -->
+  <text x="135" y="148" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="56" letter-spacing="-3" fill="#1a1a2e">MC</text>
+  <!-- monochange wordmark — solid dark -->
+  <text x="460" y="148" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="64" letter-spacing="-2" fill="#1a1a2e">monochange</text>
+</svg>

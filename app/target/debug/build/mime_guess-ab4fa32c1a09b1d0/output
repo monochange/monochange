@@ -1,0 +1,1 @@
+cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/build/mime_guess-ab4fa32c1a09b1d0/out/mime_types_generated.rs

@@ -1,4 +1,7 @@
 packages:
+  - "app"
   - "packages/*"
+allowBuilds:
+  "@parcel/watcher": true
 linkWorkspacePackages: true
 preferWorkspacePackages: true

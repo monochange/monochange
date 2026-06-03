@@ -1,0 +1,8 @@
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/fuzzy_matcher-bc81c775e0cb45d4.d: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/clangd.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/skim.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/util.rs
+
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/libfuzzy_matcher-bc81c775e0cb45d4.rmeta: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/clangd.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/skim.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/util.rs
+
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/lib.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/clangd.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/skim.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fuzzy-matcher-0.3.7/src/util.rs:

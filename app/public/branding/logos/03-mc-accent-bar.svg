@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Dark rounded square -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="#1a1a2e"/>
+  <!-- MC — solid white, centered -->
+  <text x="256" y="310" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="240" letter-spacing="-12" fill="white">MC</text>
+  <!-- Solid white accent bar -->
+  <rect x="140" y="350" width="232" height="10" rx="5" fill="white" opacity="0.6"/>
+</svg>

@@ -1,0 +1,10 @@
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/app/target/debug/deps/rstest-ef0648fe6069330e.d: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/magic_conversion.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/timeout.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/context.rs
+
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/app/target/debug/deps/librstest-ef0648fe6069330e.rlib: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/magic_conversion.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/timeout.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/context.rs
+
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/app/target/debug/deps/librstest-ef0648fe6069330e.rmeta: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/magic_conversion.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/timeout.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/context.rs
+
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/lib.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/magic_conversion.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/timeout.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rstest-0.26.1/src/context.rs:

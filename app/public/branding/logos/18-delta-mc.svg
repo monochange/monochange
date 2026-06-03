@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Dark rounded square -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="#1a1a2e"/>
+  <!-- Delta/triangle — bold, solid white -->
+  <path d="M256 120 L400 380 L112 380 Z" fill="white" fill-opacity="0.12" stroke="white" stroke-width="10"/>
+  <!-- MC inside delta — white -->
+  <text x="256" y="320" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="100" letter-spacing="-5" fill="white">MC</text>
+</svg>

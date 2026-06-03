@@ -1,0 +1,8 @@
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/hashlink-aafd94013d5906fd.d: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/linked_hash_map.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/linked_hash_set.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/lru_cache.rs
+
+/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/feat-monochange-app-planning/apps/monochange_app/target/debug/deps/libhashlink-aafd94013d5906fd.rmeta: /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/lib.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/linked_hash_map.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/linked_hash_set.rs /Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/lru_cache.rs
+
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/lib.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/linked_hash_map.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/linked_hash_set.rs:
+/Users/ifiokjr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashlink-0.10.0/src/lru_cache.rs:

@@ -40,7 +40,7 @@ proptest = { version = "1.6", default-features = false }
 quote = { version = "1", default-features = false }
 rayon = { version = "1.10", default-features = false }
 regex = { version = "1", default-features = false, features = ["std", "unicode-perl"] }
-reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "rustls-no-provider"] }
 ring = { version = "0.17", default-features = false }
 rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
 rmcp = { version = "1", default-features = false }
