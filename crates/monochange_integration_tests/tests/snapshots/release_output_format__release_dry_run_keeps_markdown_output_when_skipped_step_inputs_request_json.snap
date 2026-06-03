@@ -1,0 +1,30 @@
+---
+source: crates/monochange_integration_tests/tests/release_output_format.rs
+assertion_line: 70
+expression: stdout
+---
+# `release` (dry-run)
+
+## Summary
+
+- **Version:** `0.1.1`
+- **Released packages:** `core`
+
+## Release targets
+
+- **package `core`** → `core/v0.1.1`
+  - tag: no · release: no
+
+## Release manifest
+
+- `.monochange/local/release-manifest.json`
+
+## Changed files
+
+- `Cargo.toml`
+- `crates/core/Cargo.toml`
+- `crates/core/changelog.md`
+
+## Commands
+
+- skipped step `Command` because when condition `false` is false
