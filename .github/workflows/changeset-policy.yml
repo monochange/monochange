@@ -17,7 +17,6 @@ jobs:
   check:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    continue-on-error: true
     permissions:
       contents: read
       issues: write
@@ -26,11 +25,19 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v6
 
-      - name: setup
-        uses: ./.github/actions/devenv
+      - name: install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
+          toolchain: nightly-2025-11-20
+
+      - name: cache cargo registry
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+      - name: build monochange CLI
+        run: cargo build --release --package monochange --bin mc
+
+      - name: add mc to PATH
+        run: echo "$PWD/target/release" >> "$GITHUB_PATH"
 
       - name: collect changed files
         id: changed
@@ -55,4 +62,4 @@ jobs:
           done
 
           mc "${args[@]}"
-        shell: devenv shell -- bash -e {0}
+        shell: bash
