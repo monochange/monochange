@@ -1,0 +1,21 @@
+---
+source: crates/monochange_integration_tests/tests/release_output_format.rs
+assertion_line: 81
+expression: json_release_summary(&json)
+---
+{
+  "changelogs": [
+    {
+      "path": "crates/core/changelog.md",
+      "rendered": "[see markdown output snapshot]",
+      "sections": [
+        {
+          "entries": 1,
+          "title": "🐛 Fixed"
+        }
+      ]
+    }
+  ],
+  "command": "release",
+  "version": "0.1.1"
+}

@@ -753,6 +753,16 @@ fn default_cli_command(name: &str) -> CliCommandDefinition {
 		.unwrap_or_else(|error| panic!("expected default cli command `{name}`: {error}"))
 }
 
+fn release_cli_command() -> CliCommandDefinition {
+	let mut command = default_cli_command("prepare-release");
+	command.name = "release".to_string();
+	command
+}
+
+fn format_input(format: &str) -> BTreeMap<String, Vec<String>> {
+	BTreeMap::from([("format".to_string(), vec![format.to_string()])])
+}
+
 fn read_telemetry_events(path: &Path) -> Vec<serde_json::Value> {
 	fs::read_to_string(path)
 		.unwrap_or_else(|error| panic!("telemetry file should be written: {error}"))
@@ -762,6 +772,35 @@ fn read_telemetry_events(path: &Path) -> Vec<serde_json::Value> {
 				.unwrap_or_else(|error| panic!("valid telemetry json: {error}"))
 		})
 		.collect()
+}
+
+#[test]
+fn resolve_command_output_uses_last_executed_step_format() {
+	let cli_command = release_cli_command();
+	let mut context = cli_context();
+	context.inputs = format_input("markdown");
+	context.last_step_inputs = format_input("json");
+	context.prepared_release = Some(sample_prepared_release());
+
+	let output = resolve_command_output(&cli_command, &context, true, None)
+		.unwrap_or_else(|error| panic!("resolve json output: {error}"));
+
+	assert!(output.trim_start().starts_with('{'));
+	assert!(output.contains("\"command\": \"release\""));
+}
+
+#[test]
+fn resolve_command_output_defaults_to_markdown_without_step_format() {
+	let cli_command = release_cli_command();
+	let mut context = cli_context();
+	context.inputs = format_input("json");
+	context.prepared_release = Some(sample_prepared_release());
+
+	let output = resolve_command_output(&cli_command, &context, true, None)
+		.unwrap_or_else(|error| panic!("resolve markdown output: {error}"));
+
+	assert!(output.starts_with("# `release`"));
+	assert!(!output.trim_start().starts_with('{'));
 }
 
 #[test]

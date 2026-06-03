@@ -709,7 +709,6 @@ pub(crate) async fn execute_cli_command_with_options(
 				continue;
 			}
 		};
-		context.last_step_inputs = step_inputs.clone();
 		let show_progress = step_shows_progress(step, &step_inputs);
 
 		let should_execute = match should_execute_cli_step(step, &context, &step_inputs) {
@@ -743,6 +742,8 @@ pub(crate) async fn execute_cli_command_with_options(
 			);
 			continue;
 		}
+
+		context.last_step_inputs = step_inputs.clone();
 
 		if show_progress {
 			progress.step_started(step_index, step);

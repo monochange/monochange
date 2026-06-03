@@ -1,0 +1,24 @@
+[defaults]
+parent_bump = "patch"
+package_type = "cargo"
+changelog = "{{ path }}/changelog.md"
+
+[package.core]
+path = "crates/core"
+
+[ecosystems.cargo]
+enabled = true
+
+[cli.release]
+inputs = [{ name = "format", type = "choice", choices = ["markdown", "json"], default = "markdown" }]
+
+[[cli.release.steps]]
+type = "PrepareRelease"
+inputs = ["format"]
+
+[[cli.release.steps]]
+type = "Command"
+when = "false"
+command = "printf '%s' skipped"
+shell = true
+inputs = { format = "json" }
