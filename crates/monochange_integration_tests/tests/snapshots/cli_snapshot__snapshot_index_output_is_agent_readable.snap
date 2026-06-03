@@ -1,6 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_snapshot.rs
-assertion_line: 24
+assertion_line: 15
 expression: value
 ---
 {
@@ -551,51 +551,6 @@ expression: value
       },
       "path": [
         "step:retarget-release"
-      ],
-      "stability": "stable"
-    },
-    {
-      "hidden": false,
-      "parser": {
-        "flagsArePosixNoncompliant": false,
-        "optionArgSeparators": [
-          " ",
-          "="
-        ],
-        "optionsMustPrecedeArguments": false
-      },
-      "path": [
-        "change"
-      ],
-      "stability": "stable"
-    },
-    {
-      "hidden": false,
-      "parser": {
-        "flagsArePosixNoncompliant": false,
-        "optionArgSeparators": [
-          " ",
-          "="
-        ],
-        "optionsMustPrecedeArguments": false
-      },
-      "path": [
-        "publish-check"
-      ],
-      "stability": "stable"
-    },
-    {
-      "hidden": false,
-      "parser": {
-        "flagsArePosixNoncompliant": false,
-        "optionArgSeparators": [
-          " ",
-          "="
-        ],
-        "optionsMustPrecedeArguments": false
-      },
-      "path": [
-        "release"
       ],
       "stability": "stable"
     }
