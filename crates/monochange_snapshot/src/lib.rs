@@ -12,13 +12,13 @@ use serde::Serialize;
 /// Snapshot schema version emitted by this crate.
 ///
 /// The value is derived from the `monochange_snapshot` crate version by dropping
-/// the patch component. For example, crate version `0.7.0` emits snapshot schema
-/// version `0.7`.
+/// the patch component. The unreleased crate version `0.0.0` emits the first
+/// public snapshot schema version, `0.1`.
 pub const SNAPSHOT_SCHEMA_VERSION: &str = env!("MONOCHANGE_SNAPSHOT_SCHEMA_VERSION");
 
 /// A framework-neutral command surface snapshot.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct CommandSnapshot {
 	pub schema_version: String,
 	pub kind: SnapshotKind,
@@ -42,7 +42,7 @@ pub enum SnapshotKind {
 
 /// Tool identity captured in a snapshot.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SnapshotTool {
 	pub name: String,
 	pub version: Option<String>,
@@ -50,7 +50,7 @@ pub struct SnapshotTool {
 
 /// Snapshot extraction provenance.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SnapshotProvenance {
 	pub extractor: String,
 	pub confidence: SnapshotConfidence,
@@ -67,7 +67,7 @@ pub enum SnapshotConfidence {
 
 /// Standard CLI entrypoints normalized across spelling variants.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct StandardEntrypoints {
 	pub help: StandardEntrypoint,
 	pub version: StandardEntrypoint,
@@ -76,7 +76,7 @@ pub struct StandardEntrypoints {
 
 /// Standard entrypoint spellings supported by a tool.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct StandardEntrypoint {
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub commands: Vec<Vec<String>>,
@@ -86,13 +86,14 @@ pub struct StandardEntrypoint {
 
 /// One command in a command surface snapshot.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct CommandNode {
 	pub path: Vec<String>,
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub aliases: Vec<String>,
 	pub hidden: bool,
-	pub stability: Stability,
+	#[serde(default = "default_max_semver_bump")]
+	pub max_semver_bump: SnapshotSeverity,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub summary: Option<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -106,18 +107,15 @@ pub struct CommandNode {
 	pub commands: Vec<CommandNode>,
 }
 
-/// Stability label for a command or output contract.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum Stability {
-	Stable,
-	Experimental,
-	HumanReadable,
+/// Default maximum SemVer bump for public CLI surface changes.
+#[must_use]
+pub const fn default_max_semver_bump() -> SnapshotSeverity {
+	SnapshotSeverity::Major
 }
 
 /// Parser behavior that affects invocation compatibility.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ParserBehavior {
 	pub flags_are_posix_noncompliant: bool,
 	pub options_must_precede_arguments: bool,
@@ -126,7 +124,7 @@ pub struct ParserBehavior {
 
 /// A named command option.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct CommandOption {
 	pub names: Vec<String>,
 	pub canonical_name: String,
@@ -141,7 +139,7 @@ pub struct CommandOption {
 
 /// A positional command argument.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct CommandPositional {
 	pub name: String,
 	pub hidden: bool,
@@ -154,7 +152,7 @@ pub struct CommandPositional {
 
 /// Accepted value shape for an option or positional.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct OptionValue {
 	pub kind: ValueKind,
 	pub required: bool,
@@ -178,12 +176,13 @@ pub enum ValueKind {
 
 /// Stable output contract annotation for a command.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct OutputContract {
 	pub command_path: Vec<String>,
 	pub stream: OutputStream,
 	pub format: OutputFormat,
-	pub stability: Stability,
+	#[serde(default = "default_max_semver_bump")]
+	pub max_semver_bump: SnapshotSeverity,
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub exit_codes: Vec<i32>,
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -359,7 +358,7 @@ fn command_node_from_clap(command: &mut Command, parent_path: Vec<String>) -> Co
 		path,
 		aliases: visible_aliases(command).collect(),
 		hidden: command.is_hide_set(),
-		stability: Stability::Stable,
+		max_semver_bump: SnapshotSeverity::Major,
 		summary: styled_str(command.get_about()),
 		description: styled_str(command.get_long_about()),
 		parser,
@@ -564,7 +563,7 @@ pub enum SnapshotSeverity {
 
 /// Compatibility classification for two command snapshots.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SnapshotDiffReport {
 	pub recommendation: SnapshotSeverity,
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -573,7 +572,7 @@ pub struct SnapshotDiffReport {
 
 /// One classified snapshot change.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SnapshotChange {
 	pub severity: SnapshotSeverity,
 	pub path: Vec<String>,
@@ -631,6 +630,8 @@ pub fn diff_command_snapshots(
 			));
 		}
 	}
+
+	apply_semver_bump_caps(&mut changes, &before_commands, &after_commands);
 
 	let recommendation = changes
 		.iter()
@@ -825,6 +826,41 @@ fn options_by_canonical_name(options: &[CommandOption]) -> BTreeMap<&str, &Comma
 		.iter()
 		.map(|option| (option.canonical_name.as_str(), option))
 		.collect()
+}
+
+fn apply_semver_bump_caps(
+	changes: &mut [SnapshotChange],
+	before_commands: &BTreeMap<Vec<String>, &CommandNode>,
+	after_commands: &BTreeMap<Vec<String>, &CommandNode>,
+) {
+	for change in changes {
+		let cap = semver_bump_cap(&change.path, before_commands, after_commands);
+		change.severity = change.severity.min(cap);
+	}
+}
+
+fn semver_bump_cap(
+	path: &[String],
+	before_commands: &BTreeMap<Vec<String>, &CommandNode>,
+	after_commands: &BTreeMap<Vec<String>, &CommandNode>,
+) -> SnapshotSeverity {
+	let before_cap = nearest_semver_bump_cap(path, before_commands);
+	let after_cap = nearest_semver_bump_cap(path, after_commands);
+	before_cap.min(after_cap)
+}
+
+fn nearest_semver_bump_cap(
+	path: &[String],
+	commands: &BTreeMap<Vec<String>, &CommandNode>,
+) -> SnapshotSeverity {
+	(1..=path.len())
+		.rev()
+		.find_map(|len| {
+			commands
+				.get(&path[..len])
+				.map(|command| command.max_semver_bump)
+		})
+		.unwrap_or_else(default_max_semver_bump)
 }
 
 fn snapshot_change(

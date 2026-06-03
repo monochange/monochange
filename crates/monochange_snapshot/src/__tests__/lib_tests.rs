@@ -14,15 +14,17 @@ fn option_names_falls_back_to_arg_id_without_visible_names() {
 fn snapshot_schema_version_tracks_package_major_minor() {
 	let package_version = env!("CARGO_PKG_VERSION");
 	let mut components = package_version.split('.');
-	let expected = format!(
-		"{}.{}",
-		components
-			.next()
-			.unwrap_or_else(|| panic!("major component")),
-		components
-			.next()
-			.unwrap_or_else(|| panic!("minor component"))
-	);
+	let major = components
+		.next()
+		.unwrap_or_else(|| panic!("major component"));
+	let minor = components
+		.next()
+		.unwrap_or_else(|| panic!("minor component"));
+	let expected = if major == "0" && minor == "0" {
+		"0.1".to_string()
+	} else {
+		format!("{major}.{minor}")
+	};
 	assert_eq!(SNAPSHOT_SCHEMA_VERSION, expected);
 }
 
@@ -102,6 +104,24 @@ fn diff_classifies_removed_command_as_major() {
 }
 
 #[test]
+fn diff_caps_changes_by_nearest_max_semver_bump() {
+	let mut before_parent = command_node("experimental");
+	before_parent.max_semver_bump = SnapshotSeverity::Minor;
+	let mut before_child = command_node("child");
+	before_child.path = vec!["experimental".to_string(), "child".to_string()];
+	before_parent.commands.push(before_child);
+	let before = command_snapshot(vec![before_parent]);
+
+	let mut after_parent = command_node("experimental");
+	after_parent.max_semver_bump = SnapshotSeverity::Minor;
+	let after = command_snapshot(vec![after_parent]);
+
+	let report = diff_command_snapshots(&before, &after);
+	assert_eq!(report.recommendation, SnapshotSeverity::Minor);
+	assert_eq!(report.changes[0].severity, SnapshotSeverity::Minor);
+}
+
+#[test]
 fn diff_classifies_optional_option_addition_as_minor() {
 	let before = snapshot_from_clap(&Command::new("demo").subcommand(Command::new("run")));
 	let after = snapshot_from_clap(
@@ -158,7 +178,7 @@ fn command_node(name: &str) -> CommandNode {
 		path: vec![name.to_string()],
 		aliases: Vec::new(),
 		hidden: false,
-		stability: Stability::Stable,
+		max_semver_bump: SnapshotSeverity::Major,
 		summary: None,
 		description: None,
 		parser: ParserBehavior {

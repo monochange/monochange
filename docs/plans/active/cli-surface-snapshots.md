@@ -71,13 +71,13 @@ Sketch:
 
 ```json
 {
-	"schemaVersion": "0.7",
+	"schema_version": "0.7",
 	"kind": "cli-surface",
 	"tool": {
 		"name": "mc",
 		"version": "0.6.8"
 	},
-	"standardEntrypoints": {
+	"standard_entrypoints": {
 		"help": {
 			"commands": [["help"]],
 			"flags": ["--help", "-h"]
@@ -91,47 +91,47 @@ Sketch:
 			"flags": ["--schema", "--snapshot"]
 		}
 	},
-	"globalOptions": [],
+	"global_options": [],
 	"commands": [
 		{
 			"path": ["step:affected-packages"],
 			"aliases": [],
 			"hidden": false,
-			"stability": "stable",
+			"max_semver_bump": "major",
 			"summary": "Evaluate packages affected by changed paths and changesets",
 			"description": "Returns package ids affected by changed paths and checks changeset coverage policy.",
 			"parser": {
-				"flagsArePosixNoncompliant": false,
-				"optionsMustPrecedeArguments": false,
-				"optionArgSeparators": [" ", "="]
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [" ", "="]
 			},
 			"intent": {
 				"mutating": false,
 				"destructive": false,
 				"idempotent": true,
-				"requiresAuth": false,
-				"requiresNetwork": false
+				"requires_auth": false,
+				"requires_network": false
 			},
 			"options": [
 				{
 					"names": ["--from"],
-					"canonicalName": "--from",
+					"canonical_name": "--from",
 					"value": {
 						"type": "string",
 						"required": false,
 						"repeatable": false,
 						"variadic": false,
 						"default": null,
-						"enumValues": []
+						"enum_values": []
 					}
 				},
 				{
 					"names": ["--format"],
-					"canonicalName": "--format",
+					"canonical_name": "--format",
 					"value": {
 						"type": "enum",
 						"required": false,
-						"enumValues": ["json", "text"]
+						"enum_values": ["json", "text"]
 					}
 				}
 			],
@@ -139,18 +139,18 @@ Sketch:
 			"outputs": [
 				{
 					"format": "json",
-					"schemaRef": "affected-packages.output.schema.json",
-					"stability": "stable"
+					"schema_ref": "affected-packages.output.schema.json",
+					"max_semver_bump": "major"
 				},
 				{
 					"format": "text",
-					"stability": "human-readable"
+					"max_semver_bump": "patch"
 				}
 			],
 			"errors": [
 				{
 					"kind": "config",
-					"exitCode": 1
+					"exit_code": 1
 				}
 			]
 		}
@@ -264,7 +264,7 @@ Possible layouts and views:
 2. Optional index file mapping command paths to per-command files.
 3. Optional `mc snapshot show <path> --format json` later for focused retrieval.
 4. Full view: includes descriptions, examples, output notes, and compatibility metadata.
-5. Light view: omits descriptions/examples/prose and keeps only command paths, options, positionals, parser behavior, outputs, errors, stability, and semantic ids.
+5. Light view: omits descriptions/examples/prose and keeps only command paths, options, positionals, parser behavior, outputs, errors, max SemVer bump policy, and semantic ids.
 6. Index view: command paths plus short summaries only.
 
 Initial preference: one complete snapshot plus a built-in renderer that can produce full/light/index views.

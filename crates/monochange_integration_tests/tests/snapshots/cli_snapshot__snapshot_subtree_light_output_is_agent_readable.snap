@@ -1,15 +1,16 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_snapshot.rs
-assertion_line: 48
+assertion_line: 28
 expression: value
 ---
 {
   "commands": [
     {
       "hidden": false,
+      "max_semver_bump": "major",
       "options": [
         {
-          "canonicalName": "--dry-run",
+          "canonical_name": "--dry-run",
           "global": false,
           "hidden": false,
           "names": [
@@ -23,14 +24,14 @@ expression: value
           }
         },
         {
-          "canonicalName": "--format",
+          "canonical_name": "--format",
           "global": false,
           "hidden": false,
           "names": [
             "--format"
           ],
           "value": {
-            "enumValues": [
+            "enum_values": [
               "text",
               "json",
               "md"
@@ -43,22 +44,21 @@ expression: value
         }
       ],
       "parser": {
-        "flagsArePosixNoncompliant": false,
-        "optionArgSeparators": [
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
           " ",
           "="
         ],
-        "optionsMustPrecedeArguments": false
+        "options_must_precede_arguments": false
       },
       "path": [
         "step:discover"
-      ],
-      "stability": "stable"
+      ]
     }
   ],
-  "globalOptions": [
+  "global_options": [
     {
-      "canonicalName": "--log-level",
+      "canonical_name": "--log-level",
       "global": true,
       "hidden": true,
       "names": [
@@ -72,7 +72,7 @@ expression: value
       }
     },
     {
-      "canonicalName": "--quiet",
+      "canonical_name": "--quiet",
       "global": true,
       "hidden": false,
       "names": [
@@ -87,14 +87,14 @@ expression: value
       }
     },
     {
-      "canonicalName": "--progress-format",
+      "canonical_name": "--progress-format",
       "global": true,
       "hidden": false,
       "names": [
         "--progress-format"
       ],
       "value": {
-        "enumValues": [
+        "enum_values": [
           "auto",
           "unicode",
           "ascii",
@@ -107,7 +107,7 @@ expression: value
       }
     },
     {
-      "canonicalName": "--jq",
+      "canonical_name": "--jq",
       "global": true,
       "hidden": false,
       "names": [
@@ -121,7 +121,7 @@ expression: value
       }
     },
     {
-      "canonicalName": "--snapshot",
+      "canonical_name": "--snapshot",
       "global": true,
       "hidden": false,
       "names": [
@@ -140,8 +140,8 @@ expression: value
     "confidence": "high",
     "extractor": "clap"
   },
-  "schemaVersion": "0.7",
-  "standardEntrypoints": {
+  "schema_version": "0.1",
+  "standard_entrypoints": {
     "help": {
       "commands": [
         [
