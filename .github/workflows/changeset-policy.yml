@@ -43,19 +43,26 @@ jobs:
         id: changed
         uses: tj-actions/changed-files@v46
 
+      # Write changed files to a temp file instead of an env var.
+      # Large PRs (3000+ files) exceed execve's ~2MB environment limit
+      # when all filenames are passed as a single CHANGED_FILES env var.
+      - name: write changed files to file
+        run: |
+          printf '%s\n' ${{ steps.changed.outputs.all_changed_files }} > "$RUNNER_TEMP/changed-files.txt"
+
       - name: run changeset policy
         env:
-          CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
           PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          CHANGED_FILES_PATH: ${{ runner.temp }}/changed-files.txt
         run: |
           set -euo pipefail
 
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
           args=(step:affected-packages --format json --verify)
 
-          for path in $CHANGED_FILES; do
+          while IFS= read -r path; do
             args+=(--changed-paths "$path")
-          done
+          done < "$CHANGED_FILES_PATH"
 
           for label in "${labels[@]}"; do
             args+=(--label "$label")
