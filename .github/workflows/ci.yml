@@ -753,7 +753,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
           GITHUB_COMMIT_TOKEN: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
-        run: monochange --log-level=debug run release --commit --create-pr
+        run: |
+          set -euo pipefail
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_COMMIT_TOKEN" | base64 -w 0)"
+          monochange --log-level=debug run release --commit --create-pr
         shell: devenv shell -- bash -e {0}
 
       - name: skip refresh on merged release commit
