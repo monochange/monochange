@@ -35,6 +35,7 @@ Work through the five immediate followups from the API snapshot classification M
 - [x] Wire dependency propagation into CLI options with a safe default of `none` and docs for `--dependency-propagation public`.
 - [x] Add API snapshot extraction support for Dart using the existing Dart public symbol extractor.
 - [x] Extend integration tests/fixtures to cover Dart API classification and dependency propagation.
+- [x] Rebase on latest `main` and enforce affected-changeset bump alignment against API classification recommendations.
 - [x] Run formatting, focused tests, lint/clippy, docs checks, and patch coverage.
 - [ ] Open PR, monitor checks, fix failures, then merge when green.
 

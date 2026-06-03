@@ -324,7 +324,7 @@ pub(crate) fn render_change_classification(
 	Ok(output)
 }
 
-fn classification_report(
+pub(crate) fn classification_report(
 	analysis: &ChangeAnalysis,
 	dependency_propagation: DependencyPropagation,
 ) -> ChangeClassificationReport {

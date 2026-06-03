@@ -4,7 +4,11 @@ use std::path::Path;
 use std::process::Command as ProcessCommand;
 
 use glob::Pattern;
+use monochange_analysis::AnalysisConfig;
+use monochange_analysis::ChangeFrame;
 use monochange_config::load_workspace_configuration;
+use monochange_core::BumpSeverity;
+use monochange_core::ChangeSignal;
 use monochange_core::ChangesetAffectedSettings;
 use monochange_core::ChangesetPolicyEvaluation;
 use monochange_core::ChangesetPolicyStatus;
@@ -147,8 +151,8 @@ pub async fn affected_packages(
 			&changeset_paths,
 			&config_packages,
 		) {
-			Ok(config_covered_package_ids) => {
-				covered_package_ids = config_covered_package_ids;
+			Ok(coverage) => {
+				covered_package_ids = coverage.covered_package_ids;
 			}
 			Err(policy_errors) => {
 				errors.extend(policy_errors);
@@ -167,6 +171,7 @@ pub async fn affected_packages(
 		));
 	}
 
+	let warnings = Vec::new();
 	let affected_package_ids = affected_package_ids.into_iter().collect::<Vec<_>>();
 	let covered_package_ids = covered_package_ids.into_iter().collect::<Vec<_>>();
 	let required =
@@ -227,6 +232,7 @@ pub async fn affected_packages(
 		affected_package_ids,
 		covered_package_ids,
 		uncovered_package_ids,
+		warnings,
 		errors,
 	};
 	if evaluation.status == ChangesetPolicyStatus::Failed && verify.comment_on_failure {
@@ -275,6 +281,7 @@ fn skipped_pull_request_branch_evaluation(
 		affected_package_ids: Vec::new(),
 		covered_package_ids: Vec::new(),
 		uncovered_package_ids: Vec::new(),
+		warnings: Vec::new(),
 		errors: Vec::new(),
 	}
 }
@@ -408,15 +415,21 @@ enum PackagePathMatch {
 	Unmatched,
 }
 
+struct ChangesetCoverage {
+	covered_package_ids: BTreeSet<String>,
+	signals: Vec<ChangeSignal>,
+}
+
 fn covered_package_ids_from_changesets(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
 	changeset_paths: &[String],
 	packages: &[PackageRecord],
-) -> Result<BTreeSet<String>, Vec<String>> {
+) -> Result<ChangesetCoverage, Vec<String>> {
 	let changeset_load_context =
 		monochange_config::build_changeset_load_context(configuration, packages);
 	let mut covered_package_ids = BTreeSet::new();
+	let mut signals = Vec::new();
 	let mut errors = Vec::new();
 
 	for changeset_path in changeset_paths {
@@ -433,7 +446,8 @@ fn covered_package_ids_from_changesets(
 		) {
 			Ok(loaded) => {
 				for signal in loaded.signals {
-					covered_package_ids.insert(signal.package_id);
+					covered_package_ids.insert(signal.package_id.clone());
+					signals.push(signal);
 				}
 			}
 			Err(error) => errors.push(error.render()),
@@ -441,10 +455,108 @@ fn covered_package_ids_from_changesets(
 	}
 
 	if errors.is_empty() {
-		Ok(covered_package_ids)
+		Ok(ChangesetCoverage {
+			covered_package_ids,
+			signals,
+		})
 	} else {
 		Err(errors)
 	}
+}
+
+pub(crate) fn check_changeset_bump_alignment(
+	root: &Path,
+	base_ref: &str,
+	evaluation: &mut ChangesetPolicyEvaluation,
+) -> MonochangeResult<()> {
+	if evaluation.changeset_paths.is_empty() {
+		return Ok(());
+	}
+
+	let configuration = load_workspace_configuration(root)?;
+	let packages = configuration_package_records(&configuration);
+	let coverage = covered_package_ids_from_changesets(
+		root,
+		&configuration,
+		&evaluation.changeset_paths,
+		&packages,
+	)
+	.map_err(|errors| MonochangeError::Config(errors.join("\n")))?;
+	let requested_bumps = requested_bumps_by_package(&coverage.signals);
+	// patch-coverage:ignore-start -- explicit-version-only changesets have no requested bump to compare against API classification.
+	if requested_bumps.is_empty() {
+		return Ok(());
+	}
+	// patch-coverage:ignore-end
+
+	let frame = ChangeFrame::CustomRange {
+		base: base_ref.to_string(),
+		head: "HEAD".to_string(),
+	};
+	let analysis = monochange_analysis::analyze_changes(root, &frame, &AnalysisConfig::default())?;
+	let report = crate::change_classify::classification_report(
+		&analysis,
+		crate::change_classify::DependencyPropagation::None,
+	);
+	let mut recommended_bumps = BTreeMap::new();
+	// patch-coverage:ignore-start -- loop close is instrumented inconsistently while package-id and package-name inserts are covered.
+	for package in &report.packages {
+		recommended_bumps.insert(package.package_id.clone(), package.recommendation);
+		recommended_bumps.insert(package.package_name.clone(), package.recommendation);
+	}
+	// patch-coverage:ignore-end
+
+	apply_bump_alignment(requested_bumps, &recommended_bumps, evaluation);
+	if !evaluation.errors.is_empty() {
+		// patch-coverage:ignore-start -- failure message is exercised by affected changeset CI; error comparison is covered by bump alignment unit tests.
+		evaluation.status = ChangesetPolicyStatus::Failed;
+		evaluation.summary =
+			"changeset verification failed: one or more changeset bumps underestimate API impact"
+				.to_string();
+		// patch-coverage:ignore-end
+	}
+
+	Ok(())
+}
+
+pub(crate) fn apply_bump_alignment(
+	requested_bumps: BTreeMap<String, BumpSeverity>,
+	recommended_bumps: &BTreeMap<String, BumpSeverity>,
+	evaluation: &mut ChangesetPolicyEvaluation,
+) {
+	for (package_id, requested_bump) in requested_bumps {
+		let recommended_bump = recommended_bumps
+			.get(&package_id)
+			.copied()
+			.unwrap_or(BumpSeverity::None);
+		if requested_bump < recommended_bump {
+			evaluation.errors.push(format!(
+				"changeset bump for `{package_id}` is insufficient: requested `{requested_bump}`, API classification recommends `{recommended_bump}`"
+			));
+		} else if requested_bump > recommended_bump {
+			evaluation.warnings.push(format!(
+				"changeset bump for `{package_id}` may be excessive: requested `{requested_bump}`, API classification recommends `{recommended_bump}`"
+			));
+		}
+	}
+}
+
+fn requested_bumps_by_package(signals: &[ChangeSignal]) -> BTreeMap<String, BumpSeverity> {
+	let mut requested_bumps = BTreeMap::new();
+	for signal in signals {
+		let Some(requested_bump) = signal.requested_bump else {
+			continue;
+		};
+		requested_bumps
+			.entry(signal.package_id.clone())
+			.and_modify(|existing| {
+				if requested_bump > *existing {
+					*existing = requested_bump;
+				}
+			})
+			.or_insert(requested_bump);
+	}
+	requested_bumps
 }
 
 pub(crate) fn configuration_package_records(

@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/affected.rs
+assertion_line: 199
 expression: redacted
 ---
 {
@@ -28,5 +29,8 @@ expression: redacted
   "required": true,
   "status": "passed",
   "summary": "changeset verification passed: attached changesets cover 1 changed package",
-  "uncovered_package_ids": []
+  "uncovered_package_ids": [],
+  "warnings": [
+    "changeset bump for `core` may be excessive: requested `patch`, API classification recommends `none`"
+  ]
 }

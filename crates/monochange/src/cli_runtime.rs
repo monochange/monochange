@@ -43,6 +43,7 @@ use serde::Serialize;
 use serde::ser::SerializeMap;
 use serde::ser::SerializeStruct;
 
+use crate::changeset_policy::check_changeset_bump_alignment;
 use crate::cli::command_supports_release_diff_preview;
 use crate::cli_progress::CliProgressReporter;
 use crate::cli_progress::CommandStream;
@@ -3458,6 +3459,12 @@ pub(crate) fn render_cli_command_result(
 				lines.push(format!("- {error}"));
 			}
 		}
+		if !evaluation.warnings.is_empty() {
+			lines.push("warnings:".to_string());
+			for warning in &evaluation.warnings {
+				lines.push(format!("- {warning}"));
+			}
+		}
 	}
 	if !context.command_logs.is_empty() {
 		lines.push("commands:".to_string());
@@ -4192,6 +4199,9 @@ async fn execute_affected_packages_step(
 		.get("verify")
 		.is_some_and(|values| values.iter().any(|v| v == "true"));
 	let mut evaluation = affected_packages(root, &changed_paths, &labels).await?;
+	if let Some(base_ref) = &from_ref {
+		check_changeset_bump_alignment(root, base_ref, &mut evaluation)?;
+	}
 	evaluation.enforce = enforce;
 	Ok(evaluation)
 }
