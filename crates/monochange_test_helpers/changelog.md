@@ -86,6 +86,23 @@ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #207](https://gith
 
 - No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.0.3.
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🐛 Fixed
+
+#### Use snake_case for durable JSON schemas
+
+Normalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.
+
+```json
+{
+	"schema_version": "0.4",
+	"kind": "monochange.release_record"
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 ### Changed

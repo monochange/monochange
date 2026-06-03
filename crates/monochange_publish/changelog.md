@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🚀 Feature
+
+#### Use snake_case for durable JSON schemas
+
+Normalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.
+
+```json
+{
+	"schema_version": "0.4",
+	"kind": "monochange.release_record"
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)
+
+### 🐛 Fixed
+
+#### Add npm placeholder publish OTP support
+
+Allow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.
+
+Before, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.
+
+After, pass a fresh code with `--otp`:
+
+```sh
+mc placeholder-publish --otp 123456
+mc step:placeholder-publish --from HEAD --otp 123456
+```
+
+The generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 ### Changed

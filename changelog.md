@@ -4,6 +4,207 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Validate API-aligned changeset bumps
+
+_Packages:_ _monochange_core_
+
+Affected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.
+
+```json
+{
+	"requested": "patch",
+	"recommended": "major",
+	"status": "failed"
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)
+
+### 🚀 Feature
+
+#### Improve API classification followups
+
+_Packages:_ _monochange_, _monochange_core_, _monochange_dart_
+
+Add advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)
+
+#### Add API change classification
+
+_Packages:_ _monochange_, _monochange_cargo_, _monochange_core_, _monochange_ecmascript_, _monochange_npm_
+
+Add `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)
+
+#### Add `auto_discover` to ecosystem configuration
+
+_Packages:_ _monochange_, _monochange_config_, _monochange_core_
+
+Each `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.
+
+```toml
+[ecosystems.cargo]
+enabled = true
+versioned_files = ["Cargo.toml"]
+auto_discover = { include = ["crates/*"] }
+
+# Only packages that deviate from defaults need explicit entries:
+[package.monochange_schema]
+path = "crates/monochange_schema"
+release = true
+tag = true
+```
+
+The `auto_discover` table supports:
+
+- `include` (required): glob patterns for directories to scan
+- `exclude`: glob patterns to skip within included paths
+- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables
+- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)
+
+Precedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)
+
+#### Use snake_case for durable JSON schemas
+
+_Packages:_ _monochange_, _monochange_analysis_, _monochange_config_, _monochange_core_, _monochange_publish_
+
+Normalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.
+
+```json
+{
+	"schema_version": "0.4",
+	"kind": "monochange.release_record"
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)
+
+### 🐛 Fixed
+
+#### Improve API classification followups
+
+_Packages:_ _@monochange/skill_, _monochange_analysis_, _monochange_ecmascript_
+
+Add advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)
+
+#### Add API change classification
+
+_Packages:_ _@monochange/skill_
+
+Add `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)
+
+#### Validate API-aligned changeset bumps
+
+_Packages:_ _monochange_
+
+Affected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.
+
+```json
+{
+	"requested": "patch",
+	"recommended": "major",
+	"status": "failed"
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)
+
+#### Improve `mc check` lint diagnostics
+
+_Packages:_ _monochange_, _monochange_lint_, _monochange_npm_
+
+Show lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)
+
+#### Improve `mc check` onboarding defaults
+
+_Packages:_ _monochange_, _monochange_cargo_, _monochange_dart_, _monochange_npm_
+
+Add per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)
+
+#### Add npm placeholder publish OTP support
+
+_Packages:_ _monochange_, _monochange_core_, _monochange_npm_, _monochange_publish_
+
+Allow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.
+
+Before, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.
+
+After, pass a fresh code with `--otp`:
+
+```sh
+mc placeholder-publish --otp 123456
+mc step:placeholder-publish --from HEAD --otp 123456
+```
+
+The generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)
+
+#### Harden dark-area performance feedback
+
+_Packages:_ _monochange_, _monochange_hosting_, _monochange_python_
+
+Provider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.
+
+External command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.
+
+CLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.
+
+Discovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.
+
+Python discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)
+
+#### Speed up ecosystem auto-discovery
+
+_Packages:_ _monochange_config_
+
+Limit auto-discovery filesystem walks to the literal path prefix of each `auto_discover.include` glob instead of walking the repository root for every ecosystem pattern.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #585](https://github.com/monochange/monochange/pull/585)
+
+#### Limit group release member changelogs to fallback notes
+
+_Packages:_ _monochange_github_, _monochange_hosting_
+
+Group release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)
+
+#### Use snake_case for durable JSON schemas
+
+_Packages:_ _monochange_test_helpers_
+
+Normalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.
+
+```json
+{
+	"schema_version": "0.4",
+	"kind": "monochange.release_record"
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 Grouped release for `main`.

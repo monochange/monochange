@@ -237,9 +237,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.11.1"
+version = "2.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4512299f36f043ab09a583e57bceb5a5aab7a73db1805848e8fef3c9e8c78b3"
+checksum = "84d7ced0ae9557296835c32bf1b1e02b44c746701f898460fb000d7eaa84f00a"
 
 [[package]]
 name = "block-buffer"
@@ -679,7 +679,7 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b9f2e4c67f833b660cdb0a3523065869fb35570177239812ed4c905aeff87b"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "crossterm_winapi",
  "derive_more",
  "document-features",
@@ -1763,7 +1763,7 @@ version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6654738b8024300cf062d04a1c13c10c8e2cea598ec1c47dc9b6641159429756"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "crossterm",
  "dyn-clone",
  "fuzzy-matcher",
@@ -2028,9 +2028,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.30"
+version = "0.4.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "616ec5685824bcc94416c6d4a7a446eea774a31efd7062c8480ba6fd06d7a6e5"
+checksum = "113b30b4cd05f7c06868fdb2854f66a7b9fece9a48425351cd532e810d74024f"
 
 [[package]]
 name = "memchr"
@@ -2111,7 +2111,7 @@ dependencies = [
 
 [[package]]
 name = "monochange"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "anstyle",
  "chrono",
@@ -2174,7 +2174,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_analysis"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "insta",
  "monochange_cargo",
@@ -2196,7 +2196,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_book"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "doc-comment",
  "monochange",
@@ -2229,7 +2229,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_cargo"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "glob",
  "insta",
@@ -2256,7 +2256,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_changelog"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "insta",
  "minijinja",
@@ -2271,7 +2271,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_config"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "glob",
  "ignore",
@@ -2296,7 +2296,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "ignore",
@@ -2319,7 +2319,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_dart"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "glob",
  "insta",
@@ -2341,7 +2341,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_deno"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "glob",
  "insta",
@@ -2361,7 +2361,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_ecmascript"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "monochange_core",
  "oxc_allocator",
@@ -2372,7 +2372,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_forgejo"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "etest",
@@ -2393,7 +2393,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitea"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "etest",
@@ -2414,7 +2414,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "etest",
@@ -2439,7 +2439,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitlab"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "etest",
@@ -2460,7 +2460,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_go"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "glob",
  "insta",
@@ -2478,7 +2478,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_graph"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2492,7 +2492,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "httpmock",
  "monochange_core",
@@ -2526,7 +2526,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_lint"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "glob",
  "ignore",
@@ -2539,14 +2539,14 @@ dependencies = [
 
 [[package]]
 name = "monochange_linting"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "monochange_core",
 ]
 
 [[package]]
 name = "monochange_npm"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "glob",
  "insta",
@@ -2571,7 +2571,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_publish"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "monochange_core",
  "reqwest",
@@ -2586,7 +2586,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_python"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "glob",
  "insta",
@@ -2606,7 +2606,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_schema"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "insta",
  "serde",
@@ -2616,7 +2616,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_semver"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2628,7 +2628,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_telemetry"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "monochange_core",
  "monochange_test_helpers",
@@ -2642,7 +2642,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_test_helpers"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2660,7 +2660,7 @@ version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab2156c4fce2f8df6c499cc1c763e4394b7482525bf2a9701c9d79d215f519e4"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "cfg-if",
  "cfg_aliases",
  "libc",
@@ -2904,7 +2904,7 @@ version = "0.131.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20c9019b852098e62fdf6f7386f78a13a5de67afb673de824bb41557c6ed284b"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "oxc_allocator",
  "oxc_ast_macros",
  "oxc_data_structures",
@@ -2983,7 +2983,7 @@ version = "0.131.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9aca515acc4d2a7dd9e8a7da90784172f6e5b19158b94412b7a23fc7ad82d582"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "cow-utils",
  "memchr",
  "num-bigint",
@@ -3007,7 +3007,7 @@ version = "0.131.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "473e111606281ece5ba662ca2f9313fc3d7edcd1b9ed6b0363898cefb6336d1f"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "oxc_allocator",
  "oxc_ast_macros",
  "oxc_diagnostics",
@@ -3050,7 +3050,7 @@ version = "0.131.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32e525737bcde35ed941c7b1023d28a706799d04ee75623fe26daab88e757459"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "cow-utils",
  "dragonbox_ecma",
  "nonmax",
@@ -3418,7 +3418,7 @@ checksum = "4b45fcc2344c680f5025fe57779faef368840d0bd1f42f216291f0dc4ace4744"
 dependencies = [
  "bit-set",
  "bit-vec",
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "num-traits",
  "rand 0.9.4",
  "rand_chacha 0.9.0",
@@ -3550,7 +3550,7 @@ version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
 ]
 
 [[package]]
@@ -3793,7 +3793,7 @@ version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "errno",
  "libc",
  "linux-raw-sys",
@@ -3818,9 +3818,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-native-certs"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "612460d5f7bea540c490b2b6395d8e34a953e52b491accd6c86c8164c5932a63"
+checksum = "dab5152771c58876a2146916e53e35057e1a4dfa2b9df0f0305b07f611fdea4d"
 dependencies = [
  "openssl-probe",
  "rustls-pki-types",
@@ -3979,7 +3979,7 @@ version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7f4bc775c73d9a02cde8bf7b2ec4c9d12743edf609006c7facc23998404cd1d"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "core-foundation",
  "core-foundation-sys",
  "libc",
@@ -4708,7 +4708,7 @@ version = "0.6.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4cfcf7e2740e6fc6d4d688b4ef00650406bb94adf4731e43c096c3a19fe40840"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "bytes",
  "futures-util",
  "http",
@@ -4847,9 +4847,9 @@ checksum = "3b09c83c3c29d37506a3e260c08c03743a6bb66a9cd432c6934ab501a190571f"
 
 [[package]]
 name = "unicode-segmentation"
-version = "1.13.2"
+version = "1.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9629274872b2bfaf8d66f5f15725007f635594914870f65218920345aa11aa8c"
+checksum = "c6f5d3c3b1bf09027a88a6bc961fc00497d651009560b5463668dc81b0fa87a8"
 
 [[package]]
 name = "unicode-width"
@@ -5069,7 +5069,7 @@ version = "0.244.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47b807c72e1bac69382b3a6fb3dbe8ea4c0ed87ff5629b8685ae6b9a611028fe"
 dependencies = [
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "hashbrown 0.15.5",
  "indexmap",
  "semver",
@@ -5359,7 +5359,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d66ea20e9553b30172b5e831994e35fbde2d165325bec84fc43dbf6f4eb9cb2"
 dependencies = [
  "anyhow",
- "bitflags 2.11.1",
+ "bitflags 2.12.1",
  "indexmap",
  "log",
  "serde",
@@ -5397,7 +5397,7 @@ checksum = "1ffae5123b2d3fc086436f8834ae3ab053a283cfac8fe0a0b8eaae044768a4c4"
 
 [[package]]
 name = "xtask"
-version = "0.6.8"
+version = "0.7.0"
 dependencies = [
  "clap",
  "monochange_config",

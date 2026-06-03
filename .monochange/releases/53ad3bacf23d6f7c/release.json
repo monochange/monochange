@@ -1,0 +1,2952 @@
+{
+	"schema_version": "0.4",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-06-03T00:11:09Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.7.0",
+		"monochange_schema": "0.4.0"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.7.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.7.0",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.4.0",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.4.0",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/feat-api-classification-followups.md",
+		".changeset/feat-change-classify-api.md",
+		".changeset/feat-changeset-api-bump-alignment.md",
+		".changeset/feat-ecosystem-auto-discover.md",
+		".changeset/feat-snake-case-serde-schema.md",
+		".changeset/fix-check-lint-diagnostics.md",
+		".changeset/fix-check-onboarding-lint-defaults.md",
+		".changeset/fix-group-member-changelog-fallback.md",
+		".changeset/npm-placeholder-publish-otp.md",
+		".changeset/perf-auto-discover-walk-roots.md",
+		".changeset/perf-provider-http-timeouts.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/feat-api-classification-followups.md",
+			"summary": "Improve API classification followups",
+			"details": "Add advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_dart",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_ecmascript",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_analysis",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "027530b9bdbc4f4f1d72b72a9b8a2302c2bccc98",
+						"short_sha": "027530b",
+						"url": "https://github.com/monochange/monochange/commit/027530b9bdbc4f4f1d72b72a9b8a2302c2bccc98",
+						"authored_at": "2026-06-02T15:12:45+01:00",
+						"committed_at": "2026-06-02T14:12:45Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#586",
+						"title": "feat: improve API classification followups",
+						"url": "https://github.com/monochange/monochange/pull/586",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "027530b9bdbc4f4f1d72b72a9b8a2302c2bccc98",
+						"short_sha": "027530b",
+						"url": "https://github.com/monochange/monochange/commit/027530b9bdbc4f4f1d72b72a9b8a2302c2bccc98",
+						"authored_at": "2026-06-02T15:12:45+01:00",
+						"committed_at": "2026-06-02T14:12:45Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#586",
+						"title": "feat: improve API classification followups",
+						"url": "https://github.com/monochange/monochange/pull/586",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/feat-change-classify-api.md",
+			"summary": "Add API change classification",
+			"details": "Add `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.",
+			"targets": [
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_ecmascript",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4aab49de050ae1176a356bceb6d1cab56ad38c3c",
+						"short_sha": "4aab49d",
+						"url": "https://github.com/monochange/monochange/commit/4aab49de050ae1176a356bceb6d1cab56ad38c3c",
+						"authored_at": "2026-06-02T07:47:19+01:00",
+						"committed_at": "2026-06-02T06:47:19Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#584",
+						"title": "feat: classify API snapshot changes",
+						"url": "https://github.com/monochange/monochange/pull/584",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4aab49de050ae1176a356bceb6d1cab56ad38c3c",
+						"short_sha": "4aab49d",
+						"url": "https://github.com/monochange/monochange/commit/4aab49de050ae1176a356bceb6d1cab56ad38c3c",
+						"authored_at": "2026-06-02T07:47:19+01:00",
+						"committed_at": "2026-06-02T06:47:19Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#584",
+						"title": "feat: classify API snapshot changes",
+						"url": "https://github.com/monochange/monochange/pull/584",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/feat-changeset-api-bump-alignment.md",
+			"summary": "Validate API-aligned changeset bumps",
+			"details": "Affected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "743b0611a54847c91f7ca49c19db27f5df21a33d",
+						"short_sha": "743b061",
+						"url": "https://github.com/monochange/monochange/commit/743b0611a54847c91f7ca49c19db27f5df21a33d",
+						"authored_at": "2026-06-03T01:02:44+01:00",
+						"committed_at": "2026-06-03T01:02:44+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#592",
+						"title": "feat: validate changeset bumps against API classification",
+						"url": "https://github.com/monochange/monochange/pull/592",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "743b0611a54847c91f7ca49c19db27f5df21a33d",
+						"short_sha": "743b061",
+						"url": "https://github.com/monochange/monochange/commit/743b0611a54847c91f7ca49c19db27f5df21a33d",
+						"authored_at": "2026-06-03T01:02:44+01:00",
+						"committed_at": "2026-06-03T01:02:44+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#592",
+						"title": "feat: validate changeset bumps against API classification",
+						"url": "https://github.com/monochange/monochange/pull/592",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/feat-ecosystem-auto-discover.md",
+			"summary": "Add `auto_discover` to ecosystem configuration",
+			"details": "Each `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c84011d202469be9f0fea2ffdf10d7dfa7c5cb9a",
+						"short_sha": "c84011d",
+						"url": "https://github.com/monochange/monochange/commit/c84011d202469be9f0fea2ffdf10d7dfa7c5cb9a",
+						"authored_at": "2026-06-01T12:06:23+01:00",
+						"committed_at": "2026-06-01T12:06:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#579",
+						"title": "feat: add auto_discover to ecosystem configuration",
+						"url": "https://github.com/monochange/monochange/pull/579",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c84011d202469be9f0fea2ffdf10d7dfa7c5cb9a",
+						"short_sha": "c84011d",
+						"url": "https://github.com/monochange/monochange/commit/c84011d202469be9f0fea2ffdf10d7dfa7c5cb9a",
+						"authored_at": "2026-06-01T12:06:23+01:00",
+						"committed_at": "2026-06-01T12:06:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#579",
+						"title": "feat: add auto_discover to ecosystem configuration",
+						"url": "https://github.com/monochange/monochange/pull/579",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/feat-snake-case-serde-schema.md",
+			"summary": "Use snake_case for durable JSON schemas",
+			"details": "Normalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```",
+			"targets": [
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_analysis",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_test_helpers",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3c7b932249378d4aec8055a756364f9fa8899a18",
+						"short_sha": "3c7b932",
+						"url": "https://github.com/monochange/monochange/commit/3c7b932249378d4aec8055a756364f9fa8899a18",
+						"authored_at": "2026-06-02T11:35:15+01:00",
+						"committed_at": "2026-06-02T10:35:15Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#589",
+						"title": "feat: use snake_case JSON schema keys",
+						"url": "https://github.com/monochange/monochange/pull/589",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3c7b932249378d4aec8055a756364f9fa8899a18",
+						"short_sha": "3c7b932",
+						"url": "https://github.com/monochange/monochange/commit/3c7b932249378d4aec8055a756364f9fa8899a18",
+						"authored_at": "2026-06-02T11:35:15+01:00",
+						"committed_at": "2026-06-02T10:35:15Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#589",
+						"title": "feat: use snake_case JSON schema keys",
+						"url": "https://github.com/monochange/monochange/pull/589",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/fix-check-lint-diagnostics.md",
+			"summary": "Improve `mc check` lint diagnostics",
+			"details": "Show lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_lint",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "fc493f84e6299bc69937cc115ebdc381d967fedc",
+						"short_sha": "fc493f8",
+						"url": "https://github.com/monochange/monochange/commit/fc493f84e6299bc69937cc115ebdc381d967fedc",
+						"authored_at": "2026-06-02T10:59:37+01:00",
+						"committed_at": "2026-06-02T09:59:37Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#587",
+						"title": "fix: improve check lint diagnostics",
+						"url": "https://github.com/monochange/monochange/pull/587",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "fc493f84e6299bc69937cc115ebdc381d967fedc",
+						"short_sha": "fc493f8",
+						"url": "https://github.com/monochange/monochange/commit/fc493f84e6299bc69937cc115ebdc381d967fedc",
+						"authored_at": "2026-06-02T10:59:37+01:00",
+						"committed_at": "2026-06-02T09:59:37Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#587",
+						"title": "fix: improve check lint diagnostics",
+						"url": "https://github.com/monochange/monochange/pull/587",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/fix-check-onboarding-lint-defaults.md",
+			"summary": "Improve `mc check` onboarding defaults",
+			"details": "Add per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_dart",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "87f58f652470a722260638ae0138d2dffc5fbe18",
+						"short_sha": "87f58f6",
+						"url": "https://github.com/monochange/monochange/commit/87f58f652470a722260638ae0138d2dffc5fbe18",
+						"authored_at": "2026-06-02T15:15:26+01:00",
+						"committed_at": "2026-06-02T15:15:26+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#591",
+						"title": "fix: soften check onboarding defaults",
+						"url": "https://github.com/monochange/monochange/pull/591",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "87f58f652470a722260638ae0138d2dffc5fbe18",
+						"short_sha": "87f58f6",
+						"url": "https://github.com/monochange/monochange/commit/87f58f652470a722260638ae0138d2dffc5fbe18",
+						"authored_at": "2026-06-02T15:15:26+01:00",
+						"committed_at": "2026-06-02T15:15:26+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#591",
+						"title": "fix: soften check onboarding defaults",
+						"url": "https://github.com/monochange/monochange/pull/591",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#588",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/588",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/fix-group-member-changelog-fallback.md",
+			"summary": "Limit group release member changelogs to fallback notes",
+			"details": "Group release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.",
+			"targets": [
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_hosting",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "af006f81c8f461c3243560521c84d4ce9cea933d",
+						"short_sha": "af006f8",
+						"url": "https://github.com/monochange/monochange/commit/af006f81c8f461c3243560521c84d4ce9cea933d",
+						"authored_at": "2026-06-02T06:26:47+01:00",
+						"committed_at": "2026-06-02T05:26:47Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#583",
+						"title": "fix: limit group member changelog fallback",
+						"url": "https://github.com/monochange/monochange/pull/583",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "af006f81c8f461c3243560521c84d4ce9cea933d",
+						"short_sha": "af006f8",
+						"url": "https://github.com/monochange/monochange/commit/af006f81c8f461c3243560521c84d4ce9cea933d",
+						"authored_at": "2026-06-02T06:26:47+01:00",
+						"committed_at": "2026-06-02T05:26:47Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#583",
+						"title": "fix: limit group member changelog fallback",
+						"url": "https://github.com/monochange/monochange/pull/583",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/npm-placeholder-publish-otp.md",
+			"summary": "Add npm placeholder publish OTP support",
+			"details": "Allow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "d08d3fdae4067ccf844b011cff4c553d689d681c",
+						"short_sha": "d08d3fd",
+						"url": "https://github.com/monochange/monochange/commit/d08d3fdae4067ccf844b011cff4c553d689d681c",
+						"authored_at": "2026-06-02T15:16:14+01:00",
+						"committed_at": "2026-06-02T15:16:14+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#590",
+						"title": "fix: support npm OTP for placeholder publish",
+						"url": "https://github.com/monochange/monochange/pull/590",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "d08d3fdae4067ccf844b011cff4c553d689d681c",
+						"short_sha": "d08d3fd",
+						"url": "https://github.com/monochange/monochange/commit/d08d3fdae4067ccf844b011cff4c553d689d681c",
+						"authored_at": "2026-06-02T15:16:14+01:00",
+						"committed_at": "2026-06-02T15:16:14+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#590",
+						"title": "fix: support npm OTP for placeholder publish",
+						"url": "https://github.com/monochange/monochange/pull/590",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/perf-auto-discover-walk-roots.md",
+			"summary": "Speed up ecosystem auto-discovery",
+			"details": "Limit auto-discovery filesystem walks to the literal path prefix of each `auto_discover.include` glob instead of walking the repository root for every ecosystem pattern.",
+			"targets": [
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "88ccf6fb43bd2129914f8942026cdd39ed914bb7",
+						"short_sha": "88ccf6f",
+						"url": "https://github.com/monochange/monochange/commit/88ccf6fb43bd2129914f8942026cdd39ed914bb7",
+						"authored_at": "2026-06-02T07:52:41+01:00",
+						"committed_at": "2026-06-02T06:52:41Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#585",
+						"title": "perf: narrow auto discovery filesystem walks",
+						"url": "https://github.com/monochange/monochange/pull/585",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "88ccf6fb43bd2129914f8942026cdd39ed914bb7",
+						"short_sha": "88ccf6f",
+						"url": "https://github.com/monochange/monochange/commit/88ccf6fb43bd2129914f8942026cdd39ed914bb7",
+						"authored_at": "2026-06-02T07:52:41+01:00",
+						"committed_at": "2026-06-02T06:52:41Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#585",
+						"title": "perf: narrow auto discovery filesystem walks",
+						"url": "https://github.com/monochange/monochange/pull/585",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/perf-provider-http-timeouts.md",
+			"summary": "Harden dark-area performance feedback",
+			"details": "Provider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_hosting",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_python",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ed448da68503f35e9dc034ddfbc25f3e281f2608",
+						"short_sha": "ed448da",
+						"url": "https://github.com/monochange/monochange/commit/ed448da68503f35e9dc034ddfbc25f3e281f2608",
+						"authored_at": "2026-06-01T10:57:17+01:00",
+						"committed_at": "2026-06-01T09:57:17Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#581",
+						"title": "fix: add provider HTTP timeouts and dark-area plan",
+						"url": "https://github.com/monochange/monochange/pull/581",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ed448da68503f35e9dc034ddfbc25f3e281f2608",
+						"short_sha": "ed448da",
+						"url": "https://github.com/monochange/monochange/commit/ed448da68503f35e9dc034ddfbc25f3e281f2608",
+						"authored_at": "2026-06-01T10:57:17+01:00",
+						"committed_at": "2026-06-01T09:57:17Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#581",
+						"title": "fix: add provider HTTP timeouts and dark-area plan",
+						"url": "https://github.com/monochange/monochange/pull/581",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Validate API-aligned changeset bumps\n_Packages:_ _monochange_core_\n\nAffected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)"
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Improve API classification followups\n_Packages:_ _monochange_, _monochange_core_, _monochange_dart_\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)",
+							"#### Add API change classification\n_Packages:_ _monochange_, _monochange_cargo_, _monochange_core_, _monochange_ecmascript_, _monochange_npm_\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)",
+							"#### Add `auto_discover` to ecosystem configuration\n_Packages:_ _monochange_, _monochange_config_, _monochange_core_\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)",
+							"#### Use snake_case for durable JSON schemas\n_Packages:_ _monochange_, _monochange_analysis_, _monochange_config_, _monochange_core_, _monochange_publish_\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Improve API classification followups\n_Packages:_ _@monochange/skill_, _monochange_analysis_, _monochange_ecmascript_\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)",
+							"#### Add API change classification\n_Packages:_ _@monochange/skill_\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)",
+							"#### Validate API-aligned changeset bumps\n_Packages:_ _monochange_\n\nAffected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)",
+							"#### Improve `mc check` lint diagnostics\n_Packages:_ _monochange_, _monochange_lint_, _monochange_npm_\n\nShow lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)",
+							"#### Improve `mc check` onboarding defaults\n_Packages:_ _monochange_, _monochange_cargo_, _monochange_dart_, _monochange_npm_\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)",
+							"#### Add npm placeholder publish OTP support\n_Packages:_ _monochange_, _monochange_core_, _monochange_npm_, _monochange_publish_\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)",
+							"#### Harden dark-area performance feedback\n_Packages:_ _monochange_, _monochange_hosting_, _monochange_python_\n\nProvider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)",
+							"#### Speed up ecosystem auto-discovery\n_Packages:_ _monochange_config_\n\nLimit auto-discovery filesystem walks to the literal path prefix of each `auto_discover.include` glob instead of walking the repository root for every ecosystem pattern.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #585](https://github.com/monochange/monochange/pull/585)",
+							"#### Limit group release member changelogs to fallback notes\n_Packages:_ _monochange_github_, _monochange_hosting_\n\nGroup release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)",
+							"#### Use snake_case for durable JSON schemas\n_Packages:_ _monochange_test_helpers_\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\nGrouped release for `main`.\n### 💥 Breaking Change\n\n#### Validate API-aligned changeset bumps\n_Packages:_ _monochange_core_\n\nAffected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)\n\n### 🚀 Feature\n\n#### Improve API classification followups\n_Packages:_ _monochange_, _monochange_core_, _monochange_dart_\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)\n\n#### Add API change classification\n_Packages:_ _monochange_, _monochange_cargo_, _monochange_core_, _monochange_ecmascript_, _monochange_npm_\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)\n\n#### Add `auto_discover` to ecosystem configuration\n_Packages:_ _monochange_, _monochange_config_, _monochange_core_\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)\n\n#### Use snake_case for durable JSON schemas\n_Packages:_ _monochange_, _monochange_analysis_, _monochange_config_, _monochange_core_, _monochange_publish_\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)\n\n### 🐛 Fixed\n\n#### Improve API classification followups\n_Packages:_ _@monochange/skill_, _monochange_analysis_, _monochange_ecmascript_\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)\n\n#### Add API change classification\n_Packages:_ _@monochange/skill_\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)\n\n#### Validate API-aligned changeset bumps\n_Packages:_ _monochange_\n\nAffected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)\n\n#### Improve `mc check` lint diagnostics\n_Packages:_ _monochange_, _monochange_lint_, _monochange_npm_\n\nShow lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)\n\n#### Improve `mc check` onboarding defaults\n_Packages:_ _monochange_, _monochange_cargo_, _monochange_dart_, _monochange_npm_\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)\n\n#### Add npm placeholder publish OTP support\n_Packages:_ _monochange_, _monochange_core_, _monochange_npm_, _monochange_publish_\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)\n\n#### Harden dark-area performance feedback\n_Packages:_ _monochange_, _monochange_hosting_, _monochange_python_\n\nProvider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)\n\n#### Speed up ecosystem auto-discovery\n_Packages:_ _monochange_config_\n\nLimit auto-discovery filesystem walks to the literal path prefix of each `auto_discover.include` glob instead of walking the repository root for every ecosystem pattern.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #585](https://github.com/monochange/monochange/pull/585)\n\n#### Limit group release member changelogs to fallback notes\n_Packages:_ _monochange_github_, _monochange_hosting_\n\nGroup release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)\n\n#### Use snake_case for durable JSON schemas\n_Packages:_ _monochange_test_helpers_\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)",
+							"#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)",
+							"#### Add `auto_discover` to ecosystem configuration\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)",
+							"#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Validate API-aligned changeset bumps\n\nAffected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)",
+							"#### Improve `mc check` lint diagnostics\n\nShow lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)",
+							"#### Improve `mc check` onboarding defaults\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)",
+							"#### Add npm placeholder publish OTP support\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)",
+							"#### Harden dark-area performance feedback\n\nProvider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🚀 Feature\n\n#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)\n\n#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)\n\n#### Add `auto_discover` to ecosystem configuration\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)\n\n#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)\n\n### 🐛 Fixed\n\n#### Validate API-aligned changeset bumps\n\nAffected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)\n\n#### Improve `mc check` lint diagnostics\n\nShow lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)\n\n#### Improve `mc check` onboarding defaults\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)\n\n#### Add npm placeholder publish OTP support\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)\n\n#### Harden dark-area performance feedback\n\nProvider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🚀 Feature\n\n#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)\n\n### 🐛 Fixed\n\n#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)"
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Improve `mc check` onboarding defaults\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🚀 Feature\n\n#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)\n\n### 🐛 Fixed\n\n#### Improve `mc check` onboarding defaults\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_changelog` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_changelog` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add `auto_discover` to ecosystem configuration\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)",
+							"#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Speed up ecosystem auto-discovery\n\nLimit auto-discovery filesystem walks to the literal path prefix of each `auto_discover.include` glob instead of walking the repository root for every ecosystem pattern.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #585](https://github.com/monochange/monochange/pull/585)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🚀 Feature\n\n#### Add `auto_discover` to ecosystem configuration\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)\n\n#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)\n\n### 🐛 Fixed\n\n#### Speed up ecosystem auto-discovery\n\nLimit auto-discovery filesystem walks to the literal path prefix of each `auto_discover.include` glob instead of walking the repository root for every ecosystem pattern.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #585](https://github.com/monochange/monochange/pull/585)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Validate API-aligned changeset bumps\n\nAffected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)"
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)",
+							"#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)",
+							"#### Add `auto_discover` to ecosystem configuration\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)",
+							"#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add npm placeholder publish OTP support\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 💥 Breaking Change\n\n#### Validate API-aligned changeset bumps\n\nAffected changeset checks now compare requested release bumps with API classification output. Understated changesets fail so CI can catch risky releases, while overstated changesets report warnings for maintainers to inspect.\n\n```json\n{\n\t\"requested\": \"patch\",\n\t\"recommended\": \"major\",\n\t\"status\": \"failed\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #592](https://github.com/monochange/monochange/pull/592)\n\n### 🚀 Feature\n\n#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)\n\n#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)\n\n#### Add `auto_discover` to ecosystem configuration\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)\n\n#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)\n\n### 🐛 Fixed\n\n#### Add npm placeholder publish OTP support\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Improve `mc check` onboarding defaults\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🚀 Feature\n\n#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)\n\n### 🐛 Fixed\n\n#### Improve `mc check` onboarding defaults\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_deno` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_deno` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🚀 Feature\n\n#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)\n\n### 🐛 Fixed\n\n#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)"
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitea` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitea` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Limit group release member changelogs to fallback notes\n\nGroup release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🐛 Fixed\n\n#### Limit group release member changelogs to fallback notes\n\nGroup release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_go` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_go` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_graph` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_graph` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Limit group release member changelogs to fallback notes\n\nGroup release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)",
+							"#### Harden dark-area performance feedback\n\nProvider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🐛 Fixed\n\n#### Limit group release member changelogs to fallback notes\n\nGroup release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)\n\n#### Harden dark-area performance feedback\n\nProvider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)"
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Improve `mc check` lint diagnostics\n\nShow lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🐛 Fixed\n\n#### Improve `mc check` lint diagnostics\n\nShow lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)"
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_linting` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_linting` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Improve `mc check` lint diagnostics\n\nShow lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)",
+							"#### Improve `mc check` onboarding defaults\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)",
+							"#### Add npm placeholder publish OTP support\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🚀 Feature\n\n#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)\n\n### 🐛 Fixed\n\n#### Improve `mc check` lint diagnostics\n\nShow lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)\n\n#### Improve `mc check` onboarding defaults\n\nAdd per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)\n\n#### Add npm placeholder publish OTP support\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add npm placeholder publish OTP support\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🚀 Feature\n\n#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)\n\n### 🐛 Fixed\n\n#### Add npm placeholder publish OTP support\n\nAllow npm placeholder publishing to receive a one-time password for accounts that require 2FA during publish operations.\n\nBefore, `mc placeholder-publish` and `mc step:placeholder-publish` could only invoke `npm publish` without an OTP, causing npm `EOTP` failures for publish-time 2FA accounts.\n\nAfter, pass a fresh code with `--otp`:\n\n```sh\nmc placeholder-publish --otp 123456\nmc step:placeholder-publish --from HEAD --otp 123456\n```\n\nThe generated npm process receives the code through `NPM_CONFIG_OTP`, keeping it out of command arguments, reports, and failure messages.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #590](https://github.com/monochange/monochange/pull/590)"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Harden dark-area performance feedback\n\nProvider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🐛 Fixed\n\n#### Harden dark-area performance feedback\n\nProvider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.\n\nExternal command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.\n\nCLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.\n\nDiscovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.\n\nPython discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)"
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.4.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add `auto_discover` to ecosystem configuration\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.4.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.0) (2026-06-03)\n\n### 💥 Breaking Change\n\n#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)\n\n### 🐛 Fixed\n\n#### Add `auto_discover` to ecosystem configuration\n\nEach `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.\n\n```toml\n[ecosystems.cargo]\nenabled = true\nversioned_files = [\"Cargo.toml\"]\nauto_discover = { include = [\"crates/*\"] }\n\n# Only packages that deviate from defaults need explicit entries:\n[package.monochange_schema]\npath = \"crates/monochange_schema\"\nrelease = true\ntag = true\n```\n\nThe `auto_discover` table supports:\n\n- `include` (required): glob patterns for directories to scan\n- `exclude`: glob patterns to skip within included paths\n- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables\n- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)\n\nPrecedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_semver` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_semver` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🐛 Fixed\n\n#### Use snake_case for durable JSON schemas\n\nNormalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.\n\n```json\n{\n\t\"schema_version\": \"0.4\",\n\t\"kind\": \"monochange.release_record\"\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)"
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.7.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.7.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)",
+							"#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)\n\n### 🐛 Fixed\n\n#### Improve API classification followups\n\nAdd advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)\n\n#### Add API change classification\n\nAdd `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🐛 Fixed
+
+#### Limit group release member changelogs to fallback notes
+
+Group release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 ### Changed

@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🚀 Feature
+
+#### Improve API classification followups
+
+Add advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)
+
+### 🐛 Fixed
+
+#### Improve `mc check` onboarding defaults
+
+Add per-ecosystem `baseline` lint presets and make generated `monochange.toml` files start with those softer presets. Baseline presets keep onboarding diagnostics as warnings or opt out of formatting-style checks so existing repositories can adopt `mc check` before escalating to `recommended` or `strict`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #591](https://github.com/monochange/monochange/pull/591) · _Closed issues:_ [#588](https://github.com/monochange/monochange/issues/588)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 ### Changed

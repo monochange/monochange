@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🐛 Fixed
+
+#### Improve `mc check` lint diagnostics
+
+Show lint rule IDs first in check output, add `--verbose` details, derive line and column locations from lint spans, avoid running regular package lint rules against unmanaged packages, and keep npm workspace-protocol checks opt-in by default.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #587](https://github.com/monochange/monochange/pull/587)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 ### Changed
