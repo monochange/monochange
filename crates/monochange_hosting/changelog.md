@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🐛 Fixed
+
+#### Limit group release member changelogs to fallback notes
+
+Group release notes now keep the group changelog focused when group-facing notes exist. Member package changelog details are only included as fallback content when the group changelog has no meaningful release notes, avoiding duplicate package changelog sections in normal group releases.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #583](https://github.com/monochange/monochange/pull/583)
+
+#### Harden dark-area performance feedback
+
+Provider API clients now set explicit connection and request timeouts so release and pull-request operations against GitLab, Gitea, Forgejo, and GitHub fail with context instead of appearing to hang indefinitely.
+
+External command steps now emit heartbeat progress while a child process is still running but not producing stdout or stderr, giving users and agents feedback during slow lockfile, registry, and publish commands.
+
+CLI progress now emits machine-readable phase status events for discovery, release preparation, provider API, registry readiness, rate-limit planning, placeholder publish, and package publish steps.
+
+Discovery benchmarks now cover generated npm, Deno, Python, Go, and mixed-ecosystem repositories at 50, 100, and 500 packages.
+
+Python discovery now skips `.egg-info` directories by suffix instead of treating `*.egg-info` as a literal directory name, avoiding unnecessary scans of package metadata in large Python repositories.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #581](https://github.com/monochange/monochange/pull/581)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 ### Changed

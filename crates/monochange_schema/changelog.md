@@ -632,3 +632,50 @@ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #532](https://g
 Add `versioned_files` format mode for explicit version updates in JSON, TOML, YAML/YML, and env files without ecosystem-specific dependency handling.
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #569](https://github.com/monochange/monochange/pull/569)
+
+## monochange_schema [0.4.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.0) (2026-06-03)
+
+### 💥 Breaking Change
+
+#### Use snake_case for durable JSON schemas
+
+Normalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.
+
+```json
+{
+	"schema_version": "0.4",
+	"kind": "monochange.release_record"
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)
+
+### 🐛 Fixed
+
+#### Add `auto_discover` to ecosystem configuration
+
+Each `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.
+
+```toml
+[ecosystems.cargo]
+enabled = true
+versioned_files = ["Cargo.toml"]
+auto_discover = { include = ["crates/*"] }
+
+# Only packages that deviate from defaults need explicit entries:
+[package.monochange_schema]
+path = "crates/monochange_schema"
+release = true
+tag = true
+```
+
+The `auto_discover` table supports:
+
+- `include` (required): glob patterns for directories to scan
+- `exclude`: glob patterns to skip within included paths
+- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables
+- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)
+
+Precedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)

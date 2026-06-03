@@ -4,6 +4,59 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🚀 Feature
+
+#### Add `auto_discover` to ecosystem configuration
+
+Each `[ecosystems.*]` section now supports an `auto_discover` table that tells monochange to walk the workspace for packages matching `include` glob patterns. Discovered packages inherit defaults from the ecosystem and workspace, with explicit `[package.*]` entries taking priority.
+
+```toml
+[ecosystems.cargo]
+enabled = true
+versioned_files = ["Cargo.toml"]
+auto_discover = { include = ["crates/*"] }
+
+# Only packages that deviate from defaults need explicit entries:
+[package.monochange_schema]
+path = "crates/monochange_schema"
+release = true
+tag = true
+```
+
+The `auto_discover` table supports:
+
+- `include` (required): glob patterns for directories to scan
+- `exclude`: glob patterns to skip within included paths
+- `id`: optional template for generated package IDs; defaults to `{{ name }}` and supports `name`, `path`, `sanitized_path`, `manifest`, and `ecosystem` variables
+- `defaults`: package-level defaults for all auto-discovered packages (`tag`, `release`, `version_format`)
+
+Precedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)
+
+#### Use snake_case for durable JSON schemas
+
+Normalize durable monochange JSON schemas, release records, and CLI/report outputs to snake_case while preserving migration support for legacy camelCase release records.
+
+```json
+{
+	"schema_version": "0.4",
+	"kind": "monochange.release_record"
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #589](https://github.com/monochange/monochange/pull/589)
+
+### 🐛 Fixed
+
+#### Speed up ecosystem auto-discovery
+
+Limit auto-discovery filesystem walks to the literal path prefix of each `auto_discover.include` glob instead of walking the repository root for every ecosystem pattern.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #585](https://github.com/monochange/monochange/pull/585)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 ### 🐛 Fixed

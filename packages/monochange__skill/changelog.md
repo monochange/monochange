@@ -8,6 +8,22 @@
 - Documented verified built-in commands, step commands, MCP tools, user-defined command behavior, and all current CLI step types.
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🐛 Fixed
+
+#### Improve API classification followups
+
+Add advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)
+
+#### Add API change classification
+
+Add `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)
+
 ## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
 
 ### Changed

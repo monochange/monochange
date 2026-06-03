@@ -36,28 +36,28 @@ importers:
   packages/monochange__cli:
     optionalDependencies:
       '@monochange/cli-darwin-arm64':
-        specifier: ^0.6.8
+        specifier: ^0.7.0
         version: link:../monochange__cli-darwin-arm64
       '@monochange/cli-darwin-x64':
-        specifier: ^0.6.8
+        specifier: ^0.7.0
         version: link:../monochange__cli-darwin-x64
       '@monochange/cli-linux-arm64-gnu':
-        specifier: ^0.6.8
+        specifier: ^0.7.0
         version: link:../monochange__cli-linux-arm64-gnu
       '@monochange/cli-linux-arm64-musl':
-        specifier: ^0.6.8
+        specifier: ^0.7.0
         version: link:../monochange__cli-linux-arm64-musl
       '@monochange/cli-linux-x64-gnu':
-        specifier: ^0.6.8
+        specifier: ^0.7.0
         version: link:../monochange__cli-linux-x64-gnu
       '@monochange/cli-linux-x64-musl':
-        specifier: ^0.6.8
+        specifier: ^0.7.0
         version: link:../monochange__cli-linux-x64-musl
       '@monochange/cli-win32-arm64-msvc':
-        specifier: ^0.6.8
+        specifier: ^0.7.0
         version: link:../monochange__cli-win32-arm64-msvc
       '@monochange/cli-win32-x64-msvc':
-        specifier: ^0.6.8
+        specifier: ^0.7.0
         version: link:../monochange__cli-win32-x64-msvc
 
   packages/monochange__cli-darwin-arm64: {}
