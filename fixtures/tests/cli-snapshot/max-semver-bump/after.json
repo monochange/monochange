@@ -1,0 +1,31 @@
+{
+	"schema_version": "0.1",
+	"kind": "cli-surface",
+	"tool": {
+		"name": "demo",
+		"version": "1.1.0"
+	},
+	"provenance": {
+		"extractor": "fixture",
+		"confidence": "high"
+	},
+	"standard_entrypoints": {
+		"help": {},
+		"version": {},
+		"snapshot": {}
+	},
+	"global_options": [],
+	"commands": [
+		{
+			"path": ["experimental"],
+			"hidden": false,
+			"max_semver_bump": "minor",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [" ", "="]
+			}
+		}
+	],
+	"output_contracts": []
+}

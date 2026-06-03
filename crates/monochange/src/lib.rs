@@ -749,6 +749,9 @@ fn parse_snapshot_request(args: &[OsString]) -> Option<SnapshotRequest> {
 				view: monochange_snapshot::SnapshotView::Full,
 			});
 		}
+		if !value.starts_with('-') {
+			path.push(value);
+		}
 	}
 	None
 }

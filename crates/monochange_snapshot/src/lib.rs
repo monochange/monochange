@@ -107,7 +107,7 @@ pub struct CommandNode {
 	pub commands: Vec<CommandNode>,
 }
 
-/// Default maximum SemVer bump for public CLI surface changes.
+/// Default maximum `SemVer` bump for public CLI surface changes.
 #[must_use]
 pub const fn default_max_semver_bump() -> SnapshotSeverity {
 	SnapshotSeverity::Major
@@ -856,8 +856,8 @@ fn nearest_semver_bump_cap(
 	(1..=path.len())
 		.rev()
 		.find_map(|len| {
-			commands
-				.get(&path[..len])
+			path.get(..len)
+				.and_then(|prefix| commands.get(prefix))
 				.map(|command| command.max_semver_bump)
 		})
 		.unwrap_or_else(default_max_semver_bump)

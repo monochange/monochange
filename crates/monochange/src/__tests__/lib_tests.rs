@@ -15193,6 +15193,16 @@ fn snapshot_request_parsing_covers_root_subtree_and_missing_cases() {
 	let request = parse_snapshot_request(&subtree).unwrap_or_else(|| panic!("subtree request"));
 	assert_eq!(request.path, vec!["step:discover"]);
 
+	let nested_subtree = vec![
+		OsString::from("mc"),
+		OsString::from("migrate"),
+		OsString::from("audit"),
+		OsString::from("--snapshot"),
+	];
+	let request =
+		parse_snapshot_request(&nested_subtree).unwrap_or_else(|| panic!("nested subtree request"));
+	assert_eq!(request.path, vec!["migrate", "audit"]);
+
 	assert_eq!(
 		snapshot_view("light"),
 		monochange_snapshot::SnapshotView::Light

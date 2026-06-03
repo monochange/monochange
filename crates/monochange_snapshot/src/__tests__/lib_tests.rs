@@ -122,6 +122,42 @@ fn diff_caps_changes_by_nearest_max_semver_bump() {
 }
 
 #[test]
+fn diff_uses_stricter_max_semver_bump_from_either_snapshot() {
+	let mut before_command = command_node("experimental");
+	before_command.max_semver_bump = SnapshotSeverity::None;
+	let mut after_command = command_node("experimental");
+	after_command.max_semver_bump = SnapshotSeverity::Major;
+	after_command
+		.options
+		.push(option("--new", value(ValueKind::Flag)));
+
+	let report = diff_command_snapshots(
+		&command_snapshot(vec![before_command]),
+		&command_snapshot(vec![after_command]),
+	);
+	assert_eq!(report.recommendation, SnapshotSeverity::None);
+	assert_eq!(report.changes[0].severity, SnapshotSeverity::None);
+}
+
+#[test]
+fn command_node_defaults_max_semver_bump_to_major_when_missing() {
+	let json = r#"
+		{
+			"path": ["run"],
+			"hidden": false,
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [" ", "="]
+			}
+		}
+	"#;
+	let command: CommandNode = serde_json::from_str(json)
+		.unwrap_or_else(|error| panic!("deserialize command node: {error}"));
+	assert_eq!(command.max_semver_bump, SnapshotSeverity::Major);
+}
+
+#[test]
 fn diff_classifies_optional_option_addition_as_minor() {
 	let before = snapshot_from_clap(&Command::new("demo").subcommand(Command::new("run")));
 	let after = snapshot_from_clap(

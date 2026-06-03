@@ -1,0 +1,19 @@
+---
+source: crates/monochange_integration_tests/tests/cli_snapshot.rs
+assertion_line: 45
+expression: value
+---
+{
+  "changes": [
+    {
+      "kind": "command-removed",
+      "path": [
+        "experimental",
+        "remove-me"
+      ],
+      "severity": "minor",
+      "summary": "command `experimental remove-me` was removed"
+    }
+  ],
+  "recommendation": "minor"
+}
