@@ -42,6 +42,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Clear GITHUB_ENV to prevent "Argument list too long" on devenv shell
+          # GITHUB_ENV can accumulate many PATH entries from previous steps
+          : > "$GITHUB_ENV"
+          : > "$GITHUB_PATH"
+
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
           args=(step:affected-packages --format json --verify)
 
