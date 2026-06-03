@@ -252,6 +252,9 @@ path = "crates/monochange"
 [package.monochange_core]
 path = "crates/monochange_core"
 
+[package.monochange_snapshot]
+path = "crates/monochange_snapshot"
+
 [package.monochange_cargo]
 path = "crates/monochange_cargo"
 
@@ -454,6 +457,15 @@ versioned_files = [
 # Use an array to allow only specific group members to contribute notes.
 # include = ["monochange"]
 changelog = { path = "changelog.md", format = "monochange", include = "all" }
+
+[group.snapshot]
+packages = ["monochange_snapshot"]
+tag = true
+release = true
+versioned_files = [
+	{ path = "crates/monochange_snapshot/Cargo.toml", type = "cargo", fields = ["package.version"] },
+]
+changelog = { path = "crates/monochange_snapshot/changelog.md", format = "monochange" }
 
 # =============================================================================
 # [changesets.affected] — changeset verification settings

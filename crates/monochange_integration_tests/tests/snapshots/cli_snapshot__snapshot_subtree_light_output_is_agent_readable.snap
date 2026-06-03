@@ -1,0 +1,182 @@
+---
+source: crates/monochange_integration_tests/tests/cli_snapshot.rs
+assertion_line: 28
+expression: value
+---
+{
+  "commands": [
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "options": [
+        {
+          "canonical_name": "--dry-run",
+          "global": false,
+          "hidden": false,
+          "names": [
+            "--dry-run"
+          ],
+          "value": {
+            "kind": "flag",
+            "repeatable": false,
+            "required": false,
+            "variadic": false
+          }
+        },
+        {
+          "canonical_name": "--format",
+          "global": false,
+          "hidden": false,
+          "names": [
+            "--format"
+          ],
+          "value": {
+            "enum_values": [
+              "text",
+              "json",
+              "md"
+            ],
+            "kind": "enum",
+            "repeatable": true,
+            "required": false,
+            "variadic": false
+          }
+        }
+      ],
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:discover"
+      ]
+    }
+  ],
+  "global_options": [
+    {
+      "canonical_name": "--log-level",
+      "global": true,
+      "hidden": true,
+      "names": [
+        "--log-level"
+      ],
+      "value": {
+        "kind": "string",
+        "repeatable": true,
+        "required": false,
+        "variadic": false
+      }
+    },
+    {
+      "canonical_name": "--quiet",
+      "global": true,
+      "hidden": false,
+      "names": [
+        "--quiet",
+        "-q"
+      ],
+      "value": {
+        "kind": "flag",
+        "repeatable": false,
+        "required": false,
+        "variadic": false
+      }
+    },
+    {
+      "canonical_name": "--progress-format",
+      "global": true,
+      "hidden": false,
+      "names": [
+        "--progress-format"
+      ],
+      "value": {
+        "enum_values": [
+          "auto",
+          "unicode",
+          "ascii",
+          "json"
+        ],
+        "kind": "enum",
+        "repeatable": true,
+        "required": false,
+        "variadic": false
+      }
+    },
+    {
+      "canonical_name": "--jq",
+      "global": true,
+      "hidden": false,
+      "names": [
+        "--jq"
+      ],
+      "value": {
+        "kind": "string",
+        "repeatable": true,
+        "required": false,
+        "variadic": false
+      }
+    },
+    {
+      "canonical_name": "--snapshot",
+      "global": true,
+      "hidden": false,
+      "names": [
+        "--snapshot"
+      ],
+      "value": {
+        "kind": "flag",
+        "repeatable": false,
+        "required": false,
+        "variadic": false
+      }
+    }
+  ],
+  "kind": "cli-surface",
+  "provenance": {
+    "confidence": "high",
+    "extractor": "clap"
+  },
+  "schema_version": "0.1",
+  "standard_entrypoints": {
+    "help": {
+      "commands": [
+        [
+          "help"
+        ]
+      ],
+      "flags": [
+        "--help",
+        "-h"
+      ]
+    },
+    "snapshot": {
+      "commands": [
+        [
+          "snapshot"
+        ]
+      ],
+      "flags": [
+        "--snapshot"
+      ]
+    },
+    "version": {
+      "commands": [
+        [
+          "version"
+        ]
+      ],
+      "flags": [
+        "--version",
+        "-V"
+      ]
+    }
+  },
+  "tool": {
+    "name": "mc",
+    "version": "[version]"
+  }
+}

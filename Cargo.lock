@@ -2142,6 +2142,7 @@ dependencies = [
  "monochange_publish",
  "monochange_python",
  "monochange_semver",
+ "monochange_snapshot",
  "monochange_telemetry",
  "monochange_test_helpers",
  "portable-pty",
@@ -2624,6 +2625,16 @@ dependencies = [
  "rstest",
  "semver",
  "similar-asserts",
+]
+
+[[package]]
+name = "monochange_snapshot"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "insta",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

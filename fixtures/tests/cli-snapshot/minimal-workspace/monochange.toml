@@ -1,0 +1,7 @@
+[package.cli_app]
+path = "packages/cli-app"
+type = "npm"
+version = "1.0.0"
+
+[group.main]
+packages = ["cli_app"]

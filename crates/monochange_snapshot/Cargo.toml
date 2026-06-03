@@ -1,0 +1,24 @@
+[package]
+name = "monochange_snapshot"
+version = "0.0.0"
+categories = { workspace = true }
+documentation = "https://docs.rs/monochange_snapshot"
+edition = { workspace = true }
+include = ["src/**/*.rs", "build.rs", "Cargo.toml", "readme.md"]
+keywords = ["cli", "schema", "snapshot", "versioning", "monorepo"]
+license = { workspace = true }
+readme = "readme.md"
+repository = { workspace = true }
+rust-version = { workspace = true }
+description = "Normalized snapshots for monochange-compatible command and API surfaces"
+
+[dependencies]
+clap = { workspace = true, default-features = true }
+serde = { workspace = true }
+serde_json = { workspace = true, default-features = true }
+
+[dev-dependencies]
+insta = { workspace = true, default-features = true }
+
+[lints]
+workspace = true

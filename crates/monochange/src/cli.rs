@@ -187,6 +187,32 @@ pub(crate) fn build_command_with_cli(
 				.help("Filter JSON output with a jq-style expression, such as `.assets[].name`")
 				.value_name("EXPRESSION"),
 		)
+		.arg(
+			Arg::new("snapshot")
+				.long("snapshot")
+				.global(true)
+				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+				.help("Print a normalized JSON snapshot for this command subtree")
+				.action(ArgAction::SetTrue),
+		)
+		.subcommand(
+			Command::new("snapshot")
+				.about("Print a normalized JSON snapshot of the CLI surface")
+				.arg(
+					Arg::new("view")
+						.long("view")
+						.value_name("VIEW")
+						.default_value("full")
+						.value_parser(["full", "light", "index"])
+						.help("Snapshot view to render"),
+				)
+				.arg(
+					Arg::new("command")
+						.value_name("COMMAND")
+						.num_args(0..)
+						.help("Optional command path to render"),
+				),
+		)
 		.subcommand(
 			Command::new("init")
 				.about(

@@ -1,0 +1,602 @@
+---
+source: crates/monochange_integration_tests/tests/cli_snapshot.rs
+assertion_line: 15
+expression: value
+---
+{
+  "commands": [
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "init"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "populate"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "command"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "skill"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "subagents"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "analyze"
+      ]
+    },
+    {
+      "commands": [
+        {
+          "hidden": false,
+          "max_semver_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "migrate",
+            "audit"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_semver_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "migrate",
+            "release-records"
+          ]
+        }
+      ],
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "migrate"
+      ]
+    },
+    {
+      "commands": [
+        {
+          "hidden": false,
+          "max_semver_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "lint",
+            "list"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_semver_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "lint",
+            "explain"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_semver_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "lint",
+            "new"
+          ]
+        }
+      ],
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "lint"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "versions"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "mcp"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "check"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:config"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:validate"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:discover"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:display-versions"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:create-change-file"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:prepare-release"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:commit-release"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:verify-release-branch"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:publish-release"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:placeholder-publish"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:publish-packages"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:plan-publish-rate-limits"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:open-release-request"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:comment-released-issues"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:affected-packages"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:diagnose-changesets"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:release-record"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:publish-readiness"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:tag-release"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_semver_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "step:retarget-release"
+      ]
+    }
+  ],
+  "kind": "cli-surface",
+  "provenance": {
+    "confidence": "high",
+    "extractor": "clap"
+  },
+  "schema_version": "0.1",
+  "standard_entrypoints": {
+    "help": {
+      "commands": [
+        [
+          "help"
+        ]
+      ],
+      "flags": [
+        "--help",
+        "-h"
+      ]
+    },
+    "snapshot": {
+      "commands": [
+        [
+          "snapshot"
+        ]
+      ],
+      "flags": [
+        "--snapshot"
+      ]
+    },
+    "version": {
+      "commands": [
+        [
+          "version"
+        ]
+      ],
+      "flags": [
+        "--version",
+        "-V"
+      ]
+    }
+  },
+  "tool": {
+    "name": "mc",
+    "version": "[version]"
+  }
+}
