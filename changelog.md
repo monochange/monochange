@@ -324,7 +324,7 @@ Avoid building full template contexts for simple release command steps, literal 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #565](https://github.com/monochange/monochange/pull/565)
 
 <details>
-<summary><strong>📖 Documentation</strong></summary>
+<summary><strong>Documentation</strong></summary>
 
 #### Document lint rule catalog
 
