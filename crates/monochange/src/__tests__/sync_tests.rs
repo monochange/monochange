@@ -579,10 +579,10 @@ fn apply_version_sync_plan_wraps_apply_errors() {
 
 #[test]
 fn build_versions_subcommand_parses_defaults() {
-	let command = Command::new("mc").subcommand(cli::build_versions_subcommand());
+	let command = Command::new("monochange").subcommand(cli::build_versions_subcommand());
 	let matches = command
 		.clone()
-		.try_get_matches_from([OsString::from("mc"), OsString::from("versions")])
+		.try_get_matches_from([OsString::from("monochange"), OsString::from("versions")])
 		.unwrap_or_else(|error| panic!("versions matches: {error}"));
 	let (_, versions_matches) = matches
 		.subcommand()
@@ -604,11 +604,11 @@ fn build_versions_subcommand_parses_defaults() {
 
 #[test]
 fn build_versions_subcommand_parses_dry_run_and_json() {
-	let command = Command::new("mc").subcommand(cli::build_versions_subcommand());
+	let command = Command::new("monochange").subcommand(cli::build_versions_subcommand());
 	let matches = command
 		.clone()
 		.try_get_matches_from([
-			OsString::from("mc"),
+			OsString::from("monochange"),
 			OsString::from("versions"),
 			OsString::from("--dry-run"),
 			OsString::from("--format"),
@@ -629,11 +629,11 @@ fn build_versions_subcommand_parses_dry_run_and_json() {
 
 #[test]
 fn build_versions_subcommand_parses_strategy() {
-	let command = Command::new("mc").subcommand(cli::build_versions_subcommand());
+	let command = Command::new("monochange").subcommand(cli::build_versions_subcommand());
 	let matches = command
 		.clone()
 		.try_get_matches_from([
-			OsString::from("mc"),
+			OsString::from("monochange"),
 			OsString::from("versions"),
 			OsString::from("--strategy"),
 			OsString::from("exact"),
@@ -661,14 +661,14 @@ fn cli_command_after_help_describes_configured_versions_command() {
 	};
 	let help = cli::cli_command_after_help(&cli_command)
 		.unwrap_or_else(|| panic!("versions command should have after-help"));
-	assert!(help.contains("mc versions --dry-run"));
+	assert!(help.contains("monochange versions --dry-run"));
 	assert!(help.contains("This command syncs internal workspace dependency constraints."));
 	assert!(help.contains("Strategy precedence is package config"));
 }
 
 #[test]
 fn build_versions_subcommand_long_help_describes_examples() {
-	let mut command = cli::build_command_with_cli("mc", &[]);
+	let mut command = cli::build_command_with_cli("monochange", &[]);
 	let versions = command
 		.find_subcommand_mut("versions")
 		.unwrap_or_else(|| panic!("versions subcommand should exist"));
@@ -676,8 +676,8 @@ fn build_versions_subcommand_long_help_describes_examples() {
 		.get_after_help()
 		.unwrap_or_else(|| panic!("versions after help should exist"))
 		.to_string();
-	assert!(help.contains("mc versions --dry-run"));
-	assert!(help.contains("mc versions --dry-run --format json"));
+	assert!(help.contains("monochange versions --dry-run"));
+	assert!(help.contains("monochange versions --dry-run --format json"));
 	assert!(help.contains("This command syncs internal workspace dependency constraints."));
 	assert!(help.contains("Strategy precedence is package config"));
 }
@@ -717,11 +717,11 @@ fn build_cli_skips_config_defined_versions_command() {
 		steps: Vec::new(),
 		dry_run: false,
 	};
-	let command = cli::build_command_with_cli("mc", &[cli_command]);
+	let command = cli::build_command_with_cli("monochange", &[cli_command]);
 	let matches = command
 		.clone()
 		.try_get_matches_from([
-			OsString::from("mc"),
+			OsString::from("monochange"),
 			OsString::from("versions"),
 			OsString::from("--dry-run"),
 		])
@@ -766,9 +766,9 @@ enabled = true
 	.unwrap_or_else(|error| panic!("write app pubspec: {error}"));
 
 	crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
-		"mc",
+		"monochange",
 		[
-			OsString::from("mc"),
+			OsString::from("monochange"),
 			OsString::from("versions"),
 			OsString::from("--dry-run"),
 			OsString::from("--strategy"),

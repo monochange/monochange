@@ -1,7 +1,7 @@
 ---
 source: crates/monochange/tests/cli_output.rs
 info:
-  program: mc
+  program: monochange
   args:
     - placeholder-publish
     - "--dry-run"
@@ -15,130 +15,21 @@ info:
     GITHUB_RUN_ID: ""
     GITHUB_WORKFLOW: ""
     GITHUB_WORKFLOW_REF: ""
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:61525"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:61525"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:61525"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:61525"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:62401"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:62401"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:62401"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:62401"
     MONOCHANGE_TRUSTED_PUBLISHING_ENVIRONMENT: ""
     NO_COLOR: "1"
     RUST_LOG: ""
 ---
-success: true
-exit_code: 0
+success: false
+exit_code: 1
 ----- stdout -----
-{
-  "package_publish": {
-    "dry_run": true,
-    "mode": "placeholder",
-    "packages": [
-      {
-        "ecosystem": "cargo",
-        "message": "would publish placeholder core 0.0.0 to crates_io",
-        "package": "core",
-        "placeholder": true,
-        "registry": "crates_io",
-        "status": "planned",
-        "trusted_publishing": {
-          "environment": null,
-          "message": "configure trusted publishing manually for `core` before the next built-in release publish; open https://crates.io/crates/core and finish the GitHub context setup first: config error: trusted publishing could not determine the GitHub workflow; set `publish.trusted_publishing.workflow`. No supported CI provider identity was detected for crates_io trusted publishing; supported providers: GitHub Actions.",
-          "repository": null,
-          "setup_url": "https://crates.io/crates/core",
-          "status": "manual_action_required",
-          "workflow": null
-        },
-        "version": "0.0.0"
-      },
-      {
-        "ecosystem": "npm",
-        "message": "would publish placeholder npm-pkg 0.0.0 to npm",
-        "package": "npm_pkg",
-        "placeholder": true,
-        "registry": "npm",
-        "status": "planned",
-        "trusted_publishing": {
-          "environment": null,
-          "message": "configure trusted publishing manually for `npm-pkg` before the next built-in release publish; open https://www.npmjs.com/package/npm-pkg/access and finish the GitHub context setup first: config error: trusted publishing could not determine the GitHub workflow; set `publish.trusted_publishing.workflow`. No supported CI provider identity was detected for npm trusted publishing; supported providers: GitHub Actions, GitLab CI/CD.",
-          "repository": null,
-          "setup_url": "https://www.npmjs.com/package/npm-pkg/access",
-          "status": "manual_action_required",
-          "workflow": null
-        },
-        "version": "0.0.0"
-      }
-    ]
-  },
-  "publish_rate_limits": {
-    "batches": [
-      {
-        "batch_index": 1,
-        "operation": "placeholder_publish",
-        "packages": [
-          "core"
-        ],
-        "recommended_wait_seconds": null,
-        "registry": "crates_io",
-        "total_batches": 1
-      },
-      {
-        "batch_index": 1,
-        "operation": "placeholder_publish",
-        "packages": [
-          "npm_pkg"
-        ],
-        "recommended_wait_seconds": null,
-        "registry": "npm",
-        "total_batches": 1
-      }
-    ],
-    "dry_run": true,
-    "warnings": [],
-    "windows": [
-      {
-        "batches_required": 1,
-        "confidence": "high",
-        "evidence": [
-          {
-            "kind": "source_code",
-            "notes": "upload endpoint rate limiting in server implementation",
-            "title": "crates.io application source",
-            "url": "https://github.com/rust-lang/crates.io"
-          }
-        ],
-        "fits_single_window": true,
-        "limit": 10,
-        "notes": "crates.io source enforces 10 uploads per minute for existing crates",
-        "operation": "placeholder_publish",
-        "pending": 1,
-        "registry": "crates_io",
-        "window_seconds": 60
-      },
-      {
-        "batches_required": 1,
-        "confidence": "low",
-        "evidence": [
-          {
-            "kind": "official",
-            "notes": "official workflow guidance but no exact package publish quota",
-            "title": "npm trusted publishing documentation",
-            "url": "https://docs.npmjs.com/trusted-publishers"
-          }
-        ],
-        "fits_single_window": true,
-        "limit": null,
-        "notes": "npm does not publish a precise package publish quota; use sequential CI publishing with retries",
-        "operation": "placeholder_publish",
-        "pending": 1,
-        "registry": "npm",
-        "window_seconds": null
-      }
-    ]
-  }
-}
 
 ----- stderr -----
-◆ Publishing 2 packages (Placeholder dry-run) across 🦀 cargo, 📦 npm
-→ 🦀 cargo core checking 0.0.0 on crates_io
-📝 🦀 cargo core would publish 0.0.0 to crates_io
-→ 📦 npm npm-pkg checking 0.0.0 on npm
-📝 📦 npm npm-pkg would publish 0.0.0 to npm
-◆ Publish complete: 2 packages, ✅ 0 published, ⏭️ 2 skipped, ❌ 0 failed
+config error: error: unrecognized subcommand 'placeholder-publish'
+
+Usage: monochange [OPTIONS] <COMMAND>
+
+For more information, try '--help'.

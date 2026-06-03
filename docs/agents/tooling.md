@@ -8,11 +8,11 @@
 ## Common commands
 
 - `monochange --help`
-- `mc --help`
-- `mc help subagents`
-- `mc subagents pi`
-- `mc mcp`
-- `mc step:validate`
+- `monochange --help`
+- `monochange help subagents`
+- `monochange subagents pi`
+- `monochange mcp`
+- `monochange step validate`
 - `build:all`
 - `lint:all`
 - `lint:architecture`

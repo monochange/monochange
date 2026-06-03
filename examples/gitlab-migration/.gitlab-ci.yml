@@ -12,8 +12,8 @@ validate_monochange:
   before_script:
     - npm install -g @monochange/cli
   script:
-    - mc step:validate
-    - mc check
+    - monochange step validate
+    - monochange check
 
 release_preview:
   image: node:22
@@ -21,7 +21,7 @@ release_preview:
   before_script:
     - npm install -g @monochange/cli
   script:
-    - mc release --dry-run --diff
+    - monochange release --dry-run --diff
 
 release_or_publish:
   image: node:22
@@ -34,9 +34,9 @@ release_or_publish:
     - git fetch --force --tags origin
     - |
       set -euo pipefail
-      if mc step:release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
-        mc step:tag-release --from HEAD
+      if monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
+        monochange step tag-release --from HEAD
         ./scripts/legacy-release.sh
       else
-        mc release-pr
+        monochange release-pr
       fi

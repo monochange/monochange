@@ -266,27 +266,10 @@ When provided, the generated config includes:\n\
 		.subcommand(build_check_subcommand())
 		.subcommand(build_help_subcommand());
 
-	command = command.next_help_heading("Step Commands");
-	for step in monochange_core::all_step_variants() {
-		let step = step.with_inherited_step_inputs();
-		let kebab = step.step_kebab_name();
-		let synthetic = CliCommandDefinition {
-			name: format!("step:{kebab}"),
-			help_text: Some(step_command_summary(&step)),
-			inputs: step.step_inputs_schema(),
-			steps: vec![step],
-			dry_run: false,
-		};
-		command = command.subcommand(build_cli_command_subcommand(&synthetic));
-	}
-
-	command = command.next_help_heading("User-defined Commands");
-	for cli_command in cli {
-		if cli_command.name == "versions" {
-			continue;
-		}
-		command = command.subcommand(build_cli_command_subcommand(cli_command));
-	}
+	command = command
+		.next_help_heading("Built-in Command Groups")
+		.subcommand(build_step_subcommand())
+		.subcommand(build_run_subcommand(cli));
 
 	command
 }
@@ -295,7 +278,7 @@ pub(crate) fn build_command_wizard_subcommand() -> Command {
 	Command::new("command")
 		.about("Open an interactive dashboard for adding or editing config-defined CLI commands")
 		.after_help(
-			"Examples:\n  mc command\n\nUse this wizard to create or revise [cli.<name>] entries in monochange.toml. It keeps existing command details unless you choose to replace them.",
+			"Examples:\n  monochange command\n\nUse this wizard to create or revise [cli.<name>] entries in monochange.toml. It keeps existing command details unless you choose to replace them.",
 		)
 }
 
@@ -304,12 +287,12 @@ pub(crate) fn build_skill_subcommand() -> Command {
 		.about("Install the monochange skill bundle into the current project with the skills CLI")
 		.after_help(
 			r"Examples:
-  mc help skill
-  mc skill
-  mc skill --list
-  mc skill -a claude-code -a codex
-  mc skill --skill monochange --copy -y
-  mc skill -g -a pi -y
+  monochange help skill
+  monochange skill
+  monochange skill --list
+  monochange skill -a claude-code -a codex
+  monochange skill --skill monochange --copy -y
+  monochange skill -g -a pi -y
 
 This command forwards all remaining arguments to:
   skills add <monochange-source>
@@ -343,11 +326,11 @@ pub(crate) fn build_subagents_subcommand() -> Command {
 		.about("Generate repo-local monochange subagents and agent guidance files")
 		.after_help(
 			r"Examples:
-  mc help subagents
-  mc subagents claude
-  mc subagents pi codex
-  mc subagents --all --dry-run --format json
-  mc subagents vscode copilot --no-mcp
+  monochange help subagents
+  monochange subagents claude
+  monochange subagents pi codex
+  monochange subagents --all --dry-run --format json
+  monochange subagents vscode copilot --no-mcp
 
 Targets:
   - claude  -> .claude/agents/*.md and .mcp.json
@@ -358,7 +341,7 @@ Targets:
   - cursor  -> .cursor/rules/*.mdc
 
 Generated agents are CLI-first. They should prefer:
-  1. mc
+  1. monochange
   2. monochange
   3. npx -y @monochange/cli
 
@@ -417,10 +400,10 @@ pub(crate) fn build_analyze_subcommand() -> Command {
 		.about("Analyze semantic changes for one package across main, head, and optional release baselines")
 		.after_help(
 			r"Examples:
-  mc analyze --package core
-  mc analyze --package core --format json
-  mc analyze --package core --release-ref core/v1.2.3
-  mc analyze --package core --main-ref main --head-ref HEAD
+  monochange analyze --package core
+  monochange analyze --package core --format json
+  monochange analyze --package core --release-ref core/v1.2.3
+  monochange analyze --package core --main-ref main --head-ref HEAD
 
 Analysis notes:
   - Runs package-scoped semantic analysis using the selected package's configured release identity.
@@ -478,8 +461,8 @@ pub(crate) fn build_migrate_subcommand() -> Command {
 				.about("Report existing release tools, changelog providers, and CI migration work")
 				.after_help(
 					r"Examples:
-  mc migrate audit
-  mc migrate audit --format json
+  monochange migrate audit
+  monochange migrate audit --format json
 
 Audit notes:
   - Looks for known release tools such as knope, Changesets, release-please, semantic-release, and cargo-release.
@@ -499,9 +482,9 @@ Audit notes:
 				.about("Migrate committed .monochange release records to the latest schema version")
 				.after_help(
 					r"Examples:
-  mc migrate release-records --dry-run
-  mc migrate release-records
-  mc migrate release-records --format json
+  monochange migrate release-records --dry-run
+  monochange migrate release-records
+  monochange migrate release-records --format json
 
 Migration notes:
   - Scans .monochange/releases/*/release.json.
@@ -528,7 +511,7 @@ pub(crate) fn build_check_subcommand() -> Command {
 	Command::new("check")
 		.about("Validate configuration, changesets, and run manifest lint rules")
 		.after_help(
-			"Examples:\n  mc check\n  mc check --fix\n  mc check --ecosystem cargo,npm\n  mc check --only cargo/sorted-dependencies\n\n\
+			"Examples:\n  monochange check\n  monochange check --fix\n  monochange check --ecosystem cargo,npm\n  monochange check --only cargo/sorted-dependencies\n\n\
 			 Lint rules are configured in the top-level [lints] section of monochange.toml:\n\n\
 			 [lints]\n  use = [\"cargo/recommended\", \"npm/recommended\"]\n\n\
 			 [lints.rules]\n  \"cargo/internal-dependency-workspace\" = \"error\"",
@@ -625,7 +608,7 @@ pub(crate) fn build_lint_subcommand() -> Command {
 			Command::new("new")
 				.about("Scaffold a new lint rule in an ecosystem crate")
 				.after_help(
-					"Examples:\n  mc lint new cargo/no-path-dependencies\n  mc lint new npm/require-package-manager",
+					"Examples:\n  monochange lint new cargo/no-path-dependencies\n  monochange lint new npm/require-package-manager",
 				)
 				.arg(
 					Arg::new("id")
@@ -640,7 +623,7 @@ pub(crate) fn build_help_subcommand() -> Command {
 		.about("Show detailed help for a command")
 		.long_about(
 			"Show detailed help, examples, and tips for any monochange command. \
-			 Run `mc help` to list all commands, or `mc help <command>` for \
+			 Run `monochange help` to list all commands, or `monochange help <command>` for \
 			 detailed usage information with examples.",
 		)
 		.arg(
@@ -676,12 +659,66 @@ fn step_command_summary(step: &CliStepDefinition) -> String {
 	}
 }
 
+pub(crate) fn build_step_subcommand() -> Command {
+	let mut command = Command::new("step")
+		.about("Run built-in release workflow steps")
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand_help_heading("Step Commands");
+
+	for step in monochange_core::all_step_variants() {
+		let step = step.with_inherited_step_inputs();
+		let kebab = step.step_kebab_name();
+		let synthetic = CliCommandDefinition {
+			name: kebab,
+			help_text: Some(step_command_summary(&step)),
+			inputs: step.step_inputs_schema(),
+			steps: vec![step],
+			dry_run: false,
+		};
+		command = command.subcommand(build_cli_command_subcommand_with_prefix(
+			&synthetic,
+			"monochange step",
+		));
+	}
+
+	command
+}
+
+pub(crate) fn build_run_subcommand(cli: &[CliCommandDefinition]) -> Command {
+	let mut command = Command::new("run")
+		.about("Run workflow commands defined in monochange.toml")
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand_help_heading("Workflow Commands");
+
+	for cli_command in cli {
+		if cli_command.name == "versions" {
+			continue;
+		}
+		command = command.subcommand(build_cli_command_subcommand_with_prefix(
+			cli_command,
+			"monochange run",
+		));
+	}
+
+	command
+}
+
+#[cfg(test)]
 pub(crate) fn build_cli_command_subcommand(cli_command: &CliCommandDefinition) -> Command {
+	build_cli_command_subcommand_with_prefix(cli_command, "monochange")
+}
+
+pub(crate) fn build_cli_command_subcommand_with_prefix(
+	cli_command: &CliCommandDefinition,
+	usage_prefix: &str,
+) -> Command {
 	let help_text = cli_command
 		.help_text
 		.clone()
 		.unwrap_or_else(|| format!("Run the `{}` command", cli_command.name));
-	let usage = cli_command_usage(cli_command);
+	let usage = cli_command_usage_with_prefix(cli_command, usage_prefix);
 
 	let mut command = Command::new(leak_string(cli_command.name.clone()))
 		.about(help_text)
@@ -727,7 +764,7 @@ pub(crate) fn build_cli_command_subcommand(cli_command: &CliCommandDefinition) -
 
 pub(crate) fn cli_command_after_help(cli_command: &CliCommandDefinition) -> Option<&'static str> {
 	match cli_command.name.as_str() {
-		"step:publish-release" => {
+		"step:publish-release" | "step publish-release" => {
 			Some(
 				r"What this step does:
   - Reads a prepared release artifact produced by prepare-release.
@@ -739,16 +776,16 @@ What this step does not do:
   - Registry publication is handled by the publish planning and publish commands.
 
 Typical release flow:
-  mc step:prepare-release --output prepared-release.json
-  mc step:publish-release --prepared-release prepared-release.json
+  monochange step prepare-release --output prepared-release.json
+  monochange step publish-release --prepared-release prepared-release.json
 
 Related commands:
-  mc help step:prepare-release
-  mc help step:publish-readiness
-  mc help step:publish-packages",
+  monochange help step prepare-release
+  monochange help step publish-readiness
+  monochange help step publish-packages",
 			)
 		}
-		"step:prepare-release" => {
+		"step:prepare-release" | "step prepare-release" => {
 			Some(
 				r"What this step does:
   - Reads pending changesets and workspace package metadata.
@@ -756,11 +793,11 @@ Related commands:
   - Writes a prepared release artifact that later steps can consume.
 
 Typical release flow:
-  mc step:prepare-release --output prepared-release.json
-  mc step:publish-release --prepared-release prepared-release.json",
+  monochange step prepare-release --output prepared-release.json
+  monochange step publish-release --prepared-release prepared-release.json",
 			)
 		}
-		"step:affected-packages" => {
+		"step:affected-packages" | "step affected-packages" => {
 			Some(
 				r"What this step does:
   - Computes packages affected by a change or release plan.
@@ -781,10 +818,10 @@ Prefer configured package ids in change files whenever a leaf package changed.",
 		"change" => {
 			Some(
 				r#"Examples:
-  mc change --package sdk-core --bump patch --reason "fix panic"
-  mc change --package sdk-core --bump minor --reason "add API" --output .changeset/sdk-core.md
-  mc change --package sdk --bump minor --reason "coordinated release"
-  mc change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
+  monochange change --package sdk-core --bump patch --reason "fix panic"
+  monochange change --package sdk-core --bump minor --reason "add API" --output .changeset/sdk-core.md
+  monochange change --package sdk --bump minor --reason "coordinated release"
+  monochange change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
 
 Rules:
   - Prefer configured package ids in change files whenever a leaf package changed.
@@ -797,10 +834,10 @@ Rules:
 		"release" => {
 			Some(
 				r"Examples:
-  mc release --dry-run --format text
-  mc release --dry-run --format json
-  mc release --dry-run --diff
-  mc release
+  monochange release --dry-run --format text
+  monochange release --dry-run --format json
+  monochange release --dry-run --diff
+  monochange release
 
 Planning reminders:
   - Direct package changes propagate to dependents using defaults.parent_bump.
@@ -811,9 +848,9 @@ Planning reminders:
 		"versions" => {
 			Some(
 				r"Examples:
-  mc versions --dry-run
-  mc versions
-  mc versions --dry-run --format json
+  monochange versions --dry-run
+  monochange versions
+  monochange versions --dry-run --format json
 
 Summary notes:
   - This command syncs internal workspace dependency constraints.
@@ -824,9 +861,9 @@ Summary notes:
 		"commit-release" => {
 			Some(
 				r"Examples:
-  mc commit-release --dry-run --format json
-  mc commit-release --dry-run --diff
-  mc commit-release
+  monochange commit-release --dry-run --format json
+  monochange commit-release --dry-run --diff
+  monochange commit-release
 
 Commit notes:
   - Reuses the standard monochange release commit subject/body contract.
@@ -837,8 +874,8 @@ Commit notes:
 		"affected" => {
 			Some(
 				r"Examples:
-  mc step:affected-packages --changed-paths crates/core/src/lib.rs --format json
-  mc step:affected-packages --from origin/main --verify
+  monochange step affected-packages --changed-paths crates/core/src/lib.rs --format json
+  monochange step affected-packages --from origin/main --verify
 
 Verification reminders:
   - Prefer package ids in .changeset files.
@@ -849,8 +886,8 @@ Verification reminders:
 		"diagnostics" => {
 			Some(
 				r"Examples:
-  mc step:diagnose-changesets --format json
-  mc step:diagnose-changesets --changeset .changeset/feature.md
+  monochange step diagnose-changesets --format json
+  monochange step diagnose-changesets --changeset .changeset/feature.md
 
 Diagnostics include:
   - Target packages/groups and requested bump
@@ -862,8 +899,8 @@ Diagnostics include:
 		"repair-release" => {
 			Some(
 				r"Examples:
-  mc repair-release --from v1.2.3 --dry-run
-  mc repair-release --from v1.2.3 --target HEAD --format json
+  monochange repair-release --from v1.2.3 --dry-run
+  monochange repair-release --from v1.2.3 --target HEAD --format json
 
 Repair notes:
   - Finds the release record from history using the supplied ref.
@@ -872,18 +909,18 @@ Repair notes:
   - Hosted release sync runs by default and can be disabled with --sync-provider=false.",
 			)
 		}
-		"step:tag-release" => {
+		"tag-release" | "step:tag-release" | "step tag-release" => {
 			Some(
 				r"Examples:
-  mc step:tag-release --from HEAD
-  mc step:tag-release --from HEAD --dry-run --format json
-  mc step:tag-release --from HEAD --push=false
+  monochange step tag-release --from HEAD
+  monochange step tag-release --from HEAD --dry-run --format json
+  monochange step tag-release --from HEAD --push=false
 
 Tagging notes:
   - Requires the resolved ref itself to be the monochange release commit.
   - Creates the full tag set declared by that release record.
   - Treats reruns on the same commit as already up to date.
-  - Use `mc repair-release` if you need to move existing tags later.",
+  - Use `monochange repair-release` if you need to move existing tags later.",
 			)
 		}
 		_ => None,
@@ -891,8 +928,16 @@ Tagging notes:
 }
 
 pub(crate) fn cli_command_usage(cli_command: &CliCommandDefinition) -> String {
+	cli_command_usage_with_prefix(cli_command, "monochange")
+}
+
+pub(crate) fn cli_command_usage_with_prefix(
+	cli_command: &CliCommandDefinition,
+	usage_prefix: &str,
+) -> String {
 	let mut usage = String::with_capacity(32 + cli_command.name.len());
-	usage.push_str("mc ");
+	usage.push_str(usage_prefix);
+	usage.push(' ');
 	usage.push_str(&cli_command.name);
 	usage.push_str(" [--dry-run]");
 
@@ -996,7 +1041,7 @@ Use this when migrating to monochange, checking whether manifests are already in
 or normalizing constraints before grouping packages for shared releases.",
 		)
 		.after_help(
-			"Examples:\n  mc versions --dry-run\n  mc versions --dry-run --format json\n  mc versions --strategy exact\n\n\
+			"Examples:\n  monochange versions --dry-run\n  monochange versions --dry-run --format json\n  monochange versions --strategy exact\n\n\
 This command syncs internal workspace dependency constraints. Strategy precedence is package config, \
 then ecosystem config, then the ecosystem default unless --strategy forces one style for this run.",
 		)

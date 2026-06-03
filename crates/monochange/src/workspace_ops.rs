@@ -56,7 +56,7 @@ use typed_builder::TypedBuilder;
 use crate::interactive;
 use crate::*;
 
-/// Result of initializing a workspace with `mc init`.
+/// Result of initializing a workspace with `monochange init`.
 ///
 /// Contains the paths to generated configuration and workflow files.
 pub(crate) struct InitWorkspaceResult {
@@ -562,7 +562,7 @@ pub(crate) fn populate_workspace(root: &Path) -> MonochangeResult<PopulateWorksp
 
 	if !path.exists() {
 		return Err(MonochangeError::Config(format!(
-			"{} does not exist; run `mc init` first or create a monochange.toml before running `mc populate`",
+			"{} does not exist; run `monochange init` first or create a monochange.toml before running `monochange populate`",
 			path.display()
 		)));
 	}
@@ -860,7 +860,7 @@ fn render_toml_string(value: &str) -> String {
 	toml::Value::String(value.to_string()).to_string()
 }
 
-/// The minijinja template for `mc init`, loaded at compile time.
+/// The minijinja template for `monochange init`, loaded at compile time.
 ///
 /// SYNC: when configuration options are added, removed, or changed in
 /// `monochange_core` or `monochange_config`, update `monochange.toml.template`
@@ -1299,10 +1299,10 @@ pub fn discover_workspace(root: &Path) -> MonochangeResult<DiscoveryReport> {
 ///
 /// Performance note:
 /// the generic discovery command intentionally walks the full repository so
-/// `mc discover` can surface every supported package it finds. That behavior is
+/// `monochange discover` can surface every supported package it finds. That behavior is
 /// expensive in monochange's own repo because fixtures contain many extra
 /// manifests across multiple ecosystems. Release planning already has explicit
-/// package definitions, so re-running whole-repo discovery turned `mc release
+/// package definitions, so re-running whole-repo discovery turned `monochange release
 /// --dry-run` into mostly filesystem scanning.
 ///
 /// This helper keeps the broad `discover_workspace()` behavior for discovery-

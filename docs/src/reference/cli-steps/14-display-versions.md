@@ -8,7 +8,7 @@ Use it when you want the release-version answer without the rest of the release 
 
 ## Why use it
 
-Use `DisplayVersions` when you want a dedicated read-only command such as `mc versions`.
+Use `DisplayVersions` when you want a dedicated read-only command such as `monochange versions`.
 
 It is the best fit for:
 
@@ -77,9 +77,9 @@ type = "DisplayVersions"
 ### Run the display step directly
 
 ```bash
-mc step:display-versions
-mc step:display-versions --format markdown
-mc step:display-versions --format json
+monochange step display-versions
+monochange step display-versions --format markdown
+monochange step display-versions --format json
 ```
 
 ### Keep release preparation and version display separate

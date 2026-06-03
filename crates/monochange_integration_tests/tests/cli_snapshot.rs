@@ -82,7 +82,7 @@ async fn subcommand_snapshot_arg_renders_nested_subtree() {
 #[allow(clippy::disallowed_methods)]
 async fn snapshot_subtree_light_output_is_agent_readable() {
 	let fixture = monochange_test_helpers::setup_fixture!("cli-snapshot/minimal-workspace");
-	let output = run_snapshot(fixture.path(), ["--view", "light", "step:discover"]).await;
+	let output = run_snapshot(fixture.path(), ["--view", "light", "step", "discover"]).await;
 	let value: Value = serde_json::from_str(&output)
 		.unwrap_or_else(|error| panic!("snapshot output was not JSON: {error}\n{output}"));
 

@@ -37,7 +37,7 @@ fn setup_api_fixture(name: &str) -> TempDir {
 }
 
 fn run_mc(root: &Path, args: &[&str]) -> String {
-	let mut cli_args = vec![OsString::from("mc")];
+	let mut cli_args = vec![OsString::from("monochange")];
 	cli_args.extend(args.iter().map(OsString::from));
 
 	let runtime = tokio::runtime::Builder::new_current_thread()
@@ -46,8 +46,12 @@ fn run_mc(root: &Path, args: &[&str]) -> String {
 		.unwrap_or_else(|error| panic!("tokio runtime: {error}"));
 
 	runtime
-		.block_on(monochange::run_with_args_in_dir("mc", cli_args, root))
-		.unwrap_or_else(|error| panic!("mc {}: {error}", args.join(" ")))
+		.block_on(monochange::run_with_args_in_dir(
+			"monochange",
+			cli_args,
+			root,
+		))
+		.unwrap_or_else(|error| panic!("monochange {}: {error}", args.join(" ")))
 }
 
 fn run_json(root: &Path, args: &[&str]) -> Value {
@@ -121,7 +125,8 @@ fn affected_changeset_policy_snapshots_understated_api_bump_output() {
 	let evaluation = run_json(
 		fixture.path(),
 		&[
-			"step:affected-packages",
+			"step",
+			"affected-packages",
 			"--from",
 			"HEAD~1",
 			"--format",

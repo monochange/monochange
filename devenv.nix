@@ -91,7 +91,7 @@ in
     "mc" = {
       exec = ''
         set -euo pipefail
-        cargo run --quiet --release --package monochange --bin mc -- "$@"
+        cargo run --quiet --release --package monochange --bin monochange -- "$@"
       '';
       description = "The release build of the `monochange` executable";
       binary = "bash";
@@ -164,7 +164,7 @@ in
     "publish:check" = {
       exec = ''
         set -euo pipefail
-        mc step:publish-packages --dry-run
+        monochange step publish-packages --dry-run
       '';
       description = "Check that publication is valid for this project";
       binary = "bash";
@@ -348,8 +348,8 @@ in
     "fix:monochange" = {
       exec = ''
         set -euo pipefail
-        mc step:validate
-        mc check --fix
+        monochange step validate
+        monochange check --fix
       '';
       description = "Fix clippy lints for rust.";
       binary = "bash";
@@ -413,8 +413,8 @@ in
     "lint:monochange" = {
       exec = ''
         set -euo pipefail
-        mc step:validate
-        mc check
+        monochange step validate
+        monochange check
       '';
       description = "Run manifest lint rules across all ecosystems.";
       binary = "bash";

@@ -746,7 +746,7 @@ pub fn discover_cargo_packages(root: &Path) -> MonochangeResult<AdapterDiscovery
 /// Load one explicitly configured Cargo package without walking the whole repo.
 ///
 /// Performance note:
-/// full-repository `WalkDir` scans are fine for `mc discover`, but they become a
+/// full-repository `WalkDir` scans are fine for `monochange discover`, but they become a
 /// large fixed cost for release planning in repositories that vendor many test
 /// fixtures. Release planning already knows the configured package paths, so this
 /// helper lets higher-level code parse just the manifests it needs instead of

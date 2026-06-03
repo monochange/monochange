@@ -55,6 +55,7 @@ fn release_keeps_cargo_lockfile_on_direct_rewrite_fast_path() {
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(root)
 		.env("PATH", prefixed_path(&root.join("tools/bin")))
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release command: {error}"));

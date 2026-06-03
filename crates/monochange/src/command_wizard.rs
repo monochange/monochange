@@ -1075,7 +1075,10 @@ fn validate_command_name_message(name: &str) -> Result<(), String> {
 	if name.starts_with("step:") {
 		return Err("command names cannot start with `step:`".to_string());
 	}
-	if !name
+	if name.starts_with("step ") {
+		return Err("command names cannot start with `step `".to_string());
+	}
+	if !trimmed
 		.bytes()
 		.all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
 	{

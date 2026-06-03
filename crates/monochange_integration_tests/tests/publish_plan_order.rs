@@ -33,7 +33,7 @@ fn setup_publish_plan_dependency_order_repo() -> TempDir {
 }
 
 fn monochange_command(release_date: &str) -> Command {
-	let mut command = Command::new(get_cargo_bin("mc"));
+	let mut command = Command::new(get_cargo_bin("monochange"));
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
 	command.env("MONOCHANGE_RELEASE_DATE", release_date);
@@ -60,6 +60,7 @@ fn publish_plan_integration_preserves_dependency_order_across_grouped_batches() 
 	let tempdir = setup_publish_plan_dependency_order_repo();
 	let output = monochange_command("2026-04-06")
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("plan-release-publish")
 		.arg("--dry-run")
 		.arg("--format")
@@ -100,6 +101,7 @@ fn publish_plan_all_integration_includes_every_configured_package() {
 	let tempdir = setup_publish_plan_dependency_order_repo();
 	let output = monochange_command("2026-04-06")
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("plan-release-publish")
 		.arg("--dry-run")
 		.arg("--all")
@@ -157,6 +159,7 @@ fn publish_all_integration_plans_every_configured_package() {
 	let tempdir = setup_publish_plan_dependency_order_repo();
 	let output = monochange_command("2026-04-06")
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("publish")
 		.arg("--dry-run")
 		.arg("--all")

@@ -1,13 +1,13 @@
 #![allow(clippy::large_futures)]
 #![allow(clippy::disallowed_methods)]
-//! Integration tests for `mc help` subcommand output.
+//! Integration tests for `monochange help` subcommand output.
 
 use insta_cmd::assert_cmd_snapshot;
 use monochange_test_helpers::current_test_name;
 use monochange_test_helpers::snapshot_settings;
 
 fn mc_command() -> std::process::Command {
-	let mut command = std::process::Command::new(insta_cmd::get_cargo_bin("mc"));
+	let mut command = std::process::Command::new(insta_cmd::get_cargo_bin("monochange"));
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
 	command
@@ -28,7 +28,7 @@ fn help_change_shows_detailed_help() {
 	settings.set_snapshot_suffix(current_test_name());
 	let _guard = settings.bind_to_scope();
 
-	assert_cmd_snapshot!(mc_command().arg("help").arg("change"));
+	assert_cmd_snapshot!(mc_command().arg("help").arg("run").arg("change"));
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn help_release_shows_detailed_help() {
 	settings.set_snapshot_suffix(current_test_name());
 	let _guard = settings.bind_to_scope();
 
-	assert_cmd_snapshot!(mc_command().arg("help").arg("release"));
+	assert_cmd_snapshot!(mc_command().arg("help").arg("run").arg("release"));
 }
 
 #[test]

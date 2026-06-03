@@ -24,19 +24,19 @@ Reach for this crate when you want one API and CLI surface that discovers packag
 
 ## Best for
 
-- shipping the `mc` CLI in CI or local release tooling
+- shipping the `monochange` CLI in CI or local release tooling
 - embedding the full end-to-end planner instead of wiring the lower-level crates together yourself
-- generating starter config with `mc init` and then evolving the CLI command surface over time
+- generating starter config with `monochange init` and then evolving the CLI command surface over time
 
 ## Key commands
 
 ```bash
-mc init
-mc skill -a pi -y
-mc step:discover --format json
-mc change --package monochange --bump patch --reason "describe the change"
-mc step:prepare-release --dry-run --format json
-mc mcp
+monochange init
+monochange skill -a pi -y
+monochange step discover --format json
+monochange change --package monochange --bump patch --reason "describe the change"
+monochange step prepare-release --dry-run --format json
+monochange mcp
 ```
 
 ## Responsibilities
@@ -45,7 +45,7 @@ mc mcp
 - load `monochange.toml`
 - load config-defined `[cli.*]` workflow commands from `monochange.toml`
 - expose binary commands such as `init`, `check`, `analyze`, `mcp`, `help`, and `version`
-- generate immutable `mc step:*` commands from the built-in step schemas
+- generate immutable `monochange step *` commands from the built-in step schemas
 - resolve change input files
 - render discovery and release command output in text or JSON
 - execute configured workflow commands plus built-in MCP commands

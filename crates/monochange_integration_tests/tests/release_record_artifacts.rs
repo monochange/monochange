@@ -31,12 +31,13 @@ fn setup_release_fixture(relative: &str) -> TempDir {
 }
 
 fn prepare_release(root: &Path) -> Value {
-	let output = Command::new(get_cargo_bin("mc"))
+	let output = Command::new(get_cargo_bin("monochange"))
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-04-07")
-		.arg("step:prepare-release")
+		.arg("step")
+		.arg("prepare-release")
 		.arg("--format")
 		.arg("json")
 		.output()
@@ -85,11 +86,12 @@ fn configure_release_command_for_empty_release_records(root: &Path) {
 }
 
 fn run_release(root: &Path, args: &[&str]) {
-	let output = Command::new(get_cargo_bin("mc"))
+	let output = Command::new(get_cargo_bin("monochange"))
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-04-07")
+		.arg("run")
 		.arg("release")
 		.args(args)
 		.output()
@@ -103,7 +105,7 @@ fn run_release(root: &Path, args: &[&str]) {
 }
 
 fn check_failure(root: &Path) -> String {
-	let output = Command::new(get_cargo_bin("mc"))
+	let output = Command::new(get_cargo_bin("monochange"))
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")

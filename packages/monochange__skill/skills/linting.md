@@ -1,16 +1,16 @@
 # Linting
 
-`mc check` validates monochange configuration, changesets, and package manifests using configured lint rules.
+`monochange check` validates monochange configuration, changesets, and package manifests using configured lint rules.
 
-Use `mc step:validate` when you only need to know whether monochange can load the workspace and changesets. Use `mc check` when package metadata consistency matters: publishability fields, workspace dependency protocols, duplicate changesets, package ownership, and other ecosystem-specific policy.
+Use `monochange step validate` when you only need to know whether monochange can load the workspace and changesets. Use `monochange check` when package metadata consistency matters: publishability fields, workspace dependency protocols, duplicate changesets, package ownership, and other ecosystem-specific policy.
 
 ## Commands
 
 ```bash
-mc check
-mc check --fix
-mc lint list
-mc lint explain <rule-or-preset-id>
+monochange check
+monochange check --fix
+monochange lint list
+monochange lint explain <rule-or-preset-id>
 ```
 
 MCP equivalents:
@@ -40,4 +40,4 @@ Rules accept either a simple severity (`"error"`, `"warning"`, `"off"`) or a tab
 
 Use presets for the baseline policy and then layer explicit rules or scopes for exceptions. Scopes are useful when published packages need stricter metadata than fixtures, examples, private tools, or generated manifests.
 
-Run `mc check` before release previews and before merging configuration changes.
+Run `monochange check` before release previews and before merging configuration changes.

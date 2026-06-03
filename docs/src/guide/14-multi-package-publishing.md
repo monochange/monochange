@@ -26,7 +26,7 @@ A good default is:
 
 ## Choose the simplest publish pattern that matches the registry
 
-### Pattern 1: One post-merge publish job runs `mc step:publish-readiness` and `mc step:publish-packages`
+### Pattern 1: One post-merge publish job runs `monochange step publish-readiness` and `monochange step publish-packages`
 
 Use this when most packages can stay on monochange's built-in publishing path.
 
@@ -56,18 +56,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! devenv shell -- mc step:release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
+          if ! devenv shell -- monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
             echo "HEAD is not a monochange release commit; skipping publish"
             exit 0
           fi
 
       - name: create release tags
-        run: devenv shell -- mc step:tag-release --from HEAD
+        run: devenv shell -- monochange step tag-release --from HEAD
 
       - name: publish packages
         run: |
-          devenv shell -- mc step:publish-readiness --from HEAD --output .monochange/readiness.json
-          devenv shell -- mc step:publish-packages --output .monochange/publish-result.json
+          devenv shell -- monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+          devenv shell -- monochange step publish-packages --output .monochange/publish-result.json
 ```
 
 This is the best fit when:
@@ -78,7 +78,7 @@ This is the best fit when:
 
 ### Built-in publish order
 
-When one `mc step:publish-packages` invocation contains multiple package publications, monochange publishes packages with no selected dependencies first, then publishes packages that depend on those packages, walking up the dependency tree until packages that depend on the most selected packages are published last.
+When one `monochange step publish-packages` invocation contains multiple package publications, monochange publishes packages with no selected dependencies first, then publishes packages that depend on those packages, walking up the dependency tree until packages that depend on the most selected packages are published last.
 
 The order is computed like this:
 
@@ -118,7 +118,7 @@ This is often the clearest fit for:
 
 - `pub.dev`
 - some `crates.io` setups
-- mixed workspaces where one package needs registry-native steps that do not match `mc step:publish-packages`
+- mixed workspaces where one package needs registry-native steps that do not match `monochange step publish-packages`
 
 Example tag naming scheme:
 
@@ -209,12 +209,12 @@ This pattern is especially useful when multiple packages live in the same ecosys
 
 ## Registry-specific recommendations
 
-| Registry  | Recommended multi-package pattern                                                                                | Why                                                                   |
-| --------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| npm       | one post-merge `mc step:publish-readiness` + `mc step:publish-packages` job when possible                        | monochange can automate npm trusted-publishing setup on GitHub        |
-| crates.io | one job per crate when using external OIDC auth                                                                  | trusted publishing is enrolled per crate and workflow context matters |
-| jsr       | built-in `mc step:publish-readiness` + `mc step:publish-packages` is often fine, but keep setup package-specific | registry linking is still manual today                                |
-| pub.dev   | package-specific tags and often one workflow per package                                                         | automated publishing is tag-driven and package-specific               |
+| Registry  | Recommended multi-package pattern                                                                                                | Why                                                                   |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| npm       | one post-merge `monochange step publish-readiness` + `monochange step publish-packages` job when possible                        | monochange can automate npm trusted-publishing setup on GitHub        |
+| crates.io | one job per crate when using external OIDC auth                                                                                  | trusted publishing is enrolled per crate and workflow context matters |
+| jsr       | built-in `monochange step publish-readiness` + `monochange step publish-packages` is often fine, but keep setup package-specific | registry linking is still manual today                                |
+| pub.dev   | package-specific tags and often one workflow per package                                                                         | automated publishing is tag-driven and package-specific               |
 
 ## Keep config, tags, and workflows aligned
 
@@ -261,8 +261,8 @@ This is the right move when:
 2. choose `builtin` or `external` per ecosystem or package
 3. register trusted publishing for each package at the registry
 4. prefer package-specific tags where a registry is tag-authorized
-5. run `mc step:publish-packages --dry-run` after registry enrollment changes
-6. optionally run `mc step:publish-readiness --from HEAD --output <path>` as a preflight before real `mc step:publish-packages`
+5. run `monochange step publish-packages --dry-run` after registry enrollment changes
+6. optionally run `monochange step publish-readiness --from HEAD --output <path>` as a preflight before real `monochange step publish-packages`
 7. keep the workflow filename and environment stable once a registry record is enrolled
 
 ## Common mistakes

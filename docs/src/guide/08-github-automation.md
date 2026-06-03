@@ -6,14 +6,14 @@ monochange keeps source-provider automation layered on top of the same `PrepareR
 
 That means one set of `.changeset/*.md` inputs can drive all of these commands and automation flows consistently:
 
-- `mc step:prepare-release --dry-run --format json` refreshes the cached manifest and shows the downstream automation payload
-- `mc step:publish-release` previews or publishes provider releases from the structured release notes
-- `mc step:open-release-request` previews or opens an idempotent provider release request; when `[source.pull_requests].verified_commits = true` and the step runs on GitHub Actions for the configured repository, the GitHub provider pushes a normal release branch commit as a fallback and then only moves the branch to a Git Database API replacement commit when GitHub reports that replacement as verified
-- `mc step:affected-packages` evaluates pull-request changeset policy from CI-supplied changed paths and labels without requiring a config-defined wrapper command
+- `monochange step prepare-release --dry-run --format json` refreshes the cached manifest and shows the downstream automation payload
+- `monochange step publish-release` previews or publishes provider releases from the structured release notes
+- `monochange step open-release-request` previews or opens an idempotent provider release request; when `[source.pull_requests].verified_commits = true` and the step runs on GitHub Actions for the configured repository, the GitHub provider pushes a normal release branch commit as a fallback and then only moves the branch to a Git Database API replacement commit when GitHub reports that replacement as verified
+- `monochange step affected-packages` evaluates pull-request changeset policy from CI-supplied changed paths and labels without requiring a config-defined wrapper command
 
 <!-- {/githubAutomationOverview} -->
 
-## Quick start with `mc init --provider`
+## Quick start with `monochange init --provider`
 
 The fastest way to configure GitHub automation is using the `--provider` flag during initialization:
 
@@ -21,7 +21,7 @@ The fastest way to configure GitHub automation is using the `--provider` flag du
 
 ```bash
 # Initialize with GitHub automation pre-configured
-mc init --provider github
+monochange init --provider github
 
 # The generated monochange.toml includes:
 # - [source] section with GitHub releases and pull request settings
@@ -43,10 +43,10 @@ This single command generates:
 <!-- {=githubAutomationWorkflowCommands} -->
 
 ```bash
-mc step:prepare-release --dry-run --format json
-mc step:publish-release --dry-run --format json
-mc step:open-release-request --dry-run --format json
-mc step:affected-packages --format json --verify --changed-paths crates/monochange/src/lib.rs
+monochange step prepare-release --dry-run --format json
+monochange step publish-release --dry-run --format json
+monochange step open-release-request --dry-run --format json
+monochange step affected-packages --format json --verify --changed-paths crates/monochange/src/lib.rs
 ```
 
 <!-- {/githubAutomationWorkflowCommands} -->
@@ -58,19 +58,19 @@ GitHub automation now has a repair-oriented history flow in addition to the exis
 Use these commands when you need to inspect, tag, or repair a just-created release:
 
 ```bash
-mc step:release-record --from v1.2.3
-mc step:tag-release --from HEAD --dry-run --format json
-mc step:retarget-release --from v1.2.3 --target HEAD --dry-run
-mc step:retarget-release --from v1.2.3 --target HEAD
+monochange step release-record --from v1.2.3
+monochange step tag-release --from HEAD --dry-run --format json
+monochange step retarget-release --from v1.2.3 --target HEAD --dry-run
+monochange step retarget-release --from v1.2.3 --target HEAD
 ```
 
 The important distinction is:
 
 - the cached release manifest still describes the execution-time release plan for automation
 - `ReleaseRecord` describes the durable release declaration stored in the release commit body
-- `mc step:tag-release` consumes that durable record after merge and creates the declared tag set on the default branch
+- `monochange step tag-release` consumes that durable record after merge and creates the declared tag set on the default branch
 
-Use `--dry-run` first for `mc step:retarget-release`. It is a destructive workflow because it retargets release tags.
+Use `--dry-run` first for `monochange step retarget-release`. It is a destructive workflow because it retargets release tags.
 
 If immutable registry artifacts have already been published, prefer cutting a new patch release instead of retargeting the source release.
 
@@ -78,7 +78,7 @@ If immutable registry artifacts have already been published, prefer cutting a ne
 
 <!-- {=projectTagReleaseJsonTagsMap} -->
 
-When a post-merge workflow needs to trigger follow-up release work, prefer `mc step:tag-release --from HEAD --format json` and read the release tag by package or group id from the top-level `tags` object:
+When a post-merge workflow needs to trigger follow-up release work, prefer `monochange step tag-release --from HEAD --format json` and read the release tag by package or group id from the top-level `tags` object:
 
 ```json
 {
@@ -98,7 +98,7 @@ A package or group might not be released in a particular release commit. Handle 
 For example, a repository with `[group.main]` can trigger a downstream GitHub release workflow from the main group tag with:
 
 ```bash
-mc step:tag-release --from HEAD --format json >/tmp/tag-report.json
+monochange step tag-release --from HEAD --format json >/tmp/tag-report.json
 tag="$(jq -r '.tags.main // empty' /tmp/tag-report.json)"
 
 if [ -z "$tag" ]; then
@@ -117,16 +117,16 @@ Avoid indexing `tagResults[0]` for workflow control. `tagResults` remains the au
 
 Package publishing is separate from provider release publishing:
 
-- `mc step:publish-readiness --from HEAD --output <path>` checks package registries before mutation
-- `mc step:publish-packages` handles package registries such as `crates.io`, `npm`, `jsr`, and `pub.dev`
-- `mc step:publish-release` handles hosted source-provider releases such as GitHub releases
+- `monochange step publish-readiness --from HEAD --output <path>` checks package registries before mutation
+- `monochange step publish-packages` handles package registries such as `crates.io`, `npm`, `jsr`, and `pub.dev`
+- `monochange step publish-release` handles hosted source-provider releases such as GitHub releases
 
 When `publish.trusted_publishing` is enabled, monochange can derive GitHub trust metadata from the workflow runtime and the configured `[source]` block. npm packages get the richest built-in diagnostics today:
 
 - monochange rejects long-lived npm token environment variables for trusted-publishing runs
 - monochange verifies that the current GitHub Actions OIDC context matches the configured trusted-publisher context
 - if npm trust needs repair, monochange reports the exact `npm trust github ...` command to run manually or in separate tooling
-- real `mc step:publish-packages` runs do not execute `npm trust` or `npm trust list`; trusted-publishing npm publishes use the `npm` CLI directly
+- real `monochange step publish-packages` runs do not execute `npm trust` or `npm trust list`; trusted-publishing npm publishes use the `npm` CLI directly
 
 For `crates.io`, `jsr`, and `pub.dev`, monochange reports the setup URL for the package and requires manual trusted-publishing setup before the next built-in release publish. Placeholder publishing can still proceed so the package exists before that manual step.
 
@@ -297,8 +297,8 @@ type = "AffectedPackages"
 monochange now includes a release workflow modeled around long-running release PR refresh plus post-merge tagging:
 
 - `.github/workflows/release.yml` refreshes the dedicated release PR branch on normal `main` pushes
-- the same workflow detects when `HEAD` is already a merged monochange release commit, runs `mc step:tag-release --from HEAD`, runs `mc step:publish-readiness --from HEAD --output <path>`, and then runs `mc step:publish-packages`
-- tag-triggered or downstream workflows can then build archives, create hosted releases, publish additional assets from the pushed tags, or run a separate `mc step:publish-release` job when you still want manifest-driven hosted-release publication
+- the same workflow detects when `HEAD` is already a merged monochange release commit, runs `monochange step tag-release --from HEAD`, runs `monochange step publish-readiness --from HEAD --output <path>`, and then runs `monochange step publish-packages`
+- tag-triggered or downstream workflows can then build archives, create hosted releases, publish additional assets from the pushed tags, or run a separate `monochange step publish-release` job when you still want manifest-driven hosted-release publication
 
 That split keeps tag creation on the default branch side of the merge and lets downstream automation consume the exact durable release metadata that monochange stored in git history.
 
@@ -362,7 +362,7 @@ jobs:
           set -euo pipefail
 
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
-          args=(step:affected-packages --format json --verify)
+          args=(step affected-packages --format json --verify)
 
           for path in $CHANGED_FILES; do
             args+=(--changed-paths "$path")
@@ -372,7 +372,7 @@ jobs:
             args+=(--label "$label")
           done
 
-          devenv shell -- mc "${args[@]}" | tee policy.raw
+          devenv shell -- monochange "${args[@]}" | tee policy.raw
           awk 'BEGIN { capture = 0 } /^\{/ { capture = 1 } capture { print }' policy.raw > policy.json
           jq -e '.status != "failed"' policy.json >/dev/null
 ```
@@ -386,7 +386,7 @@ jobs:
 The monochange repository itself can dogfood this model by:
 
 - declaring `[source]`, `[source.releases]`, and `[source.pull_requests]` in `monochange.toml`
-- running a real `changeset-policy` GitHub Actions workflow that shells into `mc step:affected-packages`
+- running a real `changeset-policy` GitHub Actions workflow that shells into `monochange step affected-packages`
 - publishing the CLI npm packages from `.github/workflows/publish.yml` with the protected `publisher` environment and `id-token: write`, without `NODE_AUTH_TOKEN` or `NPM_TOKEN`
 
 For monochange's own npm packages, register every package under the GitHub trusted-publishing context `monochange/monochange`, workflow file `publish.yml`, and environment `publisher` before the first tokenless publish:

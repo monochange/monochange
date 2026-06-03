@@ -7,17 +7,31 @@ import { fileURLToPath } from "node:url";
 
 const WARMUP_RUNS = 1;
 const BENCHMARK_RUNS = 6;
-const PHASE_COMMAND_LABELS = ["mc release --dry-run", "mc release"];
-const PHASE_COMMAND_ARGS = [["release", "--dry-run"], ["release"]];
+const PHASE_COMMANDS = [
+	{
+		label: "monochange run release --dry-run",
+		legacyArgs: ["release", "--dry-run"],
+		currentArgs: ["run", "release", "--dry-run"],
+	},
+	{
+		label: "monochange run release",
+		legacyArgs: ["release"],
+		currentArgs: ["run", "release"],
+	},
+];
+const PHASE_COMMAND_LABELS = PHASE_COMMANDS.map((command) => command.label);
 const COMMANDS = [
 	{
-		label: "mc step:validate",
-		legacyArgs: ["validate"],
-		currentArgs: ["step:validate"],
+		label: "monochange step validate",
+		legacyArgs: ["step:validate"],
+		currentArgs: ["step", "validate"],
 	},
-	{ label: "mc discover --format json", args: ["discover", "--format", "json"] },
-	{ label: "mc release --dry-run", args: ["release", "--dry-run"] },
-	{ label: "mc release", args: ["release"] },
+	{
+		label: "monochange step discover --format json",
+		legacyArgs: ["step:discover", "--format", "json"],
+		currentArgs: ["step", "discover", "--format", "json"],
+	},
+	...PHASE_COMMANDS,
 ];
 const SCENARIOS = [
 	{ id: "baseline", name: "Baseline fixture", packages: 20, changesets: 50, commits: 50 },
@@ -156,10 +170,10 @@ function summarizeScenarioStatus(tablePath, phaseTablePath) {
 	const regressed = "🔴";
 	const flat = "⚪";
 	const shortNames = new Map([
-		["mc step:validate", "validate"],
-		["mc discover --format json", "discover"],
-		["mc release --dry-run", "dry-run"],
-		["mc release", "release"],
+		["monochange step validate", "validate"],
+		["monochange step discover --format json", "discover"],
+		["monochange run release --dry-run", "dry-run"],
+		["monochange run release", "release"],
 	]);
 	const hyperfine = parseHyperfineTable(tablePath);
 	const phases = parsePhaseStatus(phaseTablePath);
@@ -192,7 +206,7 @@ function summarizeScenarioStatus(tablePath, phaseTablePath) {
 			if (main == null || pr == null || main === 0) continue;
 			const ratio = pr / main;
 			const status = ratio < 0.98 ? improved : ratio > 1.02 ? regressed : flat;
-			const short = shortNames.get(label) ?? label.replace("mc ", "");
+			const short = shortNames.get(label) ?? label.replace("monochange ", "");
 			parts.push(`${status} ${short}`);
 		}
 	}
@@ -322,11 +336,11 @@ function renderPhaseMarkdown(
 ) {
 	const budgets = JSON.parse(readText(phaseBudgetsFile) || "{}")[scenarioId] ?? {};
 	const summaries = {
-		"mc release --dry-run": {
+		"monochange run release --dry-run": {
 			main: JSON.parse(readText(dryMainPath)),
 			pr: JSON.parse(readText(dryPrPath)),
 		},
-		"mc release": {
+		"monochange run release": {
 			main: JSON.parse(readText(releaseMainPath)),
 			pr: JSON.parse(readText(releasePrPath)),
 		},
@@ -384,8 +398,8 @@ function collectPhaseMarkdown(scenarioId, fixtureDir, mainBin, prBin, phasePath,
 	if (supportsJsonProgress(mainBin)) {
 		const dry = tempPath("-dry-main.jsonl");
 		const release = tempPath("-release-main.jsonl");
-		runPhaseCapture(mainBin, fixtureDir, PHASE_COMMAND_ARGS[0], dry);
-		runPhaseCapture(mainBin, fixtureDir, PHASE_COMMAND_ARGS[1], release);
+		runPhaseCapture(mainBin, fixtureDir, commandArgsFor(mainBin, PHASE_COMMANDS[0]), dry);
+		runPhaseCapture(mainBin, fixtureDir, commandArgsFor(mainBin, PHASE_COMMANDS[1]), release);
 		summarizeProgressEvents(dry, paths[0]);
 		summarizeProgressEvents(release, paths[2]);
 	} else {
@@ -395,8 +409,8 @@ function collectPhaseMarkdown(scenarioId, fixtureDir, mainBin, prBin, phasePath,
 	if (supportsJsonProgress(prBin)) {
 		const dry = tempPath("-dry-pr.jsonl");
 		const release = tempPath("-release-pr.jsonl");
-		runPhaseCapture(prBin, fixtureDir, PHASE_COMMAND_ARGS[0], dry);
-		runPhaseCapture(prBin, fixtureDir, PHASE_COMMAND_ARGS[1], release);
+		runPhaseCapture(prBin, fixtureDir, commandArgsFor(prBin, PHASE_COMMANDS[0]), dry);
+		runPhaseCapture(prBin, fixtureDir, commandArgsFor(prBin, PHASE_COMMANDS[1]), release);
 		summarizeProgressEvents(dry, paths[1]);
 		summarizeProgressEvents(release, paths[3]);
 	} else {

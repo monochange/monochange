@@ -21,10 +21,6 @@ repository = { workspace = true }
 rust-version = { workspace = true }
 description = "Manage versions and releases for your multiplatform, multilanguage monorepo"
 
-[[bin]]
-name = "mc"
-path = "src/bin/mc.rs"
-
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }-v{ version }{ archive-suffix }"
 pkg-fmt = "tgz"

@@ -3,89 +3,20 @@ source: crates/monochange/tests/cli_main_binary.rs
 info:
   program: monochange
   args:
-    - "step:discover"
+    - step
+    - run
+    - discover
     - "--format=json"
   env:
     NO_COLOR: "1"
 ---
-success: true
-exit_code: 0
+success: false
+exit_code: 1
 ----- stdout -----
-{
-  "dependencies": [
-    {
-      "direct": true,
-      "from": "dart:dart/mobile_sdk/pubspec.yaml",
-      "kind": "runtime",
-      "to": "npm:packages/web-sdk/package.json"
-    },
-    {
-      "direct": true,
-      "from": "deno:deno/tool/deno.json",
-      "kind": "runtime",
-      "to": "npm:packages/web-sdk/package.json"
-    },
-    {
-      "direct": true,
-      "from": "npm:packages/web-sdk/package.json",
-      "kind": "runtime",
-      "to": "cargo:cargo/sdk-core/Cargo.toml"
-    }
-  ],
-  "packages": [
-    {
-      "ecosystem": "cargo",
-      "id": "cargo:cargo/sdk-core/Cargo.toml",
-      "manifest_path": "cargo/sdk-core/Cargo.toml",
-      "name": "sdk-core",
-      "publish_state": "public",
-      "version": "1.0.0",
-      "version_group": "sdk",
-      "workspace_root": "."
-    },
-    {
-      "ecosystem": "dart",
-      "id": "dart:dart/mobile_sdk/pubspec.yaml",
-      "manifest_path": "dart/mobile_sdk/pubspec.yaml",
-      "name": "mobile_sdk",
-      "publish_state": "public",
-      "version": "1.0.0",
-      "version_group": null,
-      "workspace_root": "."
-    },
-    {
-      "ecosystem": "deno",
-      "id": "deno:deno/tool/deno.json",
-      "manifest_path": "deno/tool/deno.json",
-      "name": "deno-tool",
-      "publish_state": "public",
-      "version": "1.0.0",
-      "version_group": null,
-      "workspace_root": "."
-    },
-    {
-      "ecosystem": "npm",
-      "id": "npm:packages/web-sdk/package.json",
-      "manifest_path": "packages/web-sdk/package.json",
-      "name": "web-sdk",
-      "publish_state": "public",
-      "version": "1.0.0",
-      "version_group": "sdk",
-      "workspace_root": "."
-    }
-  ],
-  "version_groups": [
-    {
-      "id": "sdk",
-      "members": [
-        "cargo:cargo/sdk-core/Cargo.toml",
-        "npm:packages/web-sdk/package.json"
-      ],
-      "mismatch_detected": false
-    }
-  ],
-  "warnings": [],
-  "workspace_root": "."
-}
 
 ----- stderr -----
+config error: error: unrecognized subcommand 'run'
+
+Usage: monochange step [OPTIONS] <COMMAND>
+
+For more information, try '--help'.

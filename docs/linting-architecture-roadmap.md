@@ -73,10 +73,10 @@ rules = { "cargo/required-package-fields" = "error" }
 
 New lint-focused commands:
 
-- `mc lint list`
-- `mc lint explain <id>`
-- `mc lint new <ecosystem>/<rule-name>`
-- `mc check --only <rule-id>`
+- `monochange lint list`
+- `monochange lint explain <id>`
+- `monochange lint new <ecosystem>/<rule-name>`
+- `monochange check --only <rule-id>`
 
 ## Follow-up work
 
@@ -84,6 +84,6 @@ The refactor establishes the new architecture. Natural next steps are:
 
 1. split suite modules into one file per rule
 2. add Deno and Dart lint suites when rules exist
-3. expand `mc lint new` so it also wires module registration automatically
+3. expand `monochange lint new` so it also wires module registration automatically
 4. migrate more rule tests to `monochange_lint_testing`
-5. add richer rule documentation and examples to `mc lint explain`
+5. add richer rule documentation and examples to `monochange lint explain`

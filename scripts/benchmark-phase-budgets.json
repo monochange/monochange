@@ -1,6 +1,6 @@
 {
 	"baseline": {
-		"mc release --dry-run": {
+		"monochange run release --dry-run": {
 			"stepTotalMs": 450,
 			"phases": {
 				"discover release workspace": 180,
@@ -13,7 +13,7 @@
 				"build lockfile refresh plan": 40
 			}
 		},
-		"mc release": {
+		"monochange run release": {
 			"stepTotalMs": 550,
 			"phases": {
 				"discover release workspace": 180,
@@ -29,7 +29,7 @@
 		}
 	},
 	"history_x10": {
-		"mc release --dry-run": {
+		"monochange run release --dry-run": {
 			"stepTotalMs": 1600,
 			"phases": {
 				"discover release workspace": 750,
@@ -42,7 +42,7 @@
 				"build lockfile refresh plan": 80
 			}
 		},
-		"mc release": {
+		"monochange run release": {
 			"stepTotalMs": 1800,
 			"phases": {
 				"discover release workspace": 750,

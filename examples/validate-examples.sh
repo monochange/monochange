@@ -6,10 +6,8 @@ repo_root="$(cd -- "$script_dir/.." && pwd)"
 
 if [[ -n "${MONOCHANGE_BIN:-}" ]]; then
 	mc_cmd=("$MONOCHANGE_BIN")
-elif [[ -x "$repo_root/target/debug/mc" ]]; then
-	mc_cmd=("$repo_root/target/debug/mc")
 else
-	mc_cmd=(cargo run -p monochange --bin mc --manifest-path "$repo_root/Cargo.toml" --)
+	mc_cmd=(cargo run -p monochange --bin monochange --manifest-path "$repo_root/Cargo.toml" --)
 fi
 
 examples=(

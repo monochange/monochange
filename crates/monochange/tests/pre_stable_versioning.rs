@@ -29,6 +29,7 @@ fn pre_stable_release_text_scenarios_match_snapshot(
 
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.arg("--dry-run")
 		.arg("--format")

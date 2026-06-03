@@ -1,4 +1,4 @@
-//! Integration tests for `mc versions`.
+//! Integration tests for `monochange versions`.
 
 use std::ffi::OsString;
 use std::path::Path;
@@ -18,15 +18,19 @@ fn setup_fixture(base: &str, name: &str) -> TempDir {
 }
 
 fn run_versions_cli(root: &Path, args: &[&str]) -> String {
-	let mut cli_args = vec![OsString::from("mc"), OsString::from("versions")];
+	let mut cli_args = vec![OsString::from("monochange"), OsString::from("versions")];
 	cli_args.extend(args.iter().map(OsString::from));
 	let runtime = tokio::runtime::Builder::new_current_thread()
 		.enable_all()
 		.build()
 		.unwrap_or_else(|error| panic!("tokio runtime: {error}"));
 	let output = runtime
-		.block_on(monochange::run_with_args_in_dir("mc", cli_args, root))
-		.unwrap_or_else(|error| panic!("mc versions: {error}"));
+		.block_on(monochange::run_with_args_in_dir(
+			"monochange",
+			cli_args,
+			root,
+		))
+		.unwrap_or_else(|error| panic!("monochange versions: {error}"));
 	normalize_workspace_paths(root, output)
 }
 
@@ -68,7 +72,7 @@ fn sync_versions_updates_dart_dep_to_match_canonical_version() {
 		.unwrap_or_else(|error| panic!("dry run: {error}"));
 
 	// The version_mismatch package depends on core ^1.1.0 but core is at 1.2.3.
-	// mc versions should detect this and propose updating to ^1.2.3.
+	// monochange versions should detect this and propose updating to ^1.2.3.
 	assert!(
 		!dry_result.changes.is_empty(),
 		"expected sync to detect version mismatches"

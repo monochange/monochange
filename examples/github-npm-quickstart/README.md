@@ -28,9 +28,9 @@ pnpm-workspace.yaml
 From this directory, run:
 
 ```bash
-mc step:validate
-mc check
-mc release --dry-run --diff
+monochange step validate
+monochange check
+monochange release --dry-run --diff
 ```
 
 ## Why this example is opinionated

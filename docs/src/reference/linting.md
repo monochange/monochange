@@ -1,35 +1,35 @@
-# Manifest linting with `mc check`
+# Manifest linting with `monochange check`
 
-monochange can lint monorepo package manifests through `mc check`, using rules configured under `[lints]` in `monochange.toml`.
+monochange can lint monorepo package manifests through `monochange check`, using rules configured under `[lints]` in `monochange.toml`.
 
 <!-- {=lintingPolicyReference} -->
 
 Use this guide when the task is to configure or explain monochange's **lint rules**.
 
-These are the rules that run through **`mc check`** and are configured in `monochange.toml` under the top-level **`[lints]`** section. They are separate from Rust compiler or Clippy lints used to develop monochange itself.
+These are the rules that run through **`monochange check`** and are configured in `monochange.toml` under the top-level **`[lints]`** section. They are separate from Rust compiler or Clippy lints used to develop monochange itself.
 
 This page is the human-readable companion to the live lint catalog. For machine-readable output or to verify the exact catalog in the installed binary, run:
 
 ```bash
-mc lint list --format json
-mc lint explain <rule-or-preset-id>
+monochange lint list --format json
+monochange lint explain <rule-or-preset-id>
 ```
 
-## What `mc check` does
+## What `monochange check` does
 
-`mc check` runs two phases:
+`monochange check` runs two phases:
 
-1. normal workspace validation, similar to `mc step:validate`
+1. normal workspace validation, similar to `monochange step validate`
 2. changeset and manifest lint rules for configured package ecosystems
 
 Common commands:
 
 ```bash
-mc check
-mc check --fix
-mc check --format json
-mc lint list
-mc lint explain cargo/recommended
+monochange check
+monochange check --fix
+monochange check --format json
+monochange lint list
+monochange lint explain cargo/recommended
 ```
 
 Use `--fix` when you want monochange to apply auto-fixes where a rule supports them. Rules that are not autofixable still report diagnostics and suggested remediation.
@@ -709,7 +709,7 @@ Example:
 
 **Why:** when workspace packages reference each other with hosted version ranges, those ranges should not drift away from the current workspace version.
 
-**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `mc versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
+**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `monochange versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
 
 ### `dart/flutter-package-metadata-consistent`
 
@@ -764,36 +764,36 @@ flutter:
 
 - `fix` — defaults to `true`; rewrites Flutter assets and fonts in sorted order.
 
-## What `mc check` looks like in practice
+## What `monochange check` looks like in practice
 
 Use plain text for local review:
 
 ```bash
-mc check
+monochange check
 ```
 
 Apply safe auto-fixes where possible:
 
 ```bash
-mc check --fix
+monochange check --fix
 ```
 
 Use JSON for CI or MCP-style tooling:
 
 ```bash
-mc check --format json
+monochange check --format json
 ```
 
-`mc check` fails when lint errors are present, so it is appropriate for CI gates.
+`monochange check` fails when lint errors are present, so it is appropriate for CI gates.
 
 ## Recommended workflow
 
 For repository work:
 
 ```bash
-mc step:validate
-mc check
-mc step:prepare-release --dry-run --diff
+monochange step validate
+monochange check
+monochange step prepare-release --dry-run --diff
 ```
 
 If you changed shared docs too:

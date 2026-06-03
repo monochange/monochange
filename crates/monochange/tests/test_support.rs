@@ -276,7 +276,7 @@ steps = [{ name = "diagnose changesets", type = "DiagnoseChangesets", inputs = [
 
 #[allow(dead_code)]
 pub fn monochange_command(release_date: Option<&str>) -> Command {
-	let mut command = Command::new(get_cargo_bin("mc"));
+	let mut command = Command::new(get_cargo_bin("monochange"));
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
 
@@ -318,12 +318,15 @@ pub fn run_in_tty(
 			pixel_height: 0,
 		})
 		.unwrap_or_else(|error| panic!("open pty: {error}"));
-	let mut command = CommandBuilder::new(get_cargo_bin("mc"));
+	let mut command = CommandBuilder::new(get_cargo_bin("monochange"));
 	command.cwd(workspace);
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
 	if let Some(release_date) = release_date {
 		command.env("MONOCHANGE_RELEASE_DATE", release_date);
+	}
+	if !matches!(args.first().copied(), Some("step" | "run" | "help")) {
+		command.arg("run");
 	}
 	for arg in args {
 		command.arg(arg);
@@ -387,9 +390,14 @@ pub fn run_in_tty(
 
 #[allow(dead_code)]
 pub fn run_json_command(root: &Path, command: &str, release_date: Option<&str>) -> Value {
-	let output = monochange_command(release_date)
-		.current_dir(root)
-		.arg(command)
+	let mut process = monochange_command(release_date);
+	process.current_dir(root);
+	let command_parts = command.split_whitespace().collect::<Vec<_>>();
+	if !matches!(command_parts.first().copied(), Some("step")) {
+		process.arg("run");
+	}
+	let output = process
+		.args(command_parts)
 		.arg("--dry-run")
 		.arg("--format")
 		.arg("json")

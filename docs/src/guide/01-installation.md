@@ -7,7 +7,7 @@ If you want the fastest path to a first successful run, install the prebuilt CLI
 ```bash
 npm install -g @monochange/cli
 monochange --help
-mc --help
+monochange --help
 ```
 
 Then continue with [Start here](./00-start-here.md) or [Your first release plan](./02-setup.md).
@@ -48,7 +48,7 @@ If you prefer to install from Rust tooling instead:
 ```bash
 cargo install monochange
 monochange --help
-mc --help
+monochange --help
 ```
 
 ## Optional: assistant skill package
@@ -58,13 +58,13 @@ You do not need assistant tooling to use monochange.
 When you want reusable agent guidance for Pi or other assistants, install the bundled skill into the current project with:
 
 ```bash
-mc help skill
-mc skill
-mc skill --list
-mc skill -a pi -y
+monochange help skill
+monochange skill
+monochange skill --list
+monochange skill -a pi -y
 ```
 
-`mc skill` forwards the remaining arguments to the upstream `skills add` flow, so you can keep the interactive prompts or pass the native `--agent`, `--skill`, `--copy`, `--all`, `--global`, and `--yes` flags directly.
+`monochange skill` forwards the remaining arguments to the upstream `skills add` flow, so you can keep the interactive prompts or pass the native `--agent`, `--skill`, `--copy`, `--all`, `--global`, and `--yes` flags directly.
 
 <!-- {=assistantSkillBundleContents} -->
 
@@ -77,7 +77,7 @@ After copying the bundled skill, you get a small documentation set that is desig
 - `skills/changesets.md` — changeset authoring and lifecycle guidance
 - `skills/commands.md` — built-in command catalog and workflow selection
 - `skills/configuration.md` — `monochange.toml` setup and editing guidance
-- `skills/linting.md` — `[lints]` presets, `mc check`, and manifest-focused examples
+- `skills/linting.md` — `[lints]` presets, `monochange check`, and manifest-focused examples
 - `examples/README.md` — condensed scenario examples for quick recommendations
 
 This layout keeps the top-level skill small while still making the richer guidance available when an assistant needs more context.
@@ -88,7 +88,7 @@ Assistant-specific setup is covered in [Advanced: Assistant setup and MCP](./09-
 
 ## CLI names
 
-The main CLI is `monochange` and the short alias is `mc`.
+The main CLI is `monochange` and the short alias is `monochange`.
 
 ## Repository development
 
@@ -99,22 +99,22 @@ If you are working on the monochange repository itself, use the reproducible dev
 ```bash
 devenv shell
 install:all
-mc step:validate
-mc step:discover --format json
-mc change --package monochange --bump minor --reason "add release planning"
-mc step:diagnose-changesets --format json
-mc release --dry-run --format json
-mc step:publish-release --dry-run --format json
-mc step:open-release-request --dry-run --format json
-mc step:release-record --from v1.2.3
-mc step:tag-release --from HEAD --dry-run --format json
-mc step:publish-readiness --from HEAD --output .monochange/readiness.json
-mc step:placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
-mc step:publish-readiness --from HEAD --output .monochange/readiness.json
-mc step:plan-publish-rate-limits --readiness .monochange/readiness.json --format json
-mc step:publish-packages --output .monochange/publish-result.json
-mc step:retarget-release --from v1.2.3 --target HEAD --dry-run
-mc release
+monochange step validate
+monochange step discover --format json
+monochange change --package monochange --bump minor --reason "add release planning"
+monochange step diagnose-changesets --format json
+monochange release --dry-run --format json
+monochange step publish-release --dry-run --format json
+monochange step open-release-request --dry-run --format json
+monochange step release-record --from v1.2.3
+monochange step tag-release --from HEAD --dry-run --format json
+monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
+monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
+monochange step publish-packages --output .monochange/publish-result.json
+monochange step retarget-release --from v1.2.3 --target HEAD --dry-run
+monochange release
 ```
 
 <!-- {/repoDevEnvironmentSetupCode} -->
@@ -125,12 +125,12 @@ Useful repository-development commands:
 
 ```bash
 monochange --help
-mc --help
+monochange --help
 docs:check      # verify mdt shared-doc synchronization
 docs:update     # synchronize shared docs via mdt update
 schema:check    # verify committed JSON schemas are current
 schema:update   # regenerate schema assets from source
-mc step:validate
+monochange step validate
 lint:all
 test:all
 coverage:all

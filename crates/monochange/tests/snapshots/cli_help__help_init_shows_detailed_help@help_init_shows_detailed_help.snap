@@ -1,7 +1,7 @@
 ---
 source: crates/monochange/tests/cli_help.rs
 info:
-  program: mc
+  program: monochange
   args:
     - help
     - init
@@ -13,7 +13,7 @@ success: true
 exit_code: 0
 ----- stdout -----
 ╭──────────────────────────────────────────────────────────╮
-│  mc init                                                 │
+│  monochange init                                         │
 │  Generate monochange.toml with detected packages         │
 ╰──────────────────────────────────────────────────────────╯
 
@@ -25,7 +25,7 @@ exit_code: 0
 
 ▸ Usage
 
-  mc init [OPTIONS]
+  monochange init [OPTIONS]
 
 ▸ Options
 
@@ -35,29 +35,29 @@ exit_code: 0
 ▸ Examples
 
   Initialize a fresh workspace:
-    mc init
+    monochange init
 
   Overwrite existing config:
-    mc init --force
+    monochange init --force
 
   Initialize with GitHub integration:
-    mc init --provider github
+    monochange init --provider github
 
   Initialize with GitLab integration:
-    mc init --provider gitlab
+    monochange init --provider gitlab
 
   Initialize with Gitea integration:
-    mc init --provider gitea
+    monochange init --provider gitea
 
 ▸ Tips
 
-  • Run mc init at the root of your monorepo.
+  • Run monochange init at the root of your monorepo.
   • The generated config is a starting point — customize packages, groups, and CLI commands in monochange.toml.
   • Use --provider=github to get GitHub Actions workflow templates included.
 
 ▸ See Also
 
-  mc help populate  mc help step:validate  mc help discover
+  monochange help populate  monochange help step validate  monochange help discover
 
 
 ----- stderr -----

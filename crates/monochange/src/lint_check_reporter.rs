@@ -291,11 +291,11 @@ impl LintProgressReporter for HumanLintProgressReporter {
 				if fixable == 1 { "" } else { "s" },
 				cmd = if self.color {
 					paint(
-						"mc check --fix",
+						"monochange check --fix",
 						Style::new().fg_color(Some(anstyle::Color::Ansi(AnsiColor::Cyan))),
 					)
 				} else {
-					"mc check --fix".to_string()
+					"monochange check --fix".to_string()
 				},
 			);
 			self.print_line(&hint);

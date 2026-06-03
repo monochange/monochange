@@ -2,19 +2,19 @@
 
 Use this guide after installation when you want one local, beginner-safe walkthrough.
 
-You will stop at `mc release --dry-run --format json`, so nothing is published.
+You will stop at `monochange release --dry-run --format json`, so nothing is published.
 
-## 1. Generate a starter config with `mc init`
+## 1. Generate a starter config with `monochange init`
 
 Run this at the repository root:
 
 ```bash
-mc init
+monochange init
 ```
 
-`mc init` detects packages, writes an annotated `monochange.toml`, and gives you a better starting point than hand-authoring a first config from scratch.
+`monochange init` detects packages, writes an annotated `monochange.toml`, and gives you a better starting point than hand-authoring a first config from scratch.
 
-The generated file is intentionally minimal and does not create default `[cli.*]` workflow aliases. Every built-in step is available directly as an immutable `mc step:*` command, for example `mc step:discover`, `mc step:create-change-file`, and `mc step:prepare-release`.
+The generated file is intentionally minimal and does not create default `[cli.*]` workflow aliases. Every built-in step is available directly as an immutable `monochange step *` command, for example `monochange step discover`, `monochange step create-change-file`, and `monochange step prepare-release`.
 
 Add `[cli.*]` tables only when you want repository-specific named workflows that chain steps, expose custom inputs, or run shell `Command` steps.
 
@@ -23,12 +23,12 @@ Add `[cli.*]` tables only when you want repository-specific named workflows that
 When you know which source provider you will use for release automation, include the `--provider` flag during initialization:
 
 ```bash
-mc init --provider github
+monochange init --provider github
 ```
 
 <!-- {=initProviderFeature} -->
 
-The `--provider` flag supports `github`, `gitlab`, and `gitea`. When provided, `mc init`:
+The `--provider` flag supports `github`, `gitlab`, and `gitea`. When provided, `monochange init`:
 
 1. **Configures the `[source]` section** — adds provider-specific settings for releases and pull/merge requests
 2. **Generates provider CLI commands** — includes `commit-release` and `release-pr` commands in `monochange.toml`
@@ -99,20 +99,20 @@ For GitLab and Gitea, the `[source]` section is configured but workflows are not
 ## 2. Validate the generated workspace
 
 ```bash
-mc step:validate
+monochange step validate
 ```
 
 This confirms that the generated config and any existing `.changeset/*.md` files agree with the workspace.
 
-If validation fails, fix the reported problem first, then rerun `mc step:validate`.
+If validation fails, fix the reported problem first, then rerun `monochange step validate`.
 
 ## 3. Discover the package ids you will actually use
 
 <!-- {=projectDiscoverCommand} -->
 
 ```bash
-mc step:validate
-mc step:discover --format json
+monochange step validate
+monochange step discover --format json
 ```
 
 <!-- {/projectDiscoverCommand} -->
@@ -124,7 +124,7 @@ If you are unsure what id to use later, rerun discovery and copy one from the ou
 ## 4. Create one change file
 
 ```bash
-mc change --package <id> --bump patch --reason "describe the change"
+monochange change --package <id> --bump patch --reason "describe the change"
 ```
 
 Most changes should target a package id.
@@ -136,7 +136,7 @@ monochange will propagate bumps to dependents and synchronize configured groups 
 <!-- {=projectDryRunCommand} -->
 
 ```bash
-mc release --dry-run --format json
+monochange release --dry-run --format json
 ```
 
 <!-- {/projectDryRunCommand} -->
@@ -147,10 +147,10 @@ You get a concrete preview of the release plan without publishing anything or op
 
 When you are ready to move beyond planning:
 
-- use `mc step:placeholder-publish --dry-run --format json` if some packages still need a bootstrap `0.0.0` release so they exist in their registries first
-- use `mc step:publish-packages --dry-run --format json` to preview built-in package publication to `crates.io`, `npm`, `jsr`, or `pub.dev`
-- before real package publication, optionally write a readiness artifact with `mc step:publish-readiness --from HEAD --output .monochange/readiness.json` for preflight review, then run `mc step:publish-packages`
-- use `mc step:publish-release --dry-run --format json` only for hosted/provider releases such as GitHub releases
+- use `monochange step placeholder-publish --dry-run --format json` if some packages still need a bootstrap `0.0.0` release so they exist in their registries first
+- use `monochange step publish-packages --dry-run --format json` to preview built-in package publication to `crates.io`, `npm`, `jsr`, or `pub.dev`
+- before real package publication, optionally write a readiness artifact with `monochange step publish-readiness --from HEAD --output .monochange/readiness.json` for preflight review, then run `monochange step publish-packages`
+- use `monochange step publish-release --dry-run --format json` only for hosted/provider releases such as GitHub releases
 
 ## Package ids vs. group ids
 
@@ -163,21 +163,21 @@ That keeps your first changes simple while still letting monochange synchronize 
 
 ## First-failure recovery
 
-### `mc init` says a config already exists
+### `monochange init` says a config already exists
 
-Keep the existing `monochange.toml`, inspect it, and continue with `mc step:validate`. If you want to regenerate the config from scratch, pass the `--force` flag:
+Keep the existing `monochange.toml`, inspect it, and continue with `monochange step validate`. If you want to regenerate the config from scratch, pass the `--force` flag:
 
 ```sh
-mc init --force
+monochange init --force
 ```
 
-### `mc step:validate` reports config or changeset errors
+### `monochange step validate` reports config or changeset errors
 
-Fix the reported issue first. `mc step:validate` is the fastest way to get back to a known-good workspace.
+Fix the reported issue first. `monochange step validate` is the fastest way to get back to a known-good workspace.
 
-### `mc change` says the package id is unknown
+### `monochange change` says the package id is unknown
 
-Run `mc step:discover --format json` again and copy an id directly from the output.
+Run `monochange step discover --format json` again and copy an id directly from the output.
 
 ### You are not ready to hand-edit config yet
 

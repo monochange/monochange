@@ -5,7 +5,7 @@ monochange is easiest to learn with one safe local walkthrough.
 In about 10 minutes you will:
 
 - install the CLI
-- generate a starter `monochange.toml` with `mc init`
+- generate a starter `monochange.toml` with `monochange init`
 - validate the workspace
 - discover package ids
 - create one change file
@@ -20,7 +20,7 @@ The fastest path is the prebuilt npm package:
 ```bash
 npm install -g @monochange/cli
 monochange --help
-mc --help
+monochange --help
 ```
 
 If you prefer a Rust-native install, use:
@@ -28,7 +28,7 @@ If you prefer a Rust-native install, use:
 ```bash
 cargo install monochange
 monochange --help
-mc --help
+monochange --help
 ```
 
 If you use [devenv](https://devenv.sh/), add monochange via the [ifiokjr/nixpkgs](https://github.com/ifiokjr/nixpkgs) overlay:
@@ -52,20 +52,20 @@ nix run github:ifiokjr/nixpkgs#monochange
 
 ## 2. Generate a starter config
 
-Run `mc init` at the repository root:
+Run `monochange init` at the repository root:
 
 ```bash
-mc init
+monochange init
 ```
 
-`mc init` scans the repository, detects packages, and writes an annotated starter `monochange.toml`.
+`monochange init` scans the repository, detects packages, and writes an annotated starter `monochange.toml`.
 
 Start with the generated file instead of hand-authoring your first config.
 
 ## 3. Validate the workspace
 
 ```bash
-mc step:validate
+monochange step validate
 ```
 
 This checks `monochange.toml` and your `.changeset/*.md` files together.
@@ -73,7 +73,7 @@ This checks `monochange.toml` and your `.changeset/*.md` files together.
 ## 4. Discover package ids
 
 ```bash
-mc step:discover --format json
+monochange step discover --format json
 ```
 
 Look for the package ids you will use in changesets and CLI commands.
@@ -83,7 +83,7 @@ If you do not know which id to target later, rerun discovery and copy one direct
 ## 5. Create one change file
 
 ```bash
-mc change --package <id> --bump patch --reason "describe the change"
+monochange change --package <id> --bump patch --reason "describe the change"
 ```
 
 Most first changes should target a package id.
@@ -103,7 +103,7 @@ A typical generated file looks like this:
 If the same package changed for a more specific reason, you can add more context right away:
 
 ```bash
-mc change \
+monochange change \
   --package <id> \
   --bump minor \
   --reason "add release preview improvements" \
@@ -113,21 +113,21 @@ mc change \
 ## 6. Preview the release plan safely
 
 ```bash
-mc release --dry-run
+monochange release --dry-run
 ```
 
-By default this now renders a human-friendly markdown preview in the terminal. Use `--format json` when you want structured output for tooling, `--format text` when you explicitly want the older plain-text rendering, or `mc step:display-versions` when you only need the planned package and group versions. Use `mc versions --dry-run` when you want to preview internal dependency constraint updates without modifying manifests.
+By default this now renders a human-friendly markdown preview in the terminal. Use `--format json` when you want structured output for tooling, `--format text` when you explicitly want the older plain-text rendering, or `monochange step display-versions` when you only need the planned package and group versions. Use `monochange versions --dry-run` when you want to preview internal dependency constraint updates without modifying manifests.
 
 When you want to see the exact file patch without mutating the workspace, add `--diff`:
 
 ```bash
-mc release --dry-run --diff
+monochange release --dry-run --diff
 ```
 
 When you want to inspect changeset provenance before releasing, add a diagnostics pass:
 
 ```bash
-mc step:diagnose-changesets --format json
+monochange step diagnose-changesets --format json
 ```
 
 Stop here on your first run. This previews the release plan without publishing anything.
@@ -143,22 +143,22 @@ A good first-time mental model is:
 
 That is why most beginner flows should start with package ids, not groups.
 
-If you need a silent safety check, run `mc release --quiet`. Quiet mode suppresses stdout/stderr and keeps release-oriented commands in dry-run behavior.
+If you need a silent safety check, run `monochange release --quiet`. Quiet mode suppresses stdout/stderr and keeps release-oriented commands in dry-run behavior.
 
 ## If you hit a problem
 
-- `mc init` says a config already exists: keep the existing `monochange.toml` and continue with `mc step:validate`, or pass `--force` to regenerate.
-- `mc step:validate` reports problems: fix the reported config or changeset issue, then rerun `mc step:validate`.
-- `mc change` rejects your target: rerun `mc step:discover --format json` and copy a valid package id.
+- `monochange init` says a config already exists: keep the existing `monochange.toml` and continue with `monochange step validate`, or pass `--force` to regenerate.
+- `monochange step validate` reports problems: fix the reported config or changeset issue, then rerun `monochange step validate`.
+- `monochange change` rejects your target: rerun `monochange step discover --format json` and copy a valid package id.
 - You are not sure what to do next: continue with [Your first release plan](./02-setup.md).
 
 ## Next steps
 
 - [Installation](./01-installation.md) — install paths, optional assistant tooling, and repository development setup
-- [Your first release plan](./02-setup.md) — a fuller walkthrough built around `mc init`
+- [Your first release plan](./02-setup.md) — a fuller walkthrough built around `monochange init`
 - [Discovery](./03-discovery.md) — what discovery finds and how ids are rendered
 - [Configuration](./04-configuration.md) — evolve the generated config once the basics feel familiar
 - [Release planning](./06-release-planning.md) — compare preview modes, grouped releases, and planning rules
 - [Advanced: GitHub automation](./08-github-automation.md) — provider publishing, release PRs, and automation
 - [Advanced: Assistant setup and MCP](./09-assistant-setup.md) — optional AI-assisted workflows
-- [Reference: Manifest linting with `mc check`](../reference/linting.md) — `[lints]` rules for Cargo and npm-family manifests
+- [Reference: Manifest linting with `monochange check`](../reference/linting.md) — `[lints]` rules for Cargo and npm-family manifests

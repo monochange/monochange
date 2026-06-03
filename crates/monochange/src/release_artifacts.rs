@@ -1588,7 +1588,7 @@ pub(crate) fn write_release_record_file(
 	let paths = ReleasePaths::from_manifest(root, manifest);
 
 	// If the record already exists, return it without overwriting so that
-	// subsequent PrepareRelease steps (for example during `mc release-pr`)
+	// subsequent PrepareRelease steps (for example during `monochange release-pr`)
 	// do not produce a dirty working tree.
 	if paths.absolute.is_file() {
 		add_to_dedup_index(root, &paths.hash).ok();

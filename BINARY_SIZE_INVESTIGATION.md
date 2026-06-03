@@ -1,10 +1,10 @@
 # Binary Size Investigation Report
 
-**Date:** 2026-05-22 **Binary:** `mc` (monochange CLI) **Platform:** macOS aarch64 (Apple Silicon)
+**Date:** 2026-05-22 **Binary:** `monochange` (monochange CLI) **Platform:** macOS aarch64 (Apple Silicon)
 
 ## Executive summary
 
-The `mc` binary is **32.4 MiB** in a default release build. With LTO + codegen-units=1 + strip (as already configured in CI via environment variables), it drops to **18.3 MiB** — a **43.5% reduction**. However, the CI release workflow only sets these profile overrides via `CARGO_PROFILE_RELEASE_*` env vars and doesn't codify them in `Cargo.toml`, meaning local `cargo build --release` builds don't benefit.
+The `monochange` binary is **32.4 MiB** in a default release build. With LTO + codegen-units=1 + strip (as already configured in CI via environment variables), it drops to **18.3 MiB** — a **43.5% reduction**. However, the CI release workflow only sets these profile overrides via `CARGO_PROFILE_RELEASE_*` env vars and doesn't codify them in `Cargo.toml`, meaning local `cargo build --release` builds don't benefit.
 
 Beyond profile settings, I identified **7 actionable optimizations** that could reduce the binary by a further **3–6 MiB** combined, and **2 architectural improvements** for long-term impact.
 

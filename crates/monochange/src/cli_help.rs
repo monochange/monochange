@@ -1,4 +1,4 @@
-//! Beautiful, colored CLI help renderer for `mc help <command>`.
+//! Beautiful, colored CLI help renderer for `monochange help <command>`.
 //!
 //! This module provides a custom help experience that goes beyond clap's
 //! built-in `--help` output. It adds detailed descriptions, multiple examples
@@ -54,7 +54,7 @@ fn paint_impl(text: &str, style: anstyle::Style, enabled: bool) -> String {
 
 // Shorthand style constructors using the monochange palette.
 // These delegate to `crate::cli_theme` so clap `--help` and
-// `mc help` share the exact same ANSI styles.
+// `monochange help` share the exact same ANSI styles.
 
 fn accent() -> anstyle::Style {
 	crate::cli_theme::header()
@@ -92,7 +92,7 @@ fn code_style() -> anstyle::Style {
 ///
 /// ```text
 /// ╭──────────────────────────────────────────────╮
-/// │  mc change                                     │
+/// │  monochange change                                     │
 /// │  Create a change file for one or more packages │
 /// ╰──────────────────────────────────────────────╯
 /// ```
@@ -163,14 +163,14 @@ const BUILTIN_COMMAND_NAMES: &[&str] = &[
 	"subagents",
 	"analyze",
 	"migrate",
-	"step:release-record",
-	"step:publish-readiness",
-	"step:placeholder-publish",
-	"step:tag-release",
+	"step release-record",
+	"step publish-readiness",
+	"step placeholder-publish",
+	"step tag-release",
 	"lint",
 	"mcp",
 	"check",
-	"step:validate",
+	"step validate",
 	"help",
 ];
 
@@ -245,7 +245,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				discovered packages, version groups, and default CLI commands.\n\n\
 				Use --provider to scaffold source-control integration (GitHub, GitLab, Gitea, Forgejo) \
 				with release automation CLI commands.",
-			usage: "mc init [OPTIONS]",
+			usage: "monochange init [OPTIONS]",
 			options: &[
 				("--force", "", "Overwrite an existing monochange.toml file"),
 				(
@@ -255,27 +255,27 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				),
 			],
 			examples: &[
-				("Initialize a fresh workspace:", "mc init"),
-				("Overwrite existing config:", "mc init --force"),
+				("Initialize a fresh workspace:", "monochange init"),
+				("Overwrite existing config:", "monochange init --force"),
 				(
 					"Initialize with GitHub integration:",
-					"mc init --provider github",
+					"monochange init --provider github",
 				),
 				(
 					"Initialize with GitLab integration:",
-					"mc init --provider gitlab",
+					"monochange init --provider gitlab",
 				),
 				(
 					"Initialize with Gitea integration:",
-					"mc init --provider gitea",
+					"monochange init --provider gitea",
 				),
 			],
 			tips: &[
-				"Run mc init at the root of your monorepo.",
+				"Run monochange init at the root of your monorepo.",
 				"The generated config is a starting point — customize packages, groups, and CLI commands in monochange.toml.",
 				"Use --provider=github to get GitHub Actions workflow templates included.",
 			],
-			see_also: &["populate", "step:validate", "discover"],
+			see_also: &["populate", "step validate", "discover"],
 		},
 		CommandHelp {
 			name: "populate",
@@ -283,22 +283,22 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			description: "Compares the built-in default CLI commands against what is defined in \
 				monochange.toml and appends any missing commands so you can customize them. \
 				Existing command definitions are never modified.",
-			usage: "mc populate",
+			usage: "monochange populate",
 			options: &[],
-			examples: &[("Add any missing default commands:", "mc populate")],
+			examples: &[("Add any missing default commands:", "monochange populate")],
 			tips: &[
 				"Run this after upgrading monochange to pick up new commands.",
 				"This is a safe, additive-only operation.",
 			],
-			see_also: &["init", "step:validate"],
+			see_also: &["init", "step validate"],
 		},
 		CommandHelp {
 			name: "command",
 			summary: "Add or edit config-defined CLI commands interactively",
 			description: "Opens an interactive dashboard for creating and revising [cli.<name>] command entries in monochange.toml. The wizard can add a new command, edit or rename an existing command, keep existing steps unchanged, or replace steps with built-in workflow steps and shell Command steps.",
-			usage: "mc command",
+			usage: "monochange command",
 			options: &[],
-			examples: &[("Open the command dashboard:", "mc command")],
+			examples: &[("Open the command dashboard:", "monochange command")],
 			tips: &[
 				"Choose edit to revise an existing [cli.<name>] command without rewriting its steps.",
 				"Use the editor action when you need advanced TOML fields that the wizard does not prompt for yet.",
@@ -311,20 +311,23 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			description: "Installs monochange-specific skills into the current project using the \
 				`skills` CLI package manager. Skills enable AI coding agents to understand \
 				and use monochange effectively.\n\n\
-				All arguments after `mc skill` are forwarded to `skills add <monochange-source>`.",
-			usage: "mc skill [FLAGS...]",
+				All arguments after `monochange skill` are forwarded to `skills add <monochange-source>`.",
+			usage: "monochange skill [FLAGS...]",
 			options: &[("(forwarded)", "", "All args are forwarded to `skills add`")],
 			examples: &[
-				("List available skills:", "mc skill --list"),
-				("Install for Claude Code:", "mc skill -a claude-code"),
-				("Install for pi globally:", "mc skill -g -a pi -y"),
+				("List available skills:", "monochange skill --list"),
+				(
+					"Install for Claude Code:",
+					"monochange skill -a claude-code",
+				),
+				("Install for pi globally:", "monochange skill -g -a pi -y"),
 				(
 					"Install specific skill with copy:",
-					"mc skill --skill monochange --copy -y",
+					"monochange skill --skill monochange --copy -y",
 				),
 				(
 					"Install for multiple agents:",
-					"mc skill -a claude-code -a codex",
+					"monochange skill -a claude-code -a codex",
 				),
 			],
 			tips: &[
@@ -339,8 +342,8 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			summary: "Generate repo-local monochange subagents and agent guidance",
 			description: "Generates AI agent configuration files (markdown instructions, MCP config, \
 				agent definitions) for supported coding assistant platforms. Generated agents \
-				are CLI-first and prefer `mc` over library APIs.",
-			usage: "mc subagents <TARGET(S)> [OPTIONS]",
+				are CLI-first and prefer `monochange` over library APIs.",
+			usage: "monochange subagents <TARGET(S)> [OPTIONS]",
 			options: &[
 				("<TARGET>", "", "claude, vscode, copilot, pi, codex, cursor"),
 				("--all", "", "Generate for all supported targets"),
@@ -350,18 +353,24 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				("--no-mcp", "", "Skip MCP config files"),
 			],
 			examples: &[
-				("Generate for Claude:", "mc subagents claude"),
-				("Generate for multiple targets:", "mc subagents pi codex"),
-				("Generate for all targets:", "mc subagents --all"),
-				("Preview without writing:", "mc subagents --all --dry-run"),
+				("Generate for Claude:", "monochange subagents claude"),
+				(
+					"Generate for multiple targets:",
+					"monochange subagents pi codex",
+				),
+				("Generate for all targets:", "monochange subagents --all"),
+				(
+					"Preview without writing:",
+					"monochange subagents --all --dry-run",
+				),
 				(
 					"Generate without MCP config:",
-					"mc subagents vscode copilot --no-mcp",
+					"monochange subagents vscode copilot --no-mcp",
 				),
 			],
 			tips: &[
 				"Target mapping:\n    • claude  → .claude/agents/*.md and .mcp.json\n    • vscode  → .github/agents/*.agent.md and .vscode/mcp.json\n    • copilot → .github/agents/*.agent.md and .vscode/mcp.json\n    • pi      → .pi/agents/*.md\n    • codex   → .codex/agents/*.toml\n    • cursor  → .cursor/rules/*.mdc",
-				"Generated agents prefer: mc → monochange → npx -y @monochange/cli",
+				"Generated agents prefer: monochange → monochange → npx -y @monochange/cli",
 			],
 			see_also: &["skill", "mcp"],
 		},
@@ -374,7 +383,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				Defaults --release-ref to the newest tag for the package or its version group. \
 				If no prior release tag exists, falls back to first-release analysis using \
 				only main → head.",
-			usage: "mc analyze --package <PACKAGE> [OPTIONS]",
+			usage: "monochange analyze --package <PACKAGE> [OPTIONS]",
 			options: &[
 				(
 					"--package",
@@ -396,15 +405,18 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				("--format", "<FORMAT>", "text, json (default: text)"),
 			],
 			examples: &[
-				("Analyze a package:", "mc analyze --package core"),
-				("JSON output:", "mc analyze --package core --format json"),
+				("Analyze a package:", "monochange analyze --package core"),
+				(
+					"JSON output:",
+					"monochange analyze --package core --format json",
+				),
 				(
 					"Against a specific release tag:",
-					"mc analyze --package core --release-ref core/v1.2.3",
+					"monochange analyze --package core --release-ref core/v1.2.3",
 				),
 				(
 					"Custom main and head refs:",
-					"mc analyze --package core --main-ref main --head-ref HEAD",
+					"monochange analyze --package core --main-ref main --head-ref HEAD",
 				),
 			],
 			tips: &[
@@ -423,7 +435,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				You can target individual packages or entire version groups. Dependents and \
 				group members are propagated automatically during planning. Use --caused-by \
 				to mark dependency-only follow-ups.",
-			usage: "mc change [OPTIONS]",
+			usage: "monochange change [OPTIONS]",
 			options: &[
 				(
 					"-i, --interactive",
@@ -466,24 +478,24 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			examples: &[
 				(
 					"Quick patch for a single package:",
-					r#"mc change --package core --bump patch --reason "fix null pointer""#,
+					r#"monochange change --package core --bump patch --reason "fix null pointer""#,
 				),
 				(
 					"Minor feature with output path:",
-					r#"mc change --package api --bump minor --reason "add pagination" --output .changeset/api-pagination.md"#,
+					r#"monochange change --package api --bump minor --reason "add pagination" --output .changeset/api-pagination.md"#,
 				),
 				(
 					"Group-level change:",
-					r#"mc change --package sdk --bump minor --reason "coordinated release""#,
+					r#"monochange change --package sdk --bump minor --reason "coordinated release""#,
 				),
 				(
 					"Dependency-only follow-up:",
-					r#"mc change --package utils --bump patch --caused-by core --reason "bump for core compat""#,
+					r#"monochange change --package utils --bump patch --caused-by core --reason "bump for core compat""#,
 				),
-				("Interactive mode:", "mc change --interactive"),
+				("Interactive mode:", "monochange change --interactive"),
 				(
 					"Explicit version pin:",
-					r#"mc change --package core --bump major --version 2.0.0 --reason "promote to stable""#,
+					r#"monochange change --package core --bump major --version 2.0.0 --reason "promote to stable""#,
 				),
 			],
 			tips: &[
@@ -504,7 +516,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				In dry-run mode, no files are modified. Use --diff to see unified file diffs \
 				for the planned changes. Use --prepared-release to read or write a cached \
 				release artifact for multi-step workflows.",
-			usage: "mc release [OPTIONS]",
+			usage: "monochange release [OPTIONS]",
 			options: &[
 				("--dry-run", "", "Preview without modifying files"),
 				("--diff", "", "Show unified file diffs for the release"),
@@ -522,14 +534,17 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			examples: &[
 				(
 					"Dry-run preview in text format:",
-					"mc release --dry-run --format text",
+					"monochange release --dry-run --format text",
 				),
 				(
 					"Dry-run with JSON for scripting:",
-					"mc release --dry-run --format json",
+					"monochange release --dry-run --format json",
 				),
-				("Preview with file diffs:", "mc release --dry-run --diff"),
-				("Execute the release:", "mc release"),
+				(
+					"Preview with file diffs:",
+					"monochange release --dry-run --diff",
+				),
+				("Execute the release:", "monochange release"),
 			],
 			tips: &[
 				"Direct package changes propagate to dependents using defaults.parent_bump.",
@@ -545,7 +560,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			description: "Updates supported package manifests so internal workspace dependency \
 				constraints point at the versions monochange discovered for those packages. Use \
 				--dry-run to preview migration changes before writing files.",
-			usage: "mc versions [OPTIONS]",
+			usage: "monochange versions [OPTIONS]",
 			options: &[
 				(
 					"--dry-run",
@@ -562,12 +577,12 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			examples: &[
 				(
 					"Preview internal dependency updates:",
-					"mc versions --dry-run",
+					"monochange versions --dry-run",
 				),
-				("Apply updates to manifests:", "mc versions"),
+				("Apply updates to manifests:", "monochange versions"),
 				(
 					"JSON preview for scripting:",
-					"mc versions --dry-run --format json",
+					"monochange versions --dry-run --format json",
 				),
 			],
 			tips: &[
@@ -584,7 +599,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				commit body. The release record allows later steps (tag-release, repair-release) \
 				to reconstruct the full release tag set from the commit alone.\n\n\
 				Requires a previous PrepareRelease step or a prepared-release artifact.",
-			usage: "mc commit-release [OPTIONS]",
+			usage: "monochange commit-release [OPTIONS]",
 			options: &[
 				("--dry-run", "", "Preview the commit without creating it"),
 				("--diff", "", "Show file diffs for the release"),
@@ -595,17 +610,23 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				),
 			],
 			examples: &[
-				("Preview the commit:", "mc commit-release --dry-run"),
-				("Preview with diffs:", "mc commit-release --dry-run --diff"),
-				("JSON preview:", "mc commit-release --dry-run --format json"),
-				("Execute the commit:", "mc commit-release"),
+				("Preview the commit:", "monochange commit-release --dry-run"),
+				(
+					"Preview with diffs:",
+					"monochange commit-release --dry-run --diff",
+				),
+				(
+					"JSON preview:",
+					"monochange commit-release --dry-run --format json",
+				),
+				("Execute the commit:", "monochange commit-release"),
 			],
 			tips: &[
 				"Reuses the standard monochange release commit subject/body contract.",
 				"Embeds a durable release record block in the commit body.",
 				"Can run before OpenReleaseRequest in the same workflow.",
 			],
-			see_also: &["release", "step:tag-release", "release-pr"],
+			see_also: &["release", "step tag-release", "release-pr"],
 		},
 		CommandHelp {
 			name: "release-pr",
@@ -613,7 +634,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			description: "Opens (or updates an existing) pull request on the configured source host \
 				(GitHub, GitLab, Gitea, Forgejo) with the prepared release changes. Requires [source] \
 				configuration in monochange.toml.",
-			usage: "mc release-pr [OPTIONS]",
+			usage: "monochange release-pr [OPTIONS]",
 			options: &[
 				("--dry-run", "", "Preview without creating the PR"),
 				("--diff", "", "Show file diffs for the release"),
@@ -624,9 +645,12 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				),
 			],
 			examples: &[
-				("Preview the PR:", "mc release-pr --dry-run"),
-				("Preview with markdown diff:", "mc release-pr --dry-run"),
-				("Create the PR:", "mc release-pr"),
+				("Preview the PR:", "monochange release-pr --dry-run"),
+				(
+					"Preview with markdown diff:",
+					"monochange release-pr --dry-run",
+				),
+				("Create the PR:", "monochange release-pr"),
 			],
 			tips: &[
 				"Requires [source] configuration with provider, owner, and repo.",
@@ -641,7 +665,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				by changeset files. Useful in pull request checks to verify that every touched \
 				package has a corresponding changeset.\n\n\
 				Returns exit code 0 when coverage passes, non-zero otherwise.",
-			usage: "mc affected [OPTIONS]",
+			usage: "monochange affected [OPTIONS]",
 			options: &[
 				(
 					"--changed-paths",
@@ -668,15 +692,15 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			examples: &[
 				(
 					"Check specific changed paths:",
-					"mc affected --changed-paths crates/core/src/lib.rs --format json",
+					"monochange affected --changed-paths crates/core/src/lib.rs --format json",
 				),
 				(
 					"Compare against a branch:",
-					"mc affected --from origin/main --verify",
+					"monochange affected --from origin/main --verify",
 				),
 				(
 					"In CI with labels:",
-					"mc affected --from origin/main --label skip-changeset",
+					"monochange affected --from origin/main --label skip-changeset",
 				),
 			],
 			tips: &[
@@ -693,7 +717,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				target packages/groups, requested bumps, the commit SHA that introduced \
 				and last updated each changeset, linked review requests, and related issue \
 				references.",
-			usage: "mc step:diagnose-changesets [OPTIONS]",
+			usage: "monochange step diagnose-changesets [OPTIONS]",
 			options: &[
 				(
 					"--changeset",
@@ -703,11 +727,17 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				("--format", "<FORMAT>", "text, json (default: text)"),
 			],
 			examples: &[
-				("Diagnose all changesets:", "mc step:diagnose-changesets"),
-				("JSON output:", "mc step:diagnose-changesets --format json"),
+				(
+					"Diagnose all changesets:",
+					"monochange step diagnose-changesets",
+				),
+				(
+					"JSON output:",
+					"monochange step diagnose-changesets --format json",
+				),
 				(
 					"Specific changeset:",
-					"mc step:diagnose-changesets --changeset .changeset/feature.md",
+					"monochange step diagnose-changesets --changeset .changeset/feature.md",
 				),
 			],
 			tips: &[
@@ -723,7 +753,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				a new target commit. Defaults to descendant-only retargets for safety; use \
 				--force to retarget to non-descendant commits.\n\n\
 				Can also sync hosted releases on GitHub/GitLab/Gitea when source is configured.",
-			usage: "mc repair-release --from <REF> [OPTIONS]",
+			usage: "monochange repair-release --from <REF> [OPTIONS]",
 			options: &[
 				(
 					"--from",
@@ -743,35 +773,35 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			examples: &[
 				(
 					"Dry-run repair:",
-					"mc repair-release --from v1.2.3 --dry-run",
+					"monochange repair-release --from v1.2.3 --dry-run",
 				),
 				(
 					"Repair to HEAD:",
-					"mc repair-release --from v1.2.3 --target HEAD",
+					"monochange repair-release --from v1.2.3 --target HEAD",
 				),
 				(
 					"Force retarget:",
-					"mc repair-release --from v1.2.3 --target HEAD --force",
+					"monochange repair-release --from v1.2.3 --target HEAD --force",
 				),
 				(
 					"Skip provider sync:",
-					"mc repair-release --from v1.2.3 --sync-provider=false",
+					"monochange repair-release --from v1.2.3 --sync-provider=false",
 				),
 			],
 			tips: &[
 				"Defaults to descendant-only retargets unless --force is set.",
 				"Hosted release sync runs by default; disable with --sync-provider=false.",
-				"Use mc step:tag-release to create tags from a fresh release commit instead.",
+				"Use monochange step tag-release to create tags from a fresh release commit instead.",
 			],
-			see_also: &["step:tag-release", "step:release-record", "release"],
+			see_also: &["step tag-release", "step release-record", "release"],
 		},
 		CommandHelp {
-			name: "step:tag-release",
+			name: "step tag-release",
 			summary: "Create and push release tags from an embedded release record",
 			description: "Reads the monochange release record embedded in a commit's body and creates \
 				the full tag set declared by that record. Pushes tags to origin by default. \
 				Reruns on the same commit are treated as already up to date.",
-			usage: "mc step:tag-release --from <REF> [OPTIONS]",
+			usage: "monochange step tag-release --from <REF> [OPTIONS]",
 			options: &[
 				("--from", "<REF>", "Release commit ref (required)"),
 				("--push", "=BOOL", "Push tags to origin (default: true)"),
@@ -779,52 +809,61 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				("--format", "<FORMAT>", "text, json (default: text)"),
 			],
 			examples: &[
-				("Create and push tags:", "mc step:tag-release --from HEAD"),
+				(
+					"Create and push tags:",
+					"monochange step tag-release --from HEAD",
+				),
 				(
 					"Dry-run preview:",
-					"mc step:tag-release --from HEAD --dry-run",
+					"monochange step tag-release --from HEAD --dry-run",
 				),
 				(
 					"Create without pushing:",
-					"mc step:tag-release --from HEAD --push=false",
+					"monochange step tag-release --from HEAD --push=false",
 				),
 				(
 					"JSON output:",
-					"mc step:tag-release --from HEAD --dry-run --format json",
+					"monochange step tag-release --from HEAD --dry-run --format json",
 				),
 			],
 			tips: &[
 				"Requires the resolved ref itself to be the monochange release commit.",
 				"Creates the full tag set declared by that release record.",
 				"Reruns on the same commit are treated as already up to date.",
-				"Use mc repair-release to move existing tags later.",
+				"Use monochange repair-release to move existing tags later.",
 			],
-			see_also: &["repair-release", "step:release-record", "commit-release"],
+			see_also: &["repair-release", "step release-record", "commit-release"],
 		},
 		CommandHelp {
-			name: "step:release-record",
+			name: "step release-record",
 			summary: "Inspect the monochange release record for a tag or commit",
 			description: "Resolves the supplied ref to a commit, then walks first-parent ancestry until \
 				it finds a monochange release record embed. Renders the full release record \
 				including targets, versions, changed files, and changelogs.",
-			usage: "mc step:release-record --from <REF> [OPTIONS]",
+			usage: "monochange step release-record --from <REF> [OPTIONS]",
 			options: &[
 				("--from", "<REF>", "Tag or commit-ish to locate (required)"),
 				("--format", "<FORMAT>", "text, json (default: text)"),
 			],
 			examples: &[
-				("Inspect by tag:", "mc step:release-record --from v1.2.3"),
-				("Inspect by commit:", "mc step:release-record --from HEAD"),
+				(
+					"Inspect by tag:",
+					"monochange step release-record --from v1.2.3",
+				),
+				(
+					"Inspect by commit:",
+					"monochange step release-record --from HEAD",
+				),
 				(
 					"JSON output:",
-					"mc step:release-record --from v1.2.3 --format json",
+					"monochange step release-record --from v1.2.3 --format json",
 				),
 			],
 			tips: &[
 				"Fails loudly if it encounters a malformed release record block.",
 				"Walks first-parent ancestry to find the record.",
 			],
-			see_also: &["step:tag-release", "repair-release"],
+			see_also: &["step tag-release", "repair-release"],
 		},
 		CommandHelp {
 			name: "check",
@@ -832,7 +871,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			description: "Validates monochange.toml, changeset files, and runs ecosystem-specific \
 				manifest lint rules (e.g., Cargo.toml sorting, package.json constraints). \
 				Use --fix to auto-fix issues where possible.",
-			usage: "mc check [OPTIONS]",
+			usage: "monochange check [OPTIONS]",
 			options: &[
 				("-f, --fix", "", "Auto-fix lint issues where possible"),
 				(
@@ -848,51 +887,54 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				("--format", "<FORMAT>", "text, json (default: text)"),
 			],
 			examples: &[
-				("Run all checks:", "mc check"),
-				("Auto-fix issues:", "mc check --fix"),
-				("Specific ecosystem:", "mc check --ecosystem cargo,npm"),
+				("Run all checks:", "monochange check"),
+				("Auto-fix issues:", "monochange check --fix"),
+				(
+					"Specific ecosystem:",
+					"monochange check --ecosystem cargo,npm",
+				),
 				(
 					"Specific rule:",
-					"mc check --only cargo/sorted-dependencies",
+					"monochange check --only cargo/sorted-dependencies",
 				),
 			],
 			tips: &[
 				"Lint rules are configured in [lints] of monochange.toml.",
-				"Use mc lint list to see available rules and presets.",
+				"Use monochange lint list to see available rules and presets.",
 			],
-			see_also: &["lint", "step:validate", "affected"],
+			see_also: &["lint", "step validate", "affected"],
 		},
 		CommandHelp {
 			name: "lint",
 			summary: "Inspect and scaffold manifest lint rules",
 			description: "Subcommand group for listing, explaining, and creating lint rules that \
 				enforce manifest quality standards across your monorepo.",
-			usage: "mc lint <SUBCOMMAND>",
+			usage: "monochange lint <SUBCOMMAND>",
 			options: &[
 				("list", "", "List registered lint rules and presets"),
 				("explain <ID>", "", "Explain a lint rule or preset"),
 				("new <ID>", "", "Scaffold a new lint rule (ecosystem/name)"),
 			],
 			examples: &[
-				("List all rules:", "mc lint list"),
+				("List all rules:", "monochange lint list"),
 				(
 					"Explain a rule:",
-					"mc lint explain cargo/sorted-dependencies",
+					"monochange lint explain cargo/sorted-dependencies",
 				),
 				(
 					"Create a new rule:",
-					"mc lint new cargo/no-path-dependencies",
+					"monochange lint new cargo/no-path-dependencies",
 				),
 				(
 					"Create npm rule:",
-					"mc lint new npm/require-package-manager",
+					"monochange lint new npm/require-package-manager",
 				),
 			],
 			tips: &[
 				"Rule ids follow the <ecosystem>/<name> pattern.",
-				"Use mc check to run lint rules, mc lint to manage them.",
+				"Use monochange check to run lint rules, monochange lint to manage them.",
 			],
-			see_also: &["check", "step:validate"],
+			see_also: &["check", "step validate"],
 		},
 		CommandHelp {
 			name: "mcp",
@@ -902,9 +944,9 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				stdin/stdout using the MCP protocol.\n\n\
 				AI agents can use the MCP server to discover packages, create changes, \
 				plan releases, and more — all through structured tool calls.",
-			usage: "mc mcp",
+			usage: "monochange mcp",
 			options: &[],
-			examples: &[("Start the MCP server:", "mc mcp")],
+			examples: &[("Start the MCP server:", "monochange mcp")],
 			tips: &[
 				"The MCP server is designed for AI agent consumption, not direct human use.",
 				"Configure your agent's MCP settings to point to this command.",
@@ -912,15 +954,15 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			see_also: &["subagents", "skill"],
 		},
 		CommandHelp {
-			name: "step:validate",
+			name: "step validate",
 			summary: "Validate monochange configuration and changesets",
 			description: "Validates the monochange.toml configuration, package manifests, version \
 				groups, changeset files, and workspace consistency. For lint rules, use \
-				`mc check`. This is the same validation step that runs at the start of release \
+				`monochange check`. This is the same validation step that runs at the start of release \
 				commands.",
-			usage: "mc step:validate",
+			usage: "monochange step validate",
 			options: &[],
-			examples: &[("Validate the workspace:", "mc step:validate")],
+			examples: &[("Validate the workspace:", "monochange step validate")],
 			tips: &[
 				"Runs automatically before release commands.",
 				"Standalone use is for pre-commit hooks or CI gates.",
@@ -932,27 +974,27 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			summary: "Discover packages across supported ecosystems",
 			description: "Scans the workspace for packages across Cargo, npm/pnpm/Bun, Deno, and \
 				Dart/Flutter ecosystems and renders a structured discovery report.",
-			usage: "mc discover [OPTIONS]",
+			usage: "monochange discover [OPTIONS]",
 			options: &[("--format", "<FORMAT>", "text, json (default: text)")],
 			examples: &[
-				("Discover all packages:", "mc discover"),
-				("JSON output:", "mc discover --format json"),
+				("Discover all packages:", "monochange discover"),
+				("JSON output:", "monochange discover --format json"),
 			],
 			tips: &[
 				"Discovery is read-only and does not modify any files.",
 				"JSON output is useful for scripting and LLM consumption.",
 			],
-			see_also: &["step:validate", "init"],
+			see_also: &["step validate", "init"],
 		},
 		CommandHelp {
-			name: "step:publish-readiness",
+			name: "step publish-readiness",
 			summary: "Check package registry publishing readiness without publishing packages",
 			description: "Evaluates the package publications recorded on a release commit against the\
 				current workspace configuration and target registries. The command is read-only: it\
 				runs registry existence checks in dry-run mode, reports packages that are ready,\
 				already published, or unsupported by built-in publishing, and can write a JSON\
 				readiness artifact for later publish orchestration.",
-			usage: "mc step:publish-readiness --from <REF> [OPTIONS]",
+			usage: "monochange step publish-readiness --from <REF> [OPTIONS]",
 			options: &[
 				(
 					"--from",
@@ -974,35 +1016,35 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			examples: &[
 				(
 					"Check the current release commit:",
-					"mc step:publish-readiness --from HEAD",
+					"monochange step publish-readiness --from HEAD",
 				),
 				(
 					"Write a readiness artifact:",
-					"mc step:publish-readiness --from HEAD --output .monochange/local/readiness.json",
+					"monochange step publish-readiness --from HEAD --output .monochange/local/readiness.json",
 				),
 				(
 					"JSON for one package:",
-					"mc step:publish-readiness --from v1.2.3 --package core --format json",
+					"monochange step publish-readiness --from v1.2.3 --package core --format json",
 				),
 			],
 			tips: &[
-				"Run readiness before mutating registry state with mc step:publish-packages.",
+				"Run readiness before mutating registry state with monochange step publish-packages.",
 				"Already-published versions are reported as resumable instead of blocking.",
 			],
 			see_also: &[
-				"step:plan-publish-rate-limits",
-				"step:publish-packages",
-				"step:placeholder-publish",
+				"step plan-publish-rate-limits",
+				"step publish-packages",
+				"step placeholder-publish",
 			],
 		},
 		CommandHelp {
-			name: "step:placeholder-publish",
+			name: "step placeholder-publish",
 			summary: "Publish first-time placeholder package versions for a release record",
 			description: "Reads the package publications embedded in a release commit, narrows them with\
 				optional package filters, and runs placeholder publishing for that release package set.\
 				The command can write a JSON bootstrap result artifact for CI logs or manual retry\
 				notes. Use --dry-run first to inspect work without mutating registries.",
-			usage: "mc step:placeholder-publish --from <REF> [OPTIONS]",
+			usage: "monochange step placeholder-publish --from <REF> [OPTIONS]",
 			options: &[
 				(
 					"--from",
@@ -1038,25 +1080,25 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			examples: &[
 				(
 					"Preview bootstrap work:",
-					"mc step:placeholder-publish --from HEAD --dry-run",
+					"monochange step placeholder-publish --from HEAD --dry-run",
 				),
 				(
 					"Write a bootstrap result:",
-					"mc step:placeholder-publish --from HEAD --output .monochange/local/bootstrap-result.json",
+					"monochange step placeholder-publish --from HEAD --output .monochange/local/bootstrap-result.json",
 				),
 				(
 					"JSON for one package:",
-					"mc step:placeholder-publish --from HEAD --package core --format json",
+					"monochange step placeholder-publish --from HEAD --package core --format json",
 				),
 			],
 			tips: &[
-				"Run mc step:publish-readiness again after bootstrap before mc step:publish-packages.",
+				"Run monochange step publish-readiness again after bootstrap before monochange step publish-packages.",
 				"Existing placeholder versions are skipped and treated as resumable.",
 			],
 			see_also: &[
-				"step:publish-readiness",
-				"step:plan-publish-rate-limits",
-				"step:publish-packages",
+				"step publish-readiness",
+				"step plan-publish-rate-limits",
+				"step publish-packages",
 			],
 		},
 		CommandHelp {
@@ -1066,7 +1108,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				npm, pub.dev, JSR) need an initial placeholder version before automated \
 				publishing can work. This command publishes those placeholders and reports \
 				only packages that need action unless --show-all is set.",
-			usage: "mc placeholder-publish [OPTIONS]",
+			usage: "monochange placeholder-publish [OPTIONS]",
 			options: &[
 				(
 					"--format",
@@ -1091,14 +1133,14 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				("--dry-run", "", "Preview without publishing"),
 			],
 			examples: &[
-				("Dry-run all:", "mc placeholder-publish --dry-run"),
+				("Dry-run all:", "monochange placeholder-publish --dry-run"),
 				(
 					"Specific package:",
-					"mc placeholder-publish --package core --dry-run",
+					"monochange placeholder-publish --package core --dry-run",
 				),
 				(
 					"JSON output:",
-					"mc placeholder-publish --dry-run --format json",
+					"monochange placeholder-publish --dry-run --format json",
 				),
 			],
 			tips: &[
@@ -1113,7 +1155,7 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 			summary: "Publish package versions from release state",
 			description: "Publishes package versions to their target registries using the prepared \
 				release data. Supports trusted publishing on supported registries.",
-			usage: "mc publish-packages [OPTIONS]",
+			usage: "monochange publish-packages [OPTIONS]",
 			options: &[
 				(
 					"--format",
@@ -1128,11 +1170,14 @@ fn builtin_command_helps() -> Vec<CommandHelp> {
 				("--dry-run", "", "Preview without publishing"),
 			],
 			examples: &[
-				("Dry-run all:", "mc publish-packages --dry-run"),
-				("Specific package:", "mc publish-packages --package core"),
+				("Dry-run all:", "monochange publish-packages --dry-run"),
+				(
+					"Specific package:",
+					"monochange publish-packages --package core",
+				),
 				(
 					"JSON format:",
-					"mc publish-packages --dry-run --format json",
+					"monochange publish-packages --dry-run --format json",
 				),
 			],
 			tips: &[
@@ -1168,7 +1213,7 @@ pub fn render_command_help_with_cli(
 		return render_single_command_help(bin_name, help);
 	}
 
-	if command_name.starts_with("step:")
+	if command_name.starts_with("step ")
 		&& let Some(help) = step_command_help(command_name)
 	{
 		return render_owned_command_help(bin_name, &help);
@@ -1212,7 +1257,7 @@ pub fn render_overview_help_with_cli(bin_name: &str, cli: &[CliCommandDefinition
 		"monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, and Dart/Flutter, \
 		then coordinates version bumps, changelogs, and release automation from a single \
 		monochange.toml config.\n\n\
-		Run `mc help <command>` or `mc <command> -h` for detailed examples and usage tips.",
+		Run `monochange help <command>` or `monochange <command> -h` for detailed examples and usage tips.",
 		muted(),
 	));
 	out.push_str("\n\n");
@@ -1261,7 +1306,7 @@ pub fn render_overview_help_with_cli(bin_name: &str, cli: &[CliCommandDefinition
 	out.push_str(&format!(
 		"  {}\n",
 		paint(
-			"Use `mc help <command>` or `mc <command> -h` for detailed command help.",
+			"Use `monochange help <command>` or `monochange <command> -h` for detailed command help.",
 			accent()
 		),
 	));
@@ -1290,7 +1335,7 @@ fn render_command_section(out: &mut String, title: &str, items: Vec<CommandListI
 
 fn configured_command_items(cli: &[CliCommandDefinition]) -> Vec<CommandListItem> {
 	cli.iter()
-		.filter(|command| !command.name.starts_with("step:"))
+		.filter(|command| !command.name.starts_with("step "))
 		.filter(|command| !BUILTIN_COMMAND_NAMES.contains(&command.name.as_str()))
 		.map(|command| {
 			CommandListItem {
@@ -1321,7 +1366,7 @@ fn step_command_items() -> Vec<CommandListItem> {
 	monochange_core::all_step_variants()
 		.into_iter()
 		.map(|step| {
-			let name = format!("step:{}", step.step_kebab_name());
+			let name = format!("step {}", step.step_kebab_name());
 			let summary = step_summary(&step);
 			CommandListItem { name, summary }
 		})
@@ -1378,28 +1423,28 @@ fn configured_command_help(command: &CliCommandDefinition) -> OwnedCommandHelp {
 		examples: vec![
 			(
 				"Run this configured workflow:".to_string(),
-				format!("mc {}", command.name),
+				format!("monochange {}", command.name),
 			),
 			(
 				"Show help for this workflow:".to_string(),
-				format!("mc help {}", command.name),
+				format!("monochange help {}", command.name),
 			),
 		],
 		tips: vec![
 			"User-defined commands come from monochange.toml, not from the binary.".to_string(),
-			"Use `mc step:*` commands when you need an immutable built-in step directly."
+			"Use `monochange step *` commands when you need an immutable built-in step directly."
 				.to_string(),
 		],
 		see_also: command
 			.steps
 			.iter()
-			.map(|step| format!("step:{}", step.step_kebab_name()))
+			.map(|step| format!("step {}", step.step_kebab_name()))
 			.collect(),
 	}
 }
 
 fn step_command_help(command_name: &str) -> Option<OwnedCommandHelp> {
-	let kebab = command_name.strip_prefix("step:")?;
+	let kebab = command_name.strip_prefix("step ")?;
 	let step = monochange_core::all_step_variants()
 		.into_iter()
 		.find(|step| step.step_kebab_name() == kebab)?;
@@ -1426,9 +1471,9 @@ fn step_command_help(command_name: &str) -> Option<OwnedCommandHelp> {
 
 fn command_usage(command_name: &str, inputs: &[CliInputDefinition]) -> String {
 	if inputs.is_empty() {
-		format!("mc {command_name}")
+		format!("monochange {command_name}")
 	} else {
-		format!("mc {command_name} [OPTIONS]")
+		format!("monochange {command_name} [OPTIONS]")
 	}
 }
 
@@ -1548,11 +1593,11 @@ fn step_details(kebab: &str) -> StepDetails {
 	match kebab {
 		"publish-release" => {
 			StepDetails {
-				description: "PublishRelease converts a prepared release into hosted provider release operations.\n\nFor example, with a configured source provider it can create or update the outward release objects that correspond to monochange's prepared release targets. It does not publish package artifacts to registries; package publishing lives in `mc step:publish-readiness`, `mc step:publish-packages`, and `mc step:placeholder-publish`.\n\nUse it when you want monochange to handle provider-aware publication rather than stitching together release API calls manually. It needs a previous PrepareRelease step in the same workflow and `[source]` configuration.",
+				description: "PublishRelease converts a prepared release into hosted provider release operations.\n\nFor example, with a configured source provider it can create or update the outward release objects that correspond to monochange's prepared release targets. It does not publish package artifacts to registries; package publishing lives in `monochange step publish-readiness`, `monochange step publish-packages`, and `monochange step placeholder-publish`.\n\nUse it when you want monochange to handle provider-aware publication rather than stitching together release API calls manually. It needs a previous PrepareRelease step in the same workflow and `[source]` configuration.",
 				examples: &[
 					(
 						"Preview provider release payloads:",
-						"mc step:publish-release --format json --from-ref HEAD",
+						"monochange step publish-release --format json --from-ref HEAD",
 					),
 					(
 						"Compose it after PrepareRelease in monochange.toml:",
@@ -1561,13 +1606,13 @@ fn step_details(kebab: &str) -> StepDetails {
 				],
 				tips: &[
 					"PublishRelease handles hosted/source-provider releases such as GitHub releases, not package registries.",
-					"Use `mc step:publish-readiness --from HEAD --output <path>` followed by `mc step:publish-packages --output <path>` for crates.io, npm, JSR, or pub.dev packages.",
+					"Use `monochange step publish-readiness --from HEAD --output <path>` followed by `monochange step publish-packages --output <path>` for crates.io, npm, JSR, or pub.dev packages.",
 					"Dry-run output stays aligned with the prepared release state and release target model.",
 				],
 				see_also: &[
-					"step:prepare-release",
-					"step:publish-readiness",
-					"step:publish-packages",
+					"step prepare-release",
+					"step publish-readiness",
+					"step publish-packages",
 				],
 			}
 		}
@@ -1576,15 +1621,15 @@ fn step_details(kebab: &str) -> StepDetails {
 				description: "PrepareRelease reads pending changesets, computes version bumps, updates manifests and changelogs, and refreshes the cached release manifest used by later stateful steps.",
 				examples: &[(
 					"Preview release planning:",
-					"mc step:prepare-release --format json",
+					"monochange step prepare-release --format json",
 				)],
 				tips: &[
 					"Use this before CommitRelease, PublishRelease, OpenReleaseRequest, or CommentReleasedIssues in one workflow.",
 				],
 				see_also: &[
-					"step:commit-release",
-					"step:publish-release",
-					"step:open-release-request",
+					"step commit-release",
+					"step publish-release",
+					"step open-release-request",
 				],
 			}
 		}
@@ -1593,7 +1638,7 @@ fn step_details(kebab: &str) -> StepDetails {
 				description: "AffectedPackages compares changed paths with workspace package ownership and changeset coverage. In CI it can enforce that pull requests touching published packages include appropriate changesets.",
 				examples: &[(
 					"Verify changed files in CI:",
-					"mc step:affected-packages --format json --verify --changed-paths crates/monochange/src/lib.rs",
+					"monochange step affected-packages --format json --verify --changed-paths crates/monochange/src/lib.rs",
 				)],
 				tips: &[
 					"Pass each changed file with `--changed-paths` when your CI provider already computed the diff.",
@@ -1606,16 +1651,19 @@ fn step_details(kebab: &str) -> StepDetails {
 				description: "CreateChangeFile writes a structured markdown changeset under .changeset/ for one or more package targets, requested bumps, and release-note content.",
 				examples: &[(
 					"Create a patch changeset:",
-					"mc step:create-change-file --package monochange --bump patch --reason \"improve CLI help\"",
+					"monochange step create-change-file --package monochange --bump patch --reason \"improve CLI help\"",
 				)],
 				tips: &["Use package ids rather than legacy manifest paths whenever possible."],
-				see_also: &["change", "step:affected-packages"],
+				see_also: &["change", "step affected-packages"],
 			}
 		}
 		_ => {
 			StepDetails {
-				description: "This immutable `step:*` command runs one built-in monochange workflow step directly. Step commands are generated by the binary, derive flags from the step schema, and do not require a `[cli.*]` entry in monochange.toml.\n\nUse direct step commands for CI jobs, debugging, or one-off automation; use user-defined commands from monochange.toml when you want to chain multiple steps or expose repository-specific inputs.",
-				examples: &[("Run the step directly:", "mc step:discover --format json")],
+				description: "This immutable `step <name>` command runs one built-in monochange workflow step directly. Step commands are generated by the binary, derive flags from the step schema, and do not require a `[cli.*]` entry in monochange.toml.\n\nUse direct step commands for CI jobs, debugging, or one-off automation; use user-defined commands from monochange.toml when you want to chain multiple steps or expose repository-specific inputs.",
+				examples: &[(
+					"Run the step directly:",
+					"monochange step discover --format json",
+				)],
 				tips: &[
 					"All CLI steps support an optional `when = \"...\"` condition when composed inside monochange.toml.",
 					"The `Command` step is intentionally not exposed as a direct step command because it needs repository configuration.",
@@ -1726,7 +1774,7 @@ fn render_owned_command_help(bin_name: &str, help: &OwnedCommandHelp) -> String 
 			if index > 0 {
 				out.push_str("  ");
 			}
-			out.push_str(&paint(&format!("mc help {name}"), accent()));
+			out.push_str(&paint(&format!("monochange help {name}"), accent()));
 		}
 		out.push('\n');
 	}

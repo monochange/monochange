@@ -396,7 +396,7 @@ fn validate_readiness_input_fingerprint(
 	}
 
 	Err(MonochangeError::Config(
-		"publish readiness artifact inputs are stale; workspace config, manifests, lockfiles, or publish tooling inputs changed, so rerun `mc step:publish-readiness --from HEAD --output <PATH>`".to_string(),
+		"publish readiness artifact inputs are stale; workspace config, manifests, lockfiles, or publish tooling inputs changed, so rerun `monochange step publish-readiness --from HEAD --output <PATH>`".to_string(),
 	))
 }
 
@@ -507,7 +507,7 @@ fn validate_readiness_artifact_status(report: &PublishReadinessReport) -> Monoch
 		return Ok(());
 	}
 	Err(MonochangeError::Config(
-		"publish readiness artifact is blocked; rerun `mc step:publish-readiness` and resolve blockers before `mc step:publish-packages`".to_string(),
+		"publish readiness artifact is blocked; rerun `monochange step publish-readiness` and resolve blockers before `monochange step publish-packages`".to_string(),
 	))
 }
 
@@ -517,7 +517,7 @@ fn validate_readiness_current_status(report: &PublishReadinessReport) -> Monocha
 		return Ok(());
 	}
 	Err(MonochangeError::Config(
-		"current publish readiness is blocked; rerun `mc step:publish-readiness` and resolve blockers before `mc step:publish-packages`".to_string(),
+		"current publish readiness is blocked; rerun `monochange step publish-readiness` and resolve blockers before `monochange step publish-packages`".to_string(),
 	))
 }
 
@@ -529,7 +529,7 @@ fn validate_readiness_release_commit(
 		return Ok(());
 	}
 	Err(MonochangeError::Config(format!(
-		"publish readiness artifact was generated for release record {}, but `mc step:publish-packages` selected {}; rerun `mc step:publish-readiness --from HEAD --output <PATH>`",
+		"publish readiness artifact was generated for release record {}, but `monochange step publish-packages` selected {}; rerun `monochange step publish-readiness --from HEAD --output <PATH>`",
 		artifact.record_commit, current.record_commit
 	)))
 }

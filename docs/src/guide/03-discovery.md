@@ -20,8 +20,8 @@ Run discovery:
 <!-- {=projectDiscoverCommand} -->
 
 ```bash
-mc step:validate
-mc step:discover --format json
+monochange step validate
+monochange step discover --format json
 ```
 
 <!-- {/projectDiscoverCommand} -->

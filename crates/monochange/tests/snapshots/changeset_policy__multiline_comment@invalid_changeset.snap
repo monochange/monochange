@@ -24,5 +24,5 @@ Allowed skip labels:
 
 How to fix:
 - add or update a `.changeset/*.md` file so it references every changed package or owning group
-- for example: `mc change --package <id> --bump patch --reason "describe the change"`
+- for example: `monochange change --package <id> --bump patch --reason "describe the change"`
 - or apply one of the configured skip labels when no release note is required

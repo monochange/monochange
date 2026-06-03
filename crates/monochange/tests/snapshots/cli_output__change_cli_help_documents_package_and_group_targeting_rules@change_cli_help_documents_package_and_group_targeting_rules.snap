@@ -2,8 +2,9 @@
 source: crates/monochange/tests/cli_output.rs
 assertion_line: 186
 info:
-  program: mc
+  program: monochange
   args:
+    - run
     - change
     - "--help"
   env:
@@ -15,7 +16,7 @@ exit_code: 0
 ----- stdout -----
 Create a change file for one or more packages
 
-Usage: mc change [--dry-run] [--interactive] [--package <PACKAGE>] [--bump <BUMP>] [--version <VERSION>] [--reason <REASON>] [--type <TYPE>] [--caused-by <CAUSED_BY>] [--details <DETAILS>] [--output <PATH>]
+Usage: monochange run change [--dry-run] [--interactive] [--package <PACKAGE>] [--bump <BUMP>] [--version <VERSION>] [--reason <REASON>] [--type <TYPE>] [--caused-by <CAUSED_BY>] [--details <DETAILS>] [--output <PATH>]
 
 Options:
   -h, --help  Print help
@@ -29,7 +30,7 @@ Options:
       --bump <BUMP>            Requested semantic version bump [default: patch] [possible values: none, patch, minor, major]
       --version <VERSION>      Pin an explicit version for this release
       --reason <REASON>        Short release-note summary for this change
-      --type <TYPE>            Optional release-note type such as `security` or `note` [possible values: security, test]
+      --type <TYPE>            Optional release-note type such as `security` or `note`
       --caused-by <CAUSED_BY>  Package or group ids that caused this dependent change
       --details <DETAILS>      Optional multi-line release-note details
       --output <PATH>          Write the generated change file to a specific path
@@ -41,10 +42,10 @@ Global Options:
       --snapshot                  Print a normalized JSON snapshot for this command subtree
 
 Examples:
-  mc change --package sdk-core --bump patch --reason "fix panic"
-  mc change --package sdk-core --bump minor --reason "add API" --output .changeset/sdk-core.md
-  mc change --package sdk --bump minor --reason "coordinated release"
-  mc change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
+  monochange change --package sdk-core --bump patch --reason "fix panic"
+  monochange change --package sdk-core --bump minor --reason "add API" --output .changeset/sdk-core.md
+  monochange change --package sdk --bump minor --reason "coordinated release"
+  monochange change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
 
 Rules:
   - Prefer configured package ids in change files whenever a leaf package changed.

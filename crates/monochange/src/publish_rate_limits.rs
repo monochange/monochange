@@ -425,7 +425,7 @@ pub(crate) fn enforce_publish_rate_limits(
 	}
 
 	Err(MonochangeError::Config(format!(
-		"configured publish rate-limit enforcement blocked this run: {details}; use `mc step:plan-publish-rate-limits` to inspect batches or publish a filtered package subset"
+		"configured publish rate-limit enforcement blocked this run: {details}; use `monochange step plan-publish-rate-limits` to inspect batches or publish a filtered package subset"
 	)))
 }
 

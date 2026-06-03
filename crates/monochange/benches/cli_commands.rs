@@ -189,7 +189,11 @@ fn seed_release_pr_git_repository(root: &Path) {
 }
 
 fn release_pr_args(dry_run: bool) -> Vec<OsString> {
-	let mut args = vec![OsString::from("mc"), OsString::from("release-pr")];
+	let mut args = vec![
+		OsString::from("monochange"),
+		OsString::from("run"),
+		OsString::from("release-pr"),
+	];
 	if dry_run {
 		args.push(OsString::from("--dry-run"));
 	}
@@ -199,7 +203,11 @@ fn release_pr_args(dry_run: bool) -> Vec<OsString> {
 }
 
 fn command_args(command: &str, dry_run: bool) -> Vec<OsString> {
-	let mut args = vec![OsString::from("mc"), OsString::from(command)];
+	let mut args = vec![OsString::from("monochange")];
+	if matches!(command, "commit-release" | "release-pr") {
+		args.push(OsString::from("run"));
+	}
+	args.push(OsString::from(command));
 	if dry_run {
 		args.push(OsString::from("--dry-run"));
 	}
@@ -221,7 +229,7 @@ fn run_command(root: &Path, command: &str, dry_run: bool) -> String {
 	block_on_bench(temp_env::async_with_vars(
 		[("MONOCHANGE_RELEASE_DATE", Some("2026-04-06"))],
 		async {
-			monochange::run_with_args_in_dir("mc", command_args(command, dry_run), root)
+			monochange::run_with_args_in_dir("monochange", command_args(command, dry_run), root)
 				.await
 				.unwrap()
 		},
@@ -236,7 +244,7 @@ fn run_release_pr_command(root: &Path, dry_run: bool, github_api_url: Option<&st
 			("GITHUB_API_URL", github_api_url),
 		],
 		async {
-			monochange::run_with_args_in_dir("mc", release_pr_args(dry_run), root)
+			monochange::run_with_args_in_dir("monochange", release_pr_args(dry_run), root)
 				.await
 				.unwrap()
 		},
@@ -593,7 +601,7 @@ fn bench_prepare_release_apply(c: &mut Criterion) {
 					},
 					|tempdir| {
 						// Benchmark the real non-dry-run path without rendering diff
-						// previews. This is the critical fast path for `mc release`
+						// previews. This is the critical fast path for `monochange release`
 						// after we switched supported lockfiles to direct rewrites.
 						block_on_bench(monochange::prepare_release(tempdir.path(), false)).unwrap();
 					},
@@ -792,16 +800,16 @@ fn bench_cli_startup_help(c: &mut Criterion) {
 	for (label, args) in [
 		(
 			"mc_version",
-			vec![OsString::from("mc"), OsString::from("--version")],
+			vec![OsString::from("monochange"), OsString::from("--version")],
 		),
 		(
 			"mc_root_help",
-			vec![OsString::from("mc"), OsString::from("--help")],
+			vec![OsString::from("monochange"), OsString::from("--help")],
 		),
 		(
 			"mc_release_help",
 			vec![
-				OsString::from("mc"),
+				OsString::from("monochange"),
 				OsString::from("release"),
 				OsString::from("--help"),
 			],

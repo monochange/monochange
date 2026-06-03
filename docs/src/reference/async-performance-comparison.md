@@ -6,10 +6,10 @@ This branch should be measured against the current non-async `main` branch with 
 
 Use the existing CLI benchmark harness in `scripts/benchmark-cli.ts`. It creates deterministic fixture repositories and measures these command paths with `hyperfine`:
 
-- `mc step:validate`
-- `mc step:discover --format json`
-- `mc release --dry-run`
-- `mc release`
+- `monochange step validate`
+- `monochange step discover --format json`
+- `monochange run release --dry-run`
+- `monochange run release`
 
 The two bundled scenarios are intentionally different:
 
@@ -18,7 +18,7 @@ The two bundled scenarios are intentionally different:
 
 These should expose whether async process execution and hosted-source/workspace orchestration improve wall-clock time for larger repositories, while also catching regressions in small repositories.
 
-Use `scripts/benchmark-step-commands.ts` for built-in `mc step:<kebab>` coverage. It benchmarks all built-in step commands that can run safely against the offline fixture and reports the remaining provider/publish steps as explicit skips with setup rationale instead of silently omitting them.
+Use `scripts/benchmark-step-commands.ts` for built-in `monochange step <kebab>` coverage. It benchmarks all built-in step commands that can run safely against the offline fixture and reports the remaining provider/publish steps as explicit skips with setup rationale instead of silently omitting them.
 
 ## Local workflow
 
@@ -31,8 +31,8 @@ workdir="$(mktemp -d)"
 git worktree add "$workdir/main" origin/main
 git worktree add "$workdir/async" feat/async-migration
 
-cargo build --manifest-path "$workdir/main/Cargo.toml" --release -p monochange --bin mc
-cargo build --manifest-path "$workdir/async/Cargo.toml" --release -p monochange --bin mc
+cargo build --manifest-path "$workdir/main/Cargo.toml" --release -p monochange --bin monochange
+cargo build --manifest-path "$workdir/async/Cargo.toml" --release -p monochange --bin monochange
 
 node "$workdir/async/scripts/benchmark-cli.ts" run \
   --main-bin "$workdir/main/target/release/mc" \

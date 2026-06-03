@@ -21,7 +21,7 @@ fn validate_step_runs_without_input_overrides() {
 	let _guard = settings.bind_to_scope();
 
 	let tempdir = setup_scenario_workspace("cli-step-input-overrides/workspace");
-	let output = run_command(tempdir.path(), "step:validate");
+	let output = run_command(tempdir.path(), "step validate");
 	assert!(
 		output.status.success(),
 		"{}",
@@ -184,9 +184,14 @@ fn command_step_can_hardcode_inputs_without_cli_inputs() {
 }
 
 fn run_command(root: &Path, command: &str) -> std::process::Output {
-	monochange_command(None)
-		.current_dir(root)
-		.arg(command)
+	let mut process = monochange_command(None);
+	process.current_dir(root);
+	let command_parts = command.split_whitespace().collect::<Vec<_>>();
+	if !matches!(command_parts.first().copied(), Some("step")) {
+		process.arg("run");
+	}
+	process
+		.args(command_parts)
 		.arg("--dry-run")
 		.output()
 		.unwrap_or_else(|error| panic!("command output: {error}"))
@@ -197,8 +202,12 @@ fn run_command_without_dry_run(root: &Path, command: &str) -> std::process::Outp
 }
 
 fn run_command_args_without_dry_run(root: &Path, args: &[&str]) -> std::process::Output {
-	monochange_command(None)
-		.current_dir(root)
+	let mut process = monochange_command(None);
+	process.current_dir(root);
+	if !matches!(args.first().copied(), Some("step")) {
+		process.arg("run");
+	}
+	process
 		.args(args)
 		.output()
 		.unwrap_or_else(|error| panic!("command output: {error}"))

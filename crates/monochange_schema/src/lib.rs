@@ -281,7 +281,7 @@ pub mod release_record {
 			"schema_version": version,
 			"kind": KIND,
 			"created_at": "2026-01-01T00:00:00Z",
-			"command": "mc release --commit",
+			"command": "monochange release --commit",
 			"version": release_version.as_str(),
 			"versions": {
 				"main": release_version.as_str(),

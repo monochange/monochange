@@ -1,7 +1,7 @@
 ---
 source: crates/monochange/tests/cli_help.rs
 info:
-  program: mc
+  program: monochange
   args:
     - help
     - analyze
@@ -13,7 +13,7 @@ success: true
 exit_code: 0
 ----- stdout -----
 ╭──────────────────────────────────────────────────────────╮
-│  mc analyze                                              │
+│  monochange analyze                                      │
 │  Analyze semantic changes for a package                  │
 ╰──────────────────────────────────────────────────────────╯
 
@@ -25,7 +25,7 @@ exit_code: 0
 
 ▸ Usage
 
-  mc analyze --package <PACKAGE> [OPTIONS]
+  monochange analyze --package <PACKAGE> [OPTIONS]
 
 ▸ Options
 
@@ -39,16 +39,16 @@ exit_code: 0
 ▸ Examples
 
   Analyze a package:
-    mc analyze --package core
+    monochange analyze --package core
 
   JSON output:
-    mc analyze --package core --format json
+    monochange analyze --package core --format json
 
   Against a specific release tag:
-    mc analyze --package core --release-ref core/v1.2.3
+    monochange analyze --package core --release-ref core/v1.2.3
 
   Custom main and head refs:
-    mc analyze --package core --main-ref main --head-ref HEAD
+    monochange analyze --package core --main-ref main --head-ref HEAD
 
 ▸ Tips
 
@@ -57,7 +57,7 @@ exit_code: 0
 
 ▸ See Also
 
-  mc help release  mc help versions  mc help change
+  monochange help release  monochange help versions  monochange help change
 
 
 ----- stderr -----

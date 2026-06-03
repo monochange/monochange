@@ -2900,10 +2900,12 @@ impl CliStepDefinition {
 	#[must_use]
 	pub fn valid_input_names(&self) -> Option<&'static [&'static str]> {
 		match self {
-			Self::Config { .. } | Self::Validate { .. } => Some(&[]),
+			Self::Validate { .. } => Some(&[]),
 			Self::CommitRelease { .. } => Some(&["no_verify", "update_release_json", "stage_all"]),
 			Self::VerifyReleaseBranch { .. } => Some(&["from"]),
-			Self::Discover { .. } | Self::DisplayVersions { .. } => Some(&["format"]),
+			Self::Config { .. } | Self::Discover { .. } | Self::DisplayVersions { .. } => {
+				Some(&["format"])
+			}
 			Self::PrepareRelease { .. } => Some(&["format", "write_empty_release_record"]),
 			Self::CommentReleasedIssues { .. } => {
 				Some(&["format", "from-ref", "auto-close-issues"])
@@ -2953,7 +2955,8 @@ impl CliStepDefinition {
 	#[must_use]
 	pub fn valid_input_choices(&self, name: &str) -> Option<&'static [&'static str]> {
 		match self {
-			Self::Discover { .. }
+			Self::Config { .. }
+			| Self::Discover { .. }
 			| Self::DisplayVersions { .. }
 			| Self::PrepareRelease { .. }
 			| Self::PublishRelease { .. }
@@ -3009,8 +3012,8 @@ impl CliStepDefinition {
 					_ => None,
 				}
 			}
-			Self::Config { .. } | Self::Command { .. } | Self::Validate { .. } => None,
-			Self::Discover { .. } | Self::DisplayVersions { .. } => {
+			Self::Command { .. } | Self::Validate { .. } => None,
+			Self::Config { .. } | Self::Discover { .. } | Self::DisplayVersions { .. } => {
 				matches!(name, "format").then_some(CliInputKind::Choice)
 			}
 			Self::PrepareRelease { .. } => {
@@ -5138,7 +5141,7 @@ pub struct EcosystemRegistry {
 
 /// Strategy for formatting version constraints when syncing internal dependencies.
 ///
-/// Controls how version constraints are formatted when `mc versions` updates
+/// Controls how version constraints are formatted when `monochange versions` updates
 /// internal dependency references to match canonical package versions.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum VersionStrategy {

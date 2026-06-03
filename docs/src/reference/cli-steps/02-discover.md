@@ -98,7 +98,7 @@ During initial adoption, teams often expose a `discover` command next to `valida
 
 ## Why not just shell out?
 
-A `Command` step that runs `mc step:discover` works, but the built-in step is easier to validate and easier to understand when reading `monochange.toml`. It makes the intent obvious: the command exists to inspect discovery, not to run an arbitrary shell pipeline.
+A `Command` step that runs `monochange step discover` works, but the built-in step is easier to validate and easier to understand when reading `monochange.toml`. It makes the intent obvious: the command exists to inspect discovery, not to run an arbitrary shell pipeline.
 
 ## Common mistake
 

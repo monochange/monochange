@@ -257,11 +257,11 @@ Built-in publishing currently targets only the canonical public registry for eac
 - Go modules → `go_proxy` via VCS tags
 - Python packages → `pypi`
 
-Private registries and custom publication flows are still external. For those packages, set `mode = "external"` and handle release publication outside monochange. Placeholder publishing (`mc placeholder-publish`) still works for external-mode packages because it is a bootstrap utility, not a release publishing step.
+Private registries and custom publication flows are still external. For those packages, set `mode = "external"` and handle release publication outside monochange. Placeholder publishing (`monochange placeholder-publish`) still works for external-mode packages because it is a bootstrap utility, not a release publishing step.
 
 ### Placeholder publishing
 
-`mc step:placeholder-publish` exists for the bootstrap case where a package must already exist in the registry before you can finish automation setup such as trusted publishing.
+`monochange step placeholder-publish` exists for the bootstrap case where a package must already exist in the registry before you can finish automation setup such as trusted publishing.
 
 Placeholder publishing works for all packages with `publish.enabled = true`, including those set to `publish.mode = "external"`. The `mode` field controls who handles **release** publishing (monochange's built-in publisher vs your own CI/scripts); it does not affect placeholder publishing because that is a one-time bootstrap utility, not a release step. To opt out of placeholder publishing entirely, set `publish.enabled = false`.
 
@@ -303,7 +303,7 @@ dependency_fields = ["dependencies", "optional-dependencies", "group.dependencie
 dependency_fields = []
 ```
 
-The same resolved policy is used by `mc plan-release-publish` and `mc step:publish-packages`.
+The same resolved policy is used by `monochange plan-release-publish` and `monochange step publish-packages`.
 
 ### Trusted publishing
 
@@ -328,7 +328,7 @@ trusted_publishing = false
 When `trusted_publishing` is enabled:
 
 - npm package publishing must run from a verifiable CI/OIDC identity and must not use long-lived npm token environment variables
-- npm trusted-publisher enrollment is manual or external: monochange can render the expected `npm trust github ...` repair command and verify the GitHub workflow context, but `mc step:publish-packages` does not run `npm trust` automatically
+- npm trusted-publisher enrollment is manual or external: monochange can render the expected `npm trust github ...` repair command and verify the GitHub workflow context, but `monochange step publish-packages` does not run `npm trust` automatically
 - trusted npm publishing uses the `npm` CLI directly; pnpm workspaces still use pnpm for non-trusted npm publishing paths
 - Cargo, `jsr`, `pub.dev`, and `PyPI` also require manual trusted-publishing setup; monochange reports the setup URL and blocks built-in release publishing until trust is configured
 
@@ -515,7 +515,7 @@ Key rules:
 
 ## Lockfile commands
 
-By default monochange rewrites supported lockfiles directly from the release plan. That keeps normal `mc release` runs close to `--dry-run` speed instead of launching package managers just to rewrite workspace version strings.
+By default monochange rewrites supported lockfiles directly from the release plan. That keeps normal `monochange release` runs close to `--dry-run` speed instead of launching package managers just to rewrite workspace version strings.
 
 Built-in direct lockfile updates cover:
 
@@ -528,7 +528,7 @@ For Python projects, monochange infers package-manager lockfile commands instead
 
 If you configure `lockfile_commands` for an ecosystem, monochange stops using the built-in direct updater for that ecosystem and those commands fully own lockfile refresh. Use that escape hatch only when your workspace needs package-manager-side regeneration beyond version rewrites.
 
-For Cargo specifically, monochange no longer falls back to `cargo generate-lockfile` automatically when a lockfile looks incomplete. That keeps `mc release` on the fast path and leaves the final dependency-resolution refresh under your control: either configure `[ecosystems.cargo].lockfile_commands` explicitly or run `cargo generate-lockfile` / `cargo check` yourself afterwards.
+For Cargo specifically, monochange no longer falls back to `cargo generate-lockfile` automatically when a lockfile looks incomplete. That keeps `monochange release` on the fast path and leaves the final dependency-resolution refresh under your control: either configure `[ecosystems.cargo].lockfile_commands` explicitly or run `cargo generate-lockfile` / `cargo check` yourself afterwards.
 
 If you want to measure that tradeoff before opting into a refresh command, run the `prepare_release_apply_cargo_lockfile_refresh` Criterion benchmark. It compares the default `direct_rewrite` path against an explicit `full_refresh_command` run on the same synthetic Cargo workspace.
 
@@ -544,13 +544,13 @@ lockfile_commands = [
 
 ## CLI commands
 
-CLI workflow commands are user-defined top-level commands. Each `[cli.<command>]` table in `monochange.toml` becomes `mc <command>`, with its own help text, inputs, and ordered step list.
+CLI workflow commands are user-defined top-level commands. Each `[cli.<command>]` table in `monochange.toml` becomes `monochange <command>`, with its own help text, inputs, and ordered step list.
 
-`mc init` writes a minimal starter config and does not seed default `[cli.*]` workflow aliases. Add `[cli.<command>]` tables only for repository-specific workflows that need to chain multiple steps, expose custom names, or run shell `Command` steps.
+`monochange init` writes a minimal starter config and does not seed default `[cli.*]` workflow aliases. Add `[cli.<command>]` tables only for repository-specific workflows that need to chain multiple steps, expose custom names, or run shell `Command` steps.
 
-Built-in steps are also available directly as immutable `mc step:*` commands. The binary generates those commands from the step schemas, so `mc step:discover`, `mc step:prepare-release`, `mc step:affected-packages`, and the other step commands do not require config entries. Use `step:*` in CI when you want a stable built-in operation without depending on a repository-defined wrapper.
+Built-in steps are also available directly as immutable `monochange step <name>` commands. The binary generates those commands from the step schemas, so `monochange step discover`, `monochange step prepare-release`, `monochange step affected-packages`, and the other step commands do not require config entries. Use `monochange step <name>` in CI when you want a stable built-in operation without depending on a repository-defined wrapper.
 
-Some top-level names are reserved for binary commands, including `init`, `mcp`, `help`, `version`, `analyze`, and `check`. The `step:` prefix is reserved for immutable built-in step commands. Do not define `[cli.step:*]` tables.
+Some top-level names are reserved for binary commands, including `init`, `mcp`, `help`, `version`, `analyze`, `check`, and `step`. The `step` command namespace is reserved for immutable built-in step commands. Do not define `[cli.step]` tables.
 
 <!-- {=cliStepExplicitInputInheritance} -->
 
@@ -558,7 +558,7 @@ Some top-level names are reserved for binary commands, including `init`, `mcp`, 
 
 Config-defined workflow commands have two input layers:
 
-1. `[[cli.<command>.inputs]]` declares the flags and arguments accepted by `mc <command>`.
+1. `[[cli.<command>.inputs]]` declares the flags and arguments accepted by `monochange <command>`.
 2. `inputs` on each step decides which of those parsed command inputs are visible while that step runs.
 
 Command inputs are **not inherited automatically**. A step receives a command input only when the step explicitly lists it. This makes wrappers predictable when a command-level flag and a step-specific input share the same name.
@@ -591,7 +591,7 @@ steps = [
 
 Step-local `when` expressions and command templates evaluate against the same explicit step input context. If a `when` condition references `inputs.publish`, the step must include `publish` in its `inputs` array or map. Use `inputs = ["publish"]` for unchanged inheritance, or `inputs = { publish = "{{ inputs.publish }}" }` when you need the map form for other overrides.
 
-Built-in `mc step:*` commands are different: they are generated directly from the step schema, so their CLI flags map to that single step without a `[cli.*]` wrapper.
+Built-in `monochange step <name>` commands are different: they are generated directly from the step schema, so their CLI flags map to that single step without a `[cli.*]` wrapper.
 
 <!-- {/cliStepExplicitInputInheritance} -->
 
@@ -737,11 +737,11 @@ CLI command interpolation variables:
 
 <!-- {/configurationWorkflowVariables} -->
 
-Performance tip: keep the default `mc release` path focused on built-in steps such as `PrepareRelease`. Arbitrary `Command` steps shell out to external tools, so expensive follow-up work like formatting, validation, publishing, or pushes should usually be gated behind an explicit input such as `when = "{{ inputs.commit }}"` if you want local release preparation to stay sub-second.
+Performance tip: keep the default `monochange release` path focused on built-in steps such as `PrepareRelease`. Arbitrary `Command` steps shell out to external tools, so expensive follow-up work like formatting, validation, publishing, or pushes should usually be gated behind an explicit input such as `when = "{{ inputs.commit }}"` if you want local release preparation to stay sub-second.
 
 `RetargetRelease` is intentionally different from `PrepareRelease`-driven steps. It operates from git history plus source/provider information, discovers the durable `ReleaseRecord`, and then exposes structured `retarget.*` outputs for later command steps.
 
-See [Repairable releases](./12-repairable-releases.md) for when to use `mc step:retarget-release` versus publishing a new patch release.
+See [Repairable releases](./12-repairable-releases.md) for when to use `monochange step retarget-release` versus publishing a new patch release.
 
 ## GitHub release settings
 
@@ -933,10 +933,10 @@ Current implementation notes:
 Run:
 
 ```bash
-mc step:validate
+monochange step validate
 ```
 
-`mc step:validate` validates:
+`monochange step validate` validates:
 
 - package and group declarations
 - manifest presence for each package type

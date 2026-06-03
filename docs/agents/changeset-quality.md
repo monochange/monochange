@@ -27,32 +27,32 @@ The goal is to highlight the differences, not duplicate unchanged context.
 
 Example headline for a streamlined invocation:
 
-> #### allow one `mc affected --changed-paths` flag to accept several paths
+> #### allow one `monochange affected --changed-paths` flag to accept several paths
 
 Example body:
 
 > **Before:**
 >
 > ```bash
-> mc affected --changed-paths src/lib.rs --changed-paths crates/core/src/main.rs
+> monochange affected --changed-paths src/lib.rs --changed-paths crates/core/src/main.rs
 > ```
 >
 > **After:**
 >
 > ```bash
-> mc affected --changed-paths src/lib.rs crates/core/src/main.rs
+> monochange affected --changed-paths src/lib.rs crates/core/src/main.rs
 > ```
 >
 > Repeated `--changed-paths` flags continue to work for compatibility.
 
 When the invocation is unchanged but the output changes, prefer a structure like this:
 
-> #### update `mc step:plan-publish-rate-limits --format json` batch filtering
+> #### update `monochange step plan-publish-rate-limits --format json` batch filtering
 >
 > Command:
 >
 > ```bash
-> mc step:plan-publish-rate-limits --format json
+> monochange step plan-publish-rate-limits --format json
 > ```
 >
 > **Before (output):**
@@ -67,7 +67,7 @@ When the invocation is unchanged but the output changes, prefer a structure like
 > { "publishRateLimits": { "batches": ["public"] } }
 > ```
 >
-> Do not repeat the same `mc step:plan-publish-rate-limits --format json` command in both sections.
+> Do not repeat the same `monochange step plan-publish-rate-limits --format json` command in both sections.
 
 When a command is **removed**, explain what users should do instead:
 

@@ -149,6 +149,7 @@ fn telemetry_helpers_use_stable_labels() {
 	assert_eq!(TelemetryOutcome::Error.as_str(), "error");
 	assert_eq!(command_source("validate"), "configured");
 	assert_eq!(command_source("step:discover"), "generated_step");
+	assert_eq!(command_source("step discover"), "generated_step");
 }
 
 #[test]

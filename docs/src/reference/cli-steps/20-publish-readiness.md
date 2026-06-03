@@ -37,13 +37,13 @@ When `output` is set, monochange writes a JSON readiness artifact that includes 
 ## Example
 
 ```bash
-mc step:publish-readiness --from HEAD
-mc step:publish-readiness --from HEAD --output .monochange/local/readiness.json
-mc step:publish-readiness --from v1.2.3 --package core --format json
+monochange step publish-readiness --from HEAD
+monochange step publish-readiness --from HEAD --output .monochange/local/readiness.json
+monochange step publish-readiness --from v1.2.3 --package core --format json
 ```
 
 A readiness-backed rate-limit plan can then consume the artifact:
 
 ```bash
-mc step:plan-publish-rate-limits --mode publish --readiness .monochange/local/readiness.json
+monochange step plan-publish-rate-limits --mode publish --readiness .monochange/local/readiness.json
 ```

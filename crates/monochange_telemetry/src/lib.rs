@@ -282,7 +282,7 @@ fn default_telemetry_file() -> PathBuf {
 }
 
 fn command_source(command_name: &str) -> &'static str {
-	if command_name.starts_with("step:") {
+	if command_name.starts_with("step:") || command_name.starts_with("step ") {
 		"generated_step"
 	} else {
 		"configured"

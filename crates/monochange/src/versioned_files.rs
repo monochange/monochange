@@ -358,7 +358,7 @@ fn apply_inferred_lockfile_updates(
 		};
 
 		// Supported lockfiles can be rewritten directly from the release plan.
-		// That keeps normal `mc release` runs on the fast path instead of paying
+		// That keeps normal `monochange release` runs on the fast path instead of paying
 		// package-manager startup and dependency-resolution costs for every bump.
 		let dep_names = dep_names.into_iter().collect::<Vec<_>>();
 		apply_versioned_file_definition(

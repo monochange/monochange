@@ -1962,7 +1962,7 @@ pub struct ChangesetLoadContext<'a> {
 /// release planning often parses dozens or hundreds of changesets in one run.
 /// The older path rebuilt package/group lookup maps for every file and resolved
 /// package references by rescanning the full discovered package list each time.
-/// On the monochange repo that repeated work dominated `mc release --dry-run`
+/// On the monochange repo that repeated work dominated `monochange release --dry-run`
 /// once the obvious git/network costs were removed.
 ///
 /// This context shifts that cost to a single up-front pass so each changeset can
@@ -2098,7 +2098,7 @@ pub fn load_changeset_file(
 /// Load a changeset file with precomputed package/group indexes.
 ///
 /// Performance note:
-/// this is the hot path for `mc release --dry-run` on repositories that keep a
+/// this is the hot path for `monochange release --dry-run` on repositories that keep a
 /// large `.changeset/` queue. The slow version repeated all of the following for
 /// every file:
 ///
@@ -5779,7 +5779,7 @@ pub fn validate_workspace_with_config(
 ///
 /// This is separate from the structural validation in
 /// `validate_versioned_files()` because it performs file I/O and should only
-/// run during the explicit `mc validate` command, not on every config load.
+/// run during the explicit `monochange validate` command, not on every config load.
 #[must_use = "the validation result must be checked"]
 /// Validate versioned-file paths and parsers against real files on disk.
 /// Validate versioned-file paths and parsers against real files on disk, loading the configuration from disk.

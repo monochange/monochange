@@ -21,11 +21,12 @@
 - [Advanced: CI, package publishing, and release PR flows](guide/13-ci-and-publishing.md)
 - [Advanced: Multi-package publishing patterns](guide/14-multi-package-publishing.md)
 - [Advanced: Publish rate-limit planning](guide/15-publish-rate-limits.md)
+- [Migrating CLI automation to the nested command API](guide/16-cli-command-migration.md)
 
 # Reference
 
-- [Manifest linting with `mc check`](reference/linting.md)
-- [Internal dependency versions with `mc versions`](reference/versions.md)
+- [Manifest linting with `monochange check`](reference/linting.md)
+- [Internal dependency versions with `monochange versions`](reference/versions.md)
 - [Progress output](reference/progress-output.md)
 - [Telemetry](reference/telemetry.md)
 - [Hosted release benchmarks](reference/hosted-release-benchmarks.md)

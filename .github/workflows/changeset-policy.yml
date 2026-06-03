@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
 
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
-          args=(step:affected-packages --format json --verify)
+          args=(step affected-packages --format json --verify)
 
           for path in $CHANGED_FILES; do
             args+=(--changed-paths "$path")
@@ -52,5 +52,5 @@ jobs:
             args+=(--label "$label")
           done
 
-          mc "${args[@]}"
+          monochange "${args[@]}"
         shell: devenv shell -- bash -e {0}

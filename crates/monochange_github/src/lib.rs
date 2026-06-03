@@ -14,7 +14,7 @@
 //!
 //! ## Best for
 //!
-//! - building GitHub release automation on top of `mc release`
+//! - building GitHub release automation on top of `monochange release`
 //! - previewing would-be GitHub releases and release PRs in CI before publishing
 //! - converting grouped or package release targets into repository automation payloads
 //!
@@ -579,7 +579,7 @@ fn apply_github_changeset_annotations(
 /// Apply GitHub URLs and provider metadata without making remote API calls.
 ///
 /// Performance note:
-/// `mc release --dry-run` should stay local and fast. The old path always went
+/// `monochange release --dry-run` should stay local and fast. The old path always went
 /// on to look up PRs and related issues for every changeset commit whenever a
 /// GitHub token was present, which turned a local preview into tens of seconds
 /// of serialized network traffic. The dry-run release path now uses this helper
@@ -2403,7 +2403,7 @@ pub fn trusted_publishing_identity_error(
 	reason: impl std::fmt::Display,
 ) -> MonochangeError {
 	MonochangeError::Config(format!(
-		"`{}` requires trusted publishing from the configured GitHub Actions OIDC identity, but the current context does not match: {reason}. Run `mc step:publish-packages` from the configured CI workflow or set `publish.trusted_publishing = false` to opt out.",
+		"`{}` requires trusted publishing from the configured GitHub Actions OIDC identity, but the current context does not match: {reason}. Run `monochange step publish-packages` from the configured CI workflow or set `publish.trusted_publishing = false` to opt out.",
 		request.package_id,
 	))
 }

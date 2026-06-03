@@ -11,22 +11,22 @@ This repository uses `devenv` for a reproducible shell.
 ```bash
 devenv shell
 install:all
-mc step:validate
-mc step:discover --format json
-mc change --package monochange --bump minor --reason "add release planning"
-mc step:diagnose-changesets --format json
-mc release --dry-run --format json
-mc step:publish-release --dry-run --format json
-mc step:open-release-request --dry-run --format json
-mc step:release-record --from v1.2.3
-mc step:tag-release --from HEAD --dry-run --format json
-mc step:publish-readiness --from HEAD --output .monochange/readiness.json
-mc step:placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
-mc step:publish-readiness --from HEAD --output .monochange/readiness.json
-mc step:plan-publish-rate-limits --readiness .monochange/readiness.json --format json
-mc step:publish-packages --output .monochange/publish-result.json
-mc step:retarget-release --from v1.2.3 --target HEAD --dry-run
-mc release
+monochange step validate
+monochange step discover --format json
+monochange change --package monochange --bump minor --reason "add release planning"
+monochange step diagnose-changesets --format json
+monochange release --dry-run --format json
+monochange step publish-release --dry-run --format json
+monochange step open-release-request --dry-run --format json
+monochange step release-record --from v1.2.3
+monochange step tag-release --from HEAD --dry-run --format json
+monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
+monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
+monochange step publish-packages --output .monochange/publish-result.json
+monochange step retarget-release --from v1.2.3 --target HEAD --dry-run
+monochange release
 ```
 
 <!-- {/repoDevEnvironmentSetupCode} -->
@@ -53,11 +53,11 @@ Shared documentation blocks live in `.templates/` and are synchronized with `mdt
 
 ```bash
 monochange --help
-mc --help
+monochange --help
 docs:check
 docs:update
-mc step:validate
-mc change --package monochange --bump patch --reason "describe the change"
+monochange step validate
+monochange change --package monochange --bump patch --reason "describe the change"
 lint:all
 test:all
 coverage:all
@@ -82,7 +82,7 @@ build:book
 - Every non-trivial behavior change starts with a failing test.
 - Release-planning logic needs realistic fixture coverage.
 - Cross-ecosystem behavior should remain consistent across Cargo, npm-family, Deno, Dart, and Flutter.
-- `mc step:validate` should stay green alongside the rest of the validation suite.
+- `monochange step validate` should stay green alongside the rest of the validation suite.
 
 ## Safety and linting constraints
 

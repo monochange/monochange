@@ -1,6 +1,6 @@
 //! Check command implementation for monochange CLI.
 //!
-//! `mc check` combines workspace validation with manifest lint enforcement.
+//! `monochange check` combines workspace validation with manifest lint enforcement.
 
 use std::collections::BTreeMap;
 use std::fmt::Write;

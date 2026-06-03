@@ -16,13 +16,17 @@ fn setup_fixture(base: &str, name: &str) -> TempDir {
 }
 
 fn run_check(root: &Path, args: &[&str]) -> String {
-	let mut cli_args = vec![OsString::from("mc"), OsString::from("check")];
+	let mut cli_args = vec![OsString::from("monochange"), OsString::from("check")];
 	cli_args.extend(args.iter().map(OsString::from));
 	let runtime = tokio::runtime::Builder::new_current_thread()
 		.enable_all()
 		.build()
 		.unwrap_or_else(|error| panic!("tokio runtime: {error}"));
-	let result = runtime.block_on(monochange::run_with_args_in_dir("mc", cli_args, root));
+	let result = runtime.block_on(monochange::run_with_args_in_dir(
+		"monochange",
+		cli_args,
+		root,
+	));
 	let output = match result {
 		Ok(output) => output,
 		Err(error) => error.to_string(),
