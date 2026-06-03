@@ -42,10 +42,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Clear GITHUB_ENV to prevent "Argument list too long" on devenv shell
-          # GITHUB_ENV can accumulate many PATH entries from previous steps
-          : > "$GITHUB_ENV"
-          : > "$GITHUB_PATH"
+          # Activate devenv environment to avoid “Argument list too long”
+          # error when launching devenv shell with a large PATH from Nix profile.
+          eval "$(devenv print-dev-env)"
 
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
           args=(step:affected-packages --format json --verify)
@@ -59,4 +58,4 @@ jobs:
           done
 
           mc "${args[@]}"
-        shell: devenv shell -- bash -e {0}
+        shell: bash
