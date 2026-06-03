@@ -42,22 +42,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The Nix/devenv/cargo/pnpm setup accumulates a large environment that
-          # exceeds the Linux kernel argv+env limit (~2MB). Trim the environment
-          # before launching any command to avoid “Argument list too long.”
-          # Keep only essential variables and PATH entries.
-          for var in $(compgen -v); do
-            case "$var" in
-              HOME|PATH|USER|SHELL|LANG|LC_ALL|TERM|CI|GITHUB_*|DEVSHELL_*|NIX_*|IN_NIX_SHELL|DEVENV_*|CARGO_*|RUSTUP_*|PNPM_*|CHANGED_FILES|PR_LABELS_JSON)
-                ;;
-              *)
-                unset "$var" || true
-                ;;
-            esac
-          done
-
-          # Activate devenv environment
-          eval "$(devenv print-dev-env)"
+          # Trim PATH to only essential directories to avoid “Argument list too long”
+          # when devenv shell spawns subprocesses.
+          export PATH="$(echo "$PATH" | tr ':' '\n' | grep -E '^/nix/store/|^/home/runner/|^/usr/local|^/usr/bin|^/bin' | tr '\n' ':')"
 
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
           args=(step:affected-packages --format json --verify)
@@ -70,5 +57,5 @@ jobs:
             args+=(--label "$label")
           done
 
-          mc "${args[@]}"
+          devenv shell mc "${args[@]}"
         shell: bash
