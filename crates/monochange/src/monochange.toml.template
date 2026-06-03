@@ -1,5 +1,5 @@
 {#
-  monochange.toml.template -- minijinja template for mc init
+  monochange.toml.template -- minijinja template for monochange init
 
   Compiled into the binary via include_str! and rendered at runtime with
   context from package discovery.  Edit this file directly when config
@@ -19,8 +19,8 @@
 # This file is the single source of truth for release planning, CLI commands,
 # changelog generation, and automation flows in this monorepo.
 #
-# Run `mc step:validate` to check this file against the workspace.
-# Run `mc init` to generate a starter config from detected packages.
+# Run `monochange step validate` to check this file against the workspace.
+# Run `monochange init` to generate a starter config from detected packages.
 
 # =============================================================================
 # [defaults] - repository-wide defaults applied to every package unless
@@ -314,7 +314,7 @@ warn_on_group_mismatch = true
 #                             (default: enabled)
 #     rate_limits.enforce   - block built-in publish runs when the selected
 #                             package set requires more than one known registry
-#                             rate-limit window. Use `mc publish-plan` to inspect
+#                             rate-limit window. Use `monochange publish-plan` to inspect
 #                             batches first. (default: false)
 #     placeholder.readme    - inline README text to use when publishing a
 #                             placeholder package for the first bootstrap
@@ -451,7 +451,7 @@ version_format = "primary"
 #   lockfile_commands — optional escape-hatch commands that refresh ecosystem
 #                       lockfiles after a release updates manifest versions.
 #                       By default monochange rewrites supported lockfiles
-#                       directly from the release plan so `mc release` stays on
+#                       directly from the release plan so `monochange release` stays on
 #                       the fast path. Cargo is not re-run automatically anymore,
 #                       so incomplete Cargo.lock files should be refreshed with
 #                       explicit commands here or manually afterwards. When set,
@@ -763,14 +763,14 @@ ignored_paths = []
 # [cli.*] - optional user-defined CLI commands
 # =============================================================================
 #
-# `mc init` intentionally leaves the starter config without [cli.*] command
+# `monochange init` intentionally leaves the starter config without [cli.*] command
 # tables. Most built-in operations are available directly as immutable
-# `mc step:*` commands, so new projects do not need generated workflow aliases
+# `monochange step *` commands, so new projects do not need generated workflow aliases
 # just to validate, discover, release, publish, or inspect diagnostics.
 #
 # Add [cli.<name>] tables only for project-specific workflows that combine
 # multiple steps, add custom shell commands, or provide organization-specific
-# command names. Each table becomes a top-level `mc <name>` command.
+# command names. Each table becomes a top-level `monochange <name>` command.
 #
 # See the configuration guide for the full [cli.*] schema, input types, and
 # step definition examples.

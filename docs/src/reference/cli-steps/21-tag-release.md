@@ -39,10 +39,10 @@ Do not use this step to repair an already-published tag set. Use `RetargetReleas
 ## Example
 
 ```bash
-mc step:tag-release --from HEAD
-mc step:tag-release --from HEAD --dry-run
-mc step:tag-release --from HEAD --push=false
-mc step:tag-release --from HEAD --dry-run --format json
+monochange step tag-release --from HEAD
+monochange step tag-release --from HEAD --dry-run
+monochange step tag-release --from HEAD --push=false
+monochange step tag-release --from HEAD --dry-run --format json
 ```
 
 In a release workflow, run it after `CommitRelease` has produced the release commit and after any branch-policy validation you want to perform explicitly.

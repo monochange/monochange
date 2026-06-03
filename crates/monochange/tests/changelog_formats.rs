@@ -22,6 +22,7 @@ fn release_changelog_snapshots_match_expected_output(#[case] scenario: &str) {
 	let tempdir = setup_scenario_workspace(&format!("changelog-formats/{scenario}"));
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -54,6 +55,7 @@ fn release_group_alert_snapshots_match_expected_output(#[case] scenario: &str) {
 	let tempdir = setup_scenario_workspace(&format!("changelog-formats/{scenario}"));
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -73,6 +75,7 @@ fn release_uses_linked_keep_a_changelog_titles_without_double_wrapping() {
 	let tempdir = setup_scenario_workspace("changelog-formats/linked-title");
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -93,6 +96,7 @@ fn release_filters_group_changelog_entries_to_selected_member_packages() {
 
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -124,6 +128,7 @@ fn release_renders_group_fallback_when_member_notes_are_filtered_out() {
 
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -148,6 +153,7 @@ fn release_keeps_direct_group_targeted_notes_even_when_group_include_is_group_on
 
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -171,6 +177,7 @@ fn changelog_sections_produce_custom_headings_for_types() {
 	let tempdir = setup_scenario_workspace("changelog-formats/custom-changelog-sections");
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -222,6 +229,7 @@ fn default_changelog_sections_render_heading_for_routed_types() {
 	let tempdir = setup_scenario_workspace("changelog-formats/default-sections-mixed-types");
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -268,6 +276,7 @@ fn excluded_changelog_types_filters_types_from_package() {
 	let tempdir = setup_scenario_workspace("changelog-formats/excluded-changelog-types");
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -317,6 +326,7 @@ fn keep_a_changelog_format_includes_section_headings() {
 	let tempdir = setup_scenario_workspace("changelog-formats/keep-a-changelog-with-sections");
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -345,6 +355,7 @@ fn section_priority_controls_heading_order() {
 	let tempdir = setup_scenario_workspace("changelog-formats/section-priority-ordering");
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -377,6 +388,7 @@ fn release_excludes_allowlisted_group_notes_when_a_changeset_targets_disallowed_
 
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));

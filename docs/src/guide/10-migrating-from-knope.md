@@ -9,7 +9,7 @@ monochange was originally inspired by knope and shares many of the same ideas â€
 | Feature                | knope                         | monochange                                        |
 | ---------------------- | ----------------------------- | ------------------------------------------------- |
 | Config file            | `knope.toml`                  | `monochange.toml`                                 |
-| CLI binary             | `knope`                       | `monochange` / `mc`                               |
+| CLI binary             | `knope`                       | `monochange` / `monochange`                       |
 | Changeset directory    | `.changeset/`                 | `.changeset/`                                     |
 | Changeset format       | Markdown frontmatter          | Markdown frontmatter                              |
 | Conventional commits   | Supported                     | Not supported                                     |
@@ -366,10 +366,10 @@ If your knope config uses conventional commits alongside changesets:
 ignore_conventional_commits = false # or absent
 ```
 
-Switch to changeset-only workflows. Use `mc change` to create changesets:
+Switch to changeset-only workflows. Use `monochange change` to create changesets:
 
 ```bash
-mc change --package my_crate --bump minor --reason "add new feature"
+monochange change --package my_crate --bump minor --reason "add new feature"
 ```
 
 ### knope `scopes`
@@ -440,7 +440,7 @@ Replace with the equivalent monochange command:
 
 ```yaml
 # After
-- run: mc release
+- run: monochange release
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -450,7 +450,7 @@ For PR-based release flows with monochange, add a changeset policy workflow:
 ```yaml
 - name: run changeset policy
   run: |
-    mc step:affected-packages --format json --verify \
+    monochange step affected-packages --format json --verify \
       --changed-paths file1.rs \
       --changed-paths file2.rs
 ```
@@ -605,7 +605,7 @@ required = true
 [[cli.change.steps]]
 type = "CreateChangeFile"
 
-# `validate` is a built-in step command; run `mc step:validate` directly instead of defining [cli.validate].
+# `validate` is a built-in step command; run `monochange step validate` directly instead of defining [cli.validate].
 ```
 
 ## Migration checklist
@@ -617,7 +617,7 @@ type = "CreateChangeFile"
 - [ ] Replace `[github]` with `[source]`
 - [ ] Remove `scopes` and `[changes]` sections (no conventional commits)
 - [ ] Update `.changeset/*.md` frontmatter keys to use declared package/group ids
-- [ ] Update CI workflows from `knope <command>` to `mc <command>`
-- [ ] Run `mc step:validate` to check config and changesets
-- [ ] Run `mc release --dry-run` to verify the release plan
+- [ ] Update CI workflows from `knope <command>` to `monochange <command>`
+- [ ] Run `monochange step validate` to check config and changesets
+- [ ] Run `monochange release --dry-run` to verify the release plan
 - [ ] Remove knope from your dependencies and install monochange

@@ -14,10 +14,10 @@ Use this when adding monochange to an existing monorepo.
 ## Initial commands
 
 ```bash
-mc init
-mc step:validate
-mc step:discover --format json
-mc check
+monochange init
+monochange step validate
+monochange step discover --format json
+monochange check
 ```
 
 Edit the generated config rather than accepting it blindly.
@@ -40,7 +40,7 @@ A good initial adoption has:
 - Optional `[group.*]` entries for synchronized versions.
 - `[ecosystems.*]` settings for enabled ecosystems and lockfile/versioned-file behavior.
 - `[changesets.affected]` if CI checks changeset coverage.
-- `[lints]` if `mc check` should enforce manifest rules.
+- `[lints]` if `monochange check` should enforce manifest rules.
 - `[cli.*]` workflows for common team commands.
 
 ## Installation

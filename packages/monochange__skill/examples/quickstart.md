@@ -1,9 +1,9 @@
 # Quickstart: npm packages
 
 ```bash
-mc init
-mc step:validate
-mc step:discover --format json
+monochange init
+monochange step validate
+monochange step discover --format json
 ```
 
 ```toml
@@ -25,7 +25,7 @@ lockfile_commands = ["pnpm install --lockfile-only"]
 Create release intent, then preview:
 
 ```bash
-mc step:create-change-file --package @acme/api --bump minor --reason "Add webhook filters"
-mc step:validate
-mc step:prepare-release --dry-run --format json
+monochange step create-change-file --package @acme/api --bump minor --reason "Add webhook filters"
+monochange step validate
+monochange step prepare-release --dry-run --format json
 ```

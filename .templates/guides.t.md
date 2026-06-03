@@ -24,7 +24,7 @@
 
 <!-- {@initProviderFeature} -->
 
-The `--provider` flag supports `github`, `gitlab`, and `gitea`. When provided, `mc init`:
+The `--provider` flag supports `github`, `gitlab`, and `gitea`. When provided, `monochange init`:
 
 1. **Configures the `[source]` section** — adds provider-specific settings for releases and pull/merge requests
 2. **Generates provider CLI commands** — includes `commit-release` and `release-pr` commands in `monochange.toml`
@@ -96,7 +96,7 @@ For GitLab and Gitea, the `[source]` section is configured but workflows are not
 
 ```bash
 # Initialize with GitHub automation pre-configured
-mc init --provider github
+monochange init --provider github
 
 # The generated monochange.toml includes:
 # - [source] section with GitHub releases and pull request settings
@@ -543,16 +543,16 @@ version_format = "primary"
 <!-- {@releaseChangesAddCommand} -->
 
 ```bash
-mc change --package sdk-core --bump minor --reason "public API addition"
-mc change --package sdk-core --bump patch --type security --reason "rotate signing keys" --details "Roll the signing key before the release window closes."
-mc change --package sdk-core --bump none --type docs --reason "clarify migration guidance" --output .changeset/sdk-core-docs.md
-mc change --package sdk-core --bump major --version 2.0.0 --reason "break the public API" --output .changeset/sdk-core-major.md
+monochange change --package sdk-core --bump minor --reason "public API addition"
+monochange change --package sdk-core --bump patch --type security --reason "rotate signing keys" --details "Roll the signing key before the release window closes."
+monochange change --package sdk-core --bump none --type docs --reason "clarify migration guidance" --output .changeset/sdk-core-docs.md
+monochange change --package sdk-core --bump major --version 2.0.0 --reason "break the public API" --output .changeset/sdk-core-major.md
 ```
 
 Or use interactive mode to select packages, bumps, and options from a guided wizard:
 
 ```bash
-mc change -i
+monochange change -i
 ```
 
 Interactive mode automatically prevents conflicting selections (a group and one of its members) and lets you pick per-package bumps and optional explicit versions.
@@ -595,15 +595,15 @@ When `version` is provided without `bump`, the bump is inferred from the current
 
 <!-- {@releasePlanningRules} -->
 
-- `mc change` defaults `--bump` to `patch`; use `--bump none` when you want a type-only or version-only entry, and pass `--version` to pin an explicit release version
+- `monochange change` defaults `--bump` to `patch`; use `--bump none` when you want a type-only or version-only entry, and pass `--version` to pin an explicit release version
 - markdown change files use package/group ids as the only top-level frontmatter keys, with scalar shorthand for `none`/`patch`/`minor`/`major` or configured change types, plus object syntax for `bump`, `version`, `type`, and `caused_by`
 - when `version` is given without `bump`, the bump is inferred by comparing the current and target versions
 - explicit versions from grouped members propagate to the group version; conflicts take the highest semver or fail when `defaults.strict_version_conflicts = true`
 - prefer package ids over group ids in authored changesets when possible; direct package changes still propagate to dependents and synchronize configured groups
 - optional change `type` values can route entries into custom changelog sections, and configured section `default_bump` values let scalar type shorthand imply the desired semver behavior
 - `caused_by` references package or group ids and suppresses only the matching dependency-propagation records; use object syntax whenever you need it
-- `mc change` accepts repeated `--caused-by <id>` flags, and `--bump none` is the right fit when you want to acknowledge an affected package without forcing a user-facing version bump
-- `mc change` can write to a deterministic path with `--output ...`
+- `monochange change` accepts repeated `--caused-by <id>` flags, and `--bump none` is the right fit when you want to acknowledge an affected package without forcing a user-facing version bump
+- `monochange change` can write to a deterministic path with `--output ...`
 - change templates support detailed multi-line release-note entries through `{{ details }}`, compact metadata blocks through `{{ context }}`, and fine-grained linked metadata like `{{ change_owner_link }}`, `{{ review_request_link }}`, and `{{ closed_issue_links }}`
 - dependents default to the configured `parent_bump`, including packages outside a changed version group when they depend on a synchronized member
 - computed compatibility evidence can still escalate both the changed crate and its dependents when provider analysis produces it
@@ -620,13 +620,13 @@ When `version` is provided without `bump`, the bump is inferred from the current
 
 <!-- {@releaseWorkflowBehavior} -->
 
-`mc release` is a config-driven workflow command only when your repository defines a `[cli.release]` table. `mc init` writes a minimal starter config and does not seed default workflow aliases, so use the immutable `mc step:prepare-release` command unless you add your own named workflow.
+`monochange run release` is a config-driven workflow command only when your repository defines a `[cli.release]` table. `monochange init` writes a minimal starter config and does not seed default workflow aliases, so use the immutable `monochange step prepare-release` command unless you add your own named workflow.
 
-The binary no longer ships a hidden default workflow set for commands such as `discover`, `change`, `release`, `affected`, `diagnostics`, `repair-release`, `publish`, or `publish-plan`. Those names exist only when your config defines them. If a repository has not opted into a named workflow, use the immutable step command instead, for example `mc step:discover`, `mc step:create-change-file`, `mc step:prepare-release`, `mc step:affected-packages`, `mc step:diagnose-changesets`, `mc step:retarget-release`, `mc step:publish-readiness`, or `mc step:plan-publish-rate-limits`.
+The binary no longer ships a hidden default workflow set for commands such as `discover`, `change`, `release`, `affected`, `diagnostics`, `repair-release`, `publish`, or `publish-plan`. Those names exist under `monochange run <name>` only when your config defines them. If a repository has not opted into a named workflow, use the immutable step command instead, for example `monochange step discover`, `monochange step create-change-file`, `monochange step prepare-release`, `monochange step affected-packages`, `monochange step diagnose-changesets`, `monochange step retarget-release`, `monochange step publish-readiness`, or `monochange step plan-publish-rate-limits`.
 
-`mc step:validate` is the immutable built-in step command for normal preflight checks. Do not define `[cli.validate]` or any `[cli.step:*]` command in `monochange.toml`; those names are reserved for built-in commands.
+`monochange step validate` is the immutable built-in step command for normal preflight checks. Do not define `[cli.validate]` or `[cli.step]` in `monochange.toml`; those names are reserved for built-in commands.
 
-Commands like `commit-release` combine `PrepareRelease` with later stateful steps such as `CommitRelease`. Provider request workflows such as `release-pr` can add `OpenReleaseRequest`. Keep both as explicit `[cli.*]` workflow commands when you want a durable, named release process.
+Configured workflows like `monochange run commit-release` combine `PrepareRelease` with later stateful steps such as `CommitRelease`. Provider request workflows such as `monochange run release-pr` can add `OpenReleaseRequest`. Keep both as explicit `[cli.*]` workflow commands when you want a durable, named release process.
 
 Current `PrepareRelease` behavior:
 
@@ -696,7 +696,7 @@ jobs:
           set -euo pipefail
 
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
-          args=(step:affected-packages --format json --verify)
+          args=(step affected-packages --format json --verify)
 
           for path in $CHANGED_FILES; do
             args+=(--changed-paths "$path")
@@ -706,7 +706,7 @@ jobs:
             args+=(--label "$label")
           done
 
-          devenv shell -- mc "${args[@]}" | tee policy.raw
+          devenv shell -- monochange "${args[@]}" | tee policy.raw
           awk 'BEGIN { capture = 0 } /^\{/ { capture = 1 } capture { print }' policy.raw > policy.json
           jq -e '.status != "failed"' policy.json >/dev/null
 ```
@@ -719,20 +719,20 @@ monochange keeps source-provider automation layered on top of the same `PrepareR
 
 That means one set of `.changeset/*.md` inputs can drive all of these commands and automation flows consistently:
 
-- `mc step:prepare-release --dry-run --format json` refreshes the cached manifest and shows the downstream automation payload
-- `mc step:publish-release` previews or publishes provider releases from the structured release notes
-- `mc step:open-release-request` previews or opens an idempotent provider release request; when `[source.pull_requests].verified_commits = true` and the step runs on GitHub Actions for the configured repository, the GitHub provider pushes a normal release branch commit as a fallback and then only moves the branch to a Git Database API replacement commit when GitHub reports that replacement as verified
-- `mc step:affected-packages` evaluates pull-request changeset policy from CI-supplied changed paths and labels without requiring a config-defined wrapper command
+- `monochange step prepare-release --dry-run --format json` refreshes the cached manifest and shows the downstream automation payload
+- `monochange step publish-release` previews or publishes provider releases from the structured release notes
+- `monochange step open-release-request` previews or opens an idempotent provider release request; when `[source.pull_requests].verified_commits = true` and the step runs on GitHub Actions for the configured repository, the GitHub provider pushes a normal release branch commit as a fallback and then only moves the branch to a Git Database API replacement commit when GitHub reports that replacement as verified
+- `monochange step affected-packages` evaluates pull-request changeset policy from CI-supplied changed paths and labels without requiring a config-defined wrapper command
 
 <!-- {/githubAutomationOverview} -->
 
 <!-- {@githubAutomationWorkflowCommands} -->
 
 ```bash
-mc step:prepare-release --dry-run --format json
-mc step:publish-release --dry-run --format json
-mc step:open-release-request --dry-run --format json
-mc step:affected-packages --format json --verify --changed-paths crates/monochange/src/lib.rs
+monochange step prepare-release --dry-run --format json
+monochange step publish-release --dry-run --format json
+monochange step open-release-request --dry-run --format json
+monochange step affected-packages --format json --verify --changed-paths crates/monochange/src/lib.rs
 ```
 
 <!-- {/githubAutomationWorkflowCommands} -->
@@ -896,7 +896,7 @@ type = "AffectedPackages"
 The monochange repository itself can dogfood this model by:
 
 - declaring `[source]`, `[source.releases]`, and `[source.pull_requests]` in `monochange.toml`
-- running a real `changeset-policy` GitHub Actions workflow that shells into `mc step:affected-packages`
+- running a real `changeset-policy` GitHub Actions workflow that shells into `monochange step affected-packages`
 - publishing the CLI npm packages from `.github/workflows/publish.yml` with the protected `publisher` environment and `id-token: write`, without `NODE_AUTH_TOKEN` or `NPM_TOKEN`
 
 For monochange's own npm packages, register every package under the GitHub trusted-publishing context `monochange/monochange`, workflow file `publish.yml`, and environment `publisher` before the first tokenless publish:
@@ -926,7 +926,7 @@ After copying the bundled skill, you get a small documentation set that is desig
 - `skills/changesets.md` — changeset authoring and lifecycle guidance
 - `skills/commands.md` — built-in command catalog and workflow selection
 - `skills/configuration.md` — `monochange.toml` setup and editing guidance
-- `skills/linting.md` — `[lints]` presets, `mc check`, and manifest-focused examples
+- `skills/linting.md` — `[lints]` presets, `monochange check`, and manifest-focused examples
 - `examples/README.md` — condensed scenario examples for quick recommendations
 
 This layout keeps the top-level skill small while still making the richer guidance available when an assistant needs more context.
@@ -968,12 +968,12 @@ This layout keeps the top-level skill small while still making the richer guidan
 <!-- {@assistantRepoGuidance} -->
 
 - Read `monochange.toml` before proposing release workflow changes.
-- Run `mc step:validate` before and after release-affecting edits.
-- Use `mc step:discover --format json` to inspect package ids, group ownership, and dependency edges.
-- Use `mc step:diagnose-changesets --format json` or `monochange_diagnostics` for a structured view of all pending changesets with git and review context.
+- Run `monochange step validate` before and after release-affecting edits.
+- Use `monochange step discover --format json` to inspect package ids, group ownership, and dependency edges.
+- Use `monochange step diagnose-changesets --format json` or `monochange_diagnostics` for a structured view of all pending changesets with git and review context.
 - Use `monochange_lint_catalog` and `monochange_lint_explain` when you need lint metadata without shelling out.
-- Prefer `mc change` plus `.changeset/*.md` files over ad hoc release notes.
-- Use `mc step:prepare-release --dry-run --format json` before mutating release state.
+- Prefer `monochange change` plus `.changeset/*.md` files over ad hoc release notes.
+- Use `monochange step prepare-release --dry-run --format json` before mutating release state.
 
 <!-- {/assistantRepoGuidance} -->
 
@@ -981,30 +981,30 @@ This layout keeps the top-level skill small while still making the richer guidan
 
 Use this guide when the task is to configure or explain monochange's **lint rules**.
 
-These are the rules that run through **`mc check`** and are configured in `monochange.toml` under the top-level **`[lints]`** section. They are separate from Rust compiler or Clippy lints used to develop monochange itself.
+These are the rules that run through **`monochange check`** and are configured in `monochange.toml` under the top-level **`[lints]`** section. They are separate from Rust compiler or Clippy lints used to develop monochange itself.
 
 This page is the human-readable companion to the live lint catalog. For machine-readable output or to verify the exact catalog in the installed binary, run:
 
 ```bash
-mc lint list --format json
-mc lint explain <rule-or-preset-id>
+monochange lint list --format json
+monochange lint explain <rule-or-preset-id>
 ```
 
-## What `mc check` does
+## What `monochange check` does
 
-`mc check` runs two phases:
+`monochange check` runs two phases:
 
-1. normal workspace validation, similar to `mc step:validate`
+1. normal workspace validation, similar to `monochange step validate`
 2. changeset and manifest lint rules for configured package ecosystems
 
 Common commands:
 
 ```bash
-mc check
-mc check --fix
-mc check --format json
-mc lint list
-mc lint explain cargo/recommended
+monochange check
+monochange check --fix
+monochange check --format json
+monochange lint list
+monochange lint explain cargo/recommended
 ```
 
 Use `--fix` when you want monochange to apply auto-fixes where a rule supports them. Rules that are not autofixable still report diagnostics and suggested remediation.
@@ -1684,7 +1684,7 @@ Example:
 
 **Why:** when workspace packages reference each other with hosted version ranges, those ranges should not drift away from the current workspace version.
 
-**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `mc versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
+**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `monochange versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
 
 ### `dart/flutter-package-metadata-consistent`
 
@@ -1739,36 +1739,36 @@ flutter:
 
 - `fix` — defaults to `true`; rewrites Flutter assets and fonts in sorted order.
 
-## What `mc check` looks like in practice
+## What `monochange check` looks like in practice
 
 Use plain text for local review:
 
 ```bash
-mc check
+monochange check
 ```
 
 Apply safe auto-fixes where possible:
 
 ```bash
-mc check --fix
+monochange check --fix
 ```
 
 Use JSON for CI or MCP-style tooling:
 
 ```bash
-mc check --format json
+monochange check --format json
 ```
 
-`mc check` fails when lint errors are present, so it is appropriate for CI gates.
+`monochange check` fails when lint errors are present, so it is appropriate for CI gates.
 
 ## Recommended workflow
 
 For repository work:
 
 ```bash
-mc step:validate
-mc check
-mc step:prepare-release --dry-run --diff
+monochange step validate
+monochange check
+monochange step prepare-release --dry-run --diff
 ```
 
 If you changed shared docs too:

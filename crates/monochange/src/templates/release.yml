@@ -32,7 +32,7 @@ jobs:
         with:
           tool: cargo-binstall
 
-      - name: install mc
+      - name: install monochange
         run: cargo binstall monochange --no-confirm
 
       - name: configure git
@@ -60,13 +60,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mc step:prepare-release --format markdown
-          mc step:open-release-request --format markdown
+          monochange step prepare-release --format markdown
+          monochange step open-release-request --format markdown
 
       - name: create release tags
         if: steps.release_record.outputs.is_release_commit == 'true'
-        run: mc step:tag-release --from HEAD
+        run: monochange step tag-release --from HEAD
 
       - name: publish packages
         if: steps.release_record.outputs.is_release_commit == 'true'
-        run: mc step:publish-packages
+        run: monochange step publish-packages

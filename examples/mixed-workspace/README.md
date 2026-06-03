@@ -12,9 +12,9 @@ This is a repo-shaped example for a cross-ecosystem monorepo that manages Cargo 
 ## Recommended validation flow
 
 ```bash
-mc step:validate
-mc check
-mc release --dry-run --diff
+monochange step validate
+monochange check
+monochange release --dry-run --diff
 ```
 
 ## Why this example is opinionated

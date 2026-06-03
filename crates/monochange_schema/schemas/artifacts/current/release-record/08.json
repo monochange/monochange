@@ -24,7 +24,7 @@
 			]
 		}
 	],
-	"command": "mc release --commit",
+	"command": "monochange release --commit",
 	"created_at": "2026-01-08T00:00:00Z",
 	"deleted_changesets": [
 		".changeset/schema-artifact-8.md"

@@ -14,7 +14,7 @@
 //!
 //! ## Best for
 //!
-//! - building GitLab release automation on top of `mc release`
+//! - building GitLab release automation on top of `monochange release`
 //! - previewing would-be GitLab releases and merge requests in CI before publishing
 //! - self-hosted GitLab instances that need the same release workflow as GitHub
 //!

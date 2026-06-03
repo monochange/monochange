@@ -27,7 +27,7 @@ jobs:
         with:
           tool: cargo-binstall
 
-      - name: install mc
+      - name: install monochange
         run: cargo binstall monochange --no-confirm
 
       - name: collect changed files
@@ -41,13 +41,13 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
-          args=(step:affected-packages --format json --verify)
+          args=(step affected-packages --format json --verify)
           for path in $CHANGED_FILES; do
             args+=(--changed-paths "$path")
           done
           for label in "${labels[@]}"; do
             args+=(--label "$label")
           done
-          mc "${args[@]}" | tee policy.raw
+          monochange "${args[@]}" | tee policy.raw
           awk 'BEGIN{c=0}/^\{/{c=1}c{print}' policy.raw > policy.json
           jq -e '.status != "failed"' policy.json >/dev/null

@@ -615,7 +615,7 @@ fn classification_confidence(recommendation: BumpSeverity) -> &'static str {
 
 #[coverage(off)]
 fn change_classify_help() -> String {
-	"Usage: mc change classify [--base <REF>] [--head <REF>] [--format <markdown|json>] [--output <PATH>]\n\nClassify API changes for changed packages using monochange semantic snapshots.\n\nExamples:\n  mc change classify --base origin/main --format markdown\n  mc change classify --base origin/main --head HEAD --format json".to_string()
+	"Usage: monochange change classify [--base <REF>] [--head <REF>] [--format <markdown|json>] [--output <PATH>]\n\nClassify API changes for changed packages using monochange semantic snapshots.\n\nExamples:\n  monochange change classify --base origin/main --format markdown\n  monochange change classify --base origin/main --head HEAD --format json".to_string()
 }
 
 #[cfg(test)]

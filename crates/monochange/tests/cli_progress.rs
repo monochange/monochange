@@ -286,6 +286,7 @@ fn ascii_progress_renders_clean_captured_output() {
 
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("progress-ascii")
 		.arg("--progress-format")
 		.arg("ascii")
@@ -312,6 +313,7 @@ fn json_progress_emits_structured_events_for_machine_consumers() {
 
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("progress-json")
 		.arg("--progress-format")
 		.arg("json")

@@ -7,8 +7,8 @@
 # This file is the single source of truth for release planning, CLI commands,
 # changelog generation, and automation flows in this monorepo.
 #
-# Run `mc step:validate` to check this file against the workspace.
-# Run `mc init` to generate a starter config from detected packages.
+# Run `monochange step validate` to check this file against the workspace.
+# Run `monochange init` to generate a starter config from detected packages.
 
 # =============================================================================
 # [defaults] — repository-wide defaults applied to every package unless
@@ -518,7 +518,7 @@ ignored_paths = [
 # =============================================================================
 #
 # Configure lint presets, path filters, and rule overrides for manifest files
-# checked by `mc check`.
+# checked by `monochange check`.
 #
 # Fields:
 #   use             — preset ids to enable globally (default: [])
@@ -699,14 +699,14 @@ verified_commits = true
 # [cli.*] — user-defined CLI commands
 # =============================================================================
 #
-# Each [cli.<name>] table becomes a top-level `mc <name>` command.
+# Each [cli.<name>] table becomes a top-level `monochange <name>` command.
 #
 # Reserved names that cannot be used include hardcoded commands such as
 # "agent", "agents", "analyze", "check", "fix", "help", "init", "lint",
 # "lsp", "mcp", "skill", "skills", "subagents", "validate", and "version".
 #
 # Fields:
-#   help_text — description shown in `mc --help`
+#   help_text — description shown in `monochange --help`
 #   inputs    — command-line arguments/flags
 #   steps     — ordered list of step definitions to execute
 #

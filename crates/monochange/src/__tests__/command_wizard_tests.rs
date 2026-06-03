@@ -508,7 +508,7 @@ inputs = [
 	{ name = "attempts", type = "string", default = 3 },
 	{ name = "threshold", type = "string", default = 2.5 },
 ]
-steps = [{ type = "Command", command = "mc version" }]
+steps = [{ type = "Command", command = "monochange version" }]
 "#;
 
 	let command = read_cli_command(config, "release")
@@ -606,7 +606,7 @@ fn command_name_validation_reports_prompt_and_shape_errors() {
 			" release",
 			"command name cannot include leading or trailing whitespace",
 		),
-		("step:release", "command names cannot start with `step:`"),
+		("step release", "command names cannot start with `step `"),
 		("-release", "hyphens must separate words"),
 	] {
 		let error = validate_command_name(name)

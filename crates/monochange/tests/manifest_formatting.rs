@@ -18,6 +18,7 @@ fn release_preserves_cargo_manifest_formatting_while_updating_versions() {
 	let tempdir = setup_scenario_workspace("manifest-formatting/preserve-cargo");
 	let output = monochange_command(Some("2026-04-09"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -57,6 +58,7 @@ fn release_preserves_non_cargo_manifest_formatting_while_updating_versions() {
 	let tempdir = setup_scenario_workspace("manifest-formatting/preserve-ecosystem-manifests");
 	let output = monochange_command(Some("2026-04-09"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));

@@ -32,8 +32,8 @@ The selected ref, or one of its first-parent ancestors, must contain a valid mon
 ## Example
 
 ```bash
-mc step:release-record --from v1.2.3
-mc step:release-record --from HEAD --format json
+monochange step release-record --from v1.2.3
+monochange step release-record --from HEAD --format json
 ```
 
 Use it before tag repair or package-publish planning when you need to confirm the exact release state that downstream commands will consume.

@@ -12,38 +12,38 @@ monochange is a CLI/tool harness for producing versioned packages from a monorep
 ## Inspecting a repository
 
 ```bash
-mc help
-mc step:validate
-mc check
-mc step:config
-mc step:discover --format json
+monochange help
+monochange step validate
+monochange check
+monochange step config
+monochange step discover --format json
 ```
 
-If a repository defines user workflows, `mc help` will show them under user-defined commands. The monochange repo currently defines `change`, `publish-check`, and `release`; those are configuration-defined, not universal built-ins.
+If a repository defines user workflows, `monochange help` will show them under user-defined commands. The monochange repo currently defines `change`, `publish-check`, and `release`; those are configuration-defined, not universal built-ins.
 
 ## Version planning flow
 
 ```bash
-mc step:validate
-mc step:discover --format json
-mc step:diagnose-changesets --format json
-mc step:prepare-release --dry-run --format json
+monochange step validate
+monochange step discover --format json
+monochange step diagnose-changesets --format json
+monochange step prepare-release --dry-run --format json
 ```
 
 If configured aliases exist, users may prefer:
 
 ```bash
-mc step:discover --format json
-mc step:diagnose-changesets --format json
-mc release --dry-run --format json
-mc release --dry-run --diff
+monochange step discover --format json
+monochange step diagnose-changesets --format json
+monochange release --dry-run --format json
+monochange release --dry-run --diff
 ```
 
 ## Release mutation flow
 
 A safe release workflow usually does this:
 
-1. Validate and lint (`mc step:validate`, `mc check`).
+1. Validate and lint (`monochange step validate`, `monochange check`).
 2. Preview versioned files (`PrepareRelease` dry-run).
 3. Apply `PrepareRelease` for real.
 4. Run configured lockfile/schema/format commands.
@@ -57,18 +57,18 @@ Do not skip review before commit, tag, provider-release, or package-publish step
 Current built-in package publishing is release-record oriented:
 
 ```bash
-mc step:publish-readiness --from HEAD --output readiness.json
-mc step:placeholder-publish --from HEAD --output bootstrap.json
-mc step:plan-publish-rate-limits --readiness readiness.json --format json
-mc step:publish-packages --output publish-result.json
+monochange step publish-readiness --from HEAD --output readiness.json
+monochange step placeholder-publish --from HEAD --output bootstrap.json
+monochange step plan-publish-rate-limits --readiness readiness.json --format json
+monochange step publish-packages --output publish-result.json
 ```
 
-`mc step:publish-readiness`, `mc step:placeholder-publish`, `mc step:plan-publish-rate-limits`, and `mc step:publish-packages` are built in. Repositories may define shorter workflow aliases such as `mc publish-plan` or `mc publish`, but those names are not universal.
+`monochange step publish-readiness`, `monochange step placeholder-publish`, `monochange step plan-publish-rate-limits`, and `monochange step publish-packages` are built in. Repositories may define shorter workflow aliases such as `monochange publish-plan` or `monochange publish`, but those names are not universal.
 
 Use `mode = "external"` for private/custom registries or when existing CI handles package publication.
 
 ## MCP usage
 
-Run `mc mcp` to expose structured tools to an MCP client. Use MCP for agent workflows that need JSON by default, especially validation, discovery, diagnostics, changeset creation, release previews, affected-package checks, and lint explanations.
+Run `monochange mcp` to expose structured tools to an MCP client. Use MCP for agent workflows that need JSON by default, especially validation, discovery, diagnostics, changeset creation, release previews, affected-package checks, and lint explanations.
 
 Current tools are listed in `SKILL.md`.

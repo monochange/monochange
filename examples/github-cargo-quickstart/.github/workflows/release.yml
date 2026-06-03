@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if mc step:release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
+          if monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
             echo "is_release_commit=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_release_commit=false" >> "$GITHUB_OUTPUT"
@@ -38,8 +38,8 @@ jobs:
         if: steps.release_record.outputs.is_release_commit != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mc release-pr
+        run: monochange release-pr
 
       - name: create release tags
         if: steps.release_record.outputs.is_release_commit == 'true'
-        run: mc step:tag-release --from HEAD
+        run: monochange step tag-release --from HEAD

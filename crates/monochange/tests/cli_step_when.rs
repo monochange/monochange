@@ -60,6 +60,7 @@ fn cli_step_when_skips_non_command_steps_when_false() {
 fn run_command(root: &Path, command: &str, args: &[&str]) -> Output {
 	let output = monochange_command(None)
 		.current_dir(root)
+		.arg("run")
 		.arg(command)
 		.args(args)
 		.output()

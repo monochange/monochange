@@ -235,7 +235,11 @@ fn init_and_populate_workspace_cover_common_error_and_noop_paths() {
 	let missing_error = populate_workspace(empty_root.path())
 		.err()
 		.unwrap_or_else(|| panic!("expected missing config error"));
-	assert!(missing_error.to_string().contains("run `mc init` first"));
+	assert!(
+		missing_error
+			.to_string()
+			.contains("run `monochange init` first")
+	);
 
 	let populated_root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	fs::write(

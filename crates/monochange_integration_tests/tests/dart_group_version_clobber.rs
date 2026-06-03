@@ -66,16 +66,21 @@ fn create_changeset(root: &Path, package: &str, bump: &str, summary: &str) {
 
 fn run_prepare_release(root: &Path) -> String {
 	let cli_args = vec![
-		std::ffi::OsString::from("mc"),
-		std::ffi::OsString::from("step:prepare-release"),
+		std::ffi::OsString::from("monochange"),
+		std::ffi::OsString::from("step"),
+		std::ffi::OsString::from("prepare-release"),
 	];
 	let runtime = tokio::runtime::Builder::new_current_thread()
 		.enable_all()
 		.build()
 		.unwrap_or_else(|error| panic!("tokio runtime: {error}"));
 	runtime
-		.block_on(monochange::run_with_args_in_dir("mc", cli_args, root))
-		.unwrap_or_else(|error| panic!("mc step:prepare-release: {error}"))
+		.block_on(monochange::run_with_args_in_dir(
+			"monochange",
+			cli_args,
+			root,
+		))
+		.unwrap_or_else(|error| panic!("monochange step prepare-release: {error}"))
 }
 
 #[test]

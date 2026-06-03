@@ -1,9 +1,10 @@
 ---
 source: crates/monochange/tests/cli_help.rs
 info:
-  program: mc
+  program: monochange
   args:
     - help
+    - run
     - change
   env:
     NO_COLOR: "1"
@@ -13,7 +14,7 @@ success: true
 exit_code: 0
 ----- stdout -----
 ╭──────────────────────────────────────────────────────────╮
-│  mc change                                               │
+│  monochange change                                       │
 │  Create a change file for one or more packages           │
 ╰──────────────────────────────────────────────────────────╯
 
@@ -25,7 +26,7 @@ exit_code: 0
 
 ▸ Usage
 
-  mc change [OPTIONS]
+  monochange change [OPTIONS]
 
 ▸ Options
 
@@ -42,22 +43,22 @@ exit_code: 0
 ▸ Examples
 
   Quick patch for a single package:
-    mc change --package core --bump patch --reason "fix null pointer"
+    monochange change --package core --bump patch --reason "fix null pointer"
 
   Minor feature with output path:
-    mc change --package api --bump minor --reason "add pagination" --output .changeset/api-pagination.md
+    monochange change --package api --bump minor --reason "add pagination" --output .changeset/api-pagination.md
 
   Group-level change:
-    mc change --package sdk --bump minor --reason "coordinated release"
+    monochange change --package sdk --bump minor --reason "coordinated release"
 
   Dependency-only follow-up:
-    mc change --package utils --bump patch --caused-by core --reason "bump for core compat"
+    monochange change --package utils --bump patch --caused-by core --reason "bump for core compat"
 
   Interactive mode:
-    mc change --interactive
+    monochange change --interactive
 
   Explicit version pin:
-    mc change --package core --bump major --version 2.0.0 --reason "promote to stable"
+    monochange change --package core --bump major --version 2.0.0 --reason "promote to stable"
 
 ▸ Tips
 
@@ -69,7 +70,7 @@ exit_code: 0
 
 ▸ See Also
 
-  mc help release  mc help versions  mc help affected
+  monochange help release  monochange help versions  monochange help affected
 
 
 ----- stderr -----

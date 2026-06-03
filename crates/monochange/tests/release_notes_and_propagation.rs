@@ -25,6 +25,7 @@ fn release_note_changelog_snapshots_match_expected_output(#[case] scenario: &str
 	let tempdir = setup_scenario_workspace(&format!("release-notes-and-propagation/{scenario}"));
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -65,6 +66,7 @@ fn ungrouped_transitive_bump_with_parent_bump_minor_escalates_dependent_version(
 	let tempdir = setup_scenario_workspace("release-notes-and-propagation/ungrouped-minor");
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.arg("--dry-run")
 		.arg("--format")
@@ -99,6 +101,7 @@ fn custom_empty_update_message_on_package_overrides_default() {
 		setup_scenario_workspace("release-notes-and-propagation/ungrouped-custom-package-message");
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));

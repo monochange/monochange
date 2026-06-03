@@ -1,9 +1,10 @@
 ---
 source: crates/monochange/tests/cli_help.rs
 info:
-  program: mc
+  program: monochange
   args:
     - help
+    - run
     - release
   env:
     NO_COLOR: "1"
@@ -13,7 +14,7 @@ success: true
 exit_code: 0
 ----- stdout -----
 ╭──────────────────────────────────────────────────────────╮
-│  mc release                                              │
+│  monochange release                                      │
 │  Prepare a release from discovered change files          │
 ╰──────────────────────────────────────────────────────────╯
 
@@ -25,7 +26,7 @@ exit_code: 0
 
 ▸ Usage
 
-  mc release [OPTIONS]
+  monochange release [OPTIONS]
 
 ▸ Options
 
@@ -37,16 +38,16 @@ exit_code: 0
 ▸ Examples
 
   Dry-run preview in text format:
-    mc release --dry-run --format text
+    monochange release --dry-run --format text
 
   Dry-run with JSON for scripting:
-    mc release --dry-run --format json
+    monochange release --dry-run --format json
 
   Preview with file diffs:
-    mc release --dry-run --diff
+    monochange release --dry-run --diff
 
   Execute the release:
-    mc release
+    monochange release
 
 ▸ Tips
 
@@ -57,7 +58,7 @@ exit_code: 0
 
 ▸ See Also
 
-  mc help change  mc help versions  mc help commit-release  mc help release-pr
+  monochange help change  monochange help versions  monochange help commit-release  monochange help release-pr
 
 
 ----- stderr -----

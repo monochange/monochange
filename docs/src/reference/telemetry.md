@@ -13,7 +13,7 @@ This release only supports a local JSON Lines sink with OpenTelemetry-style even
 Telemetry is disabled by default. Enable the local sink with environment variables:
 
 ```sh
-MC_TELEMETRY=local mc step:validate
+MC_TELEMETRY=local monochange step validate
 ```
 
 By default, events are appended to:
@@ -31,13 +31,13 @@ $HOME/.local/state/monochange/telemetry.jsonl
 For a one-off file path, set `MC_TELEMETRY_FILE`:
 
 ```sh
-MC_TELEMETRY=local MC_TELEMETRY_FILE=/tmp/mc-telemetry.jsonl mc step:validate
+MC_TELEMETRY=local MC_TELEMETRY_FILE=/tmp/mc-telemetry.jsonl monochange step validate
 ```
 
 Setting only `MC_TELEMETRY_FILE` also enables the local sink for that command:
 
 ```sh
-MC_TELEMETRY_FILE=/tmp/mc-telemetry.jsonl mc step:discover
+MC_TELEMETRY_FILE=/tmp/mc-telemetry.jsonl monochange step discover
 ```
 
 Disable telemetry explicitly with any of:

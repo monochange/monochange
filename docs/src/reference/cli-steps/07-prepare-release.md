@@ -68,7 +68,7 @@ It can produce:
 
 Built-in release-oriented commands now default their human-readable `format` input to `markdown`. Use `text` when you explicitly want the older plain-text style, or `json` for automation.
 
-When you only need the resolved package and group versions, use the dedicated [`DisplayVersions`](14-display-versions.md) step or the built-in `mc versions` command instead of overloading `PrepareRelease`.
+When you only need the resolved package and group versions, use the dedicated [`DisplayVersions`](14-display-versions.md) step or the built-in `monochange versions` command instead of overloading `PrepareRelease`.
 
 It also fills the shorthand template values commonly used by `Command` steps:
 
@@ -147,8 +147,8 @@ When you do need to split the workflow across separate commands, monochange can 
 When a repository defines workflow wrappers, the default cache path is automatic. For example, a repo with `release` and `release-pr` wrappers might run:
 
 ```bash
-mc step:prepare-release
-mc step:open-release-request --dry-run
+monochange step prepare-release
+monochange step open-release-request --dry-run
 ```
 
 The first `PrepareRelease` step stores prepared state in `.monochange/prepared-release-cache.json`, and later commands with a `PrepareRelease` step reuse it when the git `HEAD`, workspace status, tracked release inputs, and relevant configuration still match.
@@ -158,11 +158,11 @@ That `.monochange/` directory is meant for local monochange artifacts. Keep it g
 If your configured workflow exposes a `prepared_release` input and you need to pass the artifact between explicit jobs or custom commands, wire that input to `PrepareRelease` and pass the artifact path:
 
 ```bash
-mc release --prepared-release /tmp/release-plan.json
-mc release-request --prepared-release /tmp/release-plan.json --format json
+monochange release --prepared-release /tmp/release-plan.json
+monochange release-request --prepared-release /tmp/release-plan.json --format json
 ```
 
-Here `release` and `release-request` are example workflow names; use the names shown by `mc help` for your repository.
+Here `release` and `release-request` are example workflow names; use the names shown by `monochange help` for your repository.
 
 If the artifact is stale, monochange falls back to a fresh `PrepareRelease` run instead of trusting outdated release data.
 

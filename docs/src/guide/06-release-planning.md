@@ -5,16 +5,16 @@ Create a changeset with the CLI:
 <!-- {=releaseChangesAddCommand} -->
 
 ```bash
-mc change --package sdk-core --bump minor --reason "public API addition"
-mc change --package sdk-core --bump patch --type security --reason "rotate signing keys" --details "Roll the signing key before the release window closes."
-mc change --package sdk-core --bump none --type docs --reason "clarify migration guidance" --output .changeset/sdk-core-docs.md
-mc change --package sdk-core --bump major --version 2.0.0 --reason "break the public API" --output .changeset/sdk-core-major.md
+monochange change --package sdk-core --bump minor --reason "public API addition"
+monochange change --package sdk-core --bump patch --type security --reason "rotate signing keys" --details "Roll the signing key before the release window closes."
+monochange change --package sdk-core --bump none --type docs --reason "clarify migration guidance" --output .changeset/sdk-core-docs.md
+monochange change --package sdk-core --bump major --version 2.0.0 --reason "break the public API" --output .changeset/sdk-core-major.md
 ```
 
 Or use interactive mode to select packages, bumps, and options from a guided wizard:
 
 ```bash
-mc change -i
+monochange change -i
 ```
 
 Interactive mode automatically prevents conflicting selections (a group and one of its members) and lets you pick per-package bumps and optional explicit versions.
@@ -97,7 +97,7 @@ When `version` is provided without `bump`, the bump is inferred from the current
 When a dependent package changes only because another package moved first, author that context explicitly with `caused_by`:
 
 ```bash
-mc change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
+monochange change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
 ```
 
 ```markdown
@@ -130,7 +130,7 @@ monochange keeps its own changeset standard rather than reusing a narrower exter
 Validate before planning:
 
 ```bash
-mc step:validate
+monochange step validate
 ```
 
 ## Semantic SemVer guardrails
@@ -164,19 +164,19 @@ Generate a plan directly when you want to inspect the raw planner output:
 <!-- {=projectPlanCommand} -->
 
 ```bash
-mc release --dry-run --format json
+monochange release --dry-run --format json
 ```
 
 <!-- {/projectPlanCommand} -->
 
-For human-readable local output, `mc release --dry-run` now defaults to terminal-friendly markdown. Use `--format text` when you want the older plain-text style, or keep `--format json` for automation.
+For human-readable local output, `monochange release --dry-run` now defaults to terminal-friendly markdown. Use `--format text` when you want the older plain-text style, or keep `--format json` for automation.
 
 Preferred repository command flow:
 
 <!-- {=projectDryRunCommand} -->
 
 ```bash
-mc release --dry-run --format json
+monochange release --dry-run --format json
 ```
 
 <!-- {/projectDryRunCommand} -->
@@ -184,8 +184,8 @@ mc release --dry-run --format json
 When you want a reviewable patch-style preview of the filesystem changes without mutating the workspace, add `--diff`:
 
 ```bash
-mc release --dry-run --diff
-mc release --dry-run --format json --diff
+monochange release --dry-run --diff
+monochange release --dry-run --format json --diff
 ```
 
 Markdown and text output render unified diffs directly in the terminal. JSON output wraps the normal manifest payload under `manifest` and adds `fileDiffs` entries for each changed file.
@@ -193,49 +193,49 @@ Markdown and text output render unified diffs directly in the terminal. JSON out
 A good planning loop looks like this:
 
 ```bash
-mc step:validate
-mc step:discover --format json
-mc step:diagnose-changesets --format json
-mc release --dry-run --diff
+monochange step validate
+monochange step discover --format json
+monochange step diagnose-changesets --format json
+monochange release --dry-run --diff
 ```
 
 Use each command for a different question:
 
-- `mc step:validate` — is the config and changeset set valid?
-- `mc step:discover --format json` — which package ids, groups, and dependency edges exist?
-- `mc step:diagnose-changesets --format json` — who introduced these changesets and what review context is attached?
-- `mc release --dry-run --diff` — what exact files would change if I prepared the release now?
+- `monochange step validate` — is the config and changeset set valid?
+- `monochange step discover --format json` — which package ids, groups, and dependency edges exist?
+- `monochange step diagnose-changesets --format json` — who introduced these changesets and what review context is attached?
+- `monochange release --dry-run --diff` — what exact files would change if I prepared the release now?
 
 ### Compare preview modes
 
 Use the preview mode that matches the decision you are trying to make:
 
-| Command                                     | Best for                                      |
-| ------------------------------------------- | --------------------------------------------- |
-| `mc release --dry-run`                      | Human review in the terminal                  |
-| `mc release --dry-run --diff`               | Human review plus exact file patches          |
-| `mc release --dry-run --format json`        | Automation, scripts, MCP clients              |
-| `mc release --dry-run --format json --diff` | Automation that also needs file patch details |
+| Command                                             | Best for                                      |
+| --------------------------------------------------- | --------------------------------------------- |
+| `monochange release --dry-run`                      | Human review in the terminal                  |
+| `monochange release --dry-run --diff`               | Human review plus exact file patches          |
+| `monochange release --dry-run --format json`        | Automation, scripts, MCP clients              |
+| `monochange release --dry-run --format json --diff` | Automation that also needs file patch details |
 
 When you want command semantics without any command-line noise, add `--quiet`. Quiet mode suppresses stdout/stderr and uses dry-run behavior for release-oriented commands so the workspace stays unchanged.
 
 <!-- {=projectReleaseCommand} -->
 
 ```bash
-mc release
+monochange release
 ```
 
 <!-- {/projectReleaseCommand} -->
 
 <!-- {=releaseWorkflowBehavior} -->
 
-`mc release` is a config-driven workflow command only when your repository defines a `[cli.release]` table. `mc init` writes a minimal starter config and does not seed default workflow aliases, so use the immutable `mc step:prepare-release` command unless you add your own named workflow.
+`monochange run release` is a config-driven workflow command only when your repository defines a `[cli.release]` table. `monochange init` writes a minimal starter config and does not seed default workflow aliases, so use the immutable `monochange step prepare-release` command unless you add your own named workflow.
 
-The binary no longer ships a hidden default workflow set for commands such as `discover`, `change`, `release`, `affected`, `diagnostics`, `repair-release`, `publish`, or `publish-plan`. Those names exist only when your config defines them. If a repository has not opted into a named workflow, use the immutable step command instead, for example `mc step:discover`, `mc step:create-change-file`, `mc step:prepare-release`, `mc step:affected-packages`, `mc step:diagnose-changesets`, `mc step:retarget-release`, `mc step:publish-readiness`, or `mc step:plan-publish-rate-limits`.
+The binary no longer ships a hidden default workflow set for commands such as `discover`, `change`, `release`, `affected`, `diagnostics`, `repair-release`, `publish`, or `publish-plan`. Those names exist under `monochange run <name>` only when your config defines them. If a repository has not opted into a named workflow, use the immutable step command instead, for example `monochange step discover`, `monochange step create-change-file`, `monochange step prepare-release`, `monochange step affected-packages`, `monochange step diagnose-changesets`, `monochange step retarget-release`, `monochange step publish-readiness`, or `monochange step plan-publish-rate-limits`.
 
-`mc step:validate` is the immutable built-in step command for normal preflight checks. Do not define `[cli.validate]` or any `[cli.step:*]` command in `monochange.toml`; those names are reserved for built-in commands.
+`monochange step validate` is the immutable built-in step command for normal preflight checks. Do not define `[cli.validate]` or `[cli.step]` in `monochange.toml`; those names are reserved for built-in commands.
 
-Commands like `commit-release` combine `PrepareRelease` with later stateful steps such as `CommitRelease`. Provider request workflows such as `release-pr` can add `OpenReleaseRequest`. Keep both as explicit `[cli.*]` workflow commands when you want a durable, named release process.
+Configured workflows like `monochange run commit-release` combine `PrepareRelease` with later stateful steps such as `CommitRelease`. Provider request workflows such as `monochange run release-pr` can add `OpenReleaseRequest`. Keep both as explicit `[cli.*]` workflow commands when you want a durable, named release process.
 
 Current `PrepareRelease` behavior:
 
@@ -305,7 +305,7 @@ jobs:
           set -euo pipefail
 
           mapfile -t labels < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
-          args=(step:affected-packages --format json --verify)
+          args=(step affected-packages --format json --verify)
 
           for path in $CHANGED_FILES; do
             args+=(--changed-paths "$path")
@@ -315,7 +315,7 @@ jobs:
             args+=(--label "$label")
           done
 
-          devenv shell -- mc "${args[@]}" | tee policy.raw
+          devenv shell -- monochange "${args[@]}" | tee policy.raw
           awk 'BEGIN { capture = 0 } /^\{/ { capture = 1 } capture { print }' policy.raw > policy.json
           jq -e '.status != "failed"' policy.json >/dev/null
 ```
@@ -326,15 +326,15 @@ Current planning rules:
 
 <!-- {=releasePlanningRules} -->
 
-- `mc change` defaults `--bump` to `patch`; use `--bump none` when you want a type-only or version-only entry, and pass `--version` to pin an explicit release version
+- `monochange change` defaults `--bump` to `patch`; use `--bump none` when you want a type-only or version-only entry, and pass `--version` to pin an explicit release version
 - markdown change files use package/group ids as the only top-level frontmatter keys, with scalar shorthand for `none`/`patch`/`minor`/`major` or configured change types, plus object syntax for `bump`, `version`, `type`, and `caused_by`
 - when `version` is given without `bump`, the bump is inferred by comparing the current and target versions
 - explicit versions from grouped members propagate to the group version; conflicts take the highest semver or fail when `defaults.strict_version_conflicts = true`
 - prefer package ids over group ids in authored changesets when possible; direct package changes still propagate to dependents and synchronize configured groups
 - optional change `type` values can route entries into custom changelog sections, and configured section `default_bump` values let scalar type shorthand imply the desired semver behavior
 - `caused_by` references package or group ids and suppresses only the matching dependency-propagation records; use object syntax whenever you need it
-- `mc change` accepts repeated `--caused-by <id>` flags, and `--bump none` is the right fit when you want to acknowledge an affected package without forcing a user-facing version bump
-- `mc change` can write to a deterministic path with `--output ...`
+- `monochange change` accepts repeated `--caused-by <id>` flags, and `--bump none` is the right fit when you want to acknowledge an affected package without forcing a user-facing version bump
+- `monochange change` can write to a deterministic path with `--output ...`
 - change templates support detailed multi-line release-note entries through `{{ details }}`, compact metadata blocks through `{{ context }}`, and fine-grained linked metadata like `{{ change_owner_link }}`, `{{ review_request_link }}`, and `{{ closed_issue_links }}`
 - dependents default to the configured `parent_bump`, including packages outside a changed version group when they depend on a synchronized member
 - computed compatibility evidence can still escalate both the changed crate and its dependents when provider analysis produces it
@@ -353,14 +353,14 @@ Current planning rules:
 
 These commands answer different questions:
 
-- `mc step:diagnose-changesets --format json` — what is currently pending in `.changeset/*.md`, and who introduced it?
-- `mc step:release-record --from <ref>` — what did a past release commit declare durably in git history?
-- `mc step:tag-release --from HEAD` — if `HEAD` is the merged release commit, which release tags should be created now?
+- `monochange step diagnose-changesets --format json` — what is currently pending in `.changeset/*.md`, and who introduced it?
+- `monochange step release-record --from <ref>` — what did a past release commit declare durably in git history?
+- `monochange step tag-release --from HEAD` — if `HEAD` is the merged release commit, which release tags should be created now?
 
-Use diagnostics **before** you release. Use release records **after** a release exists and you need to inspect it. Use `mc step:tag-release` in post-merge CI when the release commit has landed on the default branch and you want to create the declared tag set from that durable history record.
+Use diagnostics **before** you release. Use release records **after** a release exists and you need to inspect it. Use `monochange step tag-release` in post-merge CI when the release commit has landed on the default branch and you want to create the declared tag set from that durable history record.
 
 Across release-oriented commands, global `--quiet` suppresses stdout/stderr and reuses dry-run behavior for commands that support it.
 
 ## Concurrency
 
-`mc release` is designed for sequential execution. Do not run multiple `mc release` commands concurrently on the same workspace — there is no file locking, so concurrent runs could produce duplicate changelog entries, inconsistent version files, or corrupted release records. If you need parallel release preparation across workspaces, use separate working copies.
+`monochange release` is designed for sequential execution. Do not run multiple `monochange release` commands concurrently on the same workspace — there is no file locking, so concurrent runs could produce duplicate changelog entries, inconsistent version files, or corrupted release records. If you need parallel release preparation across workspaces, use separate working copies.

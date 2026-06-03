@@ -385,9 +385,9 @@ fn current_release_record_variants() -> Vec<ReleaseRecordVariant> {
 		(
 			prop::sample::select(
 				&[
-					"mc release --commit",
-					"mc release --dry-run",
-					"mc step:release",
+					"monochange release --commit",
+					"monochange release --dry-run",
+					"monochange step release",
 				][..],
 			),
 			1_usize..=3,
@@ -1379,7 +1379,7 @@ fn render_commands_inventory(
 	);
 	push_inventory_group(
 		&mut inventory,
-		"Built-in `mc step:*` commands from `CliStepDefinition`",
+		"Built-in `monochange step *` commands from `CliStepDefinition`",
 		step_commands,
 	);
 	inventory.push_str(COMMANDS_INVENTORY_END);

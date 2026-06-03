@@ -1,6 +1,6 @@
 #### Phase timings
 
-##### `mc release --dry-run`
+##### `monochange run release --dry-run`
 
 | Phase                        | Budget [ms] | main [ms] | pr [ms] | Δ pr-main [ms] | Status    |
 | :--------------------------- | ----------: | --------: | ------: | -------------: | :-------- |
@@ -10,7 +10,7 @@
 | `read changeset files`       |         320 |       149 |     160 |            +11 | regressed |
 | `build manifest updates`     |         180 |        81 |      87 |             +6 | regressed |
 
-##### `mc release`
+##### `monochange run release`
 
 | Phase                        | Budget [ms] | main [ms] | pr [ms] | Δ pr-main [ms] | Status    |
 | :--------------------------- | ----------: | --------: | ------: | -------------: | :-------- |

@@ -58,13 +58,13 @@ fn render_single_command_help_minimal() {
 		name: "minimal",
 		summary: "A minimal command.",
 		description: "A minimal command description.",
-		usage: "mc minimal",
+		usage: "monochange minimal",
 		options: &[],
 		examples: &[],
 		tips: &[],
 		see_also: &[],
 	};
-	let out = render_single_command_help("mc", &help);
+	let out = render_single_command_help("monochange", &help);
 	assert!(out.contains("minimal"));
 	assert!(out.contains("A minimal command description."));
 	assert!(!out.contains("Examples"));
@@ -79,16 +79,16 @@ fn render_single_command_help_with_options() {
 		name: "test",
 		summary: "A test command.",
 		description: "A test command.",
-		usage: "mc test [OPTIONS]",
+		usage: "monochange test [OPTIONS]",
 		options: &[
 			("-f", "STRING", "A flag with type"),
 			("-v", "", "A bare flag"),
 		],
-		examples: &[("Do it:", "mc test -f x")],
+		examples: &[("Do it:", "monochange test -f x")],
 		tips: &["Be careful."],
-		see_also: &["mc help test"],
+		see_also: &["monochange help test"],
 	};
-	let out = render_single_command_help("mc", &help);
+	let out = render_single_command_help("monochange", &help);
 	assert!(out.contains("A test command."));
 	assert!(out.contains("-f"));
 	assert!(out.contains("STRING"));
@@ -110,7 +110,7 @@ fn render_unknown_command_help_skips_matched_name() {
 			summary: "Prepare a release".to_string(),
 		},
 	];
-	let out = render_unknown_command_help("mc", "change", &helps);
+	let out = render_unknown_command_help("monochange", "change", &helps);
 	// Should contain error and suggestion text
 	assert!(out.contains("Unknown command"));
 	assert!(out.contains("change")); // in the error message
@@ -132,11 +132,11 @@ fn bordered_header_with_long_description() {
 
 #[test]
 fn render_overview_help_includes_global_flags() {
-	let out = render_overview_help("mc");
+	let out = render_overview_help("monochange");
 	assert!(out.contains("Global Flags"));
 	assert!(out.contains("--quiet"));
 	assert!(out.contains("--progress-format"));
-	assert!(out.contains("mc help <command>"));
+	assert!(out.contains("monochange help <command>"));
 }
 
 #[test]
@@ -161,16 +161,16 @@ fn section_heading_includes_title() {
 
 #[test]
 fn example_block_includes_description_and_command() {
-	let out = example_block("Do a thing:", "mc thing");
+	let out = example_block("Do a thing:", "monochange thing");
 	assert!(out.contains("Do a thing:"));
-	assert!(out.contains("mc thing"));
+	assert!(out.contains("monochange thing"));
 }
 
 #[test]
 fn render_overview_help_lists_all_commands() {
-	let out = render_overview_help("mc");
+	let out = render_overview_help("monochange");
 	// Should contain overview header
-	assert!(out.contains("mc"));
+	assert!(out.contains("monochange"));
 	// Should list several known commands
 	assert!(out.contains("change"));
 	assert!(out.contains("release"));
@@ -189,7 +189,7 @@ fn render_overview_help_with_cli_lists_user_defined_commands() {
 		steps: vec![],
 		dry_run: false,
 	}];
-	let out = render_overview_help_with_cli("mc", &cli);
+	let out = render_overview_help_with_cli("monochange", &cli);
 
 	assert!(out.contains("Built-in Commands"));
 	assert!(out.contains("Step Commands"));
@@ -200,7 +200,7 @@ fn render_overview_help_with_cli_lists_user_defined_commands() {
 
 #[test]
 fn render_command_help_for_publish_release_step_is_detailed() {
-	let out = render_command_help("mc", "step:publish-release");
+	let out = render_command_help("monochange", "step publish-release");
 
 	assert!(out.contains("hosted provider release operations"));
 	assert!(out.contains("does not publish package artifacts"));
@@ -209,19 +209,19 @@ fn render_command_help_for_publish_release_step_is_detailed() {
 
 #[test]
 fn render_command_help_for_other_step_commands_uses_specific_and_generic_details() {
-	let prepare = render_command_help("mc", "step:prepare-release");
+	let prepare = render_command_help("monochange", "step prepare-release");
 	assert!(prepare.contains("PrepareRelease reads pending changesets"));
-	assert!(prepare.contains("step:commit-release"));
+	assert!(prepare.contains("step commit-release"));
 
-	let affected = render_command_help("mc", "step:affected-packages");
+	let affected = render_command_help("monochange", "step affected-packages");
 	assert!(affected.contains("compares changed paths"));
 	assert!(affected.contains("--changed-paths"));
 
-	let create = render_command_help("mc", "step:create-change-file");
+	let create = render_command_help("monochange", "step create-change-file");
 	assert!(create.contains("writes a structured markdown changeset"));
 	assert!(create.contains("--reason"));
 
-	let discover = render_command_help("mc", "step:discover");
+	let discover = render_command_help("monochange", "step discover");
 	assert!(discover.contains("runs one built-in monochange workflow step directly"));
 	assert!(discover.contains("step commands for CI jobs"));
 }
@@ -267,7 +267,7 @@ fn render_command_help_with_cli_documents_user_defined_commands() {
 		steps: vec![discover_step],
 		dry_run: false,
 	}];
-	let out = render_command_help_with_cli("mc", "ship-it", &cli);
+	let out = render_command_help_with_cli("monochange", "ship-it", &cli);
 
 	assert!(out.contains("Run configured workflow steps: Discover"));
 	assert!(out.contains("loaded from `[cli.ship-it]`"));
@@ -278,7 +278,7 @@ fn render_command_help_with_cli_documents_user_defined_commands() {
 	assert!(out.contains("<PATH>"));
 	assert!(out.contains("Require verification"));
 	assert!(out.contains("User-defined commands come from monochange.toml"));
-	assert!(out.contains("step:discover"));
+	assert!(out.contains("step discover"));
 }
 
 #[test]
@@ -290,10 +290,10 @@ fn render_command_help_with_cli_uses_rich_help_for_configured_legacy_commands() 
 		steps: vec![],
 		dry_run: false,
 	}];
-	let out = render_command_help_with_cli("mc", "release", &cli);
+	let out = render_command_help_with_cli("monochange", "release", &cli);
 
 	assert!(out.contains("Prepare a release from discovered change files"));
-	assert!(out.contains("mc release --dry-run"));
+	assert!(out.contains("monochange release --dry-run"));
 }
 
 #[test]
@@ -305,11 +305,11 @@ fn render_command_help_with_cli_documents_empty_user_defined_commands() {
 		steps: vec![],
 		dry_run: false,
 	}];
-	let out = render_command_help_with_cli("mc", "noop", &cli);
+	let out = render_command_help_with_cli("monochange", "noop", &cli);
 
 	assert!(out.contains("Run a monochange workflow command from monochange.toml"));
 	assert!(out.contains("This user-defined command is loaded from `[cli.*]`"));
-	assert!(out.contains("mc noop"));
+	assert!(out.contains("monochange noop"));
 }
 
 #[test]
@@ -323,7 +323,7 @@ fn available_command_items_include_builtins_steps_and_configured_commands() {
 			dry_run: false,
 		},
 		CliCommandDefinition {
-			name: "step:discover".to_string(),
+			name: "step discover".to_string(),
 			help_text: Some("Override step".to_string()),
 			inputs: vec![],
 			steps: vec![],
@@ -340,12 +340,12 @@ fn available_command_items_include_builtins_steps_and_configured_commands() {
 	let items = available_command_items(&cli);
 
 	assert!(items.iter().any(|item| item.name == "init"));
-	assert!(items.iter().any(|item| item.name == "step:discover"));
+	assert!(items.iter().any(|item| item.name == "step discover"));
 	assert!(items.iter().any(|item| item.name == "custom"));
 	assert!(
 		!configured_command_items(&cli)
 			.iter()
-			.any(|item| item.name == "init" || item.name == "step:discover")
+			.any(|item| item.name == "init" || item.name == "step discover")
 	);
 }
 
@@ -431,18 +431,18 @@ fn step_command_items_cover_all_generated_step_summaries() {
 		.collect::<Vec<_>>()
 		.join("\n");
 
-	assert!(joined.contains("step:config"));
+	assert!(joined.contains("step config"));
 	assert!(joined.contains("Render resolved monochange configuration"));
-	assert!(joined.contains("step:validate"));
-	assert!(joined.contains("step:display-versions"));
-	assert!(joined.contains("step:plan-publish-rate-limits"));
-	assert!(joined.contains("step:retarget-release"));
+	assert!(joined.contains("step validate"));
+	assert!(joined.contains("step display-versions"));
+	assert!(joined.contains("step plan-publish-rate-limits"));
+	assert!(joined.contains("step retarget-release"));
 	assert!(joined.contains("Publish package versions from a publish plan"));
 }
 
 #[test]
 fn render_command_help_for_change() {
-	let out = render_command_help("mc", "change");
+	let out = render_command_help("monochange", "change");
 	assert!(out.contains("change"));
 	assert!(out.contains("Description"));
 	assert!(out.contains("Usage"));
@@ -454,7 +454,7 @@ fn render_command_help_for_change() {
 
 #[test]
 fn render_command_help_for_release() {
-	let out = render_command_help("mc", "release");
+	let out = render_command_help("monochange", "release");
 	assert!(out.contains("release"));
 	assert!(out.contains("Description"));
 	assert!(out.contains("Usage"));
@@ -462,152 +462,152 @@ fn render_command_help_for_release() {
 
 #[test]
 fn render_command_help_for_init() {
-	let out = render_command_help("mc", "init");
+	let out = render_command_help("monochange", "init");
 	assert!(out.contains("init"));
 	assert!(out.contains("Examples"));
 }
 
 #[test]
 fn render_command_help_for_subagents() {
-	let out = render_command_help("mc", "subagents");
+	let out = render_command_help("monochange", "subagents");
 	assert!(out.contains("subagents"));
 	assert!(out.contains("Tips"));
 }
 
 #[test]
 fn render_command_help_for_analyze() {
-	let out = render_command_help("mc", "analyze");
+	let out = render_command_help("monochange", "analyze");
 	assert!(out.contains("analyze"));
 	assert!(out.contains("Options"));
 }
 
 #[test]
 fn render_command_help_for_versions() {
-	let out = render_command_help("mc", "versions");
+	let out = render_command_help("monochange", "versions");
 	assert!(out.contains("versions"));
 }
 
 #[test]
 fn render_command_help_for_repair_release() {
-	let out = render_command_help("mc", "repair-release");
+	let out = render_command_help("monochange", "repair-release");
 	assert!(out.contains("repair-release"));
 	assert!(out.contains("Options"));
 }
 
 #[test]
 fn render_command_help_for_tag_release() {
-	let out = render_command_help("mc", "step:tag-release");
+	let out = render_command_help("monochange", "step tag-release");
 	assert!(out.contains("tag-release"));
 	assert!(out.contains("Examples"));
 }
 
 #[test]
 fn render_command_help_for_check() {
-	let out = render_command_help("mc", "check");
+	let out = render_command_help("monochange", "check");
 	assert!(out.contains("check"));
 	assert!(out.contains("Options"));
 }
 
 #[test]
 fn render_command_help_for_lint() {
-	let out = render_command_help("mc", "lint");
+	let out = render_command_help("monochange", "lint");
 	assert!(out.contains("lint"));
 	assert!(out.contains("Options"));
 }
 
 #[test]
 fn render_command_help_for_mcp() {
-	let out = render_command_help("mc", "mcp");
+	let out = render_command_help("monochange", "mcp");
 	assert!(out.contains("mcp"));
 	assert!(out.contains("Description"));
 }
 
 #[test]
 fn render_command_help_for_skill() {
-	let out = render_command_help("mc", "skill");
+	let out = render_command_help("monochange", "skill");
 	assert!(out.contains("skill"));
 }
 
 #[test]
 fn render_command_help_for_populate() {
-	let out = render_command_help("mc", "populate");
+	let out = render_command_help("monochange", "populate");
 	assert!(out.contains("populate"));
 }
 
 #[test]
 fn render_command_help_for_validate() {
-	let out = render_command_help("mc", "step:validate");
+	let out = render_command_help("monochange", "step validate");
 	assert!(out.contains("validate"));
 }
 
 #[test]
 fn render_command_help_for_discover() {
-	let out = render_command_help("mc", "discover");
+	let out = render_command_help("monochange", "discover");
 	assert!(out.contains("discover"));
 }
 
 #[test]
 fn render_command_help_for_commit_release() {
-	let out = render_command_help("mc", "commit-release");
+	let out = render_command_help("monochange", "commit-release");
 	assert!(out.contains("commit-release"));
 }
 
 #[test]
 fn render_command_help_for_release_pr() {
-	let out = render_command_help("mc", "release-pr");
+	let out = render_command_help("monochange", "release-pr");
 	assert!(out.contains("release-pr"));
 }
 
 #[test]
 fn render_command_help_for_affected() {
-	let out = render_command_help("mc", "affected");
+	let out = render_command_help("monochange", "affected");
 	assert!(out.contains("affected"));
 }
 
 #[test]
 fn render_command_help_for_diagnostics() {
-	let out = render_command_help("mc", "diagnostics");
+	let out = render_command_help("monochange", "diagnostics");
 	assert!(out.contains("diagnostics"));
 }
 
 #[test]
 fn render_command_help_for_release_record() {
-	let out = render_command_help("mc", "step:release-record");
+	let out = render_command_help("monochange", "step release-record");
 	assert!(out.contains("release-record"));
 }
 
 #[test]
 fn render_command_help_for_publish_readiness() {
-	let out = render_command_help("mc", "step:publish-readiness");
+	let out = render_command_help("monochange", "step publish-readiness");
 	assert!(out.contains("publish-readiness"));
 	assert!(out.contains("readiness artifact"));
 }
 
 #[test]
 fn render_command_help_for_publish_bootstrap() {
-	let out = render_command_help("mc", "step:placeholder-publish");
+	let out = render_command_help("monochange", "step placeholder-publish");
 	assert!(out.contains("placeholder-publish"));
 	assert!(out.contains("placeholder-publish"));
 }
 
 #[test]
 fn render_command_help_for_placeholder_publish() {
-	let out = render_command_help("mc", "placeholder-publish");
+	let out = render_command_help("monochange", "placeholder-publish");
 	assert!(out.contains("placeholder-publish"));
 }
 
 #[test]
 fn render_command_help_for_publish_packages() {
-	let out = render_command_help("mc", "publish-packages");
+	let out = render_command_help("monochange", "publish-packages");
 	assert!(out.contains("publish-packages"));
 }
 
 #[test]
 fn render_command_help_for_unknown_shows_error() {
-	let out = render_command_help("mc", "nonexistent");
+	let out = render_command_help("monochange", "nonexistent");
 	assert!(out.contains("error:"));
 	assert!(out.contains("Unknown command"));
-	assert!(out.contains("mc help"));
+	assert!(out.contains("monochange help"));
 	// Should list available commands
 	assert!(out.contains("change"));
 }
@@ -629,9 +629,9 @@ fn multiline_indent_with_single_line() {
 
 #[test]
 fn version_flag_outputs_version() {
-	let command = crate::cli::build_command_with_cli("mc", &[]);
+	let command = crate::cli::build_command_with_cli("monochange", &[]);
 	let error = command
-		.try_get_matches_from(["mc", "--version"])
+		.try_get_matches_from(["monochange", "--version"])
 		.err()
 		.unwrap_or_else(|| panic!("expected version output"));
 	assert_eq!(error.kind(), clap::error::ErrorKind::DisplayVersion);

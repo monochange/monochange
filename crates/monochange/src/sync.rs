@@ -1,6 +1,6 @@
 //! Synchronize internal dependency version references across workspace packages.
 //!
-//! The `mc versions` command updates internal (workspace) dependency
+//! The `monochange versions` command updates internal (workspace) dependency
 //! references so they match each package's canonical version with the
 //! appropriate constraint prefix for the ecosystem.
 //!
@@ -26,7 +26,7 @@ use toml_edit::Value as TomlValue;
 
 use crate::discover_workspace;
 
-/// Output format for the `mc versions` command.
+/// Output format for the `monochange versions` command.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VersionsOutputFormat {
 	/// Human-readable command output.
@@ -85,7 +85,7 @@ pub struct FileSyncResult {
 	pub changes: Vec<DependencySyncChange>,
 }
 
-/// A workspace package skipped by `mc versions`.
+/// A workspace package skipped by `monochange versions`.
 #[derive(Clone, Debug, Serialize)]
 pub struct SkippedSyncPackage {
 	/// Relative manifest path.
@@ -168,7 +168,7 @@ impl VersionSyncAdapter {
 /// Discover all workspace package versions and update internal dependency
 /// references to match canonical versions.
 ///
-/// This is the top-level orchestration function for `mc versions`.
+/// This is the top-level orchestration function for `monochange versions`.
 /// It builds a plan first, then applies that plan unless `dry_run` is set.
 pub fn sync_workspace_versions(
 	root: &Path,

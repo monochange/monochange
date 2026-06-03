@@ -380,7 +380,7 @@ When working on release planning, versioning, changesets, changelogs, or monocha
 1. Read `monochange.toml` before suggesting workflow or release changes.
 2. Prefer the monochange CLI over MCP tools.
 3. Choose the CLI executable in this order:
-   - `mc`
+   - `monochange`
    - `monochange`
    - `npx -y @monochange/cli`
 4. Use structured JSON output when inspecting workspace state:
@@ -388,7 +388,7 @@ When working on release planning, versioning, changesets, changelogs, or monocha
    - `<cli> discover --format json`
    - `<cli> diagnostics --format json`
    - `<cli> release --dry-run --format json`
-5. Prefer `mc change` and `.changeset/*.md` files over ad hoc release notes.
+5. Prefer `monochange change` and `.changeset/*.md` files over ad hoc release notes.
 6. Run validation before and after release-affecting edits.
 7. Do not run mutating release or publish commands unless the user explicitly asks.
 8. If monochange MCP tools are available, use them as a secondary structured fallback when they are more useful than shelling out.
@@ -408,7 +408,7 @@ fn shared_cursor_instructions() -> &'static str {
 1. Read `monochange.toml` first.
 2. Prefer the monochange CLI over MCP tools.
 3. Choose the CLI executable in this order:
-   - `mc`
+   - `monochange`
    - `monochange`
    - `npx -y @monochange/cli`
 4. Use JSON output when inspecting repository state:
@@ -416,7 +416,7 @@ fn shared_cursor_instructions() -> &'static str {
    - `<cli> discover --format json`
    - `<cli> diagnostics --format json`
    - `<cli> release --dry-run --format json`
-5. Prefer `mc change` and `.changeset/*.md` files over ad hoc release notes.
+5. Prefer `monochange change` and `.changeset/*.md` files over ad hoc release notes.
 6. Run validation before and after release-affecting edits.
 7. Do not run mutating release or publish commands unless the user explicitly asks.
 8. If monochange MCP tools are configured, use them only as a secondary structured fallback."

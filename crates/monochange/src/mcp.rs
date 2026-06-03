@@ -969,7 +969,7 @@ impl MonochangeMcpServer {
 	}
 }
 
-/// Run the stdio MCP server used by `mc mcp`.
+/// Run the stdio MCP server used by `monochange mcp`.
 pub async fn run_server() {
 	let server = MonochangeMcpServer::new();
 	let transport = rmcp::transport::io::stdio();

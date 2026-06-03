@@ -18,7 +18,7 @@ use super::*;
 #[test]
 fn parse_change_classify_options_accepts_agent_workflow_shape() {
 	let args = [
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--base"),
@@ -45,7 +45,7 @@ fn parse_change_classify_options_accepts_agent_workflow_shape() {
 #[test]
 fn parse_api_diff_options_accepts_snapshot_workflow_shape() {
 	let args = [
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("api"),
 		OsString::from("diff"),
 		OsString::from("--base"),
@@ -71,7 +71,7 @@ fn parse_api_diff_options_accepts_snapshot_workflow_shape() {
 #[test]
 fn parse_changeset_validate_api_options_accepts_advisory_workflow_shape() {
 	let args = [
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("changeset"),
 		OsString::from("validate"),
 		OsString::from("--api"),
@@ -97,7 +97,7 @@ fn parse_changeset_validate_api_options_accepts_advisory_workflow_shape() {
 #[test]
 fn parse_dependency_propagation_rejects_unknown_modes() {
 	let args = [
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--dependency-propagation"),

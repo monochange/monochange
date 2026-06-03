@@ -589,7 +589,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 		recommendations.push(MigrationAuditRecommendation {
 			id: "generate-config".to_string(),
 			title: "Generate monochange configuration".to_string(),
-			detail: "Run `mc init --provider github` or create `monochange.toml` manually, then review package groups, changelog sections, and publish settings.".to_string(),
+			detail: "Run `monochange init --provider github` or create `monochange.toml` manually, then review package groups, changelog sections, and publish settings.".to_string(),
 		});
 	}
 	if has_legacy_release_tool {
@@ -610,7 +610,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 		recommendations.push(MigrationAuditRecommendation {
 			id: "replace-ci-workflows".to_string(),
 			title: "Replace release workflows incrementally".to_string(),
-			detail: "Update CI to run `mc check`, release planning, `mc step:publish-readiness`, and trusted publishing setup before deleting the legacy workflow.".to_string(),
+			detail: "Update CI to run `monochange check`, release planning, `monochange step publish-readiness`, and trusted publishing setup before deleting the legacy workflow.".to_string(),
 		});
 	}
 	if has_legacy_release_tool || !has_monochange {
@@ -626,7 +626,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 
 fn next_steps() -> Vec<String> {
 	vec![
-		"Run `mc discover --format json` and compare discovered packages with existing release tooling.".to_string(),
+		"Run `monochange discover --format json` and compare discovered packages with existing release tooling.".to_string(),
 		"Draft or update `monochange.toml` with package groups, changelog sections, and publish settings.".to_string(),
 		"Dry-run release planning and publishing before removing legacy automation.".to_string(),
 	]

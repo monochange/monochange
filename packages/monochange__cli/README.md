@@ -35,7 +35,7 @@ Install the prebuilt CLI from npm:
 ```bash
 npm install -g @monochange/cli
 monochange --help
-mc --help
+monochange --help
 ```
 
 If you prefer a Rust-native install, use `cargo install monochange` instead.
@@ -47,15 +47,15 @@ Then run one safe local walkthrough:
 Generate a starter config from the packages monochange detects:
 
 ```bash
-mc init
+monochange init
 ```
 
-`mc init` writes an annotated, minimal `monochange.toml` without default `[cli.*]` workflow aliases. The binary exposes immutable `mc step:*` commands for every built-in step when you need a direct, config-free entry point; add `[cli.*]` tables only for repository-specific named workflows.
+`monochange init` writes an annotated, minimal `monochange.toml` without default `[cli.*]` workflow aliases. The binary exposes immutable `monochange step *` commands for every built-in step when you need a direct, config-free entry point; add `[cli.*]` tables only for repository-specific named workflows.
 
 For automated CI setup, include the `--provider` flag:
 
 ```bash
-mc init --provider github
+monochange init --provider github
 ```
 
 This configures the `[source]` section, generates CLI commands for `commit-release` and `release-pr`, and creates GitHub Actions workflows.
@@ -63,19 +63,19 @@ This configures the `[source]` section, generates CLI commands for `commit-relea
 Validate the workspace:
 
 ```bash
-mc step:validate
+monochange step validate
 ```
 
 Discover the package ids you will use in commands and changesets:
 
 ```bash
-mc step:discover --format json
+monochange step discover --format json
 ```
 
 Create one change file for a package id:
 
 ```bash
-mc change --package <id> --bump patch --reason "describe the change"
+monochange change --package <id> --bump patch --reason "describe the change"
 ```
 
 Most changes should target a package id. Use group ids only when the change is intentionally owned by the whole group.
@@ -83,32 +83,32 @@ Most changes should target a package id. Use group ids only when the change is i
 When a package is only changing because another dependency or version group moved first, author that context explicitly instead of relying on anonymous propagation:
 
 ```bash
-mc change --package <dependent-id> --bump none --caused-by <upstream-id> --reason "dependency-only follow-up"
+monochange change --package <dependent-id> --bump none --caused-by <upstream-id> --reason "dependency-only follow-up"
 ```
 
 Preview the release plan safely:
 
 ```bash
-mc release --dry-run --format json
+monochange release --dry-run --format json
 ```
 
 Add `--diff` when you want unified file previews for version and changelog updates without mutating the workspace:
 
 ```bash
-mc release --dry-run --diff
+monochange release --dry-run --diff
 ```
 
 This first run is safe: nothing is published. Stop here until you are ready to prepare release files locally.
 
-When you are ready to prepare the release locally, run `mc release`.
+When you are ready to prepare the release locally, run `monochange release`.
 
 <!-- {/projectCoreWorkflow} -->
 
-If you do not know which package id to target, rerun `mc step:discover --format json` and copy an id directly from the output.
+If you do not know which package id to target, rerun `monochange step discover --format json` and copy an id directly from the output.
 
 ## Next steps
 
-- [Start here](docs/src/guide/00-start-here.md) — the shortest beginner path through installation, `mc init`, and `--dry-run`
+- [Start here](docs/src/guide/00-start-here.md) — the shortest beginner path through installation, `monochange init`, and `--dry-run`
 - [Installation](docs/src/guide/01-installation.md) — npm, Cargo, optional assistant tooling, and repository-development setup
 - [Your first release plan](docs/src/guide/02-setup.md) — a fuller walkthrough built around generated config
 - [Discovery](docs/src/guide/03-discovery.md) — what monochange finds and how ids are rendered
@@ -135,16 +135,16 @@ If you do not know which package id to target, rerun `mc step:discover --format 
 
 monochange can promote one prepared release into several source-provider automation flows without changing the underlying release-plan model.
 
-- `mc release --dry-run --format json` refreshes the cached manifest and shows downstream automation data, including authored changesets plus linked release context metadata
-- `mc step:publish-release --dry-run --format json` previews provider release payloads before publishing
-- `mc step:open-release-request --dry-run --format json` previews the release branch, commit, and release-request body
+- `monochange release --dry-run --format json` refreshes the cached manifest and shows downstream automation data, including authored changesets plus linked release context metadata
+- `monochange step publish-release --dry-run --format json` previews provider release payloads before publishing
+- `monochange step open-release-request --dry-run --format json` previews the release branch, commit, and release-request body
 - when `[source.pull_requests].verified_commits = true` and `OpenReleaseRequest` runs on GitHub Actions for the configured GitHub repository, the GitHub provider pushes a normal release branch commit first, then attempts to replace it with a Git Database API commit that GitHub reports as verified; if verification or the API update fails, the normal pushed commit remains in place
-- `mc step:release-record --from <tag>` inspects the durable release declaration stored in the release commit body
-- `mc step:tag-release --from HEAD --dry-run --format json` previews the post-merge release tag set declared by that durable record
-- `mc step:retarget-release --from <tag> --dry-run` previews a release-retarget plan before mutating tags
+- `monochange step release-record --from <tag>` inspects the durable release declaration stored in the release commit body
+- `monochange step tag-release --from HEAD --dry-run --format json` previews the post-merge release tag set declared by that durable record
+- `monochange step retarget-release --from <tag> --dry-run` previews a release-retarget plan before mutating tags
 - changelog templates can render linked change owners, review requests, commits, and closed issues through `{{ context }}` or fine-grained metadata variables
-- `mc step:affected-packages --format json --verify --changed-paths ...` evaluates pull-request changeset policy from CI-supplied paths and labels without requiring a config-defined wrapper command
-- `mc step:diagnose-changesets --format json` shows all discovered changeset context or restricts to explicit inputs
+- `monochange step affected-packages --format json --verify --changed-paths ...` evaluates pull-request changeset policy from CI-supplied paths and labels without requiring a config-defined wrapper command
+- `monochange step diagnose-changesets --format json` shows all discovered changeset context or restricts to explicit inputs
 
 <!-- {/projectGitHubAutomationOverview} -->
 
@@ -152,7 +152,7 @@ monochange can promote one prepared release into several source-provider automat
 
 <!-- {=projectTagReleaseJsonTagsMap} -->
 
-When a post-merge workflow needs to trigger follow-up release work, prefer `mc step:tag-release --from HEAD --format json` and read the release tag by package or group id from the top-level `tags` object:
+When a post-merge workflow needs to trigger follow-up release work, prefer `monochange step tag-release --from HEAD --format json` and read the release tag by package or group id from the top-level `tags` object:
 
 ```json
 {
@@ -172,7 +172,7 @@ A package or group might not be released in a particular release commit. Handle 
 For example, a repository with `[group.main]` can trigger a downstream GitHub release workflow from the main group tag with:
 
 ```bash
-mc step:tag-release --from HEAD --format json >/tmp/tag-report.json
+monochange step tag-release --from HEAD --format json >/tmp/tag-report.json
 tag="$(jq -r '.tags.main // empty' /tmp/tag-report.json)"
 
 if [ -z "$tag" ]; then
@@ -194,11 +194,11 @@ Assistant tooling is optional.
 When you want AI-assisted workflows, monochange ships built-in setup guidance and an MCP server:
 
 ```bash
-mc help skill
-mc skill -a pi -y
-mc help subagents
-mc subagents pi
-mc mcp
+monochange help skill
+monochange skill -a pi -y
+monochange help subagents
+monochange subagents pi
+monochange mcp
 ```
 
 See [Advanced: Assistant setup and MCP](docs/src/guide/09-assistant-setup.md) for the full setup flow.
@@ -216,12 +216,12 @@ See [Advanced: Assistant setup and MCP](docs/src/guide/09-assistant-setup.md) fo
 - render changelogs through structured release notes and configurable formats
 - emit stable release-manifest JSON for downstream automation
 - preview or publish provider releases and release requests from typed command steps and shared release data
-- inspect durable release records from tags or descendant commits with `mc step:release-record`
-- create post-merge release tags from a merged release commit with `mc step:tag-release --from HEAD`
-- repair a recent source/provider release by retargeting its release tags with `mc step:retarget-release`
-- inspect changeset context and review metadata with `mc step:diagnose-changesets` for both human and automation workflows
+- inspect durable release records from tags or descendant commits with `monochange step release-record`
+- create post-merge release tags from a merged release commit with `monochange step tag-release --from HEAD`
+- repair a recent source/provider release by retargeting its release tags with `monochange step retarget-release`
+- inspect changeset context and review metadata with `monochange step diagnose-changesets` for both human and automation workflows
 - apply Rust semver evidence when provided
-- expose a bundled assistant skill plus a stdio MCP server with `mc mcp`
+- expose a bundled assistant skill plus a stdio MCP server with `monochange mcp`
 - publish the CLI as `@monochange/cli` and the bundled agent skill as `@monochange/skill`
 - publish end-user documentation through the mdBook in `docs/`
 
@@ -281,22 +281,22 @@ Enter the reproducible development shell and install workspace tooling:
 ```bash
 devenv shell
 install:all
-mc step:validate
-mc step:discover --format json
-mc change --package monochange --bump minor --reason "add release planning"
-mc step:diagnose-changesets --format json
-mc release --dry-run --format json
-mc step:publish-release --dry-run --format json
-mc step:open-release-request --dry-run --format json
-mc step:release-record --from v1.2.3
-mc step:tag-release --from HEAD --dry-run --format json
-mc step:publish-readiness --from HEAD --output .monochange/readiness.json
-mc step:placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
-mc step:publish-readiness --from HEAD --output .monochange/readiness.json
-mc step:plan-publish-rate-limits --readiness .monochange/readiness.json --format json
-mc step:publish-packages --output .monochange/publish-result.json
-mc step:retarget-release --from v1.2.3 --target HEAD --dry-run
-mc release
+monochange step validate
+monochange step discover --format json
+monochange change --package monochange --bump minor --reason "add release planning"
+monochange step diagnose-changesets --format json
+monochange release --dry-run --format json
+monochange step publish-release --dry-run --format json
+monochange step open-release-request --dry-run --format json
+monochange step release-record --from v1.2.3
+monochange step tag-release --from HEAD --dry-run --format json
+monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
+monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
+monochange step publish-packages --output .monochange/publish-result.json
+monochange step retarget-release --from v1.2.3 --target HEAD --dry-run
+monochange release
 ```
 
 <!-- {/repoDevEnvironmentSetupCode} -->
@@ -307,12 +307,12 @@ Useful commands:
 
 ```bash
 monochange --help
-mc --help
+monochange --help
 docs:check      # verify mdt shared-doc synchronization
 docs:update     # synchronize shared docs via mdt update
 schema:check    # verify committed JSON schemas are current
 schema:update   # regenerate schema assets from source
-mc step:validate
+monochange step validate
 lint:all
 test:all
 coverage:all

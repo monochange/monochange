@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_snapshot.rs
-assertion_line: 28
 expression: value
 ---
 {
@@ -52,7 +51,8 @@ expression: value
         "options_must_precede_arguments": false
       },
       "path": [
-        "step:discover"
+        "step",
+        "discover"
       ]
     }
   ],

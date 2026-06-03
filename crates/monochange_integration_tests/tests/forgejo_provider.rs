@@ -69,17 +69,18 @@ fn forgejo_fixture_loads_and_validates_source_configuration() {
 
 #[test]
 fn forgejo_cli_validate_accepts_fixture_configuration() {
-	let output = Command::new(get_cargo_bin("mc"))
+	let output = Command::new(get_cargo_bin("monochange"))
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
 		.current_dir(fixture_path("source/forgejo"))
-		.arg("step:validate")
+		.arg("step")
+		.arg("validate")
 		.output()
-		.unwrap_or_else(|error| panic!("run mc step:validate: {error}"));
+		.unwrap_or_else(|error| panic!("run monochange step validate: {error}"));
 
 	assert!(
 		output.status.success(),
-		"mc step:validate failed\nstdout:\n{}\nstderr:\n{}",
+		"monochange step validate failed\nstdout:\n{}\nstderr:\n{}",
 		String::from_utf8_lossy(&output.stdout),
 		String::from_utf8_lossy(&output.stderr)
 	);

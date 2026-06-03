@@ -28,9 +28,9 @@ monochange.toml
 From this directory, run:
 
 ```bash
-mc step:validate
-mc check
-mc release --dry-run --diff
+monochange step validate
+monochange check
+monochange release --dry-run --diff
 ```
 
 ## Why this example is opinionated
@@ -43,5 +43,5 @@ mc release --dry-run --diff
 ## Migration notes
 
 - the `legacy-release.sh` script is intentionally simple; in a real migration it could be a pre-existing script or wrapper around current jobs
-- once the team trusts monochange release planning, the legacy publish step can be replaced with `mc step:publish-packages` or another registry-native workflow
+- once the team trusts monochange release planning, the legacy publish step can be replaced with `monochange step publish-packages` or another registry-native workflow
 - if GitLab auth/bootstrap differs strongly from monochange's built-in assumptions, staying on `mode = "external"` is still the clearest path

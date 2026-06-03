@@ -1,8 +1,8 @@
-//! Benchmarks for the `mc check` / validation pipeline performance.
+//! Benchmarks for the `monochange check` / validation pipeline performance.
 //!
 //! These benchmarks measure the cost of workspace validation, including
 //! config loading, versioned-file content validation, and workspace validation.
-//! They are designed to catch regressions in the validation phase of `mc check`,
+//! They are designed to catch regressions in the validation phase of `monochange check`,
 //! particularly the O(P×G) glob deduplication that was fixed to avoid
 //! re-validating the same glob pattern for every package.
 

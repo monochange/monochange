@@ -736,20 +736,14 @@ fn sample_prepared_release_with_versions() -> PreparedRelease {
 fn parse_validate_matches(root: &Path) -> (monochange_core::WorkspaceConfiguration, ArgMatches) {
 	let configuration = load_workspace_configuration(root)
 		.unwrap_or_else(|error| panic!("workspace configuration: {error}"));
-	let matches = build_command_with_cli("mc", &configuration.cli)
-		.try_get_matches_from(["mc", "step:discover"])
+	let matches = build_command_with_cli("monochange", &configuration.cli)
+		.try_get_matches_from(["monochange", "step", "discover"])
 		.unwrap_or_else(|error| panic!("discover matches: {error}"));
 	(configuration, matches)
 }
 
 fn default_cli_command(name: &str) -> CliCommandDefinition {
-	let command_name = if name.starts_with("step:") {
-		name.to_string()
-	} else {
-		format!("step:{name}")
-	};
-
-	synthetic_step_command_definition(&command_name)
+	synthetic_step_command_definition(name)
 		.unwrap_or_else(|error| panic!("expected default cli command `{name}`: {error}"))
 }
 
@@ -815,10 +809,10 @@ fn telemetry_progress_format_uses_stable_labels() {
 }
 
 #[test]
-fn default_cli_command_accepts_prefixed_step_names() {
-	let command = default_cli_command("step:discover");
+fn default_cli_command_accepts_step_names() {
+	let command = default_cli_command("discover");
 
-	assert_eq!(command.name, "step:discover");
+	assert_eq!(command.name, "step discover");
 }
 
 fn sample_package_publish_outcome(
@@ -1573,7 +1567,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 	assert!(text.contains("trust message: configure trusted publishing manually for `pkg`"));
 	assert!(text.contains("setup: https://crates.io/crates/pkg"));
 	assert!(text.contains(
-		"next: open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`"
+		"next: open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"
 	));
 
 	let markdown = render_package_publish_report_markdown(&report, false).join("\n");
@@ -1582,7 +1576,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 		markdown.contains("**Trust message:** configure trusted publishing manually for `pkg`")
 	);
 	assert!(markdown.contains("**Setup:** `https://crates.io/crates/pkg`"));
-	assert!(markdown.contains("**Next:** open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`"));
+	assert!(markdown.contains("**Next:** open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"));
 }
 
 #[test]
@@ -1811,7 +1805,7 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 		.unwrap_or_else(|error| panic!("rate limit github snippet: {error}"));
 	assert!(github.contains("jobs:"));
 	assert!(github.contains("wait_seconds: 86400"));
-	assert!(github.contains("mc step:publish-packages"));
+	assert!(github.contains("monochange step publish-packages"));
 
 	context.last_step_inputs = BTreeMap::from([("ci".to_string(), vec!["gitlab-ci".to_string()])]);
 	let gitlab = resolve_command_output(&cli_command, &context, true, None)
@@ -1966,12 +1960,13 @@ async fn execute_matches_uses_progress_format_from_environment_and_rejects_inval
 	temp_env::async_with_vars([("MONOCHANGE_PROGRESS_FORMAT", Some("json"))], async {
 		let (configuration, matches) = parse_validate_matches(tempdir.path());
 		let step_matches = matches
-			.subcommand_matches("step:discover")
-			.unwrap_or_else(|| panic!("step:discover subcommand matches"));
+			.subcommand_matches("step")
+			.and_then(|matches| matches.subcommand_matches("discover"))
+			.unwrap_or_else(|| panic!("step discover subcommand matches"));
 		execute_matches(
 			tempdir.path(),
 			&configuration,
-			"step:discover",
+			"discover",
 			step_matches,
 			false,
 		)
@@ -1983,12 +1978,13 @@ async fn execute_matches_uses_progress_format_from_environment_and_rejects_inval
 	temp_env::async_with_vars([("MONOCHANGE_PROGRESS_FORMAT", Some("wat"))], async {
 		let (configuration, matches) = parse_validate_matches(tempdir.path());
 		let step_matches = matches
-			.subcommand_matches("step:discover")
-			.unwrap_or_else(|| panic!("step:discover subcommand matches"));
+			.subcommand_matches("step")
+			.and_then(|matches| matches.subcommand_matches("discover"))
+			.unwrap_or_else(|| panic!("step discover subcommand matches"));
 		let error = execute_matches(
 			tempdir.path(),
 			&configuration,
-			"step:discover",
+			"discover",
 			step_matches,
 			false,
 		)
@@ -3054,7 +3050,7 @@ fn optional_publish_plan_readiness_artifact_path_trims_and_rejects_blank_values(
 	assert!(
 		blank_error
 			.to_string()
-			.contains("mc step:publish-readiness")
+			.contains("monochange step publish-readiness")
 	);
 }
 

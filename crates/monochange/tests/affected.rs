@@ -227,12 +227,12 @@ async fn affected_since_takes_priority_over_changed_paths_with_warning() {
 }
 
 async fn run_affected_json(root: &Path, args: &[&str]) -> Value {
-	let cli_args = std::iter::once(OsString::from("mc"))
-		.chain(std::iter::once(OsString::from("step:affected-packages")))
+	let cli_args = std::iter::once(OsString::from("monochange"))
+		.chain([OsString::from("step"), OsString::from("affected-packages")])
 		.chain(std::iter::once(OsString::from("--format")))
 		.chain(std::iter::once(OsString::from("json")))
 		.chain(args.iter().map(|value| OsString::from(*value)));
-	let output = monochange::run_with_args_in_dir("mc", cli_args, root)
+	let output = monochange::run_with_args_in_dir("monochange", cli_args, root)
 		.await
 		.unwrap_or_else(|error| panic!("command output: {error}"));
 	serde_json::from_str(&output)
@@ -242,7 +242,8 @@ async fn run_affected_json(root: &Path, args: &[&str]) -> Value {
 fn run_affected_raw(root: &Path, args: &[&str]) -> std::process::Output {
 	monochange_command(None)
 		.current_dir(root)
-		.arg("step:affected-packages")
+		.arg("step")
+		.arg("affected-packages")
 		.arg("--format")
 		.arg("json")
 		.args(args)

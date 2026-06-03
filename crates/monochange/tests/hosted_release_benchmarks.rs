@@ -249,10 +249,10 @@ fi
 if [ "${1:-}" = "--progress-format" ]; then
   shift 2
 fi
-if [ "${1:-}" = "release" ]; then
+if [ "${1:-}" = "run" ] && [ "${2:-}" = "release" ]; then
   duration=140
   phase=70
-  if [ "${2:-}" = "--dry-run" ]; then
+  if [ "${3:-}" = "--dry-run" ]; then
     duration=110
     phase=55
   fi
@@ -276,14 +276,14 @@ done
 cat >"$export_markdown" <<'EOF'
 | Command | Mean [ms] | Min [ms] | Max [ms] |
 |:---|---:|---:|---:|
-| main · mc step:validate | 10.0 | 9.0 | 11.0 |
-| pr · mc step:validate | 11.0 | 10.0 | 12.0 |
-| main · mc discover --format json | 12.0 | 11.0 | 13.0 |
-| pr · mc discover --format json | 13.0 | 12.0 | 14.0 |
-| main · mc release --dry-run | 50.0 | 49.0 | 51.0 |
-| pr · mc release --dry-run | 48.0 | 47.0 | 49.0 |
-| main · mc release | 60.0 | 59.0 | 61.0 |
-| pr · mc release | 57.0 | 56.0 | 58.0 |
+| main · monochange step validate | 10.0 | 9.0 | 11.0 |
+| pr · monochange step validate | 11.0 | 10.0 | 12.0 |
+| main · monochange step discover --format json | 12.0 | 11.0 | 13.0 |
+| pr · monochange step discover --format json | 13.0 | 12.0 | 14.0 |
+| main · monochange run release --dry-run | 50.0 | 49.0 | 51.0 |
+| pr · monochange run release --dry-run | 48.0 | 47.0 | 49.0 |
+| main · monochange run release | 60.0 | 59.0 | 61.0 |
+| pr · monochange run release | 57.0 | 56.0 | 58.0 |
 EOF
 "#;
 	write_executable(&fake_main, fake_main_script);

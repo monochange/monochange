@@ -12,7 +12,7 @@ async fn run_cli<I>(root: &Path, args: I) -> monochange_core::MonochangeResult<S
 where
 	I: IntoIterator<Item = OsString>,
 {
-	monochange::run_with_args_in_dir("mc", args, root).await
+	monochange::run_with_args_in_dir("monochange", args, root).await
 }
 
 async fn run_json<I>(root: &Path, args: I) -> serde_json::Value
@@ -82,7 +82,7 @@ fn init_git_repo(root: &Path) {
 }
 
 fn command_args(args: &[&str]) -> Vec<OsString> {
-	std::iter::once(OsString::from("mc"))
+	std::iter::once(OsString::from("monochange"))
 		.chain(args.iter().map(|value| OsString::from(*value)))
 		.collect()
 }
@@ -98,6 +98,7 @@ async fn explicit_prepared_release_artifact_drives_follow_up_release_pr() {
 	run_cli(
 		root,
 		command_args(&[
+			"run",
 			"release",
 			"--format",
 			"json",
@@ -114,6 +115,7 @@ async fn explicit_prepared_release_artifact_drives_follow_up_release_pr() {
 	let value = run_json(
 		root,
 		command_args(&[
+			"run",
 			"release-pr",
 			"--dry-run",
 			"--format",
@@ -141,7 +143,7 @@ async fn automatic_prepared_release_cache_survives_commit_and_release_pr_follow_
 	let root = tempdir.path();
 	init_git_repo(root);
 
-	run_cli(root, command_args(&["release", "--format", "json"]))
+	run_cli(root, command_args(&["run", "release", "--format", "json"]))
 		.await
 		.unwrap_or_else(|error| panic!("release output: {error}"));
 	assert!(
@@ -157,9 +159,12 @@ async fn automatic_prepared_release_cache_survives_commit_and_release_pr_follow_
 	assert!(git_exclude.contains(".monochange/"));
 	assert!(!root.join(".changeset/feature.md").exists());
 
-	run_cli(root, command_args(&["commit-release", "--format", "json"]))
-		.await
-		.unwrap_or_else(|error| panic!("commit-release output: {error}"));
+	run_cli(
+		root,
+		command_args(&["run", "commit-release", "--format", "json"]),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("commit-release output: {error}"));
 	assert_eq!(git_output(root, &["status", "--short"]), "");
 	assert_eq!(
 		git_output(root, &["log", "-1", "--pretty=%s"]),
@@ -168,7 +173,7 @@ async fn automatic_prepared_release_cache_survives_commit_and_release_pr_follow_
 
 	let value = run_json(
 		root,
-		command_args(&["release-pr", "--dry-run", "--format", "json"]),
+		command_args(&["run", "release-pr", "--dry-run", "--format", "json"]),
 	)
 	.await;
 	assert_eq!(
@@ -186,7 +191,7 @@ async fn commit_release_can_reuse_saved_prepared_release_without_prepare_step() 
 	let root = tempdir.path();
 	init_git_repo(root);
 
-	run_cli(root, command_args(&["release", "--format", "json"]))
+	run_cli(root, command_args(&["run", "release", "--format", "json"]))
 		.await
 		.unwrap_or_else(|error| panic!("release output: {error}"));
 	assert!(
@@ -196,7 +201,7 @@ async fn commit_release_can_reuse_saved_prepared_release_without_prepare_step() 
 
 	run_cli(
 		root,
-		command_args(&["commit-from-cache", "--format", "json"]),
+		command_args(&["run", "commit-from-cache", "--format", "json"]),
 	)
 	.await
 	.unwrap_or_else(|error| panic!("commit-from-cache output: {error}"));
@@ -213,7 +218,7 @@ async fn commit_release_succeeds_when_manifest_is_gitignored() {
 	let root = tempdir.path();
 	init_git_repo(root);
 
-	run_cli(root, command_args(&["release", "--format", "json"]))
+	run_cli(root, command_args(&["run", "release", "--format", "json"]))
 		.await
 		.unwrap_or_else(|error| panic!("release output: {error}"));
 	assert!(
@@ -223,7 +228,7 @@ async fn commit_release_succeeds_when_manifest_is_gitignored() {
 
 	run_cli(
 		root,
-		command_args(&["commit-from-cache", "--format", "json"]),
+		command_args(&["run", "commit-from-cache", "--format", "json"]),
 	)
 	.await
 	.unwrap_or_else(|error| panic!("commit-from-cache output: {error}"));
@@ -245,6 +250,7 @@ async fn prepared_release_artifact_rejects_workspace_content_drift() {
 	run_cli(
 		root,
 		command_args(&[
+			"run",
 			"release",
 			"--format",
 			"json",
@@ -263,6 +269,7 @@ async fn prepared_release_artifact_rejects_workspace_content_drift() {
 	let error = run_cli(
 		root,
 		command_args(&[
+			"run",
 			"release-pr",
 			"--dry-run",
 			"--format",

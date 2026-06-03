@@ -1,7 +1,7 @@
 ---
 source: crates/monochange/tests/cli_output.rs
 info:
-  program: mc
+  program: monochange
   args:
     - placeholder-publish
     - "--dry-run"
@@ -10,55 +10,20 @@ info:
   env:
     GITHUB_JOB: release
     GITHUB_WORKFLOW_REF: ifiokjr/monochange/.github/workflows/publish.yml@refs/heads/main
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:64141"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:64141"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:64141"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:64141"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:62402"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:62402"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:62402"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:62402"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---
-success: true
-exit_code: 0
+success: false
+exit_code: 1
 ----- stdout -----
-command `placeholder-publish` completed (dry-run)
-placeholder publishing:
-- core 0.0.0 via crates_io -> planned
-  ecosystem: cargo
-  placeholder: yes
-  publish: would publish placeholder core 0.0.0 to crates_io
-  trusted publishing: manual-action-required
-  trust message: configure trusted publishing manually for `core` before the next built-in release publish; open https://crates.io/crates/core and register repository `ifiokjr/monochange`, workflow `publish.yml`, environment `publisher` there
-  repository: ifiokjr/monochange
-  workflow: publish.yml
-  environment: publisher
-  setup: https://crates.io/crates/core
-  next: open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`
-- npm_pkg 0.0.0 via npm -> planned
-  ecosystem: npm
-  placeholder: yes
-  publish: would publish placeholder npm-pkg 0.0.0 to npm
-  trusted publishing: planned
-  trust message: would configure npm trusted publishing with `npm trust github npm-pkg --file publish.yml --repo ifiokjr/monochange --yes --env publisher`
-  repository: ifiokjr/monochange
-  workflow: publish.yml
-  environment: publisher
-  setup: https://www.npmjs.com/package/npm-pkg/access
-  next: open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`
-publish rate limits:
-- crates_io placeholder_publish pending=1 batches=1 confidence=High
-  limit: 10
-  window: 60s
-  notes: crates.io source enforces 10 uploads per minute for existing crates
-- npm placeholder_publish pending=1 batches=1 confidence=Low
-  notes: npm does not publish a precise package publish quota; use sequential CI publishing with retries
-planned batches:
-- crates_io batch 1/1 packages: core
-- npm batch 1/1 packages: npm_pkg
 
 ----- stderr -----
-◆ Publishing 2 packages (Placeholder dry-run) across 🦀 cargo, 📦 npm
-→ 🦀 cargo core checking 0.0.0 on crates_io
-📝 🦀 cargo core would publish 0.0.0 to crates_io
-→ 📦 npm npm-pkg checking 0.0.0 on npm
-📝 📦 npm npm-pkg would publish 0.0.0 to npm
-◆ Publish complete: 2 packages, ✅ 0 published, ⏭️ 2 skipped, ❌ 0 failed
+config error: error: unrecognized subcommand 'placeholder-publish'
+
+Usage: monochange [OPTIONS] <COMMAND>
+
+For more information, try '--help'.

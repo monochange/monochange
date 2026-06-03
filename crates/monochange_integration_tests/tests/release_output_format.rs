@@ -43,12 +43,12 @@ fn setup_fixture() -> TempDir {
 }
 
 fn mc_release(root: &Path, args: &[&str]) -> String {
-	let output = Command::new(get_cargo_bin("mc"))
+	let output = Command::new(get_cargo_bin("monochange"))
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-04-06")
 		.env_remove("RUST_LOG")
-		.args(["release", "--dry-run"])
+		.args(["run", "release", "--dry-run"])
 		.args(args)
 		.output()
 		.unwrap_or_else(|error| panic!("run mc release: {error}"));

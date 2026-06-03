@@ -10,23 +10,23 @@ const hyperfineBin = process.env.MONOCHANGE_HYPERFINE_BIN ?? "hyperfine";
 
 const RUNNABLE_STEP_COMMANDS = [
 	{
-		label: "mc step:config --dry-run",
+		label: "monochange step config --dry-run",
 		args: ["step:config", "--dry-run"],
 	},
 	{
-		label: "mc step:validate --dry-run",
+		label: "monochange step validate --dry-run",
 		args: ["step:validate", "--dry-run"],
 	},
 	{
-		label: "mc step:discover --dry-run --format json",
+		label: "monochange step discover --dry-run --format json",
 		args: ["step:discover", "--dry-run", "--format", "json"],
 	},
 	{
-		label: "mc step:display-versions --dry-run --format json",
+		label: "monochange step display-versions --dry-run --format json",
 		args: ["step:display-versions", "--dry-run", "--format", "json"],
 	},
 	{
-		label: "mc step:create-change-file --dry-run",
+		label: "monochange step create-change-file --dry-run",
 		args: [
 			"step:create-change-file",
 			"--dry-run",
@@ -41,58 +41,58 @@ const RUNNABLE_STEP_COMMANDS = [
 		],
 	},
 	{
-		label: "mc step:prepare-release --dry-run --format json",
+		label: "monochange step prepare-release --dry-run --format json",
 		args: ["step:prepare-release", "--dry-run", "--format", "json"],
 	},
 	{
-		label: "mc step:affected-packages --dry-run --format json",
+		label: "monochange step affected-packages --dry-run --format json",
 		args: ["step:affected-packages", "--dry-run", "--format", "json", "--from", "HEAD~1"],
 	},
 	{
-		label: "mc step:diagnose-changesets --dry-run --format json",
+		label: "monochange step diagnose-changesets --dry-run --format json",
 		args: ["step:diagnose-changesets", "--dry-run", "--format", "json"],
 	},
 ];
 
 const SKIPPED_STEP_COMMANDS = [
 	{
-		command: "mc step:commit-release",
+		command: "monochange step commit-release",
 		reason:
 			"requires a PrepareRelease step in the same workflow context; the direct built-in step has no prepared-release input flag",
 	},
 	{
-		command: "mc step:verify-release-branch",
+		command: "monochange step verify-release-branch",
 		reason: "requires [source] configuration and release-branch provider semantics",
 	},
 	{
-		command: "mc step:publish-release",
+		command: "monochange step publish-release",
 		reason:
 			"requires a prepared release artifact plus hosted source-provider configuration; can perform provider I/O",
 	},
 	{
-		command: "mc step:placeholder-publish",
+		command: "monochange step placeholder-publish",
 		reason:
 			"requires registry publish configuration and can perform registry/provider I/O even in dry-run planning",
 	},
 	{
-		command: "mc step:publish-packages",
+		command: "monochange step publish-packages",
 		reason: "requires registry publish configuration and package publish state",
 	},
 	{
-		command: "mc step:plan-publish-rate-limits",
+		command: "monochange step plan-publish-rate-limits",
 		reason:
 			"requires publish-readiness/registry configuration; timed out on the offline cargo fixture",
 	},
 	{
-		command: "mc step:open-release-request",
+		command: "monochange step open-release-request",
 		reason: "requires hosted source-provider configuration and can create or update provider PRs",
 	},
 	{
-		command: "mc step:comment-released-issues",
+		command: "monochange step comment-released-issues",
 		reason: "requires hosted source-provider configuration and issue-comment side effects",
 	},
 	{
-		command: "mc step:retarget-release",
+		command: "monochange step retarget-release",
 		reason:
 			"requires release tag/source-provider state; fixture coverage needs a dedicated isolated provider setup",
 	},

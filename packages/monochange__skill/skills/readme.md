@@ -6,10 +6,10 @@ Use these focused guides when the top-level [SKILL.md](../SKILL.md) is not enoug
 
 | If the user asks about...                                                                                              | Open this first                                                                         |
 | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Which `mc` command to run, whether a command is built in, or how `[cli.*].steps` compose                               | [commands.md](./commands.md)                                                            |
+| Which `monochange` command to run, whether a command is built in, or how `[cli.*].steps` compose                       | [commands.md](./commands.md)                                                            |
 | Writing or reviewing `monochange.toml`, package/group ids, providers, ecosystems, versioned files, or custom workflows | [configuration.md](./configuration.md)                                                  |
 | Creating, editing, validating, or diagnosing `.changeset/*.md` release intent                                          | [changesets.md](./changesets.md)                                                        |
-| Manifest policy, lint presets, `mc check`, or rule explanations                                                        | [linting.md](./linting.md)                                                              |
+| Manifest policy, lint presets, `monochange check`, or rule explanations                                                | [linting.md](./linting.md)                                                              |
 | Publish readiness, bootstrap placeholders, publish plans, partial retries, or registry package publishing              | [multi-package-publishing.md](./multi-package-publishing.md)                            |
 | OIDC and trusted-publishing setup                                                                                      | [trusted-publishing.md](./trusted-publishing.md)                                        |
 | Migrating an existing monorepo/release workflow into monochange                                                        | [adoption.md](./adoption.md)                                                            |
@@ -23,7 +23,7 @@ Use these focused guides when the top-level [SKILL.md](../SKILL.md) is not enoug
 - [configuration.md](./configuration.md) — `monochange.toml` examples and configuration rules.
 - [changesets.md](./changesets.md) — authoring release intent.
 - [reference.md](./reference.md) — complete usage reference.
-- [linting.md](./linting.md) — `mc check` and manifest lint configuration.
+- [linting.md](./linting.md) — `monochange check` and manifest lint configuration.
 - [multi-package-publishing.md](./multi-package-publishing.md) — package publishing workflows.
 - [trusted-publishing.md](./trusted-publishing.md) — OIDC/trusted-publishing notes.
 - [adoption.md](./adoption.md) — migration checklist for existing monorepos.

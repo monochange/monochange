@@ -77,6 +77,7 @@ fn verify_changeset_policy_scenarios_match_snapshot(
 fn run_affected_json(root: &Path, args: &[&str]) -> Value {
 	let output = monochange_command(None)
 		.current_dir(root)
+		.arg("run")
 		.arg("affected")
 		.arg("--format")
 		.arg("json")

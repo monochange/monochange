@@ -16,19 +16,19 @@
 //!
 //! ## Best for
 //!
-//! - shipping the `mc` CLI in CI or local release tooling
+//! - shipping the `monochange` CLI in CI or local release tooling
 //! - embedding the full end-to-end planner instead of wiring the lower-level crates together yourself
-//! - generating starter config with `mc init` and then evolving the CLI command surface over time
+//! - generating starter config with `monochange init` and then evolving the CLI command surface over time
 //!
 //! ## Key commands
 //!
 //! ```bash
-//! mc init
-//! mc skill -a pi -y
-//! mc discover --format json
-//! mc change --package monochange --bump patch --reason "describe the change"
-//! mc release --dry-run --format json
-//! mc mcp
+//! monochange init
+//! monochange skill -a pi -y
+//! monochange discover --format json
+//! monochange change --package monochange --bump patch --reason "describe the change"
+//! monochange release --dry-run --format json
+//! monochange mcp
 //! ```
 //!
 //! ## Responsibilities
@@ -37,7 +37,7 @@
 //! - load `monochange.toml`
 //! - load config-defined `[cli.*]` workflow commands from `monochange.toml`
 //! - expose binary commands such as `init`, `check`, `analyze`, `mcp`, `help`, and `version`
-//! - generate immutable `mc step:*` commands from the built-in step schemas
+//! - generate immutable `monochange step *` commands from the built-in step schemas
 //! - resolve change input files
 //! - render discovery and release command output in text or JSON
 //! - execute configured workflow commands plus built-in MCP commands
@@ -286,7 +286,8 @@ pub(crate) fn synthetic_step_command_definition(
 	cli_command_name: &str,
 ) -> MonochangeResult<CliCommandDefinition> {
 	let kebab = cli_command_name
-		.strip_prefix("step:")
+		.strip_prefix("step ")
+		.or_else(|| cli_command_name.strip_prefix("step:"))
 		.unwrap_or(cli_command_name);
 	let step = monochange_core::all_step_variants()
 		.into_iter()
@@ -296,7 +297,7 @@ pub(crate) fn synthetic_step_command_definition(
 		})?;
 
 	Ok(CliCommandDefinition {
-		name: cli_command_name.to_string(),
+		name: format!("step {kebab}"),
 		help_text: step.name().map(ToString::to_string),
 		inputs: step.step_inputs_schema(),
 		steps: vec![step.with_inherited_step_inputs()],
@@ -351,7 +352,7 @@ pub enum OutputFormat {
 	Json,
 }
 
-/// Semver bump accepted by `mc change` and related APIs.
+/// Semver bump accepted by `monochange change` and related APIs.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub enum ChangeBump {
 	None,
@@ -371,7 +372,7 @@ impl From<ChangeBump> for BumpSeverity {
 	}
 }
 
-/// Repo-local subagent target understood by `mc subagents`.
+/// Repo-local subagent target understood by `monochange subagents`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SubagentTarget {
@@ -408,7 +409,7 @@ impl SubagentTarget {
 	}
 }
 
-/// Output renderer for `mc subagents`.
+/// Output renderer for `monochange subagents`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SubagentOutputFormat {
 	Markdown,
@@ -625,7 +626,7 @@ pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
 
 /// Run a CLI binary from process arguments and return the process exit code.
 ///
-/// Binary entrypoints choose the Tokio runtime before delegating here so `mc`
+/// Binary entrypoints choose the Tokio runtime before delegating here so `monochange`
 /// and `monochange` share the same output and error handling.
 #[coverage(off)]
 #[must_use = "the process exit code must be returned"]
@@ -648,7 +649,11 @@ pub(crate) fn detect_output_format_from_env_args(
 ) -> OutputFormat {
 	let args: Vec<String> = args.collect();
 	for (i, arg) in args.iter().enumerate() {
-		if arg == "step:config" {
+		if arg == "config"
+			&& args
+				.get(i.saturating_sub(1))
+				.is_some_and(|previous| previous == "step")
+		{
 			return OutputFormat::Json;
 		}
 		if arg == "--format"
@@ -949,7 +954,7 @@ fn render_custom_command_argument_error(
 	cli_command: &CliCommandDefinition,
 	colored: bool,
 ) -> String {
-	let command = format!("mc {}", cli_command.name);
+	let command = format!("monochange run {}", cli_command.name);
 	let argument =
 		unexpected_argument_from_error(error).unwrap_or_else(|| "the supplied option".to_string());
 	let heading = paint("✖ Unexpected command input", cli_theme::error(), colored);
@@ -964,7 +969,7 @@ fn render_custom_command_argument_error(
 	let fix = paint("How to fix", cli_theme::header(), colored);
 
 	format!(
-		"{heading}\n\n  Argument {argument} is not declared for custom command {command}.\n\n{usage}:\n  {}\n\n{fix}:\n  This command comes from {config_path} in monochange.toml.\n  Add a matching input there to make this option valid, for example:\n\n    [cli.{}]\n    inputs = [\n      {{ name = \"{}\", type = \"boolean\" }},\n    ]\n\n  Then run `mc help {}` to confirm the option is listed.",
+		"{heading}\n\n  Argument {argument} is not declared for custom command {command}.\n\n{usage}:\n  {}\n\n{fix}:\n  This command comes from {config_path} in monochange.toml.\n  Add a matching input there to make this option valid, for example:\n\n    [cli.{}]\n    inputs = [\n      {{ name = \"{}\", type = \"boolean\" }},\n    ]\n\n  Then run `monochange help {}` to confirm the option is listed.",
 		cli::cli_command_usage(cli_command),
 		cli_command.name,
 		argument.trim_start_matches('-').replace('-', "_"),
@@ -999,14 +1004,23 @@ fn render_help_command(
 	args: &[OsString],
 	cli: &[CliCommandDefinition],
 ) -> String {
-	let command_name = command_args_after_globals(args)
+	let help_args = command_args_after_globals(args)
 		.skip_while(|arg| *arg != "help")
-		.nth(1)
-		.unwrap_or_default();
+		.skip(1)
+		.filter(|arg| !arg.starts_with('-'))
+		.collect::<Vec<_>>();
+	let command_name = if help_args.is_empty() {
+		String::new()
+	} else if let ["step", step_name, ..] = help_args.as_slice() {
+		format!("step {step_name}")
+	} else {
+		let command_index = usize::from(help_args.first() == Some(&"run") && help_args.len() > 1);
+		help_args.get(command_index).unwrap_or(&"").to_string()
+	};
 	if command_name.is_empty() {
 		cli_help::render_overview_help_with_cli(bin_name, cli)
 	} else {
-		cli_help::render_command_help_with_cli(bin_name, command_name, cli)
+		cli_help::render_command_help_with_cli(bin_name, &command_name, cli)
 	}
 }
 
@@ -1339,12 +1353,33 @@ where
 			))
 		}
 
-		Some((cli_command_name, cli_command_matches)) if cli_command_name.starts_with("step:") => {
+		Some(("step", step_matches)) => {
+			let Some((step_name, step_command_matches)) = step_matches.subcommand() else {
+				return Err(MonochangeError::Config(
+					"Usage: monochange step <command>".to_string(),
+				));
+			};
 			let configuration = configuration?;
-			let synthetic = synthetic_step_command_definition(cli_command_name)?;
-			let inputs = collect_cli_command_inputs(&synthetic, cli_command_matches);
-			let dry_run = quiet || cli_command_matches.get_flag("dry-run");
+			let synthetic = synthetic_step_command_definition(step_name)?;
+			let inputs = collect_cli_command_inputs(&synthetic, step_command_matches);
+			let dry_run = quiet || step_command_matches.get_flag("dry-run");
 			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+		}
+		Some(("run", run_matches)) => {
+			let Some((cli_command_name, cli_command_matches)) = run_matches.subcommand() else {
+				return Err(MonochangeError::Config(
+					"Usage: monochange run <command>".to_string(),
+				));
+			};
+			let configuration = configuration?;
+			execute_matches(
+				root,
+				&configuration,
+				cli_command_name,
+				cli_command_matches,
+				quiet,
+			)
+			.await
 		}
 		Some((cli_command_name, cli_command_matches)) => {
 			let configuration = configuration?;
@@ -1357,7 +1392,7 @@ where
 			)
 			.await
 		}
-		None => Err(MonochangeError::Config("Usage: mc".to_string())),
+		None => Err(MonochangeError::Config("Usage: monochange".to_string())),
 	}?;
 
 	if let Some(expression) = jq_expression {

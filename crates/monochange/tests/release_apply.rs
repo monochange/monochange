@@ -15,6 +15,7 @@ fn release_apply_with_github_source_updates_workspace_and_deletes_changesets() {
 
 	let output = monochange_command(Some("2026-04-06"))
 		.current_dir(root)
+		.arg("run")
 		.arg("release")
 		.arg("--format")
 		.arg("json")

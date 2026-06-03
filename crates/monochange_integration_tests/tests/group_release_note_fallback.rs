@@ -52,31 +52,31 @@ fn setup_case(case: &str) -> TempDir {
 }
 
 fn mc_json(root: &Path, args: &[&str]) -> Value {
-	let output = Command::new(get_cargo_bin("mc"))
+	let output = Command::new(get_cargo_bin("monochange"))
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-04-06")
 		.env_remove("RUST_LOG")
 		.args(args)
 		.output()
-		.unwrap_or_else(|error| panic!("run mc {}: {error}", args.join(" ")));
+		.unwrap_or_else(|error| panic!("run monochange {}: {error}", args.join(" ")));
 	assert!(
 		output.status.success(),
-		"mc {} failed\nstdout:\n{}\nstderr:\n{}",
+		"monochange {} failed\nstdout:\n{}\nstderr:\n{}",
 		args.join(" "),
 		String::from_utf8_lossy(&output.stdout),
 		String::from_utf8_lossy(&output.stderr)
 	);
 	serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
 		panic!(
-			"parse mc json: {error}\nstdout:\n{}",
+			"parse monochange json: {error}\nstdout:\n{}",
 			String::from_utf8_lossy(&output.stdout)
 		)
 	})
 }
 
 fn prepare_release(root: &Path) -> Value {
-	mc_json(root, &["step:prepare-release", "--format", "json"])
+	mc_json(root, &["step", "prepare-release", "--format", "json"])
 }
 
 fn publish_release_dry_run(root: &Path) -> Value {

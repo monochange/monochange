@@ -19,7 +19,7 @@ Use it when you need to inspect the configuration after defaults, package discov
 The direct command is exposed as:
 
 ```bash
-mc step:config
+monochange step config
 ```
 
 It does not require step-specific inputs.
@@ -35,7 +35,7 @@ A readable monochange workspace configuration.
 ## Example
 
 ```bash
-mc step:config
+monochange step config
 ```
 
 In a workflow, use it before mutating steps when you want a durable diagnostic snapshot:

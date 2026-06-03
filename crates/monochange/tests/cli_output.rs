@@ -113,7 +113,8 @@ fn validate_cli_succeeds_for_valid_workspace() {
 	assert_cmd_snapshot!(
 		monochange_command(None)
 			.current_dir(tempdir.path())
-			.arg("step:validate")
+			.arg("step")
+			.arg("validate")
 	);
 }
 
@@ -186,6 +187,7 @@ fn change_cli_help_documents_package_and_group_targeting_rules() {
 	assert_cmd_snapshot!(
 		monochange_command(None)
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("change")
 			.arg("--help")
 	);
@@ -201,6 +203,7 @@ fn discover_cli_json_reports_relative_paths_and_stable_ids() {
 	assert_cmd_snapshot!(
 		monochange_command(None)
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("discover")
 			.arg("--format")
 			.arg("json")
@@ -253,6 +256,7 @@ fn change_cli_writes_requested_file_contents() {
 	assert_cmd_snapshot!(
 		monochange_command(None)
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("change")
 			.arg("--package")
 			.arg("core")
@@ -281,6 +285,7 @@ fn change_cli_writes_explicit_versions_when_requested() {
 	assert_cmd_snapshot!(
 		monochange_command(None)
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("change")
 			.arg("--package")
 			.arg("core")
@@ -309,6 +314,7 @@ fn release_dry_run_cli_defaults_to_markdown_output() {
 	assert_cmd_snapshot!(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release")
 			.arg("--dry-run")
 	);
@@ -324,6 +330,7 @@ fn release_dry_run_cli_patches_parent_packages_when_dependencies_change() {
 	assert_cmd_snapshot!(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release")
 			.arg("--dry-run")
 			.arg("--format")
@@ -341,6 +348,7 @@ fn release_dry_run_cli_uses_explicit_group_versions_from_member_changes() {
 	assert_cmd_snapshot!(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release")
 			.arg("--dry-run")
 			.arg("--format")
@@ -358,6 +366,7 @@ fn release_dry_run_cli_json_exposes_group_owned_release_targets() {
 	let json = command_stdout_json(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release")
 			.arg("--dry-run")
 			.arg("--format")
@@ -377,6 +386,7 @@ fn release_dry_run_cli_text_renders_diff_preview() {
 	assert_cmd_snapshot!(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release")
 			.arg("--dry-run")
 			.arg("--diff")
@@ -395,6 +405,7 @@ fn release_dry_run_cli_json_renders_diff_preview() {
 	let json = command_stdout_json(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release")
 			.arg("--dry-run")
 			.arg("--diff")
@@ -415,6 +426,7 @@ fn verify_cli_json_reports_failure_comment() {
 	let json = command_stdout_json(
 		monochange_command(None)
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("affected")
 			.arg("--format")
 			.arg("json")
@@ -435,6 +447,7 @@ fn release_pr_workflow_reports_dry_run_pull_request_preview() {
 	assert_cmd_snapshot!(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release-pr")
 			.arg("--dry-run")
 	);
@@ -450,6 +463,7 @@ fn prepare_release_writes_manifest_json() {
 	assert_cmd_snapshot!(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release")
 			.arg("--dry-run")
 	);
@@ -474,6 +488,7 @@ fn release_cli_reports_missing_changesets_cleanly() {
 	assert_cmd_snapshot!(
 		release_cli_command()
 			.current_dir(tempdir.path())
+			.arg("run")
 			.arg("release")
 	);
 }
@@ -484,6 +499,7 @@ fn release_cli_writes_group_changelog_and_skips_packages_without_changelogs() {
 
 	let output = release_cli_command()
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("release output: {error}"));
@@ -524,6 +540,7 @@ fn release_quiet_suppresses_output_and_skips_workspace_mutation() {
 	let output = release_cli_command()
 		.current_dir(tempdir.path())
 		.arg("--quiet")
+		.arg("run")
 		.arg("release")
 		.output()
 		.unwrap_or_else(|error| panic!("quiet release output: {error}"));
@@ -556,7 +573,8 @@ fn validate_cli_rejects_packages_in_multiple_groups() {
 	assert_cmd_snapshot!(
 		monochange_command(None)
 			.current_dir(tempdir.path())
-			.arg("step:validate")
+			.arg("step")
+			.arg("validate")
 	);
 }
 
@@ -578,7 +596,8 @@ fn validate_cli_reports_frontmatter_location_and_fix_hint() {
 
 	let output = monochange_command(None)
 		.current_dir(tempdir.path())
-		.arg("step:validate")
+		.arg("step")
+		.arg("validate")
 		.output()
 		.unwrap_or_else(|error| panic!("validate output: {error}"));
 	assert!(!output.status.success());

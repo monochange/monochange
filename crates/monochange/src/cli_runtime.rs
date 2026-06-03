@@ -76,15 +76,12 @@ pub(crate) async fn execute_matches(
 	cli_command_matches: &ArgMatches,
 	quiet: bool,
 ) -> MonochangeResult<String> {
-	let cli_command = if cli_command_name.starts_with("step:") {
-		Some(synthetic_step_command_definition(cli_command_name)?)
-	} else {
-		configuration
-			.cli
-			.iter()
-			.find(|cli_command| cli_command.name == cli_command_name)
-			.cloned()
-	};
+	let cli_command = configuration
+		.cli
+		.iter()
+		.find(|cli_command| cli_command.name == cli_command_name)
+		.cloned()
+		.or_else(|| synthetic_step_command_definition(cli_command_name).ok());
 	let Some(cli_command) = cli_command else {
 		return Err(MonochangeError::Config(format!(
 			"unknown command `{cli_command_name}`"
@@ -765,7 +762,10 @@ pub(crate) async fn execute_cli_command_with_options(
 		let step_result: MonochangeResult<()> = async {
 			match step {
 				CliStepDefinition::Config { .. } => {
-					output = if cli_command.name == "step:config" {
+					output = if matches!(
+						cli_command.name.as_str(),
+						"config" | "step config" | "step:config"
+					) {
 						Some(render_config_step_json(root, configuration))
 					} else {
 						None
@@ -2749,7 +2749,7 @@ fn render_github_actions_publish_batches(
 		"      - name: publish planned batch".to_string(),
 		"        run: |".to_string(),
 		"          # For batches after the first, trigger a later workflow run instead of sleeping in CI.".to_string(),
-		"          mc step:publish-packages ${{ matrix.packages }} --format json".to_string(),
+		"          monochange step publish-packages ${{ matrix.packages }} --format json".to_string(),
 	]);
 	lines.join("\n")
 }
@@ -2784,7 +2784,7 @@ fn render_gitlab_ci_publish_batches(report: &monochange_core::PublishRateLimitRe
 	lines.extend([
 		"  script:".to_string(),
 		"    - '# For batches after the first, run a later pipeline instead of sleeping inside CI.'".to_string(),
-		"    - mc step:publish-packages $PACKAGES --format json".to_string(),
+		"    - monochange step publish-packages $PACKAGES --format json".to_string(),
 	]);
 	lines.join("\n")
 }
@@ -2897,7 +2897,7 @@ fn optional_path_input(
 	let trimmed = path.trim();
 	if trimmed.is_empty() {
 		let message = match name {
-			"readiness" => "`--readiness <PATH>` must not be blank; run `mc step:publish-readiness --from HEAD --output <PATH>` first".to_string(),
+			"readiness" => "`--readiness <PATH>` must not be blank; run `monochange step publish-readiness --from HEAD --output <PATH>` first".to_string(),
 			_ => format!("`{step_name}` received a blank `{name}` path"),
 		};
 		return Err(MonochangeError::Config(message));
@@ -3093,7 +3093,7 @@ fn render_package_publish_report(report: &package_publish::PackagePublishReport)
 		}
 		if let Some(setup_url) = &package.trusted_publishing.setup_url {
 			lines.push(format!("  setup: {setup_url}"));
-			lines.push("  next: open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`".to_string());
+			lines.push("  next: open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`".to_string());
 		}
 	}
 
@@ -3217,7 +3217,7 @@ fn render_package_publish_report_markdown(
 				paint_markdown_inline(&format!("`{setup_url}`"), MarkdownStyle::Code, color,)
 			));
 			lines.push(
-				"- **Next:** open the setup URL, configure trusted publishing for this package, then rerun `mc step:publish-packages`"
+				"- **Next:** open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"
 					.to_string(),
 			);
 		}

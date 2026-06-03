@@ -1995,12 +1995,12 @@ fn load_changeset_file_lints_configured_summary_requirements() {
 		PublishState::Public,
 	)];
 
-	// Changeset linting now runs through `mc check` rather than during config loading,
+	// Changeset linting now runs through `monochange check` rather than during config loading,
 	// so `load_changeset_file` should succeed even when the changeset body violates lint rules.
 	let _file = load_changeset_file(&root.join("change.md"), &configuration, &packages)
 		.unwrap_or_else(|error| {
 			panic!(
-				"changeset should load successfully; lint errors are reported by `mc check`: {error}"
+				"changeset should load successfully; lint errors are reported by `monochange check`: {error}"
 			)
 		});
 }
@@ -2019,11 +2019,11 @@ fn load_changeset_file_lints_configured_bump_and_type_rules() {
 		PublishState::Public,
 	)];
 
-	// Changeset linting now runs through `mc check` rather than during config loading.
+	// Changeset linting now runs through `monochange check` rather than during config loading.
 	let _file = load_changeset_file(&root.join("change.md"), &configuration, &packages)
 		.unwrap_or_else(|error| {
 			panic!(
-				"changeset should load successfully; lint errors are reported by `mc check`: {error}"
+				"changeset should load successfully; lint errors are reported by `monochange check`: {error}"
 			)
 		});
 }
@@ -2049,11 +2049,11 @@ fn load_changeset_file_lints_configured_custom_type_rule() {
 		PublishState::Public,
 	)];
 
-	// Changeset linting now runs through `mc check` rather than during config loading.
+	// Changeset linting now runs through `monochange check` rather than during config loading.
 	let _file = load_changeset_file(&root.join("change.md"), &configuration, &packages)
 		.unwrap_or_else(|error| {
 			panic!(
-				"changeset should load successfully; lint errors are reported by `mc check`: {error}"
+				"changeset should load successfully; lint errors are reported by `monochange check`: {error}"
 			)
 		});
 }

@@ -2,7 +2,7 @@
 //!
 //! These benchmarks measure discovery in generated monorepo fixtures of varying
 //! sizes. They are designed to catch regressions in the discovery phase of
-//! `mc init`, `mc step:discover`, `mc release`, and mixed-ecosystem workflows.
+//! `monochange init`, `monochange step discover`, `monochange release`, and mixed-ecosystem workflows.
 
 use std::fs;
 use std::path::Path;

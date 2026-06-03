@@ -69,6 +69,7 @@ fn change_cli_writes_scalar_type_shorthand_when_no_default_bump_is_configured() 
 
 	let output = cli()
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("change")
 		.arg("--package")
 		.arg("core")
@@ -97,6 +98,7 @@ fn change_cli_rejects_unknown_change_type_for_configured_target() {
 
 	let output = cli()
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("change")
 		.arg("--package")
 		.arg("core")
@@ -121,7 +123,8 @@ fn validate_accepts_scalar_type_shorthand_changesets() {
 
 	let output = cli()
 		.current_dir(tempdir.path())
-		.arg("step:validate")
+		.arg("step")
+		.arg("validate")
 		.output()
 		.unwrap_or_else(|error| panic!("validate output: {error}"));
 	assert!(
@@ -138,6 +141,7 @@ fn release_dry_run_json_supports_scalar_type_default_bumps() {
 
 	let output = cli()
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.arg("--dry-run")
 		.arg("--format")
@@ -202,6 +206,7 @@ fn release_rejects_legacy_reserved_metadata_blocks() {
 
 	let output = cli()
 		.current_dir(tempdir.path())
+		.arg("run")
 		.arg("release")
 		.arg("--dry-run")
 		.arg("--format")

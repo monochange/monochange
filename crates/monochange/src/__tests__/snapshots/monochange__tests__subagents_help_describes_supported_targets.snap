@@ -5,7 +5,7 @@ expression: output
 ---
 Generate repo-local monochange subagents and agent guidance files
 
-Usage: mc subagents [OPTIONS] [TARGET]...
+Usage: monochange subagents [OPTIONS] [TARGET]...
 
 Arguments:
   [TARGET]...  Subagent target(s) to generate [possible values: claude, vscode, copilot, pi, codex, cursor]
@@ -26,11 +26,11 @@ Global Options:
       --snapshot                  Print a normalized JSON snapshot for this command subtree
 
 Examples:
-  mc help subagents
-  mc subagents claude
-  mc subagents pi codex
-  mc subagents --all --dry-run --format json
-  mc subagents vscode copilot --no-mcp
+  monochange help subagents
+  monochange subagents claude
+  monochange subagents pi codex
+  monochange subagents --all --dry-run --format json
+  monochange subagents vscode copilot --no-mcp
 
 Targets:
   - claude  -> .claude/agents/*.md and .mcp.json
@@ -41,7 +41,7 @@ Targets:
   - cursor  -> .cursor/rules/*.mdc
 
 Generated agents are CLI-first. They should prefer:
-  1. mc
+  1. monochange
   2. monochange
   3. npx -y @monochange/cli
 

@@ -11,8 +11,8 @@ async fn inherited_ecosystem_globs_load_quick_repo_fixture() {
 	let root = workspace.path();
 
 	let help = monochange::run_with_args_in_dir(
-		"mc",
-		[OsString::from("mc"), OsString::from("--help")],
+		"monochange",
+		[OsString::from("monochange"), OsString::from("--help")],
 		root,
 	)
 	.await

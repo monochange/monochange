@@ -22,7 +22,7 @@ use monochange_core::git::git_current_branch;
 
 /// Evaluate pull-request changeset coverage for the supplied changed paths.
 ///
-/// This is the library entry point behind `mc step:affected-packages` and the
+/// This is the library entry point behind `monochange step affected-packages` and the
 /// GitHub changeset-policy workflow. It loads the workspace configuration, resolves
 /// changed files against configured packages, reads any attached changesets, and
 /// returns a structured pass/skip/fail report.
@@ -694,7 +694,7 @@ fn render_changeset_verification_comment(
 	lines.push("How to fix:".to_string());
 	lines.push("- add or update a `.changeset/*.md` file so it references every changed package or owning group".to_string());
 	lines.push(
-		"- for example: `mc change --package <id> --bump patch --reason \"describe the change\"`"
+		"- for example: `monochange change --package <id> --bump patch --reason \"describe the change\"`"
 			.to_string(),
 	);
 	if !verify.skip_labels.is_empty() {

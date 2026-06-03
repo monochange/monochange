@@ -47,5 +47,5 @@ jobs:
             args+=(--label "$label")
           done
 
-          mc "${args[@]}" | tee policy.json
+          monochange "${args[@]}" | tee policy.json
           jq -e '.status != "failed"' policy.json >/dev/null

@@ -14,7 +14,7 @@
 //!
 //! ## Best for
 //!
-//! - building Gitea release automation on top of `mc release`
+//! - building Gitea release automation on top of `monochange release`
 //! - previewing would-be Gitea releases and release PRs in CI before publishing
 //! - self-hosted Gitea instances that need the same release workflow as GitHub or GitLab
 //!

@@ -1,7 +1,7 @@
 ---
 source: crates/monochange/tests/cli_output.rs
 info:
-  program: mc
+  program: monochange
   args:
     - release
   env:

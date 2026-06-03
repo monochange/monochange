@@ -132,7 +132,7 @@ EOF
 	cat >"$root/README.md" <<EOF
 # monochange hosted benchmark fixture
 
-This repository is generated for hosted \`mc release\` performance benchmarking.
+This repository is generated for hosted \`monochange release\` performance benchmarking.
 
 - owner: ${owner}
 - repo: ${repo}

@@ -12,9 +12,9 @@ This is a repo-shaped example for reserving public package names before the real
 ## Recommended validation flow
 
 ```bash
-mc step:validate
-mc check
-mc release --dry-run --diff
+monochange step validate
+monochange check
+monochange release --dry-run --diff
 ```
 
 ## Recommended publish preview
@@ -22,7 +22,7 @@ mc release --dry-run --diff
 When you want to inspect the placeholder plan without publishing anything:
 
 ```bash
-mc step:placeholder-publish --dry-run --format json
+monochange step placeholder-publish --dry-run --format json
 ```
 
 ## Why this example is opinionated

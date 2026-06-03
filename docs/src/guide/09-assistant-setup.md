@@ -2,22 +2,22 @@
 
 monochange ships two assistant-facing surfaces:
 
-- `mc subagents <target...>` generates repo-local agent, subagent, or rule files for supported harnesses
-- `mc mcp` starts a stdio MCP server so assistants can call monochange tools directly
+- `monochange subagents <target...>` generates repo-local agent, subagent, or rule files for supported harnesses
+- `monochange mcp` starts a stdio MCP server so assistants can call monochange tools directly
 
 ## Advisory API classification in CI
 
 Start API changeset validation as advisory before making it a required gate. A CI job can run the markdown form and post the output to a pull request comment or step summary:
 
 ```bash
-mc changeset validate --api --base origin/main --format markdown
+monochange changeset validate --api --base origin/main --format markdown
 ```
 
 For package graphs where public packages re-export or wrap other workspace packages, include direct public dependent propagation:
 
 ```bash
-mc change classify --base origin/main --format markdown --dependency-propagation public
-mc api diff --base origin/main --format json --dependency-propagation public
+monochange change classify --base origin/main --format markdown --dependency-propagation public
+monochange api diff --base origin/main --format json --dependency-propagation public
 ```
 
 Treat `major` and `minor` recommendations as the default changeset intent, but keep the check non-blocking while teams calibrate false positives and ecosystem coverage.
@@ -29,19 +29,19 @@ Install the CLI:
 ```bash
 npm install -g @monochange/cli
 monochange --help
-mc --help
+monochange --help
 ```
 
 Install the bundled skill into the current project:
 
 ```bash
-mc help skill
-mc skill
-mc skill --list
-mc skill -a pi -y
+monochange help skill
+monochange skill
+monochange skill --list
+monochange skill -a pi -y
 ```
 
-`mc skill` forwards the remaining arguments to the upstream `skills add` workflow, so you can either keep its interactive prompts or pass the native `--agent`, `--skill`, `--copy`, `--all`, `--global`, and `--yes` flags directly.
+`monochange skill` forwards the remaining arguments to the upstream `skills add` workflow, so you can either keep its interactive prompts or pass the native `--agent`, `--skill`, `--copy`, `--all`, `--global`, and `--yes` flags directly.
 
 <!-- {=assistantSkillBundleContents} -->
 
@@ -54,7 +54,7 @@ After copying the bundled skill, you get a small documentation set that is desig
 - `skills/changesets.md` — changeset authoring and lifecycle guidance
 - `skills/commands.md` — built-in command catalog and workflow selection
 - `skills/configuration.md` — `monochange.toml` setup and editing guidance
-- `skills/linting.md` — `[lints]` presets, `mc check`, and manifest-focused examples
+- `skills/linting.md` — `[lints]` presets, `monochange check`, and manifest-focused examples
 - `examples/README.md` — condensed scenario examples for quick recommendations
 
 This layout keeps the top-level skill small while still making the richer guidance available when an assistant needs more context.
@@ -66,10 +66,10 @@ This layout keeps the top-level skill small while still making the richer guidan
 Start with:
 
 ```bash
-mc help subagents
-mc subagents claude
-mc subagents pi codex
-mc subagents --all --dry-run --format json
+monochange help subagents
+monochange subagents claude
+monochange subagents pi codex
+monochange subagents --all --dry-run --format json
 ```
 
 Supported targets currently include:
@@ -83,7 +83,7 @@ Supported targets currently include:
 
 Generated subagents are CLI-first. They should prefer:
 
-1. `mc`
+1. `monochange`
 2. `monochange`
 3. `npx -y @monochange/cli`
 
@@ -111,10 +111,10 @@ Typical client configuration:
 Start the server manually with:
 
 ```bash
-mc mcp
+monochange mcp
 ```
 
-`mc subagents` keeps MCP secondary. The generated files tell agents to prefer the CLI first and use MCP as an optional structured fallback.
+`monochange subagents` keeps MCP secondary. The generated files tell agents to prefer the CLI first and use MCP as an optional structured fallback.
 
 ## Recommended repo-local guidance
 
@@ -123,12 +123,12 @@ Keep instructions like these close to your project guidance:
 <!-- {=assistantRepoGuidance} -->
 
 - Read `monochange.toml` before proposing release workflow changes.
-- Run `mc step:validate` before and after release-affecting edits.
-- Use `mc step:discover --format json` to inspect package ids, group ownership, and dependency edges.
-- Use `mc step:diagnose-changesets --format json` or `monochange_diagnostics` for a structured view of all pending changesets with git and review context.
+- Run `monochange step validate` before and after release-affecting edits.
+- Use `monochange step discover --format json` to inspect package ids, group ownership, and dependency edges.
+- Use `monochange step diagnose-changesets --format json` or `monochange_diagnostics` for a structured view of all pending changesets with git and review context.
 - Use `monochange_lint_catalog` and `monochange_lint_explain` when you need lint metadata without shelling out.
-- Prefer `mc change` plus `.changeset/*.md` files over ad hoc release notes.
-- Use `mc step:prepare-release --dry-run --format json` before mutating release state.
+- Prefer `monochange change` plus `.changeset/*.md` files over ad hoc release notes.
+- Use `monochange step prepare-release --dry-run --format json` before mutating release state.
 
 <!-- {/assistantRepoGuidance} -->
 
@@ -157,4 +157,4 @@ These tools are designed to help assistants inspect the workspace, write explici
 
 `monochange_analyze_changes` and `monochange_validate_changeset` now provide semantic analysis across **Cargo, npm, Deno, and Dart/Flutter** packages. They surface ecosystem-specific evidence such as Rust public API diffs, JS/TS export changes, `package.json` and `deno.json` export metadata, and `pubspec.yaml` dependency or plugin-platform changes, then validate authored changesets against that semantic model.
 
-When you need full changeset context — introduced commit, linked PR, related issues — use `mc step:diagnose-changesets --format json` directly. It returns stable workspace-relative paths and structured records that agents can parse without reading raw markdown files.
+When you need full changeset context — introduced commit, linked PR, related issues — use `monochange step diagnose-changesets --format json` directly. It returns stable workspace-relative paths and structured records that agents can parse without reading raw markdown files.
