@@ -2110,7 +2110,7 @@
 				},
 				"packages": {
 					"items": {
-						"type": "string"
+						"$ref": "#/$defs/group_package"
 					},
 					"type": "array"
 				},
@@ -2142,6 +2142,32 @@
 			},
 			"required": [
 				"packages"
+			],
+			"type": "object"
+		},
+		"group_package": {
+			"anyOf": [
+				{
+					"type": "string"
+				},
+				{
+					"$ref": "#/$defs/group_package_table"
+				}
+			]
+		},
+		"group_package_table": {
+			"additionalProperties": false,
+			"properties": {
+				"max_bump": {
+					"$ref": "#/$defs/BumpSeverity",
+					"default": "major"
+				},
+				"name": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"name"
 			],
 			"type": "object"
 		},

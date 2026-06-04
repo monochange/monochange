@@ -157,6 +157,7 @@ fn sample_group_definition(include: GroupChangelogInclude) -> GroupDefinition {
 	GroupDefinition {
 		id: "sdk".to_string(),
 		packages: vec!["pkg-a".to_string(), "pkg-b".to_string()],
+		package_max_bumps: BTreeMap::new(),
 		changelog: Some(ChangelogTarget {
 			path: PathBuf::from("groups/sdk/CHANGELOG.md"),
 			format: ChangelogFormat::Monochange,

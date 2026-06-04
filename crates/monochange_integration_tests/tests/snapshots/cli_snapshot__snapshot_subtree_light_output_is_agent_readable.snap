@@ -6,7 +6,7 @@ expression: value
   "commands": [
     {
       "hidden": false,
-      "max_semver_bump": "major",
+      "max_bump": "major",
       "options": [
         {
           "canonical_name": "--dry-run",

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use monochange_core::BumpSeverity;
@@ -147,6 +148,7 @@ fn build_release_plan_uses_group_version_not_standalone_for_group_members() {
 		group_id: "sdk".to_string(),
 		display_name: "sdk".to_string(),
 		members: vec![core.id.clone(), web.id.clone()],
+		member_max_bumps: BTreeMap::new(),
 		mismatch_detected: false,
 	};
 

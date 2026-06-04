@@ -235,6 +235,7 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 	configuration.groups = vec![monochange_core::GroupDefinition {
 		id: "sdk".to_string(),
 		packages: vec!["pkg-a".to_string()],
+		package_max_bumps: BTreeMap::new(),
 		changelog: None,
 		changelog_include: GroupChangelogInclude::All,
 		excluded_changelog_types: Vec::new(),

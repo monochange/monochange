@@ -92,8 +92,8 @@ pub struct CommandNode {
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub aliases: Vec<String>,
 	pub hidden: bool,
-	#[serde(default = "default_max_semver_bump")]
-	pub max_semver_bump: SnapshotSeverity,
+	#[serde(default = "default_max_bump")]
+	pub max_bump: SnapshotSeverity,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub summary: Option<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -109,7 +109,7 @@ pub struct CommandNode {
 
 /// Default maximum `SemVer` bump for public CLI surface changes.
 #[must_use]
-pub const fn default_max_semver_bump() -> SnapshotSeverity {
+pub const fn default_max_bump() -> SnapshotSeverity {
 	SnapshotSeverity::Major
 }
 
@@ -181,8 +181,8 @@ pub struct OutputContract {
 	pub command_path: Vec<String>,
 	pub stream: OutputStream,
 	pub format: OutputFormat,
-	#[serde(default = "default_max_semver_bump")]
-	pub max_semver_bump: SnapshotSeverity,
+	#[serde(default = "default_max_bump")]
+	pub max_bump: SnapshotSeverity,
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub exit_codes: Vec<i32>,
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -358,7 +358,7 @@ fn command_node_from_clap(command: &mut Command, parent_path: Vec<String>) -> Co
 		path,
 		aliases: visible_aliases(command).collect(),
 		hidden: command.is_hide_set(),
-		max_semver_bump: SnapshotSeverity::Major,
+		max_bump: SnapshotSeverity::Major,
 		summary: styled_str(command.get_about()),
 		description: styled_str(command.get_long_about()),
 		parser,
@@ -858,9 +858,9 @@ fn nearest_semver_bump_cap(
 		.find_map(|len| {
 			path.get(..len)
 				.and_then(|prefix| commands.get(prefix))
-				.map(|command| command.max_semver_bump)
+				.map(|command| command.max_bump)
 		})
-		.unwrap_or_else(default_max_semver_bump)
+		.unwrap_or_else(default_max_bump)
 }
 
 fn snapshot_change(

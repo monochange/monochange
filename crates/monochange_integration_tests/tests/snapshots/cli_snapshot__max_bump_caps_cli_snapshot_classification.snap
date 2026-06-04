@@ -1,6 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_snapshot.rs
-assertion_line: 45
+assertion_line: 44
 expression: value
 ---
 {

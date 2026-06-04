@@ -97,7 +97,7 @@ Sketch:
 			"path": ["step:affected-packages"],
 			"aliases": [],
 			"hidden": false,
-			"max_semver_bump": "major",
+			"max_bump": "major",
 			"summary": "Evaluate packages affected by changed paths and changesets",
 			"description": "Returns package ids affected by changed paths and checks changeset coverage policy.",
 			"parser": {
@@ -140,11 +140,11 @@ Sketch:
 				{
 					"format": "json",
 					"schema_ref": "affected-packages.output.schema.json",
-					"max_semver_bump": "major"
+					"max_bump": "major"
 				},
 				{
 					"format": "text",
-					"max_semver_bump": "patch"
+					"max_bump": "patch"
 				}
 			],
 			"errors": [
@@ -264,7 +264,7 @@ Possible layouts and views:
 2. Optional index file mapping command paths to per-command files.
 3. Optional `mc snapshot show <path> --format json` later for focused retrieval.
 4. Full view: includes descriptions, examples, output notes, and compatibility metadata.
-5. Light view: omits descriptions/examples/prose and keeps only command paths, options, positionals, parser behavior, outputs, errors, max SemVer bump policy, and semantic ids.
+5. Light view: omits descriptions/examples/prose and keeps only command paths, options, positionals, parser behavior, outputs, errors, max bump policy, and semantic ids.
 6. Index view: command paths plus short summaries only.
 
 Initial preference: one complete snapshot plus a built-in renderer that can produce full/light/index views.

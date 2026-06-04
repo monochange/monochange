@@ -351,6 +351,7 @@ fn group_definition(id: &str, packages: &[&str]) -> GroupDefinition {
 			.iter()
 			.map(|package| (*package).to_string())
 			.collect(),
+		package_max_bumps: BTreeMap::new(),
 		changelog: None,
 		changelog_include: GroupChangelogInclude::default(),
 		excluded_changelog_types: Vec::new(),
