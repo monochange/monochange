@@ -213,7 +213,7 @@ expression: value
       "commands": [
         {
           "hidden": false,
-          "max_semver_bump": "major",
+          "max_bump": "major",
           "parser": {
             "flags_are_posix_noncompliant": false,
             "option_arg_separators": [
@@ -229,7 +229,7 @@ expression: value
         },
         {
           "hidden": false,
-          "max_semver_bump": "major",
+          "max_bump": "major",
           "parser": {
             "flags_are_posix_noncompliant": false,
             "option_arg_separators": [
