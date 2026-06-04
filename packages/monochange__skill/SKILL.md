@@ -14,7 +14,7 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 ## Source-of-truth rules
 
 - Read `monochange.toml` before recommending commands. Top-level `monochange <name>` workflow commands can be user-defined by `[cli.<name>]` and vary per repository.
-- Do not assume `monochange discover`, `monochange change`, `monochange release`, `monochange publish`, or similar workflow names exist in every repo. They are user-defined unless they appear in `monochange help` for that workspace.
+- Do not assume `discover`, `change`, `release`, `publish`, or similar configured workflow names exist in every repo. They are user-defined and should be invoked as `monochange run <name>` only when they appear in `monochange help` for that workspace.
 - Binary commands are wired by the CLI. Step commands are always exposed as `monochange step <step-name>` for built-in step variants, except the generic `Command` step.
 - When authoring `[cli.*]` workflows, command inputs are explicit per step. Add `inputs = ["name"]` on a step to inherit a command input unchanged, or use the map form for overrides and renamed values.
 - Prefer package or group ids from `monochange.toml` over manifest names.
@@ -26,8 +26,8 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 1. Inspect configuration: `monochange step validate`, `monochange step config`, or `monochange help`. Use this to learn package ids, enabled ecosystems, groups, and which top-level workflow commands actually exist.
 2. Inspect packages: use the configured workflow command (often `monochange step discover --format json`) or `monochange step discover --format json`. Prefer JSON when another tool or agent will consume the package graph.
 3. Classify API impact before writing release intent: run `monochange change classify --base origin/main --format markdown --dependency-propagation public` (or use the `monochange_classify_changes` MCP tool) and use the recommended bumps as the starting point for changesets. Omit `--dependency-propagation public` when you only want packages with direct source changes.
-4. Create release intent: use a configured workflow command (often `monochange change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
-5. Preview versioned files: use the configured workflow command (often `monochange release --dry-run --format json` or `--diff`) or `monochange step prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
+4. Create release intent: use a configured workflow command (often `monochange run change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
+5. Preview versioned files: use the configured workflow command (often `monochange run release --dry-run --format json` or `--diff`) or `monochange step prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
 6. Run validation and linting: `monochange check`, `monochange step validate`, and `monochange changeset validate --api --base origin/main`. `validate` catches monochange configuration and target issues; `check` also runs manifest lint rules.
 7. Only after review, run configured commit/release/publish workflows. Keep release-record, readiness, bootstrap, plan, and publish artifacts when the workflow emits them.
 
@@ -111,7 +111,7 @@ Prefer MCP tools when the caller needs structured data and the shell when you ne
 
 ## Semantic SemVer guardrails
 
-Release planning treats semantic analysis as advisory guardrails. When a git change frame can be analyzed, `monochange release --dry-run --format json`, `monochange_release_preview`, and release manifests may include `compatibilityEvidence` inferred from public API/export, dependency, and metadata changes. Compare this with human-authored changesets:
+Release planning treats semantic analysis as advisory guardrails. When a git change frame can be analyzed, `monochange run release --dry-run --format json`, `monochange_release_preview`, and release manifests may include `compatibilityEvidence` inferred from public API/export, dependency, and metadata changes. Compare this with human-authored changesets:
 
 - removed or modified public API/export evidence implies at least `major`;
 - added public API/export evidence implies at least `minor`;

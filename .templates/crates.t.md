@@ -28,7 +28,7 @@ Reach for this crate when you want one API and CLI surface that discovers packag
 monochange init
 monochange skill -a pi -y
 monochange step discover --format json
-monochange change --package monochange --bump patch --reason "describe the change"
+monochange run change --package monochange --bump patch --reason "describe the change"
 monochange step prepare-release --dry-run --format json
 monochange mcp
 ```

@@ -83,7 +83,7 @@ If you do not know which id to target later, rerun discovery and copy one direct
 ## 5. Create one change file
 
 ```bash
-monochange change --package <id> --bump patch --reason "describe the change"
+monochange run change --package <id> --bump patch --reason "describe the change"
 ```
 
 Most first changes should target a package id.
@@ -103,7 +103,7 @@ A typical generated file looks like this:
 If the same package changed for a more specific reason, you can add more context right away:
 
 ```bash
-monochange change \
+monochange run change \
   --package <id> \
   --bump minor \
   --reason "add release preview improvements" \
@@ -113,7 +113,7 @@ monochange change \
 ## 6. Preview the release plan safely
 
 ```bash
-monochange release --dry-run
+monochange run release --dry-run
 ```
 
 By default this now renders a human-friendly markdown preview in the terminal. Use `--format json` when you want structured output for tooling, `--format text` when you explicitly want the older plain-text rendering, or `monochange step display-versions` when you only need the planned package and group versions. Use `monochange versions --dry-run` when you want to preview internal dependency constraint updates without modifying manifests.
@@ -121,7 +121,7 @@ By default this now renders a human-friendly markdown preview in the terminal. U
 When you want to see the exact file patch without mutating the workspace, add `--diff`:
 
 ```bash
-monochange release --dry-run --diff
+monochange run release --dry-run --diff
 ```
 
 When you want to inspect changeset provenance before releasing, add a diagnostics pass:
@@ -143,13 +143,13 @@ A good first-time mental model is:
 
 That is why most beginner flows should start with package ids, not groups.
 
-If you need a silent safety check, run `monochange release --quiet`. Quiet mode suppresses stdout/stderr and keeps release-oriented commands in dry-run behavior.
+If you need a silent safety check, run `monochange run release --quiet`. Quiet mode suppresses stdout/stderr and keeps release-oriented commands in dry-run behavior.
 
 ## If you hit a problem
 
 - `monochange init` says a config already exists: keep the existing `monochange.toml` and continue with `monochange step validate`, or pass `--force` to regenerate.
 - `monochange step validate` reports problems: fix the reported config or changeset issue, then rerun `monochange step validate`.
-- `monochange change` rejects your target: rerun `monochange step discover --format json` and copy a valid package id.
+- `monochange run change` rejects your target: rerun `monochange step discover --format json` and copy a valid package id.
 - You are not sure what to do next: continue with [Your first release plan](./02-setup.md).
 
 ## Next steps

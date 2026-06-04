@@ -14,7 +14,7 @@ This is a repo-shaped example for reserving public package names before the real
 ```bash
 monochange step validate
 monochange check
-monochange release --dry-run --diff
+monochange run release --dry-run --diff
 ```
 
 ## Recommended publish preview

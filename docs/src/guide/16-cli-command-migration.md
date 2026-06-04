@@ -89,7 +89,7 @@ steps = [
 Before:
 
 ```sh
-monochange release-pr --dry-run
+monochange run release-pr --dry-run
 ```
 
 After:
@@ -102,7 +102,7 @@ Only add `run` for commands that come from `[cli.<name>]`. Built-in commands rem
 
 ```sh
 monochange check
-monochange change
+monochange run change
 monochange versions --format json
 monochange step validate
 ```
@@ -125,7 +125,7 @@ Apply these rules in order:
 1. Replace executable `mc` with `monochange`.
 2. Replace `monochange step:<name>` with `monochange step <name>`.
 3. For each command name defined in `monochange.toml` under `[cli.<name>]`, replace `monochange <name>` with `monochange run <name>`.
-4. Do not rewrite built-ins such as `monochange check`, `monochange change`, `monochange init`, `monochange mcp`, `monochange release`, or `monochange versions` into `monochange run ...` unless that exact name is intentionally a configured command in the repository.
+4. Do not rewrite built-ins such as `monochange check`, `monochange run change`, `monochange init`, `monochange mcp`, `monochange run release`, or `monochange versions` into `monochange run ...` unless that exact name is intentionally a configured command in the repository.
 5. Prefer `monochange versions --format json` for machine-readable version output.
 
 ## Validation

@@ -47,7 +47,7 @@ Publish ordering uses ecosystem-specific dependency fields. npm defaults to `dep
 
 - Do not run real publish commands when the user only asked for a preview.
 - Prefer `monochange step publish-readiness` before package publication.
-- Prefer dry-run workflows such as a configured `monochange publish-check` when available.
+- Prefer dry-run workflows such as a configured `monochange run publish-check` when available.
 - Retain JSON artifacts from readiness, bootstrap, plan, and publish runs.
 - Re-run readiness when manifests, lockfiles, publish config, registry auth mode, or package selection changes after an artifact was created.
 - Use dry-run or readiness commands for investigation; reserve actual package publication for explicit release operations by an authorized maintainer or CI workflow.

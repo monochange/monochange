@@ -1320,7 +1320,7 @@ fn render_current_commands_inventory(workspace_dir: &Path) -> Result<String, Str
 	let configured = configured_command_names(workspace_dir)?;
 	let step_commands = monochange_core::all_step_variants()
 		.into_iter()
-		.map(|step| format!("step:{}", step.step_kebab_name()))
+		.map(|step| format!("step {}", step.step_kebab_name()))
 		.collect::<BTreeSet<_>>();
 
 	Ok(render_commands_inventory(

@@ -13,9 +13,9 @@ devenv shell
 install:all
 monochange step validate
 monochange step discover --format json
-monochange change --package monochange --bump minor --reason "add release planning"
+monochange run change --package monochange --bump minor --reason "add release planning"
 monochange step diagnose-changesets --format json
-monochange release --dry-run --format json
+monochange run release --dry-run --format json
 monochange step publish-release --dry-run --format json
 monochange step open-release-request --dry-run --format json
 monochange step release-record --from v1.2.3
@@ -26,7 +26,7 @@ monochange step publish-readiness --from HEAD --output .monochange/readiness.jso
 monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
 monochange step publish-packages --output .monochange/publish-result.json
 monochange step retarget-release --from v1.2.3 --target HEAD --dry-run
-monochange release
+monochange run release
 ```
 
 <!-- {/repoDevEnvironmentSetupCode} -->
@@ -57,7 +57,7 @@ monochange --help
 docs:check
 docs:update
 monochange step validate
-monochange change --package monochange --bump patch --reason "describe the change"
+monochange run change --package monochange --bump patch --reason "describe the change"
 lint:all
 test:all
 coverage:all

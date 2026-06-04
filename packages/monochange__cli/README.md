@@ -75,7 +75,7 @@ monochange step discover --format json
 Create one change file for a package id:
 
 ```bash
-monochange change --package <id> --bump patch --reason "describe the change"
+monochange run change --package <id> --bump patch --reason "describe the change"
 ```
 
 Most changes should target a package id. Use group ids only when the change is intentionally owned by the whole group.
@@ -83,24 +83,24 @@ Most changes should target a package id. Use group ids only when the change is i
 When a package is only changing because another dependency or version group moved first, author that context explicitly instead of relying on anonymous propagation:
 
 ```bash
-monochange change --package <dependent-id> --bump none --caused-by <upstream-id> --reason "dependency-only follow-up"
+monochange run change --package <dependent-id> --bump none --caused-by <upstream-id> --reason "dependency-only follow-up"
 ```
 
 Preview the release plan safely:
 
 ```bash
-monochange release --dry-run --format json
+monochange run release --dry-run --format json
 ```
 
 Add `--diff` when you want unified file previews for version and changelog updates without mutating the workspace:
 
 ```bash
-monochange release --dry-run --diff
+monochange run release --dry-run --diff
 ```
 
 This first run is safe: nothing is published. Stop here until you are ready to prepare release files locally.
 
-When you are ready to prepare the release locally, run `monochange release`.
+When you are ready to prepare the release locally, run `monochange run release`.
 
 <!-- {/projectCoreWorkflow} -->
 
@@ -123,7 +123,7 @@ If you do not know which package id to target, rerun `monochange step discover -
 - replace ad hoc scripts with explicit change files and deterministic release output
 - keep related packages synchronized with `[group.<id>]`
 - propagate dependent bumps through one normalized dependency graph
-- expose top-level CLI commands from `[cli.<command>]` entries in `monochange.toml`
+- expose repository-defined workflow commands as `monochange run <command>` from `[cli.<command>]` entries in `monochange.toml`
 
 <!-- {/projectWhyUse} -->
 
@@ -135,7 +135,7 @@ If you do not know which package id to target, rerun `monochange step discover -
 
 monochange can promote one prepared release into several source-provider automation flows without changing the underlying release-plan model.
 
-- `monochange release --dry-run --format json` refreshes the cached manifest and shows downstream automation data, including authored changesets plus linked release context metadata
+- `monochange run release --dry-run --format json` refreshes the cached manifest and shows downstream automation data, including authored changesets plus linked release context metadata
 - `monochange step publish-release --dry-run --format json` previews provider release payloads before publishing
 - `monochange step open-release-request --dry-run --format json` previews the release branch, commit, and release-request body
 - when `[source.pull_requests].verified_commits = true` and `OpenReleaseRequest` runs on GitHub Actions for the configured GitHub repository, the GitHub provider pushes a normal release branch commit first, then attempts to replace it with a Git Database API commit that GitHub reports as verified; if verification or the API update fails, the normal pushed commit remains in place
@@ -211,7 +211,7 @@ See [Advanced: Assistant setup and MCP](docs/src/guide/09-assistant-setup.md) fo
 - normalize dependency edges across ecosystems
 - coordinate shared package groups from `monochange.toml`
 - compute release plans from explicit change input
-- expose top-level CLI commands from `[cli.<command>]` definitions
+- expose repository-defined workflow commands as `monochange run <command>` from `[cli.<command>]` definitions
 - run config-defined release commands from `.changeset/*.md`
 - render changelogs through structured release notes and configurable formats
 - emit stable release-manifest JSON for downstream automation
@@ -283,9 +283,9 @@ devenv shell
 install:all
 monochange step validate
 monochange step discover --format json
-monochange change --package monochange --bump minor --reason "add release planning"
+monochange run change --package monochange --bump minor --reason "add release planning"
 monochange step diagnose-changesets --format json
-monochange release --dry-run --format json
+monochange run release --dry-run --format json
 monochange step publish-release --dry-run --format json
 monochange step open-release-request --dry-run --format json
 monochange step release-record --from v1.2.3
@@ -296,7 +296,7 @@ monochange step publish-readiness --from HEAD --output .monochange/readiness.jso
 monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
 monochange step publish-packages --output .monochange/publish-result.json
 monochange step retarget-release --from v1.2.3 --target HEAD --dry-run
-monochange release
+monochange run release
 ```
 
 <!-- {/repoDevEnvironmentSetupCode} -->

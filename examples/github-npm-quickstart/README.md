@@ -30,7 +30,7 @@ From this directory, run:
 ```bash
 monochange step validate
 monochange check
-monochange release --dry-run --diff
+monochange run release --dry-run --diff
 ```
 
 ## Why this example is opinionated

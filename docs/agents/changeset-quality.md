@@ -27,7 +27,7 @@ The goal is to highlight the differences, not duplicate unchanged context.
 
 Example headline for a streamlined invocation:
 
-> #### allow one `monochange affected --changed-paths` flag to accept several paths
+> #### allow one `monochange step affected-packages --changed-paths` flag to accept several paths
 
 Example body:
 

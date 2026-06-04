@@ -543,16 +543,16 @@ version_format = "primary"
 <!-- {@releaseChangesAddCommand} -->
 
 ```bash
-monochange change --package sdk-core --bump minor --reason "public API addition"
-monochange change --package sdk-core --bump patch --type security --reason "rotate signing keys" --details "Roll the signing key before the release window closes."
-monochange change --package sdk-core --bump none --type docs --reason "clarify migration guidance" --output .changeset/sdk-core-docs.md
-monochange change --package sdk-core --bump major --version 2.0.0 --reason "break the public API" --output .changeset/sdk-core-major.md
+monochange run change --package sdk-core --bump minor --reason "public API addition"
+monochange run change --package sdk-core --bump patch --type security --reason "rotate signing keys" --details "Roll the signing key before the release window closes."
+monochange run change --package sdk-core --bump none --type docs --reason "clarify migration guidance" --output .changeset/sdk-core-docs.md
+monochange run change --package sdk-core --bump major --version 2.0.0 --reason "break the public API" --output .changeset/sdk-core-major.md
 ```
 
 Or use interactive mode to select packages, bumps, and options from a guided wizard:
 
 ```bash
-monochange change -i
+monochange run change -i
 ```
 
 Interactive mode automatically prevents conflicting selections (a group and one of its members) and lets you pick per-package bumps and optional explicit versions.
@@ -595,15 +595,15 @@ When `version` is provided without `bump`, the bump is inferred from the current
 
 <!-- {@releasePlanningRules} -->
 
-- `monochange change` defaults `--bump` to `patch`; use `--bump none` when you want a type-only or version-only entry, and pass `--version` to pin an explicit release version
+- `monochange run change` defaults `--bump` to `patch`; use `--bump none` when you want a type-only or version-only entry, and pass `--version` to pin an explicit release version
 - markdown change files use package/group ids as the only top-level frontmatter keys, with scalar shorthand for `none`/`patch`/`minor`/`major` or configured change types, plus object syntax for `bump`, `version`, `type`, and `caused_by`
 - when `version` is given without `bump`, the bump is inferred by comparing the current and target versions
 - explicit versions from grouped members propagate to the group version; conflicts take the highest semver or fail when `defaults.strict_version_conflicts = true`
 - prefer package ids over group ids in authored changesets when possible; direct package changes still propagate to dependents and synchronize configured groups
 - optional change `type` values can route entries into custom changelog sections, and configured section `default_bump` values let scalar type shorthand imply the desired semver behavior
 - `caused_by` references package or group ids and suppresses only the matching dependency-propagation records; use object syntax whenever you need it
-- `monochange change` accepts repeated `--caused-by <id>` flags, and `--bump none` is the right fit when you want to acknowledge an affected package without forcing a user-facing version bump
-- `monochange change` can write to a deterministic path with `--output ...`
+- `monochange run change` accepts repeated `--caused-by <id>` flags, and `--bump none` is the right fit when you want to acknowledge an affected package without forcing a user-facing version bump
+- `monochange run change` can write to a deterministic path with `--output ...`
 - change templates support detailed multi-line release-note entries through `{{ details }}`, compact metadata blocks through `{{ context }}`, and fine-grained linked metadata like `{{ change_owner_link }}`, `{{ review_request_link }}`, and `{{ closed_issue_links }}`
 - dependents default to the configured `parent_bump`, including packages outside a changed version group when they depend on a synchronized member
 - computed compatibility evidence can still escalate both the changed crate and its dependents when provider analysis produces it
@@ -972,7 +972,7 @@ This layout keeps the top-level skill small while still making the richer guidan
 - Use `monochange step discover --format json` to inspect package ids, group ownership, and dependency edges.
 - Use `monochange step diagnose-changesets --format json` or `monochange_diagnostics` for a structured view of all pending changesets with git and review context.
 - Use `monochange_lint_catalog` and `monochange_lint_explain` when you need lint metadata without shelling out.
-- Prefer `monochange change` plus `.changeset/*.md` files over ad hoc release notes.
+- Prefer `monochange run change` plus `.changeset/*.md` files over ad hoc release notes.
 - Use `monochange step prepare-release --dry-run --format json` before mutating release state.
 
 <!-- {/assistantRepoGuidance} -->
@@ -1684,7 +1684,7 @@ Example:
 
 **Why:** when workspace packages reference each other with hosted version ranges, those ranges should not drift away from the current workspace version.
 
-**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `monochange versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
+**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `monochange versions --dry-run` to preview automatic repairs for supported manifests, then rerun without `--dry-run` to update supported internal dependency references.
 
 ### `dart/flutter-package-metadata-consistent`
 

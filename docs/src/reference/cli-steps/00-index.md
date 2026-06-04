@@ -148,7 +148,7 @@ Use `--progress-format auto|unicode|ascii|json` or `MONOCHANGE_PROGRESS_FORMAT` 
 - `ascii` forces the human renderer with ASCII-safe symbols
 - `json` emits newline-delimited progress events for automation and benchmarks
 
-`PrepareRelease` and `DisplayVersions` steps also report per-phase timings when they compute release state. Those timings power the benchmark phase-budget checks for release workflows such as `monochange step prepare-release --dry-run` and configured `monochange release` wrappers.
+`PrepareRelease` and `DisplayVersions` steps also report per-phase timings when they compute release state. Those timings power the benchmark phase-budget checks for release workflows such as `monochange step prepare-release --dry-run` and configured `monochange run release` wrappers.
 
 See [Progress output](../progress-output.md) for the full renderer behavior and JSON event shape.
 

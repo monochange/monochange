@@ -10,27 +10,27 @@ These commands solve different automation problems:
 
 <!-- {=projectCommandAutomationMatrix} -->
 
-These are common commands for repositories using monochange. With the current CLI model, workflow names such as `discover`, `change`, `release`, `publish`, and `affected` come from optional `[cli.*]` tables in `monochange.toml`; binary commands such as `check`, `init`, `sync`, and `mcp` stay built in, while typed built-in operations such as validation are exposed as immutable `monochange step *` commands.
+These are common commands for repositories using monochange. With the current CLI model, workflow names such as `discover`, `change`, `release`, `publish`, and `affected` come from optional `[cli.*]` tables in `monochange.toml` and run as `monochange run <name>`; binary commands such as `check`, `init`, `versions`, and `mcp` stay built in, while typed built-in operations such as validation are exposed as immutable `monochange step *` commands.
 
-| Goal                             | Command                                                                              | Use it when                                                                                                                        |
-| -------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Validate config and changesets   | `monochange step validate`                                                           | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
-| Inspect package ids and groups   | `monochange step discover --format json`                                             | You need the normalized workspace model                                                                                            |
-| Sync internal dependency ranges  | `monochange sync versions --dry-run`                                                 | You want Dart or npm internal dependency references to match canonical workspace package versions                                  |
-| Create release intent            | `monochange change --package <id> --bump <severity> --reason "..."`                  | You need a new `.changeset/*.md` file                                                                                              |
-| Audit pending release context    | `monochange step diagnose-changesets --format json`                                  | You need git provenance, PR/MR links, or related issues                                                                            |
-| Preview the release plan         | `monochange release --dry-run --diff` or `monochange step prepare-release --dry-run` | You want changelog/version patches without mutating the repo                                                                       |
-| Create a durable release commit  | `monochange step commit-release`                                                     | You want a monochange-managed release commit with an embedded `ReleaseRecord`                                                      |
-| Open or update a release request | `monochange step open-release-request`                                               | You want a long-lived release PR/MR branch updated from current release state                                                      |
-| Inspect a past release commit    | `monochange step release-record --from <ref>`                                        | You need the durable release declaration from git history                                                                          |
-| Check package publish readiness  | `monochange step publish-readiness --from HEAD --output <path>`                      | You want a non-mutating preflight report before package publication                                                                |
-| Dry-run configured publishing    | `monochange publish-check`                                                           | This repository, or another repo with a similar `[cli.publish-check]`, should exercise publishing in CI without registry mutations |
-| Plan ready package publishing    | `monochange step plan-publish-rate-limits --readiness <path>`                        | You want rate-limit batches that exclude non-ready package work                                                                    |
-| Publish packages to registries   | `monochange step publish-packages --output <path>`                                   | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication                           |
-| Bootstrap release packages       | `monochange step placeholder-publish --from HEAD --output <path>`                    | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
-| Create post-merge release tags   | `monochange step tag-release --from HEAD`                                            | You merged a monochange release commit and now need to create and push its declared tag set                                        |
-| Repair a recent release          | `monochange step retarget-release --from <tag> --target <commit>`                    | You need to retarget a just-created release to a later commit                                                                      |
-| Publish hosted/provider releases | `monochange step publish-release`                                                    | You want GitHub/GitLab/Gitea release objects from prepared release state                                                           |
+| Goal                             | Command                                                                                  | Use it when                                                                                                                        |
+| -------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Validate config and changesets   | `monochange step validate`                                                               | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
+| Inspect package ids and groups   | `monochange step discover --format json`                                                 | You need the normalized workspace model                                                                                            |
+| Sync internal dependency ranges  | `monochange versions --dry-run`                                                          | You want internal dependency references to match canonical workspace package versions                                              |
+| Create release intent            | `monochange run change --package <id> --bump <severity> --reason "..."`                  | You need a new `.changeset/*.md` file                                                                                              |
+| Audit pending release context    | `monochange step diagnose-changesets --format json`                                      | You need git provenance, PR/MR links, or related issues                                                                            |
+| Preview the release plan         | `monochange run release --dry-run --diff` or `monochange step prepare-release --dry-run` | You want changelog/version patches without mutating the repo                                                                       |
+| Create a durable release commit  | `monochange step commit-release`                                                         | You want a monochange-managed release commit with an embedded `ReleaseRecord`                                                      |
+| Open or update a release request | `monochange step open-release-request`                                                   | You want a long-lived release PR/MR branch updated from current release state                                                      |
+| Inspect a past release commit    | `monochange step release-record --from <ref>`                                            | You need the durable release declaration from git history                                                                          |
+| Check package publish readiness  | `monochange step publish-readiness --from HEAD --output <path>`                          | You want a non-mutating preflight report before package publication                                                                |
+| Dry-run configured publishing    | `monochange run publish-check`                                                           | This repository, or another repo with a similar `[cli.publish-check]`, should exercise publishing in CI without registry mutations |
+| Plan ready package publishing    | `monochange step plan-publish-rate-limits --readiness <path>`                            | You want rate-limit batches that exclude non-ready package work                                                                    |
+| Publish packages to registries   | `monochange step publish-packages --output <path>`                                       | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication                           |
+| Bootstrap release packages       | `monochange step placeholder-publish --from HEAD --output <path>`                        | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
+| Create post-merge release tags   | `monochange step tag-release --from HEAD`                                                | You merged a monochange release commit and now need to create and push its declared tag set                                        |
+| Repair a recent release          | `monochange step retarget-release --from <tag> --target <commit>`                        | You need to retarget a just-created release to a later commit                                                                      |
+| Publish hosted/provider releases | `monochange step publish-release`                                                        | You want GitHub/GitLab/Gitea release objects from prepared release state                                                           |
 
 <!-- {/projectCommandAutomationMatrix} -->
 
@@ -46,7 +46,7 @@ A practical rule of thumb:
 
 monochange has three related but different automation layers:
 
-1. **Release planning** — `monochange release --dry-run`, `monochange release`, `monochange step diagnose-changesets`
+1. **Release planning** — `monochange run release --dry-run`, `monochange run release`, `monochange step diagnose-changesets`
 2. **Package registries** — `monochange step publish-readiness`, `monochange step placeholder-publish --from HEAD`, `monochange step plan-publish-rate-limits --readiness <path>`, `monochange step publish-packages`, and lower-level `monochange step placeholder-publish`
 3. **Hosted providers** — `monochange step open-release-request`, `monochange step publish-release`, `monochange step retarget-release`
 
@@ -56,23 +56,23 @@ Keeping those layers separate is important. Package publication and hosted-relea
 
 <!-- {=projectCapabilityMatrix} -->
 
-| Capability                                                                     | Current status                                                                                                                         |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, Go                                                                                   |
-| Package release planning                                                       | Built in                                                                                                                               |
-| Grouped/shared versioning                                                      | Built in                                                                                                                               |
-| Internal dependency version synchronization                                    | Dart and npm via `monochange sync versions`; release planning still updates supported ecosystems during releases                       |
-| Dry-run release diff previews                                                  | Built in via `monochange step prepare-release --dry-run --diff`; configured workflows may expose `monochange release --dry-run --diff` |
-| Durable release history and post-merge tagging                                 | Built in via `ReleaseRecord`, `monochange step release-record`, `monochange step tag-release`, and `monochange step retarget-release`  |
-| Hosted provider releases                                                       | GitHub, GitLab, Gitea, Forgejo                                                                                                         |
-| Hosted release requests                                                        | GitHub, GitLab, Gitea, Forgejo                                                                                                         |
-| Python release planning                                                        | Built in for discovery, version rewrites, dependency rewrites, lockfile command inference, and PyPI publishing                         |
-| Go release planning                                                            | Built in for `go.mod` discovery, dependency rewrites, `go mod tidy` inference, and Go proxy tag publishing                             |
-| Built-in registry publishing                                                   | `crates.io`, `npm`, `jsr`, `pub.dev`, `pypi`, Go proxy tags; use external mode for custom registries                                   |
-| GitHub npm trusted-publishing diagnostics                                      | Built in; registry-side enrollment stays manual or external                                                                            |
-| GitHub trusted-publishing guidance for `crates.io`, `jsr`, `pub.dev`, and PyPI | Built in, but manual registry enrollment is still required                                                                             |
-| GitLab trusted-publishing auto-derivation                                      | Not built in today                                                                                                                     |
-| Release-retarget sync for hosted releases                                      | GitHub first                                                                                                                           |
+| Capability                                                                     | Current status                                                                                                                             |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, Go                                                                                       |
+| Package release planning                                                       | Built in                                                                                                                                   |
+| Grouped/shared versioning                                                      | Built in                                                                                                                                   |
+| Internal dependency version synchronization                                    | All supported ecosystems via `monochange versions`; release planning also updates supported ecosystems during releases                     |
+| Dry-run release diff previews                                                  | Built in via `monochange step prepare-release --dry-run --diff`; configured workflows may expose `monochange run release --dry-run --diff` |
+| Durable release history and post-merge tagging                                 | Built in via `ReleaseRecord`, `monochange step release-record`, `monochange step tag-release`, and `monochange step retarget-release`      |
+| Hosted provider releases                                                       | GitHub, GitLab, Gitea, Forgejo                                                                                                             |
+| Hosted release requests                                                        | GitHub, GitLab, Gitea, Forgejo                                                                                                             |
+| Python release planning                                                        | Built in for discovery, version rewrites, dependency rewrites, lockfile command inference, and PyPI publishing                             |
+| Go release planning                                                            | Built in for `go.mod` discovery, dependency rewrites, `go mod tidy` inference, and Go proxy tag publishing                                 |
+| Built-in registry publishing                                                   | `crates.io`, `npm`, `jsr`, `pub.dev`, `pypi`, Go proxy tags; use external mode for custom registries                                       |
+| GitHub npm trusted-publishing diagnostics                                      | Built in; registry-side enrollment stays manual or external                                                                                |
+| GitHub trusted-publishing guidance for `crates.io`, `jsr`, `pub.dev`, and PyPI | Built in, but manual registry enrollment is still required                                                                                 |
+| GitLab trusted-publishing auto-derivation                                      | Not built in today                                                                                                                         |
+| Release-retarget sync for hosted releases                                      | GitHub first                                                                                                                               |
 
 <!-- {/projectCapabilityMatrix} -->
 
@@ -195,7 +195,7 @@ jobs:
       - name: publish npm packages
         run: |
           devenv shell -- monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-          devenv shell -- monochange publish
+          devenv shell -- monochange run publish
 ```
 
 What monochange does here:
@@ -260,7 +260,7 @@ jobs:
       - name: publish Cargo packages
         run: |
           devenv shell -- monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-          devenv shell -- monochange publish
+          devenv shell -- monochange run publish
 ```
 
 More copy-pasteable registry-native example:
@@ -377,7 +377,7 @@ jobs:
       - name: publish JSR packages
         run: |
           devenv shell -- monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-          devenv shell -- monochange publish
+          devenv shell -- monochange run publish
 ```
 
 Current behavior matches Cargo more than npm:
@@ -439,7 +439,7 @@ jobs:
       - name: publish pub.dev packages
         run: |
           devenv shell -- monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-          devenv shell -- monochange publish
+          devenv shell -- monochange run publish
 ```
 
 More copy-pasteable registry-native example:
@@ -539,7 +539,7 @@ publish_npm:
       if monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
         monochange step tag-release --from HEAD
         monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-        monochange publish
+        monochange step publish-packages
       else
         echo "not a release commit"
       fi
@@ -573,7 +573,7 @@ publish_cargo:
       if monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
         monochange step tag-release --from HEAD
         monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-        monochange publish
+        monochange step publish-packages
       else
         echo "not a release commit"
       fi
@@ -608,7 +608,7 @@ publish_jsr:
       if monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
         monochange step tag-release --from HEAD
         monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-        monochange publish
+        monochange step publish-packages
       else
         echo "not a release commit"
       fi
@@ -643,7 +643,7 @@ publish_pub_dev:
       if monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
         monochange step tag-release --from HEAD
         monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-        monochange publish
+        monochange step publish-packages
       else
         echo "not a release commit"
       fi
@@ -746,7 +746,7 @@ jobs:
         if: steps.release_record.outputs.is_release_commit == 'true'
         run: |
           monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-          monochange publish
+          monochange run publish
 ```
 
 ### GitLab CI reference sketch
@@ -763,7 +763,7 @@ release_pr_or_publish:
       if monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
         monochange step tag-release --from HEAD
         monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-        monochange publish
+        monochange step publish-packages
       else
         monochange step open-release-request
       fi

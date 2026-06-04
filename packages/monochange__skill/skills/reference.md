@@ -35,8 +35,8 @@ If configured aliases exist, users may prefer:
 ```bash
 monochange step discover --format json
 monochange step diagnose-changesets --format json
-monochange release --dry-run --format json
-monochange release --dry-run --diff
+monochange run release --dry-run --format json
+monochange run release --dry-run --diff
 ```
 
 ## Release mutation flow
@@ -63,7 +63,7 @@ monochange step plan-publish-rate-limits --readiness readiness.json --format jso
 monochange step publish-packages --output publish-result.json
 ```
 
-`monochange step publish-readiness`, `monochange step placeholder-publish`, `monochange step plan-publish-rate-limits`, and `monochange step publish-packages` are built in. Repositories may define shorter workflow aliases such as `monochange publish-plan` or `monochange publish`, but those names are not universal.
+`monochange step publish-readiness`, `monochange step placeholder-publish`, `monochange step plan-publish-rate-limits`, and `monochange step publish-packages` are built in. Repositories may define shorter workflow aliases such as `monochange run publish-plan` or `monochange run publish`, but those names are not universal.
 
 Use `mode = "external"` for private/custom registries or when existing CI handles package publication.
 

@@ -2,7 +2,7 @@
 
 Use this guide after installation when you want one local, beginner-safe walkthrough.
 
-You will stop at `monochange release --dry-run --format json`, so nothing is published.
+You will stop at `monochange run release --dry-run --format json`, so nothing is published.
 
 ## 1. Generate a starter config with `monochange init`
 
@@ -124,7 +124,7 @@ If you are unsure what id to use later, rerun discovery and copy one from the ou
 ## 4. Create one change file
 
 ```bash
-monochange change --package <id> --bump patch --reason "describe the change"
+monochange run change --package <id> --bump patch --reason "describe the change"
 ```
 
 Most changes should target a package id.
@@ -136,7 +136,7 @@ monochange will propagate bumps to dependents and synchronize configured groups 
 <!-- {=projectDryRunCommand} -->
 
 ```bash
-monochange release --dry-run --format json
+monochange run release --dry-run --format json
 ```
 
 <!-- {/projectDryRunCommand} -->
@@ -175,7 +175,7 @@ monochange init --force
 
 Fix the reported issue first. `monochange step validate` is the fastest way to get back to a known-good workspace.
 
-### `monochange change` says the package id is unknown
+### `monochange run change` says the package id is unknown
 
 Run `monochange step discover --format json` again and copy an id directly from the output.
 

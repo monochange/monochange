@@ -709,7 +709,7 @@ Example:
 
 **Why:** when workspace packages reference each other with hosted version ranges, those ranges should not drift away from the current workspace version.
 
-**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `monochange versions --dry-run` to preview automatic repairs for Dart and npm manifests, then rerun without `--dry-run` to update supported internal dependency references.
+**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `monochange versions --dry-run` to preview automatic repairs for supported manifests, then rerun without `--dry-run` to update supported internal dependency references.
 
 ### `dart/flutter-package-metadata-consistent`
 

@@ -9,10 +9,10 @@ A good changeset answers three questions: what public behavior changed, who is a
 Prefer the repository's configured workflow if present:
 
 ```bash
-monochange change --package @acme/api --bump minor --type feat --reason "Add webhook delivery filters"
+monochange run change --package @acme/api --bump minor --type feat --reason "Add webhook delivery filters"
 ```
 
-If `monochange change` is not configured, use the step command directly:
+If `monochange run change` is not configured, use the step command directly:
 
 ```bash
 monochange step create-change-file --package @acme/api --bump minor --reason "Add webhook delivery filters"

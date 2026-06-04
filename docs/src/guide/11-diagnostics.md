@@ -89,9 +89,9 @@ A typical agent workflow looks like this:
 
 1. `monochange step discover --format json` — understand the workspace package graph
 2. `monochange step diagnose-changesets --format json` — see all pending changesets, linked PRs, and introduced commits
-3. `monochange release --dry-run --format json` — preview the computed release plan
-4. `monochange change ...` — add, update, or remove changesets as needed
-5. `monochange release` — execute the release when everything looks correct
+3. `monochange run release --dry-run --format json` — preview the computed release plan
+4. `monochange run change ...` — add, update, or remove changesets as needed
+5. `monochange run release` — execute the release when everything looks correct
 
 Because `monochange step diagnose-changesets` and `monochange_diagnostics` return stable, workspace-relative paths and structured JSON, agents can parse the output without needing to read raw markdown files directly. Each changeset record includes enough context — who introduced it, which PR it belongs to, which issues it closes — for an agent to make targeted decisions about whether to proceed with a release or request changes.
 

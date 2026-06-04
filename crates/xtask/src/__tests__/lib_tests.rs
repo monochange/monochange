@@ -35,7 +35,7 @@ fn replace_commands_inventory_replaces_marker_block() {
 	built_in.insert("init".to_string());
 	let configured = std::collections::BTreeSet::new();
 	let mut step_commands = std::collections::BTreeSet::new();
-	step_commands.insert("step:validate".to_string());
+	step_commands.insert("step validate".to_string());
 	let expected = render_commands_inventory(&built_in, &configured, &step_commands);
 	let current =
 		"before\n<!-- xtask:commands:start -->\nstale\n<!-- xtask:commands:end -->\nafter";
@@ -43,7 +43,7 @@ fn replace_commands_inventory_replaces_marker_block() {
 
 	assert!(updated.contains("before"));
 	assert!(updated.contains("- `init`"));
-	assert!(updated.contains("- `step:validate`"));
+	assert!(updated.contains("- `step validate`"));
 	assert!(updated.contains("after"));
 	assert!(!updated.contains("stale"));
 }
