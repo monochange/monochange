@@ -8,6 +8,58 @@
 - Documented verified built-in commands, step commands, MCP tools, user-defined command behavior, and all current CLI step types.
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 
+## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
+
+### 🐛 Fixed
+
+#### Update package documentation for the nested CLI command API
+
+Updated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)
+
+#### Refresh documentation command examples
+
+Update documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)
+
+#### Add normalized CLI snapshots
+
+Add a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.
+
+For example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:
+
+```json
+{
+	"schema_version": "0.1",
+	"kind": "cli-surface",
+	"tool": {
+		"name": "mc",
+		"version": "0.7.0"
+	},
+	"provenance": {
+		"extractor": "clap",
+		"confidence": "high"
+	},
+	"commands": [
+		{
+			"path": ["snapshot"],
+			"max_bump": "major",
+			"hidden": false
+		}
+	]
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)
+
+#### Add explicit versions list and sync commands
+
+Added `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)
+
 ## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
 
 ### 🐛 Fixed

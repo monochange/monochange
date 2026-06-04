@@ -1,0 +1,2923 @@
+{
+	"schema_version": "0.4",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-06-04T14:19:39Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.8.0",
+		"monochange_schema": "0.4.1",
+		"snapshot": "0.1.0"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.8.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.8.0",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.4.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.4.1",
+			"members": [
+				"monochange_schema"
+			]
+		},
+		{
+			"id": "snapshot",
+			"kind": "group",
+			"version": "0.1.0",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "snapshot/v0.1.0",
+			"members": [
+				"monochange_snapshot"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_snapshot",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_snapshot/Cargo.toml",
+		"crates/monochange_snapshot/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_snapshot",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.1.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_snapshot/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/break-remove-mc-binary.md",
+		".changeset/break-run-subcommands.md",
+		".changeset/break-step-subcommands.md",
+		".changeset/clean-up-lint-warnings.md",
+		".changeset/docs-cli-command-api-surface.md",
+		".changeset/docs-current-command-examples.md",
+		".changeset/feat-group-package-max-bump.md",
+		".changeset/feat-monochange-snapshot.md",
+		".changeset/feat-versions-list-sync.md",
+		".changeset/fix-release-output-format.md",
+		".changeset/fix-release-record-empty-plan.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/break-remove-mc-binary.md",
+			"summary": "Remove the `mc` binary alias",
+			"details": "The release now ships and documents only the `monochange` executable. The packaged `mc` binary alias has been removed.\n\nBefore:\n\n```sh\nmc check\nmc versions --format json\nmc step:validate\nmc release --dry-run\n```\n\nAfter:\n\n```sh\nmonochange check\nmonochange versions --format json\nmonochange step validate\nmonochange release --dry-run\n```\n\n##### Rationale\n\nThe CLI should have a single canonical executable name. Keeping a bundled alias made installation archives larger, complicated release archive expectations, and caused documentation and automation to drift between `mc` and `monochange`. Users who prefer a short command can still define their own shell alias or wrapper locally, but monochange no longer installs or maintains that alias as part of the public API.\n\n##### Migration guidance\n\nReplace calls to `mc` with `monochange` in CI workflows, local scripts, package manager hooks, agent instructions, and documentation.\n\nIf a repository wants to keep a local shorthand, define it outside monochange. For example:\n\n```nu\nalias mc = monochange\n```\n\nDo not rely on package archives, `cargo binstall`, npm packages, or release downloads containing an `mc` executable. Automation should invoke `monochange` directly so it works consistently across all installation methods.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"short_sha": "0909ab3",
+						"url": "https://github.com/monochange/monochange/commit/0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"authored_at": "2026-06-03T20:56:12+01:00",
+						"committed_at": "2026-06-03T19:56:12Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#597",
+						"title": "feat: nest cli command namespaces",
+						"url": "https://github.com/monochange/monochange/pull/597",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"short_sha": "0909ab3",
+						"url": "https://github.com/monochange/monochange/commit/0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"authored_at": "2026-06-03T20:56:12+01:00",
+						"committed_at": "2026-06-03T19:56:12Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#597",
+						"title": "feat: nest cli command namespaces",
+						"url": "https://github.com/monochange/monochange/pull/597",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#35",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/35",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/break-run-subcommands.md",
+			"summary": "Move user-defined CLI commands under `monochange run`",
+			"details": "Repository-defined commands from `[cli.<name>]` tables in `monochange.toml` now execute through the `monochange run <name>` namespace instead of occupying top-level CLI command names.\n\nBefore:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange release --dry-run\nmonochange publish --registry npm\nmonochange validate-workspace\n```\n\nAfter:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange run release --dry-run\nmonochange run publish --registry npm\nmonochange run validate-workspace\n```\n\nThe `monochange.toml` command definitions do not need to move or change shape. The invocation path is the breaking change.\n\n##### Rationale\n\nTop-level CLI names are now reserved for built-in monochange commands such as `check`, `change`, `release`, `versions`, `step`, and `run`. Moving repository-defined commands under `run` prevents a project-local command from shadowing a built-in command added in a future release, and it makes automation easier to read: `monochange run <name>` always means “execute a command from this repository's config.”\n\n##### Migration guidance\n\nUpdate every script, CI workflow, release workflow, agent skill, and README command that invokes a `[cli.<name>]` command directly:\n\n- `monochange release-pr` becomes `monochange run release-pr` when `release-pr` is defined in `monochange.toml`.\n- `monochange publish --dry-run` becomes `monochange run publish --dry-run` when `publish` is defined in `monochange.toml`.\n- `monochange validate-workspace` becomes `monochange run validate-workspace` when `validate-workspace` is defined in `monochange.toml`.\n\nDo not add `run` for built-in commands. For example, keep `monochange check`, `monochange versions --format json`, and `monochange step validate` as built-in command invocations.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"short_sha": "0909ab3",
+						"url": "https://github.com/monochange/monochange/commit/0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"authored_at": "2026-06-03T20:56:12+01:00",
+						"committed_at": "2026-06-03T19:56:12Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#597",
+						"title": "feat: nest cli command namespaces",
+						"url": "https://github.com/monochange/monochange/pull/597",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"short_sha": "0909ab3",
+						"url": "https://github.com/monochange/monochange/commit/0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"authored_at": "2026-06-03T20:56:12+01:00",
+						"committed_at": "2026-06-03T19:56:12Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#597",
+						"title": "feat: nest cli command namespaces",
+						"url": "https://github.com/monochange/monochange/pull/597",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#35",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/35",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/break-step-subcommands.md",
+			"summary": "Move built-in step commands from `step:*` names to `step *` subcommands",
+			"details": "Built-in step commands now live under the `monochange step` command namespace instead of using colon-delimited top-level command names. This makes the CLI hierarchy explicit and leaves top-level command names available for stable product commands.\n\nBefore:\n\n```sh\nmonochange step:validate\nmonochange step:discover --format json\nmonochange step:prepare-release --dry-run --format json\nmonochange step:publish-packages --dry-run\n```\n\nAfter:\n\n```sh\nmonochange step validate\nmonochange step discover --format json\nmonochange step prepare-release --dry-run --format json\nmonochange step publish-packages --dry-run\n```\n\nThe command behavior, flags, and output formats are otherwise intended to stay the same. Only the command path changes.\n\n##### Migration guidance\n\nUpdate automation, documentation, scripts, and agent instructions by replacing the `step:` prefix with the nested `step` subcommand. For example:\n\n- `monochange step:validate` becomes `monochange step validate`.\n- `monochange step:affected-packages --format json --verify` becomes `monochange step affected-packages --format json --verify`.\n- `cargo run -p monochange --bin monochange -- step:config --format json` becomes `cargo run -p monochange --bin monochange -- step config --format json`.\n\nThis is a breaking CLI change because old `step:*` command names are no longer the canonical command API.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"short_sha": "0909ab3",
+						"url": "https://github.com/monochange/monochange/commit/0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"authored_at": "2026-06-03T20:56:12+01:00",
+						"committed_at": "2026-06-03T19:56:12Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#597",
+						"title": "feat: nest cli command namespaces",
+						"url": "https://github.com/monochange/monochange/pull/597",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"short_sha": "0909ab3",
+						"url": "https://github.com/monochange/monochange/commit/0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"authored_at": "2026-06-03T20:56:12+01:00",
+						"committed_at": "2026-06-03T19:56:12Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#597",
+						"title": "feat: nest cli command namespaces",
+						"url": "https://github.com/monochange/monochange/pull/597",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#35",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/35",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/clean-up-lint-warnings.md",
+			"summary": "Clean up lint warning sources",
+			"details": "Tighten local and CI lint tooling so workflow security scans, cargo-deny checks, and snapshot test commands run without actionable warning noise.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "none",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "none"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5ced8b0ae05e62597c41bddf2b9abada0789409f",
+						"short_sha": "5ced8b0",
+						"url": "https://github.com/monochange/monochange/commit/5ced8b0ae05e62597c41bddf2b9abada0789409f",
+						"authored_at": "2026-06-03T20:53:06+01:00",
+						"committed_at": "2026-06-03T19:53:06Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#598",
+						"title": "fix: clean up lint warnings",
+						"url": "https://github.com/monochange/monochange/pull/598",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5ced8b0ae05e62597c41bddf2b9abada0789409f",
+						"short_sha": "5ced8b0",
+						"url": "https://github.com/monochange/monochange/commit/5ced8b0ae05e62597c41bddf2b9abada0789409f",
+						"authored_at": "2026-06-03T20:53:06+01:00",
+						"committed_at": "2026-06-03T19:53:06Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#598",
+						"title": "fix: clean up lint warnings",
+						"url": "https://github.com/monochange/monochange/pull/598",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/docs-cli-command-api-surface.md",
+			"summary": "Update package documentation for the nested CLI command API",
+			"details": "Updated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.",
+			"targets": [
+				{
+					"id": "@monochange/cli",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_forgejo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_gitea",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_gitlab",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_telemetry",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"short_sha": "0909ab3",
+						"url": "https://github.com/monochange/monochange/commit/0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"authored_at": "2026-06-03T20:56:12+01:00",
+						"committed_at": "2026-06-03T19:56:12Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#597",
+						"title": "feat: nest cli command namespaces",
+						"url": "https://github.com/monochange/monochange/pull/597",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"short_sha": "0909ab3",
+						"url": "https://github.com/monochange/monochange/commit/0909ab370d40f0d28b2eed2ae03b0a1df169509e",
+						"authored_at": "2026-06-03T20:56:12+01:00",
+						"committed_at": "2026-06-03T19:56:12Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#597",
+						"title": "feat: nest cli command namespaces",
+						"url": "https://github.com/monochange/monochange/pull/597",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#35",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/35",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/docs-current-command-examples.md",
+			"summary": "Refresh documentation command examples",
+			"details": "Update documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/cli",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "fda6f9a010c5f509a7baeda2c621d6a48f699f48",
+						"short_sha": "fda6f9a",
+						"url": "https://github.com/monochange/monochange/commit/fda6f9a010c5f509a7baeda2c621d6a48f699f48",
+						"authored_at": "2026-06-04T13:20:45+01:00",
+						"committed_at": "2026-06-04T13:20:45+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#600",
+						"title": "docs: refresh command examples",
+						"url": "https://github.com/monochange/monochange/pull/600",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "fda6f9a010c5f509a7baeda2c621d6a48f699f48",
+						"short_sha": "fda6f9a",
+						"url": "https://github.com/monochange/monochange/commit/fda6f9a010c5f509a7baeda2c621d6a48f699f48",
+						"authored_at": "2026-06-04T13:20:45+01:00",
+						"committed_at": "2026-06-04T13:20:45+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#600",
+						"title": "docs: refresh command examples",
+						"url": "https://github.com/monochange/monochange/pull/600",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/feat-group-package-max-bump.md",
+			"summary": "Add group package max bump controls",
+			"details": "Allow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_changelog",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_graph",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_snapshot",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "70c83d64a86fb93c57de532e31b241eee9fab384",
+						"short_sha": "70c83d6",
+						"url": "https://github.com/monochange/monochange/commit/70c83d64a86fb93c57de532e31b241eee9fab384",
+						"authored_at": "2026-06-04T13:01:41+01:00",
+						"committed_at": "2026-06-04T13:01:41+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#602",
+						"title": "feat: add group package max bump controls",
+						"url": "https://github.com/monochange/monochange/pull/602",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "70c83d64a86fb93c57de532e31b241eee9fab384",
+						"short_sha": "70c83d6",
+						"url": "https://github.com/monochange/monochange/commit/70c83d64a86fb93c57de532e31b241eee9fab384",
+						"authored_at": "2026-06-04T13:01:41+01:00",
+						"committed_at": "2026-06-04T13:01:41+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#602",
+						"title": "feat: add group package max bump controls",
+						"url": "https://github.com/monochange/monochange/pull/602",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/feat-monochange-snapshot.md",
+			"summary": "Add normalized CLI snapshots",
+			"details": "Add a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_snapshot",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b9262231bfd1c92c88c36ff240e1c4398c4a1feb",
+						"short_sha": "b926223",
+						"url": "https://github.com/monochange/monochange/commit/b9262231bfd1c92c88c36ff240e1c4398c4a1feb",
+						"authored_at": "2026-06-03T18:41:17+01:00",
+						"committed_at": "2026-06-03T17:41:17Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#593",
+						"title": "feat: add CLI surface snapshots",
+						"url": "https://github.com/monochange/monochange/pull/593",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "70c83d64a86fb93c57de532e31b241eee9fab384",
+						"short_sha": "70c83d6",
+						"url": "https://github.com/monochange/monochange/commit/70c83d64a86fb93c57de532e31b241eee9fab384",
+						"authored_at": "2026-06-04T13:01:41+01:00",
+						"committed_at": "2026-06-04T13:01:41+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#602",
+						"title": "feat: add group package max bump controls",
+						"url": "https://github.com/monochange/monochange/pull/602",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/feat-versions-list-sync.md",
+			"summary": "Add explicit versions list and sync commands",
+			"details": "Added `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "f5a9276a0ac290340434f66b41dd33e03069dc24",
+						"short_sha": "f5a9276",
+						"url": "https://github.com/monochange/monochange/commit/f5a9276a0ac290340434f66b41dd33e03069dc24",
+						"authored_at": "2026-06-04T13:19:47+01:00",
+						"committed_at": "2026-06-04T13:19:47+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#603",
+						"title": "feat: split versions list and sync commands",
+						"url": "https://github.com/monochange/monochange/pull/603",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "f5a9276a0ac290340434f66b41dd33e03069dc24",
+						"short_sha": "f5a9276",
+						"url": "https://github.com/monochange/monochange/commit/f5a9276a0ac290340434f66b41dd33e03069dc24",
+						"authored_at": "2026-06-04T13:19:47+01:00",
+						"committed_at": "2026-06-04T13:19:47+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#603",
+						"title": "feat: split versions list and sync commands",
+						"url": "https://github.com/monochange/monochange/pull/603",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/fix-release-output-format.md",
+			"summary": "Fix release output format rendering",
+			"details": "Prevent skipped workflow step inputs from forcing `mc release` JSON output and keep release summaries aligned with the command-level output format.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "9669bf434a2d211eb2791932f4f4d2da97c14b5f",
+						"short_sha": "9669bf4",
+						"url": "https://github.com/monochange/monochange/commit/9669bf434a2d211eb2791932f4f4d2da97c14b5f",
+						"authored_at": "2026-06-03T16:35:50+01:00",
+						"committed_at": "2026-06-03T16:35:50+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#595",
+						"title": "fix: keep release output format stable",
+						"url": "https://github.com/monochange/monochange/pull/595",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "9669bf434a2d211eb2791932f4f4d2da97c14b5f",
+						"short_sha": "9669bf4",
+						"url": "https://github.com/monochange/monochange/commit/9669bf434a2d211eb2791932f4f4d2da97c14b5f",
+						"authored_at": "2026-06-03T16:35:50+01:00",
+						"committed_at": "2026-06-03T16:35:50+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#595",
+						"title": "fix: keep release output format stable",
+						"url": "https://github.com/monochange/monochange/pull/595",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/fix-release-record-empty-plan.md",
+			"summary": "Skip empty release records by default",
+			"details": "Avoid writing release record artifacts for empty release plans unless `write_empty_release_record` is enabled.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3fa882e8ac8bf60c89ff53477f13cdf864a3f8c5",
+						"short_sha": "3fa882e",
+						"url": "https://github.com/monochange/monochange/commit/3fa882e8ac8bf60c89ff53477f13cdf864a3f8c5",
+						"authored_at": "2026-06-03T16:36:45+01:00",
+						"committed_at": "2026-06-03T16:36:45+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#594",
+						"title": "fix: skip empty release records",
+						"url": "https://github.com/monochange/monochange/pull/594",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3fa882e8ac8bf60c89ff53477f13cdf864a3f8c5",
+						"short_sha": "3fa882e",
+						"url": "https://github.com/monochange/monochange/commit/3fa882e8ac8bf60c89ff53477f13cdf864a3f8c5",
+						"authored_at": "2026-06-03T16:36:45+01:00",
+						"committed_at": "2026-06-03T16:36:45+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#594",
+						"title": "fix: skip empty release records",
+						"url": "https://github.com/monochange/monochange/pull/594",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Remove the `mc` binary alias\n_Packages:_ _monochange_\n\nThe release now ships and documents only the `monochange` executable. The packaged `mc` binary alias has been removed.\n\nBefore:\n\n```sh\nmc check\nmc versions --format json\nmc step:validate\nmc release --dry-run\n```\n\nAfter:\n\n```sh\nmonochange check\nmonochange versions --format json\nmonochange step validate\nmonochange release --dry-run\n```\n\n##### Rationale\n\nThe CLI should have a single canonical executable name. Keeping a bundled alias made installation archives larger, complicated release archive expectations, and caused documentation and automation to drift between `mc` and `monochange`. Users who prefer a short command can still define their own shell alias or wrapper locally, but monochange no longer installs or maintains that alias as part of the public API.\n\n##### Migration guidance\n\nReplace calls to `mc` with `monochange` in CI workflows, local scripts, package manager hooks, agent instructions, and documentation.\n\nIf a repository wants to keep a local shorthand, define it outside monochange. For example:\n\n```nu\nalias mc = monochange\n```\n\nDo not rely on package archives, `cargo binstall`, npm packages, or release downloads containing an `mc` executable. Automation should invoke `monochange` directly so it works consistently across all installation methods.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Move user-defined CLI commands under `monochange run`\n_Packages:_ _monochange_\n\nRepository-defined commands from `[cli.<name>]` tables in `monochange.toml` now execute through the `monochange run <name>` namespace instead of occupying top-level CLI command names.\n\nBefore:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange release --dry-run\nmonochange publish --registry npm\nmonochange validate-workspace\n```\n\nAfter:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange run release --dry-run\nmonochange run publish --registry npm\nmonochange run validate-workspace\n```\n\nThe `monochange.toml` command definitions do not need to move or change shape. The invocation path is the breaking change.\n\n##### Rationale\n\nTop-level CLI names are now reserved for built-in monochange commands such as `check`, `change`, `release`, `versions`, `step`, and `run`. Moving repository-defined commands under `run` prevents a project-local command from shadowing a built-in command added in a future release, and it makes automation easier to read: `monochange run <name>` always means “execute a command from this repository's config.”\n\n##### Migration guidance\n\nUpdate every script, CI workflow, release workflow, agent skill, and README command that invokes a `[cli.<name>]` command directly:\n\n- `monochange release-pr` becomes `monochange run release-pr` when `release-pr` is defined in `monochange.toml`.\n- `monochange publish --dry-run` becomes `monochange run publish --dry-run` when `publish` is defined in `monochange.toml`.\n- `monochange validate-workspace` becomes `monochange run validate-workspace` when `validate-workspace` is defined in `monochange.toml`.\n\nDo not add `run` for built-in commands. For example, keep `monochange check`, `monochange versions --format json`, and `monochange step validate` as built-in command invocations.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Move built-in step commands from `step:*` names to `step *` subcommands\n_Packages:_ _monochange_\n\nBuilt-in step commands now live under the `monochange step` command namespace instead of using colon-delimited top-level command names. This makes the CLI hierarchy explicit and leaves top-level command names available for stable product commands.\n\nBefore:\n\n```sh\nmonochange step:validate\nmonochange step:discover --format json\nmonochange step:prepare-release --dry-run --format json\nmonochange step:publish-packages --dry-run\n```\n\nAfter:\n\n```sh\nmonochange step validate\nmonochange step discover --format json\nmonochange step prepare-release --dry-run --format json\nmonochange step publish-packages --dry-run\n```\n\nThe command behavior, flags, and output formats are otherwise intended to stay the same. Only the command path changes.\n\n##### Migration guidance\n\nUpdate automation, documentation, scripts, and agent instructions by replacing the `step:` prefix with the nested `step` subcommand. For example:\n\n- `monochange step:validate` becomes `monochange step validate`.\n- `monochange step:affected-packages --format json --verify` becomes `monochange step affected-packages --format json --verify`.\n- `cargo run -p monochange --bin monochange -- step:config --format json` becomes `cargo run -p monochange --bin monochange -- step config --format json`.\n\nThis is a breaking CLI change because old `step:*` command names are no longer the canonical command API.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add group package max bump controls\n_Packages:_ _monochange_, _monochange_config_, _monochange_core_, _monochange_graph_\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)",
+							"#### Add normalized CLI snapshots\n_Packages:_ _monochange_\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)",
+							"#### Add explicit versions list and sync commands\n_Packages:_ _monochange_\n\nAdded `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n_Packages:_ _@monochange/cli_, _@monochange/skill_, _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_, _monochange_publish_, _monochange_telemetry_\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Refresh documentation command examples\n_Packages:_ _@monochange/cli_, _@monochange/skill_, _monochange_\n\nUpdate documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)",
+							"#### Add normalized CLI snapshots\n_Packages:_ _@monochange/skill_\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)",
+							"#### Add explicit versions list and sync commands\n_Packages:_ _@monochange/skill_\n\nAdded `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)",
+							"#### Fix release output format rendering\n_Packages:_ _monochange_\n\nPrevent skipped workflow step inputs from forcing `mc release` JSON output and keep release summaries aligned with the command-level output format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #595](https://github.com/monochange/monochange/pull/595)",
+							"#### Skip empty release records by default\n_Packages:_ _monochange_, _monochange_core_\n\nAvoid writing release record artifacts for empty release plans unless `write_empty_release_record` is enabled.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #594](https://github.com/monochange/monochange/pull/594)",
+							"#### Add group package max bump controls\n_Packages:_ _monochange_changelog_, _monochange_publish_\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\nGrouped release for `main`.\n### 💥 Breaking Change\n\n#### Remove the `mc` binary alias\n_Packages:_ _monochange_\n\nThe release now ships and documents only the `monochange` executable. The packaged `mc` binary alias has been removed.\n\nBefore:\n\n```sh\nmc check\nmc versions --format json\nmc step:validate\nmc release --dry-run\n```\n\nAfter:\n\n```sh\nmonochange check\nmonochange versions --format json\nmonochange step validate\nmonochange release --dry-run\n```\n\n##### Rationale\n\nThe CLI should have a single canonical executable name. Keeping a bundled alias made installation archives larger, complicated release archive expectations, and caused documentation and automation to drift between `mc` and `monochange`. Users who prefer a short command can still define their own shell alias or wrapper locally, but monochange no longer installs or maintains that alias as part of the public API.\n\n##### Migration guidance\n\nReplace calls to `mc` with `monochange` in CI workflows, local scripts, package manager hooks, agent instructions, and documentation.\n\nIf a repository wants to keep a local shorthand, define it outside monochange. For example:\n\n```nu\nalias mc = monochange\n```\n\nDo not rely on package archives, `cargo binstall`, npm packages, or release downloads containing an `mc` executable. Automation should invoke `monochange` directly so it works consistently across all installation methods.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Move user-defined CLI commands under `monochange run`\n_Packages:_ _monochange_\n\nRepository-defined commands from `[cli.<name>]` tables in `monochange.toml` now execute through the `monochange run <name>` namespace instead of occupying top-level CLI command names.\n\nBefore:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange release --dry-run\nmonochange publish --registry npm\nmonochange validate-workspace\n```\n\nAfter:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange run release --dry-run\nmonochange run publish --registry npm\nmonochange run validate-workspace\n```\n\nThe `monochange.toml` command definitions do not need to move or change shape. The invocation path is the breaking change.\n\n##### Rationale\n\nTop-level CLI names are now reserved for built-in monochange commands such as `check`, `change`, `release`, `versions`, `step`, and `run`. Moving repository-defined commands under `run` prevents a project-local command from shadowing a built-in command added in a future release, and it makes automation easier to read: `monochange run <name>` always means “execute a command from this repository's config.”\n\n##### Migration guidance\n\nUpdate every script, CI workflow, release workflow, agent skill, and README command that invokes a `[cli.<name>]` command directly:\n\n- `monochange release-pr` becomes `monochange run release-pr` when `release-pr` is defined in `monochange.toml`.\n- `monochange publish --dry-run` becomes `monochange run publish --dry-run` when `publish` is defined in `monochange.toml`.\n- `monochange validate-workspace` becomes `monochange run validate-workspace` when `validate-workspace` is defined in `monochange.toml`.\n\nDo not add `run` for built-in commands. For example, keep `monochange check`, `monochange versions --format json`, and `monochange step validate` as built-in command invocations.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Move built-in step commands from `step:*` names to `step *` subcommands\n_Packages:_ _monochange_\n\nBuilt-in step commands now live under the `monochange step` command namespace instead of using colon-delimited top-level command names. This makes the CLI hierarchy explicit and leaves top-level command names available for stable product commands.\n\nBefore:\n\n```sh\nmonochange step:validate\nmonochange step:discover --format json\nmonochange step:prepare-release --dry-run --format json\nmonochange step:publish-packages --dry-run\n```\n\nAfter:\n\n```sh\nmonochange step validate\nmonochange step discover --format json\nmonochange step prepare-release --dry-run --format json\nmonochange step publish-packages --dry-run\n```\n\nThe command behavior, flags, and output formats are otherwise intended to stay the same. Only the command path changes.\n\n##### Migration guidance\n\nUpdate automation, documentation, scripts, and agent instructions by replacing the `step:` prefix with the nested `step` subcommand. For example:\n\n- `monochange step:validate` becomes `monochange step validate`.\n- `monochange step:affected-packages --format json --verify` becomes `monochange step affected-packages --format json --verify`.\n- `cargo run -p monochange --bin monochange -- step:config --format json` becomes `cargo run -p monochange --bin monochange -- step config --format json`.\n\nThis is a breaking CLI change because old `step:*` command names are no longer the canonical command API.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n### 🚀 Feature\n\n#### Add group package max bump controls\n_Packages:_ _monochange_, _monochange_config_, _monochange_core_, _monochange_graph_\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)\n\n#### Add normalized CLI snapshots\n_Packages:_ _monochange_\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)\n\n#### Add explicit versions list and sync commands\n_Packages:_ _monochange_\n\nAdded `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n_Packages:_ _@monochange/cli_, _@monochange/skill_, _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_, _monochange_publish_, _monochange_telemetry_\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Refresh documentation command examples\n_Packages:_ _@monochange/cli_, _@monochange/skill_, _monochange_\n\nUpdate documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)\n\n#### Add normalized CLI snapshots\n_Packages:_ _@monochange/skill_\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)\n\n#### Add explicit versions list and sync commands\n_Packages:_ _@monochange/skill_\n\nAdded `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)\n\n#### Fix release output format rendering\n_Packages:_ _monochange_\n\nPrevent skipped workflow step inputs from forcing `mc release` JSON output and keep release summaries aligned with the command-level output format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #595](https://github.com/monochange/monochange/pull/595)\n\n#### Skip empty release records by default\n_Packages:_ _monochange_, _monochange_core_\n\nAvoid writing release record artifacts for empty release plans unless `write_empty_release_record` is enabled.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #594](https://github.com/monochange/monochange/pull/594)\n\n#### Add group package max bump controls\n_Packages:_ _monochange_changelog_, _monochange_publish_\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Remove the `mc` binary alias\n\nThe release now ships and documents only the `monochange` executable. The packaged `mc` binary alias has been removed.\n\nBefore:\n\n```sh\nmc check\nmc versions --format json\nmc step:validate\nmc release --dry-run\n```\n\nAfter:\n\n```sh\nmonochange check\nmonochange versions --format json\nmonochange step validate\nmonochange release --dry-run\n```\n\n##### Rationale\n\nThe CLI should have a single canonical executable name. Keeping a bundled alias made installation archives larger, complicated release archive expectations, and caused documentation and automation to drift between `mc` and `monochange`. Users who prefer a short command can still define their own shell alias or wrapper locally, but monochange no longer installs or maintains that alias as part of the public API.\n\n##### Migration guidance\n\nReplace calls to `mc` with `monochange` in CI workflows, local scripts, package manager hooks, agent instructions, and documentation.\n\nIf a repository wants to keep a local shorthand, define it outside monochange. For example:\n\n```nu\nalias mc = monochange\n```\n\nDo not rely on package archives, `cargo binstall`, npm packages, or release downloads containing an `mc` executable. Automation should invoke `monochange` directly so it works consistently across all installation methods.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Move user-defined CLI commands under `monochange run`\n\nRepository-defined commands from `[cli.<name>]` tables in `monochange.toml` now execute through the `monochange run <name>` namespace instead of occupying top-level CLI command names.\n\nBefore:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange release --dry-run\nmonochange publish --registry npm\nmonochange validate-workspace\n```\n\nAfter:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange run release --dry-run\nmonochange run publish --registry npm\nmonochange run validate-workspace\n```\n\nThe `monochange.toml` command definitions do not need to move or change shape. The invocation path is the breaking change.\n\n##### Rationale\n\nTop-level CLI names are now reserved for built-in monochange commands such as `check`, `change`, `release`, `versions`, `step`, and `run`. Moving repository-defined commands under `run` prevents a project-local command from shadowing a built-in command added in a future release, and it makes automation easier to read: `monochange run <name>` always means “execute a command from this repository's config.”\n\n##### Migration guidance\n\nUpdate every script, CI workflow, release workflow, agent skill, and README command that invokes a `[cli.<name>]` command directly:\n\n- `monochange release-pr` becomes `monochange run release-pr` when `release-pr` is defined in `monochange.toml`.\n- `monochange publish --dry-run` becomes `monochange run publish --dry-run` when `publish` is defined in `monochange.toml`.\n- `monochange validate-workspace` becomes `monochange run validate-workspace` when `validate-workspace` is defined in `monochange.toml`.\n\nDo not add `run` for built-in commands. For example, keep `monochange check`, `monochange versions --format json`, and `monochange step validate` as built-in command invocations.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Move built-in step commands from `step:*` names to `step *` subcommands\n\nBuilt-in step commands now live under the `monochange step` command namespace instead of using colon-delimited top-level command names. This makes the CLI hierarchy explicit and leaves top-level command names available for stable product commands.\n\nBefore:\n\n```sh\nmonochange step:validate\nmonochange step:discover --format json\nmonochange step:prepare-release --dry-run --format json\nmonochange step:publish-packages --dry-run\n```\n\nAfter:\n\n```sh\nmonochange step validate\nmonochange step discover --format json\nmonochange step prepare-release --dry-run --format json\nmonochange step publish-packages --dry-run\n```\n\nThe command behavior, flags, and output formats are otherwise intended to stay the same. Only the command path changes.\n\n##### Migration guidance\n\nUpdate automation, documentation, scripts, and agent instructions by replacing the `step:` prefix with the nested `step` subcommand. For example:\n\n- `monochange step:validate` becomes `monochange step validate`.\n- `monochange step:affected-packages --format json --verify` becomes `monochange step affected-packages --format json --verify`.\n- `cargo run -p monochange --bin monochange -- step:config --format json` becomes `cargo run -p monochange --bin monochange -- step config --format json`.\n\nThis is a breaking CLI change because old `step:*` command names are no longer the canonical command API.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)",
+							"#### Add normalized CLI snapshots\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)",
+							"#### Add explicit versions list and sync commands\n\nAdded `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Refresh documentation command examples\n\nUpdate documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)",
+							"#### Fix release output format rendering\n\nPrevent skipped workflow step inputs from forcing `mc release` JSON output and keep release summaries aligned with the command-level output format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #595](https://github.com/monochange/monochange/pull/595)",
+							"#### Skip empty release records by default\n\nAvoid writing release record artifacts for empty release plans unless `write_empty_release_record` is enabled.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #594](https://github.com/monochange/monochange/pull/594)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 💥 Breaking Change\n\n#### Remove the `mc` binary alias\n\nThe release now ships and documents only the `monochange` executable. The packaged `mc` binary alias has been removed.\n\nBefore:\n\n```sh\nmc check\nmc versions --format json\nmc step:validate\nmc release --dry-run\n```\n\nAfter:\n\n```sh\nmonochange check\nmonochange versions --format json\nmonochange step validate\nmonochange release --dry-run\n```\n\n##### Rationale\n\nThe CLI should have a single canonical executable name. Keeping a bundled alias made installation archives larger, complicated release archive expectations, and caused documentation and automation to drift between `mc` and `monochange`. Users who prefer a short command can still define their own shell alias or wrapper locally, but monochange no longer installs or maintains that alias as part of the public API.\n\n##### Migration guidance\n\nReplace calls to `mc` with `monochange` in CI workflows, local scripts, package manager hooks, agent instructions, and documentation.\n\nIf a repository wants to keep a local shorthand, define it outside monochange. For example:\n\n```nu\nalias mc = monochange\n```\n\nDo not rely on package archives, `cargo binstall`, npm packages, or release downloads containing an `mc` executable. Automation should invoke `monochange` directly so it works consistently across all installation methods.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Move user-defined CLI commands under `monochange run`\n\nRepository-defined commands from `[cli.<name>]` tables in `monochange.toml` now execute through the `monochange run <name>` namespace instead of occupying top-level CLI command names.\n\nBefore:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange release --dry-run\nmonochange publish --registry npm\nmonochange validate-workspace\n```\n\nAfter:\n\n```toml\n[cli.release]\ndescription = \"Prepare a release\"\nsteps = [\n\t{ type = \"PrepareRelease\", dry_run = true },\n]\n```\n\n```sh\nmonochange run release --dry-run\nmonochange run publish --registry npm\nmonochange run validate-workspace\n```\n\nThe `monochange.toml` command definitions do not need to move or change shape. The invocation path is the breaking change.\n\n##### Rationale\n\nTop-level CLI names are now reserved for built-in monochange commands such as `check`, `change`, `release`, `versions`, `step`, and `run`. Moving repository-defined commands under `run` prevents a project-local command from shadowing a built-in command added in a future release, and it makes automation easier to read: `monochange run <name>` always means “execute a command from this repository's config.”\n\n##### Migration guidance\n\nUpdate every script, CI workflow, release workflow, agent skill, and README command that invokes a `[cli.<name>]` command directly:\n\n- `monochange release-pr` becomes `monochange run release-pr` when `release-pr` is defined in `monochange.toml`.\n- `monochange publish --dry-run` becomes `monochange run publish --dry-run` when `publish` is defined in `monochange.toml`.\n- `monochange validate-workspace` becomes `monochange run validate-workspace` when `validate-workspace` is defined in `monochange.toml`.\n\nDo not add `run` for built-in commands. For example, keep `monochange check`, `monochange versions --format json`, and `monochange step validate` as built-in command invocations.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Move built-in step commands from `step:*` names to `step *` subcommands\n\nBuilt-in step commands now live under the `monochange step` command namespace instead of using colon-delimited top-level command names. This makes the CLI hierarchy explicit and leaves top-level command names available for stable product commands.\n\nBefore:\n\n```sh\nmonochange step:validate\nmonochange step:discover --format json\nmonochange step:prepare-release --dry-run --format json\nmonochange step:publish-packages --dry-run\n```\n\nAfter:\n\n```sh\nmonochange step validate\nmonochange step discover --format json\nmonochange step prepare-release --dry-run --format json\nmonochange step publish-packages --dry-run\n```\n\nThe command behavior, flags, and output formats are otherwise intended to stay the same. Only the command path changes.\n\n##### Migration guidance\n\nUpdate automation, documentation, scripts, and agent instructions by replacing the `step:` prefix with the nested `step` subcommand. For example:\n\n- `monochange step:validate` becomes `monochange step validate`.\n- `monochange step:affected-packages --format json --verify` becomes `monochange step affected-packages --format json --verify`.\n- `cargo run -p monochange --bin monochange -- step:config --format json` becomes `cargo run -p monochange --bin monochange -- step config --format json`.\n\nThis is a breaking CLI change because old `step:*` command names are no longer the canonical command API.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n### 🚀 Feature\n\n#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)\n\n#### Add normalized CLI snapshots\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)\n\n#### Add explicit versions list and sync commands\n\nAdded `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)\n\n### 🐛 Fixed\n\n#### Refresh documentation command examples\n\nUpdate documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)\n\n#### Fix release output format rendering\n\nPrevent skipped workflow step inputs from forcing `mc release` JSON output and keep release summaries aligned with the command-level output format.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #595](https://github.com/monochange/monochange/pull/595)\n\n#### Skip empty release records by default\n\nAvoid writing release record artifacts for empty release plans unless `write_empty_release_record` is enabled.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #594](https://github.com/monochange/monochange/pull/594)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_analysis` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_analysis` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🚀 Feature\n\n#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Skip empty release records by default\n\nAvoid writing release record artifacts for empty release plans unless `write_empty_release_record` is enabled.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #594](https://github.com/monochange/monochange/pull/594)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🚀 Feature\n\n#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Skip empty release records by default\n\nAvoid writing release record artifacts for empty release plans unless `write_empty_release_record` is enabled.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #594](https://github.com/monochange/monochange/pull/594)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_dart` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_dart` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_deno` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_deno` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_go` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_go` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🚀 Feature\n\n#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_hosting` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_hosting` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_lint` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_lint` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_linting` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_linting` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_npm` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_npm` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_python` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_python` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.1) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.1) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Add group package max bump controls\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_semver` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_semver` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "snapshot",
+			"owner_kind": "group",
+			"path": "crates/monochange_snapshot/changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "snapshot [0.1.0](https://github.com/monochange/monochange/releases/tag/snapshot/v0.1.0) (2026-06-04)",
+				"summary": [
+					"Grouped release for `snapshot`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add group package max bump controls\n_Packages:_ _monochange_snapshot_\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)",
+							"#### Add normalized CLI snapshots\n_Packages:_ _monochange_snapshot_\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)"
+						]
+					}
+				]
+			},
+			"rendered": "## snapshot [0.1.0](https://github.com/monochange/monochange/releases/tag/snapshot/v0.1.0) (2026-06-04)\n\nGrouped release for `snapshot`.\n### 💥 Breaking Change\n\n#### Add group package max bump controls\n_Packages:_ _monochange_snapshot_\n\nAllow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = \"major\"`; `max_bump = \"none\"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.\n\nRename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.\n\n```json\n{\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"experimental\"],\n\t\t\t\"max_bump\": \"minor\"\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)\n\n#### Add normalized CLI snapshots\n_Packages:_ _monochange_snapshot_\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)"
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Refresh documentation command examples\n\nUpdate documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Refresh documentation command examples\n\nUpdate documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.8.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.8.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)",
+							"#### Refresh documentation command examples\n\nUpdate documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)",
+							"#### Add normalized CLI snapshots\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)",
+							"#### Add explicit versions list and sync commands\n\nAdded `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)\n\n### 🐛 Fixed\n\n#### Update package documentation for the nested CLI command API\n\nUpdated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)\n\n#### Refresh documentation command examples\n\nUpdate documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)\n\n#### Add normalized CLI snapshots\n\nAdd a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.\n\nFor example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:\n\n```json\n{\n\t\"schema_version\": \"0.1\",\n\t\"kind\": \"cli-surface\",\n\t\"tool\": {\n\t\t\"name\": \"mc\",\n\t\t\"version\": \"0.7.0\"\n\t},\n\t\"provenance\": {\n\t\t\"extractor\": \"clap\",\n\t\t\"confidence\": \"high\"\n\t},\n\t\"commands\": [\n\t\t{\n\t\t\t\"path\": [\"snapshot\"],\n\t\t\t\"max_bump\": \"major\",\n\t\t\t\"hidden\": false\n\t\t}\n\t]\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)\n\n#### Add explicit versions list and sync commands\n\nAdded `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

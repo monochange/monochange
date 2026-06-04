@@ -52,7 +52,7 @@
 			]
 		}
 	],
-	"command": "mc step:release",
+	"command": "monochange step release",
 	"created_at": "2026-01-09T00:00:00Z",
 	"deleted_changesets": [
 		".changeset/schema-artifact-9.md"

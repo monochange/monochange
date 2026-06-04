@@ -24,7 +24,7 @@
 			]
 		}
 	],
-	"command": "mc release --dry-run",
+	"command": "monochange release --dry-run",
 	"created_at": "2026-01-04T00:00:00Z",
 	"deleted_changesets": [
 		".changeset/schema-artifact-4.md"

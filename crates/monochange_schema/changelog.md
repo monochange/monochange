@@ -679,3 +679,32 @@ The `auto_discover` table supports:
 Precedence: `[package.*]` explicit > `[ecosystems.*].auto_discover.defaults` > `[defaults]`
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #579](https://github.com/monochange/monochange/pull/579)
+
+## monochange_schema [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.1) (2026-06-04)
+
+### 🐛 Fixed
+
+#### Update package documentation for the nested CLI command API
+
+Updated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)
+
+#### Add group package max bump controls
+
+Allow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = "major"`; `max_bump = "none"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.
+
+Rename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.
+
+```json
+{
+	"commands": [
+		{
+			"path": ["experimental"],
+			"max_bump": "minor"
+		}
+	]
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)
