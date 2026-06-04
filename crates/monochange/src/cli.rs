@@ -1034,42 +1034,74 @@ fn leak_string(value: impl Into<String>) -> &'static str {
 
 pub(crate) fn build_versions_subcommand() -> Command {
 	Command::new("versions")
-		.about("Sync internal dependency constraints to package versions")
+		.about("List package and group versions or sync internal dependency constraints")
 		.long_about(
-			"Update internal workspace dependency references to match canonical package versions. \
-Use this when migrating to monochange, checking whether manifests are already in sync, \
-or normalizing constraints before grouping packages for shared releases.",
+			"List current package and version-group versions, or update internal workspace dependency \
+references to match canonical package versions. Use `monochange versions list --format json` \
+for a flat version inventory and `monochange versions sync` to normalize dependency constraints.",
 		)
 		.after_help(
-			"Examples:\n  monochange versions --dry-run\n  monochange versions --dry-run --format json\n  monochange versions --strategy exact\n\n\
+			"Examples:\n  monochange versions list --format json\n  monochange versions sync --dry-run\n  monochange versions sync --dry-run --format json\n  monochange versions sync --strategy exact\n\n\
+Calling `monochange versions` without a subcommand still runs the legacy sync behavior, but it is \
+deprecated and will be removed in a future version. Use `monochange versions sync` instead.",
+		)
+		.arg_required_else_help(false)
+		.subcommand_required(false)
+		.args(versions_sync_args())
+		.subcommand(
+			Command::new("list")
+				.about("List current package and group versions")
+				.long_about(
+					"List current package and version-group versions as a flat mapping keyed by the exact \
+monochange package or group id.",
+				)
+				.arg(
+					Arg::new("format")
+						.long("format")
+						.help("Output format")
+						.default_value("text")
+						.value_parser(["text", "json"]),
+				),
+		)
+		.subcommand(
+			Command::new("sync")
+				.about("Sync internal dependency constraints to package versions")
+				.long_about(
+					"Update internal workspace dependency references to match canonical package versions. \
+Use this when migrating to monochange, checking whether manifests are already in sync, \
+or normalizing constraints before grouping packages for shared releases.",
+				)
+				.after_help(
+					"Examples:\n  monochange versions sync --dry-run\n  monochange versions sync --dry-run --format json\n  monochange versions sync --strategy exact\n\n\
 This command syncs internal workspace dependency constraints. Strategy precedence is package config, \
 then ecosystem config, then the ecosystem default unless --strategy forces one style for this run.",
+				)
+				.args(versions_sync_args()),
 		)
-		.arg(
-			Arg::new("dry-run")
-				.long("dry-run")
-				.help("Show what would change without modifying files")
-				.action(ArgAction::SetTrue),
-		)
-		.arg(
-			Arg::new("format")
-				.long("format")
-				.help("Output format")
-				.default_value("text")
-				.value_parser(["text", "json"]),
-		)
-		.arg(
-			Arg::new("strategy")
-				.long("strategy")
-				.help("Override version constraint strategy: default, exact, caret, compatible")
-				.long_help(
-					"Override the version constraint strategy. With `default`, monochange uses \
+}
+
+fn versions_sync_args() -> Vec<Arg> {
+	vec![
+		Arg::new("dry-run")
+			.long("dry-run")
+			.help("Show what would change without modifying files")
+			.action(ArgAction::SetTrue),
+		Arg::new("format")
+			.long("format")
+			.help("Output format")
+			.default_value("text")
+			.value_parser(["text", "json"]),
+		Arg::new("strategy")
+			.long("strategy")
+			.help("Override version constraint strategy: default, exact, caret, compatible")
+			.long_help(
+				"Override the version constraint strategy. With `default`, monochange uses \
 package config first, then ecosystem config, then the ecosystem default. Use \
 `exact`, `caret`, or `compatible` to force one style for this run.",
-				)
-				.default_value("default")
-				.value_parser(["default", "exact", "caret", "compatible"]),
-		)
+			)
+			.default_value("default")
+			.value_parser(["default", "exact", "caret", "compatible"]),
+	]
 }
 
 pub(crate) fn current_dir_or_dot() -> PathBuf {

@@ -9,11 +9,124 @@ use monochange_core::DiscoveryReport;
 use monochange_core::Ecosystem;
 use monochange_core::PackageRecord;
 use monochange_core::PublishState;
+use monochange_core::VersionGroup;
 use monochange_core::VersionStrategy;
 use semver::Version;
 
 use crate::cli;
 use crate::sync;
+
+fn package_record(
+	id: &str,
+	name: &str,
+	current_version: Option<Version>,
+	version_group_id: Option<&str>,
+) -> PackageRecord {
+	let mut package = PackageRecord::new(
+		Ecosystem::Npm,
+		name,
+		std::path::PathBuf::from(format!("packages/{name}/package.json")),
+		std::path::PathBuf::from("."),
+		current_version,
+		PublishState::Public,
+	);
+	package.id = id.to_string();
+	package.version_group_id = version_group_id.map(String::from);
+	package
+}
+
+// --- version inventory tests ---
+
+#[test]
+fn version_inventory_uses_configured_package_ids_and_group_ids() {
+	let mut core = package_record(
+		"cargo:crates/core/Cargo.toml",
+		"workflow-core",
+		Some(Version::new(1, 2, 3)),
+		Some("sdk"),
+	);
+	core.metadata
+		.insert("config_id".to_string(), "core".to_string());
+	let mut web = package_record(
+		"cargo:crates/web/Cargo.toml",
+		"workflow-web",
+		Some(Version::new(1, 4, 0)),
+		Some("sdk"),
+	);
+	web.metadata
+		.insert("config_id".to_string(), "web".to_string());
+	let mut unversioned = package_record(
+		"cargo:crates/unversioned/Cargo.toml",
+		"workflow-unversioned",
+		None,
+		Some("empty"),
+	);
+	unversioned
+		.metadata
+		.insert("config_id".to_string(), "unversioned".to_string());
+	let auto_discovered = package_record(
+		"auto-package-id",
+		"native-package-name",
+		Some(Version::new(0, 1, 0)),
+		None,
+	);
+
+	let discovery = DiscoveryReport {
+		workspace_root: std::path::PathBuf::from("."),
+		packages: vec![core, web, unversioned, auto_discovered],
+		dependencies: Vec::new(),
+		version_groups: vec![
+			VersionGroup {
+				group_id: "sdk".to_string(),
+				display_name: "SDK".to_string(),
+				members: vec![
+					"cargo:crates/core/Cargo.toml".to_string(),
+					"cargo:crates/web/Cargo.toml".to_string(),
+				],
+				mismatch_detected: true,
+			},
+			VersionGroup {
+				group_id: "empty".to_string(),
+				display_name: "Empty".to_string(),
+				members: vec!["cargo:crates/unversioned/Cargo.toml".to_string()],
+				mismatch_detected: false,
+			},
+		],
+		warnings: Vec::new(),
+	};
+
+	let inventory = sync::version_inventory(&discovery);
+
+	assert_eq!(inventory.get("core").map(String::as_str), Some("1.2.3"));
+	assert_eq!(inventory.get("web").map(String::as_str), Some("1.4.0"));
+	assert_eq!(inventory.get("sdk").map(String::as_str), Some("1.4.0"));
+	assert_eq!(
+		inventory.get("auto-package-id").map(String::as_str),
+		Some("0.1.0")
+	);
+	assert!(!inventory.contains_key("cargo:crates/core/Cargo.toml"));
+	assert!(!inventory.contains_key("workflow-core"));
+	assert!(!inventory.contains_key("native-package-name"));
+	assert!(!inventory.contains_key("unversioned"));
+	assert!(!inventory.contains_key("empty"));
+}
+
+#[test]
+fn format_version_inventory_supports_text_and_json() {
+	let inventory = sync::VersionInventory::from([
+		("core".to_string(), "1.2.3".to_string()),
+		("sdk".to_string(), "1.2.3".to_string()),
+	]);
+
+	assert_eq!(
+		sync::format_version_inventory_for_cli(&inventory, sync::VersionsOutputFormat::Text),
+		"core: 1.2.3\nsdk: 1.2.3"
+	);
+	assert_eq!(
+		sync::format_version_inventory_for_cli(&inventory, sync::VersionsOutputFormat::Json),
+		"{\n  \"core\": \"1.2.3\",\n  \"sdk\": \"1.2.3\"\n}"
+	);
+}
 
 // --- apply_sync_changes tests ---
 
@@ -676,10 +789,10 @@ fn build_versions_subcommand_long_help_describes_examples() {
 		.get_after_help()
 		.unwrap_or_else(|| panic!("versions after help should exist"))
 		.to_string();
-	assert!(help.contains("monochange versions --dry-run"));
-	assert!(help.contains("monochange versions --dry-run --format json"));
-	assert!(help.contains("This command syncs internal workspace dependency constraints."));
-	assert!(help.contains("Strategy precedence is package config"));
+	assert!(help.contains("monochange versions list --format json"));
+	assert!(help.contains("monochange versions sync --dry-run"));
+	assert!(help.contains("monochange versions sync --dry-run --format json"));
+	assert!(help.contains("deprecated and will be removed in a future version"));
 }
 
 #[test]
@@ -718,15 +831,53 @@ fn build_cli_skips_config_defined_versions_command() {
 		dry_run: false,
 	};
 	let command = cli::build_command_with_cli("monochange", &[cli_command]);
-	let matches = command
+	let legacy_matches = command
 		.clone()
 		.try_get_matches_from([
 			OsString::from("monochange"),
 			OsString::from("versions"),
 			OsString::from("--dry-run"),
 		])
-		.unwrap_or_else(|error| panic!("versions matches: {error}"));
-	assert_eq!(matches.subcommand().map(|(name, _)| name), Some("versions"));
+		.unwrap_or_else(|error| panic!("legacy versions matches: {error}"));
+	let versions_matches = legacy_matches
+		.subcommand_matches("versions")
+		.unwrap_or_else(|| panic!("expected versions matches"));
+	assert!(versions_matches.get_flag("dry-run"));
+	assert!(versions_matches.subcommand().is_none());
+
+	let sync_matches = command
+		.clone()
+		.try_get_matches_from([
+			OsString::from("monochange"),
+			OsString::from("versions"),
+			OsString::from("sync"),
+			OsString::from("--dry-run"),
+		])
+		.unwrap_or_else(|error| panic!("versions sync matches: {error}"));
+	let versions_matches = sync_matches
+		.subcommand_matches("versions")
+		.unwrap_or_else(|| panic!("expected versions matches"));
+	assert_eq!(
+		versions_matches.subcommand().map(|(name, _)| name),
+		Some("sync")
+	);
+
+	let list_matches = command
+		.try_get_matches_from([
+			OsString::from("monochange"),
+			OsString::from("versions"),
+			OsString::from("list"),
+			OsString::from("--format"),
+			OsString::from("json"),
+		])
+		.unwrap_or_else(|error| panic!("versions list matches: {error}"));
+	let versions_matches = list_matches
+		.subcommand_matches("versions")
+		.unwrap_or_else(|| panic!("expected versions matches"));
+	assert_eq!(
+		versions_matches.subcommand().map(|(name, _)| name),
+		Some("list")
+	);
 }
 
 #[test]
@@ -765,18 +916,54 @@ enabled = true
 	)
 	.unwrap_or_else(|error| panic!("write app pubspec: {error}"));
 
-	crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
-		"monochange",
-		[
-			OsString::from("monochange"),
-			OsString::from("versions"),
-			OsString::from("--dry-run"),
-			OsString::from("--strategy"),
-			OsString::from("exact"),
-		],
-		root,
-	)))
-	.unwrap_or_else(|error| panic!("versions: {error}"));
+	let sync_output =
+		crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
+			"monochange",
+			[
+				OsString::from("monochange"),
+				OsString::from("versions"),
+				OsString::from("sync"),
+				OsString::from("--dry-run"),
+				OsString::from("--strategy"),
+				OsString::from("exact"),
+			],
+			root,
+		)))
+		.unwrap_or_else(|error| panic!("versions sync: {error}"));
+	let legacy_output =
+		crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
+			"monochange",
+			[
+				OsString::from("monochange"),
+				OsString::from("versions"),
+				OsString::from("--dry-run"),
+				OsString::from("--strategy"),
+				OsString::from("exact"),
+			],
+			root,
+		)))
+		.unwrap_or_else(|error| panic!("legacy versions: {error}"));
+	assert_eq!(legacy_output, sync_output);
+
+	let list_output =
+		crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
+			"monochange",
+			[
+				OsString::from("monochange"),
+				OsString::from("versions"),
+				OsString::from("list"),
+				OsString::from("--format"),
+				OsString::from("json"),
+			],
+			root,
+		)))
+		.unwrap_or_else(|error| panic!("versions list: {error}"));
+	let inventory: serde_json::Value = serde_json::from_str(&list_output)
+		.unwrap_or_else(|error| panic!("parse versions list output: {error}"));
+	let object = inventory
+		.as_object()
+		.unwrap_or_else(|| panic!("versions list should return a JSON object"));
+	assert!(object.values().any(|value| value == "1.2.3"));
 }
 
 #[test]

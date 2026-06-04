@@ -895,6 +895,27 @@ fn render_cli_snapshot_classification_text(
 	output
 }
 
+fn run_versions_sync(
+	root: &Path,
+	matches: &clap::ArgMatches,
+	quiet: bool,
+) -> MonochangeResult<String> {
+	let strategy_str = matches
+		.get_one::<String>("strategy")
+		.map_or("default", String::as_str);
+	let strategy = sync::parse_strategy(strategy_str);
+	let dry_run = matches.get_flag("dry-run");
+	let format_str = matches
+		.get_one::<String>("format")
+		.map_or("text", String::as_str);
+	let format = sync::parse_versions_output_format(format_str);
+	let result = sync_workspace_versions(root, strategy, dry_run)?;
+
+	Ok(sync::format_sync_result_for_cli(
+		&result, dry_run, quiet, format,
+	))
+}
+
 /// Execute the `monochange` CLI with an explicit argument iterator.
 #[must_use = "the run result must be checked"]
 pub async fn run_with_args<I>(bin_name: &'static str, args: I) -> MonochangeResult<String>
@@ -1337,20 +1358,31 @@ where
 		}
 
 		Some(("versions", versions_matches)) => {
-			let strategy_str = versions_matches
-				.get_one::<String>("strategy")
-				.map_or("default", String::as_str);
-			let strategy = sync::parse_strategy(strategy_str);
-			let dry_run = versions_matches.get_flag("dry-run");
-			let format_str = versions_matches
-				.get_one::<String>("format")
-				.map_or("text", String::as_str);
-			let format = sync::parse_versions_output_format(format_str);
-			let result = sync_workspace_versions(root, strategy, dry_run)?;
+			match versions_matches.subcommand() {
+				Some(("list", list_matches)) => {
+					let format_str = list_matches
+						.get_one::<String>("format")
+						.map_or("text", String::as_str);
+					let format = sync::parse_versions_output_format(format_str);
+					let inventory = sync::list_workspace_versions(root)?;
 
-			Ok(sync::format_sync_result_for_cli(
-				&result, dry_run, quiet, format,
-			))
+					Ok(sync::format_version_inventory_for_cli(&inventory, format))
+				}
+				Some(("sync", sync_matches)) => run_versions_sync(root, sync_matches, quiet),
+				Some((name, _)) => {
+					Err(MonochangeError::Config(format!(
+						"unknown versions subcommand `{name}`"
+					)))
+				}
+				None => {
+					if !quiet {
+						eprintln!(
+							"warning: `monochange versions` is deprecated and will be removed in a future version; use `monochange versions sync` instead"
+						);
+					}
+					run_versions_sync(root, versions_matches, quiet)
+				}
+			}
 		}
 
 		Some(("step", step_matches)) => {

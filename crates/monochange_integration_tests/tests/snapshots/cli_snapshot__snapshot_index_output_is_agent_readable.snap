@@ -1,5 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_snapshot.rs
+assertion_line: 15
 expression: value
 ---
 {
@@ -209,6 +210,40 @@ expression: value
       ]
     },
     {
+      "commands": [
+        {
+          "hidden": false,
+          "max_semver_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "versions",
+            "list"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_semver_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "versions",
+            "sync"
+          ]
+        }
+      ],
       "hidden": false,
       "max_semver_bump": "major",
       "parser": {
