@@ -791,6 +791,7 @@ jobs:
         id: tag_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_COMMIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: devenv shell -- bash -e {0}
         run: |
           set -euo pipefail
@@ -798,6 +799,9 @@ jobs:
           if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step release-record --from HEAD --format json --jq '.resolved_commit == .record_commit')"; then
             echo "is_release_commit=${is_release_commit}" >> "$GITHUB_OUTPUT"
             if [ "${is_release_commit}" = "true" ]; then
+              export GIT_CONFIG_COUNT=1
+              export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
+              export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_COMMIT_TOKEN" | base64 -w 0)"
               monochange step tag-release --from HEAD --push=true --format json | tee /tmp/tag-report.json
             fi
           else

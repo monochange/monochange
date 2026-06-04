@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
+
+### 🚀 Feature
+
+#### Add group package max bump controls
+
+Allow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = "major"`; `max_bump = "none"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.
+
+Rename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.
+
+```json
+{
+	"commands": [
+		{
+			"path": ["experimental"],
+			"max_bump": "minor"
+		}
+	]
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)
+
 ## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
 
 ### Changed

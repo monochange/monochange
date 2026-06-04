@@ -4,6 +4,217 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
+
+### 💥 Breaking Change
+
+#### Remove the `mc` binary alias
+
+The release now ships and documents only the `monochange` executable. The packaged `mc` binary alias has been removed.
+
+Before:
+
+```sh
+mc check
+mc versions --format json
+mc step:validate
+mc release --dry-run
+```
+
+After:
+
+```sh
+monochange check
+monochange versions --format json
+monochange step validate
+monochange release --dry-run
+```
+
+##### Rationale
+
+The CLI should have a single canonical executable name. Keeping a bundled alias made installation archives larger, complicated release archive expectations, and caused documentation and automation to drift between `mc` and `monochange`. Users who prefer a short command can still define their own shell alias or wrapper locally, but monochange no longer installs or maintains that alias as part of the public API.
+
+##### Migration guidance
+
+Replace calls to `mc` with `monochange` in CI workflows, local scripts, package manager hooks, agent instructions, and documentation.
+
+If a repository wants to keep a local shorthand, define it outside monochange. For example:
+
+```nu
+alias mc = monochange
+```
+
+Do not rely on package archives, `cargo binstall`, npm packages, or release downloads containing an `mc` executable. Automation should invoke `monochange` directly so it works consistently across all installation methods.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)
+
+#### Move user-defined CLI commands under `monochange run`
+
+Repository-defined commands from `[cli.<name>]` tables in `monochange.toml` now execute through the `monochange run <name>` namespace instead of occupying top-level CLI command names.
+
+Before:
+
+```toml
+[cli.release]
+description = "Prepare a release"
+steps = [
+	{ type = "PrepareRelease", dry_run = true },
+]
+```
+
+```sh
+monochange release --dry-run
+monochange publish --registry npm
+monochange validate-workspace
+```
+
+After:
+
+```toml
+[cli.release]
+description = "Prepare a release"
+steps = [
+	{ type = "PrepareRelease", dry_run = true },
+]
+```
+
+```sh
+monochange run release --dry-run
+monochange run publish --registry npm
+monochange run validate-workspace
+```
+
+The `monochange.toml` command definitions do not need to move or change shape. The invocation path is the breaking change.
+
+##### Rationale
+
+Top-level CLI names are now reserved for built-in monochange commands such as `check`, `change`, `release`, `versions`, `step`, and `run`. Moving repository-defined commands under `run` prevents a project-local command from shadowing a built-in command added in a future release, and it makes automation easier to read: `monochange run <name>` always means “execute a command from this repository's config.”
+
+##### Migration guidance
+
+Update every script, CI workflow, release workflow, agent skill, and README command that invokes a `[cli.<name>]` command directly:
+
+- `monochange release-pr` becomes `monochange run release-pr` when `release-pr` is defined in `monochange.toml`.
+- `monochange publish --dry-run` becomes `monochange run publish --dry-run` when `publish` is defined in `monochange.toml`.
+- `monochange validate-workspace` becomes `monochange run validate-workspace` when `validate-workspace` is defined in `monochange.toml`.
+
+Do not add `run` for built-in commands. For example, keep `monochange check`, `monochange versions --format json`, and `monochange step validate` as built-in command invocations.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)
+
+#### Move built-in step commands from `step:*` names to `step *` subcommands
+
+Built-in step commands now live under the `monochange step` command namespace instead of using colon-delimited top-level command names. This makes the CLI hierarchy explicit and leaves top-level command names available for stable product commands.
+
+Before:
+
+```sh
+monochange step:validate
+monochange step:discover --format json
+monochange step:prepare-release --dry-run --format json
+monochange step:publish-packages --dry-run
+```
+
+After:
+
+```sh
+monochange step validate
+monochange step discover --format json
+monochange step prepare-release --dry-run --format json
+monochange step publish-packages --dry-run
+```
+
+The command behavior, flags, and output formats are otherwise intended to stay the same. Only the command path changes.
+
+##### Migration guidance
+
+Update automation, documentation, scripts, and agent instructions by replacing the `step:` prefix with the nested `step` subcommand. For example:
+
+- `monochange step:validate` becomes `monochange step validate`.
+- `monochange step:affected-packages --format json --verify` becomes `monochange step affected-packages --format json --verify`.
+- `cargo run -p monochange --bin monochange -- step:config --format json` becomes `cargo run -p monochange --bin monochange -- step config --format json`.
+
+This is a breaking CLI change because old `step:*` command names are no longer the canonical command API.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)
+
+### 🚀 Feature
+
+#### Add group package max bump controls
+
+Allow version group package entries to use table syntax with `max_bump` so a member can cap how much its own changes raise the group version. String package entries keep the existing behavior and table entries default to `max_bump = "major"`; `max_bump = "none"` keeps the package aligned with the group without allowing that package's own changes to raise the group bump.
+
+Rename CLI snapshot bump-cap fields from `max_semver_bump` to `max_bump`.
+
+```json
+{
+	"commands": [
+		{
+			"path": ["experimental"],
+			"max_bump": "minor"
+		}
+	]
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #602](https://github.com/monochange/monochange/pull/602)
+
+#### Add normalized CLI snapshots
+
+Add a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.
+
+For example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:
+
+```json
+{
+	"schema_version": "0.1",
+	"kind": "cli-surface",
+	"tool": {
+		"name": "mc",
+		"version": "0.7.0"
+	},
+	"provenance": {
+		"extractor": "clap",
+		"confidence": "high"
+	},
+	"commands": [
+		{
+			"path": ["snapshot"],
+			"max_bump": "major",
+			"hidden": false
+		}
+	]
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)
+
+#### Add explicit versions list and sync commands
+
+Added `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)
+
+### 🐛 Fixed
+
+#### Refresh documentation command examples
+
+Update documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)
+
+#### Fix release output format rendering
+
+Prevent skipped workflow step inputs from forcing `mc release` JSON output and keep release summaries aligned with the command-level output format.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #595](https://github.com/monochange/monochange/pull/595)
+
+#### Skip empty release records by default
+
+Avoid writing release record artifacts for empty release plans unless `write_empty_release_record` is enabled.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #594](https://github.com/monochange/monochange/pull/594)
+
 ## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
 
 ### 🚀 Feature

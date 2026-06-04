@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
+
+### 🐛 Fixed
+
+#### Update package documentation for the nested CLI command API
+
+Updated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)
+
 ## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
 
 ### 🐛 Fixed
