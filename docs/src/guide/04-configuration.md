@@ -515,7 +515,7 @@ Key rules:
 
 ## Lockfile commands
 
-By default monochange rewrites supported lockfiles directly from the release plan. That keeps normal `monochange release` runs close to `--dry-run` speed instead of launching package managers just to rewrite workspace version strings.
+By default monochange rewrites supported lockfiles directly from the release plan. That keeps normal `monochange run release` runs close to `--dry-run` speed instead of launching package managers just to rewrite workspace version strings.
 
 Built-in direct lockfile updates cover:
 
@@ -528,7 +528,7 @@ For Python projects, monochange infers package-manager lockfile commands instead
 
 If you configure `lockfile_commands` for an ecosystem, monochange stops using the built-in direct updater for that ecosystem and those commands fully own lockfile refresh. Use that escape hatch only when your workspace needs package-manager-side regeneration beyond version rewrites.
 
-For Cargo specifically, monochange no longer falls back to `cargo generate-lockfile` automatically when a lockfile looks incomplete. That keeps `monochange release` on the fast path and leaves the final dependency-resolution refresh under your control: either configure `[ecosystems.cargo].lockfile_commands` explicitly or run `cargo generate-lockfile` / `cargo check` yourself afterwards.
+For Cargo specifically, monochange no longer falls back to `cargo generate-lockfile` automatically when a lockfile looks incomplete. That keeps `monochange run release` on the fast path and leaves the final dependency-resolution refresh under your control: either configure `[ecosystems.cargo].lockfile_commands` explicitly or run `cargo generate-lockfile` / `cargo check` yourself afterwards.
 
 If you want to measure that tradeoff before opting into a refresh command, run the `prepare_release_apply_cargo_lockfile_refresh` Criterion benchmark. It compares the default `direct_rewrite` path against an explicit `full_refresh_command` run on the same synthetic Cargo workspace.
 
@@ -737,7 +737,7 @@ CLI command interpolation variables:
 
 <!-- {/configurationWorkflowVariables} -->
 
-Performance tip: keep the default `monochange release` path focused on built-in steps such as `PrepareRelease`. Arbitrary `Command` steps shell out to external tools, so expensive follow-up work like formatting, validation, publishing, or pushes should usually be gated behind an explicit input such as `when = "{{ inputs.commit }}"` if you want local release preparation to stay sub-second.
+Performance tip: keep the default `monochange run release` path focused on built-in steps such as `PrepareRelease`. Arbitrary `Command` steps shell out to external tools, so expensive follow-up work like formatting, validation, publishing, or pushes should usually be gated behind an explicit input such as `when = "{{ inputs.commit }}"` if you want local release preparation to stay sub-second.
 
 `RetargetRelease` is intentionally different from `PrepareRelease`-driven steps. It operates from git history plus source/provider information, discovers the durable `ReleaseRecord`, and then exposes structured `retarget.*` outputs for later command steps.
 

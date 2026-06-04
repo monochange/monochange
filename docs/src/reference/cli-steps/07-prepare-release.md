@@ -158,8 +158,8 @@ That `.monochange/` directory is meant for local monochange artifacts. Keep it g
 If your configured workflow exposes a `prepared_release` input and you need to pass the artifact between explicit jobs or custom commands, wire that input to `PrepareRelease` and pass the artifact path:
 
 ```bash
-monochange release --prepared-release /tmp/release-plan.json
-monochange release-request --prepared-release /tmp/release-plan.json --format json
+monochange run release --prepared-release /tmp/release-plan.json
+monochange step open-release-request --prepared-release /tmp/release-plan.json --format json
 ```
 
 Here `release` and `release-request` are example workflow names; use the names shown by `monochange help` for your repository.

@@ -818,10 +818,10 @@ Prefer configured package ids in change files whenever a leaf package changed.",
 		"change" => {
 			Some(
 				r#"Examples:
-  monochange change --package sdk-core --bump patch --reason "fix panic"
-  monochange change --package sdk-core --bump minor --reason "add API" --output .changeset/sdk-core.md
-  monochange change --package sdk --bump minor --reason "coordinated release"
-  monochange change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
+  monochange run change --package sdk-core --bump patch --reason "fix panic"
+  monochange run change --package sdk-core --bump minor --reason "add API" --output .changeset/sdk-core.md
+  monochange run change --package sdk --bump minor --reason "coordinated release"
+  monochange run change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
 
 Rules:
   - Prefer configured package ids in change files whenever a leaf package changed.
@@ -834,10 +834,10 @@ Rules:
 		"release" => {
 			Some(
 				r"Examples:
-  monochange release --dry-run --format text
-  monochange release --dry-run --format json
-  monochange release --dry-run --diff
-  monochange release
+  monochange run release --dry-run --format text
+  monochange run release --dry-run --format json
+  monochange run release --dry-run --diff
+  monochange run release
 
 Planning reminders:
   - Direct package changes propagate to dependents using defaults.parent_bump.
@@ -861,9 +861,9 @@ Summary notes:
 		"commit-release" => {
 			Some(
 				r"Examples:
-  monochange commit-release --dry-run --format json
-  monochange commit-release --dry-run --diff
-  monochange commit-release
+  monochange run commit-release --dry-run --format json
+  monochange run commit-release --dry-run --diff
+  monochange run commit-release
 
 Commit notes:
   - Reuses the standard monochange release commit subject/body contract.

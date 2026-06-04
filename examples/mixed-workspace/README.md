@@ -14,7 +14,7 @@ This is a repo-shaped example for a cross-ecosystem monorepo that manages Cargo 
 ```bash
 monochange step validate
 monochange check
-monochange release --dry-run --diff
+monochange run release --dry-run --diff
 ```
 
 ## Why this example is opinionated

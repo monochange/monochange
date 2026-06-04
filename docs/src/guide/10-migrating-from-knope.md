@@ -366,10 +366,10 @@ If your knope config uses conventional commits alongside changesets:
 ignore_conventional_commits = false # or absent
 ```
 
-Switch to changeset-only workflows. Use `monochange change` to create changesets:
+Switch to changeset-only workflows. Use `monochange run change` to create changesets:
 
 ```bash
-monochange change --package my_crate --bump minor --reason "add new feature"
+monochange run change --package my_crate --bump minor --reason "add new feature"
 ```
 
 ### knope `scopes`
@@ -440,7 +440,7 @@ Replace with the equivalent monochange command:
 
 ```yaml
 # After
-- run: monochange release
+- run: monochange run release
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -619,5 +619,5 @@ type = "CreateChangeFile"
 - [ ] Update `.changeset/*.md` frontmatter keys to use declared package/group ids
 - [ ] Update CI workflows from `knope <command>` to `monochange <command>`
 - [ ] Run `monochange step validate` to check config and changesets
-- [ ] Run `monochange release --dry-run` to verify the release plan
+- [ ] Run `monochange run release --dry-run` to verify the release plan
 - [ ] Remove knope from your dependencies and install monochange
