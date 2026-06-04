@@ -2448,6 +2448,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 		groups: vec![GroupDefinition {
 			id: "workspace".to_string(),
 			packages: vec!["monochange".to_string(), "monochange_core".to_string()],
+			package_max_bumps: BTreeMap::new(),
 			changelog: Some(ChangelogTarget {
 				path: PathBuf::from("changelog.md"),
 				format: ChangelogFormat::Monochange,

@@ -19,8 +19,8 @@ async fn snapshot_index_output_is_agent_readable() {
 
 #[tokio::test]
 #[allow(clippy::disallowed_methods)]
-async fn max_semver_bump_caps_cli_snapshot_classification() {
-	let fixture = monochange_test_helpers::setup_fixture!("cli-snapshot/max-semver-bump");
+async fn max_bump_caps_cli_snapshot_classification() {
+	let fixture = monochange_test_helpers::setup_fixture!("cli-snapshot/max-bump");
 	let output = monochange::run_with_args_in_dir(
 		"mc",
 		[

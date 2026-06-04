@@ -1,6 +1,7 @@
 mod mutant_killers_tests;
 mod prop_tests;
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use monochange_core::BumpSeverity;
@@ -30,6 +31,21 @@ fn package(id: &str, version: Version) -> PackageRecord {
 	);
 	package.id = id.to_string();
 	package
+}
+
+fn change_signal(package_id: &str, bump: BumpSeverity) -> ChangeSignal {
+	ChangeSignal {
+		package_id: package_id.to_string(),
+		requested_bump: Some(bump),
+		explicit_version: None,
+		change_origin: "direct-change".to_string(),
+		evidence_refs: Vec::new(),
+		notes: None,
+		details: None,
+		change_type: None,
+		caused_by: Vec::new(),
+		source_path: PathBuf::from(".changeset/change.md"),
+	}
 }
 
 fn edge(from: &str, to: &str) -> DependencyEdge {
@@ -178,6 +194,7 @@ fn build_release_plan_synchronizes_version_groups() {
 		group_id: "sdk".to_string(),
 		display_name: "sdk".to_string(),
 		members: vec![core.id.clone(), web.id.clone()],
+		member_max_bumps: BTreeMap::new(),
 		mismatch_detected: false,
 	};
 
@@ -223,6 +240,108 @@ fn build_release_plan_synchronizes_version_groups() {
 	assert_eq!(synced_member.trigger_type, "version-group-synchronization");
 	assert_eq!(mobile_decision.recommended_bump, BumpSeverity::Patch);
 	assert_eq!(group.planned_version, Some(Version::new(1, 1, 0)));
+}
+
+#[test]
+fn build_release_plan_caps_group_bump_influence_per_member() {
+	let mut core = package("cargo:core", Version::new(1, 0, 0));
+	core.version_group_id = Some("sdk".to_string());
+	let mut web = package("npm:web", Version::new(1, 0, 0));
+	web.version_group_id = Some("sdk".to_string());
+	let mut docs = package("npm:docs", Version::new(1, 0, 0));
+	docs.version_group_id = Some("sdk".to_string());
+	let member_max_bumps = BTreeMap::from([
+		(core.id.clone(), BumpSeverity::Minor),
+		(web.id.clone(), BumpSeverity::Patch),
+		(docs.id.clone(), BumpSeverity::None),
+	]);
+	let version_group = VersionGroup {
+		group_id: "sdk".to_string(),
+		display_name: "sdk".to_string(),
+		members: vec![core.id.clone(), web.id.clone(), docs.id.clone()],
+		member_max_bumps,
+		mismatch_detected: false,
+	};
+
+	let plan = build_release_plan(
+		PathBuf::from("fixtures/mixed").as_path(),
+		&[core.clone(), web.clone(), docs.clone()],
+		&[],
+		&[version_group],
+		&[
+			change_signal(&core.id, BumpSeverity::Major),
+			change_signal(&web.id, BumpSeverity::Major),
+			change_signal(&docs.id, BumpSeverity::Major),
+		],
+		&[],
+		BumpSeverity::Patch,
+		false,
+	)
+	.unwrap_or_else(|error| panic!("release plan: {error}"));
+
+	let group = plan
+		.groups
+		.first()
+		.unwrap_or_else(|| panic!("expected planned version group"));
+	assert_eq!(group.recommended_bump, BumpSeverity::Minor);
+	assert_eq!(group.planned_version, Some(Version::new(1, 1, 0)));
+
+	for (package_id, expected_bump) in [
+		(&core.id, BumpSeverity::Major),
+		(&web.id, BumpSeverity::Major),
+		(&docs.id, BumpSeverity::Major),
+	] {
+		let decision = plan
+			.decisions
+			.iter()
+			.find(|decision| decision.package_id == *package_id)
+			.unwrap_or_else(|| panic!("expected decision for {package_id}"));
+		assert_eq!(decision.recommended_bump, expected_bump);
+		assert_eq!(decision.planned_version, Some(Version::new(1, 1, 0)));
+	}
+}
+
+#[test]
+fn build_release_plan_ignores_none_capped_group_member_when_others_do_not_bump() {
+	let mut docs = package("npm:docs", Version::new(1, 0, 0));
+	docs.version_group_id = Some("sdk".to_string());
+	let mut web = package("npm:web", Version::new(1, 0, 0));
+	web.version_group_id = Some("sdk".to_string());
+	let version_group = VersionGroup {
+		group_id: "sdk".to_string(),
+		display_name: "sdk".to_string(),
+		members: vec![docs.id.clone(), web.id.clone()],
+		member_max_bumps: BTreeMap::from([(docs.id.clone(), BumpSeverity::None)]),
+		mismatch_detected: false,
+	};
+
+	let plan = build_release_plan(
+		PathBuf::from("fixtures/mixed").as_path(),
+		&[docs.clone(), web.clone()],
+		&[],
+		&[version_group],
+		&[change_signal(&docs.id, BumpSeverity::Major)],
+		&[],
+		BumpSeverity::Patch,
+		false,
+	)
+	.unwrap_or_else(|error| panic!("release plan: {error}"));
+
+	let docs_decision = plan
+		.decisions
+		.iter()
+		.find(|decision| decision.package_id == docs.id)
+		.unwrap_or_else(|| panic!("expected docs decision"));
+	let web_decision = plan
+		.decisions
+		.iter()
+		.find(|decision| decision.package_id == web.id)
+		.unwrap_or_else(|| panic!("expected web decision"));
+	assert_eq!(docs_decision.recommended_bump, BumpSeverity::Major);
+	assert_eq!(docs_decision.planned_version, Some(Version::new(2, 0, 0)));
+	assert_eq!(web_decision.recommended_bump, BumpSeverity::None);
+	assert_eq!(web_decision.planned_version, None);
+	assert!(plan.groups.is_empty());
 }
 
 #[test]
@@ -361,6 +480,7 @@ fn build_release_plan_propagates_explicit_member_versions_to_group_version() {
 		group_id: "sdk".to_string(),
 		display_name: "sdk".to_string(),
 		members: vec![core.id.clone(), web.id.clone()],
+		member_max_bumps: BTreeMap::new(),
 		mismatch_detected: false,
 	};
 	let plan = build_release_plan(
@@ -574,6 +694,7 @@ fn build_release_plan_returns_error_for_unknown_group_in_changeset() {
 		group_id: "sdk".to_string(),
 		display_name: "sdk".to_string(),
 		members: vec![core.id.clone()],
+		member_max_bumps: BTreeMap::new(),
 		mismatch_detected: false,
 	};
 	// Create a changeset that targets the group member, which maps to a group,
@@ -617,6 +738,7 @@ fn build_release_plan_warns_on_missing_group_member_during_traversal() {
 		group_id: "sdk".to_string(),
 		display_name: "sdk".to_string(),
 		members: vec![core.id.clone(), "ghost".to_string()],
+		member_max_bumps: BTreeMap::new(),
 		mismatch_detected: false,
 	};
 
@@ -776,6 +898,7 @@ fn build_release_plan_suppresses_matching_dependency_propagation_when_caused_by_
 		group_id: "sdk".to_string(),
 		display_name: "sdk".to_string(),
 		members: vec![core.id.clone(), util.id.clone()],
+		member_max_bumps: BTreeMap::new(),
 		mismatch_detected: false,
 	};
 	let plan = build_release_plan(

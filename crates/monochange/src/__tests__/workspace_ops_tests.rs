@@ -1706,6 +1706,7 @@ fn grouped_no_changeset_prerelease_plan_updates_group_and_state() {
 			group_id: "suite".to_string(),
 			display_name: "Suite".to_string(),
 			members: vec!["cargo:crates/member/Cargo.toml".to_string()],
+			member_max_bumps: std::collections::BTreeMap::new(),
 			mismatch_detected: false,
 		}],
 		warnings: Vec::new(),

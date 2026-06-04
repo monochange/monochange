@@ -104,16 +104,16 @@ fn diff_classifies_removed_command_as_major() {
 }
 
 #[test]
-fn diff_caps_changes_by_nearest_max_semver_bump() {
+fn diff_caps_changes_by_nearest_max_bump() {
 	let mut before_parent = command_node("experimental");
-	before_parent.max_semver_bump = SnapshotSeverity::Minor;
+	before_parent.max_bump = SnapshotSeverity::Minor;
 	let mut before_child = command_node("child");
 	before_child.path = vec!["experimental".to_string(), "child".to_string()];
 	before_parent.commands.push(before_child);
 	let before = command_snapshot(vec![before_parent]);
 
 	let mut after_parent = command_node("experimental");
-	after_parent.max_semver_bump = SnapshotSeverity::Minor;
+	after_parent.max_bump = SnapshotSeverity::Minor;
 	let after = command_snapshot(vec![after_parent]);
 
 	let report = diff_command_snapshots(&before, &after);
@@ -122,11 +122,11 @@ fn diff_caps_changes_by_nearest_max_semver_bump() {
 }
 
 #[test]
-fn diff_uses_stricter_max_semver_bump_from_either_snapshot() {
+fn diff_uses_stricter_max_bump_from_either_snapshot() {
 	let mut before_command = command_node("experimental");
-	before_command.max_semver_bump = SnapshotSeverity::None;
+	before_command.max_bump = SnapshotSeverity::None;
 	let mut after_command = command_node("experimental");
-	after_command.max_semver_bump = SnapshotSeverity::Major;
+	after_command.max_bump = SnapshotSeverity::Major;
 	after_command
 		.options
 		.push(option("--new", value(ValueKind::Flag)));
@@ -140,7 +140,7 @@ fn diff_uses_stricter_max_semver_bump_from_either_snapshot() {
 }
 
 #[test]
-fn command_node_defaults_max_semver_bump_to_major_when_missing() {
+fn command_node_defaults_max_bump_to_major_when_missing() {
 	let json = r#"
 		{
 			"path": ["run"],
@@ -154,7 +154,7 @@ fn command_node_defaults_max_semver_bump_to_major_when_missing() {
 	"#;
 	let command: CommandNode = serde_json::from_str(json)
 		.unwrap_or_else(|error| panic!("deserialize command node: {error}"));
-	assert_eq!(command.max_semver_bump, SnapshotSeverity::Major);
+	assert_eq!(command.max_bump, SnapshotSeverity::Major);
 }
 
 #[test]
@@ -214,7 +214,7 @@ fn command_node(name: &str) -> CommandNode {
 		path: vec![name.to_string()],
 		aliases: Vec::new(),
 		hidden: false,
-		max_semver_bump: SnapshotSeverity::Major,
+		max_bump: SnapshotSeverity::Major,
 		summary: None,
 		description: None,
 		parser: ParserBehavior {

@@ -334,10 +334,32 @@ pub(crate) struct RawPackageDefinition {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+#[cfg_attr(feature = "schema", schemars(rename = "group_package"))]
+pub(crate) enum RawGroupPackage {
+	Name(String),
+	Detailed(RawGroupPackageTable),
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "group_package_table"))]
+pub(crate) struct RawGroupPackageTable {
+	name: String,
+	#[serde(default = "default_group_package_max_bump")]
+	max_bump: BumpSeverity,
+}
+
+fn default_group_package_max_bump() -> BumpSeverity {
+	BumpSeverity::Major
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "schema", schemars(rename = "group_definition"))]
 pub(crate) struct RawGroupDefinition {
-	packages: Vec<String>,
+	packages: Vec<RawGroupPackage>,
 	#[serde(default)]
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
@@ -1567,6 +1589,25 @@ fn build_package_definitions(
 		.collect::<Result<Vec<_>, _>>()
 }
 
+fn normalize_group_packages(
+	packages: Vec<RawGroupPackage>,
+) -> (Vec<String>, BTreeMap<String, BumpSeverity>) {
+	let mut package_ids = Vec::with_capacity(packages.len());
+	let mut package_max_bumps = BTreeMap::new();
+	for package in packages {
+		match package {
+			RawGroupPackage::Name(name) => package_ids.push(name),
+			RawGroupPackage::Detailed(package) => {
+				if package.max_bump != BumpSeverity::Major {
+					package_max_bumps.insert(package.name.clone(), package.max_bump);
+				}
+				package_ids.push(package.name);
+			}
+		}
+	}
+	(package_ids, package_max_bumps)
+}
+
 fn build_group_definitions(
 	contents: &str,
 	groups: BTreeMap<String, RawGroupDefinition>,
@@ -1576,6 +1617,7 @@ fn build_group_definitions(
 	groups
 		.into_iter()
 		.map(|(id, group)| {
+			let (package_ids, package_max_bumps) = normalize_group_packages(group.packages);
 			let changelog = match group.changelog.as_ref() {
 				None => None,
 				Some(definition) => match definition.resolve_for_group() {
@@ -1610,12 +1652,13 @@ fn build_group_definitions(
 			let changelog_include = parse_group_changelog_include(
 				contents,
 				&id,
-				&group.packages,
+				&package_ids,
 				group.changelog.as_ref().and_then(RawChangelogConfig::include),
 			)?;
 			Ok::<_, MonochangeError>(GroupDefinition {
 				id: id.clone(),
-				packages: group.packages,
+				packages: package_ids,
+				package_max_bumps,
 				changelog,
 				changelog_include,
 				excluded_changelog_types: group.excluded_changelog_types,
@@ -5558,6 +5601,7 @@ pub fn apply_version_groups(
 		let group_id = group.id.clone();
 		let group_members = group.packages.clone();
 		let mut members = Vec::new();
+		let mut member_max_bumps = BTreeMap::new();
 		let mut versions = BTreeSet::new();
 
 		for member in &group_members {
@@ -5595,6 +5639,9 @@ pub fn apply_version_groups(
 
 				assigned.insert(package.id.clone(), group_id.clone());
 				package.version_group_id = Some(group_id.clone());
+				if let Some(max_bump) = group.package_max_bumps.get(member) {
+					member_max_bumps.insert(package.id.clone(), *max_bump);
+				}
 				members.push(package.id.clone());
 
 				if let Some(version) = &package.current_version {
@@ -5614,6 +5661,7 @@ pub fn apply_version_groups(
 			group_id: group_id.clone(),
 			display_name: group_id,
 			members,
+			member_max_bumps,
 			mismatch_detected,
 		});
 	}

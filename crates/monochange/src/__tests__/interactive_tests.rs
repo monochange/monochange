@@ -1,4 +1,6 @@
 #![allow(clippy::disallowed_methods)]
+use std::collections::BTreeMap;
+
 use inquire::validator::Validation;
 use monochange_config::load_workspace_configuration;
 use monochange_core::BumpSeverity;
@@ -326,6 +328,7 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 		groups: vec![GroupDefinition {
 			id: "sdk".to_string(),
 			packages: vec!["app".to_string(), "core".to_string()],
+			package_max_bumps: BTreeMap::new(),
 			changelog: None,
 			changelog_include: GroupChangelogInclude::All,
 			excluded_changelog_types: Vec::new(),
@@ -406,6 +409,7 @@ fn build_selectable_targets_handles_group_with_empty_packages() {
 		groups: vec![GroupDefinition {
 			id: "empty-group".to_string(),
 			packages: Vec::new(),
+			package_max_bumps: BTreeMap::new(),
 			changelog: None,
 			changelog_include: GroupChangelogInclude::All,
 			excluded_changelog_types: Vec::new(),

@@ -25,7 +25,7 @@ For example, a CLI can produce a normalized snapshot with a stable schema versio
 	"commands": [
 		{
 			"path": ["snapshot"],
-			"max_semver_bump": "major",
+			"max_bump": "major",
 			"hidden": false
 		}
 	]

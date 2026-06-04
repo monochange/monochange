@@ -268,7 +268,7 @@ pub fn build_release_plan(
 						);
 						BumpSeverity::None
 					},
-					|state| state.severity,
+					|state| cap_member_bump(group, member, state.severity),
 				)
 			})
 			.max()
@@ -607,6 +607,16 @@ fn trigger_priority(trigger_type: &str) -> u8 {
 	}
 }
 
+fn cap_member_bump(group: &VersionGroup, member: &str, bump: BumpSeverity) -> BumpSeverity {
+	bump.min(
+		group
+			.member_max_bumps
+			.get(member)
+			.copied()
+			.unwrap_or(BumpSeverity::Major),
+	)
+}
+
 fn planned_group(
 	group: &VersionGroup,
 	package_by_id: &BTreeMap<&str, &PackageRecord>,
@@ -616,8 +626,11 @@ fn planned_group(
 	let recommended_bump = group
 		.members
 		.iter()
-		.filter_map(|member| states.get(member.as_str()))
-		.map(|state| state.severity)
+		.filter_map(|member| {
+			states
+				.get(member.as_str())
+				.map(|state| cap_member_bump(group, member, state.severity))
+		})
 		.max()
 		.unwrap_or(BumpSeverity::None);
 	if !recommended_bump.is_release() {

@@ -11765,6 +11765,7 @@ fn sample_group_definition(include: GroupChangelogInclude) -> monochange_core::G
 	monochange_core::GroupDefinition {
 		id: "sdk".to_string(),
 		packages: vec!["core".to_string(), "app".to_string()],
+		package_max_bumps: BTreeMap::new(),
 		changelog: None,
 		changelog_include: include,
 		excluded_changelog_types: Vec::new(),
@@ -11818,6 +11819,7 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 		groups: vec![monochange_core::GroupDefinition {
 			id: "sdk".to_string(),
 			packages: vec!["core".to_string()],
+			package_max_bumps: BTreeMap::new(),
 			changelog: None,
 			changelog_include: GroupChangelogInclude::All,
 			excluded_changelog_types: Vec::new(),
@@ -13272,6 +13274,7 @@ fn render_discovery_report_supports_json_and_text_formats() {
 			group_id: "sdk".to_string(),
 			display_name: "sdk".to_string(),
 			members: vec!["cargo:crates/core/Cargo.toml".to_string()],
+			member_max_bumps: std::collections::BTreeMap::new(),
 			mismatch_detected: false,
 		}],
 		warnings: vec!["warning text".to_string()],
@@ -13524,6 +13527,7 @@ fn discovery_report_helpers_include_version_groups_and_warnings() {
 			group_id: "sdk".to_string(),
 			display_name: "sdk".to_string(),
 			members: vec![package.id.clone()],
+			member_max_bumps: std::collections::BTreeMap::new(),
 			mismatch_detected: true,
 		}],
 		warnings: vec!["workspace warning".to_string()],
