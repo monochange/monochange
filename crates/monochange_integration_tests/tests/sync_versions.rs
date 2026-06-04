@@ -3,9 +3,12 @@
 use std::ffi::OsString;
 use std::path::Path;
 
+use insta::assert_json_snapshot;
+use insta::assert_snapshot;
 use monochange::sync_workspace_versions;
 use monochange_core::VersionStrategy;
 use monochange_test_helpers::copy_directory;
+use serde_json::Value;
 use tempfile::TempDir;
 use tempfile::tempdir;
 
@@ -258,6 +261,16 @@ fn sync_versions_with_npm_internal_deps() {
 }
 
 #[test]
+fn versions_cli_sync_subcommand_matches_legacy_output() {
+	let fixture = setup_fixture("dart-lints", "advanced-workspace-flutter/workspace");
+	let legacy_output = run_versions_cli(fixture.path(), &["--dry-run"]);
+	let sync_output = run_versions_cli(fixture.path(), &["sync", "--dry-run"]);
+
+	assert_eq!(sync_output, legacy_output);
+	assert_snapshot!(sync_output);
+}
+
+#[test]
 fn versions_cli_dry_run_text_output_matches_snapshot() {
 	let fixture = setup_fixture("dart-lints", "advanced-workspace-flutter/workspace");
 	let output = run_versions_cli(fixture.path(), &["--dry-run"]);
@@ -267,6 +280,24 @@ fn versions_cli_dry_run_text_output_matches_snapshot() {
 			"snapshots/sync_versions__versions_cli_dry_run_text_output_matches_snapshot.txt"
 		),
 	);
+}
+
+#[test]
+fn versions_cli_list_text_output_matches_snapshot() {
+	let fixture = setup_fixture("cli-output", "group-explicit-version");
+	let output = run_versions_cli(fixture.path(), &["list"]);
+
+	assert_snapshot!(output);
+}
+
+#[test]
+fn versions_cli_list_json_uses_exact_package_and_group_ids() {
+	let fixture = setup_fixture("cli-output", "group-explicit-version");
+	let output = run_versions_cli(fixture.path(), &["list", "--format", "json"]);
+	let value: Value = serde_json::from_str(&output)
+		.unwrap_or_else(|error| panic!("parse versions list JSON: {error}"));
+
+	assert_json_snapshot!(value);
 }
 
 #[test]

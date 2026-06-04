@@ -18,6 +18,7 @@ use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::VersionStrategy;
+use semver::Version;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 use toml_edit::DocumentMut;
@@ -34,6 +35,9 @@ pub(crate) enum VersionsOutputFormat {
 	/// Machine-readable JSON output.
 	Json,
 }
+
+/// Flat package and group version inventory for a workspace.
+pub type VersionInventory = BTreeMap<String, String>;
 
 /// Result of synchronizing internal dependency versions across a workspace.
 #[derive(Debug, Serialize)]
@@ -766,6 +770,78 @@ pub(crate) fn format_sync_result_for_cli(
 }
 
 /// Parse a strategy string from CLI into a `VersionStrategy` enum.
+pub fn list_workspace_versions(root: &Path) -> MonochangeResult<VersionInventory> {
+	let discovery = discover_workspace(root)?;
+	Ok(version_inventory(&discovery))
+}
+
+pub(crate) fn version_inventory(discovery: &DiscoveryReport) -> VersionInventory {
+	let package_versions_by_id = discovery
+		.packages
+		.iter()
+		.filter_map(|package| {
+			package
+				.current_version
+				.as_ref()
+				.map(|version| (package.id.clone(), version.clone()))
+		})
+		.collect::<BTreeMap<_, _>>();
+
+	let mut inventory = discovery
+		.packages
+		.iter()
+		.filter_map(|package| {
+			package.current_version.as_ref().map(|version| {
+				let key = package
+					.metadata
+					.get("config_id")
+					.cloned()
+					.unwrap_or_else(|| package.id.clone());
+				(key, version.to_string())
+			})
+		})
+		.collect::<VersionInventory>();
+
+	for group in &discovery.version_groups {
+		if let Some(version) = group_current_version(group.members.iter(), &package_versions_by_id)
+		{
+			inventory.insert(group.group_id.clone(), version.to_string());
+		}
+	}
+
+	inventory
+}
+
+fn group_current_version<'a>(
+	members: impl IntoIterator<Item = &'a String>,
+	package_versions_by_id: &BTreeMap<String, Version>,
+) -> Option<Version> {
+	members
+		.into_iter()
+		.filter_map(|member| package_versions_by_id.get(member))
+		.max()
+		.cloned()
+}
+
+pub(crate) fn format_version_inventory_for_cli(
+	inventory: &VersionInventory,
+	format: VersionsOutputFormat,
+) -> String {
+	match format {
+		VersionsOutputFormat::Json => {
+			serde_json::to_string_pretty(inventory)
+				.unwrap_or_else(|error| panic!("serialize version inventory: {error}"))
+		}
+		VersionsOutputFormat::Text => {
+			inventory
+				.iter()
+				.map(|(id, version)| format!("{id}: {version}"))
+				.collect::<Vec<_>>()
+				.join("\n")
+		}
+	}
+}
+
 pub(crate) fn parse_strategy(strategy_str: &str) -> VersionStrategy {
 	match strategy_str {
 		"exact" => VersionStrategy::Exact,
