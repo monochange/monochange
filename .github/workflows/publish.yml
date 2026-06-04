@@ -112,14 +112,14 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
       - name: check publish readiness
+        uses: monochange/actions@53bd37cbecff25eeefa689bd7ac5fc807dbabac7
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
-        run: |
-          "$RUNNER_TEMP/bin/monochange" step publish-readiness \
-            --from HEAD \
-            --output "$RUNNER_TEMP/publish-readiness.json" \
-            --format json
-        shell: devenv shell -- bash -e {0}
+        with:
+          name: publish-readiness
+          setup-monochange: ${{ runner.temp }}/bin/monochange
+          ref: HEAD
+          output: ${{ runner.temp }}/publish-readiness.json
 
       - name: setup cargo stable for publish
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
@@ -137,12 +137,11 @@ jobs:
           version: 10
 
       - name: publish packages
+        uses: monochange/actions@53bd37cbecff25eeefa689bd7ac5fc807dbabac7
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
-        run: |
-          "$RUNNER_TEMP/bin/monochange" step publish-packages \
-            --log-level info \
-            --all \
-            --output "$RUNNER_TEMP/publish-result.json" \
-            --format json
-        shell: bash
+        with:
+          name: publish-packages
+          setup-monochange: ${{ runner.temp }}/bin/monochange
+          all: true
+          output: ${{ runner.temp }}/publish-result.json

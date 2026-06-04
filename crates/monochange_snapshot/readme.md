@@ -20,7 +20,7 @@ Reach for this crate when you need an agent-readable description of a CLI or ano
 - render deterministic JSON for assistant workflows, review snapshots, and semantic diffing
 - extract clap command definitions through the first supported extractor while leaving room for other frameworks
 - classify command, option, positional, and value-contract changes as semver-impacting differences
-- cap release impact for unstable or intentionally non-contractual command trees with `max_semver_bump`
+- cap release impact for unstable or intentionally non-contractual command trees with `max_bump`
 
 ## Version policy
 
@@ -53,7 +53,7 @@ assert_eq!(snapshot.provenance.extractor, "clap");
 ## Public entry points
 
 - `CommandSnapshot` is the normalized CLI snapshot wire shape.
-- `CommandNode::max_semver_bump` caps the release impact for changes at or below a command path.
+- `CommandNode::max_bump` caps the release impact for changes at or below a command path.
 - `CommandSurfaceExtractor` is the framework-neutral extraction trait.
 - `ClapCommandSurfaceExtractor` extracts snapshots from clap command definitions.
 - `snapshot_from_clap` provides a convenience clap extraction function.

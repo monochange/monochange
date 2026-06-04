@@ -81,7 +81,7 @@ in
   };
 
   scripts = {
-    "monochange" = {
+    "monochange:dev" = {
       exec = ''
         set -euo pipefail
         cargo run --quiet --package monochange --bin monochange -- "$@"
@@ -89,7 +89,7 @@ in
       description = "The dev build of the `monochange` executable";
       binary = "bash";
     };
-    "mc" = {
+    "monochange" = {
       exec = ''
         set -euo pipefail
         cargo run --quiet --release --package monochange --bin monochange -- "$@"

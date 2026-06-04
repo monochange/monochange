@@ -1922,6 +1922,8 @@ pub enum GroupChangelogInclude {
 pub struct GroupDefinition {
 	pub id: String,
 	pub packages: Vec<String>,
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub package_max_bumps: BTreeMap<String, BumpSeverity>,
 	pub changelog: Option<ChangelogTarget>,
 	#[serde(default)]
 	pub changelog_include: GroupChangelogInclude,
@@ -5033,6 +5035,8 @@ pub struct VersionGroup {
 	pub group_id: String,
 	pub display_name: String,
 	pub members: Vec<String>,
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub member_max_bumps: BTreeMap<String, BumpSeverity>,
 	pub mismatch_detected: bool,
 }
 

@@ -1,0 +1,45 @@
+[defaults]
+parent_bump = "minor"
+include_private = true
+package_type = "cargo"
+changelog = "{{ path }}/CHANGELOG.md"
+
+[package.core]
+path = "crates/core"
+changelog = "crates/core/changelog.md"
+tag = true
+release = true
+
+[package."npm:web"]
+path = "packages/web"
+type = "npm"
+
+[package."default-a"]
+path = "crates/default-a"
+
+[package."default-b"]
+path = "crates/default-b"
+
+[group.sdk]
+packages = [
+  { name = "core", max_bump = "minor" },
+  { name = "npm:web", max_bump = "none" },
+]
+changelog = "changelog.md"
+version_format = "primary"
+
+[group.default_caps]
+packages = [
+  "default-a",
+  { name = "default-b" },
+]
+changelog = false
+
+[ecosystems.npm]
+enabled = true
+roots = ["packages/*"]
+
+[cli.release]
+
+[[cli.release.steps]]
+type = "PrepareRelease"

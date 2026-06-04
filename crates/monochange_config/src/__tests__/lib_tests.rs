@@ -655,13 +655,91 @@ fn load_workspace_configuration_parses_package_group_and_cli_command_declaration
 			initial_header: None,
 		})
 	);
+	let group = configuration
+		.groups
+		.first()
+		.unwrap_or_else(|| panic!("expected group"));
+	assert_eq!(group.packages, vec!["core", "npm:web"]);
+	assert!(group.package_max_bumps.is_empty());
+}
+
+#[test]
+fn load_workspace_configuration_parses_group_package_max_bump_tables() {
+	let root = fixture_path("config/group-package-max-bump");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let group = configuration
+		.group_by_id("sdk")
+		.unwrap_or_else(|| panic!("expected sdk group"));
+
+	assert_eq!(group.packages, vec!["core", "npm:web"]);
 	assert_eq!(
-		configuration
-			.groups
-			.first()
-			.unwrap_or_else(|| panic!("expected group"))
-			.packages,
-		vec!["core", "npm:web"]
+		group.package_max_bumps,
+		BTreeMap::from([
+			("core".to_string(), BumpSeverity::Minor),
+			("npm:web".to_string(), BumpSeverity::None),
+		])
+	);
+
+	let default_caps_group = configuration
+		.group_by_id("default_caps")
+		.unwrap_or_else(|| panic!("expected default_caps group"));
+	assert_eq!(default_caps_group.packages, vec!["default-a", "default-b"]);
+	assert!(default_caps_group.package_max_bumps.is_empty());
+
+	let mut packages = vec![
+		PackageRecord::new(
+			Ecosystem::Cargo,
+			"core",
+			root.join("crates/core/Cargo.toml"),
+			root.clone(),
+			Some(Version::new(1, 0, 0)),
+			PublishState::Public,
+		),
+		PackageRecord::new(
+			Ecosystem::Npm,
+			"web",
+			root.join("packages/web/package.json"),
+			root.clone(),
+			Some(Version::new(1, 0, 0)),
+			PublishState::Public,
+		),
+		PackageRecord::new(
+			Ecosystem::Cargo,
+			"default-a",
+			root.join("crates/default-a/Cargo.toml"),
+			root.clone(),
+			Some(Version::new(1, 0, 0)),
+			PublishState::Public,
+		),
+		PackageRecord::new(
+			Ecosystem::Cargo,
+			"default-b",
+			root.join("crates/default-b/Cargo.toml"),
+			root.clone(),
+			Some(Version::new(1, 0, 0)),
+			PublishState::Public,
+		),
+	];
+	let (version_groups, warnings) = apply_version_groups(&mut packages, &configuration)
+		.unwrap_or_else(|error| panic!("version groups: {error}"));
+	assert!(warnings.is_empty());
+	let sdk_version_group = version_groups
+		.iter()
+		.find(|version_group| version_group.group_id == "sdk")
+		.unwrap_or_else(|| panic!("expected sdk version group"));
+	assert_eq!(
+		sdk_version_group.member_max_bumps,
+		BTreeMap::from([
+			(
+				"cargo:crates/core/Cargo.toml".to_string(),
+				BumpSeverity::Minor,
+			),
+			(
+				"npm:packages/web/package.json".to_string(),
+				BumpSeverity::None
+			),
+		])
 	);
 }
 
@@ -5204,6 +5282,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 	let group = GroupDefinition {
 		id: "sdk".to_string(),
 		packages: vec![core.id.clone(), app.id.clone()],
+		package_max_bumps: BTreeMap::new(),
 		changelog: None,
 		changelog_include: GroupChangelogInclude::All,
 		excluded_changelog_types: Vec::new(),
@@ -5231,6 +5310,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 	let group_with_missing = GroupDefinition {
 		id: "sdk-missing".to_string(),
 		packages: vec![core.id.clone(), "missing".to_string(), app.id.clone()],
+		package_max_bumps: BTreeMap::new(),
 		changelog: None,
 		changelog_include: GroupChangelogInclude::All,
 		excluded_changelog_types: Vec::new(),

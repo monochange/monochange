@@ -19,7 +19,7 @@
 		{
 			"path": ["experimental"],
 			"hidden": false,
-			"max_semver_bump": "minor",
+			"max_bump": "minor",
 			"parser": {
 				"flags_are_posix_noncompliant": false,
 				"options_must_precede_arguments": false,
