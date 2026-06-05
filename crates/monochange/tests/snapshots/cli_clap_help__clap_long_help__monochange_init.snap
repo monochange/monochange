@@ -2,7 +2,7 @@
 source: crates/monochange/tests/cli_clap_help.rs
 expression: "render_help_snapshot(&path, version)"
 ---
-Version: 0.8.0
+Version: [current]
 Command: monochange init
 
 Generate monochange.toml with detected packages, groups, and default CLI commands

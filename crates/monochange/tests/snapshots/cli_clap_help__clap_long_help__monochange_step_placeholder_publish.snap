@@ -2,7 +2,7 @@
 source: crates/monochange/tests/cli_clap_help.rs
 expression: "render_help_snapshot(&path, version)"
 ---
-Version: 0.8.0
+Version: [current]
 Command: monochange step placeholder-publish
 
 Run the built-in placeholder-publish release workflow step

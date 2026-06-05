@@ -2,7 +2,7 @@
 source: crates/monochange/tests/cli_clap_help.rs
 expression: "render_help_snapshot(&path, version)"
 ---
-Version: 0.8.0
+Version: [current]
 Command: monochange step diagnose-changesets
 
 Run the built-in diagnose-changesets release workflow step

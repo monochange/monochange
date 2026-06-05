@@ -2,7 +2,7 @@
 source: crates/monochange/tests/cli_clap_help.rs
 expression: "render_help_snapshot(&path, version)"
 ---
-Version: 0.8.0
+Version: [current]
 Command: monochange step publish-packages
 
 Run the built-in publish-packages release workflow step

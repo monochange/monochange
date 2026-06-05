@@ -2,7 +2,7 @@
 source: crates/monochange/tests/cli_clap_help.rs
 expression: "render_help_snapshot(&path, version)"
 ---
-Version: 0.8.0
+Version: [current]
 Command: monochange versions list
 
 List current package and version-group versions as a flat mapping keyed by the exact monochange package or group id.

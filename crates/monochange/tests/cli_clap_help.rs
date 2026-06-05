@@ -114,11 +114,11 @@ fn render_long_help_for_path(path: &[String]) -> String {
 	command.render_long_help().ansi().to_string()
 }
 
-fn render_help_snapshot(path: &[String], version: &str) -> String {
+fn render_help_snapshot(path: &[String]) -> String {
 	let label = command_path_label(path);
 	let help = render_long_help_for_path(path);
 
-	format!("Version: {version}\nCommand: {label}\n\n{help}")
+	format!("Version: [current]\nCommand: {label}\n\n{help}")
 }
 
 #[test]
@@ -132,12 +132,13 @@ fn clap_long_help_snapshots_cover_every_visible_command_level() {
 	let version = command
 		.get_version()
 		.unwrap_or_else(|| panic!("monochange command should expose a clap version"));
+	assert!(
+		!version.is_empty(),
+		"monochange clap version should not be empty"
+	);
 	let paths = visible_help_paths(&command);
 
 	for path in paths {
-		insta::assert_snapshot!(
-			snapshot_name_for_path(&path),
-			render_help_snapshot(&path, version)
-		);
+		insta::assert_snapshot!(snapshot_name_for_path(&path), render_help_snapshot(&path));
 	}
 }

@@ -2,7 +2,7 @@
 source: crates/monochange/tests/cli_clap_help.rs
 expression: "render_help_snapshot(&path, version)"
 ---
-Version: 0.8.0
+Version: [current]
 Command: monochange help
 
 Show detailed help, examples, and tips for any monochange command. Run `monochange help` to list all commands, or `monochange help <command>` for detailed usage information with examples.
