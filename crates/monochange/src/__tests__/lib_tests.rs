@@ -982,9 +982,11 @@ fn unknown_clap_help_path_includes_requested_path() {
 	let command = super::build_command("monochange");
 	let path = [String::from("not-a-command")];
 	let output = super::render_unknown_clap_help_path("monochange", &command, &path);
+	let root_output = super::render_unknown_clap_help_path("monochange", &command, &[]);
 
 	assert!(output.contains("unrecognized command path `monochange not-a-command`"));
 	assert!(output.contains("Visible top-level commands:"));
+	assert!(root_output.contains("unrecognized command path `monochange`"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
