@@ -978,6 +978,23 @@ async fn cli_help_returns_success_output() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn cli_help_unknown_path_reports_requested_command() {
+	let output = run_with_args(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("help"),
+			OsString::from("not-a-command"),
+		],
+	)
+	.await
+	.unwrap_or_else(|error| panic!("unknown help output: {error}"));
+
+	assert!(output.contains("unrecognized command path `monochange not-a-command`"));
+	assert!(output.contains("Visible top-level commands:"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn cli_configured_command_help_groups_generated_configured_and_global_options() {
 	let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
 	let output = run_with_args_in_dir(
