@@ -1192,3 +1192,7 @@ package config first, then ecosystem config, then the ecosystem default. Use \
 pub(crate) fn current_dir_or_dot() -> PathBuf {
 	std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
+
+#[cfg(test)]
+#[path = "__tests__/cli_tests.rs"]
+mod tests;

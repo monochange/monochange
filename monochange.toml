@@ -487,11 +487,11 @@ enabled = true
 # Default: true
 required = true
 
-# Pull-request labels that skip verification entirely. When any label on the
-# PR matches an entry here, the verify step returns "skipped" instead of
-# evaluating coverage.
+# Pull-request labels that skip verification entirely. Keep this limited to
+# automated release PRs so regular pull requests still prove package changes
+# are covered by attached changesets.
 # Default: []
-skip_labels = ["no-changeset-required", "release"]
+skip_labels = ["release"]
 
 # Whether to render a failure comment body in the evaluation output for
 # CI integrations to post back to the pull request.
