@@ -47,6 +47,7 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::ffi::OsString;
+use std::fmt::Write as _;
 use std::fs;
 #[cfg(feature = "mcp")]
 use std::future::Future;
@@ -310,7 +311,6 @@ mod change_classify;
 mod changeset_policy;
 mod changesets;
 mod cli;
-mod cli_help;
 mod cli_progress;
 mod cli_runtime;
 mod cli_theme;
@@ -1020,29 +1020,89 @@ fn command_help_requires_workspace_configuration(command_name: &str) -> bool {
 	matches!(command_name, "change")
 }
 
+fn clap_help_path_from_args(args: &[OsString]) -> Vec<String> {
+	let command_args = command_args_after_globals(args).collect::<Vec<_>>();
+	let Some(help_index) = command_args.iter().position(|arg| *arg == "help") else {
+		return Vec::new();
+	};
+	let help_args = command_args.get(help_index + 1..).unwrap_or_default();
+
+	if help_args.iter().any(|arg| matches!(*arg, "--help" | "-h")) {
+		return vec!["help".to_string()];
+	}
+
+	help_args
+		.iter()
+		.filter(|arg| !arg.starts_with('-'))
+		.map(|arg| (*arg).to_string())
+		.collect()
+}
+
+fn render_clap_long_help(
+	bin_name: &'static str,
+	cli: &[CliCommandDefinition],
+	path: &[String],
+) -> String {
+	let mut command = build_command_with_cli(bin_name, cli);
+	command.build();
+
+	let Some(target) = clap_command_at_path_mut(&mut command, path) else {
+		return render_unknown_clap_help_path(bin_name, &command, path);
+	};
+
+	target.render_long_help().to_string()
+}
+
+fn clap_command_at_path_mut<'command>(
+	command: &'command mut clap::Command,
+	path: &[String],
+) -> Option<&'command mut clap::Command> {
+	let Some((segment, remaining)) = path.split_first() else {
+		return Some(command);
+	};
+
+	let subcommand = command.find_subcommand_mut(segment)?;
+	clap_command_at_path_mut(subcommand, remaining)
+}
+
+fn render_unknown_clap_help_path(
+	bin_name: &'static str,
+	command: &clap::Command,
+	path: &[String],
+) -> String {
+	let requested = if path.is_empty() {
+		bin_name.to_string()
+	} else {
+		format!("{bin_name} {}", path.join(" "))
+	};
+	let mut output = format!("error: unrecognized command path `{requested}`\n\n");
+	output.push_str("Run one of these commands to inspect available help paths:\n");
+	let _ = writeln!(output, "  {bin_name} --help");
+	let _ = writeln!(output, "  {bin_name} help");
+
+	let mut subcommands = command
+		.get_subcommands()
+		.filter(|subcommand| !subcommand.is_hide_set())
+		.map(clap::Command::get_name)
+		.collect::<Vec<_>>();
+	subcommands.sort_unstable();
+	if !subcommands.is_empty() {
+		output.push_str("\nVisible top-level commands:\n");
+		for subcommand in subcommands {
+			let _ = writeln!(output, "  {subcommand}");
+		}
+	}
+
+	output
+}
+
 fn render_help_command(
 	bin_name: &'static str,
 	args: &[OsString],
 	cli: &[CliCommandDefinition],
 ) -> String {
-	let help_args = command_args_after_globals(args)
-		.skip_while(|arg| *arg != "help")
-		.skip(1)
-		.filter(|arg| !arg.starts_with('-'))
-		.collect::<Vec<_>>();
-	let command_name = if help_args.is_empty() {
-		String::new()
-	} else if let ["step", step_name, ..] = help_args.as_slice() {
-		format!("step {step_name}")
-	} else {
-		let command_index = usize::from(help_args.first() == Some(&"run") && help_args.len() > 1);
-		help_args.get(command_index).unwrap_or(&"").to_string()
-	};
-	if command_name.is_empty() {
-		cli_help::render_overview_help_with_cli(bin_name, cli)
-	} else {
-		cli_help::render_command_help_with_cli(bin_name, &command_name, cli)
-	}
+	let path = clap_help_path_from_args(args);
+	render_clap_long_help(bin_name, cli, &path)
 }
 
 fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String {
@@ -1085,7 +1145,7 @@ where
 	let root_help_requested = is_root_help_request(&args);
 	if root_help_requested {
 		let cli = cli_commands_for_root(root);
-		return Ok(cli_help::render_overview_help_with_cli(bin_name, &cli));
+		return Ok(render_clap_long_help(bin_name, &cli, &[]));
 	}
 	if help_command_requested(&args) {
 		let cli = cli_commands_for_root(root);
@@ -1133,7 +1193,7 @@ where
 		{
 			let cli = cli_commands_for_root(root);
 			if is_root_help_request(&args) {
-				return Ok(cli_help::render_overview_help_with_cli(bin_name, &cli));
+				return Ok(render_clap_long_help(bin_name, &cli, &[]));
 			}
 			if let Err(help_error) =
 				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
@@ -1174,7 +1234,7 @@ where
 			) =>
 		{
 			if root_help_requested && matches!(error.kind(), ErrorKind::DisplayHelp) {
-				return Ok(cli_help::render_overview_help_with_cli(bin_name, &cli));
+				return Ok(render_clap_long_help(bin_name, &cli, &[]));
 			}
 
 			return Ok(format_clap_error(
@@ -1231,15 +1291,13 @@ where
 			)
 		}
 		Some(("help", help_matches)) => {
-			let command_name = help_matches
-				.get_one::<String>("command")
-				.map_or("", String::as_str);
-			let output = if command_name.is_empty() {
-				cli_help::render_overview_help_with_cli(bin_name, &cli)
-			} else {
-				cli_help::render_command_help_with_cli(bin_name, command_name, &cli)
-			};
-			Ok(output)
+			let path = help_matches
+				.get_many::<String>("command")
+				.into_iter()
+				.flatten()
+				.cloned()
+				.collect::<Vec<_>>();
+			Ok(render_clap_long_help(bin_name, &cli, &path))
 		}
 		Some(("init", init_matches)) => {
 			let provider = init_matches

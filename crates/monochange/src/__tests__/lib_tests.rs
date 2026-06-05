@@ -971,17 +971,10 @@ async fn cli_help_returns_success_output() {
 	assert!(output.contains("analyze"));
 	assert!(!output.contains("assist"));
 	assert!(output.contains("mcp"));
-	assert!(output.contains("step create-change-file"));
-	assert!(output.contains("step diagnose-changesets"));
-	assert!(output.contains("step placeholder-publish"));
-	assert!(output.contains("step publish-release"));
-	assert!(output.contains("step plan-publish-rate-limits"));
-	assert!(output.contains("step retarget-release"));
-	assert!(output.contains("step release-record"));
-	assert!(output.contains("step placeholder-publish"));
-	assert!(output.contains("publish-release"));
-	assert!(output.contains("comment-released-issues"));
-	assert!(output.contains("step tag-release"));
+	assert!(output.contains("step"));
+	assert!(output.contains("Run built-in release workflow steps"));
+	assert!(output.contains("run"));
+	assert!(output.contains("Run workflow commands defined in monochange.toml"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -14141,6 +14134,7 @@ async fn cli_root_help_matches_help_subcommand_overview() {
 	.unwrap_or_else(|error| panic!("help subcommand output: {error}"));
 
 	assert_eq!(root_help, help_subcommand);
+	assert!(help_subcommand.contains("Usage: monochange"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -14173,7 +14167,7 @@ async fn cli_help_subcommand_renders_detailed_command_help() {
 	.unwrap_or_else(|error| panic!("help step:validate output: {error}"));
 
 	assert!(output.contains("validate"));
-	assert!(output.contains("Description"));
+	assert!(output.contains("Run the built-in validate release workflow step"));
 	assert!(output.contains("Usage"));
 }
 
@@ -14186,7 +14180,7 @@ async fn cli_help_subcommand_overview_without_argument() {
 	.await
 	.unwrap_or_else(|error| panic!("help overview output: {error}"));
 
-	assert!(output.contains("monochange help"));
+	assert!(output.contains("Usage: monochange"));
 	assert!(output.contains("Commands"));
 }
 

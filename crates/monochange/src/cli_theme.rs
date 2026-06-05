@@ -37,8 +37,3 @@ pub(crate) fn error() -> Style {
 pub(crate) fn valid() -> Style {
 	Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightGreen)))
 }
-
-/// Bright black (gray) for muted secondary text.
-pub(crate) fn muted() -> Style {
-	Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack)))
-}
