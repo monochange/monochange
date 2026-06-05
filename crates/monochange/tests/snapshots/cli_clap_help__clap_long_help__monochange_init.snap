@@ -1,26 +1,19 @@
 ---
-source: crates/monochange/tests/cli_help.rs
-info:
-  program: monochange
-  args:
-    - help
-    - init
-  env:
-    NO_COLOR: "1"
-    RUST_LOG: ""
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
 ---
-success: true
-exit_code: 0
------ stdout -----
+Version: 0.8.0
+Command: monochange init
+
 Generate monochange.toml with detected packages, groups, and default CLI commands
 
-Usage: monochange init [OPTIONS]
+[1m[97mUsage:[0m [93mmonochange init[0m [95m[OPTIONS][0m
 
-Options:
-      --force
+[1m[96mOptions:[0m
+      [93m--force[0m
           Overwrite an existing monochange.toml file
 
-      --provider <provider>
+      [93m--provider[0m[95m [0m[95m<provider>[0m
           Configure release automation for the specified provider. When provided, the generated config includes:
           
           - [source] section with the provider configured
@@ -32,23 +25,20 @@ Options:
           
           [possible values: github, gitlab, gitea]
 
-  -h, --help
+  [93m-h[0m, [93m--help[0m
           Print help (see a summary with '-h')
 
-Global Options:
-  -q, --quiet
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
           Suppress stdout/stderr output and run in dry-run mode when supported
 
-      --progress-format <FORMAT>
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
           
           [possible values: auto, unicode, ascii, json]
 
-      --jq <EXPRESSION>
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
           Filter JSON output with a jq-style expression, such as `.assets[].name`
 
-      --snapshot
+      [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
-
-
------ stderr -----

@@ -1,0 +1,55 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
+---
+Version: 0.8.0
+Command: monochange step publish-packages
+
+Run the built-in publish-packages release workflow step
+
+[1m[97mUsage:[0m monochange step publish-packages [--dry-run] [--format <FORMAT>] [--output <PATH>] [--package <PACKAGE>] [--group <GROUP>] [--ecosystem <ECOSYSTEM>] [--resume <PATH>] [--all]
+
+[1m[96mOptions:[0m
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mRelease Options:[0m
+      [93m--dry-run[0m
+          Run the command in dry-run mode when supported
+
+[1m[96mOptions:[0m
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          [possible values: text, json, md]
+
+      [93m--output[0m[95m [0m[95m<PATH>[0m
+          
+
+      [93m--package[0m[95m [0m[95m<PACKAGE>[0m
+          
+
+      [93m--group[0m[95m [0m[95m<GROUP>[0m
+          
+
+      [93m--ecosystem[0m[95m [0m[95m<ECOSYSTEM>[0m
+          
+
+      [93m--resume[0m[95m [0m[95m<PATH>[0m
+          
+
+      [93m--all[0m
+          
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

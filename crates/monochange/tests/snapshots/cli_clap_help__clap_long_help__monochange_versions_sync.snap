@@ -1,0 +1,51 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
+---
+Version: 0.8.0
+Command: monochange versions sync
+
+Update internal workspace dependency references to match canonical package versions. Use this when migrating to monochange, checking whether manifests are already in sync, or normalizing constraints before grouping packages for shared releases.
+
+[1m[97mUsage:[0m [93mmonochange versions sync[0m [95m[OPTIONS][0m
+
+[1m[96mOptions:[0m
+      [93m--dry-run[0m
+          Show what would change without modifying files
+
+      [93m--format[0m[95m [0m[95m<format>[0m
+          Output format
+          
+          [default: text]
+          [possible values: text, json]
+
+      [93m--strategy[0m[95m [0m[95m<strategy>[0m
+          Override the version constraint strategy. With `default`, monochange uses package config first, then ecosystem config, then the ecosystem default. Use `exact`, `caret`, or `compatible` to force one style for this run.
+          
+          [default: default]
+          [possible values: default, exact, caret, compatible]
+
+  [93m-h[0m, [93m--help[0m
+          Print help (see a summary with '-h')
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange versions sync --dry-run
+  monochange versions sync --dry-run --format json
+  monochange versions sync --strategy exact
+
+This command syncs internal workspace dependency constraints. Strategy precedence is package config, then ecosystem config, then the ecosystem default unless --strategy forces one style for this run.

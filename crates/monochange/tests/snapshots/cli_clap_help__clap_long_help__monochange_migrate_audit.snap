@@ -1,0 +1,44 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
+---
+Version: 0.8.0
+Command: monochange migrate audit
+
+Report existing release tools, changelog providers, and CI migration work
+
+[1m[97mUsage:[0m [93mmonochange migrate audit[0m [95m[OPTIONS][0m
+
+[1m[96mOptions:[0m
+      [93m--format[0m[95m [0m[95m<format>[0m
+          Output format
+          
+          [default: text]
+          [possible values: text, json, markdown, md]
+
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange migrate audit
+  monochange migrate audit --format json
+
+Audit notes:
+  - Looks for known release tools such as knope, Changesets, release-please, semantic-release, and cargo-release.
+  - Scans GitHub Actions workflows for legacy release actions and commands.
+  - Reports changelog providers and trusted-publishing migration recommendations.
