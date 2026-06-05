@@ -977,18 +977,11 @@ async fn cli_help_returns_success_output() {
 	assert!(output.contains("Run workflow commands defined in monochange.toml"));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn cli_help_unknown_path_reports_requested_command() {
-	let output = run_with_args(
-		"monochange",
-		[
-			OsString::from("monochange"),
-			OsString::from("help"),
-			OsString::from("not-a-command"),
-		],
-	)
-	.await
-	.unwrap_or_else(|error| panic!("unknown help output: {error}"));
+#[test]
+fn unknown_clap_help_path_includes_requested_path() {
+	let command = super::build_command("monochange");
+	let path = [String::from("not-a-command")];
+	let output = super::render_unknown_clap_help_path("monochange", &command, &path);
 
 	assert!(output.contains("unrecognized command path `monochange not-a-command`"));
 	assert!(output.contains("Visible top-level commands:"));
