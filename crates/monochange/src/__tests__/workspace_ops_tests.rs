@@ -1271,6 +1271,106 @@ cwd = "."
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn prepare_release_execution_syncs_internal_dependency_constraints() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	monochange_test_helpers::fs::copy_directory(
+		&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/dart/monorepo"),
+		fixture.path(),
+	);
+	fs::create_dir_all(fixture.path().join(".changeset"))
+		.unwrap_or_else(|error| panic!("create changeset dir: {error}"));
+	fs::write(
+		fixture.path().join(".changeset/core-minor.md"),
+		"---\ndart_core: minor\n---\n\nAdd a new core API.\n",
+	)
+	.unwrap_or_else(|error| panic!("write changeset: {error}"));
+
+	let prepared = prepare_release_execution_with_file_diffs(fixture.path(), false, false, false)
+		.await
+		.unwrap_or_else(|error| panic!("prepare release: {error}"));
+	let utils_pubspec = fs::read_to_string(fixture.path().join("packages/utils/pubspec.yaml"))
+		.unwrap_or_else(|error| panic!("read utils pubspec: {error}"));
+
+	assert!(
+		prepared
+			.phase_timings
+			.iter()
+			.any(|phase| phase.label == "sync internal dependency constraints")
+	);
+	assert!(utils_pubspec.contains("dart_core: ^1.1.0"));
+	assert!(
+		prepared
+			.prepared_release
+			.changed_files
+			.contains(&PathBuf::from("packages/utils/pubspec.yaml"))
+	);
+}
+
+#[test]
+fn dependency_sync_updates_report_manifest_parse_errors() {
+	let root = PathBuf::from("/workspace");
+	let core = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Deno,
+		"core",
+		root.join("core/deno.json"),
+		root.clone(),
+		Some(semver::Version::parse("1.0.0").unwrap()),
+		monochange_core::PublishState::Public,
+	);
+	let app = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Deno,
+		"app",
+		root.join("app/deno.json"),
+		root.clone(),
+		Some(semver::Version::parse("1.0.0").unwrap()),
+		monochange_core::PublishState::Public,
+	);
+	let discovery = monochange_core::DiscoveryReport {
+		workspace_root: root.clone(),
+		packages: vec![core, app],
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	};
+	let plan = monochange_core::ReleasePlan {
+		workspace_root: root.clone(),
+		decisions: vec![monochange_core::ReleaseDecision {
+			package_id: "deno:core/deno.json".to_string(),
+			trigger_type: "direct-change".to_string(),
+			recommended_bump: monochange_core::BumpSeverity::Minor,
+			planned_version: Some(semver::Version::parse("1.1.0").unwrap()),
+			group_id: None,
+			reasons: Vec::new(),
+			upstream_sources: Vec::new(),
+			warnings: Vec::new(),
+		}],
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+	let updates = vec![
+		FileUpdate {
+			path: root.join("core/deno.json"),
+			content: br#"{"name":"core","version":"1.1.0"}"#.to_vec(),
+		},
+		FileUpdate {
+			path: root.join("app/deno.json"),
+			content: b"{".to_vec(),
+		},
+	];
+
+	let error = build_dependency_sync_updates(&root, &discovery, &plan, &updates).unwrap_err();
+
+	assert!(
+		error
+			.to_string()
+			.contains("failed to parse deno json for sync"),
+		"error: {error}"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn prepare_release_execution_tracks_gitlab_context_phase_timing() {
 	let fixture = monochange_test_helpers::fs::setup_fixture_from(
 		env!("CARGO_MANIFEST_DIR"),

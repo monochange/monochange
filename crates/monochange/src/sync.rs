@@ -197,7 +197,22 @@ pub(crate) fn plan_discovered_workspace_versions(
 	strategy: VersionStrategy,
 	discovery: &DiscoveryReport,
 ) -> MonochangeResult<VersionSyncPlan> {
-	let version_map = package_version_map(discovery);
+	plan_discovered_workspace_versions_with_overrides(
+		root,
+		strategy,
+		discovery,
+		&package_version_map(discovery),
+		&BTreeMap::new(),
+	)
+}
+
+pub(crate) fn plan_discovered_workspace_versions_with_overrides(
+	root: &Path,
+	strategy: VersionStrategy,
+	discovery: &DiscoveryReport,
+	version_map: &BTreeMap<String, String>,
+	manifest_contents: &BTreeMap<PathBuf, String>,
+) -> MonochangeResult<VersionSyncPlan> {
 	let workspace_package_names = workspace_package_names(discovery);
 	let mut files = Vec::with_capacity(discovery.packages.len());
 	let skipped = Vec::new();
@@ -210,12 +225,15 @@ pub(crate) fn plan_discovered_workspace_versions(
 		}
 
 		let manifest_path = root.join(&package.manifest_path);
-		let contents = read_manifest(&manifest_path)?;
+		let contents = manifest_contents
+			.get(&manifest_path)
+			.cloned()
+			.map_or_else(|| read_manifest(&manifest_path), Ok)?;
 		let changes =
-			(adapter.detect_changes)(&contents, &version_map, &workspace_package_names, strategy)
+			(adapter.detect_changes)(&contents, version_map, &workspace_package_names, strategy)
 				.map_err(|error| {
-				sync_context_error("detect", adapter.ecosystem, &package.manifest_path, &error)
-			})?;
+					sync_context_error("detect", adapter.ecosystem, &package.manifest_path, &error)
+				})?;
 
 		if changes.is_empty() {
 			continue;
