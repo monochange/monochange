@@ -9,6 +9,9 @@ use monochange_core::EcosystemType;
 use super::CachedDocument;
 use super::FileUpdate;
 use super::VersionedFileUpdateContext;
+use super::add_json_field_path;
+use super::add_toml_field_path;
+use super::add_yaml_field_path;
 use super::apply_versioned_file_definition;
 use super::build_versioned_file_updates_with_base_updates;
 use super::inferred_lockfile_ecosystem_type;
@@ -26,6 +29,71 @@ fn fixture_path(relative: &str) -> PathBuf {
 		.join(relative)
 }
 
+fn npm_package_record(root: &Path, config_id: &str) -> monochange_core::PackageRecord {
+	let manifest_path = root.join("packages/app/package.json");
+	let current_version = "1.0.0"
+		.parse()
+		.unwrap_or_else(|error| panic!("current package version: {error}"));
+	let mut package = monochange_core::PackageRecord::new(
+		Ecosystem::Npm,
+		"@example/app",
+		manifest_path,
+		root.to_path_buf(),
+		Some(current_version),
+		monochange_core::PublishState::Public,
+	);
+
+	package
+		.metadata
+		.insert("config_id".to_string(), config_id.to_string());
+	package
+}
+
+fn package_release_plan(
+	root: &Path,
+	package: &monochange_core::PackageRecord,
+) -> monochange_core::ReleasePlan {
+	monochange_core::ReleasePlan {
+		workspace_root: root.to_path_buf(),
+		decisions: vec![monochange_core::ReleaseDecision {
+			package_id: package.id.clone(),
+			trigger_type: "changeset".to_string(),
+			recommended_bump: monochange_core::BumpSeverity::Minor,
+			planned_version: Some(
+				"1.2.3"
+					.parse()
+					.unwrap_or_else(|error| panic!("planned package version: {error}")),
+			),
+			group_id: None,
+			reasons: Vec::new(),
+			upstream_sources: Vec::new(),
+			warnings: Vec::new(),
+		}],
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	}
+}
+
+fn snapshot_file_updates(root: &Path, updates: Vec<FileUpdate>) -> String {
+	updates
+		.into_iter()
+		.map(|update| {
+			let path = update
+				.path
+				.strip_prefix(root)
+				.unwrap_or(&update.path)
+				.to_string_lossy();
+			let content = String::from_utf8(update.content)
+				.unwrap_or_else(|error| panic!("updated file is utf-8: {error}"));
+
+			format!("## {path}\n{content}")
+		})
+		.collect::<Vec<_>>()
+		.join("\n---\n")
+}
+
 #[test]
 fn format_versioned_file_updates_json_toml_yaml_and_env_fields() {
 	let json = update_format_versioned_file_text(
@@ -34,6 +102,7 @@ fn format_versioned_file_updates_json_toml_yaml_and_env_fields() {
 		&["release.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.unwrap_or_else(|error| panic!("update json: {error}"));
 	assert!(json.contains("\"version\": \"1.2.3\""));
@@ -44,6 +113,7 @@ fn format_versioned_file_updates_json_toml_yaml_and_env_fields() {
 		&["tool.app.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.unwrap_or_else(|error| panic!("update toml: {error}"));
 	assert!(toml.contains("version = \"1.2.3\""));
@@ -54,6 +124,7 @@ fn format_versioned_file_updates_json_toml_yaml_and_env_fields() {
 		&["release.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.unwrap_or_else(|error| panic!("update yaml: {error}"));
 	assert!(yaml.contains("version: 1.2.3"));
@@ -64,6 +135,7 @@ fn format_versioned_file_updates_json_toml_yaml_and_env_fields() {
 		&["VERSION".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.unwrap_or_else(|error| panic!("update env: {error}"));
 	assert_eq!(env, "APP=demo\nexport VERSION=1.2.3\n");
@@ -77,22 +149,248 @@ fn format_versioned_file_renders_name_and_version_templates_in_fields() {
 		&["packages.{{ name }}.version".to_string()],
 		"1.2.3",
 		Some("app"),
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.unwrap_or_else(|error| panic!("update templated json field: {error}"));
 	assert!(json.contains("\"version\": \"1.2.3\""));
 }
 
 #[test]
-fn format_versioned_file_reports_missing_fields() {
-	let error = update_format_versioned_file_text(
+fn format_versioned_file_ignores_missing_fields_by_default() {
+	let json = update_format_versioned_file_text(
 		"{\"release\":{\"version\":\"1.0.0\"}}",
 		monochange_core::VersionedFileFormat::Json,
 		&["release.missing".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
-	.expect_err("missing json field should fail");
-	assert!(error.to_string().contains("missing leaf `missing`"));
+	.unwrap_or_else(|error| panic!("missing json field should be ignored: {error}"));
+	assert!(json.contains("\"version\": \"1.0.0\""));
+}
+
+#[test]
+fn format_versioned_file_adds_missing_fields_when_configured() {
+	let json = update_format_versioned_file_text(
+		"{\"versions\":{\"app\":\"1.0.0\"}}",
+		monochange_core::VersionedFileFormat::Json,
+		&["versions.{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::Add,
+	)
+	.unwrap_or_else(|error| panic!("add missing json field: {error}"));
+
+	insta::assert_snapshot!(json, @r###"
+	{
+	  "versions": {
+	    "app": "1.0.0",
+	    "utils": "1.2.3"
+	  }
+	}
+	"###);
+
+	let toml = update_format_versioned_file_text(
+		"[versions]\napp = \"1.0.0\"\n",
+		monochange_core::VersionedFileFormat::Toml,
+		&["versions.{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::Add,
+	)
+	.unwrap_or_else(|error| panic!("add missing toml field: {error}"));
+	insta::assert_snapshot!(toml, @r###"
+	[versions]
+	app = "1.0.0"
+	utils = "1.2.3"
+	"###);
+
+	let yaml = update_format_versioned_file_text(
+		"versions:\n  app: 1.0.0\n",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["versions.{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::Add,
+	)
+	.unwrap_or_else(|error| panic!("add missing yaml field: {error}"));
+	insta::assert_snapshot!(yaml, @r###"
+	versions:
+	  app: 1.0.0
+	  utils: 1.2.3
+	"###);
+
+	let env = update_format_versioned_file_text(
+		"APP=demo\n",
+		monochange_core::VersionedFileFormat::Env,
+		&["VERSION".to_string()],
+		"1.2.3",
+		None,
+		monochange_core::MissingFieldBehavior::Add,
+	)
+	.unwrap_or_else(|error| panic!("add missing env key: {error}"));
+	assert_eq!(env, "APP=demo\nVERSION=1.2.3\n");
+
+	let env_without_newline = update_format_versioned_file_text(
+		"APP=demo",
+		monochange_core::VersionedFileFormat::Env,
+		&["VERSION".to_string()],
+		"1.2.3",
+		None,
+		monochange_core::MissingFieldBehavior::Add,
+	)
+	.unwrap_or_else(|error| panic!("add missing env key after unterminated line: {error}"));
+	assert_eq!(env_without_newline, "APP=demo\nVERSION=1.2.3\n");
+
+	let json_with_nested_parent = update_format_versioned_file_text(
+		"{}",
+		monochange_core::VersionedFileFormat::Json,
+		&["versions.packages.{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::Add,
+	)
+	.unwrap_or_else(|error| panic!("add missing nested json field: {error}"));
+	insta::assert_snapshot!(json_with_nested_parent, @r###"
+	{
+	  "versions": {
+	    "packages": {
+	      "utils": "1.2.3"
+	    }
+	  }
+	}
+	"###);
+
+	let toml_with_nested_parent = update_format_versioned_file_text(
+		"",
+		monochange_core::VersionedFileFormat::Toml,
+		&["versions.packages.{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::Add,
+	)
+	.unwrap_or_else(|error| panic!("add missing nested toml field: {error}"));
+	insta::assert_snapshot!(toml_with_nested_parent, @r###"
+	[versions]
+
+	[versions.packages]
+	utils = "1.2.3"
+	"###);
+
+	let yaml_with_nested_parent = update_format_versioned_file_text(
+		"{}\n",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["versions.packages.{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::Add,
+	)
+	.unwrap_or_else(|error| panic!("add missing nested yaml field: {error}"));
+	insta::assert_snapshot!(yaml_with_nested_parent, @r###"
+	versions:
+	  packages:
+	    utils: 1.2.3
+	"###);
+}
+
+#[test]
+fn add_missing_field_helpers_reject_non_container_values() {
+	let mut json = serde_json::json!("1.0.0");
+	let json_error = add_json_field_path(&mut json, "version", "1.2.3")
+		.expect_err("json scalar root cannot receive a field");
+	assert!(json_error.to_string().contains("non-object value"));
+
+	let mut nested_json_root = serde_json::json!("1.0.0");
+	let nested_json_root_error =
+		add_json_field_path(&mut nested_json_root, "versions.app", "1.2.3")
+			.expect_err("json scalar root cannot receive a nested field");
+	assert!(
+		nested_json_root_error
+			.to_string()
+			.contains("non-object segment `versions`")
+	);
+
+	let mut nested_json = serde_json::json!({ "versions": "1.0.0" });
+	let nested_json_error = add_json_field_path(&mut nested_json, "versions.app", "1.2.3")
+		.expect_err("json scalar parent cannot receive a child field");
+	assert!(nested_json_error.to_string().contains("non-object value"));
+
+	let mut toml = "[tool]\napp = \"1.0.0\"\n"
+		.parse::<toml_edit::DocumentMut>()
+		.unwrap_or_else(|error| panic!("parse toml: {error}"));
+	let toml_error = add_toml_field_path(&mut toml, "tool.app.version", "1.2.3")
+		.expect_err("toml scalar segment cannot receive a child field");
+	assert!(toml_error.to_string().contains("non-table segment `app`"));
+
+	let mut yaml = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("1.0.0\n")
+		.unwrap_or_else(|error| panic!("parse yaml: {error}"));
+	let yaml_error = add_yaml_field_path(&mut yaml, "version", "1.2.3")
+		.expect_err("yaml scalar root cannot receive a field");
+	assert!(yaml_error.to_string().contains("non-mapping value"));
+
+	let mut nested_yaml_root = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("1.0.0\n")
+		.unwrap_or_else(|error| panic!("parse nested yaml root: {error}"));
+	let nested_yaml_root_error =
+		add_yaml_field_path(&mut nested_yaml_root, "versions.app", "1.2.3")
+			.expect_err("yaml scalar root cannot receive a nested field");
+	assert!(
+		nested_yaml_root_error
+			.to_string()
+			.contains("non-mapping segment `versions`")
+	);
+
+	let mut nested_yaml = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("versions: 1.0.0\n")
+		.unwrap_or_else(|error| panic!("parse nested yaml: {error}"));
+	let nested_yaml_error = add_yaml_field_path(&mut nested_yaml, "versions.app", "1.2.3")
+		.expect_err("yaml scalar parent cannot receive a child field");
+	assert!(nested_yaml_error.to_string().contains("non-mapping value"));
+}
+
+#[test]
+fn format_versioned_file_skips_missing_rendered_name_fields() {
+	let json = update_format_versioned_file_text(
+		"{\"app\":\"1.0.0\"}",
+		monochange_core::VersionedFileFormat::Json,
+		&["{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::default(),
+	)
+	.unwrap_or_else(|error| panic!("skip missing json name field: {error}"));
+	assert!(json.contains("\"app\": \"1.0.0\""));
+
+	let toml = update_format_versioned_file_text(
+		"app = \"1.0.0\"\n",
+		monochange_core::VersionedFileFormat::Toml,
+		&["{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::default(),
+	)
+	.unwrap_or_else(|error| panic!("skip missing toml name field: {error}"));
+	assert_eq!(toml, "app = \"1.0.0\"\n");
+
+	let yaml = update_format_versioned_file_text(
+		"app: 1.0.0\n",
+		monochange_core::VersionedFileFormat::Yaml,
+		&["{{ name }}".to_string()],
+		"1.2.3",
+		Some("utils"),
+		monochange_core::MissingFieldBehavior::default(),
+	)
+	.unwrap_or_else(|error| panic!("skip missing yaml name field: {error}"));
+	assert!(yaml.contains("app: 1.0.0"));
+
+	let env = update_format_versioned_file_text(
+		"APP_VERSION=1.0.0\n",
+		monochange_core::VersionedFileFormat::Env,
+		&["{{ name }}".to_string()],
+		"1.2.3",
+		Some("UTILS_VERSION"),
+		monochange_core::MissingFieldBehavior::default(),
+	)
+	.unwrap_or_else(|error| panic!("skip missing env name field: {error}"));
+	assert_eq!(env, "APP_VERSION=1.0.0\n");
 }
 
 #[test]
@@ -103,6 +401,7 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 		&["release.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("json traversal through a string should fail");
 	assert!(json_non_object.to_string().contains("non-object value"));
@@ -113,6 +412,7 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 		&["release.metadata.inner.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("json traversal after a string segment should fail");
 	assert!(
@@ -121,26 +421,13 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 			.contains("non-object segment `inner`")
 	);
 
-	let json_missing_segment = update_format_versioned_file_text(
-		"{\"release\":{\"version\":\"1.0.0\"}}",
-		monochange_core::VersionedFileFormat::Json,
-		&["missing.version".to_string()],
-		"1.2.3",
-		None,
-	)
-	.expect_err("json missing parent should fail");
-	assert!(
-		json_missing_segment
-			.to_string()
-			.contains("missing segment `missing`")
-	);
-
 	let json_root_scalar = update_format_versioned_file_text(
 		"\"1.0.0\"",
 		monochange_core::VersionedFileFormat::Json,
 		&["version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("json scalar root should fail");
 	assert!(json_root_scalar.to_string().contains("non-object value"));
@@ -151,23 +438,10 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 		&["version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("invalid json should fail");
 	assert!(json_parse.to_string().contains("failed to parse json"));
-
-	let toml_missing_segment = update_format_versioned_file_text(
-		"[tool.app]\nversion = \"1.0.0\"\n",
-		monochange_core::VersionedFileFormat::Toml,
-		&["tool.missing.version".to_string()],
-		"1.2.3",
-		None,
-	)
-	.expect_err("toml missing parent should fail");
-	assert!(
-		toml_missing_segment
-			.to_string()
-			.contains("missing segment `missing`")
-	);
 
 	let toml_non_table = update_format_versioned_file_text(
 		"[tool]\napp = \"1.0.0\"\n",
@@ -175,6 +449,7 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 		&["tool.app.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("toml traversal through a string should fail");
 	assert!(
@@ -183,26 +458,13 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 			.contains("non-table segment `app`")
 	);
 
-	let toml_missing_leaf = update_format_versioned_file_text(
-		"[tool.app]\nversion = \"1.0.0\"\n",
-		monochange_core::VersionedFileFormat::Toml,
-		&["tool.app.missing".to_string()],
-		"1.2.3",
-		None,
-	)
-	.expect_err("toml missing leaf should fail");
-	assert!(
-		toml_missing_leaf
-			.to_string()
-			.contains("missing leaf `missing`")
-	);
-
 	let toml_parse = update_format_versioned_file_text(
 		"[tool",
 		monochange_core::VersionedFileFormat::Toml,
 		&["tool.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("invalid toml should fail");
 	assert!(toml_parse.to_string().contains("failed to parse toml"));
@@ -213,6 +475,7 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 		&["release.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("yaml traversal through a scalar should fail");
 	assert!(yaml_non_mapping.to_string().contains("non-mapping value"));
@@ -223,6 +486,7 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 		&["release.metadata.inner.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("yaml traversal after a scalar segment should fail");
 	assert!(
@@ -231,43 +495,16 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 			.contains("non-mapping segment `inner`")
 	);
 
-	let yaml_missing_segment = update_format_versioned_file_text(
-		"release:\n  version: 1.0.0\n",
-		monochange_core::VersionedFileFormat::Yaml,
-		&["missing.version".to_string()],
-		"1.2.3",
-		None,
-	)
-	.expect_err("yaml missing parent should fail");
-	assert!(
-		yaml_missing_segment
-			.to_string()
-			.contains("missing segment `missing`")
-	);
-
 	let yaml_root_scalar = update_format_versioned_file_text(
 		"1.0.0\n",
 		monochange_core::VersionedFileFormat::Yml,
 		&["version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("yaml scalar root should fail");
 	assert!(yaml_root_scalar.to_string().contains("non-mapping value"));
-
-	let yaml_missing_leaf = update_format_versioned_file_text(
-		"release:\n  version: 1.0.0\n",
-		monochange_core::VersionedFileFormat::Yml,
-		&["release.missing".to_string()],
-		"1.2.3",
-		None,
-	)
-	.expect_err("yaml missing leaf should fail");
-	assert!(
-		yaml_missing_leaf
-			.to_string()
-			.contains("missing leaf `missing`")
-	);
 
 	let yaml_parse = update_format_versioned_file_text(
 		"release: [",
@@ -275,6 +512,7 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 		&["release.version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("invalid yaml should fail");
 	assert!(yaml_parse.to_string().contains("failed to parse yaml"));
@@ -285,25 +523,13 @@ fn format_versioned_file_reports_invalid_paths_and_parse_errors() {
 		&["release..version".to_string()],
 		"1.2.3",
 		None,
+		monochange_core::MissingFieldBehavior::default(),
 	)
 	.expect_err("empty path segment should fail");
 	assert!(
 		empty_segment
 			.to_string()
 			.contains("non-empty dot-separated segments")
-	);
-
-	let env = update_format_versioned_file_text(
-		"# comment\nAPP=demo\n",
-		monochange_core::VersionedFileFormat::Env,
-		&["VERSION".to_string()],
-		"1.2.3",
-		None,
-	)
-	.expect_err("missing env key should fail");
-	assert!(
-		env.to_string()
-			.contains("env field `VERSION` was not found")
 	);
 }
 
@@ -333,6 +559,7 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 		prefix: None,
 		fields: Some(vec!["release.version".to_string()]),
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let mut updates = BTreeMap::new();
@@ -350,6 +577,24 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 		updates.get(&root.join("metadata.json")),
 		Some(CachedDocument::Text(contents)) if contents.contains("\"version\": \"1.2.3\"")
 	));
+
+	std::fs::write(root.join("invalid.json"), "{")
+		.unwrap_or_else(|error| panic!("write invalid json: {error}"));
+	let invalid_json = monochange_core::VersionedFileDefinition {
+		path: "invalid.json".to_string(),
+		..definition.clone()
+	};
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&invalid_json,
+		"1.2.3",
+		None,
+		&["invalid".to_string()],
+		&context,
+	)
+	.expect_err("invalid formatted file should fail through apply");
+	assert!(error.to_string().contains("failed to parse json"));
 
 	let missing_fields = monochange_core::VersionedFileDefinition {
 		fields: None,
@@ -413,6 +658,46 @@ fn build_versioned_file_updates_returns_empty_for_empty_configuration() {
 			.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
 	assert!(updates.is_empty());
+}
+
+#[test]
+fn build_versioned_file_updates_uses_default_versioned_files() {
+	let root = fixture_path("versioned-files-defaults");
+	let configuration = monochange_config::load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let package = npm_package_record(&root, "app");
+	let plan = package_release_plan(&root, &package);
+
+	let updates = build_versioned_file_updates_with_base_updates(
+		&root,
+		&configuration,
+		&[package],
+		&plan,
+		&[],
+	)
+	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
+
+	insta::assert_snapshot!(snapshot_file_updates(&root, updates));
+}
+
+#[test]
+fn build_versioned_file_updates_uses_ecosystem_versioned_files() {
+	let root = fixture_path("versioned-files-ecosystems");
+	let configuration = monochange_config::load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let package = npm_package_record(&root, "app");
+	let plan = package_release_plan(&root, &package);
+
+	let updates = build_versioned_file_updates_with_base_updates(
+		&root,
+		&configuration,
+		&[package],
+		&plan,
+		&[],
+	)
+	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
+
+	insta::assert_snapshot!(snapshot_file_updates(&root, updates));
 }
 
 #[test]
@@ -592,6 +877,7 @@ fn apply_versioned_file_definition_reports_go_for_unsupported_glob_match() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let mut updates = BTreeMap::new();
@@ -638,6 +924,7 @@ fn apply_versioned_file_definition_updates_go_mod_dependencies() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let mut updates = BTreeMap::new();

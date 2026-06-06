@@ -1113,6 +1113,15 @@ pub enum VersionedFileFormat {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MissingFieldBehavior {
+	#[default]
+	Ignore,
+	Add,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct VersionedFileDefinition {
 	pub path: String,
@@ -1126,6 +1135,8 @@ pub struct VersionedFileDefinition {
 	pub fields: Option<Vec<String>>,
 	#[serde(default)]
 	pub name: Option<String>,
+	#[serde(default)]
+	pub missing_field_behavior: MissingFieldBehavior,
 	#[serde(default)]
 	pub regex: Option<String>,
 }
