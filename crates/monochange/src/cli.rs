@@ -137,7 +137,7 @@ fn monochange_styles() -> clap::builder::Styles {
 const GLOBAL_OPTIONS_HELP_HEADING: &str = "Global Options";
 const RELEASE_OPTIONS_HELP_HEADING: &str = "Release Options";
 const ROOT_LONG_ABOUT: &str = "monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, and Dart/Flutter, then coordinates version bumps, changelogs, and release automation from a single monochange.toml config.";
-const ROOT_AFTER_LONG_HELP_MARKDOWN: &str = include_str!("cli.after-long-help.md");
+const ROOT_AFTER_LONG_HELP_MARKDOWN: &str = include_str!("cli_after_long_help.md");
 
 fn root_after_long_help() -> String {
 	markdown_to_clap_help(ROOT_AFTER_LONG_HELP_MARKDOWN)
