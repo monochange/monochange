@@ -1,0 +1,51 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
+---
+Version: [current]
+Command: monochange step
+
+Run built-in release workflow steps
+
+[1m[97mUsage:[0m [93mmonochange step[0m [95m[OPTIONS][0m [95m<COMMAND>[0m
+
+[1m[96mStep Commands:[0m
+  [93mconfig[0m                    Run the built-in config release workflow step
+  [93mvalidate[0m                  Run the built-in validate release workflow step
+  [93mdiscover[0m                  Run the built-in discover release workflow step
+  [93mdisplay-versions[0m          Run the built-in display-versions release workflow step
+  [93mcreate-change-file[0m        Create a changeset file for one or more packages
+  [93mprepare-release[0m           Plan version bumps, changelogs, and release artifacts
+  [93mcommit-release[0m            Run the built-in commit-release release workflow step
+  [93mverify-release-branch[0m     Run the built-in verify-release-branch release workflow step
+  [93mpublish-release[0m           Publish provider release objects from a prepared release artifact
+  [93mplaceholder-publish[0m       Run the built-in placeholder-publish release workflow step
+  [93mpublish-packages[0m          Run the built-in publish-packages release workflow step
+  [93mplan-publish-rate-limits[0m  Run the built-in plan-publish-rate-limits release workflow step
+  [93mopen-release-request[0m      Run the built-in open-release-request release workflow step
+  [93mcomment-released-issues[0m   Run the built-in comment-released-issues release workflow step
+  [93maffected-packages[0m         Compute affected packages from a prepared release plan
+  [93mdiagnose-changesets[0m       Run the built-in diagnose-changesets release workflow step
+  [93mrelease-record[0m            Inspect the release record associated with a tag or commit
+  [93mpublish-readiness[0m         Check package registry publishing readiness without publishing packages
+  [93mtag-release[0m               Create and push release tags from a release record
+  [93mretarget-release[0m          Run the built-in retarget-release release workflow step
+
+[1m[96mOptions:[0m
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

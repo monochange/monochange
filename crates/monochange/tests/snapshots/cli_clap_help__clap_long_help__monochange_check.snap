@@ -1,0 +1,64 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
+---
+Version: [current]
+Command: monochange check
+
+Validate configuration, changesets, and run manifest lint rules
+
+[1m[97mUsage:[0m [93mmonochange check[0m [95m[OPTIONS][0m
+
+[1m[96mOptions:[0m
+  [93m-f[0m, [93m--fix[0m
+          Automatically fix lint issues where possible
+
+  [93m-e[0m, [93m--ecosystem[0m[95m [0m[95m<ECOSYSTEMS>[0m
+          Limit linting to specific lint suites
+
+      [93m--only[0m[95m [0m[95m<RULES>[0m
+          Run only the specified lint rule ids
+
+      [93m--format[0m[95m [0m[95m<format>[0m
+          Output format
+          
+          [default: markdown]
+          [possible values: text, json, markdown, md]
+
+  [93m-v[0m, [93m--verbose[0m
+          Show extra lint diagnostic details
+
+      [93m--sha[0m
+          Output only the commit SHA of the discovered release record
+
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange check
+  monochange check --fix
+  monochange check --ecosystem cargo,npm
+  monochange check --only cargo/sorted-dependencies
+
+Lint rules are configured in the top-level [lints] section of monochange.toml:
+
+[lints]
+  use = ["cargo/recommended", "npm/recommended"]
+
+[lints.rules]
+  "cargo/internal-dependency-workspace" = "error"

@@ -1,0 +1,72 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
+---
+Version: [current]
+Command: monochange
+
+monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, and Dart/Flutter, then coordinates version bumps, changelogs, and release automation from a single monochange.toml config.
+
+[1m[97mUsage:[0m [93mmonochange[0m [95m[OPTIONS][0m [95m<COMMAND>[0m
+
+[1m[96mBuilt-in Commands:[0m
+  [93msnapshot[0m   Print a normalized JSON snapshot of the CLI surface
+  [93minit[0m       Generate monochange.toml with detected packages, groups, and default CLI commands
+  [93mpopulate[0m   Add any missing built-in CLI commands to monochange.toml so you can customize them
+  [93mcommand[0m    Open an interactive dashboard for adding or editing config-defined CLI commands
+  [93mskill[0m      Install the monochange skill bundle into the current project with the skills CLI
+  [93msubagents[0m  Generate repo-local monochange subagents and agent guidance files
+  [93manalyze[0m    Analyze semantic changes for one package across main, head, and optional release baselines
+  [93mmigrate[0m    Audit or migrate release metadata for monochange repositories
+  [93mlint[0m       Inspect and scaffold manifest lint rules
+  [93mversions[0m   List package and group versions or sync internal dependency constraints
+  [93mmcp[0m        Start the monochange MCP (Model Context Protocol) server over stdin/stdout
+  [93mcheck[0m      Validate configuration, changesets, and run manifest lint rules
+  [93mhelp[0m       Show detailed help for a command
+  [93mstep[0m       Run built-in release workflow steps
+  [93mrun[0m        Run workflow commands defined in monochange.toml
+
+[1m[96mOptions:[0m
+  [93m-h[0m, [93m--help[0m
+          Print help (see a summary with '-h')
+
+  [93m-V[0m, [93m--version[0m
+          Print version
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
+
+Quick CLI workflow
+
+1. Create or update monochange.toml for your workspace:
+
+  monochange init
+
+2. Validate configuration and changeset targets before making release changes:
+
+  monochange step validate
+
+3. Inspect detected package ids and groups when authoring changesets or workflow inputs:
+
+  monochange step discover --format json
+
+4. Use repository-defined workflows through monochange run <command> when they exist in your config, or call immutable built-in steps directly with monochange step <name>.
+
+5. Preview before mutating files, publishing packages, creating tags, or opening release requests:
+
+  monochange run release --dry-run --diff
+  monochange step prepare-release --dry-run --diff
+
+Run monochange help <command> or monochange help step <name> for command-specific options.

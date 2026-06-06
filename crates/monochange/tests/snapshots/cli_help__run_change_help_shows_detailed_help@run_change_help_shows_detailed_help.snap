@@ -1,0 +1,57 @@
+---
+source: crates/monochange/tests/cli_help.rs
+info:
+  program: monochange
+  args:
+    - run
+    - change
+    - "--help"
+  env:
+    NO_COLOR: "1"
+    RUST_LOG: ""
+---
+success: true
+exit_code: 0
+----- stdout -----
+Create a change file for one or more packages
+
+Usage: monochange run change [--dry-run] [--interactive] --package <PACKAGE> [--bump <BUMP>] --reason <REASON> [--version <VERSION>] [--type <TYPE>] [--caused-by <CAUSED_BY>] [--details <DETAILS>] [--output <PATH>]
+
+Options:
+  -h, --help  Print help
+
+Release Options:
+      --dry-run  Run the command in dry-run mode when supported
+
+Options:
+      --interactive            
+      --package <PACKAGE>      
+      --bump <BUMP>            [default: patch] [possible values: none, patch, minor, major]
+      --reason <REASON>        
+      --version <VERSION>      
+      --type <TYPE>            
+      --caused-by <CAUSED_BY>  
+      --details <DETAILS>      
+      --output <PATH>          
+
+Global Options:
+  -q, --quiet                     Suppress stdout/stderr output and run in dry-run mode when supported
+      --progress-format <FORMAT>  Control progress output on stderr [possible values: auto, unicode, ascii, json]
+      --jq <EXPRESSION>           Filter JSON output with a jq-style expression, such as `.assets[].name`
+      --snapshot                  Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange run change --package sdk-core --bump patch --reason "fix panic"
+  monochange run change --package sdk-core --bump minor --reason "add API" --output .changeset/sdk-core.md
+  monochange run change --package sdk --bump minor --reason "coordinated release"
+  monochange run change --package sdk-config --bump none --caused-by sdk-core --reason "dependency-only follow-up"
+
+Rules:
+  - Prefer configured package ids in change files whenever a leaf package changed.
+  - Use a group id only when the change is intentionally owned by the whole group.
+  - Dependents and grouped members are propagated automatically during planning.
+  - Use `--caused-by` when a package is only changing because another package or group moved first.
+  - Legacy manifest paths may still resolve during migration, but declared ids are the stable interface.
+
+
+----- stderr -----
