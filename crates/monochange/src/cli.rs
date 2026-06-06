@@ -335,6 +335,7 @@ When provided, the generated config includes:\n\
 		.subcommand(build_migrate_subcommand())
 		.subcommand(build_lint_subcommand())
 		.subcommand(build_versions_subcommand())
+		.subcommands(build_top_level_step_alias_subcommands())
 		.subcommand({
 			#[cfg(feature = "mcp")]
 			{
@@ -725,6 +726,93 @@ pub(crate) fn command_supports_release_diff_preview(cli_command: &CliCommandDefi
 		.any(|step| matches!(step, CliStepDefinition::PrepareRelease { .. }))
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct TopLevelStepAlias {
+	pub(crate) command: &'static str,
+	pub(crate) step: &'static str,
+	pub(crate) help_text: &'static str,
+	pub(crate) force_dry_run: bool,
+}
+
+pub(crate) const TOP_LEVEL_STEP_ALIASES: &[TopLevelStepAlias] = &[
+	TopLevelStepAlias {
+		command: "create",
+		step: "create-change-file",
+		help_text: "Create a changeset file for one or more packages",
+		force_dry_run: false,
+	},
+	TopLevelStepAlias {
+		command: "discover",
+		step: "discover",
+		help_text: "Discover packages across supported ecosystems",
+		force_dry_run: false,
+	},
+	TopLevelStepAlias {
+		command: "config",
+		step: "config",
+		help_text: "Render resolved monochange configuration and workspace metadata",
+		force_dry_run: false,
+	},
+	TopLevelStepAlias {
+		command: "preview",
+		step: "prepare-release",
+		help_text: "Preview planned version bumps, changelogs, and release artifacts without writing files",
+		force_dry_run: true,
+	},
+	TopLevelStepAlias {
+		command: "prepare",
+		step: "prepare-release",
+		help_text: "Prepare version bumps, changelogs, and release artifacts",
+		force_dry_run: false,
+	},
+	TopLevelStepAlias {
+		command: "affected",
+		step: "affected-packages",
+		help_text: "Evaluate affected packages and changeset coverage",
+		force_dry_run: false,
+	},
+	TopLevelStepAlias {
+		command: "diagnose",
+		step: "diagnose-changesets",
+		help_text: "Inspect changeset provenance and review metadata",
+		force_dry_run: false,
+	},
+];
+
+pub(crate) fn top_level_step_alias(command: &str) -> Option<TopLevelStepAlias> {
+	TOP_LEVEL_STEP_ALIASES
+		.iter()
+		.copied()
+		.find(|alias| alias.command == command)
+}
+
+pub(crate) fn top_level_step_alias_command_definition(
+	alias: TopLevelStepAlias,
+) -> Option<CliCommandDefinition> {
+	let step = monochange_core::all_step_variants()
+		.into_iter()
+		.find(|step| step.step_kebab_name() == alias.step)?;
+
+	Some(CliCommandDefinition {
+		name: alias.command.to_string(),
+		help_text: Some(alias.help_text.to_string()),
+		inputs: step.step_inputs_schema(),
+		steps: vec![step.with_inherited_step_inputs()],
+		dry_run: false,
+	})
+}
+
+fn build_top_level_step_alias_subcommands() -> Vec<Command> {
+	TOP_LEVEL_STEP_ALIASES
+		.iter()
+		.map(|alias| {
+			let synthetic = top_level_step_alias_command_definition(*alias)
+				.unwrap_or_else(|| panic!("missing step command alias target `{}`", alias.step));
+			build_cli_command_subcommand_with_prefix(&synthetic, "monochange")
+		})
+		.collect()
+}
+
 fn step_command_summary(step: &CliStepDefinition) -> String {
 	match step.step_kebab_name().as_str() {
 		"affected-packages" => "Compute affected packages from a prepared release plan".to_string(),
@@ -959,8 +1047,8 @@ Commit notes:
 		"affected" => {
 			Some(
 				r"Examples:
-  monochange step affected-packages --changed-paths crates/core/src/lib.rs --format json
-  monochange step affected-packages --from origin/main --verify
+  monochange affected --changed-paths crates/core/src/lib.rs --format json
+  monochange affected --from origin/main --verify
 
 Verification reminders:
   - Prefer package ids in .changeset files.

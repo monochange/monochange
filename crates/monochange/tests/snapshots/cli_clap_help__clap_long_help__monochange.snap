@@ -1,6 +1,7 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-expression: "render_help_snapshot(&path, version)"
+assertion_line: 142
+expression: render_help_snapshot(&path)
 ---
 Version: [current]
 Command: monochange
@@ -20,6 +21,13 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, and Dart/Flutter
   [93mmigrate[0m    Audit or migrate release metadata for monochange repositories
   [93mlint[0m       Inspect and scaffold manifest lint rules
   [93mversions[0m   List package and group versions or sync internal dependency constraints
+  [93mcreate[0m     Create a changeset file for one or more packages
+  [93mdiscover[0m   Discover packages across supported ecosystems
+  [93mconfig[0m     Render resolved monochange configuration and workspace metadata
+  [93mpreview[0m    Preview planned version bumps, changelogs, and release artifacts without writing files
+  [93mprepare[0m    Prepare version bumps, changelogs, and release artifacts
+  [93maffected[0m   Evaluate affected packages and changeset coverage
+  [93mdiagnose[0m   Inspect changeset provenance and review metadata
   [93mmcp[0m        Start the monochange MCP (Model Context Protocol) server over stdin/stdout
   [93mcheck[0m      Validate configuration, changesets, and run manifest lint rules
   [93mhelp[0m       Show detailed help for a command

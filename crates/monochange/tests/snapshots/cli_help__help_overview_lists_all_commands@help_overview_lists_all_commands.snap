@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/cli_help.rs
+assertion_line: 33
 info:
   program: monochange
   args:
@@ -26,6 +27,13 @@ Built-in Commands:
   migrate    Audit or migrate release metadata for monochange repositories
   lint       Inspect and scaffold manifest lint rules
   versions   List package and group versions or sync internal dependency constraints
+  create     Create a changeset file for one or more packages
+  discover   Discover packages across supported ecosystems
+  config     Render resolved monochange configuration and workspace metadata
+  preview    Preview planned version bumps, changelogs, and release artifacts without writing files
+  prepare    Prepare version bumps, changelogs, and release artifacts
+  affected   Evaluate affected packages and changeset coverage
+  diagnose   Inspect changeset provenance and review metadata
   mcp        Start the monochange MCP (Model Context Protocol) server over stdin/stdout
   check      Validate configuration, changesets, and run manifest lint rules
   help       Show detailed help for a command

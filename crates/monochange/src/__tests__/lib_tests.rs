@@ -219,6 +219,7 @@ where
 			.map(|command| (index, command))
 	}) {
 		let builtins = [
+			"affected",
 			"analyze",
 			"api",
 			"audit",
@@ -226,6 +227,10 @@ where
 			"changeset",
 			"check",
 			"command",
+			"config",
+			"create",
+			"diagnose",
+			"discover",
 			"explain",
 			"help",
 			"init",
@@ -235,6 +240,8 @@ where
 			"migrate",
 			"new",
 			"populate",
+			"prepare",
+			"preview",
 			"release-records",
 			"run",
 			"skill",
@@ -937,6 +944,46 @@ fn generated_step_commands_cover_all_builtin_steps_except_command() {
 		);
 	}
 	assert!(step_command.find_subcommand("command").is_none());
+}
+
+#[test]
+fn generated_top_level_step_aliases_parse_as_builtins() {
+	let command = crate::cli::build_command_with_cli("monochange", &[]);
+	let expected = [
+		"create", "discover", "config", "preview", "prepare", "affected", "diagnose",
+	];
+
+	for command_name in expected {
+		let subcommand = command
+			.find_subcommand(command_name)
+			.unwrap_or_else(|| panic!("expected top-level {command_name} command"));
+		assert!(
+			subcommand
+				.get_arguments()
+				.any(|argument| argument.get_id() == "dry-run"),
+			"expected {command_name} to accept the shared dry-run flag"
+		);
+	}
+
+	let matches = command
+		.clone()
+		.try_get_matches_from(["monochange", "create", "--package", "core"])
+		.unwrap_or_else(|error| panic!("create matches: {error}"));
+	assert_eq!(matches.subcommand_name(), Some("create"));
+}
+
+#[test]
+fn top_level_preview_alias_forces_prepare_release_dry_run() {
+	let alias = crate::cli::top_level_step_alias("preview")
+		.unwrap_or_else(|| panic!("expected preview alias"));
+	assert_eq!(alias.step, "prepare-release");
+	assert!(alias.force_dry_run);
+
+	let synthetic = crate::cli::top_level_step_alias_command_definition(alias)
+		.unwrap_or_else(|| panic!("expected preview command definition"));
+	assert_eq!(synthetic.name, "preview");
+	assert_eq!(synthetic.steps.len(), 1);
+	assert_eq!(synthetic.steps[0].step_kebab_name(), "prepare-release");
 }
 
 #[test]
