@@ -48,6 +48,8 @@ pub struct NpmLintSuite;
 struct NpmLintFile {
 	manifest: Value,
 	workspace_package_names: Arc<BTreeSet<String>>,
+	repo_url: Arc<String>,
+	default_branch: Arc<String>,
 }
 
 impl LintSuite for NpmLintSuite {
@@ -63,6 +65,7 @@ impl LintSuite for NpmLintSuite {
 			Box::new(RootNoProdDepsRule::new()),
 			Box::new(NoDuplicateDependenciesRule::new()),
 			Box::new(UnlistedPackagePrivateRule::new()),
+			Box::new(ManifestRepositoryRule::new()),
 		]
 	}
 
@@ -99,6 +102,10 @@ impl LintSuite for NpmLintSuite {
 					"npm/unlisted-package-private".to_string(),
 					LintRuleConfig::Severity(LintSeverity::Warning),
 				),
+				(
+					"npm/manifest-repository".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Off),
+				),
 			])),
 			LintPreset::new(
 				"npm/recommended",
@@ -130,6 +137,10 @@ impl LintSuite for NpmLintSuite {
 				(
 					"npm/unlisted-package-private".to_string(),
 					LintRuleConfig::Severity(LintSeverity::Warning),
+				),
+				(
+					"npm/manifest-repository".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Off),
 				),
 			])),
 			LintPreset::new(
@@ -163,6 +174,10 @@ impl LintSuite for NpmLintSuite {
 					"npm/unlisted-package-private".to_string(),
 					LintRuleConfig::Severity(LintSeverity::Warning),
 				),
+				(
+					"npm/manifest-repository".to_string(),
+					LintRuleConfig::Severity(LintSeverity::Off),
+				),
 			])),
 		]
 	}
@@ -180,6 +195,15 @@ impl LintSuite for NpmLintSuite {
 				.map(|package| package.name.clone())
 				.collect::<BTreeSet<_>>(),
 		);
+
+		let repo_url = Arc::new(configuration.source.as_ref().map_or_else(
+			String::new,
+			monochange_core::SourceConfiguration::repository_url,
+		));
+		let default_branch = Arc::new(configuration.source.as_ref().map_or_else(
+			|| String::from("main"),
+			|source| source.default_branch().to_string(),
+		));
 
 		discovery
 			.packages
@@ -230,6 +254,8 @@ impl LintSuite for NpmLintSuite {
 					Box::new(NpmLintFile {
 						manifest,
 						workspace_package_names: Arc::clone(&workspace_package_names),
+						repo_url: Arc::clone(&repo_url),
+						default_branch: Arc::clone(&default_branch),
 					}),
 				))
 			})
@@ -841,6 +867,118 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 			));
 		}
 		vec![result]
+	}
+}
+
+fn expected_repo_url(repo_url: &str, default_branch: &str, relative_path: &Path) -> String {
+	if relative_path.as_os_str().is_empty() || relative_path == Path::new(".") {
+		repo_url.to_string()
+	} else {
+		format!(
+			"{repo_url}/tree/{default_branch}/{}",
+			relative_path.display()
+		)
+	}
+}
+
+struct ManifestRepositoryRule {
+	rule: LintRule,
+}
+
+impl ManifestRepositoryRule {
+	fn new() -> Self {
+		Self {
+			rule: LintRule::new(
+				"npm/manifest-repository",
+				"Manifest repository must point to the correct subdirectory",
+				"Requires the repository field to point to the correct monorepo subdirectory on the default branch. For root-level packages this is the base repository URL; for packages in subdirectories it includes the relative path.",
+				LintCategory::Correctness,
+				LintMaturity::Stable,
+				true,
+			)
+			.with_options(vec![LintOptionDefinition::new(
+				"fix",
+				"apply an autofix that updates the repository field",
+				LintOptionKind::Boolean,
+			)]),
+		}
+	}
+}
+
+impl LintRuleRunner for ManifestRepositoryRule {
+	fn rule(&self) -> &LintRule {
+		&self.rule
+	}
+
+	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
+		let Some(file) = npm_file(ctx) else {
+			return Vec::new();
+		};
+
+		if file.repo_url.is_empty() {
+			return Vec::new();
+		}
+
+		let relative_dir = relative_to_root(ctx.workspace_root, ctx.manifest_path)
+			.and_then(|p| p.parent().map(Path::to_path_buf))
+			.unwrap_or_else(|| Path::new(".").to_path_buf());
+
+		let expected = expected_repo_url(&file.repo_url, &file.default_branch, &relative_dir);
+
+		let repo_value = file.manifest.get("repository");
+
+		match repo_value {
+			None => {
+				let loc = location(ctx);
+				let mut result = LintResult::new(
+					self.rule.id.clone(),
+					loc,
+					"manifest is missing the repository field".to_string(),
+					config.severity(),
+				);
+				if config.bool_option("fix", true) {
+					let mut manifest = file.manifest.clone();
+					if let Some(obj) = manifest_object_mut(&mut manifest) {
+						obj.insert("repository".to_string(), Value::String(expected.clone()));
+					}
+					let fixed = serde_json::to_string_pretty(&manifest)
+						.unwrap_or_else(|_| ctx.contents.to_string());
+					result = result.with_fix(LintFix::single(
+						"insert repository field",
+						(0, ctx.contents.len()),
+						fixed,
+					));
+				}
+				vec![result]
+			}
+			Some(value) => {
+				let current = value.as_str().unwrap_or("");
+				if current == expected {
+					return Vec::new();
+				}
+				let loc = location(ctx);
+				let mut result = LintResult::new(
+					self.rule.id.clone(),
+					loc,
+					format!("repository field is \"{current}\" but should be \"{expected}\""),
+					config.severity(),
+				);
+				if config.bool_option("fix", true) {
+					let mut manifest = file.manifest.clone();
+					if let Some(obj) = manifest_object_mut(&mut manifest) {
+						obj.insert("repository".to_string(), Value::String(expected.clone()));
+					}
+					let fixed = serde_json::to_string_pretty(&manifest)
+						.unwrap_or_else(|_| ctx.contents.to_string());
+					result = result.with_fix(LintFix::single(
+						"fix repository field",
+						(0, ctx.contents.len()),
+						fixed,
+					));
+				}
+				vec![result]
+			}
+		}
 	}
 }
 

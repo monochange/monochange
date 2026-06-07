@@ -5,6 +5,15 @@ use serde_json::json;
 use super::*;
 
 fn cargo_target(contents: &str, managed: bool, publishable: bool) -> LintTarget {
+	cargo_target_with_repo(contents, managed, publishable, String::new())
+}
+
+fn cargo_target_with_repo(
+	contents: &str,
+	managed: bool,
+	publishable: bool,
+	repo_url: String,
+) -> LintTarget {
 	LintTarget::new(
 		Path::new(".").to_path_buf(),
 		Path::new("Cargo.toml").to_path_buf(),
@@ -29,6 +38,8 @@ fn cargo_target(contents: &str, managed: bool, publishable: bool) -> LintTarget 
 				("internal_dep".to_string(), false),
 				("serde".to_string(), true),
 			])),
+			repo_url: Arc::new(repo_url),
+			default_branch: Arc::new(String::from("main")),
 		}),
 	)
 }
@@ -341,5 +352,162 @@ fn collect_targets_marks_configured_packages_as_managed() {
 		targets
 			.iter()
 			.all(|target| target.metadata.ecosystem == "cargo")
+	);
+}
+
+#[test]
+fn manifest_repository_correct_no_error() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "[package]\nname = \"hello\"\nversion = \"0.1.0\"\nrepository = \"https://github.com/foo/bar\"\n";
+	let target = cargo_target(contents, true, true);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = LintRuleConfig::Severity(LintSeverity::Error);
+	let results = rule.run(&ctx, &config);
+	assert!(results.is_empty());
+}
+
+#[test]
+fn manifest_repository_missing() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "[package]\nname = \"hello\"\nversion = \"0.1.0\"\n";
+	let target = cargo_target_with_repo(
+		contents,
+		true,
+		true,
+		"https://github.com/foo/bar".to_string(),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = config();
+	let results = rule.run(&ctx, &config);
+	assert_eq!(results.len(), 1);
+	assert_eq!(results[0].severity, LintSeverity::Error);
+	assert!(results[0].fix.is_some());
+}
+
+#[test]
+fn manifest_repository_wrong_value() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "[package]\nname = \"hello\"\nversion = \"0.1.0\"\nrepository = \"https://wrong-url.example.com\"\n";
+	let target = cargo_target_with_repo(
+		contents,
+		true,
+		true,
+		"https://github.com/foo/bar".to_string(),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = config();
+	let results = rule.run(&ctx, &config);
+	assert_eq!(results.len(), 1);
+}
+
+#[test]
+fn manifest_repository_empty_repo_url_skipped() {
+	let rule = ManifestRepositoryRule::new();
+	let contents =
+		"[package]\nname = \"hello\"\nversion = \"0.1.0\"\nrepository = \"https://example.com\"\n";
+	let target = cargo_target(contents, true, true);
+	// repo_url is empty string (no source config), so rule is skipped
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = config();
+	let results = rule.run(&ctx, &config);
+	assert!(results.is_empty());
+}
+
+#[test]
+fn manifest_repository_correct_with_repo_url() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "[package]\nname = \"hello\"\nversion = \"0.1.0\"\nrepository = \"https://github.com/foo/bar\"\n";
+	let target = cargo_target_with_repo(
+		contents,
+		true,
+		true,
+		"https://github.com/foo/bar".to_string(),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = config();
+	let results = rule.run(&ctx, &config);
+	assert!(results.is_empty());
+}
+
+#[test]
+fn manifest_repository_workspace_inherited_no_error() {
+	let rule = ManifestRepositoryRule::new();
+	let contents =
+		"[package]\nname = \"hello\"\nversion = \"0.1.0\"\nrepository = { workspace = true }\n";
+	let target = cargo_target_with_repo(
+		contents,
+		true,
+		true,
+		"https://github.com/foo/bar".to_string(),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = config();
+	let results = rule.run(&ctx, &config);
+	assert!(results.is_empty());
+}
+
+#[test]
+fn manifest_repository_wrong_value_with_fix() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "[package]\nname = \"hello\"\nversion = \"0.1.0\"\nrepository = \"https://wrong.example.com\"\n";
+	let target = cargo_target_with_repo(
+		contents,
+		true,
+		true,
+		"https://github.com/foo/bar".to_string(),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = config();
+	let results = rule.run(&ctx, &config);
+	assert_eq!(results.len(), 1);
+	assert!(results[0].fix.is_some());
+	let fix = results[0].fix.as_ref().unwrap();
+	assert_eq!(fix.edits.len(), 1);
+	assert!(
+		fix.edits[0]
+			.replacement
+			.contains("https://github.com/foo/bar")
 	);
 }

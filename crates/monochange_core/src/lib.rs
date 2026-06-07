@@ -4652,6 +4652,19 @@ impl SourceProvider {
 			Self::Forgejo => "forgejo",
 		}
 	}
+
+	/// Return the default hostname for a provider.
+	///
+	/// Returns e.g. `github.com` for GitHub or `gitlab.com` for GitLab.
+	#[must_use]
+	pub fn default_host(self) -> &'static str {
+		match self {
+			Self::GitHub => "github.com",
+			Self::GitLab => "gitlab.com",
+			Self::Gitea => "gitea.com",
+			Self::Forgejo => "forgejo.com",
+		}
+	}
 }
 
 impl fmt::Display for SourceProvider {
@@ -4686,6 +4699,34 @@ pub struct SourceConfiguration {
 	pub releases: ProviderReleaseSettings,
 	#[serde(default)]
 	pub pull_requests: ProviderMergeRequestSettings,
+}
+
+impl SourceConfiguration {
+	/// Build the canonical repository URL from the source configuration.
+	///
+	/// Returns e.g. `https://github.com/monochange/monochange` for GitHub, or
+	/// `https://gitlab.com/owner/repo` for GitLab. Self-hosted instances use the
+	/// configured `host` field.
+	#[must_use]
+	pub fn repository_url(&self) -> String {
+		let host = self
+			.host
+			.as_deref()
+			.unwrap_or_else(|| self.provider.default_host());
+		format!("https://{host}/{}/{}", self.owner, self.repo)
+	}
+
+	/// Return the default branch name for the repository.
+	///
+	/// Falls back to `"main"` when no pull request base is configured.
+	#[must_use]
+	pub fn default_branch(&self) -> &str {
+		if self.pull_requests.base.is_empty() {
+			"main"
+		} else {
+			&self.pull_requests.base
+		}
+	}
 }
 
 #[allow(clippy::struct_excessive_bools)]

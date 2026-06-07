@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
-assertion_line: 687
 expression: content_text(&result)
 ---
 {
@@ -15,6 +14,7 @@ expression: content_text(&result)
       "rules": {
         "cargo/dependency-field-order": "off",
         "cargo/internal-dependency-workspace": "warning",
+        "cargo/manifest-repository": "off",
         "cargo/publishable-dependencies": "warning",
         "cargo/required-package-fields": "warning",
         "cargo/sorted-dependencies": "off",
@@ -29,6 +29,7 @@ expression: content_text(&result)
       "rules": {
         "cargo/dependency-field-order": "warning",
         "cargo/internal-dependency-workspace": "error",
+        "cargo/manifest-repository": "off",
         "cargo/publishable-dependencies": "error",
         "cargo/required-package-fields": "error",
         "cargo/sorted-dependencies": "warning",
@@ -43,6 +44,7 @@ expression: content_text(&result)
       "rules": {
         "cargo/dependency-field-order": "error",
         "cargo/internal-dependency-workspace": "error",
+        "cargo/manifest-repository": "off",
         "cargo/publishable-dependencies": "error",
         "cargo/required-package-fields": "error",
         "cargo/sorted-dependencies": "error",
@@ -65,6 +67,7 @@ expression: content_text(&result)
       "name": "Dart baseline",
       "rules": {
         "dart/dependency-sorted": "off",
+        "dart/manifest-repository": "off",
         "dart/no-git-dependencies-in-published-packages": "warning",
         "dart/required-package-fields": "warning",
         "dart/sdk-constraint-present": "warning",
@@ -78,6 +81,7 @@ expression: content_text(&result)
       "name": "Dart recommended",
       "rules": {
         "dart/dependency-sorted": "warning",
+        "dart/manifest-repository": "off",
         "dart/no-git-dependencies-in-published-packages": "error",
         "dart/required-package-fields": "error",
         "dart/sdk-constraint-present": "error",
@@ -97,6 +101,7 @@ expression: content_text(&result)
           "level": "error",
           "mode": "path"
         },
+        "dart/manifest-repository": "off",
         "dart/no-git-dependencies-in-published-packages": "error",
         "dart/no-unexpected-dependency-overrides": "error",
         "dart/required-package-fields": "error",
@@ -112,6 +117,7 @@ expression: content_text(&result)
       "maturity": "stable",
       "name": "npm baseline",
       "rules": {
+        "npm/manifest-repository": "off",
         "npm/no-duplicate-dependencies": "warning",
         "npm/required-package-fields": "warning",
         "npm/root-no-prod-deps": "warning",
@@ -126,6 +132,7 @@ expression: content_text(&result)
       "maturity": "stable",
       "name": "npm recommended",
       "rules": {
+        "npm/manifest-repository": "off",
         "npm/no-duplicate-dependencies": "error",
         "npm/required-package-fields": "error",
         "npm/root-no-prod-deps": "error",
@@ -140,6 +147,7 @@ expression: content_text(&result)
       "maturity": "strict",
       "name": "npm strict",
       "rules": {
+        "npm/manifest-repository": "off",
         "npm/no-duplicate-dependencies": "error",
         "npm/required-package-fields": "error",
         "npm/root-no-prod-deps": "error",
@@ -180,6 +188,21 @@ expression: content_text(&result)
         },
         {
           "description": "apply an autofix when a dependency can be rewritten safely",
+          "kind": "boolean",
+          "name": "fix"
+        }
+      ]
+    },
+    {
+      "autofixable": true,
+      "category": "correctness",
+      "description": "Requires the repository field to point to the correct monorepo subdirectory on the default branch. For root-level packages this is the base repository URL; for packages in subdirectories it includes the relative path.",
+      "id": "cargo/manifest-repository",
+      "maturity": "stable",
+      "name": "Manifest repository must point to the correct subdirectory",
+      "options": [
+        {
+          "description": "apply an autofix that updates the repository field",
           "kind": "boolean",
           "name": "fix"
         }
@@ -348,6 +371,21 @@ expression: content_text(&result)
       ]
     },
     {
+      "autofixable": true,
+      "category": "correctness",
+      "description": "Requires the repository field to point to the correct monorepo subdirectory on the default branch. For root-level packages this is the base repository URL; for packages in subdirectories it includes the relative path.",
+      "id": "dart/manifest-repository",
+      "maturity": "stable",
+      "name": "Manifest repository must point to the correct subdirectory",
+      "options": [
+        {
+          "description": "apply an autofix that updates the repository field",
+          "kind": "boolean",
+          "name": "fix"
+        }
+      ]
+    },
+    {
       "autofixable": false,
       "category": "correctness",
       "description": "Prevents published Dart packages from using git: dependencies unless explicitly allowed",
@@ -453,6 +491,21 @@ expression: content_text(&result)
     {
       "autofixable": true,
       "category": "correctness",
+      "description": "Requires the repository field to point to the correct monorepo subdirectory on the default branch. For root-level packages this is the base repository URL; for packages in subdirectories it includes the relative path.",
+      "id": "npm/manifest-repository",
+      "maturity": "stable",
+      "name": "Manifest repository must point to the correct subdirectory",
+      "options": [
+        {
+          "description": "apply an autofix that updates the repository field",
+          "kind": "boolean",
+          "name": "fix"
+        }
+      ]
+    },
+    {
+      "autofixable": true,
+      "category": "correctness",
       "description": "Prevents one dependency from appearing in multiple npm-family dependency sections",
       "id": "npm/no-duplicate-dependencies",
       "maturity": "stable",
@@ -546,5 +599,5 @@ expression: content_text(&result)
       ]
     }
   ],
-  "summary": "Loaded 29 lint rule(s) and 10 preset(s)."
+  "summary": "Loaded 32 lint rule(s) and 10 preset(s)."
 }
