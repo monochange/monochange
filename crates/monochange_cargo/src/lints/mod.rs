@@ -785,6 +785,36 @@ fn expected_repo_url(repo_url: &str, default_branch: &str, relative_path: &Path)
 	}
 }
 
+/// Resolve the repository value that a workspace member would inherit from
+/// the root `Cargo.toml` when using `repository = { workspace = true }`.
+///
+/// Looks for `workspace.package.repository` first, then falls back to
+/// `package.repository` at the root. Returns `None` if the root manifest
+/// cannot be read or does not declare a repository value.
+fn inherited_workspace_repository(workspace_root: &Path) -> Option<String> {
+	let root_manifest = workspace_root.join("Cargo.toml");
+	let contents = fs::read_to_string(&root_manifest).ok()?;
+	let document = contents.parse::<DocumentMut>().ok()?;
+
+	let workspace_package = document
+		.get("workspace")
+		.and_then(|w| w.as_table())
+		.and_then(|w| w.get("package"))
+		.and_then(|p| p.as_table());
+	if let Some(table) = workspace_package
+		&& let Some(repo) = table.get("repository").and_then(Item::as_str)
+	{
+		return Some(repo.to_string());
+	}
+
+	document
+		.get("package")
+		.and_then(|p| p.as_table())
+		.and_then(|p| p.get("repository"))
+		.and_then(Item::as_str)
+		.map(String::from)
+}
+
 monochange_linting::declare_lint_rule! {
 	ManifestRepositoryRule,
 	id: "cargo/manifest-repository",
@@ -797,6 +827,11 @@ monochange_linting::declare_lint_rule! {
 		LintOptionDefinition::new(
 			"fix",
 			"apply an autofix that updates the repository field",
+			LintOptionKind::Boolean,
+		),
+		LintOptionDefinition::new(
+			"allow_workspace_inheritance",
+			"skip manifests that use `repository = { workspace = true }` instead of resolving the inherited value and validating it against the expected URL",
 			LintOptionKind::Boolean,
 		),
 	],
@@ -856,11 +891,43 @@ impl LintRuleRunner for ManifestRepositoryRule {
 				vec![result]
 			}
 			Some(item) => {
-				// Skip workspace-inherited values (repository.workspace = true)
+				// Resolve `repository = { workspace = true }` against the root
+				// manifest's `workspace.package.repository` (falling back to
+				// `package.repository`). Skip when the user opts out via
+				// `allow_workspace_inheritance = true`.
 				if let Some(table) = item.as_inline_table()
 					&& table.get("workspace").and_then(toml_edit::Value::as_bool) == Some(true)
 				{
-					return Vec::new();
+					if config.bool_option("allow_workspace_inheritance", false) {
+						return Vec::new();
+					}
+					let Some(inherited) = inherited_workspace_repository(ctx.workspace_root) else {
+						return Vec::new();
+					};
+					if inherited == expected {
+						return Vec::new();
+					}
+					let span = item.span().map(|s| (s.start, s.end));
+					let location = location_from_span(ctx.manifest_path, ctx.contents, span);
+					let mut result = LintResult::new(
+						self.rule.id.clone(),
+						location,
+						format!(
+							"workspace-inherited repository resolves to \"{inherited}\" but should be \"{expected}\""
+						),
+						config.severity(),
+					);
+					if let Some(fix) = config.bool_option("fix", true).then(|| {
+						let replacement = format!("repository = \"{expected}\"");
+						LintFix::single(
+							"replace workspace-inherited repository with explicit value",
+							span.unwrap_or((0, ctx.contents.len())),
+							replacement,
+						)
+					}) {
+						result = result.with_fix(fix);
+					}
+					return vec![result];
 				}
 
 				let current = item.as_str().unwrap_or("");
