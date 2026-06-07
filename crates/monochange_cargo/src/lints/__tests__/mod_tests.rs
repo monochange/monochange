@@ -533,3 +533,29 @@ fn manifest_repository_no_package_table() {
 	let results = rule.run(&ctx, &config);
 	assert!(results.is_empty());
 }
+
+#[test]
+fn manifest_repository_missing_no_fix() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "[package]\nname = \"hello\"\nversion = \"0.1.0\"\n";
+	let target = cargo_target_with_repo(
+		contents,
+		true,
+		true,
+		"https://github.com/foo/bar".to_string(),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = LintRuleConfig::Detailed {
+		level: LintSeverity::Error,
+		options: BTreeMap::from([("fix".to_string(), serde_json::json!(false))]),
+	};
+	let results = rule.run(&ctx, &config);
+	assert_eq!(results.len(), 1);
+	assert!(results[0].fix.is_none());
+}

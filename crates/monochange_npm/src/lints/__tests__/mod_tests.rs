@@ -514,3 +514,45 @@ fn manifest_repository_correct_value() {
 	let results = rule.run(&ctx, &config);
 	assert!(results.is_empty());
 }
+
+#[test]
+fn manifest_repository_missing_no_fix() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "{\"name\": \"hello\", \"version\": \"0.1.0\"}";
+	let manifest: Value = serde_json::from_str(contents).unwrap();
+	let target = LintTarget::new(
+		Path::new(".").to_path_buf(),
+		Path::new("package.json").to_path_buf(),
+		contents.to_string(),
+		LintTargetMetadata {
+			ecosystem: "npm".to_string(),
+			relative_path: Path::new("package.json").to_path_buf(),
+			package_name: Some("hello".to_string()),
+			package_id: Some("hello".to_string()),
+			group_id: None,
+			managed: false,
+			private: Some(false),
+			publishable: Some(true),
+		},
+		Box::new(NpmLintFile {
+			manifest,
+			workspace_package_names: Arc::new(BTreeSet::new()),
+			repo_url: Arc::new("https://github.com/foo/bar".to_string()),
+			default_branch: Arc::new("main".to_string()),
+		}),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = LintRuleConfig::Detailed {
+		level: LintSeverity::Error,
+		options: BTreeMap::from([("fix".to_string(), serde_json::json!(false))]),
+	};
+	let results = rule.run(&ctx, &config);
+	assert_eq!(results.len(), 1);
+	assert!(results[0].fix.is_none());
+}
