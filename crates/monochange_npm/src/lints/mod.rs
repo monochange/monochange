@@ -963,18 +963,16 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					format!("repository field is \"{current}\" but should be \"{expected}\""),
 					config.severity(),
 				);
-				if config.bool_option("fix", true) {
+				if let Some(fix) = config.bool_option("fix", true).then(|| {
 					let mut manifest = file.manifest.clone();
 					if let Some(obj) = manifest_object_mut(&mut manifest) {
 						obj.insert("repository".to_string(), Value::String(expected.clone()));
 					}
 					let fixed = serde_json::to_string_pretty(&manifest)
 						.unwrap_or_else(|_| ctx.contents.to_string());
-					result = result.with_fix(LintFix::single(
-						"fix repository field",
-						(0, ctx.contents.len()),
-						fixed,
-					));
+					LintFix::single("fix repository field", (0, ctx.contents.len()), fixed)
+				}) {
+					result = result.with_fix(fix);
 				}
 				vec![result]
 			}

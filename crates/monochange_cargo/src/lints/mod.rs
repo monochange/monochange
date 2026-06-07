@@ -840,16 +840,18 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					"manifest is missing the repository field".to_string(),
 					config.severity(),
 				);
-				if config.bool_option("fix", true) {
+				if let Some(fix) = config.bool_option("fix", true).then(|| {
 					let mut doc = file.document.clone();
 					if let Some(pkg) = doc.get_mut("package").and_then(|p| p.as_table_mut()) {
 						pkg.insert("repository", toml_value(&expected));
 					}
-					result = result.with_fix(LintFix::single(
+					LintFix::single(
 						"insert repository field",
 						(0, ctx.contents.len()),
 						doc.to_string(),
-					));
+					)
+				}) {
+					result = result.with_fix(fix);
 				}
 				vec![result]
 			}
@@ -874,14 +876,15 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					format!("repository field is \"{current}\" but should be \"{expected}\""),
 					config.severity(),
 				);
-				if config.bool_option("fix", true) {
-					// Replace the whole value
+				if let Some(fix) = config.bool_option("fix", true).then(|| {
 					let replacement = format!("repository = \"{expected}\"");
-					result = result.with_fix(LintFix::single(
+					LintFix::single(
 						"fix repository field",
 						span.unwrap_or((0, ctx.contents.len())),
 						replacement,
-					));
+					)
+				}) {
+					result = result.with_fix(fix);
 				}
 				vec![result]
 			}
