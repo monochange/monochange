@@ -299,7 +299,7 @@ jobs:
 
       - name: upload coverage to codecov
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.1
+        uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1 # v7.0.0
         with:
           use_oidc: true
           files: ./target/coverage/lcov.info
@@ -338,7 +338,7 @@ jobs:
           path: target/coverage/flags
 
       - name: upload crate coverage flag to codecov
-        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.1
+        uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1 # v7.0.0
         with:
           use_oidc: true
           files: ./target/coverage/flags/${{ matrix.flag }}.lcov
