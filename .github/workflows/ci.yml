@@ -305,6 +305,7 @@ jobs:
           files: ./target/coverage/lcov.info
           disable_search: true
           fail_ci_if_error: true
+          skip_validation: true
           name: monochange-rust-workspace
           verbose: true
 
@@ -344,6 +345,7 @@ jobs:
           files: ./target/coverage/flags/${{ matrix.flag }}.lcov
           disable_search: true
           fail_ci_if_error: true
+          skip_validation: true
           flags: ${{ matrix.flag }}
           name: ${{ matrix.flag }}
           verbose: true
