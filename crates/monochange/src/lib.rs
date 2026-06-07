@@ -1455,6 +1455,18 @@ where
 			let dry_run = quiet || step_command_matches.get_flag("dry-run");
 			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
 		}
+		Some((cli_command_name, cli_command_matches))
+			if cli::top_level_step_alias(cli_command_name).is_some() =>
+		{
+			let alias = cli::top_level_step_alias(cli_command_name)
+				.expect("alias was checked in match guard");
+			let configuration = configuration?;
+			let synthetic = cli::top_level_step_alias_command_definition(alias)
+				.expect("top-level step alias target exists");
+			let inputs = collect_cli_command_inputs(&synthetic, cli_command_matches);
+			let dry_run = quiet || alias.force_dry_run || cli_command_matches.get_flag("dry-run");
+			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+		}
 		Some(("run", run_matches)) => {
 			let Some((cli_command_name, cli_command_matches)) = run_matches.subcommand() else {
 				return Err(MonochangeError::Config(

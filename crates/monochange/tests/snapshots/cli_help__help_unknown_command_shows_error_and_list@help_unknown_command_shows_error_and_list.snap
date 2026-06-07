@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/cli_help.rs
+assertion_line: 60
 info:
   program: monochange
   args:
@@ -19,15 +20,22 @@ Run one of these commands to inspect available help paths:
   monochange help
 
 Visible top-level commands:
+  affected
   analyze
   check
   command
+  config
+  create
+  diagnose
+  discover
   help
   init
   lint
   mcp
   migrate
   populate
+  prepare
+  preview
   run
   skill
   snapshot
