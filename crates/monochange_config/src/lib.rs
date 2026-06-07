@@ -232,6 +232,8 @@ pub(crate) struct RawWorkspaceDefaults {
 	#[serde(default)]
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
+	versioned_files: Vec<RawVersionedFileDefinition>,
+	#[serde(default)]
 	empty_update_message: Option<String>,
 	#[serde(default)]
 	release_title: Option<String>,
@@ -248,6 +250,7 @@ impl Default for RawWorkspaceDefaults {
 			strict_version_conflicts: false,
 			package_type: None,
 			changelog: None,
+			versioned_files: Vec::new(),
 			empty_update_message: None,
 			release_title: None,
 			changelog_version_title: None,
@@ -907,6 +910,7 @@ fn normalize_versioned_files(
 					prefix: None,
 					fields: None,
 					name: None,
+					missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 					regex: None,
 				})
 			}
@@ -1478,6 +1482,7 @@ fn build_package_definitions(
 	default_package_type: Option<PackageType>,
 	default_package_changelog: Option<&RawChangelogConfig>,
 	default_changelog_format: ChangelogFormat,
+	default_versioned_files: &[VersionedFileDefinition],
 	cargo_ecosystem: &EcosystemSettings,
 	npm_ecosystem: &EcosystemSettings,
 	deno_ecosystem: &EcosystemSettings,
@@ -1541,7 +1546,8 @@ fn build_package_definitions(
 					_ => Vec::new(),
 				}
 			};
-			let mut versioned_files = inherited_versioned_files;
+			let mut versioned_files = default_versioned_files.to_vec();
+			versioned_files.extend(inherited_versioned_files);
 			versioned_files.extend(normalize_versioned_files(
 				contents,
 				package.versioned_files,
@@ -1707,6 +1713,7 @@ fn discover_auto_packages(
 	default_package_type: Option<PackageType>,
 	default_changelog: Option<&RawChangelogConfig>,
 	default_changelog_format: ChangelogFormat,
+	default_versioned_files: &[VersionedFileDefinition],
 	cargo_ecosystem: &EcosystemSettings,
 	npm_ecosystem: &EcosystemSettings,
 	deno_ecosystem: &EcosystemSettings,
@@ -1735,11 +1742,8 @@ fn discover_auto_packages(
 		let package_type = ecosystem_type_to_package_type(ecosystem_type);
 
 		for pkg in discovered {
-			let inherited_versioned_files = if ecosystem_settings.versioned_files.is_empty() {
-				Vec::new()
-			} else {
-				ecosystem_settings.versioned_files.clone()
-			};
+			let mut inherited_versioned_files = default_versioned_files.to_vec();
+			inherited_versioned_files.extend(ecosystem_settings.versioned_files.clone());
 
 			let changelog = default_changelog.and_then(|definition| {
 				definition.resolve_for_package(&pkg.path, true).map(|path| {
@@ -1850,6 +1854,14 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		.changelog
 		.as_ref()
 		.map(RawChangelogConfig::as_defaults_definition);
+	let default_versioned_files = normalize_versioned_files(
+		&contents,
+		defaults.versioned_files,
+		default_package_type.map_or(EcosystemType::Cargo, package_type_to_ecosystem_type),
+		"defaults",
+		"workspace",
+		default_package_type.is_some(),
+	)?;
 	let default_changelog_format = defaults
 		.changelog
 		.as_ref()
@@ -1861,6 +1873,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		default_package_type,
 		default_package_changelog.as_ref(),
 		default_changelog_format,
+		&default_versioned_files,
 		&cargo_ecosystem,
 		&npm_ecosystem,
 		&deno_ecosystem,
@@ -1880,6 +1893,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		default_package_type,
 		default_package_changelog.as_ref(),
 		default_changelog_format,
+		&default_versioned_files,
 		&cargo_ecosystem,
 		&npm_ecosystem,
 		&deno_ecosystem,

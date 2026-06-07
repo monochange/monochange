@@ -1,0 +1,6 @@
+[defaults]
+package_type = "npm"
+versioned_files = ["packages/app/package.json"]
+
+[package.app]
+path = "packages/app"

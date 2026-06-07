@@ -32,6 +32,7 @@ use crate::HostedSourceAdapter;
 use crate::HostedSourceFeatures;
 use crate::HostingProviderKind;
 use crate::MetadataStyle;
+use crate::MissingFieldBehavior;
 use crate::MonochangeError;
 use crate::PackageDefinition;
 use crate::PackageDependency;
@@ -717,6 +718,7 @@ fn versioned_file_definition_uses_regex_returns_true_when_set() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: Some(r"v(?<version>\d+\.\d+\.\d+)".to_string()),
 	};
 	assert!(definition.uses_regex());
@@ -731,6 +733,7 @@ fn versioned_file_definition_uses_regex_returns_false_when_unset() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert!(!definition.uses_regex());
@@ -745,6 +748,7 @@ fn versioned_file_definition_uses_format_returns_true_when_set() {
 		prefix: None,
 		fields: Some(vec!["release.version".to_string()]),
 		name: None,
+		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert!(definition.uses_format());

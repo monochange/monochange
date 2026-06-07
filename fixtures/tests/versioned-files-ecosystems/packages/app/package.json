@@ -1,0 +1,7 @@
+{
+  "name": "@example/app",
+  "version": "1.0.0",
+  "dependencies": {
+    "@example/app": "1.0.0"
+  }
+}
