@@ -702,3 +702,42 @@ fn manifest_repository_subdirectory_path() {
 	let results = rule.run(&ctx, &config);
 	assert_eq!(results.len(), 1);
 }
+
+#[test]
+fn manifest_repository_correct_value() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "name: hello\nversion: 0.1.0\nrepository: https://github.com/foo/bar\n";
+	let manifest: Mapping = serde_yaml_ng::from_str(contents).unwrap();
+	let target = LintTarget::new(
+		Path::new(".").to_path_buf(),
+		Path::new("pubspec.yaml").to_path_buf(),
+		contents.to_string(),
+		LintTargetMetadata {
+			ecosystem: "dart".to_string(),
+			relative_path: Path::new("pubspec.yaml").to_path_buf(),
+			package_name: Some("hello".to_string()),
+			package_id: Some("hello".to_string()),
+			group_id: None,
+			managed: true,
+			private: Some(false),
+			publishable: Some(true),
+		},
+		Box::new(DartLintFile {
+			manifest,
+			workspace_package_names: Arc::new(BTreeSet::new()),
+			workspace_package_versions: Arc::new(BTreeMap::new()),
+			repo_url: Arc::new("https://github.com/foo/bar".to_string()),
+			default_branch: Arc::new("main".to_string()),
+		}),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = config();
+	let results = rule.run(&ctx, &config);
+	assert!(results.is_empty());
+}

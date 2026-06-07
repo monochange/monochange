@@ -511,3 +511,25 @@ fn manifest_repository_wrong_value_with_fix() {
 			.contains("https://github.com/foo/bar")
 	);
 }
+
+#[test]
+fn manifest_repository_no_package_table() {
+	let rule = ManifestRepositoryRule::new();
+	let contents = "[dependencies]\nserde = \"1.0\"\n";
+	let target = cargo_target_with_repo(
+		contents,
+		true,
+		true,
+		"https://github.com/foo/bar".to_string(),
+	);
+	let ctx = LintContext {
+		workspace_root: &target.workspace_root,
+		manifest_path: &target.manifest_path,
+		contents: &target.contents,
+		metadata: &target.metadata,
+		parsed: target.parsed.as_ref(),
+	};
+	let config = config();
+	let results = rule.run(&ctx, &config);
+	assert!(results.is_empty());
+}
