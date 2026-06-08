@@ -1,0 +1,13 @@
+[package.core]
+path = "packages/core"
+type = "cargo"
+version_format = "{{ ecosystem }}/{{ name }}/v{{ version }}"
+
+[package.cli]
+path = "packages/cli"
+type = "cargo"
+version_format = "{{ name }}-v{{ version }}"
+
+[group.sdk]
+packages = ["core", "cli"]
+version_format = "groups/{{ name }}/v{{ version }}"

@@ -1611,13 +1611,6 @@
 			],
 			"type": "string"
 		},
-		"VersionFormat": {
-			"enum": [
-				"namespaced",
-				"primary"
-			],
-			"type": "string"
-		},
 		"VersionedFileDefinition": {
 			"additionalProperties": false,
 			"properties": {
@@ -1715,15 +1708,11 @@
 					]
 				},
 				"version_format": {
-					"anyOf": [
-						{
-							"$ref": "#/$defs/VersionFormat"
-						},
-						{
-							"type": "null"
-						}
-					],
-					"default": null
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
 				}
 			},
 			"type": "object"
@@ -2147,8 +2136,8 @@
 					"type": "boolean"
 				},
 				"version_format": {
-					"$ref": "#/$defs/VersionFormat",
-					"default": "namespaced"
+					"default": "namespaced",
+					"type": "string"
 				},
 				"versioned_files": {
 					"items": {
@@ -2272,8 +2261,8 @@
 					]
 				},
 				"version_format": {
-					"$ref": "#/$defs/VersionFormat",
-					"default": "namespaced"
+					"default": "namespaced",
+					"type": "string"
 				},
 				"versioned_files": {
 					"items": {

@@ -168,7 +168,7 @@ pub(crate) async fn build_release_targets(
 		planned_group_by_id.get(group.id.as_str()).and_then(|pg| {
 			pg.planned_version.as_ref().map(|version| {
 				let vs = version.to_string();
-				let tag = render_tag_name(&group.id, &vs, group.version_format);
+				let tag = render_tag_name(&group.id, &vs, "group", &group.version_format);
 				let prev = find_previous_tag_in(&tag, &sorted_tags);
 				let ctx = TitleRenderContext::new(
 					&group.id,
@@ -181,12 +181,12 @@ pub(crate) async fn build_release_targets(
 				let rt = effective_title_template(
 					group.release_title.as_deref(),
 					defaults_release_title,
-					default_release_title_for_format(group.version_format),
+					default_release_title_for_format(&group.version_format),
 				);
 				let ct = effective_title_template(
 					group.changelog_version_title.as_deref(),
 					defaults_changelog_title,
-					default_changelog_version_title_for_format(group.version_format),
+					default_changelog_version_title_for_format(&group.version_format),
 				);
 				ReleaseTarget {
 					id: group.id.clone(),
@@ -194,7 +194,7 @@ pub(crate) async fn build_release_targets(
 					version: vs,
 					tag: group.tag,
 					release: group.release,
-					version_format: group.version_format,
+					version_format: group.version_format.clone(),
 					tag_name: tag,
 					members: group.packages.clone(),
 					rendered_title: ctx.render(rt),
@@ -230,7 +230,7 @@ pub(crate) async fn build_release_targets(
 					ReleaseOwnerKind::Group,
 					group.tag,
 					group.release,
-					group.version_format,
+					group.version_format.clone(),
 					group.packages.clone(),
 				)
 			} else {
@@ -239,24 +239,29 @@ pub(crate) async fn build_release_targets(
 					ReleaseOwnerKind::Package,
 					package_definition.tag,
 					package_definition.release,
-					package_definition.version_format,
+					package_definition.version_format.clone(),
 					vec![package_definition.id.clone()],
 				)
 			};
 		let vs = version.to_string();
-		let tag = render_tag_name(owner_id, &vs, version_format);
+		let tag = render_tag_name(
+			owner_id,
+			&vs,
+			package_definition.package_type.as_str(),
+			&version_format,
+		);
 		let prev = find_previous_tag_in(&tag, &sorted_tags);
 		let ctx =
 			TitleRenderContext::new(owner_id, &vs, changes_count, source, &tag, prev.as_deref());
 		let rt = effective_title_template(
 			package_definition.release_title.as_deref(),
 			defaults_release_title,
-			default_release_title_for_format(version_format),
+			default_release_title_for_format(&version_format),
 		);
 		let ct = effective_title_template(
 			package_definition.changelog_version_title.as_deref(),
 			defaults_changelog_title,
-			default_changelog_version_title_for_format(version_format),
+			default_changelog_version_title_for_format(&version_format),
 		);
 		release_targets.push(ReleaseTarget {
 			id: owner_id.clone(),
@@ -364,12 +369,15 @@ pub(crate) fn build_manifest_updates_parallel(
 }
 
 #[allow(clippy::match_same_arms)]
-pub(crate) fn render_tag_name(id: &str, version: &str, version_format: VersionFormat) -> String {
-	match version_format {
-		VersionFormat::Namespaced => format!("{id}/v{version}"),
-		VersionFormat::Primary => format!("v{version}"),
-		_ => format!("v{version}"),
-	}
+pub(crate) fn render_tag_name(
+	id: &str,
+	version: &str,
+	ecosystem: &str,
+	version_format: &VersionFormat,
+) -> String {
+	version_format
+		.render_tag(id, version, ecosystem)
+		.unwrap_or_else(|_| format!("v{version}"))
 }
 
 /// Dispatch tag URL generation to the appropriate provider crate.
@@ -557,7 +565,7 @@ pub(crate) fn effective_title_template<'a>(
 }
 
 #[allow(clippy::match_same_arms)]
-pub(crate) fn default_release_title_for_format(version_format: VersionFormat) -> &'static str {
+pub(crate) fn default_release_title_for_format(version_format: &VersionFormat) -> &'static str {
 	match version_format {
 		VersionFormat::Primary => DEFAULT_RELEASE_TITLE_PRIMARY,
 		VersionFormat::Namespaced => DEFAULT_RELEASE_TITLE_NAMESPACED,
@@ -567,7 +575,7 @@ pub(crate) fn default_release_title_for_format(version_format: VersionFormat) ->
 
 #[allow(clippy::match_same_arms)]
 pub(crate) fn default_changelog_version_title_for_format(
-	version_format: VersionFormat,
+	version_format: &VersionFormat,
 ) -> &'static str {
 	match version_format {
 		VersionFormat::Primary => DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY,
@@ -1106,7 +1114,7 @@ pub(crate) fn build_release_manifest(
 					version: target.version.clone(),
 					tag: target.tag,
 					release: target.release,
-					version_format: target.version_format,
+					version_format: target.version_format.clone(),
 					tag_name: target.tag_name.clone(),
 					members: target.members.clone(),
 					rendered_title: target.rendered_title.clone(),
@@ -1200,7 +1208,7 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 					version: target.version.clone(),
 					tag: target.tag,
 					release: target.release,
-					version_format: target.version_format,
+					version_format: target.version_format.clone(),
 					tag_name: target.tag_name.clone(),
 					members: target.members.clone(),
 					rendered_title: String::new(),
@@ -1274,7 +1282,7 @@ pub(crate) fn build_release_record(
 					id: target.id.clone(),
 					kind: target.kind,
 					version: target.version.clone(),
-					version_format: target.version_format,
+					version_format: target.version_format.clone(),
 					tag: target.tag,
 					release: target.release,
 					tag_name: target.tag_name.clone(),

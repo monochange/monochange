@@ -8308,3 +8308,56 @@ include = ["modules/*"]
 	assert_eq!(package.package_type, monochange_core::PackageType::Go);
 	assert_eq!(package.path, PathBuf::from("modules/service"));
 }
+
+#[test]
+fn load_workspace_configuration_accepts_custom_version_formats() {
+	let root = fixture_path("config/custom-version-format");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let core = configuration.package_by_id("core").expect("core package");
+	assert_eq!(
+		core.version_format,
+		monochange_core::VersionFormat::Custom(
+			"{{ ecosystem }}/{{ name }}/v{{ version }}".to_string()
+		)
+	);
+	let cli = configuration.package_by_id("cli").expect("cli package");
+	assert_eq!(
+		cli.version_format,
+		monochange_core::VersionFormat::Custom("{{ name }}-v{{ version }}".to_string())
+	);
+	let group = configuration.group_by_id("sdk").expect("sdk group");
+	assert_eq!(
+		group.version_format,
+		monochange_core::VersionFormat::Custom("groups/{{ name }}/v{{ version }}".to_string())
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_colliding_custom_version_formats() {
+	let root = fixture_path("config/rejects-colliding-custom-version-format");
+	let error = load_workspace_configuration(&root)
+		.expect_err("colliding custom version formats should be rejected")
+		.render();
+	assert!(error.contains("renders the same sample tag `release-v0.0.0`"));
+	assert!(error.contains("include `{{ name }}`"));
+}
+
+#[test]
+fn load_workspace_configuration_rejects_primary_custom_version_format_collision() {
+	let root = fixture_path("config/rejects-primary-custom-version-format-collision");
+	let error = load_workspace_configuration(&root)
+		.expect_err("primary and equivalent custom version formats should be rejected")
+		.render();
+	assert!(error.contains("renders the same sample tag `v0.0.0`"));
+	assert!(error.contains("include `{{ name }}`"));
+}
+
+#[test]
+fn load_workspace_configuration_rejects_invalid_custom_version_format_tags() {
+	let root = fixture_path("config/rejects-invalid-custom-version-format");
+	let error = load_workspace_configuration(&root)
+		.expect_err("invalid custom version format tags should be rejected")
+		.render();
+	assert!(error.contains("contains whitespace"));
+}

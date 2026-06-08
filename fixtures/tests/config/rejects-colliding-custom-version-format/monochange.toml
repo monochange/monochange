@@ -1,0 +1,9 @@
+[package.core]
+path = "packages/core"
+type = "cargo"
+version_format = "release-v{{ version }}"
+
+[package.cli]
+path = "packages/cli"
+type = "cargo"
+version_format = "release-v{{ version }}"

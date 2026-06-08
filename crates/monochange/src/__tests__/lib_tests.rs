@@ -12857,12 +12857,21 @@ async fn create_release_tags_creates_and_pushes_tags_in_process() {
 fn render_tag_name_and_provider_urls_follow_provider_conventions() {
 	let github = sample_github_source_configuration("https://api.github.com");
 	assert_eq!(
-		crate::render_tag_name("core", "1.2.3", VersionFormat::Primary),
+		crate::render_tag_name("core", "1.2.3", "cargo", &VersionFormat::Primary),
 		"v1.2.3"
 	);
 	assert_eq!(
-		crate::render_tag_name("core", "1.2.3", VersionFormat::Namespaced),
+		crate::render_tag_name("core", "1.2.3", "cargo", &VersionFormat::Namespaced),
 		"core/v1.2.3"
+	);
+	assert_eq!(
+		crate::render_tag_name(
+			"core",
+			"1.2.3",
+			"cargo",
+			&VersionFormat::Custom("{{ ecosystem }}/{{ name }}/v{{ version }}".to_string())
+		),
+		"cargo/core/v1.2.3"
 	);
 	assert!(crate::tag_url_for_provider(&github, "v1.2.3").contains("/releases/tag/v1.2.3"));
 	assert!(
@@ -13327,19 +13336,19 @@ fn effective_title_template_prefers_specific_then_defaults_then_builtin() {
 #[test]
 fn default_title_templates_follow_version_format_defaults() {
 	assert_eq!(
-		crate::default_release_title_for_format(VersionFormat::Primary),
+		crate::default_release_title_for_format(&VersionFormat::Primary),
 		monochange_core::DEFAULT_RELEASE_TITLE_PRIMARY
 	);
 	assert_eq!(
-		crate::default_release_title_for_format(VersionFormat::Namespaced),
+		crate::default_release_title_for_format(&VersionFormat::Namespaced),
 		monochange_core::DEFAULT_RELEASE_TITLE_NAMESPACED
 	);
 	assert_eq!(
-		crate::default_changelog_version_title_for_format(VersionFormat::Primary),
+		crate::default_changelog_version_title_for_format(&VersionFormat::Primary),
 		monochange_core::DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY
 	);
 	assert_eq!(
-		crate::default_changelog_version_title_for_format(VersionFormat::Namespaced),
+		crate::default_changelog_version_title_for_format(&VersionFormat::Namespaced),
 		monochange_core::DEFAULT_CHANGELOG_VERSION_TITLE_NAMESPACED
 	);
 }
