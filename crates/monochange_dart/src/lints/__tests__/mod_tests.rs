@@ -68,7 +68,7 @@ fn ctx(target: &LintTarget) -> LintContext<'_> {
 fn config() -> LintRuleConfig {
 	LintRuleConfig::Detailed {
 		level: LintSeverity::Error,
-		options: BTreeMap::from([("fix".to_string(), json!(true))]),
+		options: BTreeMap::new(),
 	}
 }
 

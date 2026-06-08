@@ -825,11 +825,6 @@ monochange_linting::declare_lint_rule! {
 	autofixable: true,
 	options: vec![
 		LintOptionDefinition::new(
-			"fix",
-			"apply an autofix that updates the repository field",
-			LintOptionKind::Boolean,
-		),
-		LintOptionDefinition::new(
 			"allow_workspace_inheritance",
 			"skip manifests that use `repository = { workspace = true }` instead of resolving the inherited value and validating it against the expected URL",
 			LintOptionKind::Boolean,
@@ -869,25 +864,21 @@ impl LintRuleRunner for ManifestRepositoryRule {
 			None => {
 				// Repository field is missing
 				let location = LintLocation::new(ctx.manifest_path, 1, 1);
-				let mut result = LintResult::new(
+				let mut doc = file.document.clone();
+				if let Some(pkg) = doc.get_mut("package").and_then(|p| p.as_table_mut()) {
+					pkg.insert("repository", toml_value(&expected));
+				}
+				let result = LintResult::new(
 					self.rule.id.clone(),
 					location,
 					"manifest is missing the repository field".to_string(),
 					config.severity(),
-				);
-				if let Some(fix) = config.bool_option("fix", true).then(|| {
-					let mut doc = file.document.clone();
-					if let Some(pkg) = doc.get_mut("package").and_then(|p| p.as_table_mut()) {
-						pkg.insert("repository", toml_value(&expected));
-					}
-					LintFix::single(
-						"insert repository field",
-						(0, ctx.contents.len()),
-						doc.to_string(),
-					)
-				}) {
-					result = result.with_fix(fix);
-				}
+				)
+				.with_fix(LintFix::single(
+					"insert repository field",
+					(0, ctx.contents.len()),
+					doc.to_string(),
+				));
 				vec![result]
 			}
 			Some(item) => {
@@ -909,24 +900,20 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					}
 					let span = item.span().map(|s| (s.start, s.end));
 					let location = location_from_span(ctx.manifest_path, ctx.contents, span);
-					let mut result = LintResult::new(
+					let replacement = format!("repository = \"{expected}\"");
+					let result = LintResult::new(
 						self.rule.id.clone(),
 						location,
 						format!(
 							"workspace-inherited repository resolves to \"{inherited}\" but should be \"{expected}\""
 						),
 						config.severity(),
-					);
-					if let Some(fix) = config.bool_option("fix", true).then(|| {
-						let replacement = format!("repository = \"{expected}\"");
-						LintFix::single(
-							"replace workspace-inherited repository with explicit value",
-							span.unwrap_or((0, ctx.contents.len())),
-							replacement,
-						)
-					}) {
-						result = result.with_fix(fix);
-					}
+					)
+					.with_fix(LintFix::single(
+						"replace workspace-inherited repository with explicit value",
+						span.unwrap_or((0, ctx.contents.len())),
+						replacement,
+					));
 					return vec![result];
 				}
 
@@ -937,22 +924,18 @@ impl LintRuleRunner for ManifestRepositoryRule {
 
 				let span = item.span().map(|s| (s.start, s.end));
 				let location = location_from_span(ctx.manifest_path, ctx.contents, span);
-				let mut result = LintResult::new(
+				let replacement = format!("repository = \"{expected}\"");
+				let result = LintResult::new(
 					self.rule.id.clone(),
 					location,
 					format!("repository field is \"{current}\" but should be \"{expected}\""),
 					config.severity(),
-				);
-				if let Some(fix) = config.bool_option("fix", true).then(|| {
-					let replacement = format!("repository = \"{expected}\"");
-					LintFix::single(
-						"fix repository field",
-						span.unwrap_or((0, ctx.contents.len())),
-						replacement,
-					)
-				}) {
-					result = result.with_fix(fix);
-				}
+				)
+				.with_fix(LintFix::single(
+					"fix repository field",
+					span.unwrap_or((0, ctx.contents.len())),
+					replacement,
+				));
 				vec![result]
 			}
 		}

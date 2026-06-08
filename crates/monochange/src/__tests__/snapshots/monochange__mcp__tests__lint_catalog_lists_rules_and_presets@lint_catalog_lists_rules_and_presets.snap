@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
+assertion_line: 688
 expression: content_text(&result)
 ---
 {
@@ -202,9 +203,9 @@ expression: content_text(&result)
       "name": "Manifest repository must point to the correct subdirectory",
       "options": [
         {
-          "description": "apply an autofix that updates the repository field",
+          "description": "skip manifests that use `repository = { workspace = true }` instead of resolving the inherited value and validating it against the expected URL",
           "kind": "boolean",
-          "name": "fix"
+          "name": "allow_workspace_inheritance"
         }
       ]
     },
@@ -377,13 +378,7 @@ expression: content_text(&result)
       "id": "dart/manifest-repository",
       "maturity": "stable",
       "name": "Manifest repository must point to the correct subdirectory",
-      "options": [
-        {
-          "description": "apply an autofix that updates the repository field",
-          "kind": "boolean",
-          "name": "fix"
-        }
-      ]
+      "options": []
     },
     {
       "autofixable": false,
@@ -495,13 +490,7 @@ expression: content_text(&result)
       "id": "npm/manifest-repository",
       "maturity": "stable",
       "name": "Manifest repository must point to the correct subdirectory",
-      "options": [
-        {
-          "description": "apply an autofix that updates the repository field",
-          "kind": "boolean",
-          "name": "fix"
-        }
-      ]
+      "options": []
     },
     {
       "autofixable": true,

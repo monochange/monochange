@@ -895,12 +895,7 @@ impl ManifestRepositoryRule {
 				LintCategory::Correctness,
 				LintMaturity::Stable,
 				true,
-			)
-			.with_options(vec![LintOptionDefinition::new(
-				"fix",
-				"apply an autofix that updates the repository field",
-				LintOptionKind::Boolean,
-			)]),
+			),
 		}
 	}
 }
@@ -930,25 +925,23 @@ impl LintRuleRunner for ManifestRepositoryRule {
 		match repo_value {
 			None => {
 				let loc = location(ctx);
-				let mut result = LintResult::new(
+				let mut manifest = file.manifest.clone();
+				if let Some(obj) = manifest_object_mut(&mut manifest) {
+					obj.insert("repository".to_string(), Value::String(expected.clone()));
+				}
+				let fixed = serde_json::to_string_pretty(&manifest)
+					.unwrap_or_else(|_| ctx.contents.to_string());
+				let result = LintResult::new(
 					self.rule.id.clone(),
 					loc,
 					"manifest is missing the repository field".to_string(),
 					config.severity(),
-				);
-				if config.bool_option("fix", true) {
-					let mut manifest = file.manifest.clone();
-					if let Some(obj) = manifest_object_mut(&mut manifest) {
-						obj.insert("repository".to_string(), Value::String(expected.clone()));
-					}
-					let fixed = serde_json::to_string_pretty(&manifest)
-						.unwrap_or_else(|_| ctx.contents.to_string());
-					result = result.with_fix(LintFix::single(
-						"insert repository field",
-						(0, ctx.contents.len()),
-						fixed,
-					));
-				}
+				)
+				.with_fix(LintFix::single(
+					"insert repository field",
+					(0, ctx.contents.len()),
+					fixed,
+				));
 				vec![result]
 			}
 			Some(value) => {
@@ -957,23 +950,23 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					return Vec::new();
 				}
 				let loc = location(ctx);
-				let mut result = LintResult::new(
+				let mut manifest = file.manifest.clone();
+				if let Some(obj) = manifest_object_mut(&mut manifest) {
+					obj.insert("repository".to_string(), Value::String(expected.clone()));
+				}
+				let fixed = serde_json::to_string_pretty(&manifest)
+					.unwrap_or_else(|_| ctx.contents.to_string());
+				let result = LintResult::new(
 					self.rule.id.clone(),
 					loc,
 					format!("repository field is \"{current}\" but should be \"{expected}\""),
 					config.severity(),
-				);
-				if let Some(fix) = config.bool_option("fix", true).then(|| {
-					let mut manifest = file.manifest.clone();
-					if let Some(obj) = manifest_object_mut(&mut manifest) {
-						obj.insert("repository".to_string(), Value::String(expected.clone()));
-					}
-					let fixed = serde_json::to_string_pretty(&manifest)
-						.unwrap_or_else(|_| ctx.contents.to_string());
-					LintFix::single("fix repository field", (0, ctx.contents.len()), fixed)
-				}) {
-					result = result.with_fix(fix);
-				}
+				)
+				.with_fix(LintFix::single(
+					"fix repository field",
+					(0, ctx.contents.len()),
+					fixed,
+				));
 				vec![result]
 			}
 		}
