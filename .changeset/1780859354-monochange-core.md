@@ -3,6 +3,7 @@ monochange_core: patch
 monochange_cargo: patch
 monochange_dart: patch
 monochange_npm: patch
+"@monochange/skill": patch
 ---
 
 # Add manifest-repository lint rule across all ecosystems

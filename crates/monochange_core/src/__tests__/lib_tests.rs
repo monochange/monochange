@@ -3875,7 +3875,7 @@ fn ecosystem_settings_auto_discover_skips_when_none() -> Result<(), serde_json::
 fn version_format_serializes_custom_templates_as_strings() {
 	let custom = VersionFormat::Custom("{{ name }}/release/{{ version }}".to_string());
 	let encoded = serde_json::to_string(&custom).expect("serialize version format");
-	assert_eq!(encoded, ""{{ name }}/release/{{ version }}"");
+	assert_eq!(encoded, "\"{{ name }}/release/{{ version }}\"");
 	let decoded: VersionFormat =
 		serde_json::from_str(&encoded).expect("deserialize version format");
 	assert_eq!(decoded, custom);
