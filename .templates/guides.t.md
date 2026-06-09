@@ -1074,12 +1074,14 @@ Preset rules provide the baseline. Explicit entries in `[lints.rules]` override 
 | `cargo/required-package-fields`                  | Cargo          | correctness   | no      | Requires selected `[package]` metadata fields.                                                                                      |
 | `cargo/sorted-dependencies`                      | Cargo          | style         | yes     | Sorts dependency tables alphabetically.                                                                                             |
 | `cargo/unlisted-package-private`                 | Cargo          | correctness   | yes     | Requires unmanaged crates to set `publish = false`.                                                                                 |
+| `cargo/manifest-repository`                      | Cargo          | correctness   | yes     | Requires `package.repository` to point at the root repository or the package subdirectory URL.                                      |
 | `npm/workspace-protocol`                         | npm-family     | correctness   | yes     | Requires internal dependencies to use `workspace:` ranges.                                                                          |
 | `npm/sorted-dependencies`                        | npm-family     | style         | yes     | Sorts dependency sections alphabetically.                                                                                           |
 | `npm/required-package-fields`                    | npm-family     | correctness   | no      | Requires selected `package.json` metadata fields.                                                                                   |
 | `npm/root-no-prod-deps`                          | npm-family     | best practice | yes     | Keeps production dependencies out of the workspace root package.                                                                    |
 | `npm/no-duplicate-dependencies`                  | npm-family     | correctness   | yes     | Prevents the same dependency from appearing in multiple dependency sections.                                                        |
 | `npm/unlisted-package-private`                   | npm-family     | correctness   | yes     | Requires unmanaged packages to set `private: true`.                                                                                 |
+| `npm/manifest-repository`                        | npm-family     | correctness   | yes     | Requires `repository` in `package.json` to point at the root repository or the package subdirectory URL.                            |
 | `dart/sdk-constraint-present`                    | Dart           | correctness   | no      | Requires `environment.sdk` in `pubspec.yaml`.                                                                                       |
 | `dart/sdk-constraint-modern`                     | Dart           | best practice | no      | Enforces a modern SDK lower bound and, by default, an upper bound.                                                                  |
 | `dart/dependency-sorted`                         | Dart           | style         | yes     | Sorts dependency sections in `pubspec.yaml`.                                                                                        |
@@ -1091,6 +1093,7 @@ Preset rules provide the baseline. Explicit entries in `[lints.rules]` override 
 | `dart/workspace-internal-version-consistency`    | Dart           | correctness   | no      | Requires internal hosted dependency ranges to match workspace package versions.                                                     |
 | `dart/flutter-package-metadata-consistent`       | Dart / Flutter | correctness   | no      | Requires Flutter packages to declare the Flutter SDK dependency consistently.                                                       |
 | `dart/assets-sorted`                             | Dart / Flutter | style         | yes     | Sorts Flutter assets and fonts.                                                                                                     |
+| `dart/manifest-repository`                       | Dart           | correctness   | yes     | Requires `repository` in `pubspec.yaml` to point at the root repository or the package subdirectory URL.                            |
 
 ## Changeset lint rules
 
@@ -1325,6 +1328,52 @@ publish = false
 
 - `fix` — defaults to `true`; inserts `publish = false` when safe.
 
+### `cargo/manifest-repository`
+
+**Why:** package registry pages should send readers to the exact source directory for the package they are using. In monorepos, a root repository URL is correct for root-level packages, but packages under subdirectories should link to that subdirectory on the configured default branch.
+
+**What it checks:** the rule compares `[package].repository` with the repository URL derived from `[source]` in `monochange.toml`:
+
+- root-level packages must use the base repository URL, such as `https://github.com/acme/widgets`
+- subdirectory packages must use `{repo_url}/tree/{default_branch}/{relative_package_dir}`, such as `https://github.com/acme/widgets/tree/main/crates/widget_core`
+- if `[source]` is missing, the rule skips because monochange cannot derive the canonical repository URL
+
+Cargo manifests may also use `repository = { workspace = true }`. By default, this rule resolves that inheritance from the root `Cargo.toml`'s `[workspace.package].repository`, falling back to root `[package].repository`. If the inherited root value does not point at the package subdirectory, the rule reports the package manifest and can replace the inherited inline table with an explicit repository URL.
+
+**Without the rule:**
+
+```toml
+[package]
+name = "widget_core"
+version = "0.1.0"
+repository = "https://github.com/acme/widgets"
+```
+
+**With the rule:**
+
+```toml
+[package]
+name = "widget_core"
+version = "0.1.0"
+repository = "https://github.com/acme/widgets/tree/main/crates/widget_core"
+```
+
+**Configuration:**
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = "error"
+```
+
+Set `allow_workspace_inheritance = true` only when you intentionally want to permit `repository = { workspace = true }` without resolving it against the package path:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = { level = "error", allow_workspace_inheritance = true }
+```
+
+**Autofix:** run `monochange check --fix` to insert a missing `repository`, replace an incorrect value, or convert `repository = { workspace = true }` into the explicit URL required for the package directory. There is no per-rule `fix` option; applying fixes is controlled by the CLI flag.
+
 ## npm-family manifest lint rules
 
 npm-family rules apply to `package.json` manifests discovered through npm, pnpm, yarn, Bun, and Deno/npm-style package graphs.
@@ -1489,6 +1538,45 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 **Options:**
 
 - `fix` — defaults to `true`; inserts `private: true` when safe.
+
+### `npm/manifest-repository`
+
+**Why:** npm package metadata should link users to the exact source folder for that package. In monorepos, a root repository URL is correct only for root-level packages; packages in subdirectories should link directly to their package directory on the configured default branch.
+
+**What it checks:** the rule compares `repository` in `package.json` with the repository URL derived from `[source]` in `monochange.toml`:
+
+- root-level packages must use the base repository URL, such as `https://github.com/acme/widgets`
+- subdirectory packages must use `{repo_url}/tree/{default_branch}/{relative_package_dir}`, such as `https://github.com/acme/widgets/tree/main/packages/widget-core`
+- if `[source]` is missing, the rule skips because monochange cannot derive the canonical repository URL
+
+**Without the rule:**
+
+```json
+{
+	"name": "@acme/widget-core",
+	"version": "0.1.0",
+	"repository": "https://github.com/acme/widgets"
+}
+```
+
+**With the rule:**
+
+```json
+{
+	"name": "@acme/widget-core",
+	"version": "0.1.0",
+	"repository": "https://github.com/acme/widgets/tree/main/packages/widget-core"
+}
+```
+
+**Configuration:**
+
+```toml
+[lints.rules]
+"npm/manifest-repository" = "error"
+```
+
+**Autofix:** run `monochange check --fix` to insert a missing `repository` or replace an incorrect value. There is no per-rule `fix` option; applying fixes is controlled by the CLI flag.
 
 ## Dart manifest lint rules
 
@@ -1741,6 +1829,41 @@ flutter:
 
 - `fix` — defaults to `true`; rewrites Flutter assets and fonts in sorted order.
 
+### `dart/manifest-repository`
+
+**Why:** Dart and Flutter package metadata should link users to the exact source folder for that package. In monorepos, a root repository URL is correct only for root-level packages; packages in subdirectories should link directly to their package directory on the configured default branch.
+
+**What it checks:** the rule compares `repository` in `pubspec.yaml` with the repository URL derived from `[source]` in `monochange.toml`:
+
+- root-level packages must use the base repository URL, such as `https://github.com/acme/widgets`
+- subdirectory packages must use `{repo_url}/tree/{default_branch}/{relative_package_dir}`, such as `https://github.com/acme/widgets/tree/main/packages/widget_core`
+- if `[source]` is missing, the rule skips because monochange cannot derive the canonical repository URL
+
+**Without the rule:**
+
+```yaml
+name: widget_core
+version: 0.1.0
+repository: https://github.com/acme/widgets
+```
+
+**With the rule:**
+
+```yaml
+name: widget_core
+version: 0.1.0
+repository: https://github.com/acme/widgets/tree/main/packages/widget_core
+```
+
+**Configuration:**
+
+```toml
+[lints.rules]
+"dart/manifest-repository" = "error"
+```
+
+**Autofix:** run `monochange check --fix` to insert a missing `repository` or replace an incorrect value. There is no per-rule `fix` option; applying fixes is controlled by the CLI flag.
+
 ## What `monochange check` looks like in practice
 
 Use plain text for local review:
@@ -1780,3 +1903,29 @@ devenv shell docs:check
 ```
 
 <!-- {/lintingPolicyReference} -->
+
+<!-- {@manifestRepositoryLintReadmeSummary} -->
+
+### Optional repository URL lint rules
+
+monochange includes opt-in repository URL lint rules for Cargo, Dart, and npm-family manifests:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = "error"
+"dart/manifest-repository" = "error"
+"npm/manifest-repository" = "error"
+```
+
+These rules compare each manifest's `repository` field with the repository configured under `[source]` in `monochange.toml`. Root-level packages use the base repository URL, while packages in subdirectories use `{repo_url}/tree/{default_branch}/{relative_package_dir}`. Run `monochange check --fix` to insert or update repository fields; there is no per-rule `fix` option.
+
+Cargo also resolves `repository = { workspace = true }` by reading the root manifest's `[workspace.package].repository` (falling back to root `[package].repository`). If you intentionally want to allow workspace inheritance without validating the package-specific URL, configure:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = { level = "error", allow_workspace_inheritance = true }
+```
+
+For full rule-by-rule behavior, see the manifest linting reference and `monochange lint explain <rule-id>`.
+
+<!-- {/manifestRepositoryLintReadmeSummary} -->

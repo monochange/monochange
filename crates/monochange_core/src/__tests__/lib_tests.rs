@@ -3940,6 +3940,31 @@ fn version_format_methods_cover_builtin_and_custom_formats() {
 }
 
 #[test]
+fn source_provider_default_host_returns_correct_hosts() {
+	assert_eq!(SourceProvider::GitHub.default_host(), "github.com");
+	assert_eq!(SourceProvider::GitLab.default_host(), "gitlab.com");
+	assert_eq!(SourceProvider::Gitea.default_host(), "gitea.com");
+	assert_eq!(SourceProvider::Forgejo.default_host(), "forgejo.com");
+}
+
+#[test]
+fn source_configuration_repository_url_uses_configured_host() {
+	let config = SourceConfiguration {
+		provider: SourceProvider::Gitea,
+		owner: "myorg".to_string(),
+		repo: "myrepo".to_string(),
+		host: Some("git.example.com".to_string()),
+		api_url: None,
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	};
+	assert_eq!(
+		config.repository_url(),
+		"https://git.example.com/myorg/myrepo"
+	);
+}
+
+#[test]
 fn version_format_rejects_unknown_template_variables() {
 	let error = crate::render_version_format_template(
 		"{{ package }}/v{{ version }}",
@@ -4008,4 +4033,38 @@ fn version_format_rejects_malformed_template_syntax() {
 			error.render()
 		);
 	}
+}
+
+#[test]
+fn source_configuration_default_branch_falls_back_to_main() {
+	let config = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		owner: "o".to_string(),
+		repo: "r".to_string(),
+		host: None,
+		api_url: None,
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings {
+			base: String::new(),
+			..ProviderMergeRequestSettings::default()
+		},
+	};
+	assert_eq!(config.default_branch(), "main");
+}
+
+#[test]
+fn source_configuration_default_branch_reads_configured_base() {
+	let config = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		owner: "o".to_string(),
+		repo: "r".to_string(),
+		host: None,
+		api_url: None,
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings {
+			base: "develop".to_string(),
+			..ProviderMergeRequestSettings::default()
+		},
+	};
+	assert_eq!(config.default_branch(), "develop");
 }

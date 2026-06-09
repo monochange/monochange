@@ -19,6 +19,32 @@ monochange discovers packages in a monorepo, reads release intent from `.changes
 - [skills/trusted-publishing.md](./skills/trusted-publishing.md) — OIDC/trusted-publishing notes for package registries.
 - [examples/readme.md](./examples/readme.md) — scenario examples.
 
+<!-- {=manifestRepositoryLintReadmeSummary} -->
+
+### Optional repository URL lint rules
+
+monochange includes opt-in repository URL lint rules for Cargo, Dart, and npm-family manifests:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = "error"
+"dart/manifest-repository" = "error"
+"npm/manifest-repository" = "error"
+```
+
+These rules compare each manifest's `repository` field with the repository configured under `[source]` in `monochange.toml`. Root-level packages use the base repository URL, while packages in subdirectories use `{repo_url}/tree/{default_branch}/{relative_package_dir}`. Run `monochange check --fix` to insert or update repository fields; there is no per-rule `fix` option.
+
+Cargo also resolves `repository = { workspace = true }` by reading the root manifest's `[workspace.package].repository` (falling back to root `[package].repository`). If you intentionally want to allow workspace inheritance without validating the package-specific URL, configure:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = { level = "error", allow_workspace_inheritance = true }
+```
+
+For full rule-by-rule behavior, see the manifest linting reference and `monochange lint explain <rule-id>`.
+
+<!-- {/manifestRepositoryLintReadmeSummary} -->
+
 ## Important distinction
 
 The CLI has three command classes:
