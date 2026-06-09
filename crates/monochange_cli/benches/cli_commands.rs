@@ -229,7 +229,7 @@ fn run_command(root: &Path, command: &str, dry_run: bool) -> String {
 	block_on_bench(temp_env::async_with_vars(
 		[("MONOCHANGE_RELEASE_DATE", Some("2026-04-06"))],
 		async {
-			monochange::run_with_args_in_dir("monochange", command_args(command, dry_run), root)
+			monochange_cli::run_with_args_in_dir("monochange", command_args(command, dry_run), root)
 				.await
 				.unwrap()
 		},
@@ -244,7 +244,7 @@ fn run_release_pr_command(root: &Path, dry_run: bool, github_api_url: Option<&st
 			("GITHUB_API_URL", github_api_url),
 		],
 		async {
-			monochange::run_with_args_in_dir("monochange", release_pr_args(dry_run), root)
+			monochange_cli::run_with_args_in_dir("monochange", release_pr_args(dry_run), root)
 				.await
 				.unwrap()
 		},
@@ -370,7 +370,7 @@ fn bench_discover(c: &mut Criterion) {
 			|b, &(packages, changesets)| {
 				let tempdir = tempfile::tempdir().unwrap();
 				generate_fixture(tempdir.path(), packages, changesets);
-				b.iter(|| monochange::discover_workspace(tempdir.path()).unwrap());
+				b.iter(|| monochange_cli::discover_workspace(tempdir.path()).unwrap());
 			},
 		);
 	}
@@ -410,7 +410,7 @@ fn bench_changeset_loading(c: &mut Criterion) {
 				generate_fixture(tempdir.path(), packages, changesets);
 				let configuration =
 					monochange_config::load_workspace_configuration(tempdir.path()).unwrap();
-				let discovery = monochange::discover_workspace(tempdir.path()).unwrap();
+				let discovery = monochange_cli::discover_workspace(tempdir.path()).unwrap();
 				let changeset_dir = tempdir.path().join(".changeset");
 				let changeset_paths: Vec<_> = fs::read_dir(&changeset_dir)
 					.unwrap()
@@ -477,7 +477,7 @@ fn bench_prepare_release_dry_run(c: &mut Criterion) {
 				let tempdir = tempfile::tempdir().unwrap();
 				generate_fixture(tempdir.path(), packages, changesets);
 				b.iter(|| {
-					block_on_bench(monochange::prepare_release(tempdir.path(), true)).unwrap()
+					block_on_bench(monochange_cli::prepare_release(tempdir.path(), true)).unwrap()
 				});
 			},
 		);
@@ -603,7 +603,8 @@ fn bench_prepare_release_apply(c: &mut Criterion) {
 						// Benchmark the real non-dry-run path without rendering diff
 						// previews. This is the critical fast path for `monochange release`
 						// after we switched supported lockfiles to direct rewrites.
-						block_on_bench(monochange::prepare_release(tempdir.path(), false)).unwrap();
+						block_on_bench(monochange_cli::prepare_release(tempdir.path(), false))
+							.unwrap();
 					},
 					BatchSize::LargeInput,
 				);
@@ -635,7 +636,7 @@ fn bench_prepare_release_apply_cargo_lockfile_refresh(c: &mut Criterion) {
 					tempdir
 				},
 				|tempdir| {
-					block_on_bench(monochange::prepare_release(tempdir.path(), false)).unwrap();
+					block_on_bench(monochange_cli::prepare_release(tempdir.path(), false)).unwrap();
 				},
 				BatchSize::LargeInput,
 			);
@@ -658,7 +659,7 @@ fn bench_prepare_release_apply_cargo_lockfile_refresh(c: &mut Criterion) {
 					tempdir
 				},
 				|tempdir| {
-					block_on_bench(monochange::prepare_release(tempdir.path(), false)).unwrap();
+					block_on_bench(monochange_cli::prepare_release(tempdir.path(), false)).unwrap();
 				},
 				BatchSize::LargeInput,
 			);
@@ -686,7 +687,7 @@ fn bench_prepare_release_with_git_history(c: &mut Criterion) {
 				let tempdir = tempfile::tempdir().unwrap();
 				generate_fixture_with_git_history(tempdir.path(), 10, 20, history_commits);
 				b.iter(|| {
-					block_on_bench(monochange::prepare_release(tempdir.path(), true)).unwrap()
+					block_on_bench(monochange_cli::prepare_release(tempdir.path(), true)).unwrap()
 				});
 			},
 		);
@@ -819,7 +820,7 @@ fn bench_cli_startup_help(c: &mut Criterion) {
 		generate_fixture(tempdir.path(), 20, 5);
 		group.bench_with_input(BenchmarkId::from_parameter(label), &args, |b, args| {
 			b.iter(|| {
-				block_on_bench(monochange::run_with_args_in_dir(
+				block_on_bench(monochange_cli::run_with_args_in_dir(
 					"mc",
 					args.clone(),
 					tempdir.path(),

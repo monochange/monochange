@@ -249,6 +249,9 @@ perf = { bump = "none", section = "perf", description = "Performance and benchma
 [package.monochange]
 path = "crates/monochange"
 
+[package.monochange_cli]
+path = "crates/monochange_cli"
+
 [package.monochange_core]
 path = "crates/monochange_core"
 
@@ -421,6 +424,7 @@ packages = [
 	"@monochange/skill",
 	"monochange",
 	"monochange_analysis",
+	"monochange_cli",
 	"monochange_cargo",
 	"monochange_changelog",
 	"monochange_config",

@@ -1313,7 +1313,7 @@ pub fn run_skill_commands_with_paths(
 }
 
 fn render_current_commands_inventory(workspace_dir: &Path) -> Result<String, String> {
-	let cli_source_path = workspace_dir.join("crates/monochange/src/cli.rs");
+	let cli_source_path = workspace_dir.join("crates/monochange_cli/src/cli.rs");
 	let cli_source = fs::read_to_string(&cli_source_path)
 		.map_err(|error| format!("Could not read {}: {error}", cli_source_path.display()))?;
 	let built_in = command_literals_from_cli_source(&cli_source);
@@ -1369,7 +1369,7 @@ fn render_commands_inventory(
 	);
 	push_inventory_group(
 		&mut inventory,
-		"Command literals in `crates/monochange/src/cli.rs`",
+		"Command literals in `crates/monochange_cli/src/cli.rs`",
 		built_in,
 	);
 	push_inventory_group(

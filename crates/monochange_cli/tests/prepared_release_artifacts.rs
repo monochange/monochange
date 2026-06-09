@@ -12,7 +12,7 @@ async fn run_cli<I>(root: &Path, args: I) -> monochange_core::MonochangeResult<S
 where
 	I: IntoIterator<Item = OsString>,
 {
-	monochange::run_with_args_in_dir("monochange", args, root).await
+	monochange_cli::run_with_args_in_dir("monochange", args, root).await
 }
 
 async fn run_json<I>(root: &Path, args: I) -> serde_json::Value

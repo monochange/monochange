@@ -1,0 +1,1556 @@
+#![allow(unstable_features)]
+#![cfg_attr(test, allow(unused_imports, unused_qualifications))]
+#![feature(coverage_attribute)]
+
+//! # `monochange`
+//!
+//! `monochange` is the top-level entry point for the workspace.
+//!
+//! Reach for this crate when you want one API and CLI surface that discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Python, and Go workspaces, exposes top-level commands from `monochange.toml`, and runs configured CLI commands from those definitions.
+//!
+//! ## Why use it?
+//!
+//! - coordinate one config-defined CLI across several package ecosystems
+//! - expose discovery, change creation, and release preparation as both commands and library calls
+//! - connect configuration loading, package discovery, graph propagation, and semver evidence in one place
+//!
+//! ## Best for
+//!
+//! - shipping the `monochange` CLI in CI or local release tooling
+//! - embedding the full end-to-end planner instead of wiring the lower-level crates together yourself
+//! - generating starter config with `monochange init` and then evolving the CLI command surface over time
+//!
+//! ## Key commands
+//!
+//! ```bash
+//! monochange init
+//! monochange skill -a pi -y
+//! monochange discover --format json
+//! monochange change --package monochange --bump patch --reason "describe the change"
+//! monochange release --dry-run --format json
+//! monochange mcp
+//! ```
+//!
+//! ## Responsibilities
+//!
+//! - aggregate all supported ecosystem adapters
+//! - load `monochange.toml`
+//! - load config-defined `[cli.*]` workflow commands from `monochange.toml`
+//! - expose binary commands such as `init`, `check`, `analyze`, `mcp`, `help`, and `version`
+//! - generate immutable `monochange step *` commands from the built-in step schemas
+//! - resolve change input files
+//! - render discovery and release command output in text or JSON
+//! - execute configured workflow commands plus built-in MCP commands
+//! - preview or publish provider releases from prepared release data
+//! - evaluate pull-request changeset policy from CI-supplied changed paths and labels
+//! - expose JSON-first MCP tools for assistant workflows
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::ffi::OsString;
+use std::fmt::Write as _;
+use std::fs;
+#[cfg(feature = "mcp")]
+use std::future::Future;
+use std::io::IsTerminal;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Command as ProcessCommand;
+use std::process::ExitCode;
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+
+use analyze::render_analyze_report;
+use change_classify::parse_api_diff_options;
+use change_classify::parse_api_snapshot_options;
+use change_classify::parse_change_classify_options;
+use change_classify::parse_changeset_validate_api_options;
+use change_classify::render_change_classification;
+use change_classify::render_changeset_api_validation;
+pub(crate) use monochange_changelog::ChangelogBuildContext;
+pub(crate) use monochange_changelog::build_changelog_updates;
+#[cfg(test)]
+pub(crate) use monochange_changelog::render_group_filtered_update_message;
+pub(crate) use monochange_changelog::render_jinja_template;
+pub mod changelog {
+	pub use monochange_changelog::render_message_template;
+}
+pub use changeset_policy::affected_packages;
+pub(crate) use changeset_policy::compute_changed_paths_since;
+pub use changeset_policy::evaluate_changeset_policy;
+pub(crate) use changeset_policy::is_changeset_markdown_path;
+pub(crate) use changeset_policy::normalize_changed_path;
+pub use changeset_policy::verify_changesets;
+pub(crate) use changesets::*;
+use clap::ValueEnum;
+use clap::error::ErrorKind;
+#[cfg(test)]
+pub(crate) use cli::apply_runtime_change_type_choices;
+#[cfg(test)]
+pub(crate) use cli::apply_runtime_prepare_release_markdown_defaults;
+#[cfg(test)]
+pub(crate) use cli::build_cli_command_subcommand;
+pub use cli::build_command;
+#[cfg(test)]
+pub(crate) use cli::build_command_for_root;
+use cli::build_command_with_cli;
+#[cfg(test)]
+pub(crate) use cli::build_skill_subcommand;
+#[cfg(test)]
+pub(crate) use cli::build_subagents_subcommand;
+#[cfg(test)]
+pub(crate) use cli::cli_command_after_help;
+use cli::cli_commands_for_root;
+use cli::cli_commands_from_config;
+#[cfg(test)]
+pub(crate) use cli::configured_change_type_choices;
+use cli::current_dir_or_dot;
+#[cfg(test)]
+pub(crate) use cli_runtime::build_cli_template_context;
+#[cfg(test)]
+pub(crate) use cli_runtime::build_retarget_release_report;
+pub(crate) use cli_runtime::collect_cli_command_inputs;
+pub(crate) use cli_runtime::execute_cli_command;
+use cli_runtime::execute_matches;
+#[cfg(test)]
+pub(crate) use cli_runtime::inferred_retarget_source_configuration;
+#[cfg(test)]
+pub(crate) use cli_runtime::lookup_template_value;
+pub(crate) use cli_runtime::maybe_render_markdown_for_terminal;
+#[cfg(test)]
+pub(crate) use cli_runtime::parse_boolean_step_input;
+#[cfg(test)]
+pub(crate) use cli_runtime::parse_change_bump;
+#[cfg(test)]
+pub(crate) use cli_runtime::parse_direct_template_reference;
+pub(crate) use cli_runtime::parse_output_format;
+#[cfg(test)]
+pub(crate) use cli_runtime::render_cli_command_markdown_result;
+#[cfg(test)]
+pub(crate) use cli_runtime::render_cli_command_result;
+#[cfg(test)]
+pub(crate) use cli_runtime::render_markdown_if_terminal;
+#[cfg(test)]
+pub(crate) use cli_runtime::render_retarget_release_report;
+#[cfg(test)]
+pub(crate) use cli_runtime::retarget_operation_label;
+#[cfg(test)]
+pub(crate) use cli_runtime::template_value_to_input_values;
+use command_wizard::run_command_wizard;
+use git_support::git_commit_paths;
+use git_support::git_head_commit;
+use git_support::git_stage_paths;
+#[cfg(test)]
+pub(crate) use git_support::read_git_commit_message;
+#[cfg(test)]
+pub(crate) use git_support::run_git_capture;
+#[cfg(test)]
+pub(crate) use git_support::run_git_process;
+#[cfg(test)]
+pub(crate) use git_support::run_git_status;
+use migration_audit::run_migration_command;
+#[cfg(feature = "cargo")]
+use monochange_cargo::RustSemverProvider;
+use monochange_config::load_workspace_configuration;
+use monochange_config::resolve_package_reference;
+use monochange_core::BumpSeverity;
+use monochange_core::ChangeSignal;
+use monochange_core::ChangelogFormat;
+use monochange_core::ChangelogTarget;
+use monochange_core::ChangesetContext;
+use monochange_core::ChangesetPolicyEvaluation;
+use monochange_core::ChangesetRevision;
+use monochange_core::CliCommandDefinition;
+use monochange_core::CliStepDefinition;
+use monochange_core::CommitMessage;
+use monochange_core::DEFAULT_CHANGELOG_VERSION_TITLE_NAMESPACED;
+use monochange_core::DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY;
+use monochange_core::DEFAULT_RELEASE_TITLE_NAMESPACED;
+use monochange_core::DEFAULT_RELEASE_TITLE_PRIMARY;
+use monochange_core::DiscoveryReport;
+use monochange_core::Ecosystem;
+use monochange_core::HostedActorRef;
+use monochange_core::HostedActorSourceKind;
+use monochange_core::HostedCommitRef;
+use monochange_core::HostedIssueCommentPlan;
+use monochange_core::HostingCapabilities;
+use monochange_core::HostingProviderKind;
+use monochange_core::MonochangeError;
+use monochange_core::MonochangeResult;
+use monochange_core::PackagePublicationTarget;
+use monochange_core::PackageRecord;
+use monochange_core::PreparedChangeset;
+use monochange_core::PreparedChangesetTarget;
+use monochange_core::ReleaseManifest;
+use monochange_core::ReleaseManifestChangelog;
+use monochange_core::ReleaseManifestCompatibilityEvidence;
+use monochange_core::ReleaseManifestPlan;
+use monochange_core::ReleaseManifestPlanDecision;
+use monochange_core::ReleaseManifestPlanGroup;
+use monochange_core::ReleaseManifestTarget;
+use monochange_core::ReleaseNotesDocument;
+use monochange_core::ReleaseOwnerKind;
+use monochange_core::ReleasePlan;
+use monochange_core::ReleaseRecord;
+use monochange_core::ReleaseRecordDiscovery;
+use monochange_core::ReleaseRecordProvider;
+use monochange_core::ReleaseRecordTarget;
+use monochange_core::RetargetOperation;
+use monochange_core::RetargetProviderResult;
+use monochange_core::RetargetResult;
+use monochange_core::RetargetTagResult;
+use monochange_core::SourceChangeRequest;
+use monochange_core::SourceChangeRequestOperation;
+use monochange_core::SourceChangeRequestOutcome;
+use monochange_core::SourceConfiguration;
+use monochange_core::SourceProvider;
+use monochange_core::SourceReleaseOperation;
+use monochange_core::SourceReleaseOutcome;
+use monochange_core::SourceReleaseRequest;
+use monochange_core::VersionFormat;
+use monochange_core::VersionedFileDefinition;
+use monochange_core::materialize_dependency_edges;
+use monochange_core::relative_to_root;
+#[cfg(feature = "forgejo")]
+use monochange_forgejo as forgejo_provider;
+#[cfg(feature = "gitea")]
+use monochange_gitea as gitea_provider;
+#[cfg(feature = "github")]
+use monochange_github as github_provider;
+#[cfg(feature = "gitlab")]
+use monochange_gitlab as gitlab_provider;
+use monochange_graph::build_release_plan;
+use monochange_semver::CompatibilityProvider;
+use monochange_semver::collect_assessments;
+#[cfg(test)]
+pub(crate) use workspace_ops::build_lockfile_command_executions;
+#[cfg(test)]
+pub(crate) use workspace_ops::change_type_default_bump;
+#[cfg(test)]
+pub(crate) use workspace_ops::prepare_release_execution;
+#[cfg(test)]
+pub(crate) use workspace_ops::render_cli_commands_toml;
+#[cfg(test)]
+pub(crate) use workspace_ops::render_interactive_changeset_markdown;
+
+#[cfg(test)]
+pub(crate) static TEST_ENV_LOCK: std::sync::LazyLock<std::sync::Mutex<()>> =
+	std::sync::LazyLock::new(|| std::sync::Mutex::new(()));
+pub(crate) use release_artifacts::*;
+pub use release_record::discover_release_record;
+pub use release_record::execute_release_retarget;
+pub use release_record::plan_release_retarget;
+use release_record::render_release_record_discovery;
+use release_record::render_release_tag_report;
+pub use release_record::retarget_release;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_json::json;
+use skill::SkillOptions;
+use skill::run_skill;
+use subagents::SubagentOptions;
+use subagents::run_subagents;
+pub(crate) use versioned_files::*;
+pub use workspace_ops::AddChangeFileRequest;
+use workspace_ops::PopulateWorkspaceResult;
+pub use workspace_ops::add_change_file;
+pub(crate) use workspace_ops::add_interactive_change_file;
+pub use workspace_ops::discover_workspace;
+use workspace_ops::init_workspace;
+pub use workspace_ops::plan_release;
+use workspace_ops::populate_workspace;
+pub use workspace_ops::prepare_release;
+pub(crate) use workspace_ops::prepare_release_execution_with_file_diffs;
+pub(crate) use workspace_ops::push_change_target_markdown;
+
+pub(crate) fn render_config_step_json(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+) -> String {
+	let project_root = root
+		.canonicalize()
+		.unwrap_or_else(|_| root.to_path_buf())
+		.display()
+		.to_string();
+	let config_path = monochange_config::config_path(root).display().to_string();
+	let output = serde_json::json!({
+		"project_root": project_root,
+		"config_path": config_path,
+		"config": configuration,
+	});
+
+	serde_json::to_string_pretty(&output)
+		.unwrap_or_else(|error| panic!("serializing a serde_json::Value failed: {error}"))
+}
+
+pub(crate) fn synthetic_step_command_definition(
+	cli_command_name: &str,
+) -> MonochangeResult<CliCommandDefinition> {
+	let kebab = cli_command_name
+		.strip_prefix("step ")
+		.or_else(|| cli_command_name.strip_prefix("step:"))
+		.unwrap_or(cli_command_name);
+	let step = monochange_core::all_step_variants()
+		.into_iter()
+		.find(|step| step.step_kebab_name() == kebab)
+		.ok_or_else(|| {
+			MonochangeError::Config(format!("unknown step command: {cli_command_name}"))
+		})?;
+
+	Ok(CliCommandDefinition {
+		name: format!("step {kebab}"),
+		help_text: step.name().map(ToString::to_string),
+		inputs: step.step_inputs_schema(),
+		steps: vec![step.with_inherited_step_inputs()],
+		dry_run: false,
+	})
+}
+
+mod analyze;
+mod change_classify;
+mod changeset_policy;
+mod changesets;
+mod cli;
+mod cli_progress;
+mod cli_runtime;
+mod cli_theme;
+mod command_wizard;
+mod git_support;
+mod hosted_sources;
+mod interactive;
+mod jq_filter;
+mod lint;
+mod lint_check_reporter;
+#[cfg(feature = "mcp")]
+mod mcp;
+mod migration_audit;
+mod package_publish;
+mod prepared_release_cache;
+mod publish_progress;
+mod publish_rate_limits;
+mod publish_readiness;
+mod release_artifacts;
+mod release_branch_policy;
+mod release_record;
+mod skill;
+mod subagents;
+mod sync;
+pub use sync::sync_workspace_versions;
+mod tracing_setup;
+mod versioned_files;
+mod workspace_ops;
+
+pub(crate) use prepared_release_cache::ensure_monochange_artifact_ignored;
+pub(crate) use prepared_release_cache::maybe_load_prepared_release_execution;
+pub(crate) use prepared_release_cache::save_prepared_release_execution;
+
+/// Output renderer used by CLI commands and preview helpers.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum OutputFormat {
+	Text,
+	Markdown,
+	Json,
+}
+
+/// Semver bump accepted by `monochange change` and related APIs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum ChangeBump {
+	None,
+	Patch,
+	Minor,
+	Major,
+}
+
+impl From<ChangeBump> for BumpSeverity {
+	fn from(value: ChangeBump) -> Self {
+		match value {
+			ChangeBump::None => Self::None,
+			ChangeBump::Patch => Self::Patch,
+			ChangeBump::Minor => Self::Minor,
+			ChangeBump::Major => Self::Major,
+		}
+	}
+}
+
+/// Repo-local subagent target understood by `monochange subagents`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SubagentTarget {
+	Claude,
+	Vscode,
+	Copilot,
+	Pi,
+	Codex,
+	Cursor,
+}
+
+impl SubagentTarget {
+	fn all() -> Vec<Self> {
+		vec![
+			Self::Claude,
+			Self::Vscode,
+			Self::Copilot,
+			Self::Pi,
+			Self::Codex,
+			Self::Cursor,
+		]
+	}
+
+	fn from_cli_value(value: &str) -> Option<Self> {
+		match value {
+			"claude" => Some(Self::Claude),
+			"vscode" => Some(Self::Vscode),
+			"copilot" => Some(Self::Copilot),
+			"pi" => Some(Self::Pi),
+			"codex" => Some(Self::Codex),
+			"cursor" => Some(Self::Cursor),
+			_ => None,
+		}
+	}
+}
+
+/// Output renderer for `monochange subagents`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SubagentOutputFormat {
+	Markdown,
+	Text,
+	Json,
+}
+
+fn parse_subagent_output_format_or_default(value: Option<&String>) -> SubagentOutputFormat {
+	match value.map_or("markdown", String::as_str) {
+		"json" => SubagentOutputFormat::Json,
+		"text" => SubagentOutputFormat::Text,
+		_ => SubagentOutputFormat::Markdown,
+	}
+}
+
+fn parse_subagent_targets<'value, I>(values: Option<I>) -> MonochangeResult<Vec<SubagentTarget>>
+where
+	I: IntoIterator<Item = &'value String>,
+{
+	let mut targets = Vec::new();
+
+	for value in values.into_iter().flatten() {
+		let Some(target) = SubagentTarget::from_cli_value(value) else {
+			return Err(MonochangeError::Config(format!(
+				"unsupported subagent target `{value}`"
+			)));
+		};
+
+		if targets.contains(&target) {
+			continue;
+		}
+
+		targets.push(target);
+	}
+
+	if targets.is_empty() {
+		return Err(MonochangeError::Config(
+			"expected at least one subagent target or `--all`".to_string(),
+		));
+	}
+
+	Ok(targets)
+}
+
+/// Outward release target derived from a prepared release.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ReleaseTarget {
+	pub id: String,
+	pub kind: ReleaseOwnerKind,
+	pub version: String,
+	pub tag: bool,
+	pub release: bool,
+	pub version_format: VersionFormat,
+	pub tag_name: String,
+	pub members: Vec<String>,
+	pub rendered_title: String,
+	pub rendered_changelog_title: String,
+}
+
+/// Rendered changelog payload produced during release preparation.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PreparedChangelog {
+	pub owner_id: String,
+	pub owner_kind: ReleaseOwnerKind,
+	pub path: PathBuf,
+	pub format: ChangelogFormat,
+	pub notes: ReleaseNotesDocument,
+	pub rendered: String,
+}
+
+/// Structured result returned by release preparation APIs.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PreparedRelease {
+	pub plan: ReleasePlan,
+	pub changeset_paths: Vec<PathBuf>,
+	pub changesets: Vec<PreparedChangeset>,
+	pub released_packages: Vec<String>,
+	pub package_publications: Vec<PackagePublicationTarget>,
+	pub version: Option<String>,
+	pub group_version: Option<String>,
+	pub release_targets: Vec<ReleaseTarget>,
+	pub changed_files: Vec<PathBuf>,
+	pub changelogs: Vec<PreparedChangelog>,
+	pub updated_changelogs: Vec<PathBuf>,
+	pub deleted_changesets: Vec<PathBuf>,
+	pub dry_run: bool,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+struct PreparedFileDiff {
+	path: PathBuf,
+	diff: String,
+	#[serde(skip_serializing)]
+	display_diff: String,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub(crate) struct StepPhaseTiming {
+	label: String,
+	duration: Duration,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct PreparedReleaseExecution {
+	prepared_release: PreparedRelease,
+	file_diffs: Vec<PreparedFileDiff>,
+	phase_timings: Vec<StepPhaseTiming>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct FileUpdate {
+	path: PathBuf,
+	content: Vec<u8>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) struct ChangesetDiagnosticsReport {
+	pub(crate) requested_changesets: Vec<PathBuf>,
+	pub(crate) changesets: Vec<PreparedChangeset>,
+}
+
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+struct RetargetReleaseReport {
+	from: String,
+	target: String,
+	resolved_from_commit: String,
+	record_commit: String,
+	target_commit: String,
+	distance: usize,
+	is_descendant: bool,
+	force: bool,
+	dry_run: bool,
+	sync_provider: bool,
+	tags: Vec<String>,
+	git_tag_results: Vec<RetargetTagResult>,
+	provider_results: Vec<RetargetProviderResult>,
+	status: String,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+struct CommitReleaseReport {
+	subject: String,
+	body: String,
+	commit: Option<String>,
+	tracked_paths: Vec<PathBuf>,
+	dry_run: bool,
+	status: String,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct CliContext {
+	root: PathBuf,
+	dry_run: bool,
+	quiet: bool,
+	show_diff: bool,
+	inputs: BTreeMap<String, Vec<String>>,
+	last_step_inputs: BTreeMap<String, Vec<String>>,
+	prepared_release: Option<PreparedRelease>,
+	prepared_file_diffs: Vec<PreparedFileDiff>,
+	release_manifest_path: Option<PathBuf>,
+	release_requests: Vec<SourceReleaseRequest>,
+	release_results: Vec<String>,
+	release_request: Option<SourceChangeRequest>,
+	release_request_result: Option<String>,
+	release_commit_report: Option<CommitReleaseReport>,
+	package_publish_report: Option<package_publish::PackagePublishReport>,
+	rate_limit_report: Option<monochange_core::PublishRateLimitReport>,
+	issue_comment_plans: Vec<HostedIssueCommentPlan>,
+	issue_comment_results: Vec<String>,
+	changeset_policy_evaluation: Option<ChangesetPolicyEvaluation>,
+	changeset_diagnostics: Option<ChangesetDiagnosticsReport>,
+	retarget_report: Option<RetargetReleaseReport>,
+	step_outputs: BTreeMap<String, CommandStepOutput>,
+	command_logs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct CommandStepOutput {
+	stdout: String,
+	stderr: String,
+}
+
+const CHANGESET_DIR: &str = ".changeset";
+
+/// Run the `monochange` CLI from the current process environment.
+///
+/// This initializes tracing, parses `std::env::args_os()`, executes the
+/// matching subcommand, and prints any non-empty stdout payload unless
+/// `--quiet` was requested.
+#[must_use = "the run result must be checked"]
+#[allow(clippy::large_futures)]
+pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
+	let log_level = extract_log_level_from_args();
+	tracing_setup::init_tracing(log_level.as_deref());
+
+	let quiet = extract_quiet_from_args(std::env::args_os());
+	let args = std::env::args_os();
+	let output = run_with_args(bin_name, args).await?;
+	if !quiet && !output.is_empty() {
+		let format = detect_output_format_from_env_args(std::env::args());
+		if format == OutputFormat::Markdown {
+			println!("{}", maybe_render_markdown_for_terminal(&output));
+		} else {
+			println!("{output}");
+		}
+	}
+	Ok(())
+}
+
+/// Run a CLI binary from process arguments and return the process exit code.
+#[coverage(off)]
+#[must_use = "the process exit code must be returned"]
+pub fn run_cli_binary_from_env_blocking(bin_name: &'static str) -> ExitCode {
+	tokio::runtime::Builder::new_multi_thread()
+		.enable_all()
+		.build()
+		.unwrap_or_else(|error| panic!("tokio runtime should initialize: {error}"))
+		.block_on(run_cli_binary_from_env(bin_name))
+}
+
+/// Run a CLI binary from process arguments and return the process exit code.
+///
+/// Binary entrypoints choose the Tokio runtime before delegating here so `monochange`
+/// and `monochange` share the same output and error handling.
+#[coverage(off)]
+#[must_use = "the process exit code must be returned"]
+pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
+	let quiet = extract_quiet_from_args(std::env::args_os());
+	let result = Box::pin(run_from_env(bin_name)).await;
+	let Err(error) = result else {
+		return ExitCode::SUCCESS;
+	};
+
+	if !quiet {
+		eprintln!("{}", error.render());
+	}
+
+	ExitCode::FAILURE
+}
+
+pub(crate) fn detect_output_format_from_env_args(
+	args: impl Iterator<Item = String>,
+) -> OutputFormat {
+	let args: Vec<String> = args.collect();
+	for (i, arg) in args.iter().enumerate() {
+		if arg == "config"
+			&& args
+				.get(i.saturating_sub(1))
+				.is_some_and(|previous| previous == "step")
+		{
+			return OutputFormat::Json;
+		}
+		if arg == "--format"
+			&& let Some(value) = args.get(i + 1)
+		{
+			return parse_output_format(value).unwrap_or(OutputFormat::Markdown);
+		}
+		if let Some(value) = arg.strip_prefix("--format=") {
+			return parse_output_format(value).unwrap_or(OutputFormat::Markdown);
+		}
+	}
+	OutputFormat::Markdown
+}
+
+fn extract_log_level_from_args() -> Option<String> {
+	extract_log_level(std::env::args())
+}
+
+fn quiet_from_os_arg(arg: &OsString) -> bool {
+	matches!(arg.to_str(), Some("--quiet" | "-q"))
+}
+
+fn is_root_help_request(args: &[OsString]) -> bool {
+	let mut command_args = command_args_after_globals(args);
+	matches!(command_args.next(), None | Some("-h" | "--help")) && command_args.next().is_none()
+}
+
+fn command_args_after_globals(args: &[OsString]) -> impl Iterator<Item = &str> {
+	let mut skip_value = false;
+	args.iter()
+		.skip(1)
+		.filter_map(|arg| arg.to_str())
+		.skip_while(move |arg| {
+			if skip_value {
+				skip_value = false;
+				return true;
+			}
+			if matches!(*arg, "--log-level" | "--format") {
+				skip_value = true;
+				return true;
+			}
+			matches!(*arg, "--quiet" | "-q")
+		})
+}
+
+fn extract_quiet_from_args<I>(args: I) -> bool
+where
+	I: IntoIterator<Item = OsString>,
+{
+	args.into_iter().any(|arg| quiet_from_os_arg(&arg))
+}
+
+fn extract_log_level<I>(args: I) -> Option<String>
+where
+	I: IntoIterator<Item = String>,
+{
+	let mut args = args.into_iter();
+
+	while let Some(arg) = args.next() {
+		if arg == "--log-level" {
+			return args.next();
+		}
+
+		if let Some(value) = arg.strip_prefix("--log-level=") {
+			return Some(value.to_string());
+		}
+	}
+
+	None
+}
+
+struct SnapshotRequest {
+	path: Vec<String>,
+	view: monochange_snapshot::SnapshotView,
+}
+
+fn parse_snapshot_request(args: &[OsString]) -> Option<SnapshotRequest> {
+	let mut values = args
+		.iter()
+		.skip(1)
+		.map(|arg| arg.to_string_lossy().to_string());
+	let first = values.next()?;
+	if first == "--snapshot" {
+		return Some(SnapshotRequest {
+			path: Vec::new(),
+			view: monochange_snapshot::SnapshotView::Full,
+		});
+	}
+
+	let mut path = Vec::new();
+	if !first.starts_with('-') {
+		path.push(first);
+	}
+	for value in values {
+		if value == "--snapshot" {
+			return Some(SnapshotRequest {
+				path,
+				view: monochange_snapshot::SnapshotView::Full,
+			});
+		}
+		if !value.starts_with('-') {
+			path.push(value);
+		}
+	}
+	None
+}
+
+fn snapshot_view(value: &str) -> monochange_snapshot::SnapshotView {
+	match value {
+		"light" => monochange_snapshot::SnapshotView::Light,
+		"index" => monochange_snapshot::SnapshotView::Index,
+		_ => monochange_snapshot::SnapshotView::Full,
+	}
+}
+
+fn render_snapshot_request(
+	command: &clap::Command,
+	request: &SnapshotRequest,
+) -> MonochangeResult<String> {
+	let snapshot = monochange_snapshot::snapshot_from_clap(command);
+	let Some(snapshot) = snapshot.subtree(&request.path) else {
+		return Err(MonochangeError::Config(format!(
+			"snapshot command path not found: {}",
+			request.path.join(" ")
+		)));
+	};
+	let view = snapshot.view(request.view);
+	view.to_json()
+		.map_err(|error| MonochangeError::Config(format!("failed to render snapshot: {error}")))
+}
+
+fn command_path_from_matches(matches: &clap::ArgMatches) -> Vec<String> {
+	let mut path = Vec::new();
+	let mut current = matches;
+	while let Some((name, child)) = current.subcommand() {
+		path.push(name.to_string());
+		current = child;
+	}
+	path
+}
+
+fn cli_snapshot_required_value(
+	args: &[OsString],
+	index: usize,
+	flag: &str,
+) -> MonochangeResult<String> {
+	args.get(index)
+		.and_then(|value| value.to_str())
+		.map(ToString::to_string)
+		.ok_or_else(|| MonochangeError::Config(format!("missing value for {flag}")))
+}
+
+fn read_cli_snapshot(path: &Path) -> MonochangeResult<monochange_snapshot::CommandSnapshot> {
+	let contents = fs::read_to_string(path).map_err(|error| {
+		MonochangeError::Config(format!(
+			"failed to read CLI snapshot `{}`: {error}",
+			path.display()
+		))
+	})?;
+	serde_json::from_str(&contents).map_err(|error| {
+		MonochangeError::Config(format!(
+			"failed to parse CLI snapshot `{}`: {error}",
+			path.display()
+		))
+	})
+}
+
+fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Option<String>> {
+	let Some(command) = args.get(1).and_then(|value| value.to_str()) else {
+		return Ok(None);
+	};
+	let Some(subcommand) = args.get(2).and_then(|value| value.to_str()) else {
+		return Ok(None);
+	};
+	if command != "change" || subcommand != "classify" {
+		return Ok(None);
+	}
+
+	let mut before = None;
+	let mut after = None;
+	let mut format = OutputFormat::Markdown;
+	let mut index = 3;
+	while let Some(arg) = args.get(index).and_then(|value| value.to_str()) {
+		match arg {
+			"--cli-snapshot-before" => {
+				index += 1;
+				before = Some(PathBuf::from(cli_snapshot_required_value(
+					args,
+					index,
+					"--cli-snapshot-before",
+				)?));
+			}
+			"--cli-snapshot-after" => {
+				index += 1;
+				after = Some(PathBuf::from(cli_snapshot_required_value(
+					args,
+					index,
+					"--cli-snapshot-after",
+				)?));
+			}
+			"--format" => {
+				index += 1;
+				format =
+					parse_output_format(&cli_snapshot_required_value(args, index, "--format")?)?;
+			}
+			_ => {}
+		}
+		index += 1;
+	}
+	let (Some(before), Some(after)) = (before, after) else {
+		return Ok(None);
+	};
+	let before = read_cli_snapshot(&before)?;
+	let after = read_cli_snapshot(&after)?;
+	let report = monochange_snapshot::diff_command_snapshots(&before, &after);
+	let output = match format {
+		OutputFormat::Json => {
+			// patch-coverage:ignore-start -- SnapshotDiffReport contains only serializable values.
+			let mut output = serde_json::to_string_pretty(&report).unwrap_or_else(|error| {
+				panic!("CLI snapshot classification reports serialize to JSON: {error}")
+			});
+			// patch-coverage:ignore-end
+			output.push('\n');
+			output
+		}
+		_ => render_cli_snapshot_classification_text(&report),
+	};
+	Ok(Some(output))
+}
+
+fn render_cli_snapshot_classification_text(
+	report: &monochange_snapshot::SnapshotDiffReport,
+) -> String {
+	let mut output =
+		format!("CLI snapshot recommendation: {:?}\n", report.recommendation).to_lowercase();
+	for change in &report.changes {
+		output.push_str(&format!("- {:?}: {}\n", change.severity, change.summary).to_lowercase());
+	}
+	output
+}
+
+fn run_versions_sync(
+	root: &Path,
+	matches: &clap::ArgMatches,
+	quiet: bool,
+) -> MonochangeResult<String> {
+	let strategy_str = matches
+		.get_one::<String>("strategy")
+		.map_or("default", String::as_str);
+	let strategy = sync::parse_strategy(strategy_str);
+	let dry_run = matches.get_flag("dry-run");
+	let format_str = matches
+		.get_one::<String>("format")
+		.map_or("text", String::as_str);
+	let format = sync::parse_versions_output_format(format_str);
+	let result = sync_workspace_versions(root, strategy, dry_run)?;
+
+	Ok(sync::format_sync_result_for_cli(
+		&result, dry_run, quiet, format,
+	))
+}
+
+/// Execute the `monochange` CLI with an explicit argument iterator.
+#[must_use = "the run result must be checked"]
+pub async fn run_with_args<I>(bin_name: &'static str, args: I) -> MonochangeResult<String>
+where
+	I: IntoIterator<Item = OsString>,
+{
+	let root = current_dir_or_dot();
+	run_with_args_in_dir(bin_name, args, &root).await
+}
+
+#[tracing::instrument(skip_all, fields(bin_name))]
+/// Execute the `monochange` CLI against an explicit repository root.
+///
+/// This is primarily useful for tests and embedding, where the caller wants to
+/// Print a clap `DisplayHelp`/`DisplayVersion` error preserving ANSI colors
+/// when `colored` is true, or return plain text when false.
+fn format_clap_error(error: &clap::Error, colored: bool) -> String {
+	if colored {
+		let _ = error.print();
+		String::new()
+	} else {
+		error.to_string()
+	}
+}
+
+fn paint(text: &str, style: anstyle::Style, colored: bool) -> String {
+	if colored {
+		format!("{style}{text}{style:#}")
+	} else {
+		text.to_string()
+	}
+}
+
+fn unexpected_argument_from_error(error: &clap::Error) -> Option<String> {
+	let message = error.to_string();
+	let (_, rest) = message.split_once("unexpected argument '")?;
+	let (argument, _) = rest.split_once('\'')?;
+	Some(argument.to_string())
+}
+
+fn custom_command_name_from_args(
+	args: &[OsString],
+	cli: &[CliCommandDefinition],
+) -> Option<String> {
+	args.iter()
+		.skip(1)
+		.filter_map(|arg| arg.to_str())
+		.find_map(|arg| {
+			cli.iter()
+				.any(|command| command.name == arg)
+				.then(|| arg.to_string())
+		})
+}
+
+fn render_custom_command_argument_error(
+	error: &clap::Error,
+	cli_command: &CliCommandDefinition,
+	colored: bool,
+) -> String {
+	let command = format!("monochange run {}", cli_command.name);
+	let argument =
+		unexpected_argument_from_error(error).unwrap_or_else(|| "the supplied option".to_string());
+	let heading = paint("✖ Unexpected command input", cli_theme::error(), colored);
+	let argument = paint(&argument, cli_theme::literal(), colored);
+	let command = paint(&command, cli_theme::usage(), colored);
+	let config_path = paint(
+		&format!("[cli.{}]", cli_command.name),
+		cli_theme::header(),
+		colored,
+	);
+	let usage = paint("Usage", cli_theme::header(), colored);
+	let fix = paint("How to fix", cli_theme::header(), colored);
+
+	format!(
+		"{heading}\n\n  Argument {argument} is not declared for custom command {command}.\n\n{usage}:\n  {}\n\n{fix}:\n  This command comes from {config_path} in monochange.toml.\n  Add a matching input there to make this option valid, for example:\n\n    [cli.{}]\n    inputs = [\n      {{ name = \"{}\", type = \"boolean\" }},\n    ]\n\n  Then run `monochange help {}` to confirm the option is listed.",
+		cli::cli_command_usage(cli_command),
+		cli_command.name,
+		argument.trim_start_matches('-').replace('-', "_"),
+		cli_command.name
+	)
+}
+
+fn help_command_requested(args: &[OsString]) -> bool {
+	command_args_after_globals(args)
+		.find(|arg| !arg.starts_with('-'))
+		.is_some_and(|arg| arg == "help")
+}
+
+fn command_help_request(args: &[OsString]) -> Option<&str> {
+	let command_args = command_args_after_globals(args).collect::<Vec<_>>();
+	let command_name = command_args.iter().find(|arg| !arg.starts_with('-'))?;
+	if *command_name == "help" {
+		return None;
+	}
+	command_args
+		.iter()
+		.any(|arg| matches!(*arg, "--help" | "-h"))
+		.then_some(*command_name)
+}
+
+fn command_help_requires_workspace_configuration(command_name: &str) -> bool {
+	matches!(command_name, "change")
+}
+
+fn clap_help_path_from_args(args: &[OsString]) -> Vec<String> {
+	let command_args = command_args_after_globals(args).collect::<Vec<_>>();
+	let Some(help_index) = command_args.iter().position(|arg| *arg == "help") else {
+		return Vec::new();
+	};
+	let help_args = command_args.get(help_index + 1..).unwrap_or_default();
+
+	if help_args.iter().any(|arg| matches!(*arg, "--help" | "-h")) {
+		return vec!["help".to_string()];
+	}
+
+	help_args
+		.iter()
+		.filter(|arg| !arg.starts_with('-'))
+		.map(|arg| (*arg).to_string())
+		.collect()
+}
+
+fn render_clap_long_help(
+	bin_name: &'static str,
+	cli: &[CliCommandDefinition],
+	path: &[String],
+) -> String {
+	let mut command = build_command_with_cli(bin_name, cli);
+	command.build();
+
+	let Some(target) = clap_command_at_path_mut(&mut command, path) else {
+		return render_unknown_clap_help_path(bin_name, &command, path);
+	};
+
+	target.render_long_help().to_string()
+}
+
+fn clap_command_at_path_mut<'command>(
+	command: &'command mut clap::Command,
+	path: &[String],
+) -> Option<&'command mut clap::Command> {
+	let Some((segment, remaining)) = path.split_first() else {
+		return Some(command);
+	};
+
+	let subcommand = command.find_subcommand_mut(segment)?;
+	clap_command_at_path_mut(subcommand, remaining)
+}
+
+fn render_unknown_clap_help_path(
+	bin_name: &'static str,
+	command: &clap::Command,
+	path: &[String],
+) -> String {
+	let requested = if path.is_empty() {
+		bin_name.to_string()
+	} else {
+		format!("{bin_name} {}", path.join(" "))
+	};
+	let mut output = format!("error: unrecognized command path `{requested}`\n\n");
+	output.push_str("Run one of these commands to inspect available help paths:\n");
+	let _ = writeln!(output, "  {bin_name} --help");
+	let _ = writeln!(output, "  {bin_name} help");
+
+	let mut subcommands = command
+		.get_subcommands()
+		.filter(|subcommand| !subcommand.is_hide_set())
+		.map(clap::Command::get_name)
+		.collect::<Vec<_>>();
+	subcommands.sort_unstable();
+	if !subcommands.is_empty() {
+		output.push_str("\nVisible top-level commands:\n");
+		for subcommand in subcommands {
+			let _ = writeln!(output, "  {subcommand}");
+		}
+	}
+
+	output
+}
+
+fn render_help_command(
+	bin_name: &'static str,
+	args: &[OsString],
+	cli: &[CliCommandDefinition],
+) -> String {
+	let path = clap_help_path_from_args(args);
+	render_clap_long_help(bin_name, cli, &path)
+}
+
+fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String {
+	if result.added_commands.is_empty() {
+		format!(
+			"{} already defines all default CLI commands",
+			result.path.display()
+		)
+	} else {
+		let mut message = format!(
+			"updated {} and added {} default CLI commands: ",
+			result.path.display(),
+			result.added_commands.len()
+		);
+		for (index, command) in result.added_commands.iter().enumerate() {
+			if index > 0 {
+				message.push_str(", ");
+			}
+			message.push_str(command);
+		}
+		message
+	}
+}
+
+/// control both the argv payload and the workspace root used for config loading
+/// and command execution.
+#[doc(hidden)]
+#[allow(clippy::redundant_closure_for_method_calls)]
+#[tracing::instrument(skip_all, fields(bin_name))]
+pub async fn run_with_args_in_dir<I>(
+	bin_name: &'static str,
+	args: I,
+	root: &Path,
+) -> MonochangeResult<String>
+where
+	I: IntoIterator<Item = OsString>,
+{
+	let args = args.into_iter().collect::<Vec<_>>();
+
+	let root_help_requested = is_root_help_request(&args);
+	if root_help_requested {
+		let cli = cli_commands_for_root(root);
+		return Ok(render_clap_long_help(bin_name, &cli, &[]));
+	}
+	if help_command_requested(&args) {
+		let cli = cli_commands_for_root(root);
+		return Ok(render_help_command(bin_name, &args, &cli));
+	}
+	if let Some(snapshot_request) = parse_snapshot_request(&args) {
+		let configuration = load_workspace_configuration(root);
+		let cli = cli_commands_from_config(&configuration);
+		let command = build_command_with_cli(bin_name, &cli);
+		return render_snapshot_request(&command, &snapshot_request);
+	}
+	if let Some(output) = render_cli_snapshot_classification(&args)? {
+		return Ok(output);
+	}
+	if let Some(classify_options) = parse_change_classify_options(&args)? {
+		let output = render_change_classification(root, &classify_options)?;
+		return Ok(output);
+	}
+	if let Some(api_options) = parse_api_diff_options(&args)? {
+		let output = render_change_classification(root, &api_options)?;
+		return Ok(output);
+	}
+	if let Some(api_options) = parse_api_snapshot_options(&args)? {
+		let output = render_change_classification(root, &api_options)?;
+		return Ok(output);
+	}
+	if let Some(validate_options) = parse_changeset_validate_api_options(&args)? {
+		let output = render_changeset_api_validation(root, &validate_options)?;
+		return Ok(output);
+	}
+	// Fast path: parse config-free command shapes before any workspace loading.
+	// This keeps version and root help responsive even in repositories with costly
+	// package or glob validation.
+	let base_command = build_command_with_cli(bin_name, &monochange_core::default_cli_commands());
+	if let Err(error) = base_command.try_get_matches_from(args.clone()) {
+		if matches!(error.kind(), ErrorKind::DisplayVersion) {
+			return Ok(format_clap_error(
+				&error,
+				!cfg!(test) && std::io::stdout().is_terminal(),
+			));
+		}
+		if matches!(error.kind(), ErrorKind::DisplayHelp)
+			&& !command_help_request(&args)
+				.is_some_and(command_help_requires_workspace_configuration)
+		{
+			let cli = cli_commands_for_root(root);
+			if is_root_help_request(&args) {
+				return Ok(render_clap_long_help(bin_name, &cli, &[]));
+			}
+			if let Err(help_error) =
+				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
+				&& matches!(help_error.kind(), ErrorKind::DisplayHelp)
+			{
+				return Ok(format_clap_error(
+					&help_error,
+					!cfg!(test) && std::io::stdout().is_terminal(),
+				));
+			}
+		}
+		if let Some(command_name) = command_help_request(&args)
+			&& !command_help_requires_workspace_configuration(command_name)
+		{
+			let cli = cli_commands_for_root(root);
+			if let Err(help_error) =
+				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
+				&& matches!(help_error.kind(), ErrorKind::DisplayHelp)
+			{
+				return Ok(format_clap_error(
+					&help_error,
+					!cfg!(test) && std::io::stdout().is_terminal(),
+				));
+			}
+		}
+	}
+
+	// Slow path: load workspace configuration for command execution.
+	let configuration = load_workspace_configuration(root);
+	let cli = cli_commands_from_config(&configuration);
+	let quiet = extract_quiet_from_args(args.iter().cloned());
+	let matches = match build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone()) {
+		Ok(matches) => matches,
+		Err(error)
+			if matches!(
+				error.kind(),
+				ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+			) =>
+		{
+			if root_help_requested && matches!(error.kind(), ErrorKind::DisplayHelp) {
+				return Ok(render_clap_long_help(bin_name, &cli, &[]));
+			}
+
+			return Ok(format_clap_error(
+				&error,
+				!cfg!(test) && std::io::stdout().is_terminal(),
+			));
+		}
+		Err(error) => {
+			if matches!(error.kind(), ErrorKind::UnknownArgument)
+				&& let Some(command_name) = custom_command_name_from_args(&args, &cli)
+				&& let Some(cli_command) = cli.iter().find(|command| command.name == command_name)
+			{
+				return Err(MonochangeError::Diagnostic(
+					render_custom_command_argument_error(
+						&error,
+						cli_command,
+						!cfg!(test) && std::io::stderr().is_terminal(),
+					),
+				));
+			}
+			return Err(MonochangeError::Config(error.to_string()));
+		}
+	};
+
+	if matches.get_flag("snapshot") {
+		let command = build_command_with_cli(bin_name, &cli);
+		let path = command_path_from_matches(&matches);
+		return render_snapshot_request(
+			&command,
+			&SnapshotRequest {
+				path,
+				view: monochange_snapshot::SnapshotView::Full,
+			},
+		);
+	}
+
+	let jq_expression = matches.get_one::<String>("jq").cloned();
+	let output = match matches.subcommand() {
+		Some(("snapshot", snapshot_matches)) => {
+			let view = snapshot_matches
+				.get_one::<String>("view")
+				.map_or(monochange_snapshot::SnapshotView::Full, |value| {
+					snapshot_view(value)
+				});
+			let path = snapshot_matches
+				.get_many::<String>("command")
+				.into_iter()
+				.flatten()
+				.cloned()
+				.collect();
+			render_snapshot_request(
+				&build_command_with_cli(bin_name, &cli),
+				&SnapshotRequest { path, view },
+			)
+		}
+		Some(("help", help_matches)) => {
+			let path = help_matches
+				.get_many::<String>("command")
+				.into_iter()
+				.flatten()
+				.cloned()
+				.collect::<Vec<_>>();
+			Ok(render_clap_long_help(bin_name, &cli, &path))
+		}
+		Some(("init", init_matches)) => {
+			let provider = init_matches
+				.get_one::<String>("provider")
+				.map(String::as_str);
+			let result = init_workspace(root, init_matches.get_flag("force"), provider)?;
+			if quiet {
+				Ok(String::new())
+			} else {
+				Ok(result.summary())
+			}
+		}
+		Some(("populate", _)) => {
+			if quiet {
+				return Ok(String::new());
+			}
+			let result = populate_workspace(root)?;
+			Ok(format_populate_workspace_result(&result))
+		}
+		Some(("command", _)) => run_command_wizard_for_cli(root, quiet),
+		Some(("skill", skill_matches)) => {
+			let forwarded_args = skill_matches
+				.get_many::<String>("args")
+				.into_iter()
+				.flatten()
+				.cloned()
+				.collect();
+			let options = SkillOptions { forwarded_args };
+			run_skill(root, &options)
+		}
+		Some(("subagents", subagent_matches)) => {
+			let targets = if subagent_matches.get_flag("all") {
+				SubagentTarget::all()
+			} else {
+				parse_subagent_targets(subagent_matches.get_many::<String>("target"))?
+			};
+			let format = parse_subagent_output_format_or_default(
+				subagent_matches.get_one::<String>("format"),
+			);
+			let options = SubagentOptions {
+				targets,
+				force: subagent_matches.get_flag("force"),
+				dry_run: quiet || subagent_matches.get_flag("dry-run"),
+				format,
+				generate_mcp: !subagent_matches.get_flag("no-mcp"),
+			};
+			let output = run_subagents(root, &options)?;
+			if quiet { Ok(String::new()) } else { Ok(output) }
+		}
+		Some(("analyze", analyze_matches)) => {
+			if quiet {
+				return Ok(String::new());
+			}
+			let package = analyze_matches
+				.get_one::<String>("package")
+				.map(String::as_str)
+				.ok_or_else(|| MonochangeError::Config("missing analyze package".to_string()))?;
+			let release_ref = analyze_matches
+				.get_one::<String>("release-ref")
+				.map(String::as_str);
+			let main_ref = analyze_matches
+				.get_one::<String>("main-ref")
+				.map(String::as_str);
+			let head_ref = analyze_matches
+				.get_one::<String>("head-ref")
+				.map(String::as_str);
+			let detection_level = analyze_matches
+				.get_one::<String>("detection-level")
+				.map_or("signature", String::as_str);
+			let format = analyze_matches
+				.get_one::<String>("format")
+				.map_or(Ok(OutputFormat::Markdown), |value| {
+					parse_output_format(value)
+				})?;
+			render_analyze_report(
+				root,
+				package,
+				release_ref,
+				main_ref,
+				head_ref,
+				detection_level,
+				format,
+			)
+			.await
+		}
+		Some(("migrate", migrate_matches)) => run_migration_command(root, quiet, migrate_matches),
+		#[cfg(feature = "mcp")]
+		Some(("mcp", _)) => run_mcp_command_with(quiet, mcp::run_server).await,
+
+		Some(("check", check_matches)) => {
+			if quiet {
+				return Ok(String::new());
+			}
+			let fix = check_matches.get_flag("fix");
+			let verbose = check_matches.get_flag("verbose");
+			let format = check_matches
+				.get_one::<String>("format")
+				.map_or(Ok(OutputFormat::Markdown), |value| {
+					parse_output_format(value)
+				})?;
+			let ecosystems: Vec<String> = check_matches
+				.get_many::<String>("ecosystem")
+				.map(|values| values.map(String::as_str).map(String::from).collect())
+				.unwrap_or_default();
+			let only_rules: Vec<String> = check_matches
+				.get_many::<String>("only")
+				.map(|values| values.map(String::as_str).map(String::from).collect())
+				.unwrap_or_default();
+			lint::run_check_command(root, fix, &ecosystems, &only_rules, format, verbose)
+		}
+		Some(("lint", lint_matches)) => {
+			if quiet {
+				return Ok(String::new());
+			}
+			lint::handle_lint_subcommand(root, lint_matches)
+		}
+
+		Some(("versions", versions_matches)) => {
+			match versions_matches.subcommand() {
+				Some(("list", list_matches)) => {
+					let format_str = list_matches
+						.get_one::<String>("format")
+						.map_or("text", String::as_str);
+					let format = sync::parse_versions_output_format(format_str);
+					let inventory = sync::list_workspace_versions(root)?;
+
+					Ok(sync::format_version_inventory_for_cli(&inventory, format))
+				}
+				Some(("sync", sync_matches)) => run_versions_sync(root, sync_matches, quiet),
+				Some((name, _)) => {
+					Err(MonochangeError::Config(format!(
+						"unknown versions subcommand `{name}`"
+					)))
+				}
+				None => {
+					if !quiet {
+						eprintln!(
+							"warning: `monochange versions` is deprecated and will be removed in a future version; use `monochange versions sync` instead"
+						);
+					}
+					run_versions_sync(root, versions_matches, quiet)
+				}
+			}
+		}
+
+		Some(("step", step_matches)) => {
+			let Some((step_name, step_command_matches)) = step_matches.subcommand() else {
+				return Err(MonochangeError::Config(
+					"Usage: monochange step <command>".to_string(),
+				));
+			};
+			let configuration = configuration?;
+			let synthetic = synthetic_step_command_definition(step_name)?;
+			let inputs = collect_cli_command_inputs(&synthetic, step_command_matches);
+			let dry_run = quiet || step_command_matches.get_flag("dry-run");
+			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+		}
+		Some((cli_command_name, cli_command_matches))
+			if cli::top_level_step_alias(cli_command_name).is_some() =>
+		{
+			let alias = cli::top_level_step_alias(cli_command_name)
+				.expect("alias was checked in match guard");
+			let configuration = configuration?;
+			let synthetic = cli::top_level_step_alias_command_definition(alias)
+				.expect("top-level step alias target exists");
+			let inputs = collect_cli_command_inputs(&synthetic, cli_command_matches);
+			let dry_run = quiet || alias.force_dry_run || cli_command_matches.get_flag("dry-run");
+			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+		}
+		Some(("run", run_matches)) => {
+			let Some((cli_command_name, cli_command_matches)) = run_matches.subcommand() else {
+				return Err(MonochangeError::Config(
+					"Usage: monochange run <command>".to_string(),
+				));
+			};
+			let configuration = configuration?;
+			execute_matches(
+				root,
+				&configuration,
+				cli_command_name,
+				cli_command_matches,
+				quiet,
+			)
+			.await
+		}
+		Some((cli_command_name, cli_command_matches)) => {
+			let configuration = configuration?;
+			execute_matches(
+				root,
+				&configuration,
+				cli_command_name,
+				cli_command_matches,
+				quiet,
+			)
+			.await
+		}
+		None => Err(MonochangeError::Config("Usage: monochange".to_string())),
+	}?;
+
+	if let Some(expression) = jq_expression {
+		jq_filter::apply_jq_filter(&output, &expression)
+	} else {
+		Ok(output)
+	}
+}
+
+#[coverage(off)]
+fn run_command_wizard_for_cli(root: &Path, quiet: bool) -> MonochangeResult<String> {
+	if quiet {
+		return Ok(String::new());
+	}
+	run_command_wizard(root)
+}
+
+#[cfg(feature = "mcp")]
+async fn run_mcp_command_with<F, Fut>(quiet: bool, run_server: F) -> MonochangeResult<String>
+where
+	F: FnOnce() -> Fut,
+	Fut: Future<Output = ()>,
+{
+	if quiet {
+		return Ok(String::new());
+	}
+
+	run_server().await;
+	Ok(String::new())
+}
+
+fn format_publish_state(publish_state: monochange_core::PublishState) -> &'static str {
+	match publish_state {
+		monochange_core::PublishState::Public => "public",
+		monochange_core::PublishState::Private => "private",
+		monochange_core::PublishState::Unpublished => "unpublished",
+		monochange_core::PublishState::Excluded => "excluded",
+		_ => "unknown",
+	}
+}
+
+#[cfg(test)]
+#[path = "__tests__/lib_tests.rs"]
+pub(crate) mod tests;
+
+#[cfg(test)]
+#[path = "__tests__/sync_tests.rs"]
+pub(crate) mod sync_tests;

@@ -232,7 +232,7 @@ async fn run_affected_json(root: &Path, args: &[&str]) -> Value {
 		.chain(std::iter::once(OsString::from("--format")))
 		.chain(std::iter::once(OsString::from("json")))
 		.chain(args.iter().map(|value| OsString::from(*value)));
-	let output = monochange::run_with_args_in_dir("monochange", cli_args, root)
+	let output = monochange_cli::run_with_args_in_dir("monochange", cli_args, root)
 		.await
 		.unwrap_or_else(|error| panic!("command output: {error}"));
 	serde_json::from_str(&output)

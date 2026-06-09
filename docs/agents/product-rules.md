@@ -1,11 +1,11 @@
 # Product and architecture rules
 
-- Keep `crates/monochange` as the CLI package.
+- Keep `crates/monochange` as the published binary package and facade; CLI implementation belongs in `crates/monochange_cli`.
 - monochange has first-class support on all major operating systems: macOS, Linux, and Windows. This is a hard rule for the lifetime of the project; do not add platform-specific behavior without preserving support for all three operating systems.
 - Keep `crates/monochange_core` focused on shared domain types and capability contracts, not adapter implementation details.
 - Put adapter-specific manifest behavior in ecosystem crates.
 - Put provider-specific source automation behavior in source crates (`monochange_github`, `monochange_gitlab`, `monochange_gitea`).
-- `crates/monochange` may orchestrate adapters, but it must not implement ecosystem/provider-specific file parsing, mutation rules, API payload shaping, or capability matrices.
+- `crates/monochange_cli` may orchestrate adapters, but it must not implement ecosystem/provider-specific file parsing, mutation rules, API payload shaping, or capability matrices.
 - `crates/monochange_config` should keep parsing focused on the supported configuration surface and delegate ecosystem/provider validation to adapter crates whenever behavior depends on a specific implementation.
 - Preserve fixture-first validation for discovery and planning behavior.
 - Prefer configured package ids and group ids over raw manifest paths in changesets and docs.

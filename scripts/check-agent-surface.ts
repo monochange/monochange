@@ -68,7 +68,7 @@ function assertExists(relativePath) {
 }
 
 const templateTools = extractToolNamesFromTemplate(read(".templates/guides.t.md"));
-const serverTools = extractToolNamesFromServer(read("crates/monochange/src/mcp.rs"));
+const serverTools = extractToolNamesFromServer(read("crates/monochange_cli/src/mcp.rs"));
 assertSetEquals("MCP tool list", templateTools, serverTools);
 
 assertExists("ARCHITECTURE.md");

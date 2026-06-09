@@ -45,7 +45,7 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 
 ## Verified command inventory
 
-The command inventory in this skill is based on `crates/monochange/src/cli.rs`, `crates/monochange_core/src/lib.rs`, and the CLI help snapshot `crates/monochange/tests/snapshots/cli_help__help_overview_lists_all_commands@help_overview_lists_all_commands.snap`.
+The command inventory in this skill is based on `crates/monochange_cli/src/cli.rs`, `crates/monochange_core/src/lib.rs`, and the CLI help snapshot `crates/monochange_cli/tests/snapshots/cli_help__help_overview_lists_all_commands@help_overview_lists_all_commands.snap`.
 
 Built-in commands in the current CLI:
 

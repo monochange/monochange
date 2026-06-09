@@ -105,7 +105,7 @@ fn command_at_path<'command>(
 }
 
 fn render_long_help_for_path(path: &[String]) -> String {
-	let mut command = monochange::build_command("monochange")
+	let mut command = monochange_cli::build_command("monochange")
 		.color(ColorChoice::Always)
 		.term_width(100);
 	command.build();
@@ -128,7 +128,7 @@ fn clap_long_help_snapshots_cover_every_visible_command_level() {
 	let workspace_root = workspace_root();
 	let _current_dir = CurrentDirGuard::enter(&workspace_root);
 
-	let command = monochange::build_command("monochange");
+	let command = monochange_cli::build_command("monochange");
 	let version = command
 		.get_version()
 		.unwrap_or_else(|| panic!("monochange command should expose a clap version"));

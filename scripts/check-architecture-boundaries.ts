@@ -4,16 +4,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 const repoRoot = process.cwd();
-const monitoredRoots = ["crates/monochange/src", "crates/monochange_config/src"];
+const monitoredRoots = ["crates/monochange_cli/src", "crates/monochange_config/src"];
 const allowlist = new Set([
-	"crates/monochange/src/hosted_sources.rs",
-	"crates/monochange/src/release_artifacts.rs",
-	"crates/monochange/src/release_branch_policy.rs",
-	"crates/monochange/src/release_record.rs",
-	"crates/monochange/src/versioned_files.rs",
-	"crates/monochange/src/workspace_ops.rs",
-	"crates/monochange/src/package_publish.rs",
-	"crates/monochange/src/trust_capabilities.rs",
+	"crates/monochange_cli/src/hosted_sources.rs",
+	"crates/monochange_cli/src/release_artifacts.rs",
+	"crates/monochange_cli/src/release_branch_policy.rs",
+	"crates/monochange_cli/src/release_record.rs",
+	"crates/monochange_cli/src/versioned_files.rs",
+	"crates/monochange_cli/src/workspace_ops.rs",
+	"crates/monochange_cli/src/package_publish.rs",
+	"crates/monochange_cli/src/trust_capabilities.rs",
 	"crates/monochange_config/src/lib.rs",
 ]);
 const forbiddenTokens = ["SourceProvider::", "EcosystemType::"];
