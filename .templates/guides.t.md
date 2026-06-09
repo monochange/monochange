@@ -523,6 +523,8 @@ release = true
 version_format = "primary"
 ```
 
+Groups can also use `version_format = "namespaced"` or a custom tag template such as `version_format = "{{ name }}/v{{ version }}"`. Custom formats support `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`, must include `{{ version }}`, and must render unique valid Git tag names.
+
 <!-- {/versionGroupsExample} -->
 
 <!-- {@versionGroupsBehavior} -->

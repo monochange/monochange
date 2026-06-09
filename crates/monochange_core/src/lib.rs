@@ -601,13 +601,169 @@ impl PackageType {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "schema", schemars(with = "String"))]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 #[non_exhaustive]
 pub enum VersionFormat {
 	#[default]
 	Namespaced,
 	Primary,
+	Custom(String),
+}
+
+impl VersionFormat {
+	#[must_use]
+	pub fn as_template(&self) -> &str {
+		match self {
+			Self::Namespaced => "{{ name }}/v{{ version }}",
+			Self::Primary => "v{{ version }}",
+			Self::Custom(template) => template,
+		}
+	}
+
+	#[must_use]
+	pub fn is_primary(&self) -> bool {
+		matches!(self, Self::Primary)
+	}
+
+	#[must_use]
+	pub fn contains_unique_name_variable(&self) -> bool {
+		self.as_template().contains("{{ name }}") || self.as_template().contains("{{name}}")
+	}
+
+	pub fn render_tag(
+		&self,
+		name: &str,
+		version: &str,
+		ecosystem: &str,
+	) -> MonochangeResult<String> {
+		match self {
+			Self::Namespaced => Ok(format!("{name}/v{version}")),
+			Self::Primary => Ok(format!("v{version}")),
+			Self::Custom(template) => {
+				render_version_format_template(template, name, version, ecosystem)
+			}
+		}
+	}
+}
+
+impl Serialize for VersionFormat {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		match self {
+			Self::Namespaced => serializer.serialize_str("namespaced"),
+			Self::Primary => serializer.serialize_str("primary"),
+			Self::Custom(template) => serializer.serialize_str(template),
+		}
+	}
+}
+
+impl<'de> Deserialize<'de> for VersionFormat {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		let value = String::deserialize(deserializer)?;
+		match value.as_str() {
+			"namespaced" => Ok(Self::Namespaced),
+			"primary" => Ok(Self::Primary),
+			_ => Ok(Self::Custom(value)),
+		}
+	}
+}
+
+pub fn render_version_format_template(
+	template: &str,
+	name: &str,
+	version: &str,
+	ecosystem: &str,
+) -> MonochangeResult<String> {
+	validate_version_format_template(template)?;
+	let rendered = template
+		.replace("{{ name }}", name)
+		.replace("{{name}}", name)
+		.replace("{{ version }}", version)
+		.replace("{{version}}", version)
+		.replace("{{ ecosystem }}", ecosystem)
+		.replace("{{ecosystem}}", ecosystem);
+	validate_version_format_tag(&rendered)?;
+	Ok(rendered)
+}
+
+pub fn validate_version_format_template(template: &str) -> MonochangeResult<()> {
+	if template.trim().is_empty() {
+		return Err(MonochangeError::Config(
+			"version_format must not be empty".to_string(),
+		));
+	}
+	if !template.contains("{{ version }}") && !template.contains("{{version}}") {
+		return Err(MonochangeError::Config(
+			"custom version_format must include the `{{ version }}` variable".to_string(),
+		));
+	}
+	let mut rest = template;
+	while let Some(start) = rest.find("{{") {
+		let after_start = &rest[start + 2..];
+		let Some(end) = after_start.find("}}") else {
+			return Err(MonochangeError::Config(
+				"custom version_format has an unterminated template variable".to_string(),
+			));
+		};
+		let variable = after_start[..end].trim();
+		if !matches!(variable, "name" | "version" | "ecosystem") {
+			return Err(MonochangeError::Config(format!(
+				"custom version_format uses unsupported variable `{{{{ {variable} }}}}`; supported variables are `{{{{ name }}}}`, `{{{{ version }}}}`, and `{{{{ ecosystem }}}}`"
+			)));
+		}
+		rest = &after_start[end + 2..];
+	}
+	if rest.contains("}}") {
+		return Err(MonochangeError::Config(
+			"custom version_format has an unopened template variable".to_string(),
+		));
+	}
+	Ok(())
+}
+
+pub fn validate_version_format_tag(tag: &str) -> MonochangeResult<()> {
+	let invalid_reason = if tag.is_empty() {
+		Some("tag is empty")
+	} else if tag.chars().any(char::is_whitespace) {
+		Some("tag contains whitespace")
+	} else if tag.starts_with('/') || tag.ends_with('/') {
+		Some("tag starts or ends with `/`")
+	} else if tag.starts_with('-') {
+		Some("tag starts with `-`")
+	} else if tag.contains("//") {
+		Some("tag contains an empty path component")
+	} else if tag.contains("..") {
+		Some("tag contains `..`")
+	} else if tag.contains("@{") {
+		Some("tag contains `@{`")
+	} else if tag.ends_with('.') {
+		Some("tag ends with `.`")
+	} else if tag.split('/').any(|component| {
+		component
+			.rsplit_once('.')
+			.is_some_and(|(_, extension)| extension.eq_ignore_ascii_case("lock"))
+	}) {
+		Some("tag component ends with `.lock`")
+	} else if tag
+		.chars()
+		.any(|ch| matches!(ch, '~' | '^' | ':' | '?' | '*' | '[' | '\\') || ch.is_control())
+	{
+		Some("tag contains a character that is not valid in a Git ref")
+	} else {
+		None
+	};
+	if let Some(reason) = invalid_reason {
+		return Err(MonochangeError::Config(format!(
+			"invalid version_format tag `{tag}`: {reason}"
+		)));
+	}
+	Ok(())
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -4884,7 +5040,7 @@ impl WorkspaceConfiguration {
 				group_id: Some(group.id.clone()),
 				tag: group.tag,
 				release: group.release,
-				version_format: group.version_format,
+				version_format: group.version_format.clone(),
 				members: group.packages.clone(),
 			});
 		}
@@ -4895,7 +5051,7 @@ impl WorkspaceConfiguration {
 			group_id: None,
 			tag: package.tag,
 			release: package.release,
-			version_format: package.version_format,
+			version_format: package.version_format.clone(),
 			members: vec![package.id.clone()],
 		})
 	}

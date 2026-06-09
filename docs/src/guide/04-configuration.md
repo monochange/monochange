@@ -100,6 +100,17 @@ Optional package fields:
 - `release`
 - `version_format`
 
+`version_format` controls the Git tag identity used for package and group releases. It defaults to `namespaced` when no configuration is set, which produces collision-safe tags like `my-package/v1.2.3`. Set it to `primary` for the single top-level release identity that should use tags like `v1.2.3`. You can also provide a custom tag template with `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`:
+
+```toml
+[package.cli]
+path = "crates/cli"
+type = "cargo"
+version_format = "{{ ecosystem }}/{{ name }}/v{{ version }}"
+```
+
+Custom formats must include `{{ version }}`, render to valid Git tag names without whitespace or other invalid ref characters, and must not collide with another release owner for the same sample version. If several packages share a custom format, include `{{ name }}` so the generated tags remain unique.
+
 `changelog` accepts three forms on packages:
 
 - `true` → use `{{ path }}/CHANGELOG.md`
@@ -398,6 +409,7 @@ Rules:
 - package and group ids share one namespace
 - a package may belong to only one group
 - only one package or group may use `version_format = "primary"`
+- custom `version_format` templates must include `{{ version }}` and render unique, valid Git tag names; include `{{ name }}` when sharing a template across release owners
 - group `tag`, `release`, and `version_format` override member package release identity
 - package changelogs and package `versioned_files` still apply when grouped
 - grouped packages can customize fallback changelog entries with `empty_update_message` when no direct package notes are present

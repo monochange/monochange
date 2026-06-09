@@ -3870,3 +3870,142 @@ fn ecosystem_settings_auto_discover_skips_when_none() -> Result<(), serde_json::
 	assert!(!json.contains("auto_discover"));
 	Ok(())
 }
+
+#[test]
+fn version_format_serializes_custom_templates_as_strings() {
+	let custom = VersionFormat::Custom("{{ name }}/release/{{ version }}".to_string());
+	let encoded = serde_json::to_string(&custom).expect("serialize version format");
+	assert_eq!(encoded, "\"{{ name }}/release/{{ version }}\"");
+	let decoded: VersionFormat =
+		serde_json::from_str(&encoded).expect("deserialize version format");
+	assert_eq!(decoded, custom);
+}
+
+#[test]
+fn version_format_renders_supported_template_variables() {
+	let rendered = crate::render_version_format_template(
+		"{{ ecosystem }}/{{ name }}/v{{ version }}",
+		"cli",
+		"1.2.3",
+		"cargo",
+	)
+	.expect("render custom version format");
+	assert_eq!(rendered, "cargo/cli/v1.2.3");
+
+	let compact = crate::render_version_format_template(
+		"{{ecosystem}}/{{name}}/v{{version}}",
+		"cli",
+		"1.2.3",
+		"cargo",
+	)
+	.expect("render compact custom version format");
+	assert_eq!(compact, "cargo/cli/v1.2.3");
+}
+
+#[test]
+fn version_format_methods_cover_builtin_and_custom_formats() {
+	let namespaced = VersionFormat::Namespaced;
+	let primary = VersionFormat::Primary;
+	let custom = VersionFormat::Custom("{{name}}/v{{version}}".to_string());
+	let ecosystem_custom =
+		VersionFormat::Custom("{{ ecosystem }}/release/v{{ version }}".to_string());
+
+	assert_eq!(namespaced.as_template(), "{{ name }}/v{{ version }}");
+	assert_eq!(primary.as_template(), "v{{ version }}");
+	assert_eq!(custom.as_template(), "{{name}}/v{{version}}");
+	assert!(!namespaced.is_primary());
+	assert!(primary.is_primary());
+	assert!(namespaced.contains_unique_name_variable());
+	assert!(!primary.contains_unique_name_variable());
+	assert!(custom.contains_unique_name_variable());
+	assert!(!ecosystem_custom.contains_unique_name_variable());
+	assert_eq!(
+		namespaced
+			.render_tag("pkg:with-colon", "1.2.3", "cargo")
+			.expect("render namespaced tag"),
+		"pkg:with-colon/v1.2.3"
+	);
+	assert_eq!(
+		primary
+			.render_tag("pkg", "1.2.3", "cargo")
+			.expect("render primary tag"),
+		"v1.2.3"
+	);
+	assert_eq!(
+		custom
+			.render_tag("pkg", "1.2.3", "cargo")
+			.expect("render custom tag"),
+		"pkg/v1.2.3"
+	);
+}
+
+#[test]
+fn version_format_rejects_unknown_template_variables() {
+	let error = crate::render_version_format_template(
+		"{{ package }}/v{{ version }}",
+		"cli",
+		"1.2.3",
+		"cargo",
+	)
+	.expect_err("unknown variables are rejected");
+	assert!(error.render().contains("unsupported variable"));
+}
+
+#[test]
+fn version_format_rejects_invalid_git_tag_characters() {
+	let error = crate::render_version_format_template(
+		"{{ name }}/bad tag/v{{ version }}",
+		"cli",
+		"1.2.3",
+		"cargo",
+	)
+	.expect_err("whitespace is rejected");
+	assert!(error.render().contains("contains whitespace"));
+}
+
+#[test]
+fn version_format_rejects_each_invalid_git_tag_shape() {
+	let cases = [
+		("", "tag is empty"),
+		("/v1.2.3", "starts or ends with `/`"),
+		("v1.2.3/", "starts or ends with `/`"),
+		("-v1.2.3", "starts with `-`"),
+		("pkg//v1.2.3", "empty path component"),
+		("pkg/../v1.2.3", "contains `..`"),
+		("pkg/@{upstream}/v1.2.3", "contains `@{`"),
+		("pkg/v1.2.3.", "ends with `.`"),
+		("pkg/file.lock/v1.2.3", "ends with `.lock`"),
+		("pkg/file.LOCK/v1.2.3", "ends with `.lock`"),
+		("pkg/v1.2.3~", "not valid in a Git ref"),
+	];
+
+	for (tag, reason) in cases {
+		let error = crate::validate_version_format_tag(tag)
+			.expect_err("expected invalid version format tag");
+		assert!(
+			error.render().contains(reason),
+			"expected `{}` to contain `{reason}`",
+			error.render()
+		);
+	}
+}
+
+#[test]
+fn version_format_rejects_malformed_template_syntax() {
+	let cases = [
+		("   ", "must not be empty"),
+		("release", "must include the `{{ version }}` variable"),
+		("{{ version }}/{{ name", "unterminated template variable"),
+		("{{ name }}/v{{ version }}}}", "unopened template variable"),
+	];
+
+	for (template, reason) in cases {
+		let error = crate::render_version_format_template(template, "cli", "1.2.3", "cargo")
+			.expect_err("expected invalid version format template");
+		assert!(
+			error.render().contains(reason),
+			"expected `{}` to contain `{reason}`",
+			error.render()
+		);
+	}
+}

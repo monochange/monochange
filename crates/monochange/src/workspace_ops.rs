@@ -2125,7 +2125,7 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 				version: target.version.clone(),
 				tag: target.tag,
 				release: target.release,
-				version_format: target.version_format,
+				version_format: target.version_format.clone(),
 				tag_name: target.tag_name.clone(),
 				members: target.members.clone(),
 				rendered_title: target.rendered_title.clone(),
