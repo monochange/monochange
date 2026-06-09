@@ -1,4 +1,5 @@
 ---
+"@monochange/skill": patch
 monochange: patch
 monochange_cli: patch
 ---

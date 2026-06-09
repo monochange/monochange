@@ -3,12 +3,12 @@ use std::process::Command;
 
 use insta::assert_json_snapshot;
 use insta::assert_snapshot;
-use insta_cmd::get_cargo_bin;
 use monochange_core::ProviderMergeRequestSettings;
 use monochange_core::ProviderReleaseNotesSource;
 use monochange_core::ProviderReleaseSettings;
 use monochange_core::SourceConfiguration;
 use monochange_core::SourceProvider;
+use monochange_test_helpers::get_cargo_bin;
 
 fn fixture_path(relative: &str) -> std::path::PathBuf {
 	Path::new(env!("CARGO_MANIFEST_DIR"))

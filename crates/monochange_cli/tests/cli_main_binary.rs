@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use insta_cmd::assert_cmd_snapshot;
-use insta_cmd::get_cargo_bin;
+use monochange_test_helpers::get_cargo_bin;
 
 fn fixture_path(relative: &str) -> PathBuf {
 	monochange_test_helpers::fs::fixture_path_from(env!("CARGO_MANIFEST_DIR"), relative)

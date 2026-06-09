@@ -38,6 +38,40 @@ pub use git::git_output_trimmed;
 pub use insta::snapshot_settings;
 pub use rmcp::content_text;
 
+/// Resolve a workspace binary for tests, building it when Cargo did not expose
+/// `CARGO_BIN_EXE_<name>` to the current test crate.
+pub fn get_cargo_bin(name: &str) -> std::path::PathBuf {
+	let env_name = format!("CARGO_BIN_EXE_{}", name.replace('-', "_"));
+	if let Some(path) = std::env::var_os(&env_name) {
+		return path.into();
+	}
+
+	let binary_name = if cfg!(windows) {
+		format!("{name}.exe")
+	} else {
+		name.to_owned()
+	};
+	let mut current_exe = std::env::current_exe()
+		.unwrap_or_else(|error| panic!("resolve current test executable path: {error}"));
+	while let Some(file_name) = current_exe.file_name().and_then(|value| value.to_str()) {
+		if file_name == "debug" || file_name == "release" {
+			break;
+		}
+		current_exe.pop();
+	}
+	let binary_path = current_exe.join(&binary_name);
+	if binary_path.exists() {
+		return binary_path;
+	}
+
+	let status = std::process::Command::new("cargo")
+		.args(["build", "-p", name, "--bin", name])
+		.status()
+		.unwrap_or_else(|error| panic!("build `{name}` binary for tests: {error}"));
+	assert!(status.success(), "build `{name}` binary for tests");
+	binary_path
+}
+
 /// Install the ring crypto provider as the default for rustls.
 ///
 /// Required because monochange uses `rustls-no-provider` with reqwest.
