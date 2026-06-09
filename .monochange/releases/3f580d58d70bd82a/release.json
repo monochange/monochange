@@ -1,0 +1,2041 @@
+{
+	"schema_version": "0.4",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-06-09T15:22:58Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.8.1",
+		"monochange_schema": "0.4.2"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.8.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.8.1",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.4.2",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.4.2",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.2",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/1780688773-monochange.md",
+		".changeset/1780750400-top-level-step-aliases.md",
+		".changeset/1780859354-monochange-core.md",
+		".changeset/custom-version-format.md",
+		".changeset/default-versioned-files.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/1780688773-monochange.md",
+			"summary": "Render CLI help from clap definitions",
+			"details": "Refactor the CLI help flow so clap is the source of truth for command descriptions, detailed help, and dynamically configured `run` commands. Help snapshots now cover each visible command level separately, preserve ANSI styling, and avoid drifting from the actual clap-rendered output.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "9c9c747e60ad0d9bea76e50e426196f8a4595119",
+						"short_sha": "9c9c747",
+						"url": "https://github.com/monochange/monochange/commit/9c9c747e60ad0d9bea76e50e426196f8a4595119",
+						"authored_at": "2026-06-06T09:06:02+01:00",
+						"committed_at": "2026-06-06T09:06:02+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#605",
+						"title": "refactor(cli): render help through clap",
+						"url": "https://github.com/monochange/monochange/pull/605",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "9c9c747e60ad0d9bea76e50e426196f8a4595119",
+						"short_sha": "9c9c747",
+						"url": "https://github.com/monochange/monochange/commit/9c9c747e60ad0d9bea76e50e426196f8a4595119",
+						"authored_at": "2026-06-06T09:06:02+01:00",
+						"committed_at": "2026-06-06T09:06:02+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#605",
+						"title": "refactor(cli): render help through clap",
+						"url": "https://github.com/monochange/monochange/pull/605",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/1780750400-top-level-step-aliases.md",
+			"summary": "Promote common workflow steps to top-level CLI commands",
+			"details": "Add top-level aliases for commonly used built-in workflow steps, including `create`, `discover`, `config`, `preview`, `prepare`, `affected`, and `diagnose`. The new `preview` command runs the prepare-release workflow in dry-run mode so users can inspect planned release artifacts without writing files.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "95225f372eda2f0b2f8b45f41a64c0d6972e93ae",
+						"short_sha": "95225f3",
+						"url": "https://github.com/monochange/monochange/commit/95225f372eda2f0b2f8b45f41a64c0d6972e93ae",
+						"authored_at": "2026-06-07T19:25:17+01:00",
+						"committed_at": "2026-06-07T19:25:17+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#610",
+						"title": "feat: add top-level step aliases",
+						"url": "https://github.com/monochange/monochange/pull/610",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "95225f372eda2f0b2f8b45f41a64c0d6972e93ae",
+						"short_sha": "95225f3",
+						"url": "https://github.com/monochange/monochange/commit/95225f372eda2f0b2f8b45f41a64c0d6972e93ae",
+						"authored_at": "2026-06-07T19:25:17+01:00",
+						"committed_at": "2026-06-07T19:25:17+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#610",
+						"title": "feat: add top-level step aliases",
+						"url": "https://github.com/monochange/monochange/pull/610",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/1780859354-monochange-core.md",
+			"summary": "Add manifest-repository lint rule across all ecosystems",
+			"details": "New lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_dart",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "bf2bf3301e6e0ab53c7b1f20c76225eb0cc8b97e",
+						"short_sha": "bf2bf33",
+						"url": "https://github.com/monochange/monochange/commit/bf2bf3301e6e0ab53c7b1f20c76225eb0cc8b97e",
+						"authored_at": "2026-06-09T16:14:19+01:00",
+						"committed_at": "2026-06-09T16:14:19+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#612",
+						"title": "feat(lint): add manifest-repository rule across all ecosystems",
+						"url": "https://github.com/monochange/monochange/pull/612",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "bf2bf3301e6e0ab53c7b1f20c76225eb0cc8b97e",
+						"short_sha": "bf2bf33",
+						"url": "https://github.com/monochange/monochange/commit/bf2bf3301e6e0ab53c7b1f20c76225eb0cc8b97e",
+						"authored_at": "2026-06-09T16:14:19+01:00",
+						"committed_at": "2026-06-09T16:14:19+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#612",
+						"title": "feat(lint): add manifest-repository rule across all ecosystems",
+						"url": "https://github.com/monochange/monochange/pull/612",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/custom-version-format.md",
+			"summary": "Add custom `version_format` tag templates for package and group release identities",
+			"details": "`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0e724b9e292709ecf2e29ad7b67b77830d7c3453",
+						"short_sha": "0e724b9",
+						"url": "https://github.com/monochange/monochange/commit/0e724b9e292709ecf2e29ad7b67b77830d7c3453",
+						"authored_at": "2026-06-09T15:37:14+01:00",
+						"committed_at": "2026-06-09T15:37:14+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#613",
+						"title": "feat(release): support custom version formats",
+						"url": "https://github.com/monochange/monochange/pull/613",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0e724b9e292709ecf2e29ad7b67b77830d7c3453",
+						"short_sha": "0e724b9",
+						"url": "https://github.com/monochange/monochange/commit/0e724b9e292709ecf2e29ad7b67b77830d7c3453",
+						"authored_at": "2026-06-09T15:37:14+01:00",
+						"committed_at": "2026-06-09T15:37:14+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#613",
+						"title": "feat(release): support custom version formats",
+						"url": "https://github.com/monochange/monochange/pull/613",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/default-versioned-files.md",
+			"summary": "Honor default versioned files during release preparation",
+			"details": "Workspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "784c9b689336915e90f28f76629c8fea158c7473",
+						"short_sha": "784c9b6",
+						"url": "https://github.com/monochange/monochange/commit/784c9b689336915e90f28f76629c8fea158c7473",
+						"authored_at": "2026-06-07T13:29:41+01:00",
+						"committed_at": "2026-06-07T13:29:41+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#609",
+						"title": "fix(release): apply default versioned files",
+						"url": "https://github.com/monochange/monochange/pull/609",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "784c9b689336915e90f28f76629c8fea158c7473",
+						"short_sha": "784c9b6",
+						"url": "https://github.com/monochange/monochange/commit/784c9b689336915e90f28f76629c8fea158c7473",
+						"authored_at": "2026-06-07T13:29:41+01:00",
+						"committed_at": "2026-06-07T13:29:41+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#609",
+						"title": "fix(release): apply default versioned files",
+						"url": "https://github.com/monochange/monochange/pull/609",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add manifest-repository lint rule across all ecosystems\n_Packages:_ _@monochange/skill_, _monochange_cargo_, _monochange_core_, _monochange_dart_, _monochange_npm_\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)",
+							"#### Add custom `version_format` tag templates for package and group release identities\n_Packages:_ _@monochange/skill_, _monochange_, _monochange_config_, _monochange_core_\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)",
+							"#### Render CLI help from clap definitions\n_Packages:_ _monochange_\n\nRefactor the CLI help flow so clap is the source of truth for command descriptions, detailed help, and dynamically configured `run` commands. Help snapshots now cover each visible command level separately, preserve ANSI styling, and avoid drifting from the actual clap-rendered output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #605](https://github.com/monochange/monochange/pull/605)",
+							"#### Promote common workflow steps to top-level CLI commands\n_Packages:_ _monochange_\n\nAdd top-level aliases for commonly used built-in workflow steps, including `create`, `discover`, `config`, `preview`, `prepare`, `affected`, and `diagnose`. The new `preview` command runs the prepare-release workflow in dry-run mode so users can inspect planned release artifacts without writing files.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #610](https://github.com/monochange/monochange/pull/610)",
+							"#### Honor default versioned files during release preparation\n_Packages:_ _monochange_, _monochange_config_, _monochange_core_\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\nGrouped release for `main`.\n### 🐛 Fixed\n\n#### Add manifest-repository lint rule across all ecosystems\n_Packages:_ _@monochange/skill_, _monochange_cargo_, _monochange_core_, _monochange_dart_, _monochange_npm_\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)\n\n#### Add custom `version_format` tag templates for package and group release identities\n_Packages:_ _@monochange/skill_, _monochange_, _monochange_config_, _monochange_core_\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)\n\n#### Render CLI help from clap definitions\n_Packages:_ _monochange_\n\nRefactor the CLI help flow so clap is the source of truth for command descriptions, detailed help, and dynamically configured `run` commands. Help snapshots now cover each visible command level separately, preserve ANSI styling, and avoid drifting from the actual clap-rendered output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #605](https://github.com/monochange/monochange/pull/605)\n\n#### Promote common workflow steps to top-level CLI commands\n_Packages:_ _monochange_\n\nAdd top-level aliases for commonly used built-in workflow steps, including `create`, `discover`, `config`, `preview`, `prepare`, `affected`, and `diagnose`. The new `preview` command runs the prepare-release workflow in dry-run mode so users can inspect planned release artifacts without writing files.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #610](https://github.com/monochange/monochange/pull/610)\n\n#### Honor default versioned files during release preparation\n_Packages:_ _monochange_, _monochange_config_, _monochange_core_\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Render CLI help from clap definitions\n\nRefactor the CLI help flow so clap is the source of truth for command descriptions, detailed help, and dynamically configured `run` commands. Help snapshots now cover each visible command level separately, preserve ANSI styling, and avoid drifting from the actual clap-rendered output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #605](https://github.com/monochange/monochange/pull/605)",
+							"#### Promote common workflow steps to top-level CLI commands\n\nAdd top-level aliases for commonly used built-in workflow steps, including `create`, `discover`, `config`, `preview`, `prepare`, `affected`, and `diagnose`. The new `preview` command runs the prepare-release workflow in dry-run mode so users can inspect planned release artifacts without writing files.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #610](https://github.com/monochange/monochange/pull/610)",
+							"#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)",
+							"#### Honor default versioned files during release preparation\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### 🐛 Fixed\n\n#### Render CLI help from clap definitions\n\nRefactor the CLI help flow so clap is the source of truth for command descriptions, detailed help, and dynamically configured `run` commands. Help snapshots now cover each visible command level separately, preserve ANSI styling, and avoid drifting from the actual clap-rendered output.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #605](https://github.com/monochange/monochange/pull/605)\n\n#### Promote common workflow steps to top-level CLI commands\n\nAdd top-level aliases for commonly used built-in workflow steps, including `create`, `discover`, `config`, `preview`, `prepare`, `affected`, and `diagnose`. The new `preview` command runs the prepare-release workflow in dry-run mode so users can inspect planned release artifacts without writing files.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #610](https://github.com/monochange/monochange/pull/610)\n\n#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)\n\n#### Honor default versioned files during release preparation\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_analysis` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_analysis` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### 🐛 Fixed\n\n#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_changelog` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_changelog` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)",
+							"#### Honor default versioned files during release preparation\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### 🐛 Fixed\n\n#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)\n\n#### Honor default versioned files during release preparation\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)",
+							"#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)",
+							"#### Honor default versioned files during release preparation\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### 🐛 Fixed\n\n#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)\n\n#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)\n\n#### Honor default versioned files during release preparation\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### 🐛 Fixed\n\n#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_deno` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_deno` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitea` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitea` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_github` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_github` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_go` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_go` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_graph` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_graph` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_hosting` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_hosting` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_lint` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_lint` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_linting` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_linting` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### 🐛 Fixed\n\n#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_publish` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_publish` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_python` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_python` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.4.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.2) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)",
+							"#### Honor default versioned files during release preparation\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.4.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.2) (2026-06-09)\n\n### 🐛 Fixed\n\n#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)\n\n#### Honor default versioned files during release preparation\n\nWorkspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = \"add\"` can be used for shared version files that should create missing package entries.\n\nFor example, this shared `versions.json` file now creates missing package keys during release preparation:\n\n```toml\n[defaults]\npackage_type = \"npm\"\nversioned_files = [\n\t{ path = \"versions.json\", format = \"json\", fields = [\"packages.{{ name }}\"], missing_field_behavior = \"add\" },\n]\n\n[package.app]\npath = \"packages/app\"\n```\n\nWhen `versions.json` starts as:\n\n```json\n{\n\t\"packages\": {}\n}\n```\n\nReleasing `app` to `1.2.3` updates it to:\n\n```json\n{\n\t\"packages\": {\n\t\t\"app\": \"1.2.3\"\n\t}\n}\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_semver` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_semver` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.8.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.8.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)",
+							"#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)\n\n### 🐛 Fixed\n\n#### Add manifest-repository lint rule across all ecosystems\n\nNew lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.\n\nFor Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)\n\n#### Add custom `version_format` tag templates for package and group release identities\n\n`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

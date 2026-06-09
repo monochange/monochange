@@ -4,6 +4,61 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)
+
+### 🐛 Fixed
+
+#### Add manifest-repository lint rule across all ecosystems
+
+New lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.
+
+For Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)
+
+#### Add custom `version_format` tag templates for package and group release identities
+
+`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)
+
+#### Honor default versioned files during release preparation
+
+Workspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = "add"` can be used for shared version files that should create missing package entries.
+
+For example, this shared `versions.json` file now creates missing package keys during release preparation:
+
+```toml
+[defaults]
+package_type = "npm"
+versioned_files = [
+	{ path = "versions.json", format = "json", fields = ["packages.{{ name }}"], missing_field_behavior = "add" },
+]
+
+[package.app]
+path = "packages/app"
+```
+
+When `versions.json` starts as:
+
+```json
+{
+	"packages": {}
+}
+```
+
+Releasing `app` to `1.2.3` updates it to:
+
+```json
+{
+	"packages": {
+		"app": "1.2.3"
+	}
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)
+
 ## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
 
 ### 🚀 Feature
