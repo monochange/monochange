@@ -2,6 +2,7 @@
 "@monochange/skill": patch
 monochange: patch
 monochange_cli: patch
+monochange_test_helpers: patch
 ---
 
 # Extract CLI implementation into `monochange_cli`
