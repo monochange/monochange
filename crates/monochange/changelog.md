@@ -4,6 +4,65 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)
+
+### 🐛 Fixed
+
+#### Render CLI help from clap definitions
+
+Refactor the CLI help flow so clap is the source of truth for command descriptions, detailed help, and dynamically configured `run` commands. Help snapshots now cover each visible command level separately, preserve ANSI styling, and avoid drifting from the actual clap-rendered output.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #605](https://github.com/monochange/monochange/pull/605)
+
+#### Promote common workflow steps to top-level CLI commands
+
+Add top-level aliases for commonly used built-in workflow steps, including `create`, `discover`, `config`, `preview`, `prepare`, `affected`, and `diagnose`. The new `preview` command runs the prepare-release workflow in dry-run mode so users can inspect planned release artifacts without writing files.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #610](https://github.com/monochange/monochange/pull/610)
+
+#### Add custom `version_format` tag templates for package and group release identities
+
+`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)
+
+#### Honor default versioned files during release preparation
+
+Workspace-level `versioned_files` defaults now apply to manually configured and auto-discovered packages. Release preparation now ignores missing formatted fields by default, and `missing_field_behavior = "add"` can be used for shared version files that should create missing package entries.
+
+For example, this shared `versions.json` file now creates missing package keys during release preparation:
+
+```toml
+[defaults]
+package_type = "npm"
+versioned_files = [
+	{ path = "versions.json", format = "json", fields = ["packages.{{ name }}"], missing_field_behavior = "add" },
+]
+
+[package.app]
+path = "packages/app"
+```
+
+When `versions.json` starts as:
+
+```json
+{
+	"packages": {}
+}
+```
+
+Releasing `app` to `1.2.3` updates it to:
+
+```json
+{
+	"packages": {
+		"app": "1.2.3"
+	}
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)
+
 ## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
 
 ### 💥 Breaking Change

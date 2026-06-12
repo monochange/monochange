@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_github` was updated to 0.8.1 as part of group `main`.
+
 ## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
 
 ### 🐛 Fixed
