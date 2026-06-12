@@ -385,6 +385,13 @@ pub struct PackageRecord {
 	pub declared_dependencies: Vec<PackageDependency>,
 }
 
+/// A versioned package file update planned by an ecosystem adapter.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ManifestFileUpdate {
+	pub path: PathBuf,
+	pub content: Vec<u8>,
+}
+
 impl PackageRecord {
 	#[allow(clippy::needless_pass_by_value)]
 	/// Construct a normalized package record for a discovered package.
@@ -4773,6 +4780,38 @@ pub trait HostedSourceAdapter: Sync {
 
 	fn features(&self) -> HostedSourceFeatures {
 		HostedSourceFeatures::default()
+	}
+
+	fn tag_url(&self, _source: &SourceConfiguration, _tag_name: &str) -> String {
+		String::new()
+	}
+
+	fn compare_url(
+		&self,
+		_source: &SourceConfiguration,
+		_previous_tag: &str,
+		_current_tag: &str,
+	) -> String {
+		String::new()
+	}
+
+	fn build_release_requests(
+		&self,
+		_source: &SourceConfiguration,
+		_manifest: &ReleaseManifest,
+	) -> Vec<SourceReleaseRequest> {
+		Vec::new()
+	}
+
+	fn build_release_pull_request_request(
+		&self,
+		_source: &SourceConfiguration,
+		_manifest: &ReleaseManifest,
+	) -> SourceChangeRequest {
+		unimplemented!(
+			"release pull request planning is not supported for {}",
+			self.provider()
+		)
 	}
 
 	fn annotate_changeset_context(

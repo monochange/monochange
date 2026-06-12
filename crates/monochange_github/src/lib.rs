@@ -206,6 +206,35 @@ impl HostedSourceAdapter for GitHubHostedSourceAdapter {
 		SourceProvider::GitHub
 	}
 
+	fn tag_url(&self, source: &SourceConfiguration, tag_name: &str) -> String {
+		tag_url(source, tag_name)
+	}
+
+	fn compare_url(
+		&self,
+		source: &SourceConfiguration,
+		previous_tag: &str,
+		current_tag: &str,
+	) -> String {
+		compare_url(source, previous_tag, current_tag)
+	}
+
+	fn build_release_requests(
+		&self,
+		source: &SourceConfiguration,
+		manifest: &ReleaseManifest,
+	) -> Vec<SourceReleaseRequest> {
+		build_release_requests(source, manifest)
+	}
+
+	fn build_release_pull_request_request(
+		&self,
+		source: &SourceConfiguration,
+		manifest: &ReleaseManifest,
+	) -> SourceChangeRequest {
+		build_release_pull_request_request(source, manifest)
+	}
+
 	fn features(&self) -> HostedSourceFeatures {
 		HostedSourceFeatures {
 			batched_changeset_context_lookup: true,

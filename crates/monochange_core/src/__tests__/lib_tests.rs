@@ -418,6 +418,29 @@ fn hosted_source_adapter_default_features_are_empty_and_comment_plans_are_empty(
 	);
 }
 
+#[test]
+fn hosted_source_adapter_default_release_planning_methods_are_noops() {
+	let adapter = DefaultHostedSourceAdapter {
+		provider: SourceProvider::GitLab,
+	};
+	let source = test_source_configuration(SourceProvider::GitLab);
+	let manifest = test_release_manifest();
+
+	assert!(adapter.tag_url(&source, "v1.2.3").is_empty());
+	assert!(adapter.compare_url(&source, "v1.2.2", "v1.2.3").is_empty());
+	assert!(
+		adapter
+			.build_release_requests(&source, &manifest)
+			.is_empty()
+	);
+	assert!(
+		std::panic::catch_unwind(|| {
+			adapter.build_release_pull_request_request(&source, &manifest);
+		})
+		.is_err()
+	);
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn hosted_source_adapter_default_enrich_delegates_to_annotate() {
 	let adapter = DefaultHostedSourceAdapter {

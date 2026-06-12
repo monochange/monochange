@@ -4,11 +4,11 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+use insta_cmd::get_cargo_bin;
 #[allow(unused_imports)]
 pub use monochange_test_helpers::copy_directory;
 #[allow(unused_imports)]
 pub use monochange_test_helpers::current_test_name;
-use monochange_test_helpers::get_cargo_bin;
 #[allow(unused_imports)]
 pub use monochange_test_helpers::snapshot_settings;
 #[cfg(unix)]

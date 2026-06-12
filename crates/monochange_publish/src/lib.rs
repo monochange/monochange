@@ -34,6 +34,15 @@ use tempfile::TempDir;
 use tracing::info;
 use urlencoding::encode;
 
+mod rate_limits;
+
+pub use rate_limits::PYPI_TRUSTED_PUBLISHERS_DOCS;
+pub use rate_limits::plan_rate_limit_batches;
+pub use rate_limits::plan_rate_limit_window;
+pub use rate_limits::policies_for_rate_limit_operation;
+pub use rate_limits::registry_rate_limit_policies;
+pub use rate_limits::render_rate_limit_window;
+
 pub const PLACEHOLDER_VERSION: &str = "0.0.0";
 
 pub trait EcosystemProgressPresentation {

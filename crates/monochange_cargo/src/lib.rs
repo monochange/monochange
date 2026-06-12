@@ -54,11 +54,13 @@ use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemAdapter;
 use monochange_core::LockfileCommandExecution;
+use monochange_core::ManifestFileUpdate;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageDependency;
 use monochange_core::PackageRecord;
 use monochange_core::PublishState;
+use monochange_core::ReleasePlan;
 use monochange_core::ShellConfig;
 use monochange_core::SourceConfiguration;
 use monochange_core::normalize_path;
@@ -1460,6 +1462,142 @@ pub fn default_dependency_version_prefix() -> &'static str {
 #[must_use]
 pub fn default_dependency_fields() -> &'static [&'static str] {
 	&["dependencies", "dev-dependencies", "build-dependencies"]
+}
+
+/// Build manifest updates for packages owned by this ecosystem.
+pub fn build_manifest_updates(
+	packages: &[PackageRecord],
+	plan: &ReleasePlan,
+) -> MonochangeResult<Vec<ManifestFileUpdate>> {
+	use rayon::prelude::*;
+
+	let released_versions = plan
+		.decisions
+		.iter()
+		.filter(|decision| decision.recommended_bump.is_release())
+		.filter_map(|decision| {
+			decision
+				.planned_version
+				.as_ref()
+				.map(|version| (decision.package_id.clone(), version.to_string()))
+		})
+		.collect::<BTreeMap<_, _>>();
+	let released_versions_by_name = packages
+		.iter()
+		.filter_map(|package| {
+			released_versions
+				.get(&package.id)
+				.map(|version| (package.name.clone(), version.clone()))
+		})
+		.collect::<BTreeMap<_, _>>();
+	if released_versions_by_name.is_empty() {
+		return Ok(Vec::new());
+	}
+
+	let mut updated_documents = packages
+		.iter()
+		.filter(|package| package.ecosystem == Ecosystem::Cargo)
+		.par_bridge()
+		.filter_map(|package| {
+			let should_update_manifest = released_versions.contains_key(&package.id)
+				|| package
+					.declared_dependencies
+					.iter()
+					.any(|dependency| released_versions_by_name.contains_key(&dependency.name));
+			should_update_manifest.then_some(package)
+		})
+		.map(|package| {
+			let contents = fs::read_to_string(&package.manifest_path).map_err(|error| {
+				MonochangeError::Io(format!(
+					"failed to read {}: {error}",
+					package.manifest_path.display()
+				))
+			})?;
+			let updated = update_versioned_file_text(
+				&contents,
+				CargoVersionedFileKind::Manifest,
+				&["dependencies", "dev-dependencies", "build-dependencies"],
+				released_versions.get(&package.id).map(String::as_str),
+				None,
+				&released_versions_by_name,
+				&BTreeMap::new(),
+			)
+			.map_err(|error| {
+				MonochangeError::Config(format!(
+					"failed to parse {}: {error}",
+					package.manifest_path.display()
+				))
+			})?;
+			Ok((package.manifest_path.clone(), updated))
+		})
+		.collect::<MonochangeResult<BTreeMap<_, _>>>()?;
+
+	for workspace_root in packages
+		.iter()
+		.filter(|package| package.ecosystem == Ecosystem::Cargo)
+		.filter(|package| released_versions.contains_key(&package.id))
+		.map(|package| package.workspace_root.clone())
+		.collect::<BTreeSet<_>>()
+	{
+		let workspace_version = packages
+			.iter()
+			.filter(|package| {
+				package.ecosystem == Ecosystem::Cargo
+					&& package.workspace_root == workspace_root
+					&& released_versions.contains_key(&package.id)
+			})
+			.filter_map(|package| released_versions.get(&package.id))
+			.cloned()
+			.collect::<BTreeSet<_>>();
+		if workspace_version.len() != 1 {
+			continue;
+		}
+		let shared_workspace_version = workspace_version
+			.first()
+			.cloned()
+			.expect("workspace version set contains exactly one version");
+
+		let workspace_manifest = workspace_root.join("Cargo.toml");
+		if !workspace_manifest.exists() {
+			continue;
+		}
+		let contents = if let Some(document) = updated_documents.remove(&workspace_manifest) {
+			document
+		} else {
+			fs::read_to_string(&workspace_manifest).map_err(|error| {
+				MonochangeError::Io(format!(
+					"failed to read {}: {error}",
+					workspace_manifest.display()
+				))
+			})?
+		};
+		let updated = update_versioned_file_text(
+			&contents,
+			CargoVersionedFileKind::Manifest,
+			&["dependencies", "dev-dependencies", "build-dependencies"],
+			None,
+			Some(shared_workspace_version.as_str()),
+			&released_versions_by_name,
+			&BTreeMap::new(),
+		)
+		.map_err(|error| {
+			MonochangeError::Config(format!(
+				"failed to parse {}: {error}",
+				workspace_manifest.display()
+			))
+		})?;
+		updated_documents.insert(workspace_manifest, updated);
+	}
+
+	Ok(updated_documents
+		.into_iter()
+		.map(|(path, document)| {
+			ManifestFileUpdate {
+				path,
+				content: document.into_bytes(),
+			}
+		})
+		.collect())
 }
 
 #[cfg(test)]

@@ -38,6 +38,10 @@ pub use git::git_output_trimmed;
 pub use insta::snapshot_settings;
 pub use rmcp::content_text;
 
+#[cfg(test)]
+#[path = "__tests__/lib_tests.rs"]
+mod tests;
+
 /// Resolve a workspace binary for tests, building it when Cargo did not expose
 /// `CARGO_BIN_EXE_<name>` to the current test crate.
 pub fn get_cargo_bin(name: &str) -> std::path::PathBuf {

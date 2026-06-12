@@ -17,7 +17,6 @@ use super::build_versioned_file_updates_with_base_updates;
 use super::inferred_lockfile_ecosystem_type;
 use super::inferred_lockfile_paths;
 use super::read_cached_document;
-use super::released_versions_by_package_id;
 use super::released_versions_by_record_id;
 use super::seed_cached_text_updates;
 use super::update_format_versioned_file_text;
@@ -751,7 +750,6 @@ fn released_version_maps_skip_unplanned_groups() {
 	};
 
 	assert!(released_versions_by_record_id(&plan).is_empty());
-	assert!(released_versions_by_package_id(&plan, &[]).is_empty());
 }
 
 #[test]

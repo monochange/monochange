@@ -30,7 +30,7 @@ insta-cmd = { version = "0.6", default-features = false }
 jsonschema = { version = "0.46.5", default-features = false }
 miette = { version = "7", default-features = false }
 minijinja = { version = "2", default-features = false }
-octocrab = { version = "0.50.0", default-features = false, features = ["default-client", "follow-redirect", "jwt-rust-crypto", "retry", "rustls", "rustls-ring", "timeout", "tracing"] }
+octocrab = { version = "0.53.1", default-features = false, features = ["default-client", "follow-redirect", "jwt-rust-crypto", "retry", "rustls", "rustls-ring", "timeout", "tracing"] }
 oxc_allocator = { version = "0.131.0", default-features = false }
 oxc_ast = { version = "0.131.0", default-features = false }
 oxc_parser = { version = "0.131.0", default-features = false }
@@ -58,6 +58,9 @@ temp-env = { version = "0.3", default-features = false, features = ["async_closu
 tempfile = { version = "3", default-features = false }
 termimad = { version = "0.34", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }
+# Pinned: time 0.3.48 exposes internal modifier types that trigger an octocrab
+# generic From impl coherence failure on the release-job nightly toolchain.
+time = { version = "=0.3.47", default-features = false }
 tokio = { version = "1", default-features = false, features = ["rt", "rt-multi-thread", "macros", "process", "fs", "time", "sync"] }
 toml = { version = "1.1.2", default-features = false }
 # Pinned: format-preserving edits in Cargo.toml files depend on this version's
@@ -71,7 +74,6 @@ walkdir = { version = "2", default-features = false }
 
 # Internal crates
 monochange = { version = "0.8.1", path = "./crates/monochange" }
-monochange_cli = { version = "0.8.1", path = "./crates/monochange_cli" }
 monochange_analysis = { version = "0.8.1", path = "./crates/monochange_analysis" }
 monochange_cargo = { version = "0.8.1", path = "./crates/monochange_cargo" }
 monochange_changelog = { version = "0.8.1", path = "./crates/monochange_changelog" }
