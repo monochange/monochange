@@ -1014,6 +1014,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					let selected_ecosystems = selected_ecosystem_ids(&step_inputs)?;
 					let resume_path = optional_publish_resume_artifact_path(&step_inputs)?;
 					let output_path = optional_publish_output_artifact_path(&step_inputs)?;
+					let stream_output = boolean_step_input(&step_inputs, "stream-output");
 					if !context.dry_run {
 						release_branch_policy::verify_release_ref_for_publish(
 							root,
@@ -1050,6 +1051,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						publish_all,
 						context.dry_run,
 						resume_path.as_deref(),
+						stream_output,
 					)
 					.await?;
 					if !context.dry_run

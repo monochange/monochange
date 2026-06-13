@@ -169,6 +169,7 @@ async fn build_publish_readiness_report(
 		&discovery.record.package_publications,
 		selected_packages,
 		true,
+		false,
 	)
 	.await?;
 	Ok(build_report_from_publish_report(
@@ -192,6 +193,7 @@ async fn build_publish_readiness_report_for_publish(
 			Some(prepared_release),
 			selected_packages,
 			true,
+			false,
 		)
 		.await?;
 		let source = PublishReadinessSource {

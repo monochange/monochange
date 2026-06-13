@@ -1097,6 +1097,31 @@ fn command_steps_have_no_generated_input_schema() {
 }
 
 #[test]
+fn publish_packages_step_schema_includes_optional_stream_output_flag() {
+	let step = CliStepDefinition::PublishPackages {
+		name: None,
+		when: None,
+		always_run: false,
+		inputs: BTreeMap::new(),
+	};
+
+	let stream_output = step
+		.step_inputs_schema()
+		.into_iter()
+		.find(|input| input.name == "stream-output")
+		.expect("publish packages should accept stream-output");
+
+	assert_eq!(stream_output.kind, CliInputKind::Boolean);
+	assert!(!stream_output.required);
+	assert_eq!(stream_output.default, None);
+	assert!(step.valid_input_names().unwrap().contains(&"stream-output"));
+	assert_eq!(
+		step.expected_input_kind("stream-output"),
+		Some(CliInputKind::Boolean)
+	);
+}
+
+#[test]
 fn cli_step_definition_kind_name_covers_all_variants() {
 	use std::collections::BTreeMap;
 	let cases: Vec<(CliStepDefinition, &str)> = vec![
@@ -1512,6 +1537,7 @@ fn valid_input_names_returns_expected_names_for_display_and_publish_steps() {
 				"ecosystem",
 				"resume",
 				"all",
+				"stream-output",
 			]
 			.as_slice()
 		)

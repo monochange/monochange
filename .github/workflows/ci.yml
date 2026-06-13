@@ -275,7 +275,7 @@ jobs:
         id: verify-patch-coverage
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        run: MONOCHANGE_PATCH_COVERAGE_BASE=${{ github.event.pull_request.base.sha }} MONOCHANGE_PATCH_COVERAGE_HEAD=${{ github.sha }} coverage:patch
+        run: MONOCHANGE_PATCH_COVERAGE_BASE=${{ github.event.pull_request.base.sha }} MONOCHANGE_PATCH_COVERAGE_HEAD=${{ github.event.pull_request.head.sha }} coverage:patch
         shell: devenv shell -- bash -e {0}
 
       - name: prepare codecov flag reports

@@ -3091,6 +3091,7 @@ impl CliStepDefinition {
 					"ecosystem",
 					"resume",
 					"all",
+					"stream-output",
 				])
 			}
 			Self::PlanPublishRateLimits { .. } => {
@@ -3229,7 +3230,7 @@ impl CliStepDefinition {
 					"format" => Some(CliInputKind::Choice),
 					"package" => Some(CliInputKind::StringList),
 					"output" | "resume" => Some(CliInputKind::Path),
-					"all" => Some(CliInputKind::Boolean),
+					"all" | "stream-output" => Some(CliInputKind::Boolean),
 					_ => None,
 				}
 			}
