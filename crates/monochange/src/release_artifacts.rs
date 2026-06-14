@@ -1,4 +1,3 @@
-#[cfg(test)]
 use std::cell::Cell;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -10,7 +9,6 @@ use similar::TextDiff;
 use super::*;
 use crate::git_support::git_stage_all;
 
-#[cfg(test)]
 thread_local! {
 	pub(crate) static FORCE_BUILD_FILE_DIFF_PREVIEWS_ERROR: Cell<bool> = const { Cell::new(false) };
 }
@@ -398,7 +396,7 @@ pub(crate) fn compare_url_for_provider(
 	)
 }
 
-async fn load_sorted_tags(root: &Path) -> Vec<String> {
+pub(crate) async fn load_sorted_tags(root: &Path) -> Vec<String> {
 	let output = match monochange_core::git::git_command_output(
 		root,
 		&["tag", "--list", "--sort=-v:refname"],
@@ -416,7 +414,7 @@ async fn load_sorted_tags(root: &Path) -> Vec<String> {
 		.collect()
 }
 
-fn find_previous_tag_in(current_tag: &str, sorted_tags: &[String]) -> Option<String> {
+pub(crate) fn find_previous_tag_in(current_tag: &str, sorted_tags: &[String]) -> Option<String> {
 	let (prefix, current_version) = parse_tag_prefix_and_version(current_tag)?;
 	sorted_tags
 		.iter()
@@ -428,11 +426,6 @@ fn find_previous_tag_in(current_tag: &str, sorted_tags: &[String]) -> Option<Str
 		})
 		.max_by(|left, right| left.1.cmp(&right.1))
 		.map(|(tag, _)| tag)
-}
-
-#[cfg(test)]
-pub(crate) async fn find_previous_tag(root: &Path, current_tag: &str) -> Option<String> {
-	find_previous_tag_in(current_tag, &load_sorted_tags(root).await)
 }
 
 pub(crate) fn parse_tag_prefix_and_version(tag: &str) -> Option<(String, semver::Version)> {
@@ -681,7 +674,6 @@ pub(crate) fn build_file_diff_previews(
 	updates: &[FileUpdate],
 ) -> MonochangeResult<Vec<PreparedFileDiff>> {
 	let colorize_diffs = diff_output_colors_enabled();
-	#[cfg(test)]
 	if FORCE_BUILD_FILE_DIFF_PREVIEWS_ERROR.with(Cell::get) {
 		return Err(MonochangeError::Io(
 			"forced build_file_diff_previews test error".to_string(),

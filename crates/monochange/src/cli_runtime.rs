@@ -54,21 +54,6 @@ use crate::save_prepared_release_execution;
 use crate::workspace_ops::validate_cargo_workspace_version_groups;
 use crate::*;
 
-/// Runs a future to completion, safely handling both inside and outside a Tokio runtime.
-///
-/// - Multi-threaded runtime: uses `block_in_place` + `handle.block_on` (safe to block).
-/// - Inside a runtime (any flavor): uses `block_in_place` to safely block the current
-///   thread while waiting for the future. For multi-threaded runtimes this frees the
-///   worker thread; for current-thread runtimes this delegates to a blocking thread pool.
-/// - No runtime: creates a new multi-threaded runtime.
-#[cfg(test)]
-pub(crate) fn block_on_in_context<T>(future: impl Future<Output = T>) -> T {
-	match tokio::runtime::Handle::try_current() {
-		Ok(handle) => tokio::task::block_in_place(|| handle.block_on(future)),
-		Err(_) => tokio::runtime::Runtime::new().unwrap().block_on(future),
-	}
-}
-
 pub(crate) async fn execute_matches(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,

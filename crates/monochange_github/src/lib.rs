@@ -1755,14 +1755,6 @@ async fn enable_pull_request_auto_merge_with_client(
 	Ok(())
 }
 
-#[cfg(test)]
-fn github_runtime() -> MonochangeResult<tokio::runtime::Runtime> {
-	tokio::runtime::Builder::new_current_thread()
-		.enable_all()
-		.build()
-		.map_err(|error| MonochangeError::Io(format!("failed to build GitHub runtime: {error}")))
-}
-
 fn github_client_from_env(source: &SourceConfiguration) -> MonochangeResult<Octocrab> {
 	let token = env::var("GITHUB_TOKEN")
 		.or_else(|_| env::var("GH_TOKEN"))

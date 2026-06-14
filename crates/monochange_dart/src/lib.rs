@@ -974,13 +974,5 @@ fn released_versions_by_package_id(
 }
 
 #[cfg(test)]
-#[path = "__tests__/sync_tests.rs"]
-mod sync_tests;
-
-#[cfg(test)]
-#[path = "__tests__/lib_tests.rs"]
+#[path = "__tests__/mod_tests.rs"]
 mod tests;
-
-#[cfg(test)]
-#[path = "__tests__/benchmark_tests.rs"]
-mod benchmark_tests;

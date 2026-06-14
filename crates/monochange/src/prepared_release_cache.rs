@@ -453,24 +453,6 @@ async fn tracked_path_snapshots(
 	Ok(snapshots)
 }
 
-#[cfg(test)]
-fn first_hash_for_path(path: &Path, hashes: Vec<String>) -> MonochangeResult<String> {
-	hashes.into_iter().next().ok_or_else(|| {
-		MonochangeError::Config(format!(
-			"failed to hash {}: git returned no hash",
-			path.display()
-		))
-	})
-}
-
-#[cfg(test)]
-async fn hash_file_at_path(root: &Path, path: &Path) -> MonochangeResult<String> {
-	let relative_path = root_relative(root, path);
-	let relative = relative_path.to_string_lossy().into_owned();
-	let hashes = hash_files_at_paths(root, &[relative]).await?;
-	first_hash_for_path(path, hashes)
-}
-
 async fn hash_files_at_paths(root: &Path, paths: &[String]) -> MonochangeResult<Vec<String>> {
 	if paths.is_empty() {
 		return Ok(Vec::new());

@@ -878,11 +878,6 @@ pub(crate) fn build_run_subcommand(cli: &[CliCommandDefinition]) -> Command {
 	command
 }
 
-#[cfg(test)]
-pub(crate) fn build_cli_command_subcommand(cli_command: &CliCommandDefinition) -> Command {
-	build_cli_command_subcommand_with_prefix(cli_command, "monochange")
-}
-
 pub(crate) fn build_cli_command_subcommand_with_prefix(
 	cli_command: &CliCommandDefinition,
 	usage_prefix: &str,

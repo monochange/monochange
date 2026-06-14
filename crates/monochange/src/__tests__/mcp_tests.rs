@@ -305,9 +305,8 @@ fn content_text_returns_empty_for_non_text_content() {
 #[test]
 fn manifest_helpers_expose_release_preview_shapes() {
 	let tempdir = setup_fixture("monochange/release-base");
-	let prepared =
-		crate::cli_runtime::block_on_in_context(crate::prepare_release(tempdir.path(), true))
-			.unwrap_or_else(|error| panic!("prepare release: {error}"));
+	let prepared = crate::tests::block_on_in_context(crate::prepare_release(tempdir.path(), true))
+		.unwrap_or_else(|error| panic!("prepare release: {error}"));
 	let manifest = super::manifest_for_prepared_release(&prepared);
 	assert_eq!(manifest.command, "release-manifest");
 	assert!(!manifest.release_targets.is_empty());

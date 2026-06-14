@@ -5,33 +5,17 @@ use std::path::Path;
 
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
-#[cfg(test)]
-use monochange_core::PublishRateLimitBatch;
 use monochange_core::PublishRateLimitReport;
-#[cfg(test)]
-use monochange_core::RateLimitConfidence;
 use monochange_core::RateLimitOperation;
 use monochange_core::RegistryKind;
-#[cfg(test)]
-use monochange_core::RegistryRateLimitPolicy;
-#[cfg(test)]
-use monochange_core::RegistryRateLimitWindowPlan;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::materialize_dependency_edges;
-#[cfg(test)]
-use monochange_publish::PYPI_TRUSTED_PUBLISHERS_DOCS;
 use monochange_publish::configured_package_publication_targets;
 use monochange_publish::filter_pending_publish_requests;
 use monochange_publish::plan_rate_limit_batches;
 use monochange_publish::plan_rate_limit_window;
-#[cfg(test)]
-use monochange_publish::plan_rate_limit_window as plan_window;
 use monochange_publish::policies_for_rate_limit_operation;
-#[cfg(test)]
-use monochange_publish::registry_rate_limit_policies as registry_policies;
 use monochange_publish::render_rate_limit_window;
-#[cfg(test)]
-use monochange_publish::render_rate_limit_window as render_window;
 
 use crate::PreparedRelease;
 use crate::discover_workspace;
@@ -249,81 +233,7 @@ pub(crate) fn plan_publish_rate_limits_for_dependency_ordered_requests(
 	plan_publish_rate_limits_for_requests(&requests, operation, dry_run)
 }
 
-#[cfg(test)]
-pub(crate) fn plan_unbatched_publish_order_for_dependency_ordered_requests(
-	requests: &[package_publish::PublishRequest],
-	packages: &[monochange_core::PackageRecord],
-	operation: RateLimitOperation,
-	dry_run: bool,
-) -> PublishRateLimitReport {
-	let mut requests = requests.to_vec();
-	sort_requests_by_dependencies(&mut requests, packages);
-	plan_unbatched_publish_order_for_requests(&requests, operation, dry_run)
-}
-
-#[cfg(test)]
-fn plan_unbatched_publish_order_for_requests(
-	requests: &[package_publish::PublishRequest],
-	operation: RateLimitOperation,
-	dry_run: bool,
-) -> PublishRateLimitReport {
-	let policies = policies_for_rate_limit_operation(operation)
-		.into_iter()
-		.map(|policy| (policy.registry, policy))
-		.collect::<BTreeMap<_, _>>();
-	let mut requests_by_registry =
-		BTreeMap::<RegistryKind, Vec<&package_publish::PublishRequest>>::new();
-	for request in requests {
-		if request.mode == monochange_core::PublishMode::External {
-			continue;
-		}
-		requests_by_registry
-			.entry(request.registry)
-			.or_default()
-			.push(request);
-	}
-
-	let mut batches = Vec::new();
-	let mut windows = Vec::new();
-	for (registry, requests) in requests_by_registry {
-		let policy = policies
-			.get(&registry)
-			.unwrap_or_else(|| panic!("missing rate-limit policy for {registry}"));
-		let pending = requests.len();
-		windows.push(RegistryRateLimitWindowPlan {
-			registry,
-			operation,
-			limit: None,
-			window_seconds: None,
-			pending,
-			batches_required: 1,
-			fits_single_window: true,
-			confidence: policy.confidence,
-			notes: "rate-limit batching disabled for this publish order".to_string(),
-			evidence: policy.evidence.clone(),
-		});
-		batches.push(PublishRateLimitBatch {
-			registry,
-			operation,
-			batch_index: 1,
-			total_batches: 1,
-			packages: requests
-				.iter()
-				.map(|request| request.package_id.clone())
-				.collect(),
-			recommended_wait_seconds: None,
-		});
-	}
-
-	PublishRateLimitReport {
-		dry_run,
-		windows,
-		batches,
-		warnings: Vec::new(),
-	}
-}
-
-pub(crate) fn plan_publish_rate_limits_for_requests(
+fn plan_publish_rate_limits_for_requests(
 	requests: &[package_publish::PublishRequest],
 	operation: RateLimitOperation,
 	dry_run: bool,
