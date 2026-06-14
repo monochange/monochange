@@ -105,6 +105,7 @@ pub(crate) async fn run_publish_packages(
 	prepared_release: Option<&PreparedRelease>,
 	selected_packages: &BTreeSet<String>,
 	dry_run: bool,
+	stream_output: bool,
 ) -> MonochangeResult<PackagePublishReport> {
 	run_publish_packages_with_resume(
 		root,
@@ -116,6 +117,7 @@ pub(crate) async fn run_publish_packages(
 		false,
 		dry_run,
 		None,
+		stream_output,
 	)
 	.await
 }
@@ -131,6 +133,7 @@ pub(crate) async fn run_publish_packages_with_resume(
 	publish_all_configured_packages: bool,
 	dry_run: bool,
 	resume_path: Option<&Path>,
+	stream_output: bool,
 ) -> MonochangeResult<PackagePublishReport> {
 	let publication_targets = if publish_all_configured_packages {
 		let discovery = discover_workspace(root)?;
@@ -153,6 +156,7 @@ pub(crate) async fn run_publish_packages_with_resume(
 		&selected_targets.selected_packages,
 		dry_run,
 		resume_path,
+		stream_output,
 	)
 	.await
 }
@@ -163,6 +167,7 @@ pub(crate) async fn run_publish_packages_with_publications(
 	publication_targets: &[PackagePublicationTarget],
 	selected_packages: &BTreeSet<String>,
 	dry_run: bool,
+	stream_output: bool,
 ) -> MonochangeResult<PackagePublishReport> {
 	run_publish_packages_with_publications_and_resume(
 		root,
@@ -171,6 +176,7 @@ pub(crate) async fn run_publish_packages_with_publications(
 		selected_packages,
 		dry_run,
 		None,
+		stream_output,
 	)
 	.await
 }
@@ -182,14 +188,16 @@ async fn run_publish_packages_with_publications_and_resume(
 	selected_packages: &BTreeSet<String>,
 	dry_run: bool,
 	resume_path: Option<&Path>,
+	stream_output: bool,
 ) -> MonochangeResult<PackagePublishReport> {
 	let discovery = discover_workspace(root)?;
-	let requests = build_release_requests(
+	let mut requests = build_release_requests(
 		configuration,
 		&discovery.packages,
 		publication_targets,
 		selected_packages,
 	)?;
+	enable_publish_stream_output(&mut requests, stream_output);
 	let previous_report = resume_path.map(read_publish_report_artifact).transpose()?;
 	let (requests, resumed_outcomes) =
 		resume_publish_requests(&requests, previous_report.as_ref())?;
@@ -222,6 +230,17 @@ async fn execute_release_publish_requests(
 		&progress,
 	)
 	.await
+}
+
+fn enable_publish_stream_output(requests: &mut [PublishRequest], stream_output: bool) {
+	if !stream_output {
+		return;
+	}
+	for request in requests {
+		request
+			.package_metadata
+			.insert("monochange:stream_output".to_string(), "true".to_string());
+	}
 }
 
 pub(crate) async fn release_record_package_publications_from_prepared_or_head(

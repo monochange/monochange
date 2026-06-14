@@ -178,6 +178,27 @@ fn sample_source() -> SourceConfiguration {
 	}
 }
 
+#[test]
+fn enable_publish_stream_output_marks_requests_only_when_enabled() {
+	let mut disabled = vec![sample_request(RegistryKind::Npm)];
+	enable_publish_stream_output(&mut disabled, false);
+	assert!(
+		!disabled[0]
+			.package_metadata
+			.contains_key("monochange:stream_output")
+	);
+
+	let mut enabled = vec![sample_request(RegistryKind::Npm)];
+	enable_publish_stream_output(&mut enabled, true);
+	assert_eq!(
+		enabled[0]
+			.package_metadata
+			.get("monochange:stream_output")
+			.map(String::as_str),
+		Some("true")
+	);
+}
+
 fn sample_prepared_release(
 	root: &Path,
 	package_publications: Vec<PackagePublicationTarget>,
@@ -3958,6 +3979,7 @@ async fn release_dry_run_orders_cargo_dev_and_build_dependencies_before_dependen
 				&publications,
 				&BTreeSet::new(),
 				true,
+				false,
 			)
 			.await
 			.expect("publish report:");
@@ -4296,6 +4318,7 @@ async fn run_publish_packages_uses_prepared_release_publications() {
 					Some(&prepared_release),
 					&BTreeSet::new(),
 					true,
+					false,
 				))
 				.expect("publish report:");
 				assert_eq!(report.mode, PackagePublishRunMode::Release);
@@ -4366,6 +4389,7 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 					None,
 					&BTreeSet::new(),
 					true,
+					false,
 				))
 				.expect("publish report:");
 				assert_eq!(report.mode, PackagePublishRunMode::Release);
@@ -4380,23 +4404,45 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 #[test]
 fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 	let tempdir = tempfile::tempdir().expect("tempdir:");
-	let mut executor = ProcessCommandExecutor;
-	let success = executor
-		.run(&CommandSpec {
-			program: "sh".to_string(),
-			args: vec![
-				"-c".to_string(),
-				"printf stdout; printf stderr >&2".to_string(),
-			],
-			cwd: tempdir.path().to_path_buf(),
-			env: BTreeMap::new(),
-		})
-		.expect("expected command success:");
-	assert!(success.success);
-	assert_eq!(success.stdout, "stdout");
-	assert_eq!(success.stderr, "stderr");
+	let command = CommandSpec {
+		program: "sh".to_string(),
+		args: vec![
+			"-c".to_string(),
+			"printf stdout; printf stderr >&2".to_string(),
+		],
+		cwd: tempdir.path().to_path_buf(),
+		env: BTreeMap::new(),
+	};
 
-	let error = executor
+	let mut captured_executor = ProcessCommandExecutor::new(false);
+	let captured = captured_executor
+		.run(&command)
+		.expect("expected captured command success:");
+	assert!(captured.success);
+	assert_eq!(captured.stdout, "stdout");
+	assert_eq!(captured.stderr, "stderr");
+
+	let mut streaming_executor = ProcessCommandExecutor::new(true);
+	let streamed = streaming_executor
+		.run(&command)
+		.expect("expected streamed command success:");
+	assert!(streamed.success);
+	assert_eq!(streamed.stdout, "stdout");
+	assert_eq!(streamed.stderr, "stderr");
+
+	let mut marked_command = command.clone();
+	marked_command.env.insert(
+		"MONOCHANGE_PUBLISH_STREAM_OUTPUT".to_string(),
+		"true".to_string(),
+	);
+	let marked_streamed = captured_executor
+		.run(&marked_command)
+		.expect("expected marked command to stream successfully:");
+	assert!(marked_streamed.success);
+	assert_eq!(marked_streamed.stdout, "stdout");
+	assert_eq!(marked_streamed.stderr, "stderr");
+
+	let error = captured_executor
 		.run(&CommandSpec {
 			program: "definitely-not-a-real-command".to_string(),
 			args: Vec::new(),
@@ -4706,6 +4752,7 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 						false,
 						true,
 						None,
+						false,
 					))
 					.expect("publish report:");
 

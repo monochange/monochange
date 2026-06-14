@@ -438,6 +438,90 @@ fn render_publish_command_error_adds_npm_otp_recovery_guidance() {
 	assert!(release_message.contains("rerun the publish command with `NPM_CONFIG_OTP=<CODE>`"));
 }
 
+#[test]
+fn publish_command_sets_stream_output_environment_when_metadata_is_enabled() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.package_metadata.insert(
+		PUBLISH_STREAM_OUTPUT_METADATA_KEY.to_string(),
+		"true".to_string(),
+	);
+
+	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, false);
+
+	assert_eq!(
+		command
+			.env
+			.get(PUBLISH_STREAM_OUTPUT_ENV_KEY)
+			.map(String::as_str),
+		Some("true")
+	);
+}
+
+#[test]
+fn process_command_executor_streams_when_environment_is_enabled() {
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let mut command = CommandSpec {
+		program: "sh".to_string(),
+		args: vec![
+			"-c".to_string(),
+			"printf stdout; printf stderr >&2".to_string(),
+		],
+		cwd: root.path().to_path_buf(),
+		env: BTreeMap::from([(
+			PUBLISH_STREAM_OUTPUT_ENV_KEY.to_string(),
+			"true".to_string(),
+		)]),
+	};
+	let mut executor = ProcessCommandExecutor::new(false);
+
+	let output = executor
+		.run(&command)
+		.unwrap_or_else(|error| panic!("run streaming command: {error}"));
+	assert!(output.success);
+	assert_eq!(output.stdout, "stdout");
+	assert_eq!(output.stderr, "stderr");
+
+	command.program = "definitely-not-a-real-command".to_string();
+	let error = executor
+		.run(&command)
+		.expect_err("invalid streaming command should fail");
+	assert!(error.to_string().contains("failed to run"));
+}
+
+#[test]
+fn child_output_helpers_cover_success_and_error_paths() {
+	let captured = tee_child_output("chunk".as_bytes(), Vec::new())
+		.unwrap_or_else(|error| panic!("tee output: {error}"));
+	assert_eq!(captured, b"chunk");
+
+	let spec = CommandSpec {
+		program: "sh".to_string(),
+		args: Vec::new(),
+		cwd: PathBuf::from("."),
+		env: BTreeMap::new(),
+	};
+	let wait_io_error = std::io::Error::other("wait failed");
+	let wait_error = process_command_error(&spec, "wait for", &wait_io_error);
+	assert!(
+		wait_error
+			.to_string()
+			.contains("failed to wait for `sh` in .: wait failed")
+	);
+	let panic_thread = std::thread::spawn(|| -> std::io::Result<Vec<u8>> {
+		panic!("reader panic");
+	});
+	let panic_error = join_child_output(panic_thread, &spec, "stdout")
+		.expect_err("panic should become an io error");
+	assert!(panic_error.to_string().contains("output reader panicked"));
+
+	let io_thread = std::thread::spawn(|| -> std::io::Result<Vec<u8>> {
+		Err(std::io::Error::other("reader failed"))
+	});
+	let io_error =
+		join_child_output(io_thread, &spec, "stderr").expect_err("io error should be reported");
+	assert!(io_error.to_string().contains("reader failed"));
+}
+
 #[derive(Default)]
 struct RecordingPublishProgressReporter {
 	events: std::sync::Mutex<Vec<PublishProgressEvent>>,

@@ -144,4 +144,5 @@ jobs:
           name: publish-packages
           setup-monochange: ${{ runner.temp }}/bin/monochange
           all: true
+          stream-output: true
           output: ${{ runner.temp }}/publish-result.json
