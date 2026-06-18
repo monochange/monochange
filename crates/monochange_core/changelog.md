@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.2](https://github.com/monochange/monochange/releases/tag/v0.8.2) (2026-06-18)
+
+### 🐛 Fixed
+
+#### Move rate-limit policy planning into publish core
+
+Keep `monochange` as the CLI crate while moving publish rate-limit policy and window planning helpers into `monochange_publish`.
+
+Ecosystem manifest update planning now lives in the relevant ecosystem crates with `monochange` acting as the CLI orchestrator. Hosted-source adapters now own release URL and release request planning behavior. The test helper crate also centralizes binary lookup for integration tests that need the `monochange` executable. `monochange_github` constrains the GitHub client transitive dependency set so release-job lockfile regeneration stays compatible with the pinned nightly toolchain.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #614](https://github.com/monochange/monochange/pull/614)
+
+#### include CLI help markdown in published crate packages
+
+The `monochange` crate package now includes markdown files from `src/` when Cargo builds the publish tarball. This keeps embedded CLI help text available to downstream builds and to `cargo publish` verification.
+
+Before this fix, publishing could package `src/cli.rs` without the `src/cli_after_long_help.md` file referenced by `include_str!`, causing the crate verification step to fail with a missing-file error.
+
+Command:
+
+```bash
+cargo publish --dry-run --manifest-path crates/monochange/Cargo.toml
+```
+
+After this change, the dry run can compile the packaged tarball because `src/cli_after_long_help.md` is included alongside the Rust sources.
+
+The `monochange step publish-packages --stream-output` flag now streams package-manager stdout and stderr while commands run, while still capturing those streams in the publish report. The publish workflow enables this opt-in flag so Cargo verification errors from `cargo publish`, including missing packaged files, are visible in the normal CI log instead of only appearing in a later summarized report or annotation.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #615](https://github.com/monochange/monochange/pull/615)
+
 ## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)
 
 ### 🐛 Fixed
