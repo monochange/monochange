@@ -7,6 +7,22 @@ use tempfile::TempDir;
 
 use super::*;
 
+fn first_hash_for_path(path: &Path, hashes: Vec<String>) -> MonochangeResult<String> {
+	hashes.into_iter().next().ok_or_else(|| {
+		MonochangeError::Config(format!(
+			"failed to hash {}: git returned no hash",
+			path.display()
+		))
+	})
+}
+
+async fn hash_file_at_path(root: &Path, path: &Path) -> MonochangeResult<String> {
+	let relative_path = root_relative(root, path);
+	let relative = relative_path.to_string_lossy().into_owned();
+	let hashes = hash_files_at_paths(root, &[relative]).await?;
+	first_hash_for_path(path, hashes)
+}
+
 fn setup_prepared_release_repo() -> TempDir {
 	let tempdir = setup_scenario_workspace_from(
 		env!("CARGO_MANIFEST_DIR"),

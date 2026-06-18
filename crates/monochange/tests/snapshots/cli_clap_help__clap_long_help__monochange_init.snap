@@ -1,0 +1,44 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
+---
+Version: [current]
+Command: monochange init
+
+Generate monochange.toml with detected packages, groups, and default CLI commands
+
+[1m[97mUsage:[0m [93mmonochange init[0m [95m[OPTIONS][0m
+
+[1m[96mOptions:[0m
+      [93m--force[0m
+          Overwrite an existing monochange.toml file
+
+      [93m--provider[0m[95m [0m[95m<provider>[0m
+          Configure release automation for the specified provider. When provided, the generated config includes:
+          
+          - [source] section with the provider configured
+          - Release and pull request settings for the provider
+          - A minimal starter config without generated [cli.*] command aliases
+          - GitHub Actions workflows (for --provider=github)
+          
+          Supported providers: github, gitlab, gitea
+          
+          [possible values: github, gitlab, gitea]
+
+  [93m-h[0m, [93m--help[0m
+          Print help (see a summary with '-h')
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

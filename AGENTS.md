@@ -45,6 +45,7 @@ These operations are **strictly prohibited** for the agent and must only be perf
 - **Never trigger release or publish workflows** (`release.yml`, `publish.yml`, `docs-release.yml`, etc.) manually.
 - **Never use local credentials** (cargo tokens, npm tokens, GitHub tokens, OIDC tokens, etc.) to perform any registry-side operation.
 - **Never create, delete, or modify tags or releases** on GitHub.
+- **Never add the `no-changeset-required` label** to an issue or pull request. Only Ifiok Jr. may decide that a change does not need a changeset and apply this label.
 
 The agent must only write code, open and update pull requests, review code, run tests, and perform other development tasks. Release and publish operations are the sole responsibility of the human maintainer.
 

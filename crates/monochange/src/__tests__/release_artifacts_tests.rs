@@ -374,11 +374,11 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		"default"
 	);
 	assert_eq!(
-		default_release_title_for_format(VersionFormat::Primary),
+		default_release_title_for_format(&VersionFormat::Primary),
 		DEFAULT_RELEASE_TITLE_PRIMARY
 	);
 	assert_eq!(
-		default_changelog_version_title_for_format(VersionFormat::Namespaced),
+		default_changelog_version_title_for_format(&VersionFormat::Namespaced),
 		DEFAULT_CHANGELOG_VERSION_TITLE_NAMESPACED
 	);
 	assert!(

@@ -12,52 +12,43 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-╭──────────────────────────────────────────────────────────╮
-│  monochange init                                         │
-│  Generate monochange.toml with detected packages         │
-╰──────────────────────────────────────────────────────────╯
+Generate monochange.toml with detected packages, groups, and default CLI commands
 
-▸ Description
+Usage: monochange init [OPTIONS]
 
-  Scans the workspace for supported package manifests (Cargo.toml, package.json, deno.json, pubspec.yaml) and generates a monochange.toml configuration file with discovered packages, version groups, and default CLI commands.
+Options:
+      --force
+          Overwrite an existing monochange.toml file
 
-  Use --provider to scaffold source-control integration (GitHub, GitLab, Gitea, Forgejo) with release automation CLI commands.
+      --provider <provider>
+          Configure release automation for the specified provider. When provided, the generated config includes:
+          
+          - [source] section with the provider configured
+          - Release and pull request settings for the provider
+          - A minimal starter config without generated [cli.*] command aliases
+          - GitHub Actions workflows (for --provider=github)
+          
+          Supported providers: github, gitlab, gitea
+          
+          [possible values: github, gitlab, gitea]
 
-▸ Usage
+  -h, --help
+          Print help (see a summary with '-h')
 
-  monochange init [OPTIONS]
+Global Options:
+  -q, --quiet
+          Suppress stdout/stderr output and run in dry-run mode when supported
 
-▸ Options
+      --progress-format <FORMAT>
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
 
-  --force               Overwrite an existing monochange.toml file
-  --provider <PROVIDER>  Source-control provider (github, gitlab, gitea)
+      --jq <EXPRESSION>
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
 
-▸ Examples
-
-  Initialize a fresh workspace:
-    monochange init
-
-  Overwrite existing config:
-    monochange init --force
-
-  Initialize with GitHub integration:
-    monochange init --provider github
-
-  Initialize with GitLab integration:
-    monochange init --provider gitlab
-
-  Initialize with Gitea integration:
-    monochange init --provider gitea
-
-▸ Tips
-
-  • Run monochange init at the root of your monorepo.
-  • The generated config is a starting point — customize packages, groups, and CLI commands in monochange.toml.
-  • Use --provider=github to get GitHub Actions workflow templates included.
-
-▸ See Also
-
-  monochange help populate  monochange help step validate  monochange help discover
+      --snapshot
+          Print a normalized JSON snapshot for this command subtree
 
 
 ----- stderr -----

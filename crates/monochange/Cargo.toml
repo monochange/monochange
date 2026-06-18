@@ -6,6 +6,7 @@ documentation = "https://docs.rs/monochange"
 edition = { workspace = true }
 include = [
 	"src/**/*.rs",
+	"src/**/*.md",
 	"src/**/*.yml",
 	"src/**/*.toml",
 	"src/**/*.template",

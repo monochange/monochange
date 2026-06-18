@@ -21,8 +21,6 @@ use monochange_github::verify_github_trust_context;
 use monochange_go::write_go_placeholder_manifest;
 use monochange_npm::render_npm_trust_command;
 use monochange_npm::write_npm_placeholder_manifest;
-#[cfg(test)]
-use monochange_publish::CommandExecutor;
 pub(crate) use monochange_publish::PackagePublishOutcome;
 pub(crate) use monochange_publish::PackagePublishReport;
 pub(crate) use monochange_publish::PackagePublishRunMode;
@@ -31,23 +29,15 @@ use monochange_publish::PlaceholderManifestWriterRegistry;
 use monochange_publish::PublishReadinessRegistry;
 pub(crate) use monochange_publish::PublishRequest;
 use monochange_publish::PublishTrustHandler;
-#[cfg(test)]
-use monochange_publish::RegistryEndpoints;
 use monochange_publish::TrustedPublishingIdentity;
 pub(crate) use monochange_publish::TrustedPublishingOutcome;
 pub(crate) use monochange_publish::TrustedPublishingStatus;
-#[cfg(test)]
-use monochange_publish::build_placeholder_directory as build_placeholder_directory_with_writers;
 pub(crate) use monochange_publish::build_placeholder_requests;
 use monochange_publish::build_publish_command_builder;
 pub(crate) use monochange_publish::build_release_requests;
 use monochange_publish::configured_package_publication_targets;
 use monochange_publish::detect_trusted_publishing_identity;
 use monochange_publish::disabled_trust_outcome;
-#[cfg(test)]
-use monochange_publish::enforce_release_attestation_prerequisites as enforce_release_attestation_prerequisites_impl;
-#[cfg(test)]
-use monochange_publish::execute_publish_requests as execute_publish_requests_impl;
 use monochange_publish::execute_publish_requests_with_process_and_progress;
 use monochange_publish::manual_setup_url;
 use monochange_publish::merge_publish_resume_report;
@@ -60,10 +50,6 @@ use monochange_publish::set_npm_publish_otp_for_requests;
 use monochange_publish::trusted_publishing_capability_message;
 use monochange_publish::trusted_publishing_capability_message_for_builtin;
 use monochange_python::write_python_placeholder_manifest;
-#[cfg(test)]
-use reqwest::Client;
-#[cfg(test)]
-use tempfile::TempDir;
 
 use crate::PreparedRelease;
 use crate::discover_release_record;
@@ -105,6 +91,7 @@ pub(crate) async fn run_publish_packages(
 	prepared_release: Option<&PreparedRelease>,
 	selected_packages: &BTreeSet<String>,
 	dry_run: bool,
+	stream_output: bool,
 ) -> MonochangeResult<PackagePublishReport> {
 	run_publish_packages_with_resume(
 		root,
@@ -116,6 +103,7 @@ pub(crate) async fn run_publish_packages(
 		false,
 		dry_run,
 		None,
+		stream_output,
 	)
 	.await
 }
@@ -131,6 +119,7 @@ pub(crate) async fn run_publish_packages_with_resume(
 	publish_all_configured_packages: bool,
 	dry_run: bool,
 	resume_path: Option<&Path>,
+	stream_output: bool,
 ) -> MonochangeResult<PackagePublishReport> {
 	let publication_targets = if publish_all_configured_packages {
 		let discovery = discover_workspace(root)?;
@@ -153,6 +142,7 @@ pub(crate) async fn run_publish_packages_with_resume(
 		&selected_targets.selected_packages,
 		dry_run,
 		resume_path,
+		stream_output,
 	)
 	.await
 }
@@ -163,6 +153,7 @@ pub(crate) async fn run_publish_packages_with_publications(
 	publication_targets: &[PackagePublicationTarget],
 	selected_packages: &BTreeSet<String>,
 	dry_run: bool,
+	stream_output: bool,
 ) -> MonochangeResult<PackagePublishReport> {
 	run_publish_packages_with_publications_and_resume(
 		root,
@@ -171,6 +162,7 @@ pub(crate) async fn run_publish_packages_with_publications(
 		selected_packages,
 		dry_run,
 		None,
+		stream_output,
 	)
 	.await
 }
@@ -182,14 +174,16 @@ async fn run_publish_packages_with_publications_and_resume(
 	selected_packages: &BTreeSet<String>,
 	dry_run: bool,
 	resume_path: Option<&Path>,
+	stream_output: bool,
 ) -> MonochangeResult<PackagePublishReport> {
 	let discovery = discover_workspace(root)?;
-	let requests = build_release_requests(
+	let mut requests = build_release_requests(
 		configuration,
 		&discovery.packages,
 		publication_targets,
 		selected_packages,
 	)?;
+	enable_publish_stream_output(&mut requests, stream_output);
 	let previous_report = resume_path.map(read_publish_report_artifact).transpose()?;
 	let (requests, resumed_outcomes) =
 		resume_publish_requests(&requests, previous_report.as_ref())?;
@@ -222,6 +216,17 @@ async fn execute_release_publish_requests(
 		&progress,
 	)
 	.await
+}
+
+fn enable_publish_stream_output(requests: &mut [PublishRequest], stream_output: bool) {
+	if !stream_output {
+		return;
+	}
+	for request in requests {
+		request
+			.package_metadata
+			.insert("monochange:stream_output".to_string(), "true".to_string());
+	}
 }
 
 pub(crate) async fn release_record_package_publications_from_prepared_or_head(
@@ -269,49 +274,6 @@ impl PublishTrustHandler for CliPublishTrustHandler {
 	) -> MonochangeResult<()> {
 		enforce_release_trust_prerequisites(request, source, root, env_map)
 	}
-}
-
-#[cfg(test)]
-#[allow(clippy::too_many_arguments)]
-async fn execute_publish_requests(
-	root: &Path,
-	source: Option<&SourceConfiguration>,
-	mode: PackagePublishRunMode,
-	dry_run: bool,
-	requests: &[PublishRequest],
-	client: &Client,
-	endpoints: &RegistryEndpoints,
-	env_map: &BTreeMap<String, String>,
-	executor: &mut dyn CommandExecutor,
-) -> MonochangeResult<PackagePublishReport> {
-	execute_publish_requests_impl(
-		root,
-		source,
-		mode,
-		dry_run,
-		requests,
-		client,
-		endpoints,
-		env_map,
-		executor,
-		&build_publish_command_builder(),
-		&placeholder_manifest_writer_registry(),
-		&publish_readiness_registry(),
-		&CliPublishTrustHandler,
-	)
-	.await
-}
-
-#[cfg(test)]
-pub(crate) fn enforce_release_attestation_prerequisites(
-	request: &PublishRequest,
-	env_map: &BTreeMap<String, String>,
-) -> MonochangeResult<()> {
-	enforce_release_attestation_prerequisites_impl(
-		request,
-		env_map,
-		&build_publish_command_builder(),
-	)
 }
 
 fn enforce_release_trust_prerequisites(
@@ -429,25 +391,6 @@ fn planned_trust_outcome(
 	} else {
 		manual_trust_outcome(request, source, root, env_map)
 	}
-}
-
-#[cfg(test)]
-pub(crate) fn build_placeholder_directory(
-	root: &Path,
-	request: &PublishRequest,
-	source: Option<&SourceConfiguration>,
-) -> MonochangeResult<TempDir> {
-	build_placeholder_directory_with_writers(
-		root,
-		request,
-		source,
-		&placeholder_manifest_writer_registry(),
-	)
-}
-
-#[cfg(test)]
-fn placeholder_tempdir_error(error: &std::io::Error) -> MonochangeError {
-	MonochangeError::Io(format!("failed to create placeholder tempdir: {error}"))
 }
 
 fn publish_readiness_registry() -> PublishReadinessRegistry {

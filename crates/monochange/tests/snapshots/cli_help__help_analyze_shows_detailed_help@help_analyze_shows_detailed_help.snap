@@ -12,52 +12,63 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-╭──────────────────────────────────────────────────────────╮
-│  monochange analyze                                      │
-│  Analyze semantic changes for a package                  │
-╰──────────────────────────────────────────────────────────╯
+Analyze semantic changes for one package across main, head, and optional release baselines
 
-▸ Description
+Usage: monochange analyze [OPTIONS] --package <PACKAGE>
 
-  Runs package-scoped semantic analysis comparing a package's public API across main, head, and optional release baselines. Produces a structured assessment of what changed and the implied semver bump.
+Options:
+      --package <PACKAGE>
+          Configured package id, discovered package id, package name, manifest path, or package directory
 
-  Defaults --release-ref to the newest tag for the package or its version group. If no prior release tag exists, falls back to first-release analysis using only main → head.
+      --release-ref <REF>
+          Explicit release baseline ref. Defaults to the latest tag for the package or owning version group
 
-▸ Usage
+      --main-ref <REF>
+          Base branch or ref to compare against. Defaults to the detected default branch
 
-  monochange analyze --package <PACKAGE> [OPTIONS]
+      --head-ref <REF>
+          Head ref to analyze. Defaults to HEAD
 
-▸ Options
+      --detection-level <detection-level>
+          Level of semantic detail to request from analyzers
+          
+          [default: signature]
+          [possible values: basic, signature, semantic]
 
-  --package <PACKAGE>        Package id, name, manifest path, or directory (required)
-  --release-ref <REF>        Explicit release baseline ref
-  --main-ref <REF>           Base branch ref (default: detected default branch)
-  --head-ref <REF>           Head ref to analyze (default: HEAD)
-  --detection-level <LEVEL>  basic, signature, semantic (default: signature)
-  --format <FORMAT>          text, json (default: text)
+      --format <format>
+          Output format
+          
+          [default: markdown]
+          [possible values: text, json, markdown, md]
 
-▸ Examples
+  -h, --help
+          Print help
 
-  Analyze a package:
-    monochange analyze --package core
+Global Options:
+  -q, --quiet
+          Suppress stdout/stderr output and run in dry-run mode when supported
 
-  JSON output:
-    monochange analyze --package core --format json
+      --progress-format <FORMAT>
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
 
-  Against a specific release tag:
-    monochange analyze --package core --release-ref core/v1.2.3
+      --jq <EXPRESSION>
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
 
-  Custom main and head refs:
-    monochange analyze --package core --main-ref main --head-ref HEAD
+      --snapshot
+          Print a normalized JSON snapshot for this command subtree
 
-▸ Tips
+Examples:
+  monochange analyze --package core
+  monochange analyze --package core --format json
+  monochange analyze --package core --release-ref core/v1.2.3
+  monochange analyze --package core --main-ref main --head-ref HEAD
 
-  • Use the package id from monochange.toml for the most reliable resolution.
-  • Add --format json for scripting and LLM consumption.
-
-▸ See Also
-
-  monochange help release  monochange help versions  monochange help change
+Analysis notes:
+  - Runs package-scoped semantic analysis using the selected package's configured release identity.
+  - Defaults `--release-ref` to the newest tag for the package or the version group that owns it.
+  - If no prior release tag exists, falls back to first-release analysis using only `main -> head`.
 
 
 ----- stderr -----

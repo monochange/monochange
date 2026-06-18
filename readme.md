@@ -22,6 +22,41 @@ Use it when your repository has outgrown one-ecosystem release tooling and you w
 
 <!-- {/projectReadmeOverview} -->
 
+<!-- {=projectCliAfterLongHelp} -->
+
+### Quick CLI workflow
+
+1. Create or update `monochange.toml` for your workspace:
+
+```bash
+monochange init
+```
+
+2. Validate configuration and changeset targets before making release changes:
+
+```bash
+monochange step validate
+```
+
+3. Inspect detected package ids and groups when authoring changesets or workflow inputs:
+
+```bash
+monochange step discover --format json
+```
+
+4. Use repository-defined workflows through `monochange run <command>` when they exist in your config, or call immutable built-in steps directly with `monochange step <name>`.
+
+5. Preview before mutating files, publishing packages, creating tags, or opening release requests:
+
+```bash
+monochange run release --dry-run --diff
+monochange step prepare-release --dry-run --diff
+```
+
+Run `monochange help <command>` or `monochange help step <name>` for command-specific options.
+
+<!-- {/projectCliAfterLongHelp} -->
+
 ## Who `monochange` is for
 
 - maintainers of monorepos that span more than one package ecosystem
@@ -117,6 +152,32 @@ If you do not know which package id to target, rerun `monochange step discover -
 - [Release planning](docs/src/guide/06-release-planning.md) — changesets, dry runs, diff previews, and planning rules
 - [Advanced: CI, package publishing, and release PR flows](docs/src/guide/13-ci-and-publishing.md) — per-provider CI patterns, trusted publishing, and long-running release PR design notes
 - [Reference: Manifest linting with `monochange check`](docs/src/reference/linting.md) — `[lints]` rules for Cargo and npm-family manifests
+
+<!-- {=manifestRepositoryLintReadmeSummary} -->
+
+### Optional repository URL lint rules
+
+monochange includes opt-in repository URL lint rules for Cargo, Dart, and npm-family manifests:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = "error"
+"dart/manifest-repository" = "error"
+"npm/manifest-repository" = "error"
+```
+
+These rules compare each manifest's `repository` field with the repository configured under `[source]` in `monochange.toml`. Root-level packages use the base repository URL, while packages in subdirectories use `{repo_url}/tree/{default_branch}/{relative_package_dir}`. Run `monochange check --fix` to insert or update repository fields; there is no per-rule `fix` option.
+
+Cargo also resolves `repository = { workspace = true }` by reading the root manifest's `[workspace.package].repository` (falling back to root `[package].repository`). If you intentionally want to allow workspace inheritance without validating the package-specific URL, configure:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = { level = "error", allow_workspace_inheritance = true }
+```
+
+For full rule-by-rule behavior, see the manifest linting reference and `monochange lint explain <rule-id>`.
+
+<!-- {/manifestRepositoryLintReadmeSummary} -->
 
 <!-- {=projectRecentPublishingImprovements} -->
 

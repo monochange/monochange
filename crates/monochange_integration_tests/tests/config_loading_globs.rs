@@ -12,11 +12,16 @@ async fn inherited_ecosystem_globs_load_quick_repo_fixture() {
 
 	let help = monochange::run_with_args_in_dir(
 		"monochange",
-		[OsString::from("monochange"), OsString::from("--help")],
+		[
+			OsString::from("monochange"),
+			OsString::from("run"),
+			OsString::from("deploy"),
+			OsString::from("--help"),
+		],
 		root,
 	)
 	.await
-	.unwrap_or_else(|error| panic!("root help: {error}"));
+	.unwrap_or_else(|error| panic!("deploy help: {error}"));
 	assert!(help.contains("Deploy fixture packages"));
 
 	let configuration = monochange_config::load_workspace_configuration(root)

@@ -1,0 +1,59 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+assertion_line: 142
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange create
+
+Create a changeset file for one or more packages
+
+[1m[97mUsage:[0m monochange create [--dry-run] [--interactive] [--package <PACKAGE>] [--bump <BUMP>] [--version <VERSION>] [--reason <REASON>] [--type <TYPE>] [--details <DETAILS>] [--output <PATH>]
+
+[1m[96mOptions:[0m
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mRelease Options:[0m
+      [93m--dry-run[0m
+          Run the command in dry-run mode when supported
+
+[1m[96mOptions:[0m
+      [93m--interactive[0m
+          
+
+      [93m--package[0m[95m [0m[95m<PACKAGE>[0m
+          
+
+      [93m--bump[0m[95m [0m[95m<BUMP>[0m
+          [possible values: major, minor, patch, none]
+
+      [93m--version[0m[95m [0m[95m<VERSION>[0m
+          
+
+      [93m--reason[0m[95m [0m[95m<REASON>[0m
+          
+
+      [93m--type[0m[95m [0m[95m<TYPE>[0m
+          
+
+      [93m--details[0m[95m [0m[95m<DETAILS>[0m
+          
+
+      [93m--output[0m[95m [0m[95m<PATH>[0m
+          
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

@@ -1439,6 +1439,18 @@ fn load_workspace_configuration_rejects_regex_versioned_files_with_prefix() {
 }
 
 #[test]
+fn load_workspace_configuration_rejects_default_string_versioned_files_without_default_type() {
+	let root = fixture_path("config/rejects-default-string-versioned");
+	let error = load_workspace_configuration(&root)
+		.err()
+		.unwrap_or_else(|| panic!("expected configuration error"));
+	let rendered = error.render();
+
+	assert!(rendered.contains("bare-string `versioned_files`"));
+	assert!(rendered.contains("use `versioned_files = [{ path = \"...\", type = \"cargo\" }]`"));
+}
+
+#[test]
 fn load_workspace_configuration_rejects_group_string_versioned_files_without_explicit_type() {
 	let root = fixture_path("config/rejects-group-string-versioned");
 	let error = load_workspace_configuration(&root)
@@ -1481,6 +1493,62 @@ fn load_workspace_configuration_inherits_ecosystem_versioned_files_unless_packag
 			.map(|definition| definition.path.as_str()),
 		Some("package.json")
 	);
+}
+
+#[test]
+fn load_workspace_configuration_inherits_default_versioned_files() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::create_dir_all(root.join("packages/core"))
+		.unwrap_or_else(|error| panic!("create package dir: {error}"));
+	std::fs::create_dir_all(root.join("packages/utils"))
+		.unwrap_or_else(|error| panic!("create package dir: {error}"));
+	std::fs::write(
+		root.join("packages/core/pubspec.yaml"),
+		"name: core\nversion: 1.0.0\n",
+	)
+	.unwrap_or_else(|error| panic!("write pubspec: {error}"));
+	std::fs::write(
+		root.join("packages/utils/pubspec.yaml"),
+		"name: utils\nversion: 1.0.0\n",
+	)
+	.unwrap_or_else(|error| panic!("write pubspec: {error}"));
+	std::fs::write(
+		root.join("monochange.toml"),
+		r#"[defaults]
+package_type = "dart"
+versioned_files = [
+  { path = "versions.json", format = "json", fields = ["{{ name }}"] },
+]
+
+[package.core]
+path = "packages/core"
+
+[package.utils]
+path = "packages/utils"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	for package in &configuration.packages {
+		assert_eq!(package.versioned_files.len(), 1, "{}", package.id);
+		let versioned_file = package
+			.versioned_files
+			.first()
+			.unwrap_or_else(|| panic!("expected versioned file"));
+		assert_eq!(versioned_file.path, "versions.json");
+		assert_eq!(
+			versioned_file.format,
+			Some(monochange_core::VersionedFileFormat::Json)
+		);
+		assert_eq!(
+			versioned_file.fields.as_deref(),
+			Some(&["{{ name }}".to_string()][..])
+		);
+	}
 }
 
 #[test]
@@ -6418,6 +6486,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			name: None,
 			fields: None,
 			prefix: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		}],
 		&declared_packages,
@@ -6442,6 +6511,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			name: None,
 			fields: None,
 			prefix: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		}],
 		&declared_packages,
@@ -6471,6 +6541,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		name: None,
 		fields: None,
 		prefix: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	validate_versioned_files_for_test(
@@ -6501,6 +6572,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			name: None,
 			fields: None,
 			prefix: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		}],
 		&declared_packages,
@@ -6534,6 +6606,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			name: None,
 			fields: None,
 			prefix: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		}],
 		&declared_packages,
@@ -6562,6 +6635,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			name: None,
 			fields: None,
 			prefix: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		}],
 		&declared_packages,
@@ -7484,6 +7558,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		name: None,
 		fields: Some(vec!["release.version".to_string()]),
 		prefix: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	validate_versioned_files_for_test(
@@ -7503,6 +7578,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		name: None,
 		fields: Some(vec!["release.version".to_string()]),
 		prefix: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let error = validate_versioned_files_for_test(
@@ -7523,6 +7599,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		name: None,
 		fields: Some(vec!["release.version".to_string()]),
 		prefix: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: Some("version = (?<version>.*)".to_string()),
 	};
 	let error = validate_versioned_files_for_test(
@@ -7543,6 +7620,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		name: None,
 		fields: None,
 		prefix: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let error = validate_versioned_files_for_test(
@@ -7563,6 +7641,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		name: None,
 		fields: Some(Vec::new()),
 		prefix: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let error = validate_versioned_files_for_test(
@@ -8228,4 +8307,57 @@ include = ["modules/*"]
 
 	assert_eq!(package.package_type, monochange_core::PackageType::Go);
 	assert_eq!(package.path, PathBuf::from("modules/service"));
+}
+
+#[test]
+fn load_workspace_configuration_accepts_custom_version_formats() {
+	let root = fixture_path("config/custom-version-format");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let core = configuration.package_by_id("core").expect("core package");
+	assert_eq!(
+		core.version_format,
+		monochange_core::VersionFormat::Custom(
+			"{{ ecosystem }}/{{ name }}/v{{ version }}".to_string()
+		)
+	);
+	let cli = configuration.package_by_id("cli").expect("cli package");
+	assert_eq!(
+		cli.version_format,
+		monochange_core::VersionFormat::Custom("{{ name }}-v{{ version }}".to_string())
+	);
+	let group = configuration.group_by_id("sdk").expect("sdk group");
+	assert_eq!(
+		group.version_format,
+		monochange_core::VersionFormat::Custom("groups/{{ name }}/v{{ version }}".to_string())
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_colliding_custom_version_formats() {
+	let root = fixture_path("config/rejects-colliding-custom-version-format");
+	let error = load_workspace_configuration(&root)
+		.expect_err("colliding custom version formats should be rejected")
+		.render();
+	assert!(error.contains("renders the same sample tag `release-v0.0.0`"));
+	assert!(error.contains("include `{{ name }}`"));
+}
+
+#[test]
+fn load_workspace_configuration_rejects_primary_custom_version_format_collision() {
+	let root = fixture_path("config/rejects-primary-custom-version-format-collision");
+	let error = load_workspace_configuration(&root)
+		.expect_err("primary and equivalent custom version formats should be rejected")
+		.render();
+	assert!(error.contains("renders the same sample tag `v0.0.0`"));
+	assert!(error.contains("include `{{ name }}`"));
+}
+
+#[test]
+fn load_workspace_configuration_rejects_invalid_custom_version_format_tags() {
+	let root = fixture_path("config/rejects-invalid-custom-version-format");
+	let error = load_workspace_configuration(&root)
+		.expect_err("invalid custom version format tags should be rejected")
+		.render();
+	assert!(error.contains("contains whitespace"));
 }

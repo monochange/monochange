@@ -10,14 +10,10 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::LazyLock;
-use std::sync::Mutex;
 
 fn set_force_build_file_diff_previews_error(enabled: bool) {
 	crate::release_artifacts::FORCE_BUILD_FILE_DIFF_PREVIEWS_ERROR.with(|value| value.set(enabled));
 }
-
-pub(crate) static TEST_ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 use clap::Command;
 use httpmock::Method::GET;
@@ -52,7 +48,6 @@ use crate::add_interactive_change_file;
 use crate::affected_packages;
 use crate::cli::apply_runtime_change_type_choices;
 use crate::cli::apply_runtime_prepare_release_markdown_defaults;
-use crate::cli::build_cli_command_subcommand;
 use crate::cli::build_command_for_root;
 use crate::cli::build_skill_subcommand;
 use crate::cli::build_subagents_subcommand;
@@ -76,6 +71,7 @@ use crate::cli_runtime::should_execute_cli_step;
 use crate::cli_runtime::template_value_to_input_values;
 use crate::command_path_from_matches;
 use crate::discover_workspace;
+use crate::git_support::read_git_commit_message;
 use crate::git_support::run_git_capture;
 use crate::git_support::run_git_process;
 use crate::git_support::run_git_status;
@@ -92,9 +88,9 @@ use crate::render_snapshot_request;
 use crate::run_with_args;
 use crate::run_with_args_in_dir;
 use crate::snapshot_view;
+use crate::tests::TEST_ENV_LOCK;
 use crate::workspace_ops::build_lockfile_command_executions;
 use crate::workspace_ops::change_type_default_bump;
-use crate::workspace_ops::prepare_release_execution;
 use crate::workspace_ops::render_cli_commands_toml;
 use crate::workspace_ops::render_interactive_changeset_markdown;
 
@@ -219,6 +215,7 @@ where
 			.map(|command| (index, command))
 	}) {
 		let builtins = [
+			"affected",
 			"analyze",
 			"api",
 			"audit",
@@ -226,6 +223,10 @@ where
 			"changeset",
 			"check",
 			"command",
+			"config",
+			"create",
+			"diagnose",
+			"discover",
 			"explain",
 			"help",
 			"init",
@@ -235,6 +236,8 @@ where
 			"migrate",
 			"new",
 			"populate",
+			"prepare",
+			"preview",
 			"release-records",
 			"run",
 			"skill",
@@ -249,7 +252,7 @@ where
 		}
 	}
 
-	crate::cli_runtime::block_on_in_context(temp_env::async_with_vars(
+	crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("MONOCHANGE_PROGRESS_FORMAT", None::<&str>)],
 		async { run_with_args_in_dir("monochange", args, root).await },
 	))
@@ -940,6 +943,46 @@ fn generated_step_commands_cover_all_builtin_steps_except_command() {
 }
 
 #[test]
+fn generated_top_level_step_aliases_parse_as_builtins() {
+	let command = crate::cli::build_command_with_cli("monochange", &[]);
+	let expected = [
+		"create", "discover", "config", "preview", "prepare", "affected", "diagnose",
+	];
+
+	for command_name in expected {
+		let subcommand = command
+			.find_subcommand(command_name)
+			.unwrap_or_else(|| panic!("expected top-level {command_name} command"));
+		assert!(
+			subcommand
+				.get_arguments()
+				.any(|argument| argument.get_id() == "dry-run"),
+			"expected {command_name} to accept the shared dry-run flag"
+		);
+	}
+
+	let matches = command
+		.clone()
+		.try_get_matches_from(["monochange", "create", "--package", "core"])
+		.unwrap_or_else(|error| panic!("create matches: {error}"));
+	assert_eq!(matches.subcommand_name(), Some("create"));
+}
+
+#[test]
+fn top_level_preview_alias_forces_prepare_release_dry_run() {
+	let alias = crate::cli::top_level_step_alias("preview")
+		.unwrap_or_else(|| panic!("expected preview alias"));
+	assert_eq!(alias.step, "prepare-release");
+	assert!(alias.force_dry_run);
+
+	let synthetic = crate::cli::top_level_step_alias_command_definition(alias)
+		.unwrap_or_else(|| panic!("expected preview command definition"));
+	assert_eq!(synthetic.name, "preview");
+	assert_eq!(synthetic.steps.len(), 1);
+	assert_eq!(synthetic.steps[0].step_kebab_name(), "prepare-release");
+}
+
+#[test]
 fn cli_parses_discover_command() {
 	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/mixed");
 	let matches = build_command_for_root("monochange", &fixture_root)
@@ -971,17 +1014,31 @@ async fn cli_help_returns_success_output() {
 	assert!(output.contains("analyze"));
 	assert!(!output.contains("assist"));
 	assert!(output.contains("mcp"));
-	assert!(output.contains("step create-change-file"));
-	assert!(output.contains("step diagnose-changesets"));
-	assert!(output.contains("step placeholder-publish"));
-	assert!(output.contains("step publish-release"));
-	assert!(output.contains("step plan-publish-rate-limits"));
-	assert!(output.contains("step retarget-release"));
-	assert!(output.contains("step release-record"));
-	assert!(output.contains("step placeholder-publish"));
-	assert!(output.contains("publish-release"));
-	assert!(output.contains("comment-released-issues"));
-	assert!(output.contains("step tag-release"));
+	assert!(output.contains("step"));
+	assert!(output.contains("Run built-in release workflow steps"));
+	assert!(output.contains("run"));
+	assert!(output.contains("Run workflow commands defined in monochange.toml"));
+}
+
+#[test]
+fn unknown_clap_help_path_includes_requested_path() {
+	let command = super::build_command("monochange");
+	let path = [String::from("not-a-command")];
+	let output = super::render_unknown_clap_help_path("monochange", &command, &path);
+	let root_output = super::render_unknown_clap_help_path("monochange", &command, &[]);
+	let root_path =
+		super::clap_help_path_from_args(&[OsString::from("monochange"), OsString::from("--help")]);
+	let help_path = super::clap_help_path_from_args(&[
+		OsString::from("monochange"),
+		OsString::from("help"),
+		OsString::from("--help"),
+	]);
+
+	assert!(output.contains("unrecognized command path `monochange not-a-command`"));
+	assert!(output.contains("Visible top-level commands:"));
+	assert!(root_output.contains("unrecognized command path `monochange`"));
+	assert!(root_path.is_empty());
+	assert_eq!(help_path, [String::from("help")]);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -1091,7 +1148,8 @@ fn boolean_cli_inputs_support_explicit_false_values() {
 		steps: vec![],
 		dry_run: false,
 	};
-	let subcommand = crate::build_cli_command_subcommand(&cli_command);
+	let subcommand =
+		crate::cli::build_cli_command_subcommand_with_prefix(&cli_command, "monochange");
 	let matches = Command::new("monochange")
 		.subcommand(subcommand)
 		.try_get_matches_from(["monochange", "test-bool", "--flag=false"])
@@ -1996,7 +2054,7 @@ fn populate_adds_default_cli_commands_to_an_empty_configuration_file() {
 
 #[test]
 fn render_cli_commands_toml_handles_release_and_command_step_variants() {
-	let rendered = crate::render_cli_commands_toml(&[CliCommandDefinition {
+	let rendered = render_cli_commands_toml(&[CliCommandDefinition {
 		name: "custom".to_string(),
 		help_text: None,
 		inputs: vec![CliInputDefinition {
@@ -2537,7 +2595,7 @@ fn change_command_sources_type_choices_from_workspace_configuration() {
 		}],
 		dry_run: false,
 	}];
-	crate::apply_runtime_change_type_choices(&mut cli, &configuration);
+	apply_runtime_change_type_choices(&mut cli, &configuration);
 	let change = cli
 		.iter()
 		.find(|c| c.name == "change")
@@ -2553,7 +2611,10 @@ fn change_command_sources_type_choices_from_workspace_configuration() {
 	);
 
 	let error = Command::new("monochange")
-		.subcommand(crate::build_cli_command_subcommand(&cli[0]))
+		.subcommand(crate::cli::build_cli_command_subcommand_with_prefix(
+			&cli[0],
+			"monochange",
+		))
 		.try_get_matches_from([
 			OsString::from("monochange"),
 			OsString::from("change"),
@@ -3005,15 +3066,15 @@ fn change_type_default_bump_resolves_package_group_and_unknown_targets() {
 	let configuration =
 		load_workspace_configuration(&root).unwrap_or_else(|error| panic!("config: {error}"));
 	assert_eq!(
-		crate::change_type_default_bump(&configuration, "core", "security"),
+		change_type_default_bump(&configuration, "core", "security"),
 		Some(BumpSeverity::Patch)
 	);
 	assert_eq!(
-		crate::change_type_default_bump(&configuration, "sdk", "test"),
+		change_type_default_bump(&configuration, "sdk", "test"),
 		Some(BumpSeverity::Minor)
 	);
 	assert_eq!(
-		crate::change_type_default_bump(&configuration, "unknown", "test"),
+		change_type_default_bump(&configuration, "unknown", "test"),
 		Some(BumpSeverity::Minor) // unknown targets inherit workspace defaults
 	);
 }
@@ -3251,7 +3312,7 @@ fn prepare_release_allows_empty_changesets_when_configured() {
 	fs::remove_dir_all(tempdir.path().join(".changeset"))
 		.unwrap_or_else(|error| panic!("remove changesets: {error}"));
 
-	let strict_error = crate::cli_runtime::block_on_in_context(
+	let strict_error = crate::tests::block_on_in_context(
 		crate::prepare_release_execution_with_file_diffs(tempdir.path(), true, false, false),
 	)
 	.err()
@@ -3262,7 +3323,7 @@ fn prepare_release_allows_empty_changesets_when_configured() {
 			.contains("no markdown changesets found under .changeset")
 	);
 
-	let execution = crate::cli_runtime::block_on_in_context(
+	let execution = crate::tests::block_on_in_context(
 		crate::prepare_release_execution_with_file_diffs(tempdir.path(), true, true, true),
 	)
 	.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
@@ -3443,7 +3504,7 @@ fn template_context_exposes_resolved_config_by_default() {
 	let mut context = cli_context_for_when_evaluation_tests();
 	context.root = tempdir.path().to_path_buf();
 
-	let template_context = crate::build_cli_template_context(&context, &BTreeMap::new(), None);
+	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
 	let project_root = tempdir
 		.path()
 		.canonicalize()
@@ -3489,7 +3550,7 @@ fn render_interactive_changeset_markdown_uses_natural_summary_heading() {
 		reason: "interactive heading".to_string(),
 		details: Some("Details body".to_string()),
 	};
-	let rendered = crate::render_interactive_changeset_markdown(&configuration, &result)
+	let rendered = render_interactive_changeset_markdown(&configuration, &result)
 		.unwrap_or_else(|error| panic!("render interactive markdown: {error}"));
 	assert!(rendered.contains("# interactive heading"));
 	assert!(rendered.contains("Details body"));
@@ -3511,7 +3572,7 @@ fn render_interactive_changeset_markdown_renders_caused_by_context() {
 		reason: "interactive caused_by".to_string(),
 		details: None,
 	};
-	let rendered = crate::render_interactive_changeset_markdown(&configuration, &result)
+	let rendered = render_interactive_changeset_markdown(&configuration, &result)
 		.unwrap_or_else(|error| panic!("render interactive caused_by markdown: {error}"));
 	assert!(rendered.contains("core:"));
 	assert!(rendered.contains("  bump: none"));
@@ -3733,8 +3794,13 @@ fn prepare_release_execution_dry_run_skips_lockfile_commands_for_performance() {
 		.unwrap_or_else(|error| panic!("package lock before dry-run: {error}"));
 
 	let prepared = with_path_prefixed(tempdir.path(), || {
-		crate::cli_runtime::block_on_in_context(prepare_release_execution(tempdir.path(), true))
-			.unwrap_or_else(|error| panic!("prepare release execution: {error}"))
+		crate::tests::block_on_in_context(prepare_release_execution_with_file_diffs(
+			tempdir.path(),
+			true,
+			true,
+			false,
+		))
+		.unwrap_or_else(|error| panic!("prepare release execution: {error}"))
 	});
 	let after = fs::read_to_string(tempdir.path().join("packages/app/package-lock.json"))
 		.unwrap_or_else(|error| panic!("package lock after dry-run: {error}"));
@@ -6679,7 +6745,7 @@ fn template_context_exposes_release_commit_namespace() {
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
 	};
-	let template_context = crate::build_cli_template_context(&context, &BTreeMap::new(), None);
+	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
 	assert_eq!(
 		template_context
 			.get("release_commit")
@@ -6716,7 +6782,7 @@ fn template_context_exposes_retarget_namespace() {
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
 	};
-	let template_context = crate::build_cli_template_context(&context, &BTreeMap::new(), None);
+	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
 	assert_eq!(
 		template_context
 			.get("retarget")
@@ -6801,7 +6867,7 @@ fn template_context_exposes_publish_namespace() {
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
 	};
-	let template_context = crate::build_cli_template_context(&context, &BTreeMap::new(), None);
+	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
 	assert_eq!(
 		template_context
 			.get("publish")
@@ -6895,7 +6961,7 @@ fn template_context_exposes_manifest_affected_steps_and_custom_variables() {
 			monochange_core::CommandVariable::Changesets,
 		),
 	]);
-	let template_context = crate::build_cli_template_context(&context, &inputs, Some(&variables));
+	let template_context = build_cli_template_context(&context, &inputs, Some(&variables));
 	assert_eq!(
 		template_context
 			.get("manifest")
@@ -6995,7 +7061,7 @@ fn render_cli_command_result_prefers_retarget_report() {
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
 	};
-	let rendered = crate::render_cli_command_result(&cli_command, &context);
+	let rendered = render_cli_command_result(&cli_command, &context);
 	assert!(rendered.contains("repair release:"));
 	assert!(rendered.contains("status: dry-run"));
 }
@@ -7036,7 +7102,7 @@ fn render_cli_command_result_renders_release_follow_up_sections() {
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
 	};
-	let rendered = crate::render_cli_command_result(&cli_command, &context);
+	let rendered = render_cli_command_result(&cli_command, &context);
 	assert!(rendered.contains("release manifest: target/release-manifest.json"));
 	assert!(rendered.contains("releases:"));
 	assert!(rendered.contains("release request:"));
@@ -7082,7 +7148,7 @@ fn render_cli_command_markdown_result_uses_markdown_sections_for_prepare_release
 		step_outputs: BTreeMap::new(),
 		command_logs: vec!["skipped command `cargo publish` (dry-run)".to_string()],
 	};
-	let rendered = crate::render_cli_command_markdown_result(&cli_command, &context);
+	let rendered = render_cli_command_markdown_result(&cli_command, &context);
 	assert!(rendered.contains("# `release` (dry-run)"));
 	assert!(rendered.contains("## Summary"));
 	assert!(rendered.contains("## Release targets"));
@@ -7138,7 +7204,7 @@ fn render_cli_command_markdown_result_renders_release_follow_up_sections() {
 		command_logs: vec!["executed release workflow".to_string()],
 	};
 
-	let rendered = crate::render_cli_command_markdown_result(&cli_command, &context);
+	let rendered = render_cli_command_markdown_result(&cli_command, &context);
 	assert!(rendered.contains("## Releases"));
 	assert!(rendered.contains("published monochange v1.2.3"));
 	assert!(rendered.contains("## Release commit"));
@@ -8176,7 +8242,7 @@ async fn execute_matches_rejects_unknown_cli_command_names() {
 async fn run_git_capture_and_process_report_io_failures_for_missing_worktrees() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let missing = tempdir.path().join("missing");
-	let capture_error = crate::run_git_capture(&missing, &["status"], "capture failure")
+	let capture_error = run_git_capture(&missing, &["status"], "capture failure")
 		.await
 		.err()
 		.unwrap_or_else(|| panic!("expected capture error"));
@@ -8184,7 +8250,7 @@ async fn run_git_capture_and_process_report_io_failures_for_missing_worktrees() 
 
 	let mut command = std::process::Command::new("git");
 	command.current_dir(&missing).arg("status");
-	let process_error = crate::run_git_process(command, "process failure")
+	let process_error = run_git_process(command, "process failure")
 		.await
 		.err()
 		.unwrap_or_else(|| panic!("expected process error"));
@@ -8194,7 +8260,7 @@ async fn run_git_capture_and_process_report_io_failures_for_missing_worktrees() 
 #[test]
 fn parse_boolean_step_input_rejects_invalid_values() {
 	let inputs = BTreeMap::from([("force".to_string(), vec!["maybe".to_string()])]);
-	let error = crate::parse_boolean_step_input(&inputs, "force")
+	let error = parse_boolean_step_input(&inputs, "force")
 		.err()
 		.unwrap_or_else(|| panic!("expected invalid boolean error"));
 	assert!(
@@ -8308,9 +8374,8 @@ fn inferred_retarget_source_configuration_prefers_configured_source() {
 		distance: 0,
 		record: sample_release_record_for_retarget(),
 	};
-	let inferred =
-		crate::inferred_retarget_source_configuration(Some(&configured), &discovery, true)
-			.unwrap_or_else(|| panic!("expected configured source"));
+	let inferred = inferred_retarget_source_configuration(Some(&configured), &discovery, true)
+		.unwrap_or_else(|| panic!("expected configured source"));
 	assert_eq!(inferred, configured);
 }
 
@@ -8323,7 +8388,7 @@ fn inferred_retarget_source_configuration_infers_from_release_record_provider() 
 		distance: 0,
 		record: sample_release_record_for_retarget(),
 	};
-	let inferred = crate::inferred_retarget_source_configuration(None, &discovery, true)
+	let inferred = inferred_retarget_source_configuration(None, &discovery, true)
 		.unwrap_or_else(|| panic!("expected inferred source"));
 	assert_eq!(inferred.provider, monochange_core::SourceProvider::GitHub);
 	assert_eq!(inferred.owner, "ifiokjr");
@@ -8339,7 +8404,7 @@ fn inferred_retarget_source_configuration_returns_none_when_sync_is_disabled() {
 		distance: 0,
 		record: sample_release_record_for_retarget(),
 	};
-	assert!(crate::inferred_retarget_source_configuration(None, &discovery, false).is_none());
+	assert!(inferred_retarget_source_configuration(None, &discovery, false).is_none());
 }
 
 #[test]
@@ -8373,7 +8438,7 @@ fn build_retarget_release_report_marks_completed_status() {
 		sync_provider: true,
 		dry_run: false,
 	};
-	let report = crate::build_retarget_release_report("v1.2.3", "HEAD", &discovery, false, &result);
+	let report = build_retarget_release_report("v1.2.3", "HEAD", &discovery, false, &result);
 	assert_eq!(report.status, "completed");
 	assert!(!report.is_descendant);
 }
@@ -8390,7 +8455,7 @@ fn render_retarget_release_report_handles_provider_sync_variants() {
 		url: None,
 		message: None,
 	}];
-	let rendered = crate::render_retarget_release_report(&report);
+	let rendered = render_retarget_release_report(&report);
 	assert!(rendered.contains("provider sync: github"));
 	assert!(rendered.contains("[planned]"));
 
@@ -8398,30 +8463,30 @@ fn render_retarget_release_report_handles_provider_sync_variants() {
 	no_provider_report.sync_provider = true;
 	no_provider_report.provider_results = Vec::new();
 	no_provider_report.git_tag_results = Vec::new();
-	let rendered = crate::render_retarget_release_report(&no_provider_report);
+	let rendered = render_retarget_release_report(&no_provider_report);
 	assert!(rendered.contains("provider sync: none"));
 }
 
 #[test]
 fn retarget_operation_label_covers_all_variants() {
 	assert_eq!(
-		crate::retarget_operation_label(monochange_core::RetargetOperation::Planned),
+		retarget_operation_label(monochange_core::RetargetOperation::Planned),
 		"planned"
 	);
 	assert_eq!(
-		crate::retarget_operation_label(monochange_core::RetargetOperation::Moved),
+		retarget_operation_label(monochange_core::RetargetOperation::Moved),
 		"moved"
 	);
 	assert_eq!(
-		crate::retarget_operation_label(monochange_core::RetargetOperation::AlreadyUpToDate),
+		retarget_operation_label(monochange_core::RetargetOperation::AlreadyUpToDate),
 		"already_up_to_date"
 	);
 	assert_eq!(
-		crate::retarget_operation_label(monochange_core::RetargetOperation::Skipped),
+		retarget_operation_label(monochange_core::RetargetOperation::Skipped),
 		"skipped"
 	);
 	assert_eq!(
-		crate::retarget_operation_label(monochange_core::RetargetOperation::Failed),
+		retarget_operation_label(monochange_core::RetargetOperation::Failed),
 		"failed"
 	);
 }
@@ -9278,7 +9343,7 @@ async fn git_head_commit_and_read_commit_message_roundtrip() {
 	let head = crate::git_head_commit(root)
 		.await
 		.unwrap_or_else(|error| panic!("head commit: {error}"));
-	let message = crate::read_git_commit_message(root, &head)
+	let message = read_git_commit_message(root, &head)
 		.await
 		.unwrap_or_else(|error| panic!("read commit message: {error}"));
 	assert!(message.contains("subject line"));
@@ -9289,7 +9354,7 @@ async fn git_head_commit_and_read_commit_message_roundtrip() {
 async fn run_git_status_reports_nonzero_exit_failures() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	init_git_repo(tempdir.path());
-	let error = crate::run_git_status(
+	let error = run_git_status(
 		tempdir.path(),
 		&["definitely-not-a-real-git-command"],
 		"git status failure",
@@ -9594,6 +9659,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		prefix: Some("~".to_string()),
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert_eq!(crate::resolve_versioned_prefix(&explicit, &context), "~");
@@ -9605,6 +9671,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert_eq!(
@@ -9619,6 +9686,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert_eq!(
@@ -9633,6 +9701,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert_eq!(crate::resolve_versioned_prefix(&python, &context), "~=");
@@ -9644,6 +9713,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert_eq!(crate::resolve_versioned_prefix(&go, &context), "");
@@ -10283,6 +10353,7 @@ fn expand_versioned_file_fields_supports_name_templates_and_passthrough_fields()
 			"workspace.version".to_string(),
 		]),
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert_eq!(
@@ -10300,6 +10371,7 @@ fn expand_versioned_file_fields_supports_name_templates_and_passthrough_fields()
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert_eq!(
@@ -10336,6 +10408,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 			prefix: None,
 			fields: None,
 			name: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		};
 		let error = crate::apply_versioned_file_definition(
@@ -10371,6 +10444,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let error = crate::apply_versioned_file_definition(
@@ -10400,6 +10474,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let error = crate::apply_versioned_file_definition(
@@ -10430,6 +10505,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let error = crate::apply_versioned_file_definition(
@@ -10548,6 +10624,7 @@ fn apply_versioned_file_definition_returns_early_without_matching_versions() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let dep_names = vec!["core".to_string()];
@@ -10581,6 +10658,7 @@ fn apply_versioned_file_definition_rejects_invalid_glob_patterns() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let dep_names = vec!["core".to_string()];
@@ -10620,6 +10698,7 @@ fn apply_versioned_file_definition_rejects_unsupported_glob_matches() {
 			prefix: None,
 			fields: None,
 			name: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		};
 		let error = crate::apply_versioned_file_definition(
@@ -10661,6 +10740,7 @@ monochange = { path = "crates/monochange", version = "1.0.0" }
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let mut updates = BTreeMap::new();
@@ -10717,6 +10797,7 @@ extra = { path = "crates/extra", version = "1.0.0" }
 			"workspace.dependencies.{{ name }}.version".to_string(),
 		]),
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let mut updates = BTreeMap::new();
@@ -10768,6 +10849,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let bun_path = bun_tempdir.path().join("packages/app/bun.lockb");
@@ -10805,6 +10887,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let mut deno_updates = BTreeMap::new();
@@ -10845,6 +10928,7 @@ fn apply_versioned_file_definition_updates_regex_versioned_files_from_cached_tex
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: Some(
 			r"https:\/\/example.com\/download\/v(?<version>\d+\.\d+\.\d+)\.tgz".to_string(),
 		),
@@ -10893,6 +10977,7 @@ fn apply_versioned_file_definition_reports_invalid_regex_patterns() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: Some("(".to_string()),
 	};
 	let mut updates = BTreeMap::new();
@@ -10931,6 +11016,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let manifest_dep_names = vec!["core".to_string()];
@@ -10978,6 +11064,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let package_lock_dep_names = vec!["app".to_string()];
@@ -11019,6 +11106,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let pnpm_dep_names = vec!["core".to_string()];
@@ -11057,6 +11145,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let bun_dep_names = vec!["left-pad".to_string()];
@@ -11110,6 +11199,7 @@ dependencies = ["python-core>=1.0.0"]
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let dep_names = vec!["python-core".to_string()];
@@ -11141,6 +11231,7 @@ dependencies = ["python-core>=1.0.0"]
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	crate::apply_versioned_file_definition(
@@ -11183,6 +11274,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let error = crate::apply_versioned_file_definition(
@@ -11211,6 +11303,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	updates.insert(
@@ -11248,6 +11341,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let deno_manifest_dep_names = vec!["core".to_string()];
@@ -11285,6 +11379,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let deno_lock_dep_names = vec!["app".to_string()];
@@ -11321,6 +11416,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let dart_manifest_dep_names = vec!["shared".to_string()];
@@ -11360,6 +11456,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let dart_lock_dep_names = vec!["nested_dart_app".to_string()];
@@ -11729,7 +11826,7 @@ fn filter_group_release_note_change_respects_member_allowlists() {
 		.is_none()
 	);
 
-	let message = crate::render_group_filtered_update_message("sdk");
+	let message = render_group_filtered_update_message("sdk");
 	assert!(message.contains("No group-facing notes were recorded for this release."));
 	assert!(message.contains("synchronized group `sdk`"));
 }
@@ -11843,7 +11940,7 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 		go: monochange_core::EcosystemSettings::default(),
 	};
 	assert_eq!(
-		crate::configured_change_type_choices(&configuration),
+		configured_change_type_choices(&configuration),
 		vec![
 			"breaking".to_string(),
 			"change".to_string(),
@@ -11892,7 +11989,7 @@ fn apply_runtime_prepare_release_markdown_defaults_promotes_release_format_defau
 	release.inputs[0].default = Some("text".to_string());
 	release.inputs[0].choices = vec!["text".to_string(), "json".to_string()];
 
-	crate::apply_runtime_prepare_release_markdown_defaults(&mut cli);
+	apply_runtime_prepare_release_markdown_defaults(&mut cli);
 
 	let release = cli
 		.iter()
@@ -11977,7 +12074,7 @@ fn apply_runtime_change_type_choices_updates_only_unconfigured_change_inputs() {
 		},
 	];
 
-	crate::apply_runtime_change_type_choices(&mut cli, &configuration);
+	apply_runtime_change_type_choices(&mut cli, &configuration);
 
 	assert_eq!(cli[0].inputs[0].kind, CliInputKind::Choice);
 	assert_eq!(
@@ -12025,7 +12122,7 @@ fn apply_runtime_change_type_choices_preserves_existing_choice_inputs_and_empty_
 		steps: Vec::new(),
 		dry_run: false,
 	}];
-	crate::apply_runtime_change_type_choices(&mut cli, &configuration);
+	apply_runtime_change_type_choices(&mut cli, &configuration);
 	assert_eq!(cli[0].inputs[0].choices, vec!["existing"]);
 	assert_eq!(cli[0].inputs[0].kind, CliInputKind::Choice);
 }
@@ -12050,7 +12147,7 @@ fn cli_commands_for_root_uses_workspace_cli_when_configuration_load_succeeds() {
 
 #[test]
 fn build_skill_subcommand_forwards_native_add_flags() {
-	let command = Command::new("monochange").subcommand(crate::build_skill_subcommand());
+	let command = Command::new("monochange").subcommand(build_skill_subcommand());
 	let matches = command
 		.clone()
 		.try_get_matches_from([
@@ -12306,7 +12403,7 @@ fn skill_command_reports_nonzero_exit_status_from_runner() {
 
 #[test]
 fn build_subagents_subcommand_parses_valid_inputs_and_rejects_invalid_targets() {
-	let command = Command::new("monochange").subcommand(crate::build_subagents_subcommand());
+	let command = Command::new("monochange").subcommand(build_subagents_subcommand());
 	let matches = command
 		.clone()
 		.try_get_matches_from([
@@ -12527,7 +12624,7 @@ fn cli_command_after_help_covers_supported_commands_and_custom_commands() {
 		),
 	];
 	for (name, expected) in cases {
-		let after_help = crate::cli_command_after_help(&CliCommandDefinition {
+		let after_help = cli_command_after_help(&CliCommandDefinition {
 			name: name.to_string(),
 			help_text: None,
 			inputs: Vec::new(),
@@ -12538,7 +12635,7 @@ fn cli_command_after_help_covers_supported_commands_and_custom_commands() {
 		assert!(after_help.contains(expected));
 	}
 	assert!(
-		crate::cli_command_after_help(&CliCommandDefinition {
+		cli_command_after_help(&CliCommandDefinition {
 			name: "custom".to_string(),
 			help_text: None,
 			inputs: Vec::new(),
@@ -12614,8 +12711,9 @@ fn build_cli_command_subcommand_parses_supported_input_kinds() {
 		dry_run: false,
 	};
 
-	let command =
-		Command::new("monochange").subcommand(crate::build_cli_command_subcommand(&cli_command));
+	let command = Command::new("monochange").subcommand(
+		crate::cli::build_cli_command_subcommand_with_prefix(&cli_command, "monochange"),
+	);
 	let matches = command
 		.try_get_matches_from([
 			OsString::from("monochange"),
@@ -12764,12 +12862,21 @@ async fn create_release_tags_creates_and_pushes_tags_in_process() {
 fn render_tag_name_and_provider_urls_follow_provider_conventions() {
 	let github = sample_github_source_configuration("https://api.github.com");
 	assert_eq!(
-		crate::render_tag_name("core", "1.2.3", VersionFormat::Primary),
+		crate::render_tag_name("core", "1.2.3", "cargo", &VersionFormat::Primary),
 		"v1.2.3"
 	);
 	assert_eq!(
-		crate::render_tag_name("core", "1.2.3", VersionFormat::Namespaced),
+		crate::render_tag_name("core", "1.2.3", "cargo", &VersionFormat::Namespaced),
 		"core/v1.2.3"
+	);
+	assert_eq!(
+		crate::render_tag_name(
+			"core",
+			"1.2.3",
+			"cargo",
+			&VersionFormat::Custom("{{ ecosystem }}/{{ name }}/v{{ version }}".to_string())
+		),
+		"cargo/core/v1.2.3"
 	);
 	assert!(crate::tag_url_for_provider(&github, "v1.2.3").contains("/releases/tag/v1.2.3"));
 	assert!(
@@ -12972,8 +13079,13 @@ fn build_file_diff_previews_reports_directory_read_errors() {
 fn prepare_release_execution_collects_file_diffs_for_dry_runs() {
 	let tempdir = setup_scenario_workspace("cli-output/group-basic");
 	let prepared = temp_env::with_var("NO_COLOR", Some("1"), || {
-		crate::cli_runtime::block_on_in_context(prepare_release_execution(tempdir.path(), true))
-			.unwrap_or_else(|error| panic!("prepare release execution: {error}"))
+		crate::tests::block_on_in_context(prepare_release_execution_with_file_diffs(
+			tempdir.path(),
+			true,
+			true,
+			false,
+		))
+		.unwrap_or_else(|error| panic!("prepare release execution: {error}"))
 	});
 	assert!(!prepared.prepared_release.changed_files.is_empty());
 	assert!(!prepared.file_diffs.is_empty());
@@ -12989,9 +13101,8 @@ fn prepare_release_execution_collects_file_diffs_for_dry_runs() {
 fn prepare_release_skips_file_diff_previews_when_callers_do_not_need_them() {
 	let tempdir = setup_scenario_workspace("cli-output/group-basic");
 	set_force_build_file_diff_previews_error(true);
-	let prepared =
-		crate::cli_runtime::block_on_in_context(crate::prepare_release(tempdir.path(), true))
-			.unwrap_or_else(|error| panic!("prepare release without diffs: {error}"));
+	let prepared = crate::tests::block_on_in_context(crate::prepare_release(tempdir.path(), true))
+		.unwrap_or_else(|error| panic!("prepare release without diffs: {error}"));
 	set_force_build_file_diff_previews_error(false);
 	assert!(!prepared.changed_files.is_empty());
 }
@@ -13017,10 +13128,14 @@ fn command_release_without_diff_skips_file_diff_previews() {
 fn prepare_release_execution_propagates_file_diff_preview_errors() {
 	let tempdir = setup_scenario_workspace("cli-output/group-basic");
 	set_force_build_file_diff_previews_error(true);
-	let error =
-		crate::cli_runtime::block_on_in_context(prepare_release_execution(tempdir.path(), true))
-			.err()
-			.unwrap_or_else(|| panic!("expected forced file diff preview error"));
+	let error = crate::tests::block_on_in_context(prepare_release_execution_with_file_diffs(
+		tempdir.path(),
+		true,
+		true,
+		false,
+	))
+	.err()
+	.unwrap_or_else(|| panic!("expected forced file diff preview error"));
 	set_force_build_file_diff_previews_error(false);
 	assert!(
 		error
@@ -13122,7 +13237,7 @@ fn maybe_render_markdown_for_terminal_returns_original_when_not_tty() {
 #[test]
 fn render_markdown_if_terminal_returns_styled_when_terminal() {
 	let markdown = "# Hello\n\n**bold** text";
-	let result = crate::render_markdown_if_terminal(markdown, true);
+	let result = render_markdown_if_terminal(markdown, true);
 	// termimad produces ANSI-styled output when terminal is true
 	assert!(result.contains("Hello"));
 	assert_ne!(result, markdown);
@@ -13131,7 +13246,7 @@ fn render_markdown_if_terminal_returns_styled_when_terminal() {
 #[test]
 fn render_markdown_if_terminal_returns_original_when_not_terminal() {
 	let markdown = "# Hello\n\n**bold** text";
-	let result = crate::render_markdown_if_terminal(markdown, false);
+	let result = render_markdown_if_terminal(markdown, false);
 	assert_eq!(result, markdown);
 }
 
@@ -13234,19 +13349,19 @@ fn effective_title_template_prefers_specific_then_defaults_then_builtin() {
 #[test]
 fn default_title_templates_follow_version_format_defaults() {
 	assert_eq!(
-		crate::default_release_title_for_format(VersionFormat::Primary),
+		crate::default_release_title_for_format(&VersionFormat::Primary),
 		monochange_core::DEFAULT_RELEASE_TITLE_PRIMARY
 	);
 	assert_eq!(
-		crate::default_release_title_for_format(VersionFormat::Namespaced),
+		crate::default_release_title_for_format(&VersionFormat::Namespaced),
 		monochange_core::DEFAULT_RELEASE_TITLE_NAMESPACED
 	);
 	assert_eq!(
-		crate::default_changelog_version_title_for_format(VersionFormat::Primary),
+		crate::default_changelog_version_title_for_format(&VersionFormat::Primary),
 		monochange_core::DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY
 	);
 	assert_eq!(
-		crate::default_changelog_version_title_for_format(VersionFormat::Namespaced),
+		crate::default_changelog_version_title_for_format(&VersionFormat::Namespaced),
 		monochange_core::DEFAULT_CHANGELOG_VERSION_TITLE_NAMESPACED
 	);
 }
@@ -13307,11 +13422,17 @@ async fn find_previous_tag_returns_previous_matching_prefix() {
 	git_in_temp_repo(tempdir.path(), &["tag", "core/v1.2.0"]);
 	git_in_temp_repo(tempdir.path(), &["tag", "app/v9.9.9"]);
 	assert_eq!(
-		crate::find_previous_tag(tempdir.path(), "core/v1.2.0").await,
+		crate::release_artifacts::find_previous_tag_in(
+			"core/v1.2.0",
+			&crate::release_artifacts::load_sorted_tags(tempdir.path()).await
+		),
 		Some("core/v1.0.0".to_string())
 	);
 	assert_eq!(
-		crate::find_previous_tag(tempdir.path(), "core/v1.0.0").await,
+		crate::release_artifacts::find_previous_tag_in(
+			"core/v1.0.0",
+			&crate::release_artifacts::load_sorted_tags(tempdir.path()).await
+		),
 		None
 	);
 }
@@ -13697,6 +13818,7 @@ fn apply_versioned_file_definition_reports_invalid_glob_pattern() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: Some(r"v(?<version>\d+\.\d+\.\d+)".to_string()),
 	};
 	let mut updates = BTreeMap::new();
@@ -13727,6 +13849,7 @@ fn apply_versioned_file_definition_reports_missing_ecosystem_type() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
 	let mut updates = BTreeMap::new();
@@ -13902,8 +14025,7 @@ fn batch_changeset_contexts_returns_empty_without_git_repo() {
 	)
 	.unwrap();
 
-	let result =
-		crate::cli_runtime::block_on_in_context(crate::prepare_release(root, true)).unwrap();
+	let result = crate::tests::block_on_in_context(crate::prepare_release(root, true)).unwrap();
 	// With no .git, changeset context fields should all be None.
 	for changeset in &result.changesets {
 		if let Some(ctx) = &changeset.context {
@@ -13973,8 +14095,7 @@ fn batch_changeset_contexts_resolves_introduced_and_updated_commits() {
 	let mut observed_updated = None;
 
 	for _attempt in 0..3 {
-		let result =
-			crate::cli_runtime::block_on_in_context(crate::prepare_release(root, true)).unwrap();
+		let result = crate::tests::block_on_in_context(crate::prepare_release(root, true)).unwrap();
 		let changeset = result
 			.changesets
 			.iter()
@@ -14141,6 +14262,7 @@ async fn cli_root_help_matches_help_subcommand_overview() {
 	.unwrap_or_else(|error| panic!("help subcommand output: {error}"));
 
 	assert_eq!(root_help, help_subcommand);
+	assert!(help_subcommand.contains("Usage: monochange"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -14173,7 +14295,7 @@ async fn cli_help_subcommand_renders_detailed_command_help() {
 	.unwrap_or_else(|error| panic!("help step:validate output: {error}"));
 
 	assert!(output.contains("validate"));
-	assert!(output.contains("Description"));
+	assert!(output.contains("Run the built-in validate release workflow step"));
 	assert!(output.contains("Usage"));
 }
 
@@ -14186,7 +14308,7 @@ async fn cli_help_subcommand_overview_without_argument() {
 	.await
 	.unwrap_or_else(|error| panic!("help overview output: {error}"));
 
-	assert!(output.contains("monochange help"));
+	assert!(output.contains("Usage: monochange"));
 	assert!(output.contains("Commands"));
 }
 

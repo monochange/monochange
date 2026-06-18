@@ -1,0 +1,34 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: "render_help_snapshot(&path, version)"
+---
+Version: [current]
+Command: monochange run
+
+Run workflow commands defined in monochange.toml
+
+[1m[97mUsage:[0m [93mmonochange run[0m [95m[OPTIONS][0m [95m<COMMAND>[0m
+
+[1m[96mWorkflow Commands:[0m
+  [93mchange[0m         Create a change file for one or more packages
+  [93mpublish-check[0m  Validate the release and preview package publishing in dry-run mode
+  [93mrelease[0m        Prepare a pull request release from discovered change files. It should only be run in a github action.
+
+[1m[96mOptions:[0m
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

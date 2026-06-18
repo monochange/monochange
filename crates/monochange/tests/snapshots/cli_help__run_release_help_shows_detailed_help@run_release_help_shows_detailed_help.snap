@@ -1,0 +1,53 @@
+---
+source: crates/monochange/tests/cli_help.rs
+info:
+  program: monochange
+  args:
+    - run
+    - release
+    - "--help"
+  env:
+    NO_COLOR: "1"
+    RUST_LOG: ""
+---
+success: true
+exit_code: 0
+----- stdout -----
+Prepare a pull request release from discovered change files. It should only be run in a github action.
+
+Usage: monochange run release [--dry-run] [--diff] [--prepared-release <PATH>] [--format <FORMAT>] [--no-verify] [--commit] [--create-pr] [--write-empty-release-record]
+
+Options:
+  -h, --help  Print help
+
+Release Options:
+      --dry-run                  Run the command in dry-run mode when supported
+      --diff                     Show unified file diffs for prepared release changes
+      --prepared-release <PATH>  Read or write the prepared release artifact at a specific path
+
+Options:
+      --format <FORMAT>             [default: markdown] [possible values: text, json, markdown]
+      --no-verify[=<NO_VERIFY>]     [default: true] [possible values: true, false]
+      --commit                      Whether to commit the changes
+      --create-pr                   Whether to create the PR after the commit
+      --write-empty-release-record  Whether to write release records when no packages are released
+
+Global Options:
+  -q, --quiet                     Suppress stdout/stderr output and run in dry-run mode when supported
+      --progress-format <FORMAT>  Control progress output on stderr [possible values: auto, unicode, ascii, json]
+      --jq <EXPRESSION>           Filter JSON output with a jq-style expression, such as `.assets[].name`
+      --snapshot                  Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange run release --dry-run --format text
+  monochange run release --dry-run --format json
+  monochange run release --dry-run --diff
+  monochange run release
+
+Planning reminders:
+  - Direct package changes propagate to dependents using defaults.parent_bump.
+  - Group synchronization happens before final output is rendered.
+  - Explicit versions on grouped members propagate to the whole group.
+
+
+----- stderr -----

@@ -385,6 +385,13 @@ pub struct PackageRecord {
 	pub declared_dependencies: Vec<PackageDependency>,
 }
 
+/// A versioned package file update planned by an ecosystem adapter.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ManifestFileUpdate {
+	pub path: PathBuf,
+	pub content: Vec<u8>,
+}
+
 impl PackageRecord {
 	#[allow(clippy::needless_pass_by_value)]
 	/// Construct a normalized package record for a discovered package.
@@ -601,13 +608,169 @@ impl PackageType {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "schema", schemars(with = "String"))]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 #[non_exhaustive]
 pub enum VersionFormat {
 	#[default]
 	Namespaced,
 	Primary,
+	Custom(String),
+}
+
+impl VersionFormat {
+	#[must_use]
+	pub fn as_template(&self) -> &str {
+		match self {
+			Self::Namespaced => "{{ name }}/v{{ version }}",
+			Self::Primary => "v{{ version }}",
+			Self::Custom(template) => template,
+		}
+	}
+
+	#[must_use]
+	pub fn is_primary(&self) -> bool {
+		matches!(self, Self::Primary)
+	}
+
+	#[must_use]
+	pub fn contains_unique_name_variable(&self) -> bool {
+		self.as_template().contains("{{ name }}") || self.as_template().contains("{{name}}")
+	}
+
+	pub fn render_tag(
+		&self,
+		name: &str,
+		version: &str,
+		ecosystem: &str,
+	) -> MonochangeResult<String> {
+		match self {
+			Self::Namespaced => Ok(format!("{name}/v{version}")),
+			Self::Primary => Ok(format!("v{version}")),
+			Self::Custom(template) => {
+				render_version_format_template(template, name, version, ecosystem)
+			}
+		}
+	}
+}
+
+impl Serialize for VersionFormat {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		match self {
+			Self::Namespaced => serializer.serialize_str("namespaced"),
+			Self::Primary => serializer.serialize_str("primary"),
+			Self::Custom(template) => serializer.serialize_str(template),
+		}
+	}
+}
+
+impl<'de> Deserialize<'de> for VersionFormat {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		let value = String::deserialize(deserializer)?;
+		match value.as_str() {
+			"namespaced" => Ok(Self::Namespaced),
+			"primary" => Ok(Self::Primary),
+			_ => Ok(Self::Custom(value)),
+		}
+	}
+}
+
+pub fn render_version_format_template(
+	template: &str,
+	name: &str,
+	version: &str,
+	ecosystem: &str,
+) -> MonochangeResult<String> {
+	validate_version_format_template(template)?;
+	let rendered = template
+		.replace("{{ name }}", name)
+		.replace("{{name}}", name)
+		.replace("{{ version }}", version)
+		.replace("{{version}}", version)
+		.replace("{{ ecosystem }}", ecosystem)
+		.replace("{{ecosystem}}", ecosystem);
+	validate_version_format_tag(&rendered)?;
+	Ok(rendered)
+}
+
+pub fn validate_version_format_template(template: &str) -> MonochangeResult<()> {
+	if template.trim().is_empty() {
+		return Err(MonochangeError::Config(
+			"version_format must not be empty".to_string(),
+		));
+	}
+	if !template.contains("{{ version }}") && !template.contains("{{version}}") {
+		return Err(MonochangeError::Config(
+			"custom version_format must include the `{{ version }}` variable".to_string(),
+		));
+	}
+	let mut rest = template;
+	while let Some(start) = rest.find("{{") {
+		let after_start = &rest[start + 2..];
+		let Some(end) = after_start.find("}}") else {
+			return Err(MonochangeError::Config(
+				"custom version_format has an unterminated template variable".to_string(),
+			));
+		};
+		let variable = after_start[..end].trim();
+		if !matches!(variable, "name" | "version" | "ecosystem") {
+			return Err(MonochangeError::Config(format!(
+				"custom version_format uses unsupported variable `{{{{ {variable} }}}}`; supported variables are `{{{{ name }}}}`, `{{{{ version }}}}`, and `{{{{ ecosystem }}}}`"
+			)));
+		}
+		rest = &after_start[end + 2..];
+	}
+	if rest.contains("}}") {
+		return Err(MonochangeError::Config(
+			"custom version_format has an unopened template variable".to_string(),
+		));
+	}
+	Ok(())
+}
+
+pub fn validate_version_format_tag(tag: &str) -> MonochangeResult<()> {
+	let invalid_reason = if tag.is_empty() {
+		Some("tag is empty")
+	} else if tag.chars().any(char::is_whitespace) {
+		Some("tag contains whitespace")
+	} else if tag.starts_with('/') || tag.ends_with('/') {
+		Some("tag starts or ends with `/`")
+	} else if tag.starts_with('-') {
+		Some("tag starts with `-`")
+	} else if tag.contains("//") {
+		Some("tag contains an empty path component")
+	} else if tag.contains("..") {
+		Some("tag contains `..`")
+	} else if tag.contains("@{") {
+		Some("tag contains `@{`")
+	} else if tag.ends_with('.') {
+		Some("tag ends with `.`")
+	} else if tag.split('/').any(|component| {
+		component
+			.rsplit_once('.')
+			.is_some_and(|(_, extension)| extension.eq_ignore_ascii_case("lock"))
+	}) {
+		Some("tag component ends with `.lock`")
+	} else if tag
+		.chars()
+		.any(|ch| matches!(ch, '~' | '^' | ':' | '?' | '*' | '[' | '\\') || ch.is_control())
+	{
+		Some("tag contains a character that is not valid in a Git ref")
+	} else {
+		None
+	};
+	if let Some(reason) = invalid_reason {
+		return Err(MonochangeError::Config(format!(
+			"invalid version_format tag `{tag}`: {reason}"
+		)));
+	}
+	Ok(())
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1113,6 +1276,15 @@ pub enum VersionedFileFormat {
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MissingFieldBehavior {
+	#[default]
+	Ignore,
+	Add,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct VersionedFileDefinition {
 	pub path: String,
@@ -1126,6 +1298,8 @@ pub struct VersionedFileDefinition {
 	pub fields: Option<Vec<String>>,
 	#[serde(default)]
 	pub name: Option<String>,
+	#[serde(default)]
+	pub missing_field_behavior: MissingFieldBehavior,
 	#[serde(default)]
 	pub regex: Option<String>,
 }
@@ -2924,6 +3098,7 @@ impl CliStepDefinition {
 					"ecosystem",
 					"resume",
 					"all",
+					"stream-output",
 				])
 			}
 			Self::PlanPublishRateLimits { .. } => {
@@ -3062,7 +3237,7 @@ impl CliStepDefinition {
 					"format" => Some(CliInputKind::Choice),
 					"package" => Some(CliInputKind::StringList),
 					"output" | "resume" => Some(CliInputKind::Path),
-					"all" => Some(CliInputKind::Boolean),
+					"all" | "stream-output" => Some(CliInputKind::Boolean),
 					_ => None,
 				}
 			}
@@ -4485,6 +4660,19 @@ impl SourceProvider {
 			Self::Forgejo => "forgejo",
 		}
 	}
+
+	/// Return the default hostname for a provider.
+	///
+	/// Returns e.g. `github.com` for GitHub or `gitlab.com` for GitLab.
+	#[must_use]
+	pub fn default_host(self) -> &'static str {
+		match self {
+			Self::GitHub => "github.com",
+			Self::GitLab => "gitlab.com",
+			Self::Gitea => "gitea.com",
+			Self::Forgejo => "forgejo.com",
+		}
+	}
 }
 
 impl fmt::Display for SourceProvider {
@@ -4519,6 +4707,34 @@ pub struct SourceConfiguration {
 	pub releases: ProviderReleaseSettings,
 	#[serde(default)]
 	pub pull_requests: ProviderMergeRequestSettings,
+}
+
+impl SourceConfiguration {
+	/// Build the canonical repository URL from the source configuration.
+	///
+	/// Returns e.g. `https://github.com/monochange/monochange` for GitHub, or
+	/// `https://gitlab.com/owner/repo` for GitLab. Self-hosted instances use the
+	/// configured `host` field.
+	#[must_use]
+	pub fn repository_url(&self) -> String {
+		let host = self
+			.host
+			.as_deref()
+			.unwrap_or_else(|| self.provider.default_host());
+		format!("https://{host}/{}/{}", self.owner, self.repo)
+	}
+
+	/// Return the default branch name for the repository.
+	///
+	/// Falls back to `"main"` when no pull request base is configured.
+	#[must_use]
+	pub fn default_branch(&self) -> &str {
+		if self.pull_requests.base.is_empty() {
+			"main"
+		} else {
+			&self.pull_requests.base
+		}
+	}
 }
 
 #[allow(clippy::struct_excessive_bools)]
@@ -4564,6 +4780,38 @@ pub trait HostedSourceAdapter: Sync {
 
 	fn features(&self) -> HostedSourceFeatures {
 		HostedSourceFeatures::default()
+	}
+
+	fn tag_url(&self, _source: &SourceConfiguration, _tag_name: &str) -> String {
+		String::new()
+	}
+
+	fn compare_url(
+		&self,
+		_source: &SourceConfiguration,
+		_previous_tag: &str,
+		_current_tag: &str,
+	) -> String {
+		String::new()
+	}
+
+	fn build_release_requests(
+		&self,
+		_source: &SourceConfiguration,
+		_manifest: &ReleaseManifest,
+	) -> Vec<SourceReleaseRequest> {
+		Vec::new()
+	}
+
+	fn build_release_pull_request_request(
+		&self,
+		_source: &SourceConfiguration,
+		_manifest: &ReleaseManifest,
+	) -> SourceChangeRequest {
+		unimplemented!(
+			"release pull request planning is not supported for {}",
+			self.provider()
+		)
 	}
 
 	fn annotate_changeset_context(
@@ -4873,7 +5121,7 @@ impl WorkspaceConfiguration {
 				group_id: Some(group.id.clone()),
 				tag: group.tag,
 				release: group.release,
-				version_format: group.version_format,
+				version_format: group.version_format.clone(),
 				members: group.packages.clone(),
 			});
 		}
@@ -4884,7 +5132,7 @@ impl WorkspaceConfiguration {
 			group_id: None,
 			tag: package.tag,
 			release: package.release,
-			version_format: package.version_format,
+			version_format: package.version_format.clone(),
 			members: vec![package.id.clone()],
 		})
 	}
@@ -5329,9 +5577,5 @@ pub mod schema {
 }
 
 #[cfg(test)]
-#[path = "__tests__/sync_tests.rs"]
-mod sync_tests;
-
-#[cfg(test)]
-#[path = "__tests__/lib_tests.rs"]
+#[path = "__tests__/mod_tests.rs"]
 mod tests;

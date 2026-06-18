@@ -3,7 +3,7 @@ members = ["crates/*", "docs"]
 resolver = "2"
 
 [workspace.package]
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Ifiok Jr. <ifiokotung@gmail.com>"]
 categories = ["development-tools"]
 edition = "2024"
@@ -30,7 +30,7 @@ insta-cmd = { version = "0.6", default-features = false }
 jsonschema = { version = "0.46.5", default-features = false }
 miette = { version = "7", default-features = false }
 minijinja = { version = "2", default-features = false }
-octocrab = { version = "0.50.0", default-features = false, features = ["default-client", "follow-redirect", "jwt-rust-crypto", "retry", "rustls", "rustls-ring", "timeout", "tracing"] }
+octocrab = { version = "0.53.1", default-features = false, features = ["default-client", "follow-redirect", "jwt-rust-crypto", "retry", "rustls", "rustls-ring", "timeout", "tracing"] }
 oxc_allocator = { version = "0.131.0", default-features = false }
 oxc_ast = { version = "0.131.0", default-features = false }
 oxc_parser = { version = "0.131.0", default-features = false }
@@ -58,6 +58,9 @@ temp-env = { version = "0.3", default-features = false, features = ["async_closu
 tempfile = { version = "3", default-features = false }
 termimad = { version = "0.34", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }
+# Pinned: time 0.3.48 exposes internal modifier types that trigger an octocrab
+# generic From impl coherence failure on the release-job nightly toolchain.
+time = { version = "=0.3.47", default-features = false }
 tokio = { version = "1", default-features = false, features = ["rt", "rt-multi-thread", "macros", "process", "fs", "time", "sync"] }
 toml = { version = "1.1.2", default-features = false }
 # Pinned: format-preserving edits in Cargo.toml files depend on this version's
@@ -70,32 +73,32 @@ urlencoding = { version = "2", default-features = false }
 walkdir = { version = "2", default-features = false }
 
 # Internal crates
-monochange = { version = "0.8.0", path = "./crates/monochange" }
-monochange_analysis = { version = "0.8.0", path = "./crates/monochange_analysis" }
-monochange_cargo = { version = "0.8.0", path = "./crates/monochange_cargo" }
-monochange_changelog = { version = "0.8.0", path = "./crates/monochange_changelog" }
-monochange_config = { version = "0.8.0", path = "./crates/monochange_config" }
-monochange_core = { version = "0.8.0", path = "./crates/monochange_core" }
-monochange_dart = { version = "0.8.0", path = "./crates/monochange_dart" }
-monochange_deno = { version = "0.8.0", path = "./crates/monochange_deno" }
-monochange_ecmascript = { version = "0.8.0", path = "./crates/monochange_ecmascript" }
-monochange_forgejo = { version = "0.8.0", path = "./crates/monochange_forgejo" }
-monochange_gitea = { version = "0.8.0", path = "./crates/monochange_gitea" }
-monochange_github = { version = "0.8.0", path = "./crates/monochange_github" }
-monochange_gitlab = { version = "0.8.0", path = "./crates/monochange_gitlab" }
-monochange_go = { version = "0.8.0", path = "./crates/monochange_go" }
-monochange_graph = { version = "0.8.0", path = "./crates/monochange_graph" }
-monochange_hosting = { version = "0.8.0", path = "./crates/monochange_hosting" }
-monochange_lint = { version = "0.8.0", path = "./crates/monochange_lint" }
-monochange_linting = { version = "0.8.0", path = "./crates/monochange_linting" }
-monochange_npm = { version = "0.8.0", path = "./crates/monochange_npm" }
-monochange_publish = { version = "0.8.0", path = "./crates/monochange_publish" }
-monochange_python = { version = "0.8.0", path = "./crates/monochange_python" }
-monochange_schema = { version = "0.4.1", path = "./crates/monochange_schema" }
-monochange_semver = { version = "0.8.0", path = "./crates/monochange_semver" }
+monochange = { version = "0.8.1", path = "./crates/monochange" }
+monochange_analysis = { version = "0.8.1", path = "./crates/monochange_analysis" }
+monochange_cargo = { version = "0.8.1", path = "./crates/monochange_cargo" }
+monochange_changelog = { version = "0.8.1", path = "./crates/monochange_changelog" }
+monochange_config = { version = "0.8.1", path = "./crates/monochange_config" }
+monochange_core = { version = "0.8.1", path = "./crates/monochange_core" }
+monochange_dart = { version = "0.8.1", path = "./crates/monochange_dart" }
+monochange_deno = { version = "0.8.1", path = "./crates/monochange_deno" }
+monochange_ecmascript = { version = "0.8.1", path = "./crates/monochange_ecmascript" }
+monochange_forgejo = { version = "0.8.1", path = "./crates/monochange_forgejo" }
+monochange_gitea = { version = "0.8.1", path = "./crates/monochange_gitea" }
+monochange_github = { version = "0.8.1", path = "./crates/monochange_github" }
+monochange_gitlab = { version = "0.8.1", path = "./crates/monochange_gitlab" }
+monochange_go = { version = "0.8.1", path = "./crates/monochange_go" }
+monochange_graph = { version = "0.8.1", path = "./crates/monochange_graph" }
+monochange_hosting = { version = "0.8.1", path = "./crates/monochange_hosting" }
+monochange_lint = { version = "0.8.1", path = "./crates/monochange_lint" }
+monochange_linting = { version = "0.8.1", path = "./crates/monochange_linting" }
+monochange_npm = { version = "0.8.1", path = "./crates/monochange_npm" }
+monochange_publish = { version = "0.8.1", path = "./crates/monochange_publish" }
+monochange_python = { version = "0.8.1", path = "./crates/monochange_python" }
+monochange_schema = { version = "0.4.2", path = "./crates/monochange_schema" }
+monochange_semver = { version = "0.8.1", path = "./crates/monochange_semver" }
 monochange_snapshot = { version = "0.1.0", path = "./crates/monochange_snapshot" }
-monochange_telemetry = { version = "0.8.0", path = "./crates/monochange_telemetry" }
-monochange_test_helpers = { version = "0.8.0", path = "./crates/monochange_test_helpers" }
+monochange_telemetry = { version = "0.8.1", path = "./crates/monochange_telemetry" }
+monochange_test_helpers = { version = "0.8.1", path = "./crates/monochange_test_helpers" }
 
 # Distribution profile for release builds.
 # Use `cargo build --profile dist` for optimized, stripped binaries.

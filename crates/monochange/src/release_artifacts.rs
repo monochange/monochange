@@ -1,4 +1,3 @@
-#[cfg(test)]
 use std::cell::Cell;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -10,7 +9,6 @@ use similar::TextDiff;
 use super::*;
 use crate::git_support::git_stage_all;
 
-#[cfg(test)]
 thread_local! {
 	pub(crate) static FORCE_BUILD_FILE_DIFF_PREVIEWS_ERROR: Cell<bool> = const { Cell::new(false) };
 }
@@ -168,7 +166,7 @@ pub(crate) async fn build_release_targets(
 		planned_group_by_id.get(group.id.as_str()).and_then(|pg| {
 			pg.planned_version.as_ref().map(|version| {
 				let vs = version.to_string();
-				let tag = render_tag_name(&group.id, &vs, group.version_format);
+				let tag = render_tag_name(&group.id, &vs, "group", &group.version_format);
 				let prev = find_previous_tag_in(&tag, &sorted_tags);
 				let ctx = TitleRenderContext::new(
 					&group.id,
@@ -181,12 +179,12 @@ pub(crate) async fn build_release_targets(
 				let rt = effective_title_template(
 					group.release_title.as_deref(),
 					defaults_release_title,
-					default_release_title_for_format(group.version_format),
+					default_release_title_for_format(&group.version_format),
 				);
 				let ct = effective_title_template(
 					group.changelog_version_title.as_deref(),
 					defaults_changelog_title,
-					default_changelog_version_title_for_format(group.version_format),
+					default_changelog_version_title_for_format(&group.version_format),
 				);
 				ReleaseTarget {
 					id: group.id.clone(),
@@ -194,7 +192,7 @@ pub(crate) async fn build_release_targets(
 					version: vs,
 					tag: group.tag,
 					release: group.release,
-					version_format: group.version_format,
+					version_format: group.version_format.clone(),
 					tag_name: tag,
 					members: group.packages.clone(),
 					rendered_title: ctx.render(rt),
@@ -230,7 +228,7 @@ pub(crate) async fn build_release_targets(
 					ReleaseOwnerKind::Group,
 					group.tag,
 					group.release,
-					group.version_format,
+					group.version_format.clone(),
 					group.packages.clone(),
 				)
 			} else {
@@ -239,24 +237,29 @@ pub(crate) async fn build_release_targets(
 					ReleaseOwnerKind::Package,
 					package_definition.tag,
 					package_definition.release,
-					package_definition.version_format,
+					package_definition.version_format.clone(),
 					vec![package_definition.id.clone()],
 				)
 			};
 		let vs = version.to_string();
-		let tag = render_tag_name(owner_id, &vs, version_format);
+		let tag = render_tag_name(
+			owner_id,
+			&vs,
+			package_definition.package_type.as_str(),
+			&version_format,
+		);
 		let prev = find_previous_tag_in(&tag, &sorted_tags);
 		let ctx =
 			TitleRenderContext::new(owner_id, &vs, changes_count, source, &tag, prev.as_deref());
 		let rt = effective_title_template(
 			package_definition.release_title.as_deref(),
 			defaults_release_title,
-			default_release_title_for_format(version_format),
+			default_release_title_for_format(&version_format),
 		);
 		let ct = effective_title_template(
 			package_definition.changelog_version_title.as_deref(),
 			defaults_changelog_title,
-			default_changelog_version_title_for_format(version_format),
+			default_changelog_version_title_for_format(&version_format),
 		);
 		release_targets.push(ReleaseTarget {
 			id: owner_id.clone(),
@@ -364,61 +367,36 @@ pub(crate) fn build_manifest_updates_parallel(
 }
 
 #[allow(clippy::match_same_arms)]
-pub(crate) fn render_tag_name(id: &str, version: &str, version_format: VersionFormat) -> String {
-	match version_format {
-		VersionFormat::Namespaced => format!("{id}/v{version}"),
-		VersionFormat::Primary => format!("v{version}"),
-		_ => format!("v{version}"),
-	}
+pub(crate) fn render_tag_name(
+	id: &str,
+	version: &str,
+	ecosystem: &str,
+	version_format: &VersionFormat,
+) -> String {
+	version_format
+		.render_tag(id, version, ecosystem)
+		.unwrap_or_else(|_| format!("v{version}"))
 }
 
-/// Dispatch tag URL generation to the appropriate provider crate.
+/// Dispatch tag URL generation to the configured hosted source adapter.
 pub(crate) fn tag_url_for_provider(source: &SourceConfiguration, tag_name: &str) -> String {
-	match source.provider {
-		#[cfg(feature = "github")]
-		SourceProvider::GitHub => github_provider::tag_url(source, tag_name),
-		#[cfg(feature = "gitlab")]
-		SourceProvider::GitLab => gitlab_provider::tag_url(source, tag_name),
-		#[cfg(feature = "gitea")]
-		SourceProvider::Gitea => gitea_provider::tag_url(source, tag_name),
-		#[cfg(feature = "forgejo")]
-		SourceProvider::Forgejo => forgejo_provider::tag_url(source, tag_name),
-		#[cfg(not(any(
-			feature = "github",
-			feature = "gitlab",
-			feature = "gitea",
-			feature = "forgejo"
-		)))]
-		_ => String::new(),
-	}
+	hosted_sources::hosted_source_adapter(source.provider).tag_url(source, tag_name)
 }
 
-/// Dispatch compare URL generation to the appropriate provider crate.
+/// Dispatch compare URL generation to the configured hosted source adapter.
 pub(crate) fn compare_url_for_provider(
 	source: &SourceConfiguration,
 	previous_tag: &str,
 	current_tag: &str,
 ) -> String {
-	match source.provider {
-		#[cfg(feature = "github")]
-		SourceProvider::GitHub => github_provider::compare_url(source, previous_tag, current_tag),
-		#[cfg(feature = "gitlab")]
-		SourceProvider::GitLab => gitlab_provider::compare_url(source, previous_tag, current_tag),
-		#[cfg(feature = "gitea")]
-		SourceProvider::Gitea => gitea_provider::compare_url(source, previous_tag, current_tag),
-		#[cfg(feature = "forgejo")]
-		SourceProvider::Forgejo => forgejo_provider::compare_url(source, previous_tag, current_tag),
-		#[cfg(not(any(
-			feature = "github",
-			feature = "gitlab",
-			feature = "gitea",
-			feature = "forgejo"
-		)))]
-		_ => String::new(),
-	}
+	hosted_sources::hosted_source_adapter(source.provider).compare_url(
+		source,
+		previous_tag,
+		current_tag,
+	)
 }
 
-async fn load_sorted_tags(root: &Path) -> Vec<String> {
+pub(crate) async fn load_sorted_tags(root: &Path) -> Vec<String> {
 	let output = match monochange_core::git::git_command_output(
 		root,
 		&["tag", "--list", "--sort=-v:refname"],
@@ -436,7 +414,7 @@ async fn load_sorted_tags(root: &Path) -> Vec<String> {
 		.collect()
 }
 
-fn find_previous_tag_in(current_tag: &str, sorted_tags: &[String]) -> Option<String> {
+pub(crate) fn find_previous_tag_in(current_tag: &str, sorted_tags: &[String]) -> Option<String> {
 	let (prefix, current_version) = parse_tag_prefix_and_version(current_tag)?;
 	sorted_tags
 		.iter()
@@ -448,11 +426,6 @@ fn find_previous_tag_in(current_tag: &str, sorted_tags: &[String]) -> Option<Str
 		})
 		.max_by(|left, right| left.1.cmp(&right.1))
 		.map(|(tag, _)| tag)
-}
-
-#[cfg(test)]
-pub(crate) async fn find_previous_tag(root: &Path, current_tag: &str) -> Option<String> {
-	find_previous_tag_in(current_tag, &load_sorted_tags(root).await)
 }
 
 pub(crate) fn parse_tag_prefix_and_version(tag: &str) -> Option<(String, semver::Version)> {
@@ -557,7 +530,7 @@ pub(crate) fn effective_title_template<'a>(
 }
 
 #[allow(clippy::match_same_arms)]
-pub(crate) fn default_release_title_for_format(version_format: VersionFormat) -> &'static str {
+pub(crate) fn default_release_title_for_format(version_format: &VersionFormat) -> &'static str {
 	match version_format {
 		VersionFormat::Primary => DEFAULT_RELEASE_TITLE_PRIMARY,
 		VersionFormat::Namespaced => DEFAULT_RELEASE_TITLE_NAMESPACED,
@@ -567,7 +540,7 @@ pub(crate) fn default_release_title_for_format(version_format: VersionFormat) ->
 
 #[allow(clippy::match_same_arms)]
 pub(crate) fn default_changelog_version_title_for_format(
-	version_format: VersionFormat,
+	version_format: &VersionFormat,
 ) -> &'static str {
 	match version_format {
 		VersionFormat::Primary => DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY,
@@ -575,140 +548,17 @@ pub(crate) fn default_changelog_version_title_for_format(
 		_ => DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY,
 	}
 }
-
 #[cfg(feature = "cargo")]
 pub(crate) fn build_cargo_manifest_updates(
 	packages: &[PackageRecord],
 	plan: &ReleasePlan,
 ) -> MonochangeResult<Vec<FileUpdate>> {
-	use rayon::prelude::*;
-
-	let released_versions = plan
-		.decisions
-		.iter()
-		.filter(|decision| decision.recommended_bump.is_release())
-		.filter_map(|decision| {
-			decision
-				.planned_version
-				.as_ref()
-				.map(|version| (decision.package_id.clone(), version.to_string()))
-		})
-		.collect::<BTreeMap<_, _>>();
-	let released_versions_by_name = packages
-		.iter()
-		.filter_map(|package| {
-			released_versions
-				.get(&package.id)
-				.map(|version| (package.name.clone(), version.clone()))
-		})
-		.collect::<BTreeMap<_, _>>();
-	if released_versions_by_name.is_empty() {
-		return Ok(Vec::new());
-	}
-
-	let mut updated_documents = packages
-		.iter()
-		.filter(|package| package.ecosystem == Ecosystem::Cargo)
-		.par_bridge()
-		.filter_map(|package| {
-			let should_update_manifest = released_versions.contains_key(&package.id)
-				|| package
-					.declared_dependencies
-					.iter()
-					.any(|dependency| released_versions_by_name.contains_key(&dependency.name));
-			should_update_manifest.then_some(package)
-		})
-		.map(|package| {
-			let contents = fs::read_to_string(&package.manifest_path).map_err(|error| {
-				MonochangeError::Io(format!(
-					"failed to read {}: {error}",
-					package.manifest_path.display()
-				))
-			})?;
-			let updated = monochange_cargo::update_versioned_file_text(
-				&contents,
-				monochange_cargo::CargoVersionedFileKind::Manifest,
-				&["dependencies", "dev-dependencies", "build-dependencies"],
-				released_versions.get(&package.id).map(String::as_str),
-				None,
-				&released_versions_by_name,
-				&BTreeMap::new(),
-			)
-			.map_err(|error| {
-				MonochangeError::Config(format!(
-					"failed to parse {}: {error}",
-					package.manifest_path.display()
-				))
-			})?;
-			Ok((package.manifest_path.clone(), updated))
-		})
-		.collect::<MonochangeResult<BTreeMap<_, _>>>()?;
-
-	for workspace_root in packages
-		.iter()
-		.filter(|package| package.ecosystem == Ecosystem::Cargo)
-		.filter(|package| released_versions.contains_key(&package.id))
-		.map(|package| package.workspace_root.clone())
-		.collect::<BTreeSet<_>>()
-	{
-		let workspace_version = packages
-			.iter()
-			.filter(|package| {
-				package.ecosystem == Ecosystem::Cargo
-					&& package.workspace_root == workspace_root
-					&& released_versions.contains_key(&package.id)
-			})
-			.filter_map(|package| released_versions.get(&package.id))
-			.cloned()
-			.collect::<BTreeSet<_>>();
-		let Some(shared_workspace_version) = workspace_version.first().cloned() else {
-			continue;
-		};
-		if workspace_version.len() != 1 {
-			continue;
-		}
-
-		let workspace_manifest = workspace_root.join("Cargo.toml");
-		if !workspace_manifest.exists() {
-			continue;
-		}
-		let contents = if let Some(document) = updated_documents.remove(&workspace_manifest) {
-			document
-		} else {
-			fs::read_to_string(&workspace_manifest).map_err(|error| {
-				MonochangeError::Io(format!(
-					"failed to read {}: {error}",
-					workspace_manifest.display()
-				))
-			})?
-		};
-		let updated = monochange_cargo::update_versioned_file_text(
-			&contents,
-			monochange_cargo::CargoVersionedFileKind::Manifest,
-			&["dependencies", "dev-dependencies", "build-dependencies"],
-			None,
-			Some(shared_workspace_version.as_str()),
-			&released_versions_by_name,
-			&BTreeMap::new(),
-		)
-		.map_err(|error| {
-			MonochangeError::Config(format!(
-				"failed to parse {}: {error}",
-				workspace_manifest.display()
-			))
-		})?;
-		updated_documents.insert(workspace_manifest, updated);
-	}
-
-	Ok(updated_documents
-		.into_iter()
-		.map(|(path, document)| {
-			FileUpdate {
-				path,
-				content: document.into_bytes(),
-			}
-		})
-		.collect())
+	monochange_cargo::build_manifest_updates(packages, plan).map(|updates| {
+		updates
+			.into_iter()
+			.map(FileUpdate::from_manifest_update)
+			.collect()
+	})
 }
 
 #[cfg(feature = "npm")]
@@ -716,43 +566,12 @@ pub(crate) fn build_npm_manifest_updates(
 	packages: &[PackageRecord],
 	plan: &ReleasePlan,
 ) -> MonochangeResult<Vec<FileUpdate>> {
-	use rayon::prelude::*;
-
-	let released_versions = released_versions_by_package_id(plan, packages);
-	packages
-		.iter()
-		.filter(|package| package.ecosystem == Ecosystem::Npm)
-		.par_bridge()
-		.filter_map(|package| {
-			released_versions
-				.get(&package.id)
-				.map(|version| (package, version))
-		})
-		.map(|(package, version)| {
-			let contents = fs::read_to_string(&package.manifest_path).map_err(|error| {
-				MonochangeError::Io(format!(
-					"failed to read {}: {error}",
-					package.manifest_path.display()
-				))
-			})?;
-			let rendered = monochange_core::update_json_manifest_text(
-				&contents,
-				Some(version),
-				&[],
-				&BTreeMap::new(),
-			)
-			.map_err(|error| {
-				MonochangeError::Config(format!(
-					"failed to parse {}: {error}",
-					package.manifest_path.display()
-				))
-			})?;
-			Ok(FileUpdate {
-				path: package.manifest_path.clone(),
-				content: rendered.into_bytes(),
-			})
-		})
-		.collect()
+	monochange_npm::build_manifest_updates(packages, plan).map(|updates| {
+		updates
+			.into_iter()
+			.map(FileUpdate::from_manifest_update)
+			.collect()
+	})
 }
 
 #[cfg(feature = "deno")]
@@ -760,43 +579,12 @@ pub(crate) fn build_deno_manifest_updates(
 	packages: &[PackageRecord],
 	plan: &ReleasePlan,
 ) -> MonochangeResult<Vec<FileUpdate>> {
-	use rayon::prelude::*;
-
-	let released_versions = released_versions_by_package_id(plan, packages);
-	packages
-		.iter()
-		.filter(|package| package.ecosystem == Ecosystem::Deno)
-		.par_bridge()
-		.filter_map(|package| {
-			released_versions
-				.get(&package.id)
-				.map(|version| (package, version))
-		})
-		.map(|(package, version)| {
-			let contents = fs::read_to_string(&package.manifest_path).map_err(|error| {
-				MonochangeError::Io(format!(
-					"failed to read {}: {error}",
-					package.manifest_path.display()
-				))
-			})?;
-			let rendered = monochange_core::update_json_manifest_text(
-				&contents,
-				Some(version),
-				&[],
-				&BTreeMap::new(),
-			)
-			.map_err(|error| {
-				MonochangeError::Config(format!(
-					"failed to parse {}: {error}",
-					package.manifest_path.display()
-				))
-			})?;
-			Ok(FileUpdate {
-				path: package.manifest_path.clone(),
-				content: rendered.into_bytes(),
-			})
-		})
-		.collect()
+	monochange_deno::build_manifest_updates(packages, plan).map(|updates| {
+		updates
+			.into_iter()
+			.map(FileUpdate::from_manifest_update)
+			.collect()
+	})
 }
 
 #[cfg(feature = "dart")]
@@ -804,43 +592,12 @@ pub(crate) fn build_dart_manifest_updates(
 	packages: &[PackageRecord],
 	plan: &ReleasePlan,
 ) -> MonochangeResult<Vec<FileUpdate>> {
-	use rayon::prelude::*;
-
-	let released_versions = released_versions_by_package_id(plan, packages);
-	packages
-		.iter()
-		.filter(|package| package.ecosystem == Ecosystem::Dart)
-		.par_bridge()
-		.filter_map(|package| {
-			released_versions
-				.get(&package.id)
-				.map(|version| (package, version))
-		})
-		.map(|(package, version)| {
-			let contents = fs::read_to_string(&package.manifest_path).map_err(|error| {
-				MonochangeError::Io(format!(
-					"failed to read {}: {error}",
-					package.manifest_path.display()
-				))
-			})?;
-			let rendered = monochange_dart::update_manifest_text(
-				&contents,
-				Some(version),
-				&[],
-				&BTreeMap::new(),
-			)
-			.map_err(|error| {
-				MonochangeError::Config(format!(
-					"failed to parse {}: {error}",
-					package.manifest_path.display()
-				))
-			})?;
-			Ok(FileUpdate {
-				path: package.manifest_path.clone(),
-				content: rendered.into_bytes(),
-			})
-		})
-		.collect()
+	monochange_dart::build_manifest_updates(packages, plan).map(|updates| {
+		updates
+			.into_iter()
+			.map(FileUpdate::from_manifest_update)
+			.collect()
+	})
 }
 
 #[must_use = "the file update result must be checked"]
@@ -917,7 +674,6 @@ pub(crate) fn build_file_diff_previews(
 	updates: &[FileUpdate],
 ) -> MonochangeResult<Vec<PreparedFileDiff>> {
 	let colorize_diffs = diff_output_colors_enabled();
-	#[cfg(test)]
 	if FORCE_BUILD_FILE_DIFF_PREVIEWS_ERROR.with(Cell::get) {
 		return Err(MonochangeError::Io(
 			"forced build_file_diff_previews test error".to_string(),
@@ -1106,7 +862,7 @@ pub(crate) fn build_release_manifest(
 					version: target.version.clone(),
 					tag: target.tag,
 					release: target.release,
-					version_format: target.version_format,
+					version_format: target.version_format.clone(),
 					tag_name: target.tag_name.clone(),
 					members: target.members.clone(),
 					rendered_title: target.rendered_title.clone(),
@@ -1200,7 +956,7 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 					version: target.version.clone(),
 					tag: target.tag,
 					release: target.release,
-					version_format: target.version_format,
+					version_format: target.version_format.clone(),
 					tag_name: target.tag_name.clone(),
 					members: target.members.clone(),
 					rendered_title: String::new(),
@@ -1274,7 +1030,7 @@ pub(crate) fn build_release_record(
 					id: target.id.clone(),
 					kind: target.kind,
 					version: target.version.clone(),
-					version_format: target.version_format,
+					version_format: target.version_format.clone(),
 					tag: target.tag,
 					release: target.release,
 					tag_name: target.tag_name.clone(),
@@ -1375,50 +1131,15 @@ pub(crate) fn build_source_release_requests(
 	source: &SourceConfiguration,
 	manifest: &ReleaseManifest,
 ) -> Vec<SourceReleaseRequest> {
-	match source.provider {
-		#[cfg(feature = "github")]
-		SourceProvider::GitHub => github_provider::build_release_requests(source, manifest),
-		#[cfg(feature = "gitlab")]
-		SourceProvider::GitLab => gitlab_provider::build_release_requests(source, manifest),
-		#[cfg(feature = "gitea")]
-		SourceProvider::Gitea => gitea_provider::build_release_requests(source, manifest),
-		#[cfg(feature = "forgejo")]
-		SourceProvider::Forgejo => forgejo_provider::build_release_requests(source, manifest),
-		#[cfg(not(any(
-			feature = "github",
-			feature = "gitlab",
-			feature = "gitea",
-			feature = "forgejo"
-		)))]
-		_ => Vec::new(),
-	}
+	hosted_sources::hosted_source_adapter(source.provider).build_release_requests(source, manifest)
 }
 
 pub(crate) fn build_source_change_request(
 	source: &SourceConfiguration,
 	manifest: &ReleaseManifest,
 ) -> SourceChangeRequest {
-	let mut request = match source.provider {
-		#[cfg(feature = "github")]
-		SourceProvider::GitHub => github_provider::build_release_pull_request_request(source, manifest),
-		#[cfg(feature = "gitlab")]
-		SourceProvider::GitLab => gitlab_provider::build_release_pull_request_request(source, manifest),
-		#[cfg(feature = "gitea")]
-		SourceProvider::Gitea => gitea_provider::build_release_pull_request_request(source, manifest),
-		#[cfg(feature = "forgejo")]
-		SourceProvider::Forgejo => forgejo_provider::build_release_pull_request_request(source, manifest),
-		#[cfg(not(any(
-			feature = "github",
-			feature = "gitlab",
-			feature = "gitea",
-			feature = "forgejo"
-		)))]
-		_ => {
-			unreachable!(
-				"a hosting provider feature must be enabled to build source change requests"
-			)
-		}
-	};
+	let mut request = hosted_sources::hosted_source_adapter(source.provider)
+		.build_release_pull_request_request(source, manifest);
 	request.commit_message = build_release_commit_message(Some(source), manifest);
 	request
 }

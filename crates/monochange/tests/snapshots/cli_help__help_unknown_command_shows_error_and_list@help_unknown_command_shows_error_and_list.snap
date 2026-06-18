@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/cli_help.rs
+assertion_line: 60
 info:
   program: monochange
   args:
@@ -12,43 +13,35 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-error: Unknown command `nonexistent`
+error: unrecognized command path `monochange nonexistent`
 
-  Run monochange help to see available commands.
-  init                           Generate monochange.toml with detected packages
-  populate                       Add missing built-in CLI commands to monochange.toml
-  command                        Add or edit config-defined CLI commands interactively
-  skill                          Install the monochange skill bundle for AI agents
-  subagents                      Generate repo-local monochange subagents and agent guidance
-  analyze                        Analyze semantic changes for a package
-  step tag-release               Create and push release tags from an embedded release record
-  step release-record            Inspect the monochange release record for a tag or commit
-  check                          Validate configuration, changesets, and run manifest lint rules
-  lint                           Inspect and scaffold manifest lint rules
-  mcp                            Start the monochange MCP server over stdin/stdout
-  step validate                  Validate monochange configuration and changesets
-  step publish-readiness         Check package registry publishing readiness without publishing packages
-  step placeholder-publish       Publish first-time placeholder package versions for a release record
-  step config                    Render resolved monochange configuration and workspace metadata
-  step validate                  Validate configuration, package manifests, and changesets
-  step discover                  Discover packages across supported ecosystems
-  step display-versions          Preview planned versions without modifying files
-  step create-change-file        Create a structured changeset file
-  step prepare-release           Plan version bumps, changelogs, and release artifacts
-  step commit-release            Create a release commit with an embedded release record
-  step verify-release-branch     Verify that a release branch still targets a valid base
-  step publish-release           Create or update hosted source-provider releases
-  step placeholder-publish       Publish missing first-time placeholder package versions
-  step publish-packages          Publish package versions from a publish plan
-  step plan-publish-rate-limits  Plan package publish batches around registry rate limits
-  step open-release-request      Open or update a hosted release pull request
-  step comment-released-issues   Comment on issues referenced by released changesets
-  step affected-packages         Evaluate affected packages and changeset coverage
-  step diagnose-changesets       Inspect changeset provenance and metadata
-  step release-record            Inspect the monochange release record for a tag or commit
-  step publish-readiness         Check package registry publishing readiness without publishing packages
-  step tag-release               Create and push release tags from an embedded release record
-  step retarget-release          Repair release tags by retargeting a release
+Run one of these commands to inspect available help paths:
+  monochange --help
+  monochange help
+
+Visible top-level commands:
+  affected
+  analyze
+  check
+  command
+  config
+  create
+  diagnose
+  discover
+  help
+  init
+  lint
+  mcp
+  migrate
+  populate
+  prepare
+  preview
+  run
+  skill
+  snapshot
+  step
+  subagents
+  versions
 
 
 ----- stderr -----

@@ -57,6 +57,8 @@ changelog = { path = "CHANGELOG.md", format = "keep_a_changelog", include = "all
 
 Use package ids in changesets when a specific package changed. Use the group id only when the change is intentionally group-owned.
 
+`version_format` defaults to `namespaced` when omitted, which renders tags like `<name>/v<version>` and avoids collisions. Use `primary` only for the one release owner that should claim top-level tags like `v1.2.3`. Custom templates are also accepted, for example `version_format = "{{ ecosystem }}/{{ name }}/v{{ version }}"`; they can use only `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`, must include `{{ version }}`, and must render unique valid Git tags.
+
 Groups are best for products released as a unit: SDKs made of several packages, plugins that must stay version-aligned, or cross-language distributions that share one public changelog. Keep unrelated packages out of a group even if they live in the same workspace, because a group turns multiple package releases into one outward release identity.
 
 ## Versioned files

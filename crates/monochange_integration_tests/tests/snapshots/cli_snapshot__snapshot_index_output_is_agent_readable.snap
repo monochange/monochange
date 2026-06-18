@@ -270,6 +270,111 @@ expression: value
         "options_must_precede_arguments": false
       },
       "path": [
+        "create"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "discover"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "config"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "preview"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "prepare"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "affected"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "diagnose"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
         "mcp"
       ]
     },

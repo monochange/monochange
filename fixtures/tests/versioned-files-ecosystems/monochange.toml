@@ -1,0 +1,6 @@
+[ecosystems.npm]
+versioned_files = ["packages/app/package.json"]
+
+[package.app]
+path = "packages/app"
+type = "npm"

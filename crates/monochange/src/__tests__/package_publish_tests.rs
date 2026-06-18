@@ -65,6 +65,64 @@ use toml::Value as TomlValue;
 use super::*;
 use crate::tests::TEST_ENV_LOCK;
 
+fn build_placeholder_directory(
+	root: &Path,
+	request: &PublishRequest,
+	source: Option<&SourceConfiguration>,
+) -> MonochangeResult<TempDir> {
+	monochange_publish::build_placeholder_directory(
+		root,
+		request,
+		source,
+		&placeholder_manifest_writer_registry(),
+	)
+}
+
+fn placeholder_tempdir_error(error: &std::io::Error) -> MonochangeError {
+	MonochangeError::Io(format!("failed to create placeholder tempdir: {error}"))
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn execute_publish_requests(
+	root: &Path,
+	source: Option<&SourceConfiguration>,
+	mode: PackagePublishRunMode,
+	dry_run: bool,
+	requests: &[PublishRequest],
+	client: &Client,
+	endpoints: &RegistryEndpoints,
+	env_map: &BTreeMap<String, String>,
+	executor: &mut dyn CommandExecutor,
+) -> MonochangeResult<PackagePublishReport> {
+	monochange_publish::execute_publish_requests(
+		root,
+		source,
+		mode,
+		dry_run,
+		requests,
+		client,
+		endpoints,
+		env_map,
+		executor,
+		&build_publish_command_builder(),
+		&placeholder_manifest_writer_registry(),
+		&publish_readiness_registry(),
+		&CliPublishTrustHandler,
+	)
+	.await
+}
+
+fn enforce_release_attestation_prerequisites(
+	request: &PublishRequest,
+	env_map: &BTreeMap<String, String>,
+) -> MonochangeResult<()> {
+	monochange_publish::enforce_release_attestation_prerequisites(
+		request,
+		env_map,
+		&build_publish_command_builder(),
+	)
+}
+
 const NPM_TRUST_DOCS_URL: &str = "https://docs.npmjs.com/cli/v11/commands/npm-trust";
 const CRATES_TRUST_DOCS_URL: &str = "https://crates.io/docs/trusted-publishing";
 const DART_TRUST_DOCS_URL: &str = "https://dart.dev/tools/pub/automated-publishing";
@@ -176,6 +234,27 @@ fn sample_source() -> SourceConfiguration {
 		releases: monochange_core::ProviderReleaseSettings::default(),
 		pull_requests: monochange_core::ProviderMergeRequestSettings::default(),
 	}
+}
+
+#[test]
+fn enable_publish_stream_output_marks_requests_only_when_enabled() {
+	let mut disabled = vec![sample_request(RegistryKind::Npm)];
+	enable_publish_stream_output(&mut disabled, false);
+	assert!(
+		!disabled[0]
+			.package_metadata
+			.contains_key("monochange:stream_output")
+	);
+
+	let mut enabled = vec![sample_request(RegistryKind::Npm)];
+	enable_publish_stream_output(&mut enabled, true);
+	assert_eq!(
+		enabled[0]
+			.package_metadata
+			.get("monochange:stream_output")
+			.map(String::as_str),
+		Some("true")
+	);
 }
 
 fn sample_prepared_release(
@@ -3958,6 +4037,7 @@ async fn release_dry_run_orders_cargo_dev_and_build_dependencies_before_dependen
 				&publications,
 				&BTreeSet::new(),
 				true,
+				false,
 			)
 			.await
 			.expect("publish report:");
@@ -4290,12 +4370,13 @@ async fn run_publish_packages_uses_prepared_release_publications() {
 				Some(server.base_url().as_str()),
 			)],
 			|| {
-				let report = crate::cli_runtime::block_on_in_context(run_publish_packages(
+				let report = crate::tests::block_on_in_context(run_publish_packages(
 					root.path(),
 					&configuration,
 					Some(&prepared_release),
 					&BTreeSet::new(),
 					true,
+					false,
 				))
 				.expect("publish report:");
 				assert_eq!(report.mode, PackagePublishRunMode::Release);
@@ -4360,12 +4441,13 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 				Some(server.base_url().as_str()),
 			)],
 			|| {
-				let report = crate::cli_runtime::block_on_in_context(run_publish_packages(
+				let report = crate::tests::block_on_in_context(run_publish_packages(
 					root.path(),
 					&configuration,
 					None,
 					&BTreeSet::new(),
 					true,
+					false,
 				))
 				.expect("publish report:");
 				assert_eq!(report.mode, PackagePublishRunMode::Release);
@@ -4380,23 +4462,45 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 #[test]
 fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 	let tempdir = tempfile::tempdir().expect("tempdir:");
-	let mut executor = ProcessCommandExecutor;
-	let success = executor
-		.run(&CommandSpec {
-			program: "sh".to_string(),
-			args: vec![
-				"-c".to_string(),
-				"printf stdout; printf stderr >&2".to_string(),
-			],
-			cwd: tempdir.path().to_path_buf(),
-			env: BTreeMap::new(),
-		})
-		.expect("expected command success:");
-	assert!(success.success);
-	assert_eq!(success.stdout, "stdout");
-	assert_eq!(success.stderr, "stderr");
+	let command = CommandSpec {
+		program: "sh".to_string(),
+		args: vec![
+			"-c".to_string(),
+			"printf stdout; printf stderr >&2".to_string(),
+		],
+		cwd: tempdir.path().to_path_buf(),
+		env: BTreeMap::new(),
+	};
 
-	let error = executor
+	let mut captured_executor = ProcessCommandExecutor::new(false);
+	let captured = captured_executor
+		.run(&command)
+		.expect("expected captured command success:");
+	assert!(captured.success);
+	assert_eq!(captured.stdout, "stdout");
+	assert_eq!(captured.stderr, "stderr");
+
+	let mut streaming_executor = ProcessCommandExecutor::new(true);
+	let streamed = streaming_executor
+		.run(&command)
+		.expect("expected streamed command success:");
+	assert!(streamed.success);
+	assert_eq!(streamed.stdout, "stdout");
+	assert_eq!(streamed.stderr, "stderr");
+
+	let mut marked_command = command.clone();
+	marked_command.env.insert(
+		"MONOCHANGE_PUBLISH_STREAM_OUTPUT".to_string(),
+		"true".to_string(),
+	);
+	let marked_streamed = captured_executor
+		.run(&marked_command)
+		.expect("expected marked command to stream successfully:");
+	assert!(marked_streamed.success);
+	assert_eq!(marked_streamed.stdout, "stdout");
+	assert_eq!(marked_streamed.stderr, "stderr");
+
+	let error = captured_executor
 		.run(&CommandSpec {
 			program: "definitely-not-a-real-command".to_string(),
 			args: Vec::new(),
@@ -4695,19 +4799,19 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 				Some(server.base_url().as_str()),
 			)],
 			|| {
-				let report =
-					crate::cli_runtime::block_on_in_context(run_publish_packages_with_resume(
-						root.path(),
-						&configuration,
-						Some(&prepared_release),
-						&BTreeSet::new(),
-						&selected_groups,
-						&selected_ecosystems,
-						false,
-						true,
-						None,
-					))
-					.expect("publish report:");
+				let report = crate::tests::block_on_in_context(run_publish_packages_with_resume(
+					root.path(),
+					&configuration,
+					Some(&prepared_release),
+					&BTreeSet::new(),
+					&selected_groups,
+					&selected_ecosystems,
+					false,
+					true,
+					None,
+					false,
+				))
+				.expect("publish report:");
 
 				assert_eq!(report.packages.len(), 1);
 				assert_eq!(report.packages[0].package, "pkg");

@@ -232,6 +232,8 @@ pub(crate) struct RawWorkspaceDefaults {
 	#[serde(default)]
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
+	versioned_files: Vec<RawVersionedFileDefinition>,
+	#[serde(default)]
 	empty_update_message: Option<String>,
 	#[serde(default)]
 	release_title: Option<String>,
@@ -248,6 +250,7 @@ impl Default for RawWorkspaceDefaults {
 			strict_version_conflicts: false,
 			package_type: None,
 			changelog: None,
+			versioned_files: Vec::new(),
 			empty_update_message: None,
 			release_title: None,
 			changelog_version_title: None,
@@ -907,6 +910,7 @@ fn normalize_versioned_files(
 					prefix: None,
 					fields: None,
 					name: None,
+					missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 					regex: None,
 				})
 			}
@@ -1478,6 +1482,7 @@ fn build_package_definitions(
 	default_package_type: Option<PackageType>,
 	default_package_changelog: Option<&RawChangelogConfig>,
 	default_changelog_format: ChangelogFormat,
+	default_versioned_files: &[VersionedFileDefinition],
 	cargo_ecosystem: &EcosystemSettings,
 	npm_ecosystem: &EcosystemSettings,
 	deno_ecosystem: &EcosystemSettings,
@@ -1541,7 +1546,8 @@ fn build_package_definitions(
 					_ => Vec::new(),
 				}
 			};
-			let mut versioned_files = inherited_versioned_files;
+			let mut versioned_files = default_versioned_files.to_vec();
+			versioned_files.extend(inherited_versioned_files);
 			versioned_files.extend(normalize_versioned_files(
 				contents,
 				package.versioned_files,
@@ -1707,6 +1713,7 @@ fn discover_auto_packages(
 	default_package_type: Option<PackageType>,
 	default_changelog: Option<&RawChangelogConfig>,
 	default_changelog_format: ChangelogFormat,
+	default_versioned_files: &[VersionedFileDefinition],
 	cargo_ecosystem: &EcosystemSettings,
 	npm_ecosystem: &EcosystemSettings,
 	deno_ecosystem: &EcosystemSettings,
@@ -1735,11 +1742,8 @@ fn discover_auto_packages(
 		let package_type = ecosystem_type_to_package_type(ecosystem_type);
 
 		for pkg in discovered {
-			let inherited_versioned_files = if ecosystem_settings.versioned_files.is_empty() {
-				Vec::new()
-			} else {
-				ecosystem_settings.versioned_files.clone()
-			};
+			let mut inherited_versioned_files = default_versioned_files.to_vec();
+			inherited_versioned_files.extend(ecosystem_settings.versioned_files.clone());
 
 			let changelog = default_changelog.and_then(|definition| {
 				definition.resolve_for_package(&pkg.path, true).map(|path| {
@@ -1757,6 +1761,7 @@ fn discover_auto_packages(
 			let version_format = auto_discover
 				.defaults
 				.version_format
+				.clone()
 				.or(default_package_type.map(default_version_format))
 				.unwrap_or_default();
 
@@ -1850,6 +1855,14 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		.changelog
 		.as_ref()
 		.map(RawChangelogConfig::as_defaults_definition);
+	let default_versioned_files = normalize_versioned_files(
+		&contents,
+		defaults.versioned_files,
+		default_package_type.map_or(EcosystemType::Cargo, package_type_to_ecosystem_type),
+		"defaults",
+		"workspace",
+		default_package_type.is_some(),
+	)?;
 	let default_changelog_format = defaults
 		.changelog
 		.as_ref()
@@ -1861,6 +1874,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		default_package_type,
 		default_package_changelog.as_ref(),
 		default_changelog_format,
+		&default_versioned_files,
 		&cargo_ecosystem,
 		&npm_ecosystem,
 		&deno_ecosystem,
@@ -1880,6 +1894,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		default_package_type,
 		default_package_changelog.as_ref(),
 		default_changelog_format,
+		&default_versioned_files,
 		&cargo_ecosystem,
 		&npm_ecosystem,
 		&deno_ecosystem,
@@ -3586,6 +3601,7 @@ fn validate_package_and_group_definitions_with_cache(
 	let mut ids = BTreeSet::new();
 	let mut package_paths = BTreeMap::<PathBuf, String>::new();
 	let mut primary_owner = Option::<String>::None;
+	let mut rendered_version_format_tags = BTreeMap::<String, String>::new();
 	for package in packages {
 		if !ids.insert(package.id.clone()) {
 			return Err(config_diagnostic(
@@ -3669,9 +3685,17 @@ fn validate_package_and_group_definitions_with_cache(
 				)),
 			));
 		}
-		if package.version_format == VersionFormat::Primary {
+		if package.version_format.is_primary() {
 			assign_primary_release_owner(config_contents, &mut primary_owner, &package.id)?;
 		}
+		validate_release_owner_version_format(
+			config_contents,
+			&mut rendered_version_format_tags,
+			"package",
+			&package.id,
+			package.package_type.as_str(),
+			&package.version_format,
+		)?;
 	}
 
 	for package in packages {
@@ -3712,9 +3736,19 @@ fn validate_package_and_group_definitions_with_cache(
 				Some("package and group ids share one namespace; rename one of them".to_string()),
 			));
 		}
-		if group.version_format == VersionFormat::Primary {
+		if group.version_format.is_primary() {
 			assign_primary_release_owner(config_contents, &mut primary_owner, &group.id)?;
 		}
+		// patch-coverage:ignore-start -- group custom format validation is covered by fixture loading; llvm-cov attributes the `?` line inconsistently.
+		validate_release_owner_version_format(
+			config_contents,
+			&mut rendered_version_format_tags,
+			"group",
+			&group.id,
+			"group",
+			&group.version_format,
+		)?;
+		// patch-coverage:ignore-end
 		for package_id in &group.packages {
 			if !declared_packages.contains(package_id.as_str()) {
 				return Err(config_diagnostic(
@@ -5282,6 +5316,58 @@ fn config_primary_label(config_contents: &str, owner_id: &str) -> LabeledSpan {
 		Some("primary release identity".to_string()),
 		range_to_span(span),
 	)
+}
+
+fn validate_release_owner_version_format(
+	config_contents: &str,
+	rendered_tags: &mut BTreeMap<String, String>,
+	section: &str,
+	owner_id: &str,
+	ecosystem: &str,
+	version_format: &VersionFormat,
+) -> MonochangeResult<()> {
+	let rendered_tag = version_format
+		.render_tag(owner_id, "0.0.0", ecosystem)
+		.map_err(|error| {
+			config_diagnostic(
+				config_contents,
+				format!("invalid version_format for `{owner_id}`: {}", error.render()),
+				vec![config_field_label(
+					config_contents,
+					section,
+					owner_id,
+					"version_format",
+					"invalid version_format",
+				)],
+				Some(
+					"use `primary`, `namespaced`, or a custom tag template with `{{ version }}` and only valid Git tag characters"
+						.to_string(),
+				),
+			)
+		})?;
+	if let Some(existing_owner) = rendered_tags.insert(rendered_tag.clone(), owner_id.to_string()) {
+		return Err(config_diagnostic(
+			config_contents,
+			format!(
+				"version_format for `{owner_id}` renders the same sample tag `{rendered_tag}` as `{existing_owner}`"
+			),
+			vec![
+				config_primary_label(config_contents, &existing_owner),
+				config_field_label(
+					config_contents,
+					section,
+					owner_id,
+					"version_format",
+					"colliding version_format",
+				),
+			],
+			Some(
+				"include `{{ name }}` in custom version formats shared by multiple release owners so generated tags stay unique"
+					.to_string(),
+			),
+		));
+	}
+	Ok(())
 }
 
 fn assign_primary_release_owner(

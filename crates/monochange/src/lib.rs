@@ -47,6 +47,7 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::ffi::OsString;
+use std::fmt::Write as _;
 use std::fs;
 #[cfg(feature = "mcp")]
 use std::future::Future;
@@ -68,8 +69,6 @@ use change_classify::render_change_classification;
 use change_classify::render_changeset_api_validation;
 pub(crate) use monochange_changelog::ChangelogBuildContext;
 pub(crate) use monochange_changelog::build_changelog_updates;
-#[cfg(test)]
-pub(crate) use monochange_changelog::render_group_filtered_update_message;
 pub(crate) use monochange_changelog::render_jinja_template;
 pub mod changelog {
 	pub use monochange_changelog::render_message_template;
@@ -83,70 +82,20 @@ pub use changeset_policy::verify_changesets;
 pub(crate) use changesets::*;
 use clap::ValueEnum;
 use clap::error::ErrorKind;
-#[cfg(test)]
-pub(crate) use cli::apply_runtime_change_type_choices;
-#[cfg(test)]
-pub(crate) use cli::apply_runtime_prepare_release_markdown_defaults;
-#[cfg(test)]
-pub(crate) use cli::build_cli_command_subcommand;
 pub use cli::build_command;
-#[cfg(test)]
-pub(crate) use cli::build_command_for_root;
 use cli::build_command_with_cli;
-#[cfg(test)]
-pub(crate) use cli::build_skill_subcommand;
-#[cfg(test)]
-pub(crate) use cli::build_subagents_subcommand;
-#[cfg(test)]
-pub(crate) use cli::cli_command_after_help;
 use cli::cli_commands_for_root;
 use cli::cli_commands_from_config;
-#[cfg(test)]
-pub(crate) use cli::configured_change_type_choices;
 use cli::current_dir_or_dot;
-#[cfg(test)]
-pub(crate) use cli_runtime::build_cli_template_context;
-#[cfg(test)]
-pub(crate) use cli_runtime::build_retarget_release_report;
 pub(crate) use cli_runtime::collect_cli_command_inputs;
 pub(crate) use cli_runtime::execute_cli_command;
 use cli_runtime::execute_matches;
-#[cfg(test)]
-pub(crate) use cli_runtime::inferred_retarget_source_configuration;
-#[cfg(test)]
-pub(crate) use cli_runtime::lookup_template_value;
 pub(crate) use cli_runtime::maybe_render_markdown_for_terminal;
-#[cfg(test)]
-pub(crate) use cli_runtime::parse_boolean_step_input;
-#[cfg(test)]
-pub(crate) use cli_runtime::parse_change_bump;
-#[cfg(test)]
-pub(crate) use cli_runtime::parse_direct_template_reference;
 pub(crate) use cli_runtime::parse_output_format;
-#[cfg(test)]
-pub(crate) use cli_runtime::render_cli_command_markdown_result;
-#[cfg(test)]
-pub(crate) use cli_runtime::render_cli_command_result;
-#[cfg(test)]
-pub(crate) use cli_runtime::render_markdown_if_terminal;
-#[cfg(test)]
-pub(crate) use cli_runtime::render_retarget_release_report;
-#[cfg(test)]
-pub(crate) use cli_runtime::retarget_operation_label;
-#[cfg(test)]
-pub(crate) use cli_runtime::template_value_to_input_values;
 use command_wizard::run_command_wizard;
 use git_support::git_commit_paths;
 use git_support::git_head_commit;
 use git_support::git_stage_paths;
-#[cfg(test)]
-pub(crate) use git_support::read_git_commit_message;
-#[cfg(test)]
-pub(crate) use git_support::run_git_capture;
-#[cfg(test)]
-pub(crate) use git_support::run_git_process;
-#[cfg(test)]
-pub(crate) use git_support::run_git_status;
 use migration_audit::run_migration_command;
 #[cfg(feature = "cargo")]
 use monochange_cargo::RustSemverProvider;
@@ -221,20 +170,6 @@ use monochange_gitlab as gitlab_provider;
 use monochange_graph::build_release_plan;
 use monochange_semver::CompatibilityProvider;
 use monochange_semver::collect_assessments;
-#[cfg(test)]
-pub(crate) use workspace_ops::build_lockfile_command_executions;
-#[cfg(test)]
-pub(crate) use workspace_ops::change_type_default_bump;
-#[cfg(test)]
-pub(crate) use workspace_ops::prepare_release_execution;
-#[cfg(test)]
-pub(crate) use workspace_ops::render_cli_commands_toml;
-#[cfg(test)]
-pub(crate) use workspace_ops::render_interactive_changeset_markdown;
-
-#[cfg(test)]
-pub(crate) static TEST_ENV_LOCK: std::sync::LazyLock<std::sync::Mutex<()>> =
-	std::sync::LazyLock::new(|| std::sync::Mutex::new(()));
 pub(crate) use release_artifacts::*;
 pub use release_record::discover_release_record;
 pub use release_record::execute_release_retarget;
@@ -310,7 +245,6 @@ mod change_classify;
 mod changeset_policy;
 mod changesets;
 mod cli;
-mod cli_help;
 mod cli_progress;
 mod cli_runtime;
 mod cli_theme;
@@ -524,6 +458,15 @@ struct PreparedReleaseExecution {
 struct FileUpdate {
 	path: PathBuf,
 	content: Vec<u8>,
+}
+
+impl FileUpdate {
+	fn from_manifest_update(update: monochange_core::ManifestFileUpdate) -> Self {
+		Self {
+			path: update.path,
+			content: update.content,
+		}
+	}
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -1020,29 +963,89 @@ fn command_help_requires_workspace_configuration(command_name: &str) -> bool {
 	matches!(command_name, "change")
 }
 
+fn clap_help_path_from_args(args: &[OsString]) -> Vec<String> {
+	let command_args = command_args_after_globals(args).collect::<Vec<_>>();
+	let Some(help_index) = command_args.iter().position(|arg| *arg == "help") else {
+		return Vec::new();
+	};
+	let help_args = command_args.get(help_index + 1..).unwrap_or_default();
+
+	if help_args.iter().any(|arg| matches!(*arg, "--help" | "-h")) {
+		return vec!["help".to_string()];
+	}
+
+	help_args
+		.iter()
+		.filter(|arg| !arg.starts_with('-'))
+		.map(|arg| (*arg).to_string())
+		.collect()
+}
+
+fn render_clap_long_help(
+	bin_name: &'static str,
+	cli: &[CliCommandDefinition],
+	path: &[String],
+) -> String {
+	let mut command = build_command_with_cli(bin_name, cli);
+	command.build();
+
+	let Some(target) = clap_command_at_path_mut(&mut command, path) else {
+		return render_unknown_clap_help_path(bin_name, &command, path);
+	};
+
+	target.render_long_help().to_string()
+}
+
+fn clap_command_at_path_mut<'command>(
+	command: &'command mut clap::Command,
+	path: &[String],
+) -> Option<&'command mut clap::Command> {
+	let Some((segment, remaining)) = path.split_first() else {
+		return Some(command);
+	};
+
+	let subcommand = command.find_subcommand_mut(segment)?;
+	clap_command_at_path_mut(subcommand, remaining)
+}
+
+fn render_unknown_clap_help_path(
+	bin_name: &'static str,
+	command: &clap::Command,
+	path: &[String],
+) -> String {
+	let requested = if path.is_empty() {
+		bin_name.to_string()
+	} else {
+		format!("{bin_name} {}", path.join(" "))
+	};
+	let mut output = format!("error: unrecognized command path `{requested}`\n\n");
+	output.push_str("Run one of these commands to inspect available help paths:\n");
+	let _ = writeln!(output, "  {bin_name} --help");
+	let _ = writeln!(output, "  {bin_name} help");
+
+	let mut subcommands = command
+		.get_subcommands()
+		.filter(|subcommand| !subcommand.is_hide_set())
+		.map(clap::Command::get_name)
+		.collect::<Vec<_>>();
+	subcommands.sort_unstable();
+	if !subcommands.is_empty() {
+		output.push_str("\nVisible top-level commands:\n");
+		for subcommand in subcommands {
+			let _ = writeln!(output, "  {subcommand}");
+		}
+	}
+
+	output
+}
+
 fn render_help_command(
 	bin_name: &'static str,
 	args: &[OsString],
 	cli: &[CliCommandDefinition],
 ) -> String {
-	let help_args = command_args_after_globals(args)
-		.skip_while(|arg| *arg != "help")
-		.skip(1)
-		.filter(|arg| !arg.starts_with('-'))
-		.collect::<Vec<_>>();
-	let command_name = if help_args.is_empty() {
-		String::new()
-	} else if let ["step", step_name, ..] = help_args.as_slice() {
-		format!("step {step_name}")
-	} else {
-		let command_index = usize::from(help_args.first() == Some(&"run") && help_args.len() > 1);
-		help_args.get(command_index).unwrap_or(&"").to_string()
-	};
-	if command_name.is_empty() {
-		cli_help::render_overview_help_with_cli(bin_name, cli)
-	} else {
-		cli_help::render_command_help_with_cli(bin_name, &command_name, cli)
-	}
+	let path = clap_help_path_from_args(args);
+	render_clap_long_help(bin_name, cli, &path)
 }
 
 fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String {
@@ -1085,7 +1088,7 @@ where
 	let root_help_requested = is_root_help_request(&args);
 	if root_help_requested {
 		let cli = cli_commands_for_root(root);
-		return Ok(cli_help::render_overview_help_with_cli(bin_name, &cli));
+		return Ok(render_clap_long_help(bin_name, &cli, &[]));
 	}
 	if help_command_requested(&args) {
 		let cli = cli_commands_for_root(root);
@@ -1133,7 +1136,7 @@ where
 		{
 			let cli = cli_commands_for_root(root);
 			if is_root_help_request(&args) {
-				return Ok(cli_help::render_overview_help_with_cli(bin_name, &cli));
+				return Ok(render_clap_long_help(bin_name, &cli, &[]));
 			}
 			if let Err(help_error) =
 				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
@@ -1174,7 +1177,7 @@ where
 			) =>
 		{
 			if root_help_requested && matches!(error.kind(), ErrorKind::DisplayHelp) {
-				return Ok(cli_help::render_overview_help_with_cli(bin_name, &cli));
+				return Ok(render_clap_long_help(bin_name, &cli, &[]));
 			}
 
 			return Ok(format_clap_error(
@@ -1231,15 +1234,13 @@ where
 			)
 		}
 		Some(("help", help_matches)) => {
-			let command_name = help_matches
-				.get_one::<String>("command")
-				.map_or("", String::as_str);
-			let output = if command_name.is_empty() {
-				cli_help::render_overview_help_with_cli(bin_name, &cli)
-			} else {
-				cli_help::render_command_help_with_cli(bin_name, command_name, &cli)
-			};
-			Ok(output)
+			let path = help_matches
+				.get_many::<String>("command")
+				.into_iter()
+				.flatten()
+				.cloned()
+				.collect::<Vec<_>>();
+			Ok(render_clap_long_help(bin_name, &cli, &path))
 		}
 		Some(("init", init_matches)) => {
 			let provider = init_matches
@@ -1397,6 +1398,18 @@ where
 			let dry_run = quiet || step_command_matches.get_flag("dry-run");
 			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
 		}
+		Some((cli_command_name, cli_command_matches))
+			if cli::top_level_step_alias(cli_command_name).is_some() =>
+		{
+			let alias = cli::top_level_step_alias(cli_command_name)
+				.expect("alias was checked in match guard");
+			let configuration = configuration?;
+			let synthetic = cli::top_level_step_alias_command_definition(alias)
+				.expect("top-level step alias target exists");
+			let inputs = collect_cli_command_inputs(&synthetic, cli_command_matches);
+			let dry_run = quiet || alias.force_dry_run || cli_command_matches.get_flag("dry-run");
+			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+		}
 		Some(("run", run_matches)) => {
 			let Some((cli_command_name, cli_command_matches)) = run_matches.subcommand() else {
 				return Err(MonochangeError::Config(
@@ -1467,9 +1480,5 @@ fn format_publish_state(publish_state: monochange_core::PublishState) -> &'stati
 }
 
 #[cfg(test)]
-#[path = "__tests__/lib_tests.rs"]
-pub(crate) mod tests;
-
-#[cfg(test)]
-#[path = "__tests__/sync_tests.rs"]
-pub(crate) mod sync_tests;
+#[path = "__tests__/mod_tests.rs"]
+mod tests;

@@ -275,7 +275,7 @@ jobs:
         id: verify-patch-coverage
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        run: MONOCHANGE_PATCH_COVERAGE_BASE=${{ github.event.pull_request.base.sha }} MONOCHANGE_PATCH_COVERAGE_HEAD=${{ github.sha }} coverage:patch
+        run: MONOCHANGE_PATCH_COVERAGE_BASE=${{ github.event.pull_request.base.sha }} MONOCHANGE_PATCH_COVERAGE_HEAD=${{ github.event.pull_request.head.sha }} coverage:patch
         shell: devenv shell -- bash -e {0}
 
       - name: prepare codecov flag reports
@@ -299,12 +299,13 @@ jobs:
 
       - name: upload coverage to codecov
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.1
+        uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1 # v7.0.0
         with:
           use_oidc: true
           files: ./target/coverage/lcov.info
           disable_search: true
           fail_ci_if_error: true
+          skip_validation: true
           name: monochange-rust-workspace
           verbose: true
 
@@ -338,12 +339,13 @@ jobs:
           path: target/coverage/flags
 
       - name: upload crate coverage flag to codecov
-        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.1
+        uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1 # v7.0.0
         with:
           use_oidc: true
           files: ./target/coverage/flags/${{ matrix.flag }}.lcov
           disable_search: true
           fail_ci_if_error: true
+          skip_validation: true
           flags: ${{ matrix.flag }}
           name: ${{ matrix.flag }}
           verbose: true

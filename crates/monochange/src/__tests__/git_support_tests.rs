@@ -6,6 +6,33 @@ use tempfile::tempdir;
 
 use super::*;
 
+async fn run_git_process_with_stdin(
+	command: ProcessCommand,
+	input: &[u8],
+	error_message: &str,
+) -> MonochangeResult<()> {
+	use std::process::Stdio;
+
+	use tokio::io::AsyncWriteExt;
+
+	let mut child = tokio::process::Command::from(command)
+		.stdout(Stdio::piped())
+		.stderr(Stdio::piped())
+		.spawn()
+		.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
+	if let Some(mut stdin) = child.stdin.take() {
+		stdin
+			.write_all(input)
+			.await
+			.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
+	}
+	let output = child
+		.wait_with_output()
+		.await
+		.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
+	handle_git_process_output(&output, error_message)
+}
+
 #[test]
 fn git_error_message_with_detail_handles_empty_parts() {
 	assert_eq!(

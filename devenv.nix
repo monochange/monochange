@@ -392,6 +392,7 @@ in
         }
 
         run_step "gitleaks detect" ${pkgs.gitleaks}/bin/gitleaks detect --verbose --redact
+        run_step "lint:rust-cfg-test" ${currentDir}/.devenv/profile/bin/lint:rust-cfg-test
         run_step "lint:clippy" ${currentDir}/.devenv/profile/bin/lint:clippy
         run_step "schema:check" ${currentDir}/.devenv/profile/bin/schema:check
         run_step "lint:format" ${currentDir}/.devenv/profile/bin/lint:format
@@ -418,6 +419,7 @@ in
           "$@"
         }
 
+        run_step "lint:rust-cfg-test" lint:rust-cfg-test
         run_step "lint:clippy" lint:clippy
         run_step "schema:check" schema:check
         run_step "lint:format" lint:format
@@ -448,6 +450,14 @@ in
         monochange check
       '';
       description = "Run manifest lint rules across all ecosystems.";
+      binary = "bash";
+    };
+    "lint:rust-cfg-test" = {
+      exec = ''
+        set -euo pipefail
+        pnpm node scripts/check-rust-cfg-test.ts
+      '';
+      description = "Check that #[cfg(test)] only guards one test module per Rust source file.";
       binary = "bash";
     };
     "lint:clippy" = {

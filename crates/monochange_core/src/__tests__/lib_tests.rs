@@ -32,6 +32,7 @@ use crate::HostedSourceAdapter;
 use crate::HostedSourceFeatures;
 use crate::HostingProviderKind;
 use crate::MetadataStyle;
+use crate::MissingFieldBehavior;
 use crate::MonochangeError;
 use crate::PackageDefinition;
 use crate::PackageDependency;
@@ -417,6 +418,29 @@ fn hosted_source_adapter_default_features_are_empty_and_comment_plans_are_empty(
 	);
 }
 
+#[test]
+fn hosted_source_adapter_default_release_planning_methods_are_noops() {
+	let adapter = DefaultHostedSourceAdapter {
+		provider: SourceProvider::GitLab,
+	};
+	let source = test_source_configuration(SourceProvider::GitLab);
+	let manifest = test_release_manifest();
+
+	assert!(adapter.tag_url(&source, "v1.2.3").is_empty());
+	assert!(adapter.compare_url(&source, "v1.2.2", "v1.2.3").is_empty());
+	assert!(
+		adapter
+			.build_release_requests(&source, &manifest)
+			.is_empty()
+	);
+	assert!(
+		std::panic::catch_unwind(|| {
+			adapter.build_release_pull_request_request(&source, &manifest);
+		})
+		.is_err()
+	);
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn hosted_source_adapter_default_enrich_delegates_to_annotate() {
 	let adapter = DefaultHostedSourceAdapter {
@@ -717,6 +741,7 @@ fn versioned_file_definition_uses_regex_returns_true_when_set() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: Some(r"v(?<version>\d+\.\d+\.\d+)".to_string()),
 	};
 	assert!(definition.uses_regex());
@@ -731,6 +756,7 @@ fn versioned_file_definition_uses_regex_returns_false_when_unset() {
 		prefix: None,
 		fields: None,
 		name: None,
+		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert!(!definition.uses_regex());
@@ -745,6 +771,7 @@ fn versioned_file_definition_uses_format_returns_true_when_set() {
 		prefix: None,
 		fields: Some(vec!["release.version".to_string()]),
 		name: None,
+		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: None,
 	};
 	assert!(definition.uses_format());
@@ -1090,6 +1117,31 @@ fn command_steps_have_no_generated_input_schema() {
 	};
 
 	assert!(step.step_inputs_schema().is_empty());
+}
+
+#[test]
+fn publish_packages_step_schema_includes_optional_stream_output_flag() {
+	let step = CliStepDefinition::PublishPackages {
+		name: None,
+		when: None,
+		always_run: false,
+		inputs: BTreeMap::new(),
+	};
+
+	let stream_output = step
+		.step_inputs_schema()
+		.into_iter()
+		.find(|input| input.name == "stream-output")
+		.expect("publish packages should accept stream-output");
+
+	assert_eq!(stream_output.kind, CliInputKind::Boolean);
+	assert!(!stream_output.required);
+	assert_eq!(stream_output.default, None);
+	assert!(step.valid_input_names().unwrap().contains(&"stream-output"));
+	assert_eq!(
+		step.expected_input_kind("stream-output"),
+		Some(CliInputKind::Boolean)
+	);
 }
 
 #[test]
@@ -1508,6 +1560,7 @@ fn valid_input_names_returns_expected_names_for_display_and_publish_steps() {
 				"ecosystem",
 				"resume",
 				"all",
+				"stream-output",
 			]
 			.as_slice()
 		)
@@ -3865,4 +3918,202 @@ fn ecosystem_settings_auto_discover_skips_when_none() -> Result<(), serde_json::
 	let json = serde_json::to_string(&settings)?;
 	assert!(!json.contains("auto_discover"));
 	Ok(())
+}
+
+#[test]
+fn version_format_serializes_custom_templates_as_strings() {
+	let custom = VersionFormat::Custom("{{ name }}/release/{{ version }}".to_string());
+	let encoded = serde_json::to_string(&custom).expect("serialize version format");
+	assert_eq!(encoded, "\"{{ name }}/release/{{ version }}\"");
+	let decoded: VersionFormat =
+		serde_json::from_str(&encoded).expect("deserialize version format");
+	assert_eq!(decoded, custom);
+}
+
+#[test]
+fn version_format_renders_supported_template_variables() {
+	let rendered = crate::render_version_format_template(
+		"{{ ecosystem }}/{{ name }}/v{{ version }}",
+		"cli",
+		"1.2.3",
+		"cargo",
+	)
+	.expect("render custom version format");
+	assert_eq!(rendered, "cargo/cli/v1.2.3");
+
+	let compact = crate::render_version_format_template(
+		"{{ecosystem}}/{{name}}/v{{version}}",
+		"cli",
+		"1.2.3",
+		"cargo",
+	)
+	.expect("render compact custom version format");
+	assert_eq!(compact, "cargo/cli/v1.2.3");
+}
+
+#[test]
+fn version_format_methods_cover_builtin_and_custom_formats() {
+	let namespaced = VersionFormat::Namespaced;
+	let primary = VersionFormat::Primary;
+	let custom = VersionFormat::Custom("{{name}}/v{{version}}".to_string());
+	let ecosystem_custom =
+		VersionFormat::Custom("{{ ecosystem }}/release/v{{ version }}".to_string());
+
+	assert_eq!(namespaced.as_template(), "{{ name }}/v{{ version }}");
+	assert_eq!(primary.as_template(), "v{{ version }}");
+	assert_eq!(custom.as_template(), "{{name}}/v{{version}}");
+	assert!(!namespaced.is_primary());
+	assert!(primary.is_primary());
+	assert!(namespaced.contains_unique_name_variable());
+	assert!(!primary.contains_unique_name_variable());
+	assert!(custom.contains_unique_name_variable());
+	assert!(!ecosystem_custom.contains_unique_name_variable());
+	assert_eq!(
+		namespaced
+			.render_tag("pkg:with-colon", "1.2.3", "cargo")
+			.expect("render namespaced tag"),
+		"pkg:with-colon/v1.2.3"
+	);
+	assert_eq!(
+		primary
+			.render_tag("pkg", "1.2.3", "cargo")
+			.expect("render primary tag"),
+		"v1.2.3"
+	);
+	assert_eq!(
+		custom
+			.render_tag("pkg", "1.2.3", "cargo")
+			.expect("render custom tag"),
+		"pkg/v1.2.3"
+	);
+}
+
+#[test]
+fn source_provider_default_host_returns_correct_hosts() {
+	assert_eq!(SourceProvider::GitHub.default_host(), "github.com");
+	assert_eq!(SourceProvider::GitLab.default_host(), "gitlab.com");
+	assert_eq!(SourceProvider::Gitea.default_host(), "gitea.com");
+	assert_eq!(SourceProvider::Forgejo.default_host(), "forgejo.com");
+}
+
+#[test]
+fn source_configuration_repository_url_uses_configured_host() {
+	let config = SourceConfiguration {
+		provider: SourceProvider::Gitea,
+		owner: "myorg".to_string(),
+		repo: "myrepo".to_string(),
+		host: Some("git.example.com".to_string()),
+		api_url: None,
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	};
+	assert_eq!(
+		config.repository_url(),
+		"https://git.example.com/myorg/myrepo"
+	);
+}
+
+#[test]
+fn version_format_rejects_unknown_template_variables() {
+	let error = crate::render_version_format_template(
+		"{{ package }}/v{{ version }}",
+		"cli",
+		"1.2.3",
+		"cargo",
+	)
+	.expect_err("unknown variables are rejected");
+	assert!(error.render().contains("unsupported variable"));
+}
+
+#[test]
+fn version_format_rejects_invalid_git_tag_characters() {
+	let error = crate::render_version_format_template(
+		"{{ name }}/bad tag/v{{ version }}",
+		"cli",
+		"1.2.3",
+		"cargo",
+	)
+	.expect_err("whitespace is rejected");
+	assert!(error.render().contains("contains whitespace"));
+}
+
+#[test]
+fn version_format_rejects_each_invalid_git_tag_shape() {
+	let cases = [
+		("", "tag is empty"),
+		("/v1.2.3", "starts or ends with `/`"),
+		("v1.2.3/", "starts or ends with `/`"),
+		("-v1.2.3", "starts with `-`"),
+		("pkg//v1.2.3", "empty path component"),
+		("pkg/../v1.2.3", "contains `..`"),
+		("pkg/@{upstream}/v1.2.3", "contains `@{`"),
+		("pkg/v1.2.3.", "ends with `.`"),
+		("pkg/file.lock/v1.2.3", "ends with `.lock`"),
+		("pkg/file.LOCK/v1.2.3", "ends with `.lock`"),
+		("pkg/v1.2.3~", "not valid in a Git ref"),
+	];
+
+	for (tag, reason) in cases {
+		let error = crate::validate_version_format_tag(tag)
+			.expect_err("expected invalid version format tag");
+		assert!(
+			error.render().contains(reason),
+			"expected `{}` to contain `{reason}`",
+			error.render()
+		);
+	}
+}
+
+#[test]
+fn version_format_rejects_malformed_template_syntax() {
+	let cases = [
+		("   ", "must not be empty"),
+		("release", "must include the `{{ version }}` variable"),
+		("{{ version }}/{{ name", "unterminated template variable"),
+		("{{ name }}/v{{ version }}}}", "unopened template variable"),
+	];
+
+	for (template, reason) in cases {
+		let error = crate::render_version_format_template(template, "cli", "1.2.3", "cargo")
+			.expect_err("expected invalid version format template");
+		assert!(
+			error.render().contains(reason),
+			"expected `{}` to contain `{reason}`",
+			error.render()
+		);
+	}
+}
+
+#[test]
+fn source_configuration_default_branch_falls_back_to_main() {
+	let config = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		owner: "o".to_string(),
+		repo: "r".to_string(),
+		host: None,
+		api_url: None,
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings {
+			base: String::new(),
+			..ProviderMergeRequestSettings::default()
+		},
+	};
+	assert_eq!(config.default_branch(), "main");
+}
+
+#[test]
+fn source_configuration_default_branch_reads_configured_base() {
+	let config = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		owner: "o".to_string(),
+		repo: "r".to_string(),
+		host: None,
+		api_url: None,
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings {
+			base: "develop".to_string(),
+			..ProviderMergeRequestSettings::default()
+		},
+	};
+	assert_eq!(config.default_branch(), "develop");
 }

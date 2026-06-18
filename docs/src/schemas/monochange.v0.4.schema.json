@@ -1206,6 +1206,13 @@
 				}
 			]
 		},
+		"MissingFieldBehavior": {
+			"enum": [
+				"ignore",
+				"add"
+			],
+			"type": "string"
+		},
 		"PackageLabelPlacement": {
 			"description": "Where to place package labels relative to a changelog entry.",
 			"oneOf": [
@@ -1604,13 +1611,6 @@
 			],
 			"type": "string"
 		},
-		"VersionFormat": {
-			"enum": [
-				"namespaced",
-				"primary"
-			],
-			"type": "string"
-		},
 		"VersionedFileDefinition": {
 			"additionalProperties": false,
 			"properties": {
@@ -1634,6 +1634,10 @@
 						}
 					],
 					"default": null
+				},
+				"missing_field_behavior": {
+					"$ref": "#/$defs/MissingFieldBehavior",
+					"default": "ignore"
 				},
 				"name": {
 					"default": null,
@@ -1704,15 +1708,11 @@
 					]
 				},
 				"version_format": {
-					"anyOf": [
-						{
-							"$ref": "#/$defs/VersionFormat"
-						},
-						{
-							"type": "null"
-						}
-					],
-					"default": null
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
 				}
 			},
 			"type": "object"
@@ -1964,6 +1964,12 @@
 					"default": false,
 					"type": "boolean"
 				},
+				"versioned_files": {
+					"items": {
+						"$ref": "#/$defs/versioned_file_definition"
+					},
+					"type": "array"
+				},
 				"warn_on_group_mismatch": {
 					"default": true,
 					"type": "boolean"
@@ -2130,8 +2136,8 @@
 					"type": "boolean"
 				},
 				"version_format": {
-					"$ref": "#/$defs/VersionFormat",
-					"default": "namespaced"
+					"default": "namespaced",
+					"type": "string"
 				},
 				"versioned_files": {
 					"items": {
@@ -2255,8 +2261,8 @@
 					]
 				},
 				"version_format": {
-					"$ref": "#/$defs/VersionFormat",
-					"default": "namespaced"
+					"default": "namespaced",
+					"type": "string"
 				},
 				"versioned_files": {
 					"items": {

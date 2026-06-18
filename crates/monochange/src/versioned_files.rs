@@ -354,6 +354,7 @@ fn apply_inferred_lockfile_updates(
 			prefix: None,
 			fields: None,
 			name: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		};
 
@@ -877,6 +878,40 @@ fn update_json_field_path(
 	Ok(())
 }
 
+fn add_json_field_path(
+	value: &mut serde_json::Value,
+	path: &str,
+	version: &str,
+) -> MonochangeResult<()> {
+	let segments = field_path_segments(path)?;
+	let (leaf, parent_segments) = segments
+		.split_last()
+		.expect("validated field paths contain at least one segment");
+	let mut cursor = value;
+
+	for segment in parent_segments {
+		let object = cursor.as_object_mut().ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` cannot traverse non-object segment `{segment}`"
+			))
+		})?;
+		cursor = object
+			.entry((*segment).to_string())
+			.or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+	}
+
+	let object = cursor.as_object_mut().ok_or_else(|| {
+		MonochangeError::Config(format!(
+			"versioned_files field `{path}` cannot set `{leaf}` on a non-object value"
+		))
+	})?;
+	object.insert(
+		(*leaf).to_string(),
+		serde_json::Value::String(version.to_string()),
+	);
+	Ok(())
+}
+
 fn update_toml_field_path(
 	document: &mut toml_edit::DocumentMut,
 	path: &str,
@@ -906,6 +941,39 @@ fn update_toml_field_path(
 			"versioned_files field `{path}` is missing leaf `{leaf}`"
 		)));
 	}
+	table.insert(leaf, toml_edit::value(version));
+	Ok(())
+}
+
+fn add_toml_field_path(
+	document: &mut toml_edit::DocumentMut,
+	path: &str,
+	version: &str,
+) -> MonochangeResult<()> {
+	let segments = field_path_segments(path)?;
+	let (leaf, parent_segments) = segments
+		.split_last()
+		.expect("validated field paths contain at least one segment");
+	let mut table: &mut dyn toml_edit::TableLike = document.as_table_mut();
+
+	for segment in parent_segments {
+		if !table.contains_key(segment) {
+			table.insert(segment, toml_edit::Item::Table(toml_edit::Table::new()));
+		}
+		// patch-coverage:ignore-start -- contains_key/insert above guarantees the segment exists before lookup.
+		let item = table.get_mut(segment).ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` is missing segment `{segment}`"
+			))
+		})?;
+		// patch-coverage:ignore-end
+		table = item.as_table_like_mut().ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` cannot traverse non-table segment `{segment}`"
+			))
+		})?;
+	}
+
 	table.insert(leaf, toml_edit::value(version));
 	Ok(())
 }
@@ -947,6 +1015,41 @@ fn update_yaml_field_path(
 		)));
 	}
 	mapping.insert(key, serde_yaml_ng::Value::String(version.to_string()));
+	Ok(())
+}
+
+fn add_yaml_field_path(
+	value: &mut serde_yaml_ng::Value,
+	path: &str,
+	version: &str,
+) -> MonochangeResult<()> {
+	let segments = field_path_segments(path)?;
+	let (leaf, parent_segments) = segments
+		.split_last()
+		.expect("validated field paths contain at least one segment");
+	let mut cursor = value;
+
+	for segment in parent_segments {
+		let mapping = cursor.as_mapping_mut().ok_or_else(|| {
+			MonochangeError::Config(format!(
+				"versioned_files field `{path}` cannot traverse non-mapping segment `{segment}`"
+			))
+		})?;
+		let key = serde_yaml_ng::Value::String((*segment).to_string());
+		cursor = mapping
+			.entry(key)
+			.or_insert_with(|| serde_yaml_ng::Value::Mapping(serde_yaml_ng::Mapping::default()));
+	}
+
+	let mapping = cursor.as_mapping_mut().ok_or_else(|| {
+		MonochangeError::Config(format!(
+			"versioned_files field `{path}` cannot set `{leaf}` on a non-mapping value"
+		))
+	})?;
+	mapping.insert(
+		serde_yaml_ng::Value::String((*leaf).to_string()),
+		serde_yaml_ng::Value::String(version.to_string()),
+	);
 	Ok(())
 }
 
@@ -1012,12 +1115,51 @@ fn update_env_key(contents: &str, key: &str, version: &str) -> MonochangeResult<
 	Ok(output)
 }
 
+fn add_env_key(contents: &str, key: &str, version: &str) -> String {
+	let mut output = String::with_capacity(contents.len() + key.len() + version.len() + 2);
+	output.push_str(contents);
+	if !output.is_empty() && !output.ends_with('\n') {
+		output.push('\n');
+	}
+	output.push_str(key);
+	output.push('=');
+	output.push_str(version);
+	output.push('\n');
+	output
+}
+
+fn is_missing_field_error(error: &MonochangeError) -> bool {
+	let message = error.to_string();
+	message.contains(" is missing leaf ")
+		|| message.contains(" is missing segment ")
+		|| message.contains(" was not found")
+}
+
+fn update_format_error_action(
+	field_path: &str,
+	error: MonochangeError,
+	missing_field_behavior: monochange_core::MissingFieldBehavior,
+) -> MonochangeResult<bool> {
+	if !is_missing_field_error(&error) {
+		return Err(error);
+	}
+
+	match missing_field_behavior {
+		monochange_core::MissingFieldBehavior::Ignore => Ok(false),
+		monochange_core::MissingFieldBehavior::Add => {
+			let _ = field_path;
+			Ok(true)
+		}
+	}
+}
+
 fn update_format_versioned_file_text(
 	contents: &str,
 	format: monochange_core::VersionedFileFormat,
 	fields: &[String],
 	version: &str,
 	name: Option<&str>,
+	missing_field_behavior: monochange_core::MissingFieldBehavior,
 ) -> MonochangeResult<String> {
 	match format {
 		monochange_core::VersionedFileFormat::Json => {
@@ -1026,8 +1168,14 @@ fn update_format_versioned_file_text(
 					MonochangeError::Config(format!("failed to parse json versioned file: {error}"))
 				})?;
 			for field in fields {
-				let field = render_versioned_template(field, name, version);
-				update_json_field_path(&mut value, &field, version)?;
+				let rendered_field = render_versioned_template(field, name, version);
+				if let Err(error) = update_json_field_path(&mut value, &rendered_field, version) {
+					let should_add =
+						update_format_error_action(&rendered_field, error, missing_field_behavior)?;
+					if should_add {
+						add_json_field_path(&mut value, &rendered_field, version)?;
+					}
+				}
 			}
 			let mut output = serde_json::to_string_pretty(&value).unwrap_or_else(|error| {
 				// patch-coverage:ignore-start -- serde_json::Value serialization is infallible for supported values.
@@ -1044,8 +1192,15 @@ fn update_format_versioned_file_text(
 					MonochangeError::Config(format!("failed to parse toml versioned file: {error}"))
 				})?;
 			for field in fields {
-				let field = render_versioned_template(field, name, version);
-				update_toml_field_path(&mut document, &field, version)?;
+				let rendered_field = render_versioned_template(field, name, version);
+				if let Err(error) = update_toml_field_path(&mut document, &rendered_field, version)
+				{
+					let should_add =
+						update_format_error_action(&rendered_field, error, missing_field_behavior)?;
+					if should_add {
+						add_toml_field_path(&mut document, &rendered_field, version)?;
+					}
+				}
 			}
 			Ok(document.to_string())
 		}
@@ -1055,8 +1210,14 @@ fn update_format_versioned_file_text(
 					MonochangeError::Config(format!("failed to parse yaml versioned file: {error}"))
 				})?;
 			for field in fields {
-				let field = render_versioned_template(field, name, version);
-				update_yaml_field_path(&mut value, &field, version)?;
+				let rendered_field = render_versioned_template(field, name, version);
+				if let Err(error) = update_yaml_field_path(&mut value, &rendered_field, version) {
+					let should_add =
+						update_format_error_action(&rendered_field, error, missing_field_behavior)?;
+					if should_add {
+						add_yaml_field_path(&mut value, &rendered_field, version)?;
+					}
+				}
 			}
 			Ok(serde_yaml_ng::to_string(&value).unwrap_or_else(|error| {
 				// patch-coverage:ignore-start -- serde_yaml_ng::Value serialization is infallible for supported values.
@@ -1068,7 +1229,14 @@ fn update_format_versioned_file_text(
 			let mut output = contents.to_string();
 			for field in fields {
 				let key = render_versioned_template(field, name, version);
-				output = update_env_key(&output, &key, version)?;
+				match update_env_key(&output, &key, version) {
+					Ok(updated) => output = updated,
+					Err(error) => {
+						if update_format_error_action(&key, error, missing_field_behavior)? {
+							output = add_env_key(&output, &key, version);
+						}
+					}
+				}
 			}
 			Ok(output)
 		}
@@ -1152,8 +1320,14 @@ pub(crate) fn apply_versioned_file_definition(
 			let resolved_path =
 				resolved_path.map_err(|error| MonochangeError::Config(error.to_string()))?;
 			let contents = read_cached_text_document(updates, &resolved_path)?;
-			let changed_text =
-				update_format_versioned_file_text(&contents, format, fields, owner_version, name)?;
+			let changed_text = update_format_versioned_file_text(
+				&contents,
+				format,
+				fields,
+				owner_version,
+				name,
+				definition.missing_field_behavior,
+			)?;
 			updates.insert(resolved_path, CachedDocument::Text(changed_text));
 		}
 		return Ok(());
@@ -1430,38 +1604,6 @@ pub(crate) fn released_versions_by_record_id(plan: &ReleasePlan) -> BTreeMap<Str
 		};
 		for member in &group.members {
 			released_versions.insert(member.clone(), version.to_string());
-		}
-	}
-
-	released_versions
-}
-
-pub(crate) fn released_versions_by_package_id(
-	plan: &ReleasePlan,
-	packages: &[PackageRecord],
-) -> BTreeMap<String, String> {
-	let mut released_versions = released_versions_by_record_id(plan);
-	let mut package_id_by_member_name = packages
-		.iter()
-		.map(|package| (package.name.as_str(), package.id.as_str()))
-		.collect::<BTreeMap<_, _>>();
-	package_id_by_member_name.extend(packages.iter().filter_map(|package| {
-		package
-			.metadata
-			.get("config_id")
-			.map(|config_id| (config_id.as_str(), package.id.as_str()))
-	}));
-
-	for group in &plan.groups {
-		let Some(version) = group.planned_version.as_ref() else {
-			continue;
-		};
-		for member in &group.members {
-			let package_id = package_id_by_member_name
-				.get(member.as_str())
-				.copied()
-				.unwrap_or(member.as_str());
-			released_versions.insert(package_id.to_string(), version.to_string());
 		}
 	}
 

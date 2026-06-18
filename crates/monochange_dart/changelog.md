@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)
+
+### 🐛 Fixed
+
+#### Add manifest-repository lint rule across all ecosystems
+
+New lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.
+
+For Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)
+
 ## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
 
 ### Changed

@@ -34,6 +34,15 @@ use tempfile::TempDir;
 use tracing::info;
 use urlencoding::encode;
 
+mod rate_limits;
+
+pub use rate_limits::PYPI_TRUSTED_PUBLISHERS_DOCS;
+pub use rate_limits::plan_rate_limit_batches;
+pub use rate_limits::plan_rate_limit_window;
+pub use rate_limits::policies_for_rate_limit_operation;
+pub use rate_limits::registry_rate_limit_policies;
+pub use rate_limits::render_rate_limit_window;
+
 pub const PLACEHOLDER_VERSION: &str = "0.0.0";
 
 pub trait EcosystemProgressPresentation {
@@ -415,6 +424,8 @@ pub struct CommandSpec {
 }
 
 const NPM_PUBLISH_OTP_METADATA_KEY: &str = "monochange:npm_publish_otp";
+const PUBLISH_STREAM_OUTPUT_ENV_KEY: &str = "MONOCHANGE_PUBLISH_STREAM_OUTPUT";
+const PUBLISH_STREAM_OUTPUT_METADATA_KEY: &str = "monochange:stream_output";
 
 pub fn set_npm_publish_otp_for_requests(requests: &mut [PublishRequest], otp: &str) {
 	for request in requests
@@ -617,7 +628,7 @@ pub async fn execute_publish_requests_with_process(
 	let env_map = current_env_map();
 	let endpoints = RegistryEndpoints::from_env();
 	let client = registry_client()?;
-	let mut executor = ProcessCommandExecutor;
+	let mut executor = ProcessCommandExecutor::new(false);
 	execute_publish_requests_with_progress(
 		root,
 		source,
@@ -653,7 +664,7 @@ pub async fn execute_publish_requests_with_process_and_progress(
 	let env_map = current_env_map();
 	let endpoints = RegistryEndpoints::from_env();
 	let client = registry_client()?;
-	let mut executor = ProcessCommandExecutor;
+	let mut executor = ProcessCommandExecutor::new(false);
 	execute_publish_requests_with_progress(
 		root,
 		source,
@@ -1325,6 +1336,16 @@ impl PublishCommandBuilder {
 		if dry_run {
 			adapter.append_dry_run_args(&mut command.args);
 		}
+		if request
+			.package_metadata
+			.get(PUBLISH_STREAM_OUTPUT_METADATA_KEY)
+			.is_some_and(|value| value == "true")
+		{
+			command.env.insert(
+				PUBLISH_STREAM_OUTPUT_ENV_KEY.to_string(),
+				"true".to_string(),
+			);
+		}
 		command
 	}
 }
@@ -1340,29 +1361,143 @@ pub trait CommandExecutor {
 	fn run(&mut self, spec: &CommandSpec) -> MonochangeResult<CommandOutput>;
 }
 
-pub struct ProcessCommandExecutor;
+pub struct ProcessCommandExecutor {
+	stream_output: bool,
+}
+
+impl ProcessCommandExecutor {
+	#[must_use]
+	pub fn new(stream_output: bool) -> Self {
+		Self { stream_output }
+	}
+}
 
 impl CommandExecutor for ProcessCommandExecutor {
 	fn run(&mut self, spec: &CommandSpec) -> MonochangeResult<CommandOutput> {
-		use std::process::Command;
-		let mut command = Command::new(&spec.program);
-		command
-			.args(&spec.args)
-			.current_dir(&spec.cwd)
-			.envs(&spec.env);
-		let output = command.output().map_err(|error| {
+		let stream_output = self.stream_output
+			|| spec
+				.env
+				.get(PUBLISH_STREAM_OUTPUT_ENV_KEY)
+				.is_some_and(|value| value == "true");
+		if stream_output {
+			return run_streaming_process_command(spec);
+		}
+		run_captured_process_command(spec)
+	}
+}
+
+fn run_captured_process_command(spec: &CommandSpec) -> MonochangeResult<CommandOutput> {
+	use std::process::Command;
+
+	let mut command = Command::new(&spec.program);
+	command
+		.args(&spec.args)
+		.current_dir(&spec.cwd)
+		.envs(&spec.env);
+	let output = command.output().map_err(|error| {
+		MonochangeError::Io(format!(
+			"failed to run `{}` in {}: {error}",
+			render_command(spec),
+			spec.cwd.display()
+		))
+	})?;
+	Ok(CommandOutput {
+		success: output.status.success(),
+		stdout: String::from_utf8_lossy(&output.stdout).trim().to_string(),
+		stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+	})
+}
+
+fn run_streaming_process_command(spec: &CommandSpec) -> MonochangeResult<CommandOutput> {
+	use std::process::Command;
+	use std::process::Stdio;
+
+	let mut command = Command::new(&spec.program);
+	command
+		.args(&spec.args)
+		.current_dir(&spec.cwd)
+		.envs(&spec.env)
+		.stdout(Stdio::piped())
+		.stderr(Stdio::piped());
+	let mut child = command
+		.spawn()
+		.map_err(|error| process_command_error(spec, "run", &error))?;
+
+	let stdout = child
+		.stdout
+		.take()
+		.expect("stdout was configured for piping");
+	let stderr = child
+		.stderr
+		.take()
+		.expect("stderr was configured for piping");
+	let stdout_thread = std::thread::spawn(move || tee_child_output(stdout, std::io::stdout()));
+	let stderr_thread = std::thread::spawn(move || tee_child_output(stderr, std::io::stderr()));
+	let status = child
+		.wait()
+		.map_err(|error| process_command_error(spec, "wait for", &error))?;
+	let stdout = join_child_output(stdout_thread, spec, "stdout")?;
+	let stderr = join_child_output(stderr_thread, spec, "stderr")?;
+
+	Ok(CommandOutput {
+		success: status.success(),
+		stdout: String::from_utf8_lossy(&stdout).trim().to_string(),
+		stderr: String::from_utf8_lossy(&stderr).trim().to_string(),
+	})
+}
+
+fn process_command_error(
+	spec: &CommandSpec,
+	action: &str,
+	error: &std::io::Error,
+) -> MonochangeError {
+	MonochangeError::Io(format!(
+		"failed to {action} `{}` in {}: {error}",
+		render_command(spec),
+		spec.cwd.display()
+	))
+}
+
+fn tee_child_output(
+	mut reader: impl std::io::Read,
+	mut writer: impl std::io::Write,
+) -> std::io::Result<Vec<u8>> {
+	let mut captured = Vec::new();
+	let mut buffer = [0; 8192];
+	loop {
+		let read = reader.read(&mut buffer)?;
+		if read == 0 {
+			break;
+		}
+		let (chunk, _) = buffer.split_at(read);
+		writer.write_all(chunk)?;
+		writer.flush()?;
+		captured.extend_from_slice(chunk);
+	}
+	Ok(captured)
+}
+
+fn join_child_output(
+	thread: std::thread::JoinHandle<std::io::Result<Vec<u8>>>,
+	spec: &CommandSpec,
+	stream_name: &str,
+) -> MonochangeResult<Vec<u8>> {
+	thread
+		.join()
+		.map_err(|_| {
 			MonochangeError::Io(format!(
-				"failed to run `{}` in {}: {error}",
+				"failed to collect {stream_name} from `{}` in {}: output reader panicked",
 				render_command(spec),
 				spec.cwd.display()
 			))
-		})?;
-		Ok(CommandOutput {
-			success: output.status.success(),
-			stdout: String::from_utf8_lossy(&output.stdout).trim().to_string(),
-			stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+		})?
+		.map_err(|error| {
+			MonochangeError::Io(format!(
+				"failed to collect {stream_name} from `{}` in {}: {error}",
+				render_command(spec),
+				spec.cwd.display()
+			))
 		})
-	}
 }
 
 pub fn render_command(spec: &CommandSpec) -> String {
