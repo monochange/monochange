@@ -23,6 +23,7 @@ serde = { workspace = true, default-features = true }
 serde_json = { workspace = true, default-features = true }
 serde_yaml_ng = { workspace = true, default-features = true }
 thiserror = { workspace = true, default-features = true }
+time = { workspace = true, default-features = false }
 tokio = { workspace = true, default-features = true }
 tracing = { workspace = true, default-features = true }
 urlencoding = { workspace = true, default-features = true }

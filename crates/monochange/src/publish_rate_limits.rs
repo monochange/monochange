@@ -5,29 +5,21 @@ use std::path::Path;
 
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
-use monochange_core::PublishRateLimitBatch;
 use monochange_core::PublishRateLimitReport;
-use monochange_core::RateLimitConfidence;
-use monochange_core::RateLimitEvidence;
-use monochange_core::RateLimitEvidenceKind;
 use monochange_core::RateLimitOperation;
 use monochange_core::RegistryKind;
-use monochange_core::RegistryRateLimitPolicy;
-use monochange_core::RegistryRateLimitWindowPlan;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::materialize_dependency_edges;
 use monochange_publish::configured_package_publication_targets;
 use monochange_publish::filter_pending_publish_requests;
+use monochange_publish::plan_rate_limit_batches;
+use monochange_publish::plan_rate_limit_window;
+use monochange_publish::policies_for_rate_limit_operation;
+use monochange_publish::render_rate_limit_window;
 
 use crate::PreparedRelease;
 use crate::discover_workspace;
 use crate::package_publish;
-
-const CRATES_IO_SOURCE: &str = "https://github.com/rust-lang/crates.io";
-const NPM_TRUST_DOCS: &str = "https://docs.npmjs.com/trusted-publishers";
-const PUB_DEV_AUTOMATED_PUBLISHING: &str = "https://dart.dev/tools/pub/automated-publishing";
-const JSR_PUBLISHING_DOCS: &str = "https://jsr.io/docs/publishing-packages";
-const PYPI_TRUSTED_PUBLISHERS_DOCS: &str = "https://docs.pypi.org/trusted-publishers/";
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub(crate) enum PublishRateLimitMode {
@@ -241,81 +233,7 @@ pub(crate) fn plan_publish_rate_limits_for_dependency_ordered_requests(
 	plan_publish_rate_limits_for_requests(&requests, operation, dry_run)
 }
 
-#[cfg(test)]
-pub(crate) fn plan_unbatched_publish_order_for_dependency_ordered_requests(
-	requests: &[package_publish::PublishRequest],
-	packages: &[monochange_core::PackageRecord],
-	operation: RateLimitOperation,
-	dry_run: bool,
-) -> PublishRateLimitReport {
-	let mut requests = requests.to_vec();
-	sort_requests_by_dependencies(&mut requests, packages);
-	plan_unbatched_publish_order_for_requests(&requests, operation, dry_run)
-}
-
-#[cfg(test)]
-fn plan_unbatched_publish_order_for_requests(
-	requests: &[package_publish::PublishRequest],
-	operation: RateLimitOperation,
-	dry_run: bool,
-) -> PublishRateLimitReport {
-	let policies = policies_for_operation(operation)
-		.into_iter()
-		.map(|policy| (policy.registry, policy))
-		.collect::<BTreeMap<_, _>>();
-	let mut requests_by_registry =
-		BTreeMap::<RegistryKind, Vec<&package_publish::PublishRequest>>::new();
-	for request in requests {
-		if request.mode == monochange_core::PublishMode::External {
-			continue;
-		}
-		requests_by_registry
-			.entry(request.registry)
-			.or_default()
-			.push(request);
-	}
-
-	let mut batches = Vec::new();
-	let mut windows = Vec::new();
-	for (registry, requests) in requests_by_registry {
-		let policy = policies
-			.get(&registry)
-			.unwrap_or_else(|| panic!("missing rate-limit policy for {registry}"));
-		let pending = requests.len();
-		windows.push(RegistryRateLimitWindowPlan {
-			registry,
-			operation,
-			limit: None,
-			window_seconds: None,
-			pending,
-			batches_required: 1,
-			fits_single_window: true,
-			confidence: policy.confidence,
-			notes: "rate-limit batching disabled for this publish order".to_string(),
-			evidence: policy.evidence.clone(),
-		});
-		batches.push(PublishRateLimitBatch {
-			registry,
-			operation,
-			batch_index: 1,
-			total_batches: 1,
-			packages: requests
-				.iter()
-				.map(|request| request.package_id.clone())
-				.collect(),
-			recommended_wait_seconds: None,
-		});
-	}
-
-	PublishRateLimitReport {
-		dry_run,
-		windows,
-		batches,
-		warnings: Vec::new(),
-	}
-}
-
-pub(crate) fn plan_publish_rate_limits_for_requests(
+fn plan_publish_rate_limits_for_requests(
 	requests: &[package_publish::PublishRequest],
 	operation: RateLimitOperation,
 	dry_run: bool,
@@ -332,7 +250,7 @@ pub(crate) fn plan_publish_rate_limits_for_requests(
 			.push(request);
 	}
 
-	let policies = policies_for_operation(operation)
+	let policies = policies_for_rate_limit_operation(operation)
 		.into_iter()
 		.map(|policy| (policy.registry, policy))
 		.collect::<BTreeMap<_, _>>();
@@ -342,8 +260,8 @@ pub(crate) fn plan_publish_rate_limits_for_requests(
 
 	for (registry, requests) in requests_by_registry {
 		if let Some(policy) = policies.get(&registry) {
-			let window = plan_window(policy, requests.len());
-			batches.extend(plan_batches(policy, &requests));
+			let window = plan_rate_limit_window(policy, requests.len());
+			batches.extend(plan_rate_limit_batches(policy, &requests));
 			windows.push(window);
 		}
 	}
@@ -369,7 +287,7 @@ pub(crate) fn plan_publish_rate_limits_for_requests(
 				window.registry,
 				window.operation,
 				window.batches_required,
-				render_window(window.window_seconds)
+				render_rate_limit_window(window.window_seconds)
 			)
 		})
 		.collect();
@@ -417,7 +335,7 @@ pub(crate) fn enforce_publish_rate_limits(
 			window.operation,
 			window.pending,
 			window.batches_required,
-			render_window(window.window_seconds)
+			render_rate_limit_window(window.window_seconds)
 		);
 	}
 	if details.is_empty() {
@@ -427,165 +345,6 @@ pub(crate) fn enforce_publish_rate_limits(
 	Err(MonochangeError::Config(format!(
 		"configured publish rate-limit enforcement blocked this run: {details}; use `monochange step plan-publish-rate-limits` to inspect batches or publish a filtered package subset"
 	)))
-}
-
-fn plan_window(policy: &RegistryRateLimitPolicy, pending: usize) -> RegistryRateLimitWindowPlan {
-	let batches_required = policy
-		.limit
-		.map_or(1, |limit| pending.div_ceil(limit as usize));
-	let fits_single_window = policy.limit.is_none_or(|limit| pending <= limit as usize);
-
-	RegistryRateLimitWindowPlan {
-		registry: policy.registry,
-		operation: policy.operation,
-		limit: policy.limit,
-		window_seconds: policy.window_seconds,
-		pending,
-		batches_required,
-		fits_single_window,
-		confidence: policy.confidence,
-		notes: policy.notes.clone(),
-		evidence: policy.evidence.clone(),
-	}
-}
-
-fn plan_batches(
-	policy: &RegistryRateLimitPolicy,
-	requests: &[&package_publish::PublishRequest],
-) -> Vec<PublishRateLimitBatch> {
-	let chunk_size = policy
-		.limit
-		.map_or_else(|| requests.len().max(1), |limit| limit as usize);
-	let total_batches = requests.len().div_ceil(chunk_size).max(1);
-
-	requests
-		.chunks(chunk_size)
-		.enumerate()
-		.map(|(index, chunk)| {
-			PublishRateLimitBatch {
-				registry: policy.registry,
-				operation: policy.operation,
-				batch_index: index + 1,
-				total_batches,
-				packages: chunk
-					.iter()
-					.map(|request| request.package_id.clone())
-					.collect(),
-				recommended_wait_seconds: if index == 0 {
-					None
-				} else {
-					policy.window_seconds.map(|seconds| seconds * index as u64)
-				},
-			}
-		})
-		.collect()
-}
-
-pub(crate) fn render_window(window_seconds: Option<u64>) -> String {
-	match window_seconds {
-		Some(86_400) => "24h".to_string(),
-		Some(seconds) => format!("{seconds}s"),
-		None => "unknown window".to_string(),
-	}
-}
-
-fn policies_for_operation(operation: RateLimitOperation) -> Vec<RegistryRateLimitPolicy> {
-	registry_policies()
-		.into_iter()
-		.map(|mut policy| {
-			policy.operation = operation;
-			policy
-		})
-		.collect()
-}
-
-fn registry_policies() -> Vec<RegistryRateLimitPolicy> {
-	vec![
-		RegistryRateLimitPolicy {
-			registry: RegistryKind::CratesIo,
-			operation: RateLimitOperation::Publish,
-			limit: Some(10),
-			window_seconds: Some(60),
-			confidence: RateLimitConfidence::High,
-			notes: "crates.io source enforces 10 uploads per minute for existing crates".to_string(),
-			evidence: vec![RateLimitEvidence {
-				title: "crates.io application source".to_string(),
-				url: CRATES_IO_SOURCE.to_string(),
-				kind: RateLimitEvidenceKind::SourceCode,
-				notes: "upload endpoint rate limiting in server implementation".to_string(),
-			}],
-		},
-		RegistryRateLimitPolicy {
-			registry: RegistryKind::Npm,
-			operation: RateLimitOperation::Publish,
-			limit: None,
-			window_seconds: None,
-			confidence: RateLimitConfidence::Low,
-			notes: "npm does not publish a precise package publish quota; use sequential CI publishing with retries".to_string(),
-			evidence: vec![RateLimitEvidence {
-				title: "npm trusted publishing documentation".to_string(),
-				url: NPM_TRUST_DOCS.to_string(),
-				kind: RateLimitEvidenceKind::Official,
-				notes: "official workflow guidance but no exact package publish quota".to_string(),
-			}],
-		},
-		RegistryRateLimitPolicy {
-			registry: RegistryKind::Jsr,
-			operation: RateLimitOperation::Publish,
-			limit: Some(20),
-			window_seconds: Some(86_400),
-			confidence: RateLimitConfidence::High,
-			notes: "JSR documents a daily publish limit per package scope".to_string(),
-			evidence: vec![RateLimitEvidence {
-				title: "JSR publishing docs".to_string(),
-				url: JSR_PUBLISHING_DOCS.to_string(),
-				kind: RateLimitEvidenceKind::Official,
-				notes: "official JSR publishing limits documentation".to_string(),
-			}],
-		},
-		RegistryRateLimitPolicy {
-			registry: RegistryKind::PubDev,
-			operation: RateLimitOperation::Publish,
-			limit: Some(12),
-			window_seconds: Some(86_400),
-			confidence: RateLimitConfidence::Medium,
-			notes: "pub.dev community guidance consistently cites 12 publishes per day for new versions".to_string(),
-			evidence: vec![RateLimitEvidence {
-				title: "Dart automated publishing docs".to_string(),
-				url: PUB_DEV_AUTOMATED_PUBLISHING.to_string(),
-				kind: RateLimitEvidenceKind::Official,
-				notes: "official automation docs; limit itself is enforced operationally but not clearly enumerated on this page".to_string(),
-			}],
-		},
-		RegistryRateLimitPolicy {
-			registry: RegistryKind::Pypi,
-			operation: RateLimitOperation::Publish,
-			limit: None,
-			window_seconds: None,
-			confidence: RateLimitConfidence::Low,
-			notes: "PyPI does not publish a precise package publish quota; use sequential CI publishing with retries".to_string(),
-			evidence: vec![RateLimitEvidence {
-				title: "PyPI trusted publishers documentation".to_string(),
-				url: PYPI_TRUSTED_PUBLISHERS_DOCS.to_string(),
-				kind: RateLimitEvidenceKind::Official,
-				notes: "official trusted-publisher workflow guidance but no exact package publish quota".to_string(),
-			}],
-		},
-		RegistryRateLimitPolicy {
-			registry: RegistryKind::GoProxy,
-			operation: RateLimitOperation::Publish,
-			limit: None,
-			window_seconds: None,
-			confidence: RateLimitConfidence::Low,
-			notes: "Go modules are published by pushing VCS tags; the public proxy does not document a precise publish quota".to_string(),
-			evidence: vec![RateLimitEvidence {
-				title: "Go module publishing reference".to_string(),
-				url: "https://go.dev/ref/mod#publishing".to_string(),
-				kind: RateLimitEvidenceKind::Official,
-				notes: "official module publishing guidance documents tag-based publication".to_string(),
-			}],
-		},
-	]
 }
 
 #[cfg(test)]

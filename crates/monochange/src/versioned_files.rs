@@ -1610,38 +1610,6 @@ pub(crate) fn released_versions_by_record_id(plan: &ReleasePlan) -> BTreeMap<Str
 	released_versions
 }
 
-pub(crate) fn released_versions_by_package_id(
-	plan: &ReleasePlan,
-	packages: &[PackageRecord],
-) -> BTreeMap<String, String> {
-	let mut released_versions = released_versions_by_record_id(plan);
-	let mut package_id_by_member_name = packages
-		.iter()
-		.map(|package| (package.name.as_str(), package.id.as_str()))
-		.collect::<BTreeMap<_, _>>();
-	package_id_by_member_name.extend(packages.iter().filter_map(|package| {
-		package
-			.metadata
-			.get("config_id")
-			.map(|config_id| (config_id.as_str(), package.id.as_str()))
-	}));
-
-	for group in &plan.groups {
-		let Some(version) = group.planned_version.as_ref() else {
-			continue;
-		};
-		for member in &group.members {
-			let package_id = package_id_by_member_name
-				.get(member.as_str())
-				.copied()
-				.unwrap_or(member.as_str());
-			released_versions.insert(package_id.to_string(), version.to_string());
-		}
-	}
-
-	released_versions
-}
-
 #[cfg(test)]
 #[path = "__tests__/versioned_files_tests.rs"]
 mod tests;

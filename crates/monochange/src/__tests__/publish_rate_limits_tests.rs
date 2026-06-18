@@ -1,4 +1,8 @@
 #![allow(clippy::disallowed_methods)]
+use monochange_core::PublishRateLimitBatch;
+use monochange_core::RateLimitConfidence;
+use monochange_core::RegistryRateLimitPolicy;
+use monochange_core::RegistryRateLimitWindowPlan;
 use monochange_publish::RegistryEndpoints;
 use monochange_publish::filter_pending_publish_requests_with_transport;
 use monochange_test_helpers::install_rustls_ring_provider;
@@ -58,7 +62,79 @@ use tempfile::tempdir;
 
 use super::*;
 
-fn copy_fixture_dir(source: &Path, destination: &Path) {
+pub(crate) fn plan_unbatched_publish_order_for_dependency_ordered_requests(
+	requests: &[package_publish::PublishRequest],
+	packages: &[monochange_core::PackageRecord],
+	operation: RateLimitOperation,
+	dry_run: bool,
+) -> PublishRateLimitReport {
+	let mut requests = requests.to_vec();
+	sort_requests_by_dependencies(&mut requests, packages);
+	plan_unbatched_publish_order_for_requests(&requests, operation, dry_run)
+}
+
+fn plan_unbatched_publish_order_for_requests(
+	requests: &[package_publish::PublishRequest],
+	operation: RateLimitOperation,
+	dry_run: bool,
+) -> PublishRateLimitReport {
+	let policies = policies_for_rate_limit_operation(operation)
+		.into_iter()
+		.map(|policy| (policy.registry, policy))
+		.collect::<BTreeMap<_, _>>();
+	let mut requests_by_registry =
+		BTreeMap::<RegistryKind, Vec<&package_publish::PublishRequest>>::new();
+	for request in requests {
+		if request.mode == monochange_core::PublishMode::External {
+			continue;
+		}
+		requests_by_registry
+			.entry(request.registry)
+			.or_default()
+			.push(request);
+	}
+
+	let mut batches = Vec::new();
+	let mut windows = Vec::new();
+	for (registry, requests) in requests_by_registry {
+		let policy = policies
+			.get(&registry)
+			.unwrap_or_else(|| panic!("missing rate-limit policy for {registry}"));
+		let pending = requests.len();
+		windows.push(RegistryRateLimitWindowPlan {
+			registry,
+			operation,
+			limit: None,
+			window_seconds: None,
+			pending,
+			batches_required: 1,
+			fits_single_window: true,
+			confidence: policy.confidence,
+			notes: "rate-limit batching disabled for this publish order".to_string(),
+			evidence: policy.evidence.clone(),
+		});
+		batches.push(PublishRateLimitBatch {
+			registry,
+			operation,
+			batch_index: 1,
+			total_batches: 1,
+			packages: requests
+				.iter()
+				.map(|request| request.package_id.clone())
+				.collect(),
+			recommended_wait_seconds: None,
+		});
+	}
+
+	PublishRateLimitReport {
+		dry_run,
+		windows,
+		batches,
+		warnings: Vec::new(),
+	}
+}
+
+pub(crate) fn copy_fixture_dir(source: &Path, destination: &Path) {
 	copy_fixture_entry(source, destination, source);
 }
 
@@ -532,13 +608,19 @@ async fn publish_rate_limit_mode_helpers_cover_placeholder_descriptions_and_wind
 		PublishRateLimitMode::Placeholder.description(),
 		"placeholder publish"
 	);
-	assert_eq!(render_window(Some(60)), "60s");
-	assert_eq!(render_window(None), "unknown window");
+	assert_eq!(
+		monochange_publish::render_rate_limit_window(Some(60)),
+		"60s"
+	);
+	assert_eq!(
+		monochange_publish::render_rate_limit_window(None),
+		"unknown window"
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
 async fn registry_policies_include_pypi_without_a_fixed_quota() {
-	let pypi = registry_policies()
+	let pypi = monochange_publish::registry_rate_limit_policies()
 		.into_iter()
 		.find(|policy| policy.registry == RegistryKind::Pypi)
 		.expect("PyPI policy should exist");
@@ -548,7 +630,10 @@ async fn registry_policies_include_pypi_without_a_fixed_quota() {
 	assert_eq!(pypi.confidence, RateLimitConfidence::Low);
 	assert!(pypi.notes.contains("PyPI does not publish"));
 	let evidence = pypi.evidence.first().expect("PyPI policy evidence");
-	assert_eq!(evidence.url, PYPI_TRUSTED_PUBLISHERS_DOCS);
+	assert_eq!(
+		evidence.url,
+		monochange_publish::PYPI_TRUSTED_PUBLISHERS_DOCS
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -1184,7 +1269,7 @@ async fn plan_window_flags_multiple_batches_when_limit_is_exceeded() {
 		evidence: Vec::new(),
 	};
 
-	let window = plan_window(&policy, 25);
+	let window = monochange_publish::plan_rate_limit_window(&policy, 25);
 
 	assert_eq!(window.batches_required, 3);
 	assert!(!window.fits_single_window);

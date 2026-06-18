@@ -4,8 +4,8 @@ use std::process::Command;
 
 use insta::assert_json_snapshot;
 use insta::assert_snapshot;
-use insta_cmd::get_cargo_bin;
 use monochange_test_helpers::copy_directory;
+use monochange_test_helpers::get_cargo_bin;
 use monochange_test_helpers::git::git;
 use serde_json::Value;
 use tempfile::TempDir;

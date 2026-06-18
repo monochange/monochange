@@ -85,6 +85,49 @@ fn cargo_workspace_members_inherit_workspace_package_versions() {
 }
 
 #[test]
+fn build_manifest_updates_skips_workspace_version_updates_without_released_members() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("Cargo.toml"),
+		"[workspace]\nmembers = [\"crates/app\"]\n\n[workspace.package]\nversion = \"1.0.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write workspace manifest: {error}"));
+	fs::create_dir_all(tempdir.path().join("crates/app"))
+		.unwrap_or_else(|error| panic!("create package dir: {error}"));
+	let package_manifest = tempdir.path().join("crates/app/Cargo.toml");
+	fs::write(
+		&package_manifest,
+		"[package]\nname = \"app\"\nversion.workspace = true\n",
+	)
+	.unwrap_or_else(|error| panic!("write package manifest: {error}"));
+
+	let mut package = PackageRecord::new(
+		Ecosystem::Cargo,
+		"app",
+		package_manifest,
+		tempdir.path().to_path_buf(),
+		None,
+		PublishState::Public,
+	);
+	package
+		.metadata
+		.insert("uses_workspace_version".to_string(), "true".to_string());
+	let plan = monochange_core::ReleasePlan {
+		workspace_root: tempdir.path().to_path_buf(),
+		decisions: Vec::new(),
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+
+	let updates = crate::build_manifest_updates(&[package], &plan)
+		.unwrap_or_else(|error| panic!("build manifest updates: {error}"));
+
+	assert!(updates.is_empty());
+}
+
+#[test]
 fn cargo_workspace_members_mark_uses_workspace_version_metadata() {
 	let fixture_root =
 		Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/cargo/workspace-versioned");

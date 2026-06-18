@@ -918,48 +918,45 @@ enabled = true
 	)
 	.unwrap_or_else(|error| panic!("write app pubspec: {error}"));
 
-	let sync_output =
-		crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
-			"monochange",
-			[
-				OsString::from("monochange"),
-				OsString::from("versions"),
-				OsString::from("sync"),
-				OsString::from("--dry-run"),
-				OsString::from("--strategy"),
-				OsString::from("exact"),
-			],
-			root,
-		)))
-		.unwrap_or_else(|error| panic!("versions sync: {error}"));
-	let legacy_output =
-		crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
-			"monochange",
-			[
-				OsString::from("monochange"),
-				OsString::from("versions"),
-				OsString::from("--dry-run"),
-				OsString::from("--strategy"),
-				OsString::from("exact"),
-			],
-			root,
-		)))
-		.unwrap_or_else(|error| panic!("legacy versions: {error}"));
+	let sync_output = crate::tests::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("versions"),
+			OsString::from("sync"),
+			OsString::from("--dry-run"),
+			OsString::from("--strategy"),
+			OsString::from("exact"),
+		],
+		root,
+	)))
+	.unwrap_or_else(|error| panic!("versions sync: {error}"));
+	let legacy_output = crate::tests::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("versions"),
+			OsString::from("--dry-run"),
+			OsString::from("--strategy"),
+			OsString::from("exact"),
+		],
+		root,
+	)))
+	.unwrap_or_else(|error| panic!("legacy versions: {error}"));
 	assert_eq!(legacy_output, sync_output);
 
-	let list_output =
-		crate::cli_runtime::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
-			"monochange",
-			[
-				OsString::from("monochange"),
-				OsString::from("versions"),
-				OsString::from("list"),
-				OsString::from("--format"),
-				OsString::from("json"),
-			],
-			root,
-		)))
-		.unwrap_or_else(|error| panic!("versions list: {error}"));
+	let list_output = crate::tests::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("versions"),
+			OsString::from("list"),
+			OsString::from("--format"),
+			OsString::from("json"),
+		],
+		root,
+	)))
+	.unwrap_or_else(|error| panic!("versions list: {error}"));
 	let inventory: serde_json::Value = serde_json::from_str(&list_output)
 		.unwrap_or_else(|error| panic!("parse versions list output: {error}"));
 	let object = inventory

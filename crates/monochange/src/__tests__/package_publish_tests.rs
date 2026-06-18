@@ -65,6 +65,64 @@ use toml::Value as TomlValue;
 use super::*;
 use crate::tests::TEST_ENV_LOCK;
 
+fn build_placeholder_directory(
+	root: &Path,
+	request: &PublishRequest,
+	source: Option<&SourceConfiguration>,
+) -> MonochangeResult<TempDir> {
+	monochange_publish::build_placeholder_directory(
+		root,
+		request,
+		source,
+		&placeholder_manifest_writer_registry(),
+	)
+}
+
+fn placeholder_tempdir_error(error: &std::io::Error) -> MonochangeError {
+	MonochangeError::Io(format!("failed to create placeholder tempdir: {error}"))
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn execute_publish_requests(
+	root: &Path,
+	source: Option<&SourceConfiguration>,
+	mode: PackagePublishRunMode,
+	dry_run: bool,
+	requests: &[PublishRequest],
+	client: &Client,
+	endpoints: &RegistryEndpoints,
+	env_map: &BTreeMap<String, String>,
+	executor: &mut dyn CommandExecutor,
+) -> MonochangeResult<PackagePublishReport> {
+	monochange_publish::execute_publish_requests(
+		root,
+		source,
+		mode,
+		dry_run,
+		requests,
+		client,
+		endpoints,
+		env_map,
+		executor,
+		&build_publish_command_builder(),
+		&placeholder_manifest_writer_registry(),
+		&publish_readiness_registry(),
+		&CliPublishTrustHandler,
+	)
+	.await
+}
+
+fn enforce_release_attestation_prerequisites(
+	request: &PublishRequest,
+	env_map: &BTreeMap<String, String>,
+) -> MonochangeResult<()> {
+	monochange_publish::enforce_release_attestation_prerequisites(
+		request,
+		env_map,
+		&build_publish_command_builder(),
+	)
+}
+
 const NPM_TRUST_DOCS_URL: &str = "https://docs.npmjs.com/cli/v11/commands/npm-trust";
 const CRATES_TRUST_DOCS_URL: &str = "https://crates.io/docs/trusted-publishing";
 const DART_TRUST_DOCS_URL: &str = "https://dart.dev/tools/pub/automated-publishing";
@@ -4312,7 +4370,7 @@ async fn run_publish_packages_uses_prepared_release_publications() {
 				Some(server.base_url().as_str()),
 			)],
 			|| {
-				let report = crate::cli_runtime::block_on_in_context(run_publish_packages(
+				let report = crate::tests::block_on_in_context(run_publish_packages(
 					root.path(),
 					&configuration,
 					Some(&prepared_release),
@@ -4383,7 +4441,7 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 				Some(server.base_url().as_str()),
 			)],
 			|| {
-				let report = crate::cli_runtime::block_on_in_context(run_publish_packages(
+				let report = crate::tests::block_on_in_context(run_publish_packages(
 					root.path(),
 					&configuration,
 					None,
@@ -4741,20 +4799,19 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 				Some(server.base_url().as_str()),
 			)],
 			|| {
-				let report =
-					crate::cli_runtime::block_on_in_context(run_publish_packages_with_resume(
-						root.path(),
-						&configuration,
-						Some(&prepared_release),
-						&BTreeSet::new(),
-						&selected_groups,
-						&selected_ecosystems,
-						false,
-						true,
-						None,
-						false,
-					))
-					.expect("publish report:");
+				let report = crate::tests::block_on_in_context(run_publish_packages_with_resume(
+					root.path(),
+					&configuration,
+					Some(&prepared_release),
+					&BTreeSet::new(),
+					&selected_groups,
+					&selected_ecosystems,
+					false,
+					true,
+					None,
+					false,
+				))
+				.expect("publish report:");
 
 				assert_eq!(report.packages.len(), 1);
 				assert_eq!(report.packages[0].package, "pkg");

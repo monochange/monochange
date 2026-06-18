@@ -26,8 +26,15 @@ use serde::Serialize;
 use tempfile::TempDir;
 use tempfile::tempdir;
 
+fn block_on_in_context<T>(future: impl std::future::Future<Output = T>) -> T {
+	match tokio::runtime::Handle::try_current() {
+		Ok(handle) => tokio::task::block_in_place(|| handle.block_on(future)),
+		Err(_) => tokio::runtime::Runtime::new().unwrap().block_on(future),
+	}
+}
+
 use super::*;
-use crate::TEST_ENV_LOCK;
+use crate::tests::TEST_ENV_LOCK;
 
 fn cli_context() -> CliContext {
 	CliContext {
@@ -1377,11 +1384,16 @@ fn render_cli_command_results_include_package_publish_reports() {
 	assert!(text.contains("repository: monochange/monochange"));
 	assert!(text.contains("commands:"));
 
-	let markdown = render_cli_command_markdown_result(&cli_command, &context);
-	assert!(markdown.contains("## Package publishing"));
-	assert!(markdown.contains("**Trusted publishing:** configured"));
-	assert!(markdown.contains("**Workflow:** `publish.yml`"));
-	assert!(markdown.contains("## Commands"));
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+	temp_env::with_var("NO_COLOR", Some("1"), || {
+		let markdown = render_cli_command_markdown_result(&cli_command, &context);
+		assert!(markdown.contains("## Package publishing"));
+		assert!(markdown.contains("**Trusted publishing:** configured"));
+		assert!(markdown.contains("**Workflow:** `publish.yml`"));
+		assert!(markdown.contains("## Commands"));
+	});
 }
 
 #[test]
@@ -1753,10 +1765,15 @@ fn resolve_command_output_supports_package_publish_text_and_markdown_without_rel
 		dry_run: true,
 		packages: Vec::new(),
 	});
-	let markdown = resolve_command_output(&cli_command, &markdown_context, true, None)
-		.unwrap_or_else(|error| panic!("package publish markdown output: {error}"));
-	assert!(markdown.contains("## Placeholder publishing"));
-	assert!(markdown.contains("no packages matched the publishing criteria"));
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+	temp_env::with_var("NO_COLOR", Some("1"), || {
+		let markdown = resolve_command_output(&cli_command, &markdown_context, true, None)
+			.unwrap_or_else(|error| panic!("package publish markdown output: {error}"));
+		assert!(markdown.contains("## Placeholder publishing"));
+		assert!(markdown.contains("no packages matched the publishing criteria"));
+	});
 }
 
 #[test]
@@ -3356,7 +3373,6 @@ async fn execute_cli_command_always_run_continue_after_should_execute_failure() 
 
 #[test]
 fn block_on_in_context_outside_runtime() {
-	use crate::cli_runtime::block_on_in_context;
 	// Verify block_on_in_context works outside any runtime
 	let result = block_on_in_context(async { 99 });
 	assert_eq!(result, 99);
@@ -3364,7 +3380,6 @@ fn block_on_in_context_outside_runtime() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn block_on_in_context_inside_multi_thread_runtime() {
-	use crate::cli_runtime::block_on_in_context;
 	// Verify block_on_in_context works inside a multi-thread runtime
 	let result = block_on_in_context(async { 77 });
 	assert_eq!(result, 77);

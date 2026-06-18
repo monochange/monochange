@@ -46,11 +46,13 @@ use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemAdapter;
 use monochange_core::LockfileCommandExecution;
+use monochange_core::ManifestFileUpdate;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageDependency;
 use monochange_core::PackageRecord;
 use monochange_core::PublishState;
+use monochange_core::ReleasePlan;
 use monochange_core::SourceConfiguration;
 use monochange_core::normalize_path;
 use monochange_publish::PublishRequest;
@@ -504,6 +506,71 @@ pub fn default_dependency_version_prefix() -> &'static str {
 pub fn default_dependency_fields() -> &'static [&'static str] {
 	&["imports"]
 }
+/// Build manifest updates for packages owned by this ecosystem.
+pub fn build_manifest_updates(
+	packages: &[PackageRecord],
+	plan: &ReleasePlan,
+) -> MonochangeResult<Vec<ManifestFileUpdate>> {
+	use rayon::prelude::*;
+
+	let released_versions = released_versions_by_package_id(plan, packages);
+	packages
+		.iter()
+		.filter(|package| package.ecosystem == Ecosystem::Deno)
+		.par_bridge()
+		.filter_map(|package| {
+			released_versions
+				.get(&package.id)
+				.map(|version| (package, version))
+		})
+		.map(|(package, version)| {
+			let contents = fs::read_to_string(&package.manifest_path).map_err(|error| {
+				MonochangeError::Io(format!(
+					"failed to read {}: {error}",
+					package.manifest_path.display()
+				))
+			})?;
+			let rendered = monochange_core::update_json_manifest_text(
+				&contents,
+				Some(version),
+				&[],
+				&BTreeMap::new(),
+			)
+			.map_err(|error| {
+				MonochangeError::Config(format!(
+					"failed to parse {}: {error}",
+					package.manifest_path.display()
+				))
+			})?;
+			Ok(ManifestFileUpdate {
+				path: package.manifest_path.clone(),
+				content: rendered.into_bytes(),
+			})
+		})
+		.collect()
+}
+
+fn released_versions_by_package_id(
+	plan: &ReleasePlan,
+	packages: &[PackageRecord],
+) -> BTreeMap<String, String> {
+	let package_ids = packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<BTreeSet<_>>();
+	plan.decisions
+		.iter()
+		.filter(|decision| decision.recommended_bump.is_release())
+		.filter(|decision| package_ids.contains(decision.package_id.as_str()))
+		.filter_map(|decision| {
+			decision
+				.planned_version
+				.as_ref()
+				.map(|version| (decision.package_id.clone(), version.to_string()))
+		})
+		.collect()
+}
+
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]
 mod tests;

@@ -45,6 +45,13 @@ use tempfile::tempdir;
 
 use super::*;
 
+fn github_runtime() -> MonochangeResult<tokio::runtime::Runtime> {
+	tokio::runtime::Builder::new_current_thread()
+		.enable_all()
+		.build()
+		.map_err(|error| MonochangeError::Io(format!("failed to build GitHub runtime: {error}")))
+}
+
 fn must_ok<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {
 	match result {
 		Ok(value) => value,

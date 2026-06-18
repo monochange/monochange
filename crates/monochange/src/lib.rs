@@ -69,8 +69,6 @@ use change_classify::render_change_classification;
 use change_classify::render_changeset_api_validation;
 pub(crate) use monochange_changelog::ChangelogBuildContext;
 pub(crate) use monochange_changelog::build_changelog_updates;
-#[cfg(test)]
-pub(crate) use monochange_changelog::render_group_filtered_update_message;
 pub(crate) use monochange_changelog::render_jinja_template;
 pub mod changelog {
 	pub use monochange_changelog::render_message_template;
@@ -84,70 +82,20 @@ pub use changeset_policy::verify_changesets;
 pub(crate) use changesets::*;
 use clap::ValueEnum;
 use clap::error::ErrorKind;
-#[cfg(test)]
-pub(crate) use cli::apply_runtime_change_type_choices;
-#[cfg(test)]
-pub(crate) use cli::apply_runtime_prepare_release_markdown_defaults;
-#[cfg(test)]
-pub(crate) use cli::build_cli_command_subcommand;
 pub use cli::build_command;
-#[cfg(test)]
-pub(crate) use cli::build_command_for_root;
 use cli::build_command_with_cli;
-#[cfg(test)]
-pub(crate) use cli::build_skill_subcommand;
-#[cfg(test)]
-pub(crate) use cli::build_subagents_subcommand;
-#[cfg(test)]
-pub(crate) use cli::cli_command_after_help;
 use cli::cli_commands_for_root;
 use cli::cli_commands_from_config;
-#[cfg(test)]
-pub(crate) use cli::configured_change_type_choices;
 use cli::current_dir_or_dot;
-#[cfg(test)]
-pub(crate) use cli_runtime::build_cli_template_context;
-#[cfg(test)]
-pub(crate) use cli_runtime::build_retarget_release_report;
 pub(crate) use cli_runtime::collect_cli_command_inputs;
 pub(crate) use cli_runtime::execute_cli_command;
 use cli_runtime::execute_matches;
-#[cfg(test)]
-pub(crate) use cli_runtime::inferred_retarget_source_configuration;
-#[cfg(test)]
-pub(crate) use cli_runtime::lookup_template_value;
 pub(crate) use cli_runtime::maybe_render_markdown_for_terminal;
-#[cfg(test)]
-pub(crate) use cli_runtime::parse_boolean_step_input;
-#[cfg(test)]
-pub(crate) use cli_runtime::parse_change_bump;
-#[cfg(test)]
-pub(crate) use cli_runtime::parse_direct_template_reference;
 pub(crate) use cli_runtime::parse_output_format;
-#[cfg(test)]
-pub(crate) use cli_runtime::render_cli_command_markdown_result;
-#[cfg(test)]
-pub(crate) use cli_runtime::render_cli_command_result;
-#[cfg(test)]
-pub(crate) use cli_runtime::render_markdown_if_terminal;
-#[cfg(test)]
-pub(crate) use cli_runtime::render_retarget_release_report;
-#[cfg(test)]
-pub(crate) use cli_runtime::retarget_operation_label;
-#[cfg(test)]
-pub(crate) use cli_runtime::template_value_to_input_values;
 use command_wizard::run_command_wizard;
 use git_support::git_commit_paths;
 use git_support::git_head_commit;
 use git_support::git_stage_paths;
-#[cfg(test)]
-pub(crate) use git_support::read_git_commit_message;
-#[cfg(test)]
-pub(crate) use git_support::run_git_capture;
-#[cfg(test)]
-pub(crate) use git_support::run_git_process;
-#[cfg(test)]
-pub(crate) use git_support::run_git_status;
 use migration_audit::run_migration_command;
 #[cfg(feature = "cargo")]
 use monochange_cargo::RustSemverProvider;
@@ -222,20 +170,6 @@ use monochange_gitlab as gitlab_provider;
 use monochange_graph::build_release_plan;
 use monochange_semver::CompatibilityProvider;
 use monochange_semver::collect_assessments;
-#[cfg(test)]
-pub(crate) use workspace_ops::build_lockfile_command_executions;
-#[cfg(test)]
-pub(crate) use workspace_ops::change_type_default_bump;
-#[cfg(test)]
-pub(crate) use workspace_ops::prepare_release_execution;
-#[cfg(test)]
-pub(crate) use workspace_ops::render_cli_commands_toml;
-#[cfg(test)]
-pub(crate) use workspace_ops::render_interactive_changeset_markdown;
-
-#[cfg(test)]
-pub(crate) static TEST_ENV_LOCK: std::sync::LazyLock<std::sync::Mutex<()>> =
-	std::sync::LazyLock::new(|| std::sync::Mutex::new(()));
 pub(crate) use release_artifacts::*;
 pub use release_record::discover_release_record;
 pub use release_record::execute_release_retarget;
@@ -524,6 +458,15 @@ struct PreparedReleaseExecution {
 struct FileUpdate {
 	path: PathBuf,
 	content: Vec<u8>,
+}
+
+impl FileUpdate {
+	fn from_manifest_update(update: monochange_core::ManifestFileUpdate) -> Self {
+		Self {
+			path: update.path,
+			content: update.content,
+		}
+	}
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -1537,9 +1480,5 @@ fn format_publish_state(publish_state: monochange_core::PublishState) -> &'stati
 }
 
 #[cfg(test)]
-#[path = "__tests__/lib_tests.rs"]
-pub(crate) mod tests;
-
-#[cfg(test)]
-#[path = "__tests__/sync_tests.rs"]
-pub(crate) mod sync_tests;
+#[path = "__tests__/mod_tests.rs"]
+mod tests;

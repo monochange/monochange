@@ -38,6 +38,51 @@ pub use git::git_output_trimmed;
 pub use insta::snapshot_settings;
 pub use rmcp::content_text;
 
+#[cfg(test)]
+#[path = "__tests__/lib_tests.rs"]
+mod tests;
+
+/// Resolve a workspace binary for tests, building it when Cargo did not expose
+/// `CARGO_BIN_EXE_<name>` to the current test crate.
+pub fn get_cargo_bin(name: &str) -> std::path::PathBuf {
+	let env_name = format!("CARGO_BIN_EXE_{}", name.replace('-', "_"));
+	// patch-coverage:ignore-start -- cargo-owned test binary env injection and platform suffixes are runner-specific; fallback resolution is covered by integration tests.
+	if let Some(path) = std::env::var_os(&env_name) {
+		return path.into();
+	}
+
+	let binary_name = if cfg!(windows) {
+		format!("{name}.exe")
+	} else {
+		name.to_owned()
+	};
+	// patch-coverage:ignore-end
+	let mut current_exe = std::env::current_exe()
+		.unwrap_or_else(|error| panic!("resolve current test executable path: {error}"));
+	while let Some(file_name) = current_exe.file_name().and_then(|value| value.to_str()) {
+		if file_name == "debug" || file_name == "release" {
+			break;
+		}
+		current_exe.pop();
+	}
+	let binary_path = current_exe.join(&binary_name);
+	if binary_path.exists() {
+		return binary_path;
+	}
+
+	let target_dir = current_exe
+		.parent()
+		.unwrap_or_else(|| panic!("resolve target directory for `{name}` binary tests"));
+	let status = std::process::Command::new("cargo")
+		.args(["build", "-p", name, "--bin", name, "--target-dir"])
+		.arg(target_dir)
+		.status()
+		.unwrap_or_else(|error| panic!("build `{name}` binary for tests: {error}"));
+	assert!(status.success(), "build `{name}` binary for tests");
+	assert!(binary_path.exists());
+	binary_path
+}
+
 /// Install the ring crypto provider as the default for rustls.
 ///
 /// Required because monochange uses `rustls-no-provider` with reqwest.

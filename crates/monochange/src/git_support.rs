@@ -2,8 +2,6 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command as ProcessCommand;
-#[cfg(test)]
-use std::process::Stdio;
 
 use monochange_core::CommitMessage;
 use monochange_core::DiscoveryPathFilter;
@@ -16,9 +14,6 @@ use monochange_core::git::git_stage_paths_command;
 use monochange_core::git::git_stderr_trimmed;
 use monochange_core::git::git_stdout_trimmed;
 use monochange_core::git::run_git_commit_message;
-#[cfg(test)]
-use tokio::io::AsyncWriteExt;
-
 #[must_use = "the tag commit result must be checked"]
 pub(crate) async fn resolve_git_tag_commit(
 	root: &Path,
@@ -441,30 +436,6 @@ pub(crate) async fn run_git_process(
 ) -> MonochangeResult<()> {
 	let output = tokio::process::Command::from(command)
 		.output()
-		.await
-		.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
-	handle_git_process_output(&output, error_message)
-}
-
-#[cfg(test)]
-pub(crate) async fn run_git_process_with_stdin(
-	command: ProcessCommand,
-	input: &[u8],
-	error_message: &str,
-) -> MonochangeResult<()> {
-	let mut child = tokio::process::Command::from(command)
-		.stdout(Stdio::piped())
-		.stderr(Stdio::piped())
-		.spawn()
-		.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
-	if let Some(mut stdin) = child.stdin.take() {
-		stdin
-			.write_all(input)
-			.await
-			.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
-	}
-	let output = child
-		.wait_with_output()
 		.await
 		.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
 	handle_git_process_output(&output, error_message)
