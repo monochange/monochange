@@ -86,6 +86,18 @@ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #207](https://gith
 
 - No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.0.3.
 
+## [0.8.2](https://github.com/monochange/monochange/releases/tag/v0.8.2) (2026-06-18)
+
+### 🐛 Fixed
+
+#### Move rate-limit policy planning into publish core
+
+Keep `monochange` as the CLI crate while moving publish rate-limit policy and window planning helpers into `monochange_publish`.
+
+Ecosystem manifest update planning now lives in the relevant ecosystem crates with `monochange` acting as the CLI orchestrator. Hosted-source adapters now own release URL and release request planning behavior. The test helper crate also centralizes binary lookup for integration tests that need the `monochange` executable. `monochange_github` constrains the GitHub client transitive dependency set so release-job lockfile regeneration stays compatible with the pinned nightly toolchain.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #614](https://github.com/monochange/monochange/pull/614)
+
 ## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)
 
 ### Changed
