@@ -2211,7 +2211,6 @@ dependencies = [
 name = "monochange_cargo"
 version = "0.8.2"
 dependencies = [
- "glob",
  "insta",
  "monochange_config",
  "monochange_core",
@@ -2280,6 +2279,7 @@ name = "monochange_core"
 version = "0.8.2"
 dependencies = [
  "async-trait",
+ "glob",
  "ignore",
  "insta",
  "monochange_schema",
@@ -2302,7 +2302,6 @@ dependencies = [
 name = "monochange_dart"
 version = "0.8.2"
 dependencies = [
- "glob",
  "insta",
  "monochange_config",
  "monochange_core",
@@ -2325,7 +2324,6 @@ dependencies = [
 name = "monochange_deno"
 version = "0.8.2"
 dependencies = [
- "glob",
  "insta",
  "monochange_core",
  "monochange_ecmascript",
@@ -2446,7 +2444,6 @@ dependencies = [
 name = "monochange_go"
 version = "0.8.2"
 dependencies = [
- "glob",
  "insta",
  "monochange_core",
  "monochange_publish",
@@ -2532,7 +2529,6 @@ dependencies = [
 name = "monochange_npm"
 version = "0.8.2"
 dependencies = [
- "glob",
  "insta",
  "monochange_config",
  "monochange_core",
@@ -2573,7 +2569,6 @@ dependencies = [
 name = "monochange_python"
 version = "0.8.2"
 dependencies = [
- "glob",
  "insta",
  "monochange_core",
  "monochange_publish",

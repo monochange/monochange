@@ -13,7 +13,6 @@ rust-version = { workspace = true }
 description = "Python ecosystem adapter for monochange — discovers uv workspaces, Poetry, and setuptools projects"
 
 [dependencies]
-glob = { workspace = true, default-features = true }
 monochange_core = { workspace = true }
 monochange_publish = { workspace = true }
 semver = { workspace = true, default-features = true }

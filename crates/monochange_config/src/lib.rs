@@ -3875,7 +3875,7 @@ fn validate_command_step_definition(
 }
 
 fn path_uses_glob(path: &str) -> bool {
-	path.contains('*') || path.contains('?') || path.contains('[')
+	monochange_core::workspace_glob_has_magic(path)
 }
 
 #[derive(Default)]
@@ -6001,16 +6001,7 @@ fn validate_single_versioned_file_content(
 ) -> MonochangeResult<()> {
 	if path_uses_glob(&definition.path) {
 		// Glob path: warn if zero files match.
-		let pattern = root.join(&definition.path).to_string_lossy().to_string();
-		let matches = glob::glob(&pattern)
-			.map_err(|error| {
-				MonochangeError::Config(format!(
-					"invalid glob pattern `{}`: {error}",
-					definition.path
-				))
-			})?
-			.filter_map(Result::ok)
-			.collect::<Vec<_>>();
+		let matches = monochange_core::workspace_glob_files(root, &definition.path)?;
 		if matches.is_empty() {
 			warnings.push(format!(
 				"{owner_kind} `{owner_id}` versioned file glob `{}` matches no files",

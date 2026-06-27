@@ -44,7 +44,6 @@ use std::path::PathBuf;
 
 pub use analysis::CargoSemanticAnalyzer;
 pub use analysis::semantic_analyzer;
-use glob::glob;
 use monochange_core::AdapterDiscovery;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
@@ -882,12 +881,12 @@ fn expand_manifest_patterns(
 	let filter = DiscoveryPathFilter::new(root);
 	let excluded = exclude_patterns
 		.iter()
-		.flat_map(|pattern| glob_pattern_paths(root, pattern, &filter))
+		.flat_map(|pattern| workspace_manifest_pattern_paths(root, pattern))
 		.collect::<HashSet<_>>();
 	let mut manifests = BTreeSet::new();
 
 	for pattern in member_patterns {
-		let matches = glob_pattern_paths(root, pattern, &filter);
+		let matches = workspace_manifest_pattern_paths(root, pattern);
 		if matches.is_empty() {
 			warnings.push(format!(
 				"cargo workspace pattern `{pattern}` under {} matched no packages",
@@ -917,14 +916,8 @@ fn expand_manifest_patterns(
 	manifests
 }
 
-fn glob_pattern_paths(root: &Path, pattern: &str, filter: &DiscoveryPathFilter) -> Vec<PathBuf> {
-	let joined_pattern = root.join(pattern).to_string_lossy().to_string();
-	glob(&joined_pattern)
-		.into_iter()
-		.flat_map(|paths| paths.filter_map(Result::ok))
-		.map(|path| normalize_path(&path))
-		.filter(|path| filter.allows(path))
-		.collect()
+fn workspace_manifest_pattern_paths(root: &Path, pattern: &str) -> Vec<PathBuf> {
+	monochange_core::workspace_glob_paths(root, pattern, true).unwrap_or_default()
 }
 
 fn parse_package_manifest(

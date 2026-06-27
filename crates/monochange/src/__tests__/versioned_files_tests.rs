@@ -12,7 +12,7 @@ use super::VersionedFileUpdateContext;
 use super::add_json_field_path;
 use super::add_toml_field_path;
 use super::add_yaml_field_path;
-use super::apply_versioned_file_definition;
+use super::apply_versioned_file_definition_to_paths;
 use super::build_versioned_file_updates_with_base_updates;
 use super::inferred_lockfile_ecosystem_type;
 use super::inferred_lockfile_paths;
@@ -21,6 +21,28 @@ use super::released_versions_by_record_id;
 use super::seed_cached_text_updates;
 use super::update_format_versioned_file_text;
 use super::versioned_file_kind;
+
+fn apply_versioned_file_definition(
+	root: &Path,
+	updates: &mut BTreeMap<PathBuf, super::CachedDocument>,
+	definition: &monochange_core::VersionedFileDefinition,
+	owner_version: &str,
+	shared_release_version: Option<&String>,
+	dep_names: &[impl AsRef<str>],
+	context: &super::VersionedFileUpdateContext<'_>,
+) -> monochange_core::MonochangeResult<()> {
+	let resolved_paths = monochange_core::workspace_glob_files(root, &definition.path)?;
+	super::apply_versioned_file_definition_to_paths(
+		root,
+		updates,
+		definition,
+		&resolved_paths,
+		owner_version,
+		shared_release_version,
+		dep_names,
+		context,
+	)
+}
 
 fn fixture_path(relative: &str) -> PathBuf {
 	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -633,6 +655,72 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 }
 
 #[test]
+fn recursive_versioned_file_globs_skip_ignored_workspace_directories() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let package_metadata = root.join("packages/app/metadata.json");
+	let fvm_metadata = root.join(".fvm/versions/3.44.1/metadata.json");
+	let repos_metadata = root.join(".repos/external/metadata.json");
+	for path in [&package_metadata, &fvm_metadata, &repos_metadata] {
+		std::fs::create_dir_all(path.parent().unwrap_or(root))
+			.unwrap_or_else(|error| panic!("create metadata parent: {error}"));
+		std::fs::write(path, "{\"release\":{\"version\":\"1.0.0\"}}")
+			.unwrap_or_else(|error| panic!("write metadata: {error}"));
+	}
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+	};
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "**/metadata.json".to_string(),
+		ecosystem_type: None,
+		format: Some(monochange_core::VersionedFileFormat::Json),
+		prefix: None,
+		fields: Some(vec!["release.version".to_string()]),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+	};
+	let mut updates = BTreeMap::new();
+	apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"1.2.3",
+		None,
+		&["metadata".to_string()],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply recursive versioned glob: {error}"));
+
+	assert!(updates.contains_key(&package_metadata));
+	assert!(!updates.contains_key(&fvm_metadata));
+	assert!(!updates.contains_key(&repos_metadata));
+
+	let explicit_definition = monochange_core::VersionedFileDefinition {
+		path: ".fvm/versions/3.44.1/metadata.json".to_string(),
+		..definition
+	};
+	apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&explicit_definition,
+		"1.2.3",
+		None,
+		&["metadata".to_string()],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply explicit ignored versioned file: {error}"));
+	assert!(updates.contains_key(&fvm_metadata));
+}
+
+#[test]
 fn build_versioned_file_updates_returns_empty_for_empty_configuration() {
 	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
@@ -657,6 +745,164 @@ fn build_versioned_file_updates_returns_empty_for_empty_configuration() {
 			.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
 	assert!(updates.is_empty());
+}
+
+#[test]
+fn build_versioned_file_updates_reports_invalid_glob_pattern_in_package_prewarm() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::create_dir_all(root.join("packages/app"))
+		.unwrap_or_else(|error| panic!("create packages/app: {error}"));
+	std::fs::write(
+		root.join("packages/app/package.json"),
+		"{\"name\":\"app\",\"version\":\"1.0.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	std::fs::write(
+		root.join("monochange.toml"),
+		"[defaults]\npackage_type = \"npm\"\n\n[package.app]\npath = \"packages/app\"\nversioned_files = [{ path = \"**/[invalid\", format = \"json\", fields = [\"version\"] }]\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let package = npm_package_record(root, "app");
+	let plan = package_release_plan(root, &package);
+
+	let error = build_versioned_file_updates_with_base_updates(
+		root,
+		&configuration,
+		&[package],
+		&plan,
+		&[],
+	)
+	.expect_err("invalid glob should error during prewarm");
+
+	assert!(error.to_string().contains("invalid glob pattern"));
+}
+
+#[test]
+fn build_versioned_file_updates_prewarms_group_versioned_file_globs() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::create_dir_all(root.join("packages/app"))
+		.unwrap_or_else(|error| panic!("create packages/app: {error}"));
+	std::fs::write(
+		root.join("packages/app/package.json"),
+		"{\"name\":\"app\",\"version\":\"1.0.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	std::fs::write(
+		root.join("shared-version.json"),
+		"{\"version\":\"1.0.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write shared-version.json: {error}"));
+	std::fs::write(
+		root.join("monochange.toml"),
+		"[defaults]\npackage_type = \"npm\"\n\n[package.app]\npath = \"packages/app\"\n\n[group.main]\npackages = [\"app\"]\nversioned_files = [{ path = \"shared-version.json\", format = \"json\", fields = [\"version\"] }]\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let package = npm_package_record(root, "app");
+	let plan = monochange_core::ReleasePlan {
+		workspace_root: root.to_path_buf(),
+		decisions: vec![monochange_core::ReleaseDecision {
+			package_id: package.id.clone(),
+			trigger_type: "changeset".to_string(),
+			recommended_bump: monochange_core::BumpSeverity::Minor,
+			planned_version: Some("1.2.3".parse().unwrap()),
+			group_id: Some("main".to_string()),
+			reasons: Vec::new(),
+			upstream_sources: Vec::new(),
+			warnings: Vec::new(),
+		}],
+		groups: vec![monochange_core::PlannedVersionGroup {
+			group_id: "main".to_string(),
+			display_name: "main".to_string(),
+			members: vec!["app".to_string()],
+			mismatch_detected: false,
+			planned_version: Some("1.2.3".parse().unwrap()),
+			recommended_bump: monochange_core::BumpSeverity::Minor,
+		}],
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+
+	let updates = build_versioned_file_updates_with_base_updates(
+		root,
+		&configuration,
+		&[package],
+		&plan,
+		&[],
+	)
+	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
+
+	let shared_update = updates
+		.iter()
+		.find(|update| update.path.ends_with("shared-version.json"))
+		.unwrap_or_else(|| panic!("expected shared-version.json update: {updates:?}"));
+	let content = String::from_utf8(shared_update.content.clone()).unwrap();
+	assert!(
+		content.contains("\"1.2.3\""),
+		"shared version should be 1.2.3: {content}"
+	);
+}
+
+#[test]
+fn build_versioned_file_updates_reports_invalid_glob_pattern_in_group_prewarm() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::create_dir_all(root.join("packages/app"))
+		.unwrap_or_else(|error| panic!("create packages/app: {error}"));
+	std::fs::write(
+		root.join("packages/app/package.json"),
+		"{\"name\":\"app\",\"version\":\"1.0.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	std::fs::write(
+		root.join("monochange.toml"),
+		"[defaults]\npackage_type = \"npm\"\n\n[package.app]\npath = \"packages/app\"\n\n[group.main]\npackages = [\"app\"]\nversioned_files = [{ path = \"**/[invalid\", format = \"json\", fields = [\"version\"] }]\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let package = npm_package_record(root, "app");
+	let plan = monochange_core::ReleasePlan {
+		workspace_root: root.to_path_buf(),
+		decisions: vec![monochange_core::ReleaseDecision {
+			package_id: package.id.clone(),
+			trigger_type: "changeset".to_string(),
+			recommended_bump: monochange_core::BumpSeverity::Minor,
+			planned_version: Some("1.2.3".parse().unwrap()),
+			group_id: Some("main".to_string()),
+			reasons: Vec::new(),
+			upstream_sources: Vec::new(),
+			warnings: Vec::new(),
+		}],
+		groups: vec![monochange_core::PlannedVersionGroup {
+			group_id: "main".to_string(),
+			display_name: "main".to_string(),
+			members: vec!["app".to_string()],
+			mismatch_detected: false,
+			planned_version: Some("1.2.3".parse().unwrap()),
+			recommended_bump: monochange_core::BumpSeverity::Minor,
+		}],
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+
+	let error = build_versioned_file_updates_with_base_updates(
+		root,
+		&configuration,
+		&[package],
+		&plan,
+		&[],
+	)
+	.expect_err("invalid group glob should error during prewarm");
+
+	assert!(error.to_string().contains("invalid glob pattern"));
 }
 
 #[test]

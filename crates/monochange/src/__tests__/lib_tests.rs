@@ -94,6 +94,28 @@ use crate::workspace_ops::change_type_default_bump;
 use crate::workspace_ops::render_cli_commands_toml;
 use crate::workspace_ops::render_interactive_changeset_markdown;
 
+fn apply_versioned_file_definition(
+	root: &Path,
+	updates: &mut BTreeMap<PathBuf, crate::CachedDocument>,
+	definition: &monochange_core::VersionedFileDefinition,
+	owner_version: &str,
+	shared_release_version: Option<&String>,
+	dep_names: &[impl AsRef<str>],
+	context: &crate::VersionedFileUpdateContext<'_>,
+) -> monochange_core::MonochangeResult<()> {
+	let resolved_paths = monochange_core::workspace_glob_files(root, &definition.path)?;
+	crate::apply_versioned_file_definition_to_paths(
+		root,
+		updates,
+		definition,
+		&resolved_paths,
+		owner_version,
+		shared_release_version,
+		dep_names,
+		context,
+	)
+}
+
 fn render_change_target_markdown(
 	configuration: &monochange_core::WorkspaceConfiguration,
 	target_id: &str,
@@ -10431,7 +10453,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		};
-		let error = crate::apply_versioned_file_definition(
+		let error = apply_versioned_file_definition(
 			tempdir.path(),
 			&mut BTreeMap::new(),
 			&definition,
@@ -10467,7 +10489,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		tempdir.path(),
 		&mut BTreeMap::from([(path, crate::CachedDocument::Text("{".to_string()))]),
 		&definition,
@@ -10497,7 +10519,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		pnpm_tempdir.path(),
 		&mut BTreeMap::from([(pnpm_path, crate::CachedDocument::Text(": bad".to_string()))]),
 		&pnpm_definition,
@@ -10528,7 +10550,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		cached_dart_tempdir.path(),
 		&mut BTreeMap::from([(path, crate::CachedDocument::Text(": bad".to_string()))]),
 		&definition,
@@ -10649,7 +10671,7 @@ fn apply_versioned_file_definition_returns_early_without_matching_versions() {
 	};
 	let dep_names = vec!["core".to_string()];
 	let mut updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&definition,
@@ -10682,7 +10704,7 @@ fn apply_versioned_file_definition_rejects_invalid_glob_patterns() {
 		regex: None,
 	};
 	let dep_names = vec!["core".to_string()];
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		tempdir.path(),
 		&mut BTreeMap::new(),
 		&definition,
@@ -10721,7 +10743,7 @@ fn apply_versioned_file_definition_rejects_unsupported_glob_matches() {
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
 		};
-		let error = crate::apply_versioned_file_definition(
+		let error = apply_versioned_file_definition(
 			tempdir.path(),
 			&mut BTreeMap::new(),
 			&definition,
@@ -10764,7 +10786,7 @@ monochange = { path = "crates/monochange", version = "1.0.0" }
 		regex: None,
 	};
 	let mut updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&definition,
@@ -10822,7 +10844,7 @@ extra = { path = "crates/extra", version = "1.0.0" }
 	};
 	let mut updates = BTreeMap::new();
 	let shared_version = "4.0.0".to_string();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&definition,
@@ -10876,7 +10898,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 	let original_bun =
 		fs::read(&bun_path).unwrap_or_else(|error| panic!("read bun lockb: {error}"));
 	let mut bun_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		bun_tempdir.path(),
 		&mut bun_updates,
 		&bun_definition,
@@ -10911,7 +10933,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 		regex: None,
 	};
 	let mut deno_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		deno_tempdir.path(),
 		&mut deno_updates,
 		&deno_definition,
@@ -10959,7 +10981,7 @@ fn apply_versioned_file_definition_updates_regex_versioned_files_from_cached_tex
 			"Download core from https://example.com/download/v1.0.0.tgz\n".to_string(),
 		),
 	)]);
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&definition,
@@ -11001,7 +11023,7 @@ fn apply_versioned_file_definition_reports_invalid_regex_patterns() {
 		regex: Some("(".to_string()),
 	};
 	let mut updates = BTreeMap::new();
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&definition,
@@ -11041,7 +11063,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	};
 	let manifest_dep_names = vec!["core".to_string()];
 	let mut manifest_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		manifest_tempdir.path(),
 		&mut manifest_updates,
 		&manifest_definition,
@@ -11089,7 +11111,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	};
 	let package_lock_dep_names = vec!["app".to_string()];
 	let mut package_lock_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		package_lock_tempdir.path(),
 		&mut package_lock_updates,
 		&package_lock_definition,
@@ -11131,7 +11153,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	};
 	let pnpm_dep_names = vec!["core".to_string()];
 	let mut pnpm_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		pnpm_tempdir.path(),
 		&mut pnpm_updates,
 		&pnpm_definition,
@@ -11170,7 +11192,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	};
 	let bun_dep_names = vec!["left-pad".to_string()];
 	let mut bun_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		bun_tempdir.path(),
 		&mut bun_updates,
 		&bun_definition,
@@ -11224,7 +11246,7 @@ dependencies = ["python-core>=1.0.0"]
 	};
 	let dep_names = vec!["python-core".to_string()];
 	let mut updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&manifest_definition,
@@ -11254,7 +11276,7 @@ dependencies = ["python-core>=1.0.0"]
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&lock_definition,
@@ -11297,7 +11319,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
 	};
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&unsupported_definition,
@@ -11330,7 +11352,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 		manifest_path,
 		crate::CachedDocument::Text("[project\n".to_string()),
 	);
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&manifest_definition,
@@ -11366,7 +11388,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	};
 	let deno_manifest_dep_names = vec!["core".to_string()];
 	let mut deno_manifest_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		deno_manifest_tempdir.path(),
 		&mut deno_manifest_updates,
 		&deno_manifest_definition,
@@ -11404,7 +11426,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	};
 	let deno_lock_dep_names = vec!["app".to_string()];
 	let mut deno_lock_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		deno_lock_tempdir.path(),
 		&mut deno_lock_updates,
 		&deno_lock_definition,
@@ -11441,7 +11463,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	};
 	let dart_manifest_dep_names = vec!["shared".to_string()];
 	let mut dart_manifest_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		dart_manifest_tempdir.path(),
 		&mut dart_manifest_updates,
 		&dart_manifest_definition,
@@ -11481,7 +11503,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	};
 	let dart_lock_dep_names = vec!["nested_dart_app".to_string()];
 	let mut dart_lock_updates = BTreeMap::new();
-	crate::apply_versioned_file_definition(
+	apply_versioned_file_definition(
 		dart_lock_tempdir.path(),
 		&mut dart_lock_updates,
 		&dart_lock_definition,
@@ -13842,7 +13864,7 @@ fn apply_versioned_file_definition_reports_invalid_glob_pattern() {
 		regex: Some(r"v(?<version>\d+\.\d+\.\d+)".to_string()),
 	};
 	let mut updates = BTreeMap::new();
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&definition,
@@ -13873,7 +13895,7 @@ fn apply_versioned_file_definition_reports_missing_ecosystem_type() {
 		regex: None,
 	};
 	let mut updates = BTreeMap::new();
-	let error = crate::apply_versioned_file_definition(
+	let error = apply_versioned_file_definition(
 		tempdir.path(),
 		&mut updates,
 		&definition,

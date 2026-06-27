@@ -994,6 +994,321 @@ fn discovery_path_filter_skips_nested_git_worktrees() {
 }
 
 #[test]
+fn workspace_glob_files_skip_ignored_workspace_directories() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	for file_path in [
+		"packages/app/metadata.json",
+		".fvm/versions/3.44.1/metadata.json",
+		".repos/external/metadata.json",
+		"node_modules/pkg/metadata.json",
+		"ignored/metadata.json",
+	] {
+		let path = root.join(file_path);
+		fs::create_dir_all(path.parent().unwrap_or(root))
+			.unwrap_or_else(|error| panic!("create parent for {file_path}: {error}"));
+		fs::write(path, "{}\n").unwrap_or_else(|error| panic!("write {file_path}: {error}"));
+	}
+	fs::write(root.join(".gitignore"), "ignored/\n")
+		.unwrap_or_else(|error| panic!("write gitignore: {error}"));
+
+	let matches = crate::workspace_glob_files(root, "**/metadata.json")
+		.unwrap_or_else(|error| panic!("workspace glob files: {error}"));
+	let relative_matches = matches
+		.iter()
+		.map(|path| path.strip_prefix(root).unwrap_or(path).to_path_buf())
+		.collect::<Vec<_>>();
+
+	assert_eq!(
+		relative_matches,
+		vec![PathBuf::from("packages/app/metadata.json")]
+	);
+}
+
+#[test]
+fn workspace_glob_literal_paths_can_target_ignored_directories() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let metadata_path = root.join(".fvm/versions/3.44.1/metadata.json");
+	fs::create_dir_all(metadata_path.parent().unwrap_or(root))
+		.unwrap_or_else(|error| panic!("create fvm parent: {error}"));
+	fs::write(&metadata_path, "{}\n").unwrap_or_else(|error| panic!("write metadata: {error}"));
+
+	let matches = crate::workspace_glob_files(root, ".fvm/versions/3.44.1/metadata.json")
+		.unwrap_or_else(|error| panic!("workspace glob literal: {error}"));
+
+	assert_eq!(matches, vec![metadata_path]);
+}
+
+#[test]
+fn workspace_glob_paths_can_return_directories_for_workspace_members() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	for directory in [
+		"packages/app",
+		"packages/core",
+		"packages/core/nested",
+		"target/ignored",
+	] {
+		fs::create_dir_all(root.join(directory))
+			.unwrap_or_else(|error| panic!("create {directory}: {error}"));
+	}
+
+	let matches = crate::workspace_glob_paths(root, "packages/*", true)
+		.unwrap_or_else(|error| panic!("workspace glob directories: {error}"));
+	let relative_matches = matches
+		.iter()
+		.map(|path| path.strip_prefix(root).unwrap_or(path).to_path_buf())
+		.collect::<Vec<_>>();
+
+	assert_eq!(
+		relative_matches,
+		vec![
+			PathBuf::from("packages/app"),
+			PathBuf::from("packages/core")
+		]
+	);
+}
+
+#[test]
+fn workspace_glob_files_many_matches_multiple_patterns_with_shared_walk_semantics() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	for file_path in [
+		"packages/app/metadata.json",
+		"packages/app/pubspec.yaml",
+		"packages/core/metadata.json",
+		".fvm/versions/3.44.1/pubspec.yaml",
+	] {
+		let path = root.join(file_path);
+		fs::create_dir_all(path.parent().unwrap_or(root))
+			.unwrap_or_else(|error| panic!("create parent for {file_path}: {error}"));
+		fs::write(path, "{}\n").unwrap_or_else(|error| panic!("write {file_path}: {error}"));
+	}
+
+	let matches = crate::workspace_glob_files_many(
+		root,
+		[
+			"**/metadata.json",
+			"**/pubspec.yaml",
+			"**/metadata.json",
+			"packages/app/pubspec.yaml",
+		],
+	)
+	.unwrap_or_else(|error| panic!("workspace glob files many: {error}"));
+	let relative_matches = matches
+		.into_iter()
+		.map(|(pattern, paths)| {
+			let relative_paths = paths
+				.iter()
+				.map(|path| path.strip_prefix(root).unwrap_or(path).to_path_buf())
+				.collect::<Vec<_>>();
+			(pattern, relative_paths)
+		})
+		.collect::<BTreeMap<_, _>>();
+
+	assert_eq!(
+		relative_matches
+			.get("**/metadata.json")
+			.expect("metadata glob result"),
+		&vec![
+			PathBuf::from("packages/app/metadata.json"),
+			PathBuf::from("packages/core/metadata.json")
+		]
+	);
+	assert_eq!(
+		relative_matches
+			.get("**/pubspec.yaml")
+			.expect("pubspec glob result"),
+		&vec![PathBuf::from("packages/app/pubspec.yaml")]
+	);
+	assert_eq!(
+		relative_matches
+			.get("packages/app/pubspec.yaml")
+			.expect("literal result"),
+		&vec![PathBuf::from("packages/app/pubspec.yaml")]
+	);
+}
+
+#[test]
+fn workspace_glob_paths_many_preserves_literal_separator_matching() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	for directory in ["packages/app", "packages/core", "packages/core/nested"] {
+		fs::create_dir_all(root.join(directory))
+			.unwrap_or_else(|error| panic!("create {directory}: {error}"));
+	}
+
+	let matches = crate::workspace_glob_paths_many(root, ["packages/*"], true)
+		.unwrap_or_else(|error| panic!("workspace glob paths many: {error}"));
+	let relative_matches = matches
+		.get("packages/*")
+		.expect("packages glob result")
+		.iter()
+		.map(|path| path.strip_prefix(root).unwrap_or(path).to_path_buf())
+		.collect::<Vec<_>>();
+
+	assert_eq!(
+		relative_matches,
+		vec![
+			PathBuf::from("packages/app"),
+			PathBuf::from("packages/core")
+		]
+	);
+}
+
+#[test]
+fn workspace_glob_files_many_resolves_absolute_literal_paths() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let metadata_path = root.join("packages/app/metadata.json");
+	fs::create_dir_all(metadata_path.parent().unwrap_or(root))
+		.unwrap_or_else(|error| panic!("create parent: {error}"));
+	fs::write(&metadata_path, "{}\n").unwrap_or_else(|error| panic!("write metadata: {error}"));
+
+	let absolute_metadata = metadata_path.to_string_lossy().into_owned();
+	let matches = crate::workspace_glob_files_many(root, [absolute_metadata.as_str()])
+		.unwrap_or_else(|error| panic!("workspace glob files many absolute: {error}"));
+
+	assert_eq!(
+		matches
+			.get(absolute_metadata.as_str())
+			.expect("absolute literal result"),
+		&vec![metadata_path.clone()]
+	);
+}
+
+#[test]
+fn workspace_glob_files_many_resolves_absolute_glob_patterns_within_root() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let metadata_path = root.join("packages/app/metadata.json");
+	fs::create_dir_all(metadata_path.parent().unwrap_or(root))
+		.unwrap_or_else(|error| panic!("create parent: {error}"));
+	fs::write(&metadata_path, "{}\n").unwrap_or_else(|error| panic!("write metadata: {error}"));
+
+	let absolute_glob = root.join("**/metadata.json").to_string_lossy().into_owned();
+	let matches = crate::workspace_glob_files_many(root, [absolute_glob.as_str()])
+		.unwrap_or_else(|error| panic!("workspace glob files many absolute glob: {error}"));
+	let relative_matches = matches
+		.get(absolute_glob.as_str())
+		.expect("absolute glob result")
+		.iter()
+		.map(|path| path.strip_prefix(root).unwrap_or(path).to_path_buf())
+		.collect::<Vec<_>>();
+
+	assert_eq!(
+		relative_matches,
+		vec![PathBuf::from("packages/app/metadata.json")]
+	);
+}
+
+#[test]
+fn workspace_glob_files_many_reports_invalid_glob_patterns() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let error = crate::workspace_glob_files_many(root, ["**/[invalid"])
+		.expect_err("invalid glob pattern should error");
+
+	assert!(error.to_string().contains("invalid glob pattern"));
+}
+
+#[test]
+fn workspace_glob_files_many_skips_nonexistent_search_roots() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+
+	let matches = crate::workspace_glob_files_many(root, ["nonexistent/**/*.json"])
+		.unwrap_or_else(|error| panic!("workspace glob files many nonexistent: {error}"));
+
+	assert!(
+		matches
+			.get("nonexistent/**/*.json")
+			.expect("result")
+			.is_empty()
+	);
+}
+
+#[test]
+fn workspace_glob_files_many_skips_entries_without_file_type() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let metadata_path = root.join("packages/app/metadata.json");
+	fs::create_dir_all(metadata_path.parent().unwrap_or(root))
+		.unwrap_or_else(|error| panic!("create parent: {error}"));
+	fs::write(&metadata_path, "{}\n").unwrap_or_else(|error| panic!("write metadata: {error}"));
+
+	// Create a broken symlink that has no file_type when followed.
+	let broken_link = root.join("packages/broken-link");
+	#[cfg(unix)]
+	{
+		use std::os::unix::fs::symlink;
+		symlink("/nonexistent/target", &broken_link)
+			.unwrap_or_else(|error| panic!("create broken symlink: {error}"));
+	}
+
+	let matches = crate::workspace_glob_files_many(root, ["**/metadata.json"])
+		.unwrap_or_else(|error| panic!("workspace glob files many: {error}"));
+	let relative_matches = matches
+		.get("**/metadata.json")
+		.expect("metadata glob result")
+		.iter()
+		.map(|path| path.strip_prefix(root).unwrap_or(path).to_path_buf())
+		.collect::<Vec<_>>();
+
+	assert_eq!(
+		relative_matches,
+		vec![PathBuf::from("packages/app/metadata.json")]
+	);
+}
+
+#[test]
+fn workspace_code_does_not_call_raw_glob_expansion() {
+	let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+	let crates_dir = workspace_root.join("crates");
+	let banned_patterns = [concat!("use glob::", "glob;"), concat!("glob::", "glob(")];
+	let mut offenders = Vec::new();
+	collect_raw_glob_offenders(&crates_dir, &banned_patterns, &mut offenders);
+
+	assert!(
+		offenders.is_empty(),
+		"use monochange_core::workspace_glob_files or workspace_glob_paths instead of raw glob expansion:\n{}",
+		offenders.join("\n")
+	);
+}
+
+fn collect_raw_glob_offenders(path: &Path, banned_patterns: &[&str], offenders: &mut Vec<String>) {
+	let entries =
+		fs::read_dir(path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+	for entry in entries {
+		let entry = entry.unwrap_or_else(|error| panic!("read directory entry: {error}"));
+		let path = entry.path();
+		let file_name = path
+			.file_name()
+			.and_then(|name| name.to_str())
+			.unwrap_or_default();
+		if file_name == "target" || file_name.starts_with('.') {
+			continue;
+		}
+		if path.is_dir() {
+			collect_raw_glob_offenders(&path, banned_patterns, offenders);
+			continue;
+		}
+		if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+			continue;
+		}
+		let contents = fs::read_to_string(&path)
+			.unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+		for banned_pattern in banned_patterns {
+			if contents.contains(banned_pattern) {
+				offenders.push(path.display().to_string());
+				break;
+			}
+		}
+	}
+}
+
+#[test]
 fn ecosystem_registry_gracefully_handles_panicked_discovery_worker() {
 	let registry = crate::EcosystemRegistry::new().with_adapter(Box::new(PanicDiscoveryAdapter));
 	let result = registry
