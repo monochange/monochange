@@ -1,5 +1,13 @@
 ---
 monochange: patch
+monochange_cargo: patch
+monochange_config: patch
+monochange_core: patch
+monochange_dart: patch
+monochange_deno: patch
+monochange_go: patch
+monochange_npm: patch
+monochange_python: patch
 ---
 
 # speed up versioned-file glob expansion
