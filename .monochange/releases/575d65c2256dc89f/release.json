@@ -1,0 +1,1639 @@
+{
+	"schema_version": "0.4",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-06-29T12:52:05Z",
+	"command": "release",
+	"version": "0.8.3",
+	"versions": {
+		"main": "0.8.3"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.8.3",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.8.3",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.8.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/centralize-workspace-globs.md",
+		".changeset/placeholder-publish-package-defaults.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/centralize-workspace-globs.md",
+			"summary": "speed up versioned-file glob expansion",
+			"details": "Versioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_dart",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_deno",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_go",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_python",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "502395fc6c75e211e398e9866cffd8e2c82cd51d",
+						"short_sha": "502395f",
+						"url": "https://github.com/monochange/monochange/commit/502395fc6c75e211e398e9866cffd8e2c82cd51d",
+						"authored_at": "2026-06-29T13:42:51+01:00",
+						"committed_at": "2026-06-29T13:42:51+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#620",
+						"title": "perf: batch workspace glob expansion and prewarm versioned-file paths",
+						"url": "https://github.com/monochange/monochange/pull/620",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "502395fc6c75e211e398e9866cffd8e2c82cd51d",
+						"short_sha": "502395f",
+						"url": "https://github.com/monochange/monochange/commit/502395fc6c75e211e398e9866cffd8e2c82cd51d",
+						"authored_at": "2026-06-29T13:42:51+01:00",
+						"committed_at": "2026-06-29T13:42:51+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#620",
+						"title": "perf: batch workspace glob expansion and prewarm versioned-file paths",
+						"url": "https://github.com/monochange/monochange/pull/620",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/placeholder-publish-package-defaults.md",
+			"summary": "clarify placeholder publish package selection coverage",
+			"details": "`monochange step placeholder-publish` continues to publish placeholders for every eligible publish-enabled package when no package filter is provided:\n\n```bash\nmonochange step placeholder-publish\n```\n\nPassing `--package` narrows the placeholder publishing plan to the selected package ids only:\n\n```bash\nmonochange step placeholder-publish --package core\n```\n\nThis release strengthens the regression coverage for that behavior so automation can rely on the default all-packages mode while still using `--package` for targeted placeholder publishes.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "046dba30e6b055d362712d205b44181f96506b22",
+						"short_sha": "046dba3",
+						"url": "https://github.com/monochange/monochange/commit/046dba30e6b055d362712d205b44181f96506b22",
+						"authored_at": "2026-06-24T15:55:52+01:00",
+						"committed_at": "2026-06-24T15:55:52+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#617",
+						"title": "test: cover placeholder publish package defaults",
+						"url": "https://github.com/monochange/monochange/pull/617",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "046dba30e6b055d362712d205b44181f96506b22",
+						"short_sha": "046dba3",
+						"url": "https://github.com/monochange/monochange/commit/046dba30e6b055d362712d205b44181f96506b22",
+						"authored_at": "2026-06-24T15:55:52+01:00",
+						"committed_at": "2026-06-24T15:55:52+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#617",
+						"title": "test: cover placeholder publish package defaults",
+						"url": "https://github.com/monochange/monochange/pull/617",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n_Packages:_ _monochange_, _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_dart_, _monochange_deno_, _monochange_go_, _monochange_npm_, _monochange_python_\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)",
+							"#### clarify placeholder publish package selection coverage\n_Packages:_ _monochange_\n\n`monochange step placeholder-publish` continues to publish placeholders for every eligible publish-enabled package when no package filter is provided:\n\n```bash\nmonochange step placeholder-publish\n```\n\nPassing `--package` narrows the placeholder publishing plan to the selected package ids only:\n\n```bash\nmonochange step placeholder-publish --package core\n```\n\nThis release strengthens the regression coverage for that behavior so automation can rely on the default all-packages mode while still using `--package` for targeted placeholder publishes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #617](https://github.com/monochange/monochange/pull/617)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\nGrouped release for `main`.\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n_Packages:_ _monochange_, _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_dart_, _monochange_deno_, _monochange_go_, _monochange_npm_, _monochange_python_\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)\n\n#### clarify placeholder publish package selection coverage\n_Packages:_ _monochange_\n\n`monochange step placeholder-publish` continues to publish placeholders for every eligible publish-enabled package when no package filter is provided:\n\n```bash\nmonochange step placeholder-publish\n```\n\nPassing `--package` narrows the placeholder publishing plan to the selected package ids only:\n\n```bash\nmonochange step placeholder-publish --package core\n```\n\nThis release strengthens the regression coverage for that behavior so automation can rely on the default all-packages mode while still using `--package` for targeted placeholder publishes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #617](https://github.com/monochange/monochange/pull/617)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)",
+							"#### clarify placeholder publish package selection coverage\n\n`monochange step placeholder-publish` continues to publish placeholders for every eligible publish-enabled package when no package filter is provided:\n\n```bash\nmonochange step placeholder-publish\n```\n\nPassing `--package` narrows the placeholder publishing plan to the selected package ids only:\n\n```bash\nmonochange step placeholder-publish --package core\n```\n\nThis release strengthens the regression coverage for that behavior so automation can rely on the default all-packages mode while still using `--package` for targeted placeholder publishes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #617](https://github.com/monochange/monochange/pull/617)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)\n\n#### clarify placeholder publish package selection coverage\n\n`monochange step placeholder-publish` continues to publish placeholders for every eligible publish-enabled package when no package filter is provided:\n\n```bash\nmonochange step placeholder-publish\n```\n\nPassing `--package` narrows the placeholder publishing plan to the selected package ids only:\n\n```bash\nmonochange step placeholder-publish --package core\n```\n\nThis release strengthens the regression coverage for that behavior so automation can rely on the default all-packages mode while still using `--package` for targeted placeholder publishes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #617](https://github.com/monochange/monochange/pull/617)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_analysis` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_analysis` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_changelog` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_changelog` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitea` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitea` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_github` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_github` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_graph` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_graph` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_hosting` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_hosting` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_lint` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_lint` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_linting` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_linting` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_publish` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_publish` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### 🐛 Fixed\n\n#### speed up versioned-file glob expansion\n\nVersioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.\n\nThis prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.\n\n##### batch glob expansion\n\nRelease planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_semver` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_semver` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.8.3 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/skill` was updated to 0.8.3 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/skill` was updated to 0.8.3 as part of group `main`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
