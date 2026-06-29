@@ -97,6 +97,43 @@ fn dedup_versioned_file_definitions(
 		.collect()
 }
 
+#[derive(Debug, Default)]
+struct VersionedFilePathCache {
+	paths_by_pattern: BTreeMap<String, Vec<PathBuf>>,
+}
+
+impl VersionedFilePathCache {
+	fn prewarm<'a, I>(&mut self, root: &Path, patterns: I) -> MonochangeResult<()>
+	where
+		I: IntoIterator<Item = &'a str>,
+	{
+		let pending_patterns = patterns
+			.into_iter()
+			.filter(|pattern| !self.paths_by_pattern.contains_key(*pattern))
+			.collect::<BTreeSet<_>>();
+		if pending_patterns.is_empty() {
+			return Ok(());
+		}
+
+		let resolved_paths = monochange_core::workspace_glob_files_many(root, pending_patterns)?;
+		self.paths_by_pattern.extend(resolved_paths);
+		Ok(())
+	}
+
+	fn paths(&mut self, root: &Path, pattern: &str) -> MonochangeResult<&[PathBuf]> {
+		if !self.paths_by_pattern.contains_key(pattern) {
+			let resolved_paths = monochange_core::workspace_glob_files(root, pattern)?;
+			self.paths_by_pattern
+				.insert(pattern.to_string(), resolved_paths);
+		}
+
+		Ok(self
+			.paths_by_pattern
+			.get(pattern)
+			.expect("versioned file path cache should include resolved pattern"))
+	}
+}
+
 fn cached_document_key(path: &Path) -> PathBuf {
 	fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
@@ -213,6 +250,23 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 	let mut updates = BTreeMap::<PathBuf, CachedDocument>::new();
 	seed_cached_text_updates(root, &mut updates, base_updates)?;
 
+	let mut path_cache = VersionedFilePathCache::default();
+	path_cache.prewarm(
+		root,
+		configuration
+			.packages
+			.iter()
+			.filter(|package_definition| {
+				released_versions_by_config_id.contains_key(package_definition.id.as_str())
+			})
+			.flat_map(|package_definition| {
+				package_definition
+					.versioned_files
+					.iter()
+					.map(|versioned_file| versioned_file.path.as_str())
+			}),
+	)?;
+
 	for package_definition in &configuration.packages {
 		let Some(version) = released_versions_by_config_id.get(package_definition.id.as_str())
 		else {
@@ -233,10 +287,12 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 		{
 			if let Some(override_name) = versioned_file.name.as_deref() {
 				let effective_dep_names = [override_name];
-				apply_versioned_file_definition(
+				let resolved_paths = path_cache.paths(root, &versioned_file.path)?;
+				apply_versioned_file_definition_to_paths(
 					root,
 					&mut updates,
 					versioned_file,
+					resolved_paths,
 					version,
 					shared_release_version.as_ref(),
 					&effective_dep_names,
@@ -245,10 +301,12 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 				continue;
 			}
 
-			apply_versioned_file_definition(
+			let resolved_paths = path_cache.paths(root, &versioned_file.path)?;
+			apply_versioned_file_definition_to_paths(
 				root,
 				&mut updates,
 				versioned_file,
+				resolved_paths,
 				version,
 				shared_release_version.as_ref(),
 				&dep_names,
@@ -267,6 +325,21 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 				.map(|version| (group.group_id.as_str(), version))
 		})
 		.collect::<BTreeMap<_, _>>();
+	path_cache.prewarm(
+		root,
+		configuration
+			.groups
+			.iter()
+			.filter(|group_definition| {
+				planned_group_versions.contains_key(group_definition.id.as_str())
+			})
+			.flat_map(|group_definition| {
+				group_definition
+					.versioned_files
+					.iter()
+					.map(|versioned_file| versioned_file.path.as_str())
+			}),
+	)?;
 	let mut group_dep_names = Vec::new();
 
 	for group_definition in &configuration.groups {
@@ -286,10 +359,12 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 		}));
 
 		for versioned_file in &group_definition.versioned_files {
-			apply_versioned_file_definition(
+			let resolved_paths = path_cache.paths(root, &versioned_file.path)?;
+			apply_versioned_file_definition_to_paths(
 				root,
 				&mut updates,
 				versioned_file,
+				resolved_paths,
 				&group_version,
 				Some(&group_version),
 				&group_dep_names,
@@ -306,6 +381,7 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 		shared_release_version.as_ref(),
 		&context,
 		&mut updates,
+		&mut path_cache,
 	)?;
 
 	updates
@@ -314,6 +390,7 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 		.collect()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn apply_inferred_lockfile_updates(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
@@ -322,6 +399,7 @@ fn apply_inferred_lockfile_updates(
 	shared_release_version: Option<&String>,
 	context: &VersionedFileUpdateContext<'_>,
 	updates: &mut BTreeMap<PathBuf, CachedDocument>,
+	path_cache: &mut VersionedFilePathCache,
 ) -> MonochangeResult<()> {
 	let released_versions = released_versions_by_record_id(plan);
 	let mut dep_names_by_lockfile =
@@ -362,10 +440,12 @@ fn apply_inferred_lockfile_updates(
 		// That keeps normal `monochange release` runs on the fast path instead of paying
 		// package-manager startup and dependency-resolution costs for every bump.
 		let dep_names = dep_names.into_iter().collect::<Vec<_>>();
-		apply_versioned_file_definition(
+		let resolved_paths = path_cache.paths(root, &definition.path)?;
+		apply_versioned_file_definition_to_paths(
 			root,
 			updates,
 			&definition,
+			resolved_paths,
 			"",
 			shared_release_version,
 			&dep_names,
@@ -1268,26 +1348,20 @@ fn update_versioned_file_regex(
 		.into_owned())
 }
 
-pub(crate) fn apply_versioned_file_definition(
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn apply_versioned_file_definition_to_paths(
 	root: &Path,
 	updates: &mut BTreeMap<PathBuf, CachedDocument>,
 	definition: &VersionedFileDefinition,
+	resolved_paths: &[PathBuf],
 	owner_version: &str,
 	shared_release_version: Option<&String>,
 	dep_names: &[impl AsRef<str>],
 	context: &VersionedFileUpdateContext<'_>,
 ) -> MonochangeResult<()> {
 	if let Some(pattern) = &definition.regex {
-		let glob_pattern = root.join(&definition.path).to_string_lossy().to_string();
-		let matched_paths = glob::glob(&glob_pattern).map_err(|error| {
-			MonochangeError::Config(format!(
-				"invalid glob pattern `{}`: {error}",
-				definition.path
-			))
-		})?;
-		for resolved_path in matched_paths {
-			let resolved_path =
-				resolved_path.map_err(|error| MonochangeError::Config(error.to_string()))?;
+		for resolved_path in resolved_paths {
+			let resolved_path = resolved_path.clone();
 			let contents = read_cached_text_document(updates, &resolved_path)?;
 			updates.insert(
 				resolved_path,
@@ -1309,16 +1383,8 @@ pub(crate) fn apply_versioned_file_definition(
 			))
 		})?;
 		let name = dep_names.first().map(AsRef::as_ref);
-		let glob_pattern = root.join(&definition.path).to_string_lossy().to_string();
-		let matched_paths = glob::glob(&glob_pattern).map_err(|error| {
-			MonochangeError::Config(format!(
-				"invalid glob pattern `{}`: {error}",
-				definition.path
-			))
-		})?;
-		for resolved_path in matched_paths {
-			let resolved_path =
-				resolved_path.map_err(|error| MonochangeError::Config(error.to_string()))?;
+		for resolved_path in resolved_paths {
+			let resolved_path = resolved_path.clone();
 			let contents = read_cached_text_document(updates, &resolved_path)?;
 			let changed_text = update_format_versioned_file_text(
 				&contents,
@@ -1380,17 +1446,8 @@ pub(crate) fn apply_versioned_file_definition(
 		return Ok(());
 	}
 
-	let glob_pattern = root.join(&definition.path).to_string_lossy().to_string();
-	let matched_paths = glob::glob(&glob_pattern).map_err(|error| {
-		MonochangeError::Config(format!(
-			"invalid glob pattern `{}`: {error}",
-			definition.path
-		))
-	})?;
-
-	for resolved_path in matched_paths {
-		let resolved_path =
-			resolved_path.map_err(|error| MonochangeError::Config(error.to_string()))?;
+	for resolved_path in resolved_paths {
+		let resolved_path = resolved_path.clone();
 		let Some(kind) = versioned_file_kind(ecosystem_type, &resolved_path) else {
 			return Err(MonochangeError::Config(format!(
 				"versioned_files glob `{}` matched unsupported file `{}` for ecosystem `{}`; narrow the glob or change the `type`",

@@ -31,7 +31,6 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-use glob::glob;
 use monochange_core::AdapterDiscovery;
 use monochange_core::DependencyKind;
 use monochange_core::Ecosystem;
@@ -458,12 +457,8 @@ fn expand_workspace_members(
 	let mut manifests = BTreeSet::new();
 
 	for pattern in patterns {
-		let joined = root.join(pattern).to_string_lossy().to_string();
-		let matches: Vec<PathBuf> = glob(&joined)
-			.into_iter()
-			.flat_map(|paths| paths.filter_map(Result::ok))
-			.map(|path| normalize_path(&path))
-			.collect();
+		let matches =
+			monochange_core::workspace_glob_paths(root, pattern, true).unwrap_or_default();
 
 		if matches.is_empty() {
 			warnings.push(format!(

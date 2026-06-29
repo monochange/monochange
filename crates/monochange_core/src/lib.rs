@@ -68,6 +68,9 @@ pub mod git;
 pub mod lint;
 
 pub use analysis::*;
+use glob::MatchOptions;
+use glob::Pattern;
+use ignore::WalkBuilder;
 use ignore::gitignore::Gitignore;
 use ignore::gitignore::GitignoreBuilder;
 use semver::Version;
@@ -554,12 +557,210 @@ impl DiscoveryPathFilter {
 	}
 }
 
+/// Return workspace files matching a glob pattern without traversing ignored workspace trees.
+///
+/// Literal paths are resolved directly and may target ignored directories when explicitly named.
+/// Patterns containing glob metacharacters are matched through the shared discovery filter so broad
+/// patterns such as `**/pubspec.yaml` do not scan local toolchains, dependency directories, or
+/// nested repository checkouts.
+pub fn workspace_glob_files(root: &Path, pattern: &str) -> MonochangeResult<Vec<PathBuf>> {
+	workspace_glob_paths(root, pattern, false)
+}
+
+/// Return workspace files for many glob patterns without traversing ignored workspace trees.
+///
+/// Patterns with the same literal search root share one filesystem walk. Use this instead of
+/// calling [`workspace_glob_files`] in a loop when a command needs to expand many config globs.
+pub fn workspace_glob_files_many<'a, I>(
+	root: &Path,
+	patterns: I,
+) -> MonochangeResult<BTreeMap<String, Vec<PathBuf>>>
+where
+	I: IntoIterator<Item = &'a str>,
+{
+	workspace_glob_paths_many(root, patterns, false)
+}
+
+/// Return workspace paths for many glob patterns without traversing ignored workspace trees.
+///
+/// When `include_directories` is `false`, only files are returned. Literal paths are resolved
+/// directly and may target ignored directories when explicitly named.
+pub fn workspace_glob_paths_many<'a, I>(
+	root: &Path,
+	patterns: I,
+	include_directories: bool,
+) -> MonochangeResult<BTreeMap<String, Vec<PathBuf>>>
+where
+	I: IntoIterator<Item = &'a str>,
+{
+	let mut matched_paths_by_pattern = BTreeMap::<String, Vec<PathBuf>>::new();
+	let mut glob_requests_by_search_root = BTreeMap::<PathBuf, Vec<WorkspaceGlobRequest>>::new();
+
+	for pattern in patterns {
+		if matched_paths_by_pattern.contains_key(pattern) {
+			continue;
+		}
+
+		if !workspace_glob_has_magic(pattern) {
+			let resolved_path = resolve_workspace_glob_literal(root, pattern);
+			let matches_kind =
+				resolved_path.is_file() || (include_directories && resolved_path.is_dir());
+			let matched_paths = matches_kind.then_some(resolved_path).into_iter().collect();
+			matched_paths_by_pattern.insert(pattern.to_string(), matched_paths);
+			continue;
+		}
+
+		let pattern_text = root_relative_workspace_glob_pattern(root, pattern);
+		let pattern_matcher = Pattern::new(&pattern_text).map_err(|error| {
+			MonochangeError::Config(format!("invalid glob pattern `{pattern}`: {error}"))
+		})?;
+		let search_root = workspace_glob_search_root(root, &pattern_text);
+		matched_paths_by_pattern.insert(pattern.to_string(), Vec::new());
+		if search_root.exists() {
+			glob_requests_by_search_root
+				.entry(search_root)
+				.or_default()
+				.push(WorkspaceGlobRequest {
+					pattern: pattern.to_string(),
+					matcher: pattern_matcher,
+				});
+		}
+	}
+
+	let match_options = workspace_glob_match_options();
+	for (search_root, requests) in glob_requests_by_search_root {
+		let path_filter = DiscoveryPathFilter::new(root);
+		let mut builder = WalkBuilder::new(&search_root);
+		builder
+			.hidden(false)
+			.ignore(true)
+			.git_ignore(true)
+			.git_exclude(true)
+			.git_global(false)
+			.parents(true)
+			.filter_entry(move |entry| {
+				entry.depth() == 0 || path_filter.should_descend(entry.path())
+			});
+
+		for entry in builder.build() {
+			// patch-coverage:ignore-start -- walk errors and None file_type entries are filesystem edge cases not reliably testable.
+			let entry = entry.map_err(|error| {
+				MonochangeError::Io(format!("failed to walk {}: {error}", search_root.display()))
+			})?;
+			let Some(file_type) = entry.file_type() else {
+				continue;
+			};
+			// patch-coverage:ignore-end
+			if !(file_type.is_file() || include_directories && file_type.is_dir()) {
+				continue;
+			}
+			let relative_path = entry.path().strip_prefix(root).unwrap_or(entry.path());
+			for request in &requests {
+				if request
+					.matcher
+					.matches_path_with(relative_path, match_options)
+					&& let Some(matched_paths) = matched_paths_by_pattern.get_mut(&request.pattern)
+				{
+					matched_paths.push(entry.path().to_path_buf());
+				}
+			}
+		}
+	}
+
+	for matched_paths in matched_paths_by_pattern.values_mut() {
+		matched_paths.sort();
+	}
+
+	Ok(matched_paths_by_pattern)
+}
+
+/// Return workspace paths matching a glob pattern without traversing ignored workspace trees.
+///
+/// When `include_directories` is `false`, only files are returned. Literal paths are resolved
+/// directly and may target ignored directories when explicitly named.
+pub fn workspace_glob_paths(
+	root: &Path,
+	pattern: &str,
+	include_directories: bool,
+) -> MonochangeResult<Vec<PathBuf>> {
+	workspace_glob_paths_many(root, [pattern], include_directories).map(|mut matches| {
+		matches
+			.remove(pattern)
+			.expect("workspace glob result should include requested pattern")
+	})
+}
+
+struct WorkspaceGlobRequest {
+	pattern: String,
+	matcher: Pattern,
+}
+
+fn workspace_glob_match_options() -> MatchOptions {
+	MatchOptions {
+		case_sensitive: true,
+		require_literal_separator: true,
+		require_literal_leading_dot: false,
+	}
+}
+
+#[must_use]
+pub fn workspace_glob_has_magic(path: &str) -> bool {
+	path.chars()
+		.any(|character| matches!(character, '*' | '?' | '['))
+}
+
+fn resolve_workspace_glob_literal(root: &Path, path: &str) -> PathBuf {
+	let path = Path::new(path);
+	if path.is_absolute() {
+		path.to_path_buf()
+	} else {
+		root.join(path)
+	}
+}
+
+fn root_relative_workspace_glob_pattern(root: &Path, path: &str) -> String {
+	let path = Path::new(path);
+	if path.is_absolute()
+		&& let Ok(relative) = path.strip_prefix(root)
+	{
+		return relative.to_string_lossy().into_owned();
+	}
+
+	path.to_string_lossy().into_owned()
+}
+
+fn workspace_glob_search_root(root: &Path, pattern: &str) -> PathBuf {
+	let literal_walk_root = literal_workspace_glob_walk_root(pattern);
+	if literal_walk_root.as_os_str().is_empty() {
+		root.to_path_buf()
+	} else {
+		root.join(literal_walk_root)
+	}
+}
+
+fn literal_workspace_glob_walk_root(pattern: &str) -> PathBuf {
+	let mut root = PathBuf::new();
+	for component in Path::new(pattern).components() {
+		let component_text = component.as_os_str().to_string_lossy();
+		if workspace_glob_has_magic(&component_text) {
+			break;
+		}
+		root.push(component.as_os_str());
+	}
+
+	root
+}
+
 fn ignored_discovery_dir_name(path: &Path) -> bool {
 	path.components().any(|component| {
 		component.as_os_str().to_str().is_some_and(|name| {
 			matches!(
 				name,
-				".git" | "target" | "node_modules" | ".devenv" | ".claude" | "book"
+				".git"
+					| "target" | "node_modules"
+					| ".devenv" | ".claude"
+					| ".fvm" | ".repos"
+					| "book"
 			)
 		})
 	})

@@ -204,7 +204,7 @@ fn release_pr_args(dry_run: bool) -> Vec<OsString> {
 
 fn command_args(command: &str, dry_run: bool) -> Vec<OsString> {
 	let mut args = vec![OsString::from("monochange")];
-	if matches!(command, "commit-release" | "release-pr") {
+	if matches!(command, "commit-release" | "release-pr" | "release") {
 		args.push(OsString::from("run"));
 	}
 	args.push(OsString::from(command));
@@ -253,6 +253,7 @@ fn run_release_pr_command(root: &Path, dry_run: bool, github_api_url: Option<&st
 
 const SCALES: &[(usize, usize)] = &[(5, 10), (20, 50), (50, 200)];
 const INHERITED_GLOB_PACKAGE_COUNTS: &[usize] = &[20, 50, 500];
+const IGNORED_VERSIONED_FILE_COUNT: usize = 2_000;
 const LOCKFILE_COMPARE_SCALE: (usize, usize) = (20, 50);
 fn generate_inherited_glob_fixture(
 	root: &Path,
@@ -336,6 +337,136 @@ fn bench_inherited_glob_config_load(c: &mut Criterion) {
 			);
 		}
 	}
+	group.finish();
+}
+
+fn generate_ignored_versioned_file_glob_fixture(root: &Path) {
+	let config = r#"
+[defaults]
+package_type = "cargo"
+changelog = false
+
+[package.app]
+path = "packages/app"
+versioned_files = [{ path = "**/metadata.json", format = "json", fields = ["release.version"] }]
+
+[cli.release]
+[[cli.release.steps]]
+type = "PrepareRelease"
+"#;
+	fs::write(root.join("monochange.toml"), config.trim_start()).unwrap();
+	fs::create_dir_all(root.join("packages/app/src")).unwrap();
+	fs::write(
+		root.join("packages/app/Cargo.toml"),
+		"[package]\nname = \"app\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
+	)
+	.unwrap();
+	fs::write(root.join("packages/app/src/lib.rs"), "pub fn app() {}\n").unwrap();
+	fs::write(
+		root.join("packages/app/metadata.json"),
+		"{\"release\":{\"version\":\"1.0.0\"}}\n",
+	)
+	.unwrap();
+	fs::create_dir_all(root.join(".changeset")).unwrap();
+	fs::write(
+		root.join(".changeset/app.md"),
+		"---\napp: patch\n---\n\nUpdate app.\n",
+	)
+	.unwrap();
+
+	for index in 0..IGNORED_VERSIONED_FILE_COUNT {
+		let fvm_file = root.join(format!(".fvm/versions/3.44.1/pkg-{index}/metadata.json"));
+		fs::create_dir_all(fvm_file.parent().unwrap()).unwrap();
+		fs::write(&fvm_file, "{\"release\":{\"version\":\"0.0.0\"}}\n").unwrap();
+
+		let repo_file = root.join(format!(".repos/external/pkg-{index}/metadata.json"));
+		fs::create_dir_all(repo_file.parent().unwrap()).unwrap();
+		fs::write(&repo_file, "{\"release\":{\"version\":\"0.0.0\"}}\n").unwrap();
+	}
+}
+
+const MULTI_GLOB_PATTERN_COUNT: usize = 20;
+
+fn generate_multi_glob_versioned_file_fixture(root: &Path) {
+	use std::fmt::Write as _;
+
+	let mut config = String::from("[defaults]\npackage_type = \"cargo\"\nchangelog = false\n\n");
+	for i in 0..MULTI_GLOB_PATTERN_COUNT {
+		let _ = write!(
+			config,
+			"[package.app{i}]\npath = \"packages/app{i}\"\nversioned_files = [{{ path = \"**/metadata-{i}.json\", format = \"json\", fields = [\"release.version\"] }}]\n\n"
+		);
+	}
+	config.push_str("[cli.release]\n[[cli.release.steps]]\ntype = \"PrepareRelease\"\n");
+	fs::write(root.join("monochange.toml"), &config).unwrap();
+
+	for i in 0..MULTI_GLOB_PATTERN_COUNT {
+		let pkg_dir = root.join(format!("packages/app{i}"));
+		fs::create_dir_all(pkg_dir.join("src")).unwrap();
+		fs::write(
+			pkg_dir.join("Cargo.toml"),
+			format!("[package]\nname = \"app{i}\"\nversion = \"1.0.0\"\nedition = \"2021\"\n"),
+		)
+		.unwrap();
+		fs::write(pkg_dir.join("src/lib.rs"), "pub fn app() {}\n").unwrap();
+		fs::write(
+			pkg_dir.join(format!("metadata-{i}.json")),
+			"{\"release\":{\"version\":\"1.0.0\"}}\n",
+		)
+		.unwrap();
+	}
+	fs::create_dir_all(root.join(".changeset")).unwrap();
+	for i in 0..MULTI_GLOB_PATTERN_COUNT {
+		fs::write(
+			root.join(format!(".changeset/app{i}.md")),
+			format!("---\napp{i}: patch\n---\n\nUpdate app{i}.\n"),
+		)
+		.unwrap();
+	}
+
+	for index in 0..IGNORED_VERSIONED_FILE_COUNT {
+		let fvm_file = root.join(format!(".fvm/versions/3.44.1/pkg-{index}/metadata.json"));
+		fs::create_dir_all(fvm_file.parent().unwrap()).unwrap();
+		fs::write(&fvm_file, "{\"release\":{\"version\":\"0.0.0\"}}\n").unwrap();
+
+		let repo_file = root.join(format!(".repos/external/pkg-{index}/metadata.json"));
+		fs::create_dir_all(repo_file.parent().unwrap()).unwrap();
+		fs::write(&repo_file, "{\"release\":{\"version\":\"0.0.0\"}}\n").unwrap();
+	}
+}
+
+fn bench_versioned_file_globs_skip_ignored_trees(c: &mut Criterion) {
+	let mut group = c.benchmark_group("versioned_file_globs");
+	group.sample_size(10);
+
+	group.bench_function("prepare_release_skips_ignored_trees", |b| {
+		b.iter_batched(
+			|| {
+				let tempdir = tempfile::tempdir().unwrap();
+				generate_ignored_versioned_file_glob_fixture(tempdir.path());
+				tempdir
+			},
+			|tempdir| {
+				block_on_bench(monochange::prepare_release(tempdir.path(), false)).unwrap();
+			},
+			BatchSize::LargeInput,
+		);
+	});
+
+	group.bench_function("prepare_release_multi_glob_batch_walk", |b| {
+		b.iter_batched(
+			|| {
+				let tempdir = tempfile::tempdir().unwrap();
+				generate_multi_glob_versioned_file_fixture(tempdir.path());
+				tempdir
+			},
+			|tempdir| {
+				block_on_bench(monochange::prepare_release(tempdir.path(), false)).unwrap();
+			},
+			BatchSize::LargeInput,
+		);
+	});
+
 	group.finish();
 }
 
@@ -810,6 +941,7 @@ fn bench_cli_startup_help(c: &mut Criterion) {
 			"mc_release_help",
 			vec![
 				OsString::from("monochange"),
+				OsString::from("run"),
 				OsString::from("release"),
 				OsString::from("--help"),
 			],
@@ -840,6 +972,7 @@ criterion_group!(
 	bench_validate,
 	bench_changeset_loading,
 	bench_versions_dry_run_json,
+	bench_versioned_file_globs_skip_ignored_trees,
 	bench_prepare_release_dry_run,
 	bench_prepare_release_apply,
 	bench_prepare_release_apply_cargo_lockfile_refresh,
