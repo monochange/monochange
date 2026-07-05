@@ -285,19 +285,34 @@ impl LintProgressReporter for HumanLintProgressReporter {
 			self.print_line(&summary_line);
 		}
 
-		if fixable > 0 && !fixed {
-			let hint = format!(
-				"{info_icon} {fixable} issue{} can be auto-fixed. Run `{cmd}` to apply.",
-				if fixable == 1 { "" } else { "s" },
-				cmd = if self.color {
-					paint(
-						"monochange check --fix",
-						Style::new().fg_color(Some(anstyle::Color::Ansi(AnsiColor::Cyan))),
-					)
-				} else {
-					"monochange check --fix".to_string()
-				},
-			);
+		if fixable > 0 {
+			let hint = if fixed {
+				format!(
+					"{info_icon} {fixable} issue{} remain auto-fixable. Run `{cmd}` again to apply.",
+					if fixable == 1 { "" } else { "s" },
+					cmd = if self.color {
+						paint(
+							"monochange check --fix",
+							Style::new().fg_color(Some(anstyle::Color::Ansi(AnsiColor::Cyan))),
+						)
+					} else {
+						"monochange check --fix".to_string()
+					},
+				)
+			} else {
+				format!(
+					"{info_icon} {fixable} issue{} can be auto-fixed. Run `{cmd}` to apply.",
+					if fixable == 1 { "" } else { "s" },
+					cmd = if self.color {
+						paint(
+							"monochange check --fix",
+							Style::new().fg_color(Some(anstyle::Color::Ansi(AnsiColor::Cyan))),
+						)
+					} else {
+						"monochange check --fix".to_string()
+					},
+				)
+			};
 			self.print_line(&hint);
 		}
 	}

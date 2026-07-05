@@ -275,6 +275,15 @@ fn run_lint_step_reports_successful_check_output() {
 }
 
 #[test]
+fn run_lint_step_rechecks_after_fixing_errors() {
+	let tempdir = readonly_fix_workspace();
+	let (output, has_errors) = run_lint_step(tempdir.path(), true)
+		.unwrap_or_else(|error| panic!("expected fixable lint step to succeed: {error}"));
+	assert!(!has_errors);
+	assert!(output.contains("Fixed all auto-fixable issues."));
+}
+
+#[test]
 fn run_lint_step_supports_fix_write_failures() {
 	let tempdir = readonly_fix_workspace();
 	let cargo_toml = tempdir.path().join("crates/example/Cargo.toml");

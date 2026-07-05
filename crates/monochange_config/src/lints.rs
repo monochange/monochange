@@ -325,7 +325,8 @@ impl LintRuleRunner for SummaryRule {
 			));
 		}
 
-		let effective_max_length = if heading.is_some() {
+		let summary_is_heading = heading.is_some();
+		let effective_max_length = if summary_is_heading {
 			max_length.or(max_heading_length)
 		} else {
 			max_length
@@ -333,10 +334,15 @@ impl LintRuleRunner for SummaryRule {
 		if let Some(max) = effective_max_length
 			&& summary.chars().count() > max
 		{
+			let subject = if summary_is_heading {
+				"changeset header"
+			} else {
+				"changeset summary"
+			};
 			results.push(LintResult::new(
 				self.rule.id.clone(),
 				LintLocation::new(ctx.manifest_path, 1, 1),
-				format!("changeset summary must be at most {max} characters"),
+				format!("{subject} must be at most {max} characters"),
 				severity,
 			));
 		}
