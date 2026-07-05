@@ -149,7 +149,7 @@ pub(crate) fn run_check_command(
 		None
 	};
 
-	let report = if let Some(ref r) = reporter {
+	let mut report = if let Some(ref r) = reporter {
 		linter.lint_workspace(root, &configuration, r)
 	} else {
 		linter.lint_workspace(
@@ -160,10 +160,12 @@ pub(crate) fn run_check_command(
 	};
 
 	let mut fixed_files: Vec<(PathBuf, String)> = Vec::new();
+	let mut fixed_file_count = 0usize;
 	if fix {
 		let fixes = linter.apply_fixes(&report);
+		fixed_file_count = fixes.len();
 		if let Some(ref r) = reporter {
-			r.fix_started(fixes.len());
+			r.fix_started(fixed_file_count);
 		}
 		for (file_path, fixed_content) in fixes {
 			std::fs::write(&file_path, fixed_content).map_err(|error| {
@@ -187,16 +189,27 @@ pub(crate) fn run_check_command(
 		if let Some(ref r) = reporter {
 			r.fix_finished(fixed_files.len());
 		}
+
+		if fixed_file_count > 0 {
+			// NOTE: optimize later by re-linting only fixed files or adding a safe
+			// fast-path for “all original errors were fixed.”
+			report = linter.lint_workspace(
+				root,
+				&configuration,
+				&monochange_core::lint::NoopLintProgressReporter,
+			);
+		}
 	}
 
 	let lint_has_errors = report.has_errors();
 	let validation_has_errors = !validation_errors.is_empty();
+	let fixed_any_files = fixed_file_count > 0;
 	if let Some(r) = reporter {
 		r.summary(
 			report.error_count,
 			report.warning_count,
 			report.autofixable().len(),
-			fix,
+			fixed_any_files,
 		);
 		r.finish();
 	}
@@ -210,7 +223,7 @@ pub(crate) fn run_check_command(
 				.unwrap_or_else(|error| panic!("serializing lint reports should succeed: {error}")))
 		}
 		OutputFormat::Text | OutputFormat::Markdown => {
-			output.push_str(&format_check_report(&report, fix, verbose));
+			output.push_str(&format_check_report(&report, fixed_any_files, verbose));
 			if validation_has_errors || lint_has_errors {
 				Err(MonochangeError::Config(format!("check failed:\n{output}")))
 			} else {
@@ -225,15 +238,16 @@ pub(crate) fn run_check_command(
 pub(crate) fn run_lint_step(root: &Path, fix: bool) -> MonochangeResult<(String, bool)> {
 	let configuration = load_workspace_configuration(root)?;
 	let linter = build_linter(&configuration, LintSelection::all());
-	let report = linter.lint_workspace(
+	let mut report = linter.lint_workspace(
 		root,
 		&configuration,
 		&monochange_core::lint::NoopLintProgressReporter,
 	);
-	let has_errors = report.has_errors();
+	let mut fixed_file_count = 0usize;
 
 	if fix {
 		let fixes = linter.apply_fixes(&report);
+		fixed_file_count = fixes.len();
 		for (file_path, fixed_content) in fixes {
 			std::fs::write(&file_path, fixed_content).map_err(|error| {
 				MonochangeError::Io(format!(
@@ -243,9 +257,23 @@ pub(crate) fn run_lint_step(root: &Path, fix: bool) -> MonochangeResult<(String,
 				))
 			})?;
 		}
+
+		if fixed_file_count > 0 {
+			// NOTE: keep this in sync with `run_check_command`'s post-fix
+			// verification path.
+			report = linter.lint_workspace(
+				root,
+				&configuration,
+				&monochange_core::lint::NoopLintProgressReporter,
+			);
+		}
 	}
 
-	Ok((format_check_report(&report, fix, false), has_errors))
+	let has_errors = report.has_errors();
+	Ok((
+		format_check_report(&report, fixed_file_count > 0, false),
+		has_errors,
+	))
 }
 
 #[allow(clippy::unnecessary_wraps)]
@@ -495,7 +523,11 @@ impl LintRuleRunner for {struct_name} {{
 
 fn format_check_report(report: &LintReport, fixed: bool, verbose: bool) -> String {
 	if report.results.is_empty() && report.warnings.is_empty() {
-		return "lint: no issues found\n".to_string();
+		let mut output = "lint: no issues found\n".to_string();
+		if fixed {
+			output.push_str("Fixed all auto-fixable issues.\n");
+		}
+		return output;
 	}
 
 	let mut output = String::new();
@@ -556,15 +588,20 @@ fn format_check_report(report: &LintReport, fixed: bool, verbose: bool) -> Strin
 		output.push('\n');
 	}
 
-	if fixed {
+	let autofixable_count = report.autofixable().len();
+	if fixed && autofixable_count == 0 {
 		output.push_str("Fixed all auto-fixable issues.\n");
-	} else if report.autofixable().is_empty() {
+	} else if fixed {
+		let _ = writeln!(
+			output,
+			"Applied fixes; {autofixable_count} issue(s) remain auto-fixable. Run with --fix again to apply."
+		);
+	} else if autofixable_count == 0 {
 		output.push_str("No auto-fixable issues found.\n");
 	} else {
 		let _ = writeln!(
 			output,
-			"{} issue(s) can be auto-fixed. Run with --fix to apply.",
-			report.autofixable().len()
+			"{autofixable_count} issue(s) can be auto-fixed. Run with --fix to apply."
 		);
 	}
 

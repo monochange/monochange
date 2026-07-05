@@ -332,7 +332,7 @@ fn summary_rule_reports_length_period_and_prefix_issues_together() {
 	assert!(
 		results
 			.iter()
-			.any(|result| { result.message == "changeset summary must be at most 5 characters" })
+			.any(|result| { result.message == "changeset header must be at most 5 characters" })
 	);
 	assert!(
 		results
@@ -357,7 +357,7 @@ fn summary_rule_enforces_default_max_heading_length_of_60() {
 	assert!(
 		results
 			.iter()
-			.any(|result| { result.message == "changeset summary must be at most 60 characters" }),
+			.any(|result| { result.message == "changeset header must be at most 60 characters" }),
 		"expected default max_heading_length of 60 for headings, got: {results:?}"
 	);
 }
@@ -384,13 +384,23 @@ fn summary_rule_enforces_explicit_max_length() {
 	let heading = format!("# {}", "a".repeat(61));
 	let mut options = BTreeMap::new();
 	options.insert("max_length".to_string(), json!(60));
-	let results = run_rule(&rule, &lint_file(&heading, Vec::new()), &detailed(options));
+	let config = detailed(options);
+	let results = run_rule(&rule, &lint_file(&heading, Vec::new()), &config);
 
 	assert!(
 		results
 			.iter()
-			.any(|result| { result.message == "changeset summary must be at most 60 characters" }),
+			.any(|result| { result.message == "changeset header must be at most 60 characters" }),
 		"explicit max_length should be enforced, got: {results:?}"
+	);
+
+	let paragraph = "a".repeat(61);
+	let paragraph_results = run_rule(&rule, &lint_file(&paragraph, Vec::new()), &config);
+	assert!(
+		paragraph_results
+			.iter()
+			.any(|result| { result.message == "changeset summary must be at most 60 characters" }),
+		"explicit max_length should be enforced for plain summaries, got: {paragraph_results:?}"
 	);
 }
 
@@ -475,7 +485,7 @@ fn summary_rule_reports_heading_level_and_length_issues_together() {
 	assert!(results.iter().any(|result| {
 		result
 			.message
-			.contains("changeset summary must be at most 5 characters")
+			.contains("changeset header must be at most 5 characters")
 	}));
 }
 

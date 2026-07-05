@@ -3221,7 +3221,8 @@ fn lint_markdown_summary(
 			format!("changeset summary must be at least {min_length} characters"),
 		));
 	}
-	let effective_max_length = if heading_level.is_some() {
+	let summary_is_heading = heading_level.is_some();
+	let effective_max_length = if summary_is_heading {
 		summary_settings
 			.max_length
 			.or(summary_settings.max_heading_length)
@@ -3231,9 +3232,14 @@ fn lint_markdown_summary(
 	if let Some(max) = effective_max_length
 		&& summary.chars().count() > max
 	{
+		let subject = if summary_is_heading {
+			"changeset header"
+		} else {
+			"changeset summary"
+		};
 		return Err(changeset_lint_error(
 			changes_path,
-			format!("changeset summary must be at most {max} characters"),
+			format!("{subject} must be at most {max} characters"),
 		));
 	}
 	if summary_settings.forbid_trailing_period && summary.ends_with('.') {

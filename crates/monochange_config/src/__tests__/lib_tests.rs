@@ -2556,8 +2556,14 @@ fn lint_markdown_changeset_covers_summary_type_and_scope_failures() {
 	settings.summary.max_length = Some(5);
 	expect_config_error(
 		crate::lint_markdown_changeset("## Summary too long", &changes, &settings, path),
+		"header must be at most 5 characters",
+	);
+	settings.summary.required = false;
+	expect_config_error(
+		crate::lint_markdown_changeset("summary too long", &changes, &settings, path),
 		"summary must be at most 5 characters",
 	);
+	settings.summary.required = true;
 	settings.summary.max_length = None;
 	settings.summary.forbid_trailing_period = true;
 	expect_config_error(

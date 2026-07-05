@@ -92,6 +92,7 @@ fn reporter_helpers_cover_color_and_spinner_paths() {
 	reporter.print_success("done");
 	reporter.print_info("info");
 	reporter.summary(0, 1, 1, false);
+	reporter.summary(1, 0, 1, true);
 	reporter.start_spinner("spinning".to_string());
 	thread::sleep(SPINNER_DELAY + SPINNER_TICK + Duration::from_millis(50));
 	reporter.stop_spinner();
@@ -120,6 +121,7 @@ fn reporter_summary_renders_counts() {
 	// the fact it doesn't panic is the real test).
 	reporter.summary(2, 3, 1, false);
 	reporter.summary(1, 0, 0, true);
+	reporter.summary(1, 0, 1, true);
 }
 
 #[test]

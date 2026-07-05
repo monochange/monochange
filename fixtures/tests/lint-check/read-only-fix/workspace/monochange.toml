@@ -7,7 +7,7 @@ changelog = false
 "cargo/internal-dependency-workspace" = "off"
 "cargo/required-package-fields" = "off"
 "cargo/sorted-dependencies" = "off"
-"cargo/unlisted-package-private" = { level = "warning", fix = true }
+"cargo/unlisted-package-private" = { level = "error", fix = true }
 
 [ecosystems.cargo]
 enabled = true
