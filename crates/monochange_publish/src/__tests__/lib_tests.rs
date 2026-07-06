@@ -439,6 +439,25 @@ fn render_publish_command_error_adds_npm_otp_recovery_guidance() {
 }
 
 #[test]
+fn render_publish_command_error_adds_pub_dev_trusted_publishing_guidance() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::PubDev);
+	request.ecosystem = Ecosystem::Dart;
+	let output = CommandOutput {
+		success: false,
+		stdout: "Pub needs your authorization to upload packages on your behalf.".to_string(),
+		stderr: "No credentials were available for pub.dev authentication.".to_string(),
+	};
+
+	let message = render_publish_command_error(&output, &request, PackagePublishRunMode::Release);
+
+	assert!(message.contains("No credentials were available"));
+	assert!(message.contains("pub.dev publishing could not authenticate non-interactively"));
+	assert!(message.contains("id-token: write"));
+	assert!(message.contains("dart-lang/setup-dart"));
+	assert!(message.contains("dart pub token add https://pub.dev --env-var PUB_TOKEN"));
+}
+
+#[test]
 fn publish_command_sets_stream_output_environment_when_metadata_is_enabled() {
 	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
 	request.package_metadata.insert(
@@ -486,6 +505,23 @@ fn process_command_executor_streams_when_environment_is_enabled() {
 		.run(&command)
 		.expect_err("invalid streaming command should fail");
 	assert!(error.to_string().contains("failed to run"));
+}
+
+#[test]
+fn process_command_executor_closes_stdin_for_captured_commands() {
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let command = CommandSpec {
+		program: "sh".to_string(),
+		args: vec!["-c".to_string(), "read ignored".to_string()],
+		cwd: root.path().to_path_buf(),
+		env: BTreeMap::new(),
+	};
+	let mut executor = ProcessCommandExecutor::new(false);
+
+	let output = executor
+		.run(&command)
+		.unwrap_or_else(|error| panic!("run command: {error}"));
+	assert!(!output.success);
 }
 
 #[test]

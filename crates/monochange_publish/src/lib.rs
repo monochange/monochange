@@ -4,6 +4,7 @@ use std::env;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Stdio;
 
 use monochange_core::DependencyEdge;
 use monochange_core::DependencyKind;
@@ -1393,7 +1394,8 @@ fn run_captured_process_command(spec: &CommandSpec) -> MonochangeResult<CommandO
 	command
 		.args(&spec.args)
 		.current_dir(&spec.cwd)
-		.envs(&spec.env);
+		.envs(&spec.env)
+		.stdin(Stdio::null());
 	let output = command.output().map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to run `{}` in {}: {error}",
@@ -1410,13 +1412,13 @@ fn run_captured_process_command(spec: &CommandSpec) -> MonochangeResult<CommandO
 
 fn run_streaming_process_command(spec: &CommandSpec) -> MonochangeResult<CommandOutput> {
 	use std::process::Command;
-	use std::process::Stdio;
 
 	let mut command = Command::new(&spec.program);
 	command
 		.args(&spec.args)
 		.current_dir(&spec.cwd)
 		.envs(&spec.env)
+		.stdin(Stdio::null())
 		.stdout(Stdio::piped())
 		.stderr(Stdio::piped());
 	let mut child = command
@@ -1521,11 +1523,17 @@ fn render_publish_command_error(
 	mode: PackagePublishRunMode,
 ) -> String {
 	let message = render_command_error(output);
-	if !is_npm_otp_error(output, request) {
-		return message;
+	if is_npm_otp_error(output, request) {
+		return format!("{message}\n\n{}", npm_otp_recovery_message(mode));
+	}
+	if is_pub_dev_auth_error(output, request) {
+		return format!(
+			"{message}\n\n{}",
+			pub_dev_trusted_publishing_recovery_message()
+		);
 	}
 
-	format!("{message}\n\n{}", npm_otp_recovery_message(mode))
+	message
 }
 
 fn is_npm_otp_error(output: &CommandOutput, request: &PublishRequest) -> bool {
@@ -1545,6 +1553,32 @@ fn npm_otp_recovery_message(mode: PackagePublishRunMode) -> &'static str {
 			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun the publish command with `NPM_CONFIG_OTP=<CODE>` set in the environment."
 		}
 	}
+}
+
+fn is_pub_dev_auth_error(output: &CommandOutput, request: &PublishRequest) -> bool {
+	if request.registry != RegistryKind::PubDev {
+		return false;
+	}
+	let combined = format!("{}\n{}", output.stdout, output.stderr).to_ascii_lowercase();
+	[
+		"authentication",
+		"authorization",
+		"authorize",
+		"credential",
+		"credentials",
+		"log in",
+		"login",
+		"oauth",
+		"oidc",
+		"pub token",
+		"token add",
+	]
+	.iter()
+	.any(|needle| combined.contains(needle))
+}
+
+fn pub_dev_trusted_publishing_recovery_message() -> &'static str {
+	"pub.dev publishing could not authenticate non-interactively. If this package uses trusted publishing, verify the GitHub workflow has `id-token: write`, runs with the GitHub Actions environment configured on pub.dev, matches the package repository and tag/event policy, and runs `dart-lang/setup-dart` before `dart pub publish`. If using a token fallback, add it before publishing with `dart pub token add https://pub.dev --env-var PUB_TOKEN`."
 }
 
 pub fn build_publish_command(
