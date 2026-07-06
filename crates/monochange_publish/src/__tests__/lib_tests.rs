@@ -450,11 +450,7 @@ fn render_publish_command_error_adds_pub_dev_trusted_publishing_guidance() {
 
 	let message = render_publish_command_error(&output, &request, PackagePublishRunMode::Release);
 
-	assert!(message.contains("No credentials were available"));
-	assert!(message.contains("pub.dev publishing could not authenticate non-interactively"));
-	assert!(message.contains("id-token: write"));
-	assert!(message.contains("dart-lang/setup-dart"));
-	assert!(message.contains("dart pub token add https://pub.dev --env-var PUB_TOKEN"));
+	insta::assert_snapshot!("pub_dev_trusted_publishing_auth_error", message);
 }
 
 #[test]

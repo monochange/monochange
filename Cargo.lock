@@ -2554,6 +2554,7 @@ dependencies = [
 name = "monochange_publish"
 version = "0.8.3"
 dependencies = [
+ "insta",
  "monochange_core",
  "reqwest",
  "rustls",

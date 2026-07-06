@@ -1,0 +1,8 @@
+---
+source: crates/monochange_publish/src/__tests__/lib_tests.rs
+assertion_line: 453
+expression: message
+---
+No credentials were available for pub.dev authentication.
+
+pub.dev publishing could not authenticate non-interactively. If this package uses trusted publishing, verify the GitHub workflow has `id-token: write`, runs with the GitHub Actions environment configured on pub.dev, matches the package repository and tag/event policy, and runs `dart-lang/setup-dart` before `dart pub publish`. If using a token fallback, add it before publishing with `dart pub token add https://pub.dev --env-var PUB_TOKEN`.
