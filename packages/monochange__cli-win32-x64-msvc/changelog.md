@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.8.4 as part of group `main`.
+
 ## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)
 
 ### Changed

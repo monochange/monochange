@@ -1,6 +1,6 @@
 {
 	"name": "@monochange/cli",
-	"version": "0.8.3",
+	"version": "0.8.4",
 	"type": "module",
 	"description": "CLI for cross-ecosystem monorepo release planning with monochange",
 	"keywords": [
@@ -33,14 +33,14 @@
 		"provenance": true
 	},
 	"optionalDependencies": {
-		"@monochange/cli-darwin-arm64": "^0.8.3",
-		"@monochange/cli-darwin-x64": "^0.8.3",
-		"@monochange/cli-linux-arm64-gnu": "^0.8.3",
-		"@monochange/cli-linux-arm64-musl": "^0.8.3",
-		"@monochange/cli-linux-x64-gnu": "^0.8.3",
-		"@monochange/cli-linux-x64-musl": "^0.8.3",
-		"@monochange/cli-win32-arm64-msvc": "^0.8.3",
-		"@monochange/cli-win32-x64-msvc": "^0.8.3"
+		"@monochange/cli-darwin-arm64": "^0.8.4",
+		"@monochange/cli-darwin-x64": "^0.8.4",
+		"@monochange/cli-linux-arm64-gnu": "^0.8.4",
+		"@monochange/cli-linux-arm64-musl": "^0.8.4",
+		"@monochange/cli-linux-x64-gnu": "^0.8.4",
+		"@monochange/cli-linux-x64-musl": "^0.8.4",
+		"@monochange/cli-win32-arm64-msvc": "^0.8.4",
+		"@monochange/cli-win32-x64-msvc": "^0.8.4"
 	},
 	"engines": {
 		"node": ">=18"
