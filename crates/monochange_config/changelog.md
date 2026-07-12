@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
+
+### 🐛 Fixed
+
+#### exit successfully after fixing all check issues
+
+`monochange check --fix` now re-checks manifests after applying fixes and exits successfully when no errors remain. Changeset heading length diagnostics now refer to the changeset header when the first body line is a heading.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #621](https://github.com/monochange/monochange/pull/621)
+
 ## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)
 
 ### 🐛 Fixed
