@@ -371,8 +371,15 @@ impl ServerHandler for MonochangeMcpServer {
 }
 
 fn resolve_root(path: Option<&str>) -> PathBuf {
+	resolve_root_with_current_dir(path, std::env::current_dir)
+}
+
+fn resolve_root_with_current_dir(
+	path: Option<&str>,
+	current_dir: impl FnOnce() -> std::io::Result<PathBuf>,
+) -> PathBuf {
 	let Some(path_str) = path else {
-		return std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+		return current_dir().unwrap_or_else(|_| PathBuf::from("."));
 	};
 
 	PathBuf::from(path_str)

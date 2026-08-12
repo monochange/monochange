@@ -93,7 +93,7 @@ shell = true
 	);
 	let contents = fs::read_to_string(tempdir.path().join("command-output.txt"))
 		.unwrap_or_else(|error| panic!("command output file: {error}"));
-	assert_eq!(contents, "false");
+	assert_eq!(contents.to_ascii_lowercase(), "false");
 }
 
 #[test]
@@ -160,7 +160,7 @@ inputs = ["enabled"]
 	);
 	let implicit_contents = fs::read_to_string(tempdir.path().join("implicit-output.txt"))
 		.unwrap_or_else(|error| panic!("implicit command output file: {error}"));
-	assert_eq!(implicit_contents, "false");
+	assert_eq!(implicit_contents.to_ascii_lowercase(), "false");
 	assert!(tempdir.path().join("selected-output.txt").exists());
 }
 

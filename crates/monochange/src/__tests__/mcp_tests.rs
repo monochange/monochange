@@ -33,6 +33,7 @@ use super::json_error_result;
 use super::json_result;
 use super::parse_frame;
 use super::resolve_root;
+use super::resolve_root_with_current_dir;
 
 macro_rules! assert_readable_json_snapshot {
 	($value:expr) => {{
@@ -265,16 +266,24 @@ fn resolve_root_prefers_explicit_paths() {
 #[test]
 fn resolve_root_defaults_to_current_directory() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let original = std::env::current_dir().unwrap_or_else(|error| panic!("current dir: {error}"));
-	std::env::set_current_dir(tempdir.path())
-		.unwrap_or_else(|error| panic!("set current dir: {error}"));
-	let resolved = resolve_root(None);
-	std::env::set_current_dir(&original)
-		.unwrap_or_else(|error| panic!("restore current dir: {error}"));
+	let resolved = resolve_root_with_current_dir(None, || Ok(tempdir.path().to_path_buf()));
+
 	assert_eq!(
 		monochange_core::normalize_path(&resolved),
 		monochange_core::normalize_path(tempdir.path())
 	);
+}
+
+#[test]
+fn resolve_root_falls_back_when_current_directory_is_unavailable() {
+	let resolved = resolve_root_with_current_dir(None, || {
+		Err(std::io::Error::new(
+			std::io::ErrorKind::NotFound,
+			"missing current directory",
+		))
+	});
+
+	assert_eq!(resolved, PathBuf::from("."));
 }
 
 #[test]
