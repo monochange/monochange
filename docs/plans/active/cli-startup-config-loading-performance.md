@@ -195,7 +195,7 @@ Extend existing CLI command benchmarks to cover both binaries and common command
 - `mc help <custom-command>` with a fixture config
 - `mc lint --list`
 - `mc lint --explain <rule>`
-- `mc step config --format json`
+- `monochange step config --format json`
 - representative no-arg invocation/error path
 
 Benchmarks should run against a fixture containing inherited ecosystem globs to prove config-free and CLI-only paths do not accidentally trigger full validation.
@@ -274,7 +274,7 @@ Real `solana_kit` release-binary timings after warmup:
 - `mc` with no args: ~0.006s median
 - `mc help release`: ~0.006s median
 - `mc release --help`: ~0.007s median
-- `mc step config`: ~2.5s median, down from the previous repeated-glob 25s+ config-load behavior
+- `monochange step config`: ~2.5s median, down from the previous repeated-glob 25s+ config-load behavior
 
 Remaining possible follow-ups:
 

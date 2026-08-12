@@ -430,7 +430,8 @@ fn render_publish_command_error_adds_npm_otp_recovery_guidance() {
 		render_publish_command_error(&output, &request, PackagePublishRunMode::Placeholder);
 
 	assert!(message.contains("npm error code EOTP"));
-	assert!(message.contains("mc step placeholder-publish --otp <CODE>"));
+	assert!(message.contains("monochange step placeholder-publish --otp <CODE>"));
+	assert!(!message.contains("`mc "));
 	assert!(message.contains("NPM_CONFIG_OTP=<CODE>"));
 
 	let release_message =

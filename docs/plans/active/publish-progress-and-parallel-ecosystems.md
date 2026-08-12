@@ -2,7 +2,7 @@
 
 ## Why
 
-`mc step publish-packages` currently depends on telemetry and log-level output for most of its visibility. That makes local terminal runs feel stalled and makes CI failures hard to diagnose without digging through structured traces. Publishing also runs as one sequential list, so an npm-heavy run can finish all npm work before crates.io starts, even when ecosystems are independent.
+`monochange step publish-packages` currently depends on telemetry and log-level output for most of its visibility. That makes local terminal runs feel stalled and makes CI failures hard to diagnose without digging through structured traces. Publishing also runs as one sequential list, so an npm-heavy run can finish all npm work before crates.io starts, even when ecosystems are independent.
 
 This work makes release operations easier to trust by giving users readable progress on stderr while preserving machine-readable reports on stdout/files. It also prepares publish execution for safe ecosystem-level parallelism so independent registries can make progress at the same time without breaking dependency order.
 
@@ -49,7 +49,7 @@ This work makes release operations easier to trust by giving users readable prog
   - blocked/failed.
 - [ ] Keep progress on stderr and existing reports on stdout/artifacts.
 - [ ] Add tests for emoji labels, CI/plain output, and publish event sequencing.
-- [ ] Validate with `cargo fmt`, targeted tests, `cargo clippy -q -p monochange --all-targets --all-features -- -D warnings`, and `devenv shell mc step validate`.
+- [ ] Validate with `cargo fmt`, targeted tests, `cargo clippy -q -p monochange --all-targets --all-features -- -D warnings`, and `devenv shell monochange step validate`.
 
 ### 2. Progress across CLI steps
 

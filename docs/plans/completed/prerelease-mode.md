@@ -177,7 +177,7 @@ not current manifest version
 
 - [x] Run formatting/fix command. (`cargo fmt`; `fix:all` pending.)
 - [x] Run build command. (`cargo build --workspace --all-features` passes.)
-- [x] Run lint/typecheck command. (`cargo clippy --workspace --all-features --all-targets -- -D warnings`, `mc step validate`, and `mc check` pass.)
+- [x] Run lint/typecheck command. (`cargo clippy --workspace --all-features --all-targets -- -D warnings`, `monochange step validate`, and `mc check` pass.)
 - [x] Run tests. (`cargo test -q` passes after updating current and versioned schema assets, clippy fixes, and prerelease-state field rename.)
 - [x] Run patch coverage and reach 100%. (`350/350 (100%)` after focused tests and narrow ignores.)
 - [x] Commit signed changes on `feat/prerelease-mode`.

@@ -14,7 +14,6 @@ The migration has three breaking command-path changes:
 | ----------------------------------- | ------------------------------------- |
 | `mc check`                          | `monochange check`                    |
 | `mc versions --format json`         | `monochange versions --format json`   |
-| `mc step validate`                  | `monochange step validate`            |
 | Colon-delimited built-in step token | `monochange step <name>`              |
 | `monochange <configured-command>`   | `monochange run <configured-command>` |
 
@@ -27,7 +26,6 @@ Before:
 ```sh
 mc check
 mc versions --format json
-mc step validate
 ```
 
 After:

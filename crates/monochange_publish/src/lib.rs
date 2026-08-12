@@ -1547,7 +1547,7 @@ fn is_npm_otp_error(output: &CommandOutput, request: &PublishRequest) -> bool {
 fn npm_otp_recovery_message(mode: PackagePublishRunMode) -> &'static str {
 	match mode {
 		PackagePublishRunMode::Placeholder => {
-			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun with `mc placeholder-publish --otp <CODE>` or `mc step placeholder-publish --otp <CODE>`. You can also set `NPM_CONFIG_OTP=<CODE>` for the command."
+			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun with `monochange step placeholder-publish --otp <CODE>`. You can also set `NPM_CONFIG_OTP=<CODE>` for the command."
 		}
 		PackagePublishRunMode::Release => {
 			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun the publish command with `NPM_CONFIG_OTP=<CODE>` set in the environment."

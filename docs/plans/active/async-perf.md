@@ -82,16 +82,16 @@
 
 Measured with `hyperfine --warmup 1 --runs 6`.
 
-| Fixture                                            | Command                          |      main |       PR | PR/main | Reduction |
-| :------------------------------------------------- | :------------------------------- | --------: | -------: | ------: | --------: |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc step validate`               |   37.5 ms |  25.4 ms |   0.68× |     32.3% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc step discover --format json` |   31.2 ms |  16.4 ms |   0.53× |     47.4% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc release --dry-run`           |  316.6 ms | 131.8 ms |   0.42× |     58.4% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc release`                     |  345.9 ms | 148.9 ms |   0.43× |     57.0% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc step validate`               |  595.1 ms | 475.3 ms |   0.80× |     20.1% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc step discover --format json` |  548.0 ms | 380.7 ms |   0.69× |     30.5% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc release --dry-run`           | 2769.8 ms | 708.6 ms |   0.26× |     74.4% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc release`                     | 3021.1 ms | 784.6 ms |   0.26× |     74.0% |
+| Fixture                                            | Command                                  |      main |       PR | PR/main | Reduction |
+| :------------------------------------------------- | :--------------------------------------- | --------: | -------: | ------: | --------: |
+| Baseline, 20 packages / 50 changesets / 50 commits | `monochange step validate`               |   37.5 ms |  25.4 ms |   0.68× |     32.3% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `monochange step discover --format json` |   31.2 ms |  16.4 ms |   0.53× |     47.4% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `mc release --dry-run`                   |  316.6 ms | 131.8 ms |   0.42× |     58.4% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `mc release`                             |  345.9 ms | 148.9 ms |   0.43× |     57.0% |
+| Large, 200 packages / 500 changesets / 500 commits | `monochange step validate`               |  595.1 ms | 475.3 ms |   0.80× |     20.1% |
+| Large, 200 packages / 500 changesets / 500 commits | `monochange step discover --format json` |  548.0 ms | 380.7 ms |   0.69× |     30.5% |
+| Large, 200 packages / 500 changesets / 500 commits | `mc release --dry-run`                   | 2769.8 ms | 708.6 ms |   0.26× |     74.4% |
+| Large, 200 packages / 500 changesets / 500 commits | `mc release`                             | 3021.1 ms | 784.6 ms |   0.26× |     74.0% |
 
 Top-level CLI benchmark violations: `0`.
 
@@ -99,16 +99,16 @@ Top-level CLI benchmark violations: `0`.
 
 Measured with `hyperfine --warmup 1 --runs 6` on 200 packages, 500 changesets, 500 commits after the diagnose configuration-index follow-up.
 
-| Command                                               |      main |       PR | PR/main | Status   |
-| :---------------------------------------------------- | --------: | -------: | ------: | :------- |
-| `mc step config --dry-run`                            |    8.6 ms |   8.2 ms |   0.95× | improved |
-| `mc step validate --dry-run`                          |  651.9 ms | 518.2 ms |   0.79× | improved |
-| `mc step discover --dry-run --format json`            |  623.4 ms | 553.4 ms |   0.89× | improved |
-| `mc step display-versions --dry-run --format json`    | 1056.7 ms | 724.1 ms |   0.69× | improved |
-| `mc step create-change-file --dry-run`                |  914.0 ms | 593.5 ms |   0.65× | improved |
-| `mc step prepare-release --dry-run --format json`     | 2374.8 ms | 858.5 ms |   0.36× | improved |
-| `mc step affected-packages --dry-run --format json`   | 1442.3 ms |  35.8 ms |   0.02× | improved |
-| `mc step diagnose-changesets --dry-run --format json` | 3072.2 ms | 184.9 ms |   0.06× | improved |
+| Command                                                       |      main |       PR | PR/main | Status   |
+| :------------------------------------------------------------ | --------: | -------: | ------: | :------- |
+| `monochange step config --dry-run`                            |    8.6 ms |   8.2 ms |   0.95× | improved |
+| `monochange step validate --dry-run`                          |  651.9 ms | 518.2 ms |   0.79× | improved |
+| `monochange step discover --dry-run --format json`            |  623.4 ms | 553.4 ms |   0.89× | improved |
+| `monochange step display-versions --dry-run --format json`    | 1056.7 ms | 724.1 ms |   0.69× | improved |
+| `monochange step create-change-file --dry-run`                |  914.0 ms | 593.5 ms |   0.65× | improved |
+| `monochange step prepare-release --dry-run --format json`     | 2374.8 ms | 858.5 ms |   0.36× | improved |
+| `monochange step affected-packages --dry-run --format json`   | 1442.3 ms |  35.8 ms |   0.02× | improved |
+| `monochange step diagnose-changesets --dry-run --format json` | 3072.2 ms | 184.9 ms |   0.06× | improved |
 
 Step-command benchmark violations: `0`.
 
@@ -116,10 +116,10 @@ Step-command benchmark violations: `0`.
 
 Measured with `hyperfine --warmup 1 --runs 3` against `origin/main` at `b79accfd3d11bbaab94fa8c8b508421615d9029e` after switching the CLI runtime to Tokio current-thread mode.
 
-| Command                                            |      main |       PR | PR/main | Status   |
-| :------------------------------------------------- | --------: | -------: | ------: | :------- |
-| `mc step config --dry-run`                         |  146.3 ms | 115.9 ms |   0.79× | improved |
-| `mc step display-versions --dry-run --format json` | 1037.8 ms | 970.1 ms |   0.93× | improved |
+| Command                                                    |      main |       PR | PR/main | Status   |
+| :--------------------------------------------------------- | --------: | -------: | ------: | :------- |
+| `monochange step config --dry-run`                         |  146.3 ms | 115.9 ms |   0.79× | improved |
+| `monochange step display-versions --dry-run --format json` | 1037.8 ms | 970.1 ms |   0.93× | improved |
 
 The two previously noisy or regressed direct step commands are now both faster than `main`; the full direct step-command rerun reported `0` regressions in `/tmp/monochange-step-current-thread-violations.txt`.
 
@@ -155,14 +155,14 @@ The async migration is most valuable when it is framed as bounded orchestration 
 
 Measured on the 200-package / 500-changeset / 500-commit profiling fixture after rebuilding the current branch release binary.
 
-| Command                                                                                                                                                          | Baseline |  Current | Result         |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------: | -------: | :------------- |
-| `mc step diagnose-changesets --dry-run --format json` vs `main`                                                                                                  |  3.072 s | 184.9 ms | 16.61× faster  |
-| `mc step diagnose-changesets --dry-run --format json` vs pre-optimization async                                                                                  |  2.813 s | 173.7 ms | 16.20× faster  |
-| `mc step diagnose-changesets --dry-run --format json` vs prior shared-context iteration                                                                          | 596.4 ms | 173.7 ms | 3.43× faster   |
-| `mc step affected-packages --dry-run --format json --changed-paths crates/pkg-499/src/lib.rs` vs pre-optimization async                                          |  1.223 s |   7.7 ms | 158.95× faster |
-| `mc step affected-packages --dry-run --format json --changed-paths crates/pkg-99/src/lib.rs --changed-paths .changeset/change-0499.md` vs pre-optimization async |  1.244 s |  12.7 ms | 97.93× faster  |
-| `mc step affected-packages --dry-run --format json --from HEAD~1` vs pre-optimization async                                                                      |  1.248 s |  38.9 ms | 32.07× faster  |
+| Command                                                                                                                                                                  | Baseline |  Current | Result         |
+| :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------: | -------: | :------------- |
+| `monochange step diagnose-changesets --dry-run --format json` vs `main`                                                                                                  |  3.072 s | 184.9 ms | 16.61× faster  |
+| `monochange step diagnose-changesets --dry-run --format json` vs pre-optimization async                                                                                  |  2.813 s | 173.7 ms | 16.20× faster  |
+| `monochange step diagnose-changesets --dry-run --format json` vs prior shared-context iteration                                                                          | 596.4 ms | 173.7 ms | 3.43× faster   |
+| `monochange step affected-packages --dry-run --format json --changed-paths crates/pkg-499/src/lib.rs` vs pre-optimization async                                          |  1.223 s |   7.7 ms | 158.95× faster |
+| `monochange step affected-packages --dry-run --format json --changed-paths crates/pkg-99/src/lib.rs --changed-paths .changeset/change-0499.md` vs pre-optimization async |  1.244 s |  12.7 ms | 97.93× faster  |
+| `monochange step affected-packages --dry-run --format json --from HEAD~1` vs pre-optimization async                                                                      |  1.248 s |  38.9 ms | 32.07× faster  |
 
 The explicit no-changeset path now skips discovery entirely and validates config-path classification only. Attached changeset checks use a configuration-only package/group index, so PR policy runs that reference config ids no longer pay full manifest discovery cost. Diagnostics now use the same fast configuration-only index before falling back to full discovery, which removes manifest parsing from common `step diagnose-changesets` runs.
 
@@ -180,7 +180,7 @@ Peak memory sampling with `/usr/bin/time -l` for `step diagnose-changesets` impr
 3. `step display-versions` now avoids cloning package/group ids and formatted versions while rendering its version summary.
    - JSON output streams version display values directly and text output writes into one buffer.
    - The low-gain follow-up rerun now shows this command faster than `main`; remaining work is to isolate prepare-release and serialization costs for additional headroom.
-4. Large-fixture `mc step validate` still spends roughly `0.49 s` on the PR branch.
+4. Large-fixture `monochange step validate` still spends roughly `0.49 s` on the PR branch.
    - Next work: identify whether validation repeatedly loads manifests or performs serial registry/source checks that can be cached or batched.
 5. Release phase timings do not fully explain the wall-clock `mc release` / `mc release --dry-run` durations.
    - Next work: add or inspect outer phase spans around command startup, fixture setup, workflow orchestration, and subprocess boundaries so the remaining wall time is attributable.
