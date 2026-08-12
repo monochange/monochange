@@ -32,12 +32,12 @@
 - Benchmark execution:
   - Ran top-level CLI benchmark with `scripts/benchmark-cli.ts`.
   - Ran built-in step-command benchmark with `scripts/benchmark-step-commands.ts`.
-  - Re-ran step commands with `--warmup 3 --runs 8` to remove a noisy `step:display-versions` outlier.
+  - Re-ran step commands with `--warmup 3 --runs 8` to remove a noisy `step display-versions` outlier.
   - Produced an HTML benchmark comparison report and hosted it in a secret gist for review.
 - Follow-up automation:
   - Scheduled a workspace-scoped recurring prompt every 15 minutes for the next 24 hours: `Keep improving performance and reducing memory usage`.
 - Post-report optimization iteration:
-  - Profiled `step:diagnose-changesets` on the large fixture and found repeated changeset load-context construction plus repeated root-relative path normalization in the hot path.
+  - Profiled `step diagnose-changesets` on the large fixture and found repeated changeset load-context construction plus repeated root-relative path normalization in the hot path.
   - Reused a shared `ChangesetLoadContext` while loading all diagnosed changesets.
   - Reused a shared `ChangesetLoadContext` while validating attached changesets in affected-package policy checks.
   - Reused precomputed changeset-relative paths while building prepared changesets and diagnostics output.
@@ -47,9 +47,9 @@
   - Switched changed-path collection from repeated `Vec::contains` checks to a `BTreeSet` while merging diff and untracked paths.
   - Added a configuration-only attached-changeset coverage index so policy checks can validate config package/group ids without manifest discovery and avoid discovering manifests even on attached-changeset errors.
   - Added regression tests proving affected-package checks without attached changesets and config-id attached changesets do not require workspace discovery.
-  - Reused the same configuration-only package index for diagnostics, so `step:diagnose-changesets` can skip manifest discovery when changesets only use configured package/group ids and explicit bumps.
+  - Reused the same configuration-only package index for diagnostics, so `step diagnose-changesets` can skip manifest discovery when changesets only use configured package/group ids and explicit bumps.
   - Added a regression test proving diagnostics can load config-id changesets without parsing package manifests.
-  - Reworked `step:display-versions` summary rendering to borrow sorted package/group version-plan entries instead of cloning them into owned maps.
+  - Reworked `step display-versions` summary rendering to borrow sorted package/group version-plan entries instead of cloning them into owned maps.
   - Replaced eager version `to_string()` allocation for JSON with streaming `Display` serialization, and render text output directly into one buffer instead of building a temporary `Vec<String>`.
   - Kept a diagnostics fallback regression test for explicit-version changesets so the optimized config-only fast path remains covered without regressing patch coverage.
   - Streamed non-interactive and interactive changeset markdown rendering directly into one buffer, including inline YAML quoting for target keys and `caused_by`, to avoid temporary line vectors, escaped-string vectors, and joins.
@@ -82,16 +82,16 @@
 
 Measured with `hyperfine --warmup 1 --runs 6`.
 
-| Fixture                                            | Command                          |      main |       PR | PR/main | Reduction |
-| :------------------------------------------------- | :------------------------------- | --------: | -------: | ------: | --------: |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc step:validate`               |   37.5 ms |  25.4 ms |   0.68× |     32.3% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc step:discover --format json` |   31.2 ms |  16.4 ms |   0.53× |     47.4% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc release --dry-run`           |  316.6 ms | 131.8 ms |   0.42× |     58.4% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc release`                     |  345.9 ms | 148.9 ms |   0.43× |     57.0% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc step:validate`               |  595.1 ms | 475.3 ms |   0.80× |     20.1% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc step:discover --format json` |  548.0 ms | 380.7 ms |   0.69× |     30.5% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc release --dry-run`           | 2769.8 ms | 708.6 ms |   0.26× |     74.4% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc release`                     | 3021.1 ms | 784.6 ms |   0.26× |     74.0% |
+| Fixture                                            | Command                                  |      main |       PR | PR/main | Reduction |
+| :------------------------------------------------- | :--------------------------------------- | --------: | -------: | ------: | --------: |
+| Baseline, 20 packages / 50 changesets / 50 commits | `monochange step validate`               |   37.5 ms |  25.4 ms |   0.68× |     32.3% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `monochange step discover --format json` |   31.2 ms |  16.4 ms |   0.53× |     47.4% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `mc release --dry-run`                   |  316.6 ms | 131.8 ms |   0.42× |     58.4% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `mc release`                             |  345.9 ms | 148.9 ms |   0.43× |     57.0% |
+| Large, 200 packages / 500 changesets / 500 commits | `monochange step validate`               |  595.1 ms | 475.3 ms |   0.80× |     20.1% |
+| Large, 200 packages / 500 changesets / 500 commits | `monochange step discover --format json` |  548.0 ms | 380.7 ms |   0.69× |     30.5% |
+| Large, 200 packages / 500 changesets / 500 commits | `mc release --dry-run`                   | 2769.8 ms | 708.6 ms |   0.26× |     74.4% |
+| Large, 200 packages / 500 changesets / 500 commits | `mc release`                             | 3021.1 ms | 784.6 ms |   0.26× |     74.0% |
 
 Top-level CLI benchmark violations: `0`.
 
@@ -99,16 +99,16 @@ Top-level CLI benchmark violations: `0`.
 
 Measured with `hyperfine --warmup 1 --runs 6` on 200 packages, 500 changesets, 500 commits after the diagnose configuration-index follow-up.
 
-| Command                                               |      main |       PR | PR/main | Status   |
-| :---------------------------------------------------- | --------: | -------: | ------: | :------- |
-| `mc step:config --dry-run`                            |    8.6 ms |   8.2 ms |   0.95× | improved |
-| `mc step:validate --dry-run`                          |  651.9 ms | 518.2 ms |   0.79× | improved |
-| `mc step:discover --dry-run --format json`            |  623.4 ms | 553.4 ms |   0.89× | improved |
-| `mc step:display-versions --dry-run --format json`    | 1056.7 ms | 724.1 ms |   0.69× | improved |
-| `mc step:create-change-file --dry-run`                |  914.0 ms | 593.5 ms |   0.65× | improved |
-| `mc step:prepare-release --dry-run --format json`     | 2374.8 ms | 858.5 ms |   0.36× | improved |
-| `mc step:affected-packages --dry-run --format json`   | 1442.3 ms |  35.8 ms |   0.02× | improved |
-| `mc step:diagnose-changesets --dry-run --format json` | 3072.2 ms | 184.9 ms |   0.06× | improved |
+| Command                                                       |      main |       PR | PR/main | Status   |
+| :------------------------------------------------------------ | --------: | -------: | ------: | :------- |
+| `monochange step config --dry-run`                            |    8.6 ms |   8.2 ms |   0.95× | improved |
+| `monochange step validate --dry-run`                          |  651.9 ms | 518.2 ms |   0.79× | improved |
+| `monochange step discover --dry-run --format json`            |  623.4 ms | 553.4 ms |   0.89× | improved |
+| `monochange step display-versions --dry-run --format json`    | 1056.7 ms | 724.1 ms |   0.69× | improved |
+| `monochange step create-change-file --dry-run`                |  914.0 ms | 593.5 ms |   0.65× | improved |
+| `monochange step prepare-release --dry-run --format json`     | 2374.8 ms | 858.5 ms |   0.36× | improved |
+| `monochange step affected-packages --dry-run --format json`   | 1442.3 ms |  35.8 ms |   0.02× | improved |
+| `monochange step diagnose-changesets --dry-run --format json` | 3072.2 ms | 184.9 ms |   0.06× | improved |
 
 Step-command benchmark violations: `0`.
 
@@ -116,10 +116,10 @@ Step-command benchmark violations: `0`.
 
 Measured with `hyperfine --warmup 1 --runs 3` against `origin/main` at `b79accfd3d11bbaab94fa8c8b508421615d9029e` after switching the CLI runtime to Tokio current-thread mode.
 
-| Command                                            |      main |       PR | PR/main | Status   |
-| :------------------------------------------------- | --------: | -------: | ------: | :------- |
-| `mc step:config --dry-run`                         |  146.3 ms | 115.9 ms |   0.79× | improved |
-| `mc step:display-versions --dry-run --format json` | 1037.8 ms | 970.1 ms |   0.93× | improved |
+| Command                                                    |      main |       PR | PR/main | Status   |
+| :--------------------------------------------------------- | --------: | -------: | ------: | :------- |
+| `monochange step config --dry-run`                         |  146.3 ms | 115.9 ms |   0.79× | improved |
+| `monochange step display-versions --dry-run --format json` | 1037.8 ms | 970.1 ms |   0.93× | improved |
 
 The two previously noisy or regressed direct step commands are now both faster than `main`; the full direct step-command rerun reported `0` regressions in `/tmp/monochange-step-current-thread-violations.txt`.
 
@@ -155,32 +155,32 @@ The async migration is most valuable when it is framed as bounded orchestration 
 
 Measured on the 200-package / 500-changeset / 500-commit profiling fixture after rebuilding the current branch release binary.
 
-| Command                                                                                                                                                          | Baseline |  Current | Result         |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------: | -------: | :------------- |
-| `mc step:diagnose-changesets --dry-run --format json` vs `main`                                                                                                  |  3.072 s | 184.9 ms | 16.61× faster  |
-| `mc step:diagnose-changesets --dry-run --format json` vs pre-optimization async                                                                                  |  2.813 s | 173.7 ms | 16.20× faster  |
-| `mc step:diagnose-changesets --dry-run --format json` vs prior shared-context iteration                                                                          | 596.4 ms | 173.7 ms | 3.43× faster   |
-| `mc step:affected-packages --dry-run --format json --changed-paths crates/pkg-499/src/lib.rs` vs pre-optimization async                                          |  1.223 s |   7.7 ms | 158.95× faster |
-| `mc step:affected-packages --dry-run --format json --changed-paths crates/pkg-99/src/lib.rs --changed-paths .changeset/change-0499.md` vs pre-optimization async |  1.244 s |  12.7 ms | 97.93× faster  |
-| `mc step:affected-packages --dry-run --format json --from HEAD~1` vs pre-optimization async                                                                      |  1.248 s |  38.9 ms | 32.07× faster  |
+| Command                                                                                                                                                                  | Baseline |  Current | Result         |
+| :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------: | -------: | :------------- |
+| `monochange step diagnose-changesets --dry-run --format json` vs `main`                                                                                                  |  3.072 s | 184.9 ms | 16.61× faster  |
+| `monochange step diagnose-changesets --dry-run --format json` vs pre-optimization async                                                                                  |  2.813 s | 173.7 ms | 16.20× faster  |
+| `monochange step diagnose-changesets --dry-run --format json` vs prior shared-context iteration                                                                          | 596.4 ms | 173.7 ms | 3.43× faster   |
+| `monochange step affected-packages --dry-run --format json --changed-paths crates/pkg-499/src/lib.rs` vs pre-optimization async                                          |  1.223 s |   7.7 ms | 158.95× faster |
+| `monochange step affected-packages --dry-run --format json --changed-paths crates/pkg-99/src/lib.rs --changed-paths .changeset/change-0499.md` vs pre-optimization async |  1.244 s |  12.7 ms | 97.93× faster  |
+| `monochange step affected-packages --dry-run --format json --from HEAD~1` vs pre-optimization async                                                                      |  1.248 s |  38.9 ms | 32.07× faster  |
 
-The explicit no-changeset path now skips discovery entirely and validates config-path classification only. Attached changeset checks use a configuration-only package/group index, so PR policy runs that reference config ids no longer pay full manifest discovery cost. Diagnostics now use the same fast configuration-only index before falling back to full discovery, which removes manifest parsing from common `step:diagnose-changesets` runs.
+The explicit no-changeset path now skips discovery entirely and validates config-path classification only. Attached changeset checks use a configuration-only package/group index, so PR policy runs that reference config ids no longer pay full manifest discovery cost. Diagnostics now use the same fast configuration-only index before falling back to full discovery, which removes manifest parsing from common `step diagnose-changesets` runs.
 
-Peak memory sampling with `/usr/bin/time -l` for `step:diagnose-changesets` improved further after the diagnostics fast path: max RSS went from about 22.1 MB to 19.5 MB, peak footprint from about 12.2 MB to 10.8 MB, and retired instructions from about 37.8B to 372.4M. For the explicit no-changeset affected-package path, max RSS dropped from about 16.2 MB to 13.1 MB, peak footprint from about 6.6 MB to 5.1 MB, and retired instructions from about 17.8B to 79.5M. For the explicit attached-changeset path, max RSS dropped from about 17.2 MB to 14.3 MB, peak footprint from about 7.4 MB to 5.6 MB, and retired instructions from about 18.1B to 142.4M.
+Peak memory sampling with `/usr/bin/time -l` for `step diagnose-changesets` improved further after the diagnostics fast path: max RSS went from about 22.1 MB to 19.5 MB, peak footprint from about 12.2 MB to 10.8 MB, and retired instructions from about 37.8B to 372.4M. For the explicit no-changeset affected-package path, max RSS dropped from about 16.2 MB to 13.1 MB, peak footprint from about 6.6 MB to 5.1 MB, and retired instructions from about 17.8B to 79.5M. For the explicit attached-changeset path, max RSS dropped from about 17.2 MB to 14.3 MB, peak footprint from about 7.4 MB to 5.6 MB, and retired instructions from about 18.1B to 142.4M.
 
 ## Main bottlenecks to tackle next
 
-1. `step:diagnose-changesets` is much faster after skipping discovery for config-id changesets, now around `0.18 s` on the large fixture.
+1. `step diagnose-changesets` is much faster after skipping discovery for config-id changesets, now around `0.18 s` on the large fixture.
    - Remaining time is mostly unavoidable changeset file reads/parsing, prepared diagnostics construction, and JSON serialization.
    - Next work: profile JSON serialization and allocation-heavy prepared changeset fields before trying lower-level parsing changes.
-2. `step:affected-packages` is now fast for both explicit no-changeset and config-id attached-changeset policy checks.
+2. `step affected-packages` is now fast for both explicit no-changeset and config-id attached-changeset policy checks.
    - No-changeset explicit path checks complete in about `7.7 ms` on the large fixture.
    - Explicit config-id attached changeset checks complete in about `12.7 ms`; `--from HEAD~1` with git diff and an attached changeset completes in about `38.9 ms`.
    - Remaining work: rerun the full step-command matrix and look for non-policy affected-package cases that still fall back to full discovery.
-3. `step:display-versions` now avoids cloning package/group ids and formatted versions while rendering its version summary.
+3. `step display-versions` now avoids cloning package/group ids and formatted versions while rendering its version summary.
    - JSON output streams version display values directly and text output writes into one buffer.
    - The low-gain follow-up rerun now shows this command faster than `main`; remaining work is to isolate prepare-release and serialization costs for additional headroom.
-4. Large-fixture `mc step:validate` still spends roughly `0.49 s` on the PR branch.
+4. Large-fixture `monochange step validate` still spends roughly `0.49 s` on the PR branch.
    - Next work: identify whether validation repeatedly loads manifests or performs serial registry/source checks that can be cached or batched.
 5. Release phase timings do not fully explain the wall-clock `mc release` / `mc release --dry-run` durations.
    - Next work: add or inspect outer phase spans around command startup, fixture setup, workflow orchestration, and subprocess boundaries so the remaining wall time is attributable.
@@ -191,9 +191,9 @@ Peak memory sampling with `/usr/bin/time -l` for `step:diagnose-changesets` impr
 
 - [ ] Add lightweight profiling for the slow step paths without affecting normal output.
 - [ ] Measure peak RSS for top-level CLI and direct step-command benchmarks.
-- [x] Profile `step:diagnose-changesets` and reduce repeated git or filesystem work.
-- [x] Profile `step:affected-packages` and skip package graph discovery for no-changeset and config-id attached-changeset policy paths.
-- [x] Profile `step:display-versions` and reduce cloning or serialization overhead.
+- [x] Profile `step diagnose-changesets` and reduce repeated git or filesystem work.
+- [x] Profile `step affected-packages` and skip package graph discovery for no-changeset and config-id attached-changeset policy paths.
+- [x] Profile `step display-versions` and reduce cloning or serialization overhead.
 - [x] Re-run the benchmark scripts after each optimization.
 - [x] Keep this file updated with changes, results, and remaining bottlenecks.
 

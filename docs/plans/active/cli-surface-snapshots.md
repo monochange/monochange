@@ -94,7 +94,7 @@ Sketch:
 	"global_options": [],
 	"commands": [
 		{
-			"path": ["step:affected-packages"],
+			"path": ["step affected-packages"],
 			"aliases": [],
 			"hidden": false,
 			"max_bump": "major",
@@ -289,7 +289,7 @@ Initial preference: one complete snapshot plus a built-in renderer that can prod
 ## Open questions
 
 1. Name: should this be `monochange_surface`, `monochange_contract`, or something more command-specific?
-2. Command spelling: should `step:affected-packages` be modeled as one path segment or normalized as `step affected-packages` with an alias back to the colon spelling?
+2. Command spelling: should `step affected-packages` be modeled as one path segment or normalized as `step affected-packages` with an alias back to the colon spelling?
 3. Standard metadata command: should monochange expose `mc schema`, `mc snapshot`, `mc __schema`, or only an explicit command under `mc api`/`mc surface`?
 4. Output schemas: should we derive with `schemars`, hand-author stable output contracts, or start with snapshot examples and graduate to schemas?
 5. Stability tags: should every command default to stable, or should experimental/user-defined commands be marked separately?

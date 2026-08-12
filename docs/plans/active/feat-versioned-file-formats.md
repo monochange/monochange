@@ -112,7 +112,7 @@ Rules:
 - [x] Add a changeset describing the new `versioned_files.format` mode.
 - [x] Run targeted tests.
 - [ ] Run `fix:all`.
-- [ ] Run `mc step:validate`, relevant lint/build checks, and patch coverage.
+- [ ] Run `monochange step validate`, relevant lint/build checks, and patch coverage.
 - [x] Mark completed steps and record any deferred follow-ups.
 
 ## Execution notes
@@ -120,7 +120,7 @@ Rules:
 - Targeted tests passed for `monochange_core`, `monochange_config`, and `monochange` versioned file coverage.
 - `cargo clippy --package monochange --lib --all-targets -- -D warnings` passed after addressing format-mode warnings.
 - `cargo xtask schema check` passed after regenerating the monochange config schema.
-- `mc step:validate` passed.
+- `monochange step validate` passed.
 - `build:all` passed.
 - `fix:all` was attempted; it completed formatting/schema/config validation stages but failed in the existing GitHub Actions audit (`zizmor`) on pre-existing workflow findings unrelated to `versioned_files.format`.
 
@@ -137,7 +137,7 @@ Final local validation:
 
 ```nushell
 devenv shell fix:all
-devenv shell mc step:validate
+devenv shell monochange step validate
 devenv shell lint:all
 devenv shell build:all
 devenv shell coverage:patch

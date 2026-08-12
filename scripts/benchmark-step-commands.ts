@@ -11,24 +11,25 @@ const hyperfineBin = process.env.MONOCHANGE_HYPERFINE_BIN ?? "hyperfine";
 const RUNNABLE_STEP_COMMANDS = [
 	{
 		label: "monochange step config --dry-run",
-		args: ["step:config", "--dry-run"],
+		args: ["step", "config", "--dry-run"],
 	},
 	{
 		label: "monochange step validate --dry-run",
-		args: ["step:validate", "--dry-run"],
+		args: ["step", "validate", "--dry-run"],
 	},
 	{
 		label: "monochange step discover --dry-run --format json",
-		args: ["step:discover", "--dry-run", "--format", "json"],
+		args: ["step", "discover", "--dry-run", "--format", "json"],
 	},
 	{
 		label: "monochange step display-versions --dry-run --format json",
-		args: ["step:display-versions", "--dry-run", "--format", "json"],
+		args: ["step", "display-versions", "--dry-run", "--format", "json"],
 	},
 	{
 		label: "monochange step create-change-file --dry-run",
 		args: [
-			"step:create-change-file",
+			"step",
+			"create-change-file",
 			"--dry-run",
 			"--package",
 			"pkg-0",
@@ -42,15 +43,15 @@ const RUNNABLE_STEP_COMMANDS = [
 	},
 	{
 		label: "monochange step prepare-release --dry-run --format json",
-		args: ["step:prepare-release", "--dry-run", "--format", "json"],
+		args: ["step", "prepare-release", "--dry-run", "--format", "json"],
 	},
 	{
 		label: "monochange step affected-packages --dry-run --format json",
-		args: ["step:affected-packages", "--dry-run", "--format", "json", "--from", "HEAD~1"],
+		args: ["step", "affected-packages", "--dry-run", "--format", "json", "--from", "HEAD~1"],
 	},
 	{
 		label: "monochange step diagnose-changesets --dry-run --format json",
-		args: ["step:diagnose-changesets", "--dry-run", "--format", "json"],
+		args: ["step", "diagnose-changesets", "--dry-run", "--format", "json"],
 	},
 ];
 

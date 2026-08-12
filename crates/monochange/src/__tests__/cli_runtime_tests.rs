@@ -1988,7 +1988,7 @@ async fn execute_matches_uses_progress_format_from_environment_and_rejects_inval
 			false,
 		)
 		.await
-		.unwrap_or_else(|error| panic!("step:discover with env progress format: {error}"));
+		.unwrap_or_else(|error| panic!("step discover with env progress format: {error}"));
 	})
 	.await;
 

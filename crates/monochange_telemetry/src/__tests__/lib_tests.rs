@@ -92,7 +92,7 @@ fn telemetry_mode_environment_uses_default_state_file() {
 			let sink = TelemetrySink::from_env();
 			assert!(matches!(sink, TelemetrySink::LocalJsonl { .. }));
 			sink.capture_step(StepTelemetry {
-				command_name: "step:validate",
+				command_name: "step validate",
 				step_index: 3,
 				step_kind: "Validate",
 				skipped: true,
@@ -109,7 +109,7 @@ fn telemetry_mode_environment_uses_default_state_file() {
 	assert_eq!(events.len(), 1);
 	let event = event_at(&events, 0);
 	assert_eq!(json_str(event, "/body/string_value"), "command_step");
-	assert_eq!(json_str(event, "/attributes/command_name"), "step:validate");
+	assert_eq!(json_str(event, "/attributes/command_name"), "step validate");
 	assert_eq!(json_u64(event, "/attributes/step_index"), 3);
 	assert_eq!(json_str(event, "/attributes/step_kind"), "Validate");
 	assert!(json_bool(event, "/attributes/skipped"));
@@ -148,7 +148,6 @@ fn telemetry_helpers_use_stable_labels() {
 	assert_eq!(TelemetryOutcome::Skipped.as_str(), "skipped");
 	assert_eq!(TelemetryOutcome::Error.as_str(), "error");
 	assert_eq!(command_source("validate"), "configured");
-	assert_eq!(command_source("step:discover"), "generated_step");
 	assert_eq!(command_source("step discover"), "generated_step");
 }
 

@@ -4,22 +4,18 @@ This guide is for maintainers and agents updating repositories from the older mo
 
 The migration has three breaking command-path changes:
 
-1. Built-in step commands moved from `monochange step:<name>` to `monochange step <name>`.
+1. Built-in step commands moved to the nested `monochange step <name>` path; colon-delimited top-level aliases are no longer supported.
 2. User-defined `[cli.<name>]` commands moved from `monochange <name>` to `monochange run <name>`.
 3. The packaged `mc` binary alias was removed; use `monochange` directly.
 
 ## Quick replacement table
 
-| Old command                                                | New command                                                |
-| ---------------------------------------------------------- | ---------------------------------------------------------- |
-| `mc check`                                                 | `monochange check`                                         |
-| `mc versions --format json`                                | `monochange versions --format json`                        |
-| `mc step:validate`                                         | `monochange step validate`                                 |
-| `monochange step:validate`                                 | `monochange step validate`                                 |
-| `monochange step:discover --format json`                   | `monochange step discover --format json`                   |
-| `monochange step:affected-packages --format json --verify` | `monochange step affected-packages --format json --verify` |
-| `monochange step:prepare-release --dry-run --format json`  | `monochange step prepare-release --dry-run --format json`  |
-| `monochange <configured-command>`                          | `monochange run <configured-command>`                      |
+| Old command                         | New command                           |
+| ----------------------------------- | ------------------------------------- |
+| `mc check`                          | `monochange check`                    |
+| `mc versions --format json`         | `monochange versions --format json`   |
+| Colon-delimited built-in step token | `monochange step <name>`              |
+| `monochange <configured-command>`   | `monochange run <configured-command>` |
 
 ## 1. Replace the `mc` binary alias
 
@@ -30,7 +26,6 @@ Before:
 ```sh
 mc check
 mc versions --format json
-mc step:validate
 ```
 
 After:
@@ -49,18 +44,7 @@ alias mc = monochange
 
 ## 2. Move built-in step commands under `step`
 
-Built-in workflow steps no longer use colon-delimited top-level command names.
-
-Before:
-
-```sh
-monochange step:config --format json
-monochange step:validate
-monochange step:publish-readiness --format json
-monochange step:publish-packages --dry-run
-```
-
-After:
+Built-in workflow steps no longer use colon-delimited top-level command names. Invoke them through the nested command path:
 
 ```sh
 monochange step config --format json
@@ -69,7 +53,7 @@ monochange step publish-readiness --format json
 monochange step publish-packages --dry-run
 ```
 
-The step flags and output formats stay attached to the step itself. Only split `step:<name>` into `step <name>`.
+The step flags and output formats stay attached to the step itself. Split the command path into `step` and `<name>` arguments; argument arrays should likewise use two entries.
 
 ## 3. Move configured commands under `run`
 
@@ -123,7 +107,7 @@ When updating a repository, scan these files first:
 Apply these rules in order:
 
 1. Replace executable `mc` with `monochange`.
-2. Replace `monochange step:<name>` with `monochange step <name>`.
+2. Replace each colon-delimited built-in step token with the nested `monochange step <name>` path.
 3. For each command name defined in `monochange.toml` under `[cli.<name>]`, replace `monochange <name>` with `monochange run <name>`.
 4. Do not rewrite built-ins such as `monochange check`, `monochange run change`, `monochange init`, `monochange mcp`, `monochange run release`, or `monochange versions` into `monochange run ...` unless that exact name is intentionally a configured command in the repository.
 5. Prefer `monochange versions --format json` for machine-readable version output.

@@ -222,7 +222,6 @@ pub(crate) fn synthetic_step_command_definition(
 ) -> MonochangeResult<CliCommandDefinition> {
 	let kebab = cli_command_name
 		.strip_prefix("step ")
-		.or_else(|| cli_command_name.strip_prefix("step:"))
 		.unwrap_or(cli_command_name);
 	let step = monochange_core::all_step_variants()
 		.into_iter()

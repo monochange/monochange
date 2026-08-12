@@ -71,7 +71,7 @@ The `{{ name }}` default means auto-discovered packages use the same canonical i
 
 - **Groups**: Auto-discovered packages can be referenced in `[group.*].packages` by their id just like explicit packages.
 - **Discovery**: Auto-discovery produces declared packages. The `[ecosystems.*]` discovery step (which finds packages by walking filesystem manifests) still runs, but its output is merged with auto-discovered declarations.
-- **Validation**: `mc step:validate` will warn about glob patterns that match zero directories and error on ambiguous overlaps.
+- **Validation**: `monochange step validate` will warn about glob patterns that match zero directories and error on ambiguous overlaps.
 - **`mc init`**: Can generate `auto_discover` settings by detecting the repo layout, eliminating the need for most `[package.*]` entries.
 
 ## Implementation plan
@@ -126,7 +126,7 @@ The `{{ name }}` default means auto-discovered packages use the same canonical i
    - Error on id collisions between auto-discovered packages
    - Error on id collisions between auto-discovered and group ids
 
-8. **Update `mc step:validate`** to report auto-discovered packages
+8. **Update `monochange step validate`** to report auto-discovered packages
 
 ### Phase 4: Template and docs
 

@@ -932,7 +932,7 @@ pub(crate) fn build_cli_command_subcommand_with_prefix(
 
 pub(crate) fn cli_command_after_help(cli_command: &CliCommandDefinition) -> Option<&'static str> {
 	match cli_command.name.as_str() {
-		"step:publish-release" | "step publish-release" => {
+		"step publish-release" => {
 			Some(
 				r"What this step does:
   - Reads a prepared release artifact produced by prepare-release.
@@ -953,7 +953,7 @@ Related commands:
   monochange help step publish-packages",
 			)
 		}
-		"step:prepare-release" | "step prepare-release" => {
+		"step prepare-release" => {
 			Some(
 				r"What this step does:
   - Reads pending changesets and workspace package metadata.
@@ -965,7 +965,7 @@ Typical release flow:
   monochange step publish-release --prepared-release prepared-release.json",
 			)
 		}
-		"step:affected-packages" | "step affected-packages" => {
+		"step affected-packages" => {
 			Some(
 				r"What this step does:
   - Computes packages affected by a change or release plan.
@@ -974,7 +974,7 @@ Typical release flow:
 Use this command when debugging release scope before preparing or publishing a release.",
 			)
 		}
-		"step:create-change-file" => {
+		"step create-change-file" => {
 			Some(
 				r"What this step does:
   - Creates a changeset file for one or more packages.
@@ -1077,7 +1077,7 @@ Repair notes:
   - Hosted release sync runs by default and can be disabled with --sync-provider=false.",
 			)
 		}
-		"tag-release" | "step:tag-release" | "step tag-release" => {
+		"tag-release" | "step tag-release" => {
 			Some(
 				r"Examples:
   monochange step tag-release --from HEAD
