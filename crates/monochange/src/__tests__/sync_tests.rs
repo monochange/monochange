@@ -957,12 +957,11 @@ enabled = true
 		root,
 	)))
 	.unwrap_or_else(|error| panic!("versions list: {error}"));
-	let inventory: serde_json::Value = serde_json::from_str(&list_output)
-		.unwrap_or_else(|error| panic!("parse versions list output: {error}"));
-	let object = inventory
-		.as_object()
-		.unwrap_or_else(|| panic!("versions list should return a JSON object"));
-	assert!(object.values().any(|value| value == "1.2.3"));
+	let inventory = sync::list_workspace_versions(root)
+		.unwrap_or_else(|error| panic!("list workspace versions: {error}"));
+	let expected_output =
+		sync::format_version_inventory_for_cli(&inventory, sync::VersionsOutputFormat::Json);
+	assert_eq!(list_output, expected_output);
 }
 
 #[test]
