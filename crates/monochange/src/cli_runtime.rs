@@ -747,10 +747,7 @@ pub(crate) async fn execute_cli_command_with_options(
 		let step_result: MonochangeResult<()> = async {
 			match step {
 				CliStepDefinition::Config { .. } => {
-					output = if matches!(
-						cli_command.name.as_str(),
-						"config" | "step config" | "step:config"
-					) {
+					output = if matches!(cli_command.name.as_str(), "config" | "step config") {
 						Some(render_config_step_json(root, configuration))
 					} else {
 						None

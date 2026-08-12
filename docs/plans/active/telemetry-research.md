@@ -27,7 +27,7 @@ For monochange, telemetry should be treated as an explicit product feature with 
 
 Telemetry would be most useful if it answers questions like:
 
-- Which top-level commands are used: `validate`, `discover`, `change`, release commands, publish-related commands, and generated `step:*` commands?
+- Which top-level commands are used: `validate`, `discover`, `change`, release commands, publish-related commands, and generated `step <name>` commands?
 - Which `CliStepDefinition` variants are common or unused?
 - Which ecosystems are actually present in discovered workspaces: Cargo, npm, Deno, Dart, Flutter?
 - How often do users run dry-run versus real release/publish flows?
@@ -256,7 +256,7 @@ Properties:
 
 - `cargo test --workspace`
 - `lint:all`
-- `mc step:validate`
+- `mc step validate`
 - Manual checks:
   - fresh install reports telemetry disabled or asks for opt-in without sending anything
   - `MC_TELEMETRY=0` suppresses all network sends

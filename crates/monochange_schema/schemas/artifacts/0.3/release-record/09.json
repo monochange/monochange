@@ -52,7 +52,7 @@
 			]
 		}
 	],
-	"command": "mc step:release",
+	"command": "mc step release",
 	"createdAt": "2026-01-09T00:00:00Z",
 	"deletedChangesets": [
 		".changeset/schema-artifact-9.md"

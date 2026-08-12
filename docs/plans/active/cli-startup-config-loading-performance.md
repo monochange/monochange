@@ -133,8 +133,8 @@ Audit command dispatch so each command pays only for the configuration shape it 
 - custom command help: CLI-only config
 - `lint --list` / `lint --explain`: no workspace validation unless rule behavior requires config
 - `mcp`: avoid workspace validation at server startup; validate inside tools that need it
-- `step:config`: parse/normalize config but avoid package/glob validation unless explicitly requested
-- `step:validate`, `check`, release planning, publish/readiness commands: full validated config, but optimized
+- `step config`: parse/normalize config but avoid package/glob validation unless explicitly requested
+- `step validate`, `check`, release planning, publish/readiness commands: full validated config, but optimized
 - custom command execution: load CLI metadata first; load full workspace only when a step actually needs it
 
 ## Benchmark plan
@@ -195,7 +195,7 @@ Extend existing CLI command benchmarks to cover both binaries and common command
 - `mc help <custom-command>` with a fixture config
 - `mc lint --list`
 - `mc lint --explain <rule>`
-- `mc step:config --format json`
+- `mc step config --format json`
 - representative no-arg invocation/error path
 
 Benchmarks should run against a fixture containing inherited ecosystem globs to prove config-free and CLI-only paths do not accidentally trigger full validation.
@@ -244,7 +244,7 @@ Use test fixtures and counters where practical instead of relying on wall-clock 
 
 ## Open decisions
 
-- Whether `step:config` should print fully validated config or a normalized-but-not-fully-validated config by default.
+- Whether `step config` should print fully validated config or a normalized-but-not-fully-validated config by default.
 - Whether CLI-only parsing should live in `monochange_config` or in `monochange` as a narrower raw config reader.
 - Whether glob cache should be a local validation context only or a more reusable config-loading primitive.
 
@@ -274,10 +274,10 @@ Real `solana_kit` release-binary timings after warmup:
 - `mc` with no args: ~0.006s median
 - `mc help release`: ~0.006s median
 - `mc release --help`: ~0.007s median
-- `mc step:config`: ~2.5s median, down from the previous repeated-glob 25s+ config-load behavior
+- `mc step config`: ~2.5s median, down from the previous repeated-glob 25s+ config-load behavior
 
 Remaining possible follow-ups:
 
 - Extend inherited-glob Criterion fixtures across Cargo, npm, Deno, Dart, Python, and Go.
-- Split `step:config` onto a lighter config path if it should avoid full package/glob validation.
+- Split `step config` onto a lighter config path if it should avoid full package/glob validation.
 - Continue moving command-specific execution paths from full validated config to targeted loaders where safe.

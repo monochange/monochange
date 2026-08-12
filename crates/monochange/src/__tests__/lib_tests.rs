@@ -6633,7 +6633,7 @@ fn repair_release_command_reports_json_output() {
 	})
 	.unwrap_or_else(|error| panic!("repair-release output: {error}"));
 
-	// step:retarget-release does not support --format, so dry-run returns
+	// step retarget-release does not support --format, so dry-run returns
 	// plain text report.
 	assert!(output.contains("repair release:"));
 	assert!(output.contains("from: v1.2.3"));
@@ -14334,7 +14334,7 @@ async fn cli_help_subcommand_renders_detailed_command_help() {
 		],
 	)
 	.await
-	.unwrap_or_else(|error| panic!("help step:validate output: {error}"));
+	.unwrap_or_else(|error| panic!("help step validate output: {error}"));
 
 	assert!(output.contains("validate"));
 	assert!(output.contains("Run the built-in validate release workflow step"));
@@ -15704,11 +15704,12 @@ fn snapshot_request_parsing_covers_root_subtree_and_missing_cases() {
 
 	let subtree = vec![
 		OsString::from("mc"),
-		OsString::from("step:discover"),
+		OsString::from("step"),
+		OsString::from("discover"),
 		OsString::from("--snapshot"),
 	];
 	let request = parse_snapshot_request(&subtree).unwrap_or_else(|| panic!("subtree request"));
-	assert_eq!(request.path, vec!["step:discover"]);
+	assert_eq!(request.path, vec!["step", "discover"]);
 
 	let nested_subtree = vec![
 		OsString::from("mc"),

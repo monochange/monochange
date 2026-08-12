@@ -48,4 +48,4 @@ Validation completed:
 - `devenv shell zizmor .github/workflows/mutation-testing.yml`
 - YAML parse smoke test with Ruby's YAML loader
 - Local shell smoke tests for canary/all matrix discovery and report summarization
-- `devenv shell mc step:validate`
+- `devenv shell mc step validate`

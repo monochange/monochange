@@ -96,7 +96,7 @@ benchmark_command "version" "--version"
 benchmark_command "help" "--help"
 benchmark_command "init help" "init --help"
 benchmark_command "check help" "check --help"
-benchmark_command "step:validate help" "step:validate --help"
+benchmark_command "step validate help" "step validate --help"
 
 # Output JSON
 echo ""

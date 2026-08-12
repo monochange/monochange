@@ -4879,12 +4879,6 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 				cli_command.name
 			)));
 		}
-		if cli_command.name.starts_with("step:") {
-			return Err(MonochangeError::Config(format!(
-				"CLI command `{}` uses reserved `step:` prefix",
-				cli_command.name
-			)));
-		}
 		if cli_command.steps.is_empty() {
 			return Err(MonochangeError::Config(format!(
 				"CLI command `{}` must define at least one step",

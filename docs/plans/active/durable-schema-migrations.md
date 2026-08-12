@@ -27,7 +27,7 @@ Those artifacts currently mix internal Rust struct layout with serialized wire s
 
 ## What “CLI JSON” means here
 
-`--format json` currently renders many command results to stdout, for example `mc step:discover --format json`, `mc release --dry-run --format json`, `mc step:diagnose-changesets --format json`, `mc step:release-record --format json`, and `mc step:tag-release --dry-run --format json`.
+`--format json` currently renders many command results to stdout, for example `mc step discover --format json`, `mc release --dry-run --format json`, `mc step diagnose-changesets --format json`, `mc step release-record --format json`, and `mc step tag-release --dry-run --format json`.
 
 That JSON is useful for automation, but it is different from persisted artifacts because monochange does not necessarily read it back later. For this plan, only JSON artifacts that monochange writes to disk or embeds into git history and later consumes are durable public schemas.
 
@@ -69,7 +69,7 @@ Compatibility note: no release records have shipped publicly yet. The first publ
 - Current header: `kind = "monochange.publishReadiness"`, `schemaVersion = 2`
 - Current reader: `read_report_artifact`
 - Current behavior: serde defaults currently allow missing `schemaVersion`, missing `kind`, and missing `inputFingerprint`
-- Durability: persisted by `mc step:publish-readiness --output <path>` and consumed by publish planning
+- Durability: persisted by `mc step publish-readiness --output <path>` and consumed by publish planning
 - Migration need: first public schema should write `v = "0.1"`; reject missing version going forward
 
 ### Publish bootstrap artifact
@@ -79,7 +79,7 @@ Compatibility note: no release records have shipped publicly yet. The first publ
 - Current header: `kind = "monochange.publishBootstrap"`, `schemaVersion = 1`
 - Current writer: `write_bootstrap_artifact`
 - Current reader: no primary monochange consumer found in this pass
-- Durability: persisted by `mc step:placeholder-publish --output <path>` for CI/manual retry/audit notes
+- Durability: persisted by `mc step placeholder-publish --output <path>` for CI/manual retry/audit notes
 - Migration need: first public schema should write `v = "0.1"`; add canonical parser even if the CLI currently only writes it
 
 ### Prepared release cache artifact
@@ -98,7 +98,7 @@ Compatibility note: no release records have shipped publicly yet. The first publ
 - Current type: `PackagePublishReport`
 - Current writer/reader: `write_publish_report_artifact`, `read_publish_report_artifact`
 - Current header: none
-- Current path: `mc step:publish-packages --output <path>` / `mc step:publish-packages --resume <path>` flow
+- Current path: `mc step publish-packages --output <path>` / `mc step publish-packages --resume <path>` flow
 - Durability: persisted artifact used for resume, so it matches the “only persisted artifacts” policy even though it was not in the initial answer list
 - Migration need: add a schema header before making this a long-term public contract
 
@@ -316,7 +316,7 @@ Recommended commands after implementation:
 cargo test -p monochange_schema
 cargo test -p monochange_core
 cargo test -p monochange
-mc step:validate
+mc step validate
 lint:all
 ```
 

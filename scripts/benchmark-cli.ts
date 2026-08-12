@@ -23,12 +23,12 @@ const PHASE_COMMAND_LABELS = PHASE_COMMANDS.map((command) => command.label);
 const COMMANDS = [
 	{
 		label: "monochange step validate",
-		legacyArgs: ["step:validate"],
+		legacyArgs: ["step", "validate"],
 		currentArgs: ["step", "validate"],
 	},
 	{
 		label: "monochange step discover --format json",
-		legacyArgs: ["step:discover", "--format", "json"],
+		legacyArgs: ["step", "discover", "--format", "json"],
 		currentArgs: ["step", "discover", "--format", "json"],
 	},
 	...PHASE_COMMANDS,

@@ -1072,9 +1072,6 @@ fn validate_command_name_message(name: &str) -> Result<(), String> {
 			"CLI command `{name}` collides with a reserved built-in command"
 		));
 	}
-	if name.starts_with("step:") {
-		return Err("command names cannot start with `step:`".to_string());
-	}
 	if name.starts_with("step ") {
 		return Err("command names cannot start with `step `".to_string());
 	}

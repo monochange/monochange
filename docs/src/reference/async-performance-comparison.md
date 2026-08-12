@@ -82,7 +82,7 @@ Headline results from the stable pairwise summaries:
 
 - Baseline fixture: `validate`, `discover`, `release --dry-run`, and `release` all improved.
 - Large-history fixture: `discover`, `release --dry-run`, and `release` improved; `validate` was noisy in the latest local run but remains advisory.
-- Step benchmark on 200 packages / 500 changesets / 500 commits: every measured safe built-in step command improved, including `step:prepare-release --dry-run --format json` at roughly `0.24x` main.
+- Step benchmark on 200 packages / 500 changesets / 500 commits: every measured safe built-in step command improved, including `step prepare-release --dry-run --format json` at roughly `0.24x` main.
 
 ## PR automation proposal
 

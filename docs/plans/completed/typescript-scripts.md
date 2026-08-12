@@ -54,7 +54,7 @@ Additional review-follow-up validation:
 - `devenv shell lint:js:types`
 - `pnpm build`
 - `devenv shell test:node`
-- `devenv shell mc step:validate`
+- `devenv shell mc step validate`
 - `git diff --check`
 
 `devenv shell lint:all` now runs `lint:js:types` before workflow scanning; it reaches and passes TypeScript checking, then fails later on pre-existing `zizmor` workflow findings unrelated to the TypeScript migration.
@@ -68,6 +68,6 @@ Second PR-review follow-up validation after switching scripts/tests to `.ts` and
 - `pnpm lint`
 - `pnpm build`
 - `devenv shell test:node`
-- `devenv shell mc step:validate`
+- `devenv shell mc step validate`
 - `devenv shell lint:format`
 - `git diff --check`
