@@ -1064,7 +1064,7 @@ pub async fn comment_released_issues(
 	if plans.is_empty() {
 		return Ok(Vec::new());
 	}
-	let client = github_client_from_env(source)?;
+	let client = github_client_from_env(source).await?;
 	comment_released_issues_with_client(&client, source, &plans).await
 }
 
@@ -1152,7 +1152,7 @@ pub async fn publish_release_requests(
 	source: &SourceConfiguration,
 	requests: &[GitHubReleaseRequest],
 ) -> MonochangeResult<Vec<GitHubReleaseOutcome>> {
-	let client = github_client_from_env(source)?;
+	let client = github_client_from_env(source).await?;
 	let result = publish_release_requests_with_client(&client, requests).await;
 	result
 }
@@ -1203,7 +1203,7 @@ pub async fn publish_release_pull_request(
 		});
 	}
 
-	let client = github_client_from_env(source)?;
+	let client = github_client_from_env(source).await?;
 	publish_release_pull_request_with_existing_pull_request(
 		&client,
 		request,
@@ -1438,7 +1438,7 @@ pub async fn sync_retargeted_releases(
 	tag_updates: &[RetargetTagResult],
 	dry_run: bool,
 ) -> MonochangeResult<Vec<RetargetProviderResult>> {
-	let client = github_client_from_env(source)?;
+	let client = github_client_from_env(source).await?;
 	sync_retargeted_releases_with_client(&client, source, tag_updates, dry_run).await
 }
 
@@ -1722,7 +1722,7 @@ async fn lookup_existing_pull_request(
 	source: &SourceConfiguration,
 	request: &GitHubPullRequestRequest,
 ) -> MonochangeResult<Option<GitHubExistingPullRequest>> {
-	let client = github_client_from_env(source)?;
+	let client = github_client_from_env(source).await?;
 	lookup_existing_pull_request_with_client(&client, request).await
 }
 
@@ -1755,14 +1755,56 @@ async fn enable_pull_request_auto_merge_with_client(
 	Ok(())
 }
 
-fn github_client_from_env(source: &SourceConfiguration) -> MonochangeResult<Octocrab> {
-	let token = env::var("GITHUB_TOKEN")
-		.or_else(|_| env::var("GH_TOKEN"))
-		.map_err(|_| {
-			MonochangeError::Config(
-				"set `GITHUB_TOKEN` (or `GH_TOKEN`) before running GitHub automation".to_string(),
-			)
-		})?;
+/// Resolve a GitHub API token, preferring environment variables and falling
+/// back to the authenticated GitHub CLI credential when neither is set.
+///
+/// Precedence: `GITHUB_TOKEN` > `GH_TOKEN` > `gh auth token`.
+async fn resolve_github_token() -> Result<String, String> {
+	if let Ok(token) = env::var("GITHUB_TOKEN") {
+		return Ok(token);
+	}
+	if let Ok(token) = env::var("GH_TOKEN") {
+		return Ok(token);
+	}
+	github_cli_token().await
+}
+
+/// Retrieve the active GitHub CLI credential via `gh auth token`.
+async fn github_cli_token() -> Result<String, String> {
+	let output = tokio::process::Command::new("gh")
+		.args(["auth", "token"])
+		.stdin(std::process::Stdio::null())
+		.stderr(std::process::Stdio::piped())
+		.output()
+		.await
+		.map_err(|error| format!("failed to run `gh auth token`: {error}"))?;
+	if !output.status.success() {
+		let stderr = String::from_utf8_lossy(&output.stderr);
+		let stderr = stderr.trim();
+		let suffix = if stderr.is_empty() {
+			String::new()
+		} else {
+			format!(": {stderr}")
+		};
+		return Err(format!(
+			"`gh auth token` exited with status {}{}",
+			output.status.code().unwrap_or(-1),
+			suffix,
+		));
+	}
+	let token = String::from_utf8_lossy(&output.stdout).trim().to_string();
+	if token.is_empty() {
+		return Err("`gh auth token` returned an empty token".to_string());
+	}
+	Ok(token)
+}
+
+async fn github_client_from_env(source: &SourceConfiguration) -> MonochangeResult<Octocrab> {
+	let token = resolve_github_token().await.map_err(|error| {
+		MonochangeError::Config(format!(
+			"set `GITHUB_TOKEN` (or `GH_TOKEN`) before running GitHub automation, or sign in with `gh auth login`: {error}"
+		))
+	})?;
 	let env_api_url = env::var("GITHUB_API_URL").ok();
 	let api_url = source.api_url.as_deref().or(env_api_url.as_deref());
 	build_github_client(&token, api_url)
