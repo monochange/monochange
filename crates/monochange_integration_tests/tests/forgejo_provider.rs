@@ -72,6 +72,7 @@ fn forgejo_cli_validate_accepts_fixture_configuration() {
 	let output = Command::new(get_cargo_bin("monochange"))
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
 		.current_dir(fixture_path("source/forgejo"))
 		.arg("step")
 		.arg("validate")
