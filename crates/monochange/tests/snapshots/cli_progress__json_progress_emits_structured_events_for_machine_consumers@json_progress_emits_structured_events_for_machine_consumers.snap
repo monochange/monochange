@@ -1,6 +1,6 @@
 ---
 source: crates/monochange/tests/cli_progress.rs
-assertion_line: 325
+assertion_line: 330
 expression: redacted
 ---
 [
@@ -163,6 +163,10 @@ expression: redacted
       {
         "duration_ms": "[duration_ms]",
         "label": "defer versioned file updates"
+      },
+      {
+        "duration_ms": "[duration_ms]",
+        "label": "sync internal dependency constraints"
       }
     ],
     "sequence": "[sequence:8]",

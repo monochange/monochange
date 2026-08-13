@@ -36,6 +36,7 @@ use monochange_core::PrereleaseNumbering;
 use monochange_core::ReleaseDecision;
 use monochange_core::ReleasePlan;
 use monochange_core::SourceConfiguration;
+use monochange_core::VersionStrategy;
 use monochange_core::default_cli_commands;
 #[cfg(feature = "dart")]
 use monochange_dart::DartAdapter;
@@ -54,6 +55,7 @@ use tokio::time::timeout;
 use typed_builder::TypedBuilder;
 
 use crate::interactive;
+use crate::versioned_files::released_versions_by_record_id;
 use crate::*;
 
 /// Result of initializing a workspace with `monochange init`.
@@ -2099,7 +2101,7 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		lockfile_commands = lockfile_commands.len(),
 		"built manifest and lockfile updates"
 	);
-	let file_updates = if lockfile_commands.is_empty() || dry_run {
+	let mut file_updates = if lockfile_commands.is_empty() || dry_run {
 		// During dry-run, skip the expensive workspace copy and lockfile
 		// command execution. The base updates already contain all version
 		// file and changelog changes; lockfile diffs are omitted from the
@@ -2114,6 +2116,15 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 			&lockfile_commands,
 		)?
 	};
+	let dependency_sync_updates = measure_prepare_phase(
+		&mut phase_timings,
+		"sync internal dependency constraints",
+		|| build_dependency_sync_updates(root, &discovery, &plan, &file_updates),
+	)?;
+	if !dry_run && !lockfile_commands.is_empty() {
+		apply_file_updates(&dependency_sync_updates)?;
+	}
+	file_updates = merge_file_updates(file_updates, dependency_sync_updates);
 	let mut changed_files = file_updates
 		.iter()
 		.map(|update| root_relative(root, &update.path))
@@ -2205,6 +2216,70 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		file_diffs,
 		phase_timings,
 	})
+}
+
+fn build_dependency_sync_updates(
+	root: &Path,
+	discovery: &DiscoveryReport,
+	plan: &ReleasePlan,
+	base_updates: &[FileUpdate],
+) -> MonochangeResult<Vec<FileUpdate>> {
+	let released_versions = released_versions_by_record_id(plan);
+	let version_map = discovery
+		.packages
+		.iter()
+		.filter_map(|package| {
+			released_versions
+				.get(&package.id)
+				.cloned()
+				.or_else(|| package.current_version.as_ref().map(ToString::to_string))
+				.map(|version| (package.name.clone(), version))
+		})
+		.collect::<BTreeMap<_, _>>();
+	let manifest_contents = base_updates
+		.iter()
+		.filter_map(|update| {
+			String::from_utf8(update.content.clone())
+				.ok()
+				.map(|contents| (root.join(&update.path), contents))
+		})
+		.collect::<BTreeMap<_, _>>();
+	let sync_plan = sync::plan_discovered_workspace_versions_with_overrides(
+		root,
+		VersionStrategy::Default,
+		discovery,
+		&version_map,
+		&manifest_contents,
+	)?;
+
+	sync_plan
+		.files
+		.iter()
+		.map(|file| {
+			let updated_contents =
+				sync::apply_sync_changes(&file.contents, &file.changes, file.ecosystem)?;
+			Ok(FileUpdate {
+				path: file.manifest_path.clone(),
+				content: updated_contents.into_bytes(),
+			})
+		})
+		.collect()
+}
+
+fn merge_file_updates(
+	base_updates: Vec<FileUpdate>,
+	additional_updates: Vec<FileUpdate>,
+) -> Vec<FileUpdate> {
+	let mut updates = base_updates
+		.into_iter()
+		.map(|update| (update.path.clone(), update))
+		.collect::<BTreeMap<_, _>>();
+
+	for update in additional_updates {
+		updates.insert(update.path.clone(), update);
+	}
+
+	updates.into_values().collect()
 }
 
 fn measure_prepare_phase<T>(
