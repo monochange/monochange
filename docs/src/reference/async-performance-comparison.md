@@ -35,14 +35,14 @@ cargo build --manifest-path "$workdir/main/Cargo.toml" --release -p monochange -
 cargo build --manifest-path "$workdir/async/Cargo.toml" --release -p monochange --bin monochange
 
 node "$workdir/async/scripts/benchmark-cli.ts" run \
-  --main-bin "$workdir/main/target/release/mc" \
-  --pr-bin "$workdir/async/target/release/mc" \
+  --main-bin "$workdir/main/target/release/monochange" \
+  --pr-bin "$workdir/async/target/release/monochange" \
   --output "$workdir/async-performance.md" \
   --violations-output "$workdir/async-performance-violations.txt"
 
 node "$workdir/async/scripts/benchmark-step-commands.ts" run \
-  --main-bin "$workdir/main/target/release/mc" \
-  --pr-bin "$workdir/async/target/release/mc" \
+  --main-bin "$workdir/main/target/release/monochange" \
+  --pr-bin "$workdir/async/target/release/monochange" \
   --output "$workdir/async-step-performance.md" \
   --violations-output "$workdir/async-step-performance-violations.txt"
 

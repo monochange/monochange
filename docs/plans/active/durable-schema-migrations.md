@@ -27,7 +27,7 @@ Those artifacts currently mix internal Rust struct layout with serialized wire s
 
 ## What “CLI JSON” means here
 
-`--format json` currently renders many command results to stdout, for example `monochange step discover --format json`, `mc release --dry-run --format json`, `monochange step diagnose-changesets --format json`, `monochange step release-record --format json`, and `monochange step tag-release --dry-run --format json`.
+`--format json` currently renders many command results to stdout, for example `monochange step discover --format json`, `monochange release --dry-run --format json`, `monochange step diagnose-changesets --format json`, `monochange step release-record --format json`, and `monochange step tag-release --dry-run --format json`.
 
 That JSON is useful for automation, but it is different from persisted artifacts because monochange does not necessarily read it back later. For this plan, only JSON artifacts that monochange writes to disk or embeds into git history and later consumes are durable public schemas.
 

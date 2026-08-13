@@ -74,7 +74,7 @@ Sketch:
 	"schema_version": "0.7",
 	"kind": "cli-surface",
 	"tool": {
-		"name": "mc",
+		"name": "monochange",
 		"version": "0.6.8"
 	},
 	"standard_entrypoints": {
@@ -262,7 +262,7 @@ Possible layouts and views:
 
 1. One complete snapshot file, stable sorted by command path.
 2. Optional index file mapping command paths to per-command files.
-3. Optional `mc snapshot show <path> --format json` later for focused retrieval.
+3. Optional `monochange snapshot show <path> --format json` later for focused retrieval.
 4. Full view: includes descriptions, examples, output notes, and compatibility metadata.
 5. Light view: omits descriptions/examples/prose and keeps only command paths, options, positionals, parser behavior, outputs, errors, max bump policy, and semantic ids.
 6. Index view: command paths plus short summaries only.
@@ -273,24 +273,24 @@ Initial preference: one complete snapshot plus a built-in renderer that can prod
 
 - [x] Finalize naming: `monochange_snapshot`.
 - [x] Finalize initial normalized schema fields for CLI invocation snapshots.
-- [x] Decide first scope: monochange's own `mc` CLI via clap metadata.
+- [x] Decide first scope: monochange's own `monochange` CLI via clap metadata.
 - [x] Add internal data model crate/module.
 - [x] Add extractor trait that produces the normalized snapshot plus confidence/provenance metadata.
 - [x] Add first extractor from clap metadata.
 - [x] Reserve room for future extractors: TypeScript/JavaScript CLI builders, Python frameworks, Fig-like specs, shell completion scripts, and help-text inference.
 - [x] Add snapshot rendering modes: full, light/no-descriptions, and command index.
 - [x] Add manual annotation data types for command output schemas where extractors cannot infer them.
-- [x] Add snapshot rendering command: `mc snapshot` plus global `--snapshot`.
-- [x] Add fixture-backed integration snapshots for `mc` surface output.
+- [x] Add snapshot rendering command: `monochange snapshot` plus global `--snapshot`.
+- [x] Add fixture-backed integration snapshots for `monochange` surface output.
 - [x] Add diff classifier for CLI surface snapshots.
-- [x] Integrate classification into `mc change classify`.
+- [x] Integrate classification into `monochange change classify`.
 - [x] Keep affected changeset policy enforcement deferred until CLI classification is trusted by fixture snapshots and a stored baseline format.
 
 ## Open questions
 
 1. Name: should this be `monochange_surface`, `monochange_contract`, or something more command-specific?
 2. Command spelling: should `step affected-packages` be modeled as one path segment or normalized as `step affected-packages` with an alias back to the colon spelling?
-3. Standard metadata command: should monochange expose `mc schema`, `mc snapshot`, `mc __schema`, or only an explicit command under `mc api`/`mc surface`?
+3. Standard metadata command: should monochange expose `monochange schema`, `monochange snapshot`, `monochange __schema`, or only an explicit command under `monochange api`/`monochange surface`?
 4. Output schemas: should we derive with `schemars`, hand-author stable output contracts, or start with snapshot examples and graduate to schemas?
 5. Stability tags: should every command default to stable, or should experimental/user-defined commands be marked separately?
 6. User-defined `[cli.*]` commands: are they part of the package API surface, or only built-in binary/step commands?

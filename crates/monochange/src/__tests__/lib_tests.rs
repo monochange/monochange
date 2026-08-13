@@ -15582,9 +15582,9 @@ versioned_files = [
 async fn snapshot_command_outputs_full_cli_surface() {
 	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/mixed");
 	let output = crate::run_with_args_in_dir(
-		"mc",
+		"monochange",
 		[
-			OsString::from("mc"),
+			OsString::from("monochange"),
 			OsString::from("snapshot"),
 			OsString::from("--view"),
 			OsString::from("light"),
@@ -15596,7 +15596,7 @@ async fn snapshot_command_outputs_full_cli_surface() {
 	let value: serde_json::Value = serde_json::from_str(&output).unwrap();
 
 	assert_eq!(value["kind"], "cli-surface");
-	assert_eq!(value["tool"]["name"], "mc");
+	assert_eq!(value["tool"]["name"], "monochange");
 	let step_command = value["commands"]
 		.as_array()
 		.unwrap()
@@ -15616,9 +15616,9 @@ async fn snapshot_command_outputs_full_cli_surface() {
 async fn global_snapshot_flag_outputs_subcommand_surface() {
 	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/mixed");
 	let output = crate::run_with_args_in_dir(
-		"mc",
+		"monochange",
 		[
-			OsString::from("mc"),
+			OsString::from("monochange"),
 			OsString::from("step"),
 			OsString::from("discover"),
 			OsString::from("--snapshot"),
@@ -15675,7 +15675,7 @@ fn change_classify_reports_cli_snapshot_diffs() {
 	let output = run_cli(
 		tempdir.path(),
 		[
-			OsString::from("mc"),
+			OsString::from("monochange"),
 			OsString::from("change"),
 			OsString::from("classify"),
 			OsString::from("--cli-snapshot-before"),
@@ -15694,16 +15694,16 @@ fn change_classify_reports_cli_snapshot_diffs() {
 
 #[test]
 fn snapshot_request_parsing_covers_root_subtree_and_missing_cases() {
-	let empty = vec![OsString::from("mc")];
+	let empty = vec![OsString::from("monochange")];
 	assert!(parse_snapshot_request(&empty).is_none());
 
-	let root = vec![OsString::from("mc"), OsString::from("--snapshot")];
+	let root = vec![OsString::from("monochange"), OsString::from("--snapshot")];
 	let request = parse_snapshot_request(&root).unwrap_or_else(|| panic!("root request"));
 	assert!(request.path.is_empty());
 	assert_eq!(request.view, monochange_snapshot::SnapshotView::Full);
 
 	let subtree = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("step"),
 		OsString::from("discover"),
 		OsString::from("--snapshot"),
@@ -15712,7 +15712,7 @@ fn snapshot_request_parsing_covers_root_subtree_and_missing_cases() {
 	assert_eq!(request.path, vec!["step", "discover"]);
 
 	let nested_subtree = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("migrate"),
 		OsString::from("audit"),
 		OsString::from("--snapshot"),
@@ -15737,7 +15737,7 @@ fn snapshot_request_parsing_covers_root_subtree_and_missing_cases() {
 
 #[test]
 fn snapshot_rendering_reports_missing_subtrees() {
-	let command = Command::new("mc").subcommand(Command::new("known"));
+	let command = Command::new("monochange").subcommand(Command::new("known"));
 	let request = SnapshotRequest {
 		path: vec!["missing".to_string()],
 		view: monochange_snapshot::SnapshotView::Full,
@@ -15753,9 +15753,9 @@ fn snapshot_rendering_reports_missing_subtrees() {
 
 #[test]
 fn command_path_from_matches_collects_nested_subcommands() {
-	let matches = Command::new("mc")
+	let matches = Command::new("monochange")
 		.subcommand(Command::new("step").subcommand(Command::new("discover")))
-		.try_get_matches_from(["mc", "step", "discover"])
+		.try_get_matches_from(["monochange", "step", "discover"])
 		.unwrap_or_else(|error| panic!("matches: {error}"));
 
 	assert_eq!(
@@ -15767,7 +15767,7 @@ fn command_path_from_matches_collects_nested_subcommands() {
 #[test]
 fn cli_snapshot_classification_reports_parse_and_missing_value_errors() {
 	let args = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--cli-snapshot-before"),
@@ -15780,7 +15780,7 @@ fn cli_snapshot_classification_reports_parse_and_missing_value_errors() {
 	);
 
 	let args = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--cli-snapshot-after"),
@@ -15796,7 +15796,7 @@ fn cli_snapshot_classification_reports_parse_and_missing_value_errors() {
 	let invalid = tempdir.path().join("invalid.json");
 	fs::write(&invalid, "not json").unwrap_or_else(|error| panic!("write invalid: {error}"));
 	let args = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--cli-snapshot-before"),
@@ -15809,7 +15809,7 @@ fn cli_snapshot_classification_reports_parse_and_missing_value_errors() {
 
 	let missing = tempdir.path().join("missing.json");
 	let args = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--cli-snapshot-before"),
@@ -15820,21 +15820,21 @@ fn cli_snapshot_classification_reports_parse_and_missing_value_errors() {
 	let error = render_cli_snapshot_classification(&args).unwrap_err();
 	assert!(error.to_string().contains("failed to read CLI snapshot"));
 
-	let args = vec![OsString::from("mc")];
+	let args = vec![OsString::from("monochange")];
 	assert!(render_cli_snapshot_classification(&args).unwrap().is_none());
 
-	let args = vec![OsString::from("mc"), OsString::from("step")];
+	let args = vec![OsString::from("monochange"), OsString::from("step")];
 	assert!(render_cli_snapshot_classification(&args).unwrap().is_none());
 
 	let args = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("step"),
 		OsString::from("classify"),
 	];
 	assert!(render_cli_snapshot_classification(&args).unwrap().is_none());
 
 	let args = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--ignored"),
@@ -15867,7 +15867,7 @@ fn cli_snapshot_classification_renders_json_output() {
 	.unwrap_or_else(|error| panic!("write after: {error}"));
 
 	let args = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--format"),
@@ -15904,7 +15904,7 @@ fn cli_snapshot_classification_renders_json_output() {
 	)
 	.unwrap_or_else(|error| panic!("write after text: {error}"));
 	let args = vec![
-		OsString::from("mc"),
+		OsString::from("monochange"),
 		OsString::from("change"),
 		OsString::from("classify"),
 		OsString::from("--cli-snapshot-before"),

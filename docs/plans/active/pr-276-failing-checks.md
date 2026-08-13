@@ -2,7 +2,7 @@
 
 ## Problem statement
 
-PR #276 (`feat(lint): add beautiful interactive progress reporting for mc check and mc lint`) is blocked by failing `lint` and `coverage` checks.
+PR #276 (`feat(lint): add beautiful interactive progress reporting for monochange check and monochange lint`) is blocked by failing `lint` and `coverage` checks.
 
 ## Scope
 

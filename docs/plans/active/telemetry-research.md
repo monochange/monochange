@@ -249,7 +249,7 @@ Properties:
 - [x] Add sanitized error classification for the core error enum without sending raw messages.
 - [ ] Decide backend: PostHog for product analytics, OpenTelemetry for standards-based traces, Sentry for error monitoring; remote OpenTelemetry tracked in [#297](https://github.com/monochange/monochange/issues/297).
 - [ ] Add stronger tests ensuring telemetry is disabled by default, never sends during tests by default, and redacts paths/package names; tracked in [#299](https://github.com/monochange/monochange/issues/299).
-- [ ] Add a `mc telemetry status|enable|disable|reset-id|preview` command set if the UX is accepted; tracked in [#295](https://github.com/monochange/monochange/issues/295).
+- [ ] Add a `monochange telemetry status|enable|disable|reset-id|preview` command set if the UX is accepted; tracked in [#295](https://github.com/monochange/monochange/issues/295).
 - [ ] Document self-hosted backend options; tracked in [#300](https://github.com/monochange/monochange/issues/300).
 
 ## Acceptance checks for a future implementation

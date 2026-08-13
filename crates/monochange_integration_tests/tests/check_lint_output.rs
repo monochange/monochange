@@ -1,4 +1,4 @@
-//! Integration tests for `mc check` lint output.
+//! Integration tests for `monochange check` lint output.
 
 use std::ffi::OsString;
 use std::path::Path;

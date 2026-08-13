@@ -4,8 +4,8 @@
 
 Work through the five immediate followups from the API snapshot classification MVP:
 
-1. Dogfood `mc change classify --format markdown` and `mc api diff --format json` on monochange itself.
-2. Add CI/docs guidance for advisory `mc changeset validate --api` usage.
+1. Dogfood `monochange change classify --format markdown` and `monochange api diff --format json` on monochange itself.
+2. Add CI/docs guidance for advisory `monochange changeset validate --api` usage.
 3. Improve JavaScript/TypeScript classifier precision so implementation-only exported function body changes are not reported as breaking API changes.
 4. Add dependency propagation modes beyond MVP `none`, starting with public dependency propagation.
 5. Extend monochange-owned API snapshot support to the next ecosystem.
@@ -23,9 +23,9 @@ Work through the five immediate followups from the API snapshot classification M
 - [x] Dogfood the merged API classification commands against this branch/main and capture any usability/doc gaps.
 - [x] Add a changeset for the followup behavior.
 - [x] Document agent/CI advisory usage for:
-  - `mc change classify --format markdown`
-  - `mc api diff --format json`
-  - `mc changeset validate --api --format markdown`
+  - `monochange change classify --format markdown`
+  - `monochange api diff --format json`
+  - `monochange changeset validate --api --format markdown`
 - [x] Add failing tests showing JS and TS exported function body-only changes classify as `patch`/no public API change rather than `major`.
 - [x] Update ECMAScript export signature extraction to compare public signatures instead of full declaration bodies.
 - [x] Add classification dependency propagation primitives:
@@ -41,7 +41,7 @@ Work through the five immediate followups from the API snapshot classification M
 
 ## Notes
 
-- Dogfooding found one CLI usability gap: in this workspace `cargo run -p monochange` must specify `--bin mc` because the package has both `mc` and `monochange` binaries. The docs/skill examples continue to use the installed `mc` binary.
+- Dogfooding found one CLI usability gap: in this workspace `cargo run -p monochange` is unambiguous because the package ships only the `monochange` binary. The docs/skill examples continue to use the installed `monochange` binary.
 - `coverage:patch` ran the changed suites and API classification coverage successfully, then stopped in an unrelated `group_release_note_fallback` fixture because local git inherited signed-commit config but `gpg` was not available in the coverage environment.
 - Public dependency propagation in this followup means direct package-level propagation from a package with public API changes to packages declaring that package as a dependency. It is intentionally conservative and reports propagated recommendations separately from first-party API diffs.
 - Dart is the lowest-risk next ecosystem because `monochange_dart` already extracts public Dart symbols for semantic analysis.

@@ -21,7 +21,6 @@
 		"url": "git+https://github.com/monochange/monochange.git"
 	},
 	"bin": {
-		"mc": "bin/monochange.js",
 		"monochange": "bin/monochange.js"
 	},
 	"files": [

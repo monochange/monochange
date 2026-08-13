@@ -9,7 +9,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-BINARY="$ROOT_DIR/target/release/mc"
+BINARY="$ROOT_DIR/target/release/monochange"
 RESULTS_FILE="${1:-/tmp/monochange-benchmark-$(date +%s).json}"
 
 # Colors for output

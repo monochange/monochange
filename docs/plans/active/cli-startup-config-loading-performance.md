@@ -2,7 +2,7 @@
 
 ## Problem statement
 
-In large workspaces such as `/Users/ifiokjr/Developer/projects/solana_kit`, `mc` and `monochange` startup can take tens of seconds even for commands such as `--version`, `--help`, and no-argument invocation. Diagnostics showed the main cost is `monochange_config::load_workspace_configuration`, especially repeated expansion of inherited ecosystem-level `versioned_files` globs such as `**/pubspec.yaml`.
+In large workspaces such as `/Users/ifiokjr/Developer/projects/solana_kit`, `monochange` startup can take tens of seconds even for commands such as `--version`, `--help`, and no-argument invocation. Diagnostics showed the main cost is `monochange_config::load_workspace_configuration`, especially repeated expansion of inherited ecosystem-level `versioned_files` globs such as `**/pubspec.yaml`.
 
 The current startup path also performs more work than required:
 
@@ -13,11 +13,11 @@ The current startup path also performs more work than required:
 
 ## Goals
 
-- Make `mc --version`, `mc -V`, `monochange --version`, and `monochange -V` config-free and millisecond-fast.
+- Make `monochange --version` and `monochange -V` config-free and millisecond-fast.
 - Make help and command-dispatch paths perform the minimum configuration work needed for the requested operation.
 - Make full configuration loading fast for inherited ecosystem glob scenarios, with no repeated filesystem walks for the same glob.
 - Add regression benchmarks for inherited ecosystem `versioned_files` globs across all supported ecosystems.
-- Add CLI startup benchmarks that make slow paths visible for `mc` and `monochange` commands.
+- Add CLI startup benchmarks that make slow paths visible for `monochange` commands.
 - Keep behavior compatible for validated commands that intentionally need full package and versioned-file checks.
 
 ## Non-goals
@@ -36,14 +36,14 @@ Diagnostic build findings in `solana_kit`:
 - The same glob expansion ran once for the ecosystem and again for each package.
 - Each expansion took roughly 0.5-0.7s in the real repo.
 - `validate_package_and_group_definitions` accounted for roughly 25-28s per full config load.
-- `mc --help` loaded config twice in the instrumented path, making it roughly twice as slow.
-- `monochange --version` lacks the sync version fast path that `mc` has.
+- `monochange --help` loaded config twice in the instrumented path, making it roughly twice as slow.
+- `monochange --version` lacked a sync version fast path.
 
 ## Affected files and crates
 
 Likely files:
 
-- `crates/monochange/src/bin/mc.rs`
+- `crates/monochange/src/main.rs`
 - `crates/monochange/src/main.rs`
 - `crates/monochange/src/lib.rs`
 - `crates/monochange/src/cli.rs`
@@ -58,7 +58,7 @@ Likely files:
 
 ### 1. Config-free version handling
 
-- Keep `mc` sync version handling.
+- Keep `monochange` sync version handling.
 - Add equivalent sync version handling to the `monochange` binary.
 - Ensure version fast paths tolerate global flags only when they can do so without config, or intentionally fall back for unsupported combinations.
 - Verify no code path used for version calls `build_command_for_root`, `cli_commands_for_root`, or `load_workspace_configuration`.
@@ -185,16 +185,16 @@ Acceptance target:
 
 Extend existing CLI command benchmarks to cover both binaries and common command classes:
 
-- `mc --version`
-- `mc -V`
 - `monochange --version`
 - `monochange -V`
-- `mc --help`
+- `monochange --version`
+- `monochange -V`
 - `monochange --help`
-- `mc help`
-- `mc help <custom-command>` with a fixture config
-- `mc lint --list`
-- `mc lint --explain <rule>`
+- `monochange --help`
+- `monochange help`
+- `monochange help <custom-command>` with a fixture config
+- `monochange lint --list`
+- `monochange lint --explain <rule>`
 - `monochange step config --format json`
 - representative no-arg invocation/error path
 
@@ -205,7 +205,7 @@ Benchmarks should run against a fixture containing inherited ecosystem globs to 
 Add regression tests for:
 
 - `monochange --version` does not load config, even when cwd has expensive config.
-- `mc --version` still does not load config.
+- `monochange --version` still does not load config.
 - root help loads configuration at most once.
 - root help can render custom commands using CLI-only config without validating package paths/globs.
 - inherited ecosystem versioned-file globs are validated once, not once per package.
@@ -226,7 +226,7 @@ Use test fixtures and counters where practical instead of relying on wall-clock 
 - [ ] Add inherited glob validation cache/deduplication.
 - [ ] Add tests for config-free and CLI-only behavior.
 - [ ] Add inherited ecosystem glob benchmarks for Cargo, npm, Deno, Dart, Python, and Go.
-- [ ] Extend CLI startup benchmarks for both `mc` and `monochange`.
+- [ ] Extend CLI startup benchmarks for `monochange`.
 - [ ] Run focused unit tests.
 - [ ] Run benchmark script locally against the new fixture.
 - [ ] Run `devenv shell lint:monochange` or the repo-required validation subset.
@@ -235,8 +235,8 @@ Use test fixtures and counters where practical instead of relying on wall-clock 
 
 ## Acceptance checks
 
-- `mc --version` and `monochange --version` are milliseconds in `solana_kit`.
-- `mc --help` and `monochange --help` no longer perform full package/glob validation.
+- `monochange --version` is milliseconds in `solana_kit`.
+- `monochange --help` no longer performs full package/glob validation.
 - Full config loading for inherited ecosystem glob fixtures is under 1s locally.
 - Benchmarks cover all supported ecosystems with ecosystem-level glob inheritance.
 - Tests prove expensive validation is not triggered for commands that do not need it.
@@ -261,19 +261,19 @@ Implemented in this branch:
 
 - Added `monochange_config::load_cli_commands(root)` to parse raw config and merge CLI command metadata without package/group/ecosystem validation.
 - Changed CLI startup/help paths to use CLI-only loading for root help, no-arg help, `help`, `help <command>`, and `<command> --help`.
-- Added a config-free `monochange --version` sync fast path and changed the `mc` sync version fast path to print to stdout.
+- Added a config-free `monochange --version` sync fast path that prints to stdout.
 - Added per-config-load glob validation dedupe for package/group `versioned_files`, so inherited ecosystem globs are not re-expanded once per package.
 - Added regression tests for CLI-only config loading and version/root-help behavior with invalid package/versioned-file config.
-- Added `cli_startup_help` Criterion cases for `mc --version`, root help, and command help.
+- Added `cli_startup_help` Criterion cases for `monochange --version`, root help, and command help.
 
 Real `solana_kit` release-binary timings after warmup:
 
-- `mc --version`: ~0.006s median
+- `monochange --version`: ~0.006s median
 - `monochange --version`: ~0.005s median
-- `mc --help`: ~0.006s median
-- `mc` with no args: ~0.006s median
-- `mc help release`: ~0.006s median
-- `mc release --help`: ~0.007s median
+- `monochange --help`: ~0.006s median
+- `monochange` with no args: ~0.006s median
+- `monochange help release`: ~0.006s median
+- `monochange release --help`: ~0.007s median
 - `monochange step config`: ~2.5s median, down from the previous repeated-glob 25s+ config-load behavior
 
 Remaining possible follow-ups:

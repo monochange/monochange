@@ -176,7 +176,7 @@ expression: value
     }
   },
   "tool": {
-    "name": "mc",
+    "name": "monochange",
     "version": "[version]"
   }
 }

@@ -1,12 +1,12 @@
-# `mc skill` subcommand
+# `monochange skill` subcommand
 
 ## Goal
 
-Add a built-in `mc skill` command that installs the monochange skill bundle into the current project through the upstream `skills add` workflow.
+Add a built-in `monochange skill` command that installs the monochange skill bundle into the current project through the upstream `skills add` workflow.
 
 ## Scope
 
-- add CLI wiring for `mc skill`
+- add CLI wiring for `monochange skill`
 - detect an available launcher from `npx`, `pnpm dlx`, or `bunx`
 - forward interactive or non-interactive `skills add` flags to the upstream installer
 - document the new command in CLI help and assistant-facing docs
@@ -14,7 +14,7 @@ Add a built-in `mc skill` command that installs the monochange skill bundle into
 
 ## Non-goals
 
-- replacing `mc subagents` or `mc mcp`
+- replacing `monochange subagents` or `monochange mcp`
 - reimplementing the upstream `skills add` prompt flow inside monochange
 - adding a global skill-management surface beyond installing the monochange skill source
 
@@ -30,11 +30,11 @@ Add a built-in `mc skill` command that installs the monochange skill bundle into
 
 ## Checklist
 
-- [x] add a failing CLI test for `mc skill` parsing and forwarded flags
+- [x] add a failing CLI test for `monochange skill` parsing and forwarded flags
 - [x] implement runner detection and source resolution for the monochange skill bundle
 - [x] execute `skills add <monochange-source>` with forwarded args in the workspace root
 - [x] cover runner fallback and missing-runner failures with tests
-- [x] update docs and skill references to point at `mc skill`
+- [x] update docs and skill references to point at `monochange skill`
 - [x] add or update the changeset
 - [x] run validation, including patch coverage
 
@@ -48,6 +48,6 @@ Add a built-in `mc skill` command that installs the monochange skill bundle into
 
 ## Notes
 
-- `mc skill` should stay thin and let the upstream `skills` CLI own the interactive install UX.
+- `monochange skill` should stay thin and let the upstream `skills` CLI own the interactive install UX.
 - The command should prefer local project installation by default, while still allowing forwarded upstream flags such as `-g`, `-a`, `--skill`, `--copy`, `--list`, `--all`, and `-y`.
 - After rebasing `feat/skill-command` onto the latest `main`, `devenv shell coverage:patch` completed successfully but reported `PATCH_COVERAGE 0/0 (100.00%)` because the branch no longer had committed diff hunks yet; committed patch coverage should be rechecked again after the feature commit is created.

@@ -215,8 +215,8 @@ fn benchmark_cli_run_fixture_supports_hosted_fixture_metadata() {
 
 	let bin_dir = tempdir.path().join("bin");
 	fs::create_dir_all(&bin_dir).unwrap_or_else(|error| panic!("mkdir bin: {error}"));
-	let fake_main = bin_dir.join("mc-main");
-	let fake_pr = bin_dir.join("mc-pr");
+	let fake_main = bin_dir.join("monochange-main");
+	let fake_pr = bin_dir.join("monochange-pr");
 	let fake_hyperfine = bin_dir.join("hyperfine");
 	let output_path = tempdir.path().join("comment.md");
 	let violations_path = tempdir.path().join("violations.txt");

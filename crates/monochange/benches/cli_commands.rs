@@ -952,7 +952,7 @@ fn bench_cli_startup_help(c: &mut Criterion) {
 		group.bench_with_input(BenchmarkId::from_parameter(label), &args, |b, args| {
 			b.iter(|| {
 				block_on_bench(monochange::run_with_args_in_dir(
-					"mc",
+					"monochange",
 					args.clone(),
 					tempdir.path(),
 				))

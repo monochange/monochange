@@ -73,7 +73,7 @@ npm packages are handled differently from cargo crates. Platform-specific npm pa
 ## 9. Asset build and attestation
 
 - [ ] `release.yml` cross-compiles for all targets in the matrix. Verify the target list matches what npm platform packages expect (`darwin-arm64`, `darwin-x64`, `linux-arm64-gnu`, `linux-arm64-musl`, `linux-x64-gnu`, `linux-x64-musl`, `win32-x64-msvc`, `win32-arm64-msvc`).
-- [ ] Verify `taiki-e/upload-rust-binary-action` is configured with `bin: monochange,mc` and `archive: "monochange-$target-$tag"` — the download step in `publish.yml` matches this pattern (`monochange-*-${RELEASE_TAG}.tar.gz` / `.zip`) and cargo-binstall can find both package binaries in each archive.
+- [ ] Verify `taiki-e/upload-rust-binary-action` is configured with `bin: monochange` and `archive: "monochange-$target-$tag"` — the download step in `publish.yml` matches this pattern (`monochange-*-${RELEASE_TAG}.tar.gz` / `.zip`) and cargo-binstall can find the package binary in each archive.
 - [ ] Build attestations (`actions/attest-build-provenance@v3`) and verification steps exist and pass.
 
 ## 10. Post-release verification
