@@ -1,6 +1,8 @@
 #![allow(clippy::disallowed_methods)]
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Mutex;
+use std::sync::PoisonError;
 
 use httpmock::Method::GET;
 use httpmock::Method::PATCH;
@@ -3340,4 +3342,285 @@ fn github_commit_client_from_env_prefers_github_commit_token_over_github_token()
 	);
 
 	assert!(result.is_ok());
+}
+
+/// Serialize tests that mutate process-wide GitHub auth env vars (`GITHUB_TOKEN`,
+/// `GH_TOKEN`, `PATH`) so they cannot race each other or parallel git-seeding
+/// tests under the shared-process `cargo test`/`cargo llvm-cov` runners.
+/// nextest isolates each test in its own process, but this lock keeps the
+/// standard runners deterministic too.
+static GH_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+#[cfg(unix)]
+fn write_fake_gh(dir: &Path, script: &str) -> PathBuf {
+	use std::os::unix::fs::PermissionsExt;
+
+	let gh = dir.join("gh");
+	fs::write(&gh, script).unwrap_or_else(|error| panic!("write fake gh: {error}"));
+	let mut perms = fs::metadata(&gh).unwrap().permissions();
+	perms.set_mode(0o755);
+	fs::set_permissions(&gh, perms).unwrap();
+	gh
+}
+
+/// Prepend `dir` to the current `PATH` so a fake `gh` is resolved first while
+/// every other executable (notably `git` used by parallel tests) stays findable.
+#[cfg(unix)]
+fn path_with_gh_dir(dir: &Path) -> String {
+	let current = env::var("PATH").unwrap_or_default();
+	format!("{}:{}", dir.to_string_lossy(), current)
+}
+
+/// Resolve the absolute path of an executable on the current `PATH`.
+#[cfg(unix)]
+fn resolve_executable(name: &str) -> Option<PathBuf> {
+	let path = env::var("PATH").ok()?;
+	for dir in path.split(':') {
+		let candidate = Path::new(dir).join(name);
+		if candidate.is_file() {
+			return Some(candidate);
+		}
+	}
+	None
+}
+
+/// Build a `PATH` containing only a symlink to the real `git` so `gh` is
+/// genuinely unresolvable (ENOENT) while parallel git-seeding tests keep working.
+#[cfg(unix)]
+fn path_without_gh_but_with_git(dir: &Path) -> String {
+	let git = resolve_executable("git").expect("git must be on PATH for tests");
+	std::os::unix::fs::symlink(&git, dir.join("git"))
+		.unwrap_or_else(|error| panic!("symlink git: {error}"));
+	dir.to_string_lossy().to_string()
+}
+
+#[test]
+fn github_client_from_env_uses_github_token_when_set() {
+	let _guard = GH_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+	let source = sample_source(None);
+
+	let result = temp_env::with_vars(
+		[
+			("GITHUB_TOKEN", Some("env-token")),
+			("GH_TOKEN", None::<&str>),
+		],
+		|| {
+			let runtime = github_runtime().unwrap_or_else(|error| panic!("runtime: {error}"));
+			runtime.block_on(async { github_client_from_env(&source).await })
+		},
+	);
+
+	assert!(
+		result.is_ok(),
+		"GITHUB_TOKEN should produce a client: {result:?}"
+	);
+}
+
+#[test]
+fn github_client_from_env_falls_back_to_gh_token_when_github_token_absent() {
+	let _guard = GH_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+	let source = sample_source(None);
+
+	let result = temp_env::with_vars(
+		[
+			("GITHUB_TOKEN", None::<&str>),
+			("GH_TOKEN", Some("gh-env-token")),
+		],
+		|| {
+			let runtime = github_runtime().unwrap_or_else(|error| panic!("runtime: {error}"));
+			runtime.block_on(async { github_client_from_env(&source).await })
+		},
+	);
+
+	assert!(
+		result.is_ok(),
+		"GH_TOKEN should produce a client: {result:?}"
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn github_client_from_env_prefers_github_token_over_gh_cli() {
+	let _guard = GH_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	// A failing `gh` proves the env token is used instead of the CLI fallback.
+	write_fake_gh(dir.path(), "#!/bin/sh\nexit 1\n");
+	let source = sample_source(None);
+	let path = path_with_gh_dir(dir.path());
+
+	let result = temp_env::with_vars(
+		[
+			("GITHUB_TOKEN", Some("env-token")),
+			("GH_TOKEN", None::<&str>),
+			("PATH", Some(path.as_str())),
+		],
+		|| {
+			let runtime = github_runtime().unwrap_or_else(|error| panic!("runtime: {error}"));
+			runtime.block_on(async { github_client_from_env(&source).await })
+		},
+	);
+
+	assert!(
+		result.is_ok(),
+		"GITHUB_TOKEN should win over the gh CLI fallback: {result:?}"
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn github_client_from_env_falls_back_to_gh_cli_when_no_env_token() {
+	let _guard = GH_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	write_fake_gh(dir.path(), "#!/bin/sh\nprintf '%s' 'cli-token'\n");
+	let source = sample_source(None);
+	let path = path_with_gh_dir(dir.path());
+
+	let result = temp_env::with_vars(
+		[
+			("GITHUB_TOKEN", None::<&str>),
+			("GH_TOKEN", None::<&str>),
+			("PATH", Some(path.as_str())),
+		],
+		|| {
+			let runtime = github_runtime().unwrap_or_else(|error| panic!("runtime: {error}"));
+			runtime.block_on(async { github_client_from_env(&source).await })
+		},
+	);
+
+	assert!(
+		result.is_ok(),
+		"gh CLI fallback should produce a client: {result:?}"
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn github_client_from_env_errors_when_gh_cli_fails() {
+	let _guard = GH_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	write_fake_gh(dir.path(), "#!/bin/sh\necho 'not logged in' 1>&2\nexit 1\n");
+	let source = sample_source(None);
+	let path = path_with_gh_dir(dir.path());
+
+	let result = temp_env::with_vars(
+		[
+			("GITHUB_TOKEN", None::<&str>),
+			("GH_TOKEN", None::<&str>),
+			("PATH", Some(path.as_str())),
+		],
+		|| {
+			let runtime = github_runtime().unwrap_or_else(|error| panic!("runtime: {error}"));
+			runtime.block_on(async { github_client_from_env(&source).await })
+		},
+	);
+
+	let error = result
+		.err()
+		.map(|error| error.to_string())
+		.unwrap_or_default();
+	assert!(
+		error.contains("gh auth token"),
+		"error should mention `gh auth token`: {error}"
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn github_client_from_env_errors_when_gh_cli_fails_with_empty_stderr() {
+	let _guard = GH_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	// `gh` exits non-zero without writing to stderr, exercising the empty-stderr
+	// suffix branch of the non-zero-exit error message.
+	write_fake_gh(dir.path(), "#!/bin/sh\nexit 1\n");
+	let source = sample_source(None);
+	let path = path_with_gh_dir(dir.path());
+
+	let result = temp_env::with_vars(
+		[
+			("GITHUB_TOKEN", None::<&str>),
+			("GH_TOKEN", None::<&str>),
+			("PATH", Some(path.as_str())),
+		],
+		|| {
+			let runtime = github_runtime().unwrap_or_else(|error| panic!("runtime: {error}"));
+			runtime.block_on(async { github_client_from_env(&source).await })
+		},
+	);
+
+	let error = result
+		.err()
+		.map(|error| error.to_string())
+		.unwrap_or_default();
+	assert!(
+		error.contains("exited with status 1"),
+		"error should report the non-zero exit status: {error}"
+	);
+	assert!(
+		error.contains("gh auth token"),
+		"error should mention `gh auth token`: {error}"
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn github_client_from_env_errors_when_gh_cli_returns_empty_token() {
+	let _guard = GH_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	write_fake_gh(dir.path(), "#!/bin/sh\nprintf ''\n");
+	let source = sample_source(None);
+	let path = path_with_gh_dir(dir.path());
+
+	let result = temp_env::with_vars(
+		[
+			("GITHUB_TOKEN", None::<&str>),
+			("GH_TOKEN", None::<&str>),
+			("PATH", Some(path.as_str())),
+		],
+		|| {
+			let runtime = github_runtime().unwrap_or_else(|error| panic!("runtime: {error}"));
+			runtime.block_on(async { github_client_from_env(&source).await })
+		},
+	);
+
+	let error = result
+		.err()
+		.map(|error| error.to_string())
+		.unwrap_or_default();
+	assert!(
+		error.contains("empty token"),
+		"error should mention the empty token: {error}"
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn github_client_from_env_errors_when_gh_cli_spawn_fails() {
+	let _guard = GH_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	// Replace `PATH` with a directory that only exposes `git`, so `gh` is
+	// genuinely unresolvable and `tokio::process::Command::new("gh")` fails with
+	// ENOENT. The `git` symlink keeps parallel git-seeding tests working.
+	let path = path_without_gh_but_with_git(dir.path());
+	let source = sample_source(None);
+
+	let result = temp_env::with_vars(
+		[
+			("GITHUB_TOKEN", None::<&str>),
+			("GH_TOKEN", None::<&str>),
+			("PATH", Some(path.as_str())),
+		],
+		|| {
+			let runtime = github_runtime().unwrap_or_else(|error| panic!("runtime: {error}"));
+			runtime.block_on(async { github_client_from_env(&source).await })
+		},
+	);
+
+	let error = result
+		.err()
+		.map(|error| error.to_string())
+		.unwrap_or_default();
+	assert!(
+		error.contains("gh auth token"),
+		"error should mention `gh auth token`: {error}"
+	);
 }
