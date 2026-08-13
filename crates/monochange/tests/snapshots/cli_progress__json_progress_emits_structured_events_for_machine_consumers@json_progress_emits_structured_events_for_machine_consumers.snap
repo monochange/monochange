@@ -119,7 +119,7 @@ expression: redacted
     "dry_run": false,
     "event": "step_status",
     "sequence": "[sequence:4]",
-    "status": "running command `printf 'stdout line\\n'; printf 'stderr line\\n' >&2`",
+    "status": "running command `printf 'stdout line[newline]'; printf 'stderr line[newline]' >&2`",
     "step_display_name": "stream summary",
     "step_index": 2,
     "step_kind": "Command",

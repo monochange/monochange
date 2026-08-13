@@ -26,6 +26,9 @@ fn normalize_duration_text(text: &str) -> String {
 
 fn normalized_ascii_progress(stderr: &str) -> String {
 	let normalized = normalize_duration_text(&normalize_terminal_transcript(stderr));
+	let command_newline_pattern =
+		Regex::new(r"\\n").unwrap_or_else(|error| panic!("regex: {error}"));
+	let normalized = command_newline_pattern.replace_all(&normalized, "[newline]");
 	normalized
 		.lines()
 		.filter(|line| !line.starts_with("  - "))
@@ -48,6 +51,10 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 		};
 		if let Some(duration) = object.get_mut("duration_ms") {
 			*duration = Value::String("[duration_ms]".to_string());
+		}
+		if let Some(status) = object.get("status").and_then(Value::as_str) {
+			let redacted = status.replace("\\n", "[newline]");
+			object.insert("status".to_string(), Value::String(redacted));
 		}
 		if let Some(phase_timings) = object
 			.get_mut("phase_timings")

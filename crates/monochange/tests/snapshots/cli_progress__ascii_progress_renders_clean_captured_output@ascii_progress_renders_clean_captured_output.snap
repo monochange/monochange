@@ -6,7 +6,7 @@ monochange running `progress-ascii`
 > [1/2] plan release (PrepareRelease)
 + [1/2] plan release (PrepareRelease) [duration]
 > [2/2] stream summary (Command)
-> [2/2] stream summary (Command) — running command `printf 'line one\n\nline three\n'`
+> [2/2] stream summary (Command) — running command `printf 'line one[newline][newline]line three[newline]'`
   | stream summary [stdout] line one
   | stream summary [stdout] 
   | stream summary [stdout] line three
