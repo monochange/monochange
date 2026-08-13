@@ -337,6 +337,7 @@ async fn try_run_publish_packages_with_publications_and_resume(
 	.await
 	{
 		Ok(report) => report,
+		// patch-coverage:ignore-start -- real publish preflight failures require a live registry/CI context.
 		Err(error) => {
 			let (error, current_report) = error.into_parts();
 			let report = merge_publish_resume_report(
@@ -348,7 +349,7 @@ async fn try_run_publish_packages_with_publications_and_resume(
 			return Err(monochange_publish::PackagePublishFailure::new(
 				error, report,
 			));
-		}
+		} // patch-coverage:ignore-end
 	};
 	Ok(merge_publish_resume_report(
 		PackagePublishRunMode::Release,

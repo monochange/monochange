@@ -4827,6 +4827,79 @@ async fn try_run_publish_packages_with_publications_maps_build_request_errors() 
 	assert!(report.packages.is_empty());
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_resume_artifact_errors() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration");
+	let missing_resume = root.path().join("missing-resume.json");
+
+	let error = try_run_publish_packages_with_publications_and_resume(
+		root.path(),
+		&configuration,
+		&[],
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			resume_path: Some(&missing_resume),
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect_err("missing resume artifact should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_invalid_resume_report_errors() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration");
+	let resume_path = root.path().join("resume.json");
+	fs::write(
+		&resume_path,
+		r#"{ "mode": "release", "dry_run": true, "packages": [] }"#,
+	)
+	.expect("write invalid resume report");
+
+	let error = try_run_publish_packages_with_publications_and_resume(
+		root.path(),
+		&configuration,
+		&[],
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			resume_path: Some(&resume_path),
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect_err("invalid resume report should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
 #[test]
 fn package_publish_failure_into_parts_returns_error_and_report() {
 	let report = PackagePublishReport {

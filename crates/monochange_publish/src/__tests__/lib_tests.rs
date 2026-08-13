@@ -875,6 +875,26 @@ async fn execute_publish_requests_uses_noop_progress_reporter_by_default() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn execute_publish_requests_with_process_and_progress_uses_noop_reporter() {
+	let report = execute_publish_requests_with_process_and_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&[],
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&NoopPublishProgressReporter,
+	)
+	.await
+	.unwrap();
+
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn publish_progress_reports_external_skip_and_summary_events() {
 	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
 	request.mode = PublishMode::External;
