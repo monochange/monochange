@@ -4608,6 +4608,79 @@ async fn try_run_publish_packages_maps_discovery_errors_to_report_carrying_failu
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn try_run_placeholder_publish_maps_build_request_errors() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let mut configuration =
+		crate::load_workspace_configuration(root.path()).expect("configuration");
+	configuration.packages[0].publish.registry =
+		Some(PublishRegistry::Custom("internal".to_string()));
+
+	let error = try_run_placeholder_publish_with_npm_otp(
+		root.path(),
+		&configuration,
+		&BTreeSet::new(),
+		true,
+		None,
+		true,
+	)
+	.await
+	.expect_err("custom registry should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Placeholder);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_placeholder_publish_maps_discovery_errors_via_malformed_config() {
+	let valid_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		valid_root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(valid_root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		valid_root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration =
+		crate::load_workspace_configuration(valid_root.path()).expect("configuration");
+
+	let malformed_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		malformed_root.path().join("monochange.toml"),
+		"not valid toml [[[",
+	)
+	.expect("write malformed config");
+
+	let error = try_run_placeholder_publish_with_npm_otp(
+		malformed_root.path(),
+		&configuration,
+		&BTreeSet::new(),
+		true,
+		None,
+		true,
+	)
+	.await
+	.expect_err("malformed config should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Placeholder);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn try_run_publish_packages_maps_resume_artifact_errors() {
 	let tempdir = tempfile::tempdir().expect("tempdir:");
 	let root = tempdir.path();
@@ -4629,6 +4702,126 @@ async fn try_run_publish_packages_maps_resume_artifact_errors() {
 	)
 	.await
 	.expect_err("missing resume artifact should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_maps_publish_all_discovery_errors_via_malformed_config() {
+	let valid_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		valid_root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(valid_root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		valid_root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration =
+		crate::load_workspace_configuration(valid_root.path()).expect("configuration");
+
+	let malformed_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		malformed_root.path().join("monochange.toml"),
+		"not valid toml [[[",
+	)
+	.expect("write malformed config");
+
+	let error = try_run_publish_packages_with_resume(
+		malformed_root.path(),
+		&configuration,
+		None,
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			publish_all_configured_packages: true,
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect_err("publish-all malformed config should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_discovery_errors_via_malformed_config() {
+	let valid_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		valid_root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(valid_root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		valid_root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration =
+		crate::load_workspace_configuration(valid_root.path()).expect("configuration");
+
+	let malformed_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		malformed_root.path().join("monochange.toml"),
+		"not valid toml [[[",
+	)
+	.expect("write malformed config");
+
+	let error = try_run_publish_packages_with_publications_and_resume(
+		malformed_root.path(),
+		&configuration,
+		&[],
+		&BTreeSet::new(),
+		PublishPackagesOptions::default(),
+	)
+	.await
+	.expect_err("malformed config should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_build_request_errors() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration");
+	let publication = PackagePublicationTarget {
+		package: "pkg".to_string(),
+		ecosystem: Ecosystem::Npm,
+		registry: Some(PublishRegistry::Custom("internal".to_string())),
+		version: "1.0.0".to_string(),
+		mode: PublishMode::Builtin,
+		trusted_publishing: TrustedPublishingSettings::default(),
+		attestations: PublishAttestationSettings::default(),
+	};
+
+	let error = try_run_publish_packages_with_publications_and_resume(
+		root.path(),
+		&configuration,
+		&[publication],
+		&BTreeSet::new(),
+		PublishPackagesOptions::default(),
+	)
+	.await
+	.expect_err("custom registry should produce a failure");
 	let report = error.into_report();
 	assert_eq!(report.mode, PackagePublishRunMode::Release);
 	assert!(report.packages.is_empty());
