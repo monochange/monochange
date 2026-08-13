@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/cli_progress.rs
-assertion_line: 330
 expression: redacted
 ---
 [
@@ -16,78 +15,6 @@ expression: redacted
     "dry_run": false,
     "event": "step_started",
     "sequence": "[sequence:1]",
-    "step_display_name": "plan release",
-    "step_index": 1,
-    "step_kind": "PrepareRelease",
-    "step_name": "plan release",
-    "total_steps": 2
-  },
-  {
-    "command": "progress-json",
-    "dry_run": false,
-    "event": "step_status",
-    "sequence": "[sequence:2]",
-    "status": "loading changesets",
-    "step_display_name": "plan release",
-    "step_index": 1,
-    "step_kind": "PrepareRelease",
-    "step_name": "plan release",
-    "total_steps": 2
-  },
-  {
-    "command": "progress-json",
-    "dry_run": false,
-    "event": "step_status",
-    "sequence": "[sequence:3]",
-    "status": "computing dependency graph",
-    "step_display_name": "plan release",
-    "step_index": 1,
-    "step_kind": "PrepareRelease",
-    "step_name": "plan release",
-    "total_steps": 2
-  },
-  {
-    "command": "progress-json",
-    "dry_run": false,
-    "event": "step_status",
-    "sequence": "[sequence:4]",
-    "status": "planning versions",
-    "step_display_name": "plan release",
-    "step_index": 1,
-    "step_kind": "PrepareRelease",
-    "step_name": "plan release",
-    "total_steps": 2
-  },
-  {
-    "command": "progress-json",
-    "dry_run": false,
-    "event": "step_status",
-    "sequence": "[sequence:5]",
-    "status": "rendering changelogs",
-    "step_display_name": "plan release",
-    "step_index": 1,
-    "step_kind": "PrepareRelease",
-    "step_name": "plan release",
-    "total_steps": 2
-  },
-  {
-    "command": "progress-json",
-    "dry_run": false,
-    "event": "step_status",
-    "sequence": "[sequence:6]",
-    "status": "updating package files",
-    "step_display_name": "plan release",
-    "step_index": 1,
-    "step_kind": "PrepareRelease",
-    "step_name": "plan release",
-    "total_steps": 2
-  },
-  {
-    "command": "progress-json",
-    "dry_run": false,
-    "event": "step_status",
-    "sequence": "[sequence:7]",
-    "status": "refreshing lockfiles",
     "step_display_name": "plan release",
     "step_index": 1,
     "step_kind": "PrepareRelease",
@@ -169,7 +96,7 @@ expression: redacted
         "label": "sync internal dependency constraints"
       }
     ],
-    "sequence": "[sequence:8]",
+    "sequence": "[sequence:2]",
     "step_display_name": "plan release",
     "step_index": 1,
     "step_kind": "PrepareRelease",
@@ -180,7 +107,19 @@ expression: redacted
     "command": "progress-json",
     "dry_run": false,
     "event": "step_started",
-    "sequence": "[sequence:9]",
+    "sequence": "[sequence:3]",
+    "step_display_name": "stream summary",
+    "step_index": 2,
+    "step_kind": "Command",
+    "step_name": "stream summary",
+    "total_steps": 2
+  },
+  {
+    "command": "progress-json",
+    "dry_run": false,
+    "event": "step_status",
+    "sequence": "[sequence:4]",
+    "status": "running command `printf 'stdout line\\n'; printf 'stderr line\\n' >&2`",
     "step_display_name": "stream summary",
     "step_index": 2,
     "step_kind": "Command",
@@ -191,7 +130,7 @@ expression: redacted
     "command": "progress-json",
     "dry_run": false,
     "event": "command_output",
-    "sequence": "[sequence:10]",
+    "sequence": "[sequence:5]",
     "step_display_name": "stream summary",
     "step_index": 2,
     "step_kind": "Command",
@@ -204,7 +143,7 @@ expression: redacted
     "command": "progress-json",
     "dry_run": false,
     "event": "command_output",
-    "sequence": "[sequence:11]",
+    "sequence": "[sequence:6]",
     "step_display_name": "stream summary",
     "step_index": 2,
     "step_kind": "Command",
@@ -219,7 +158,7 @@ expression: redacted
     "duration_ms": "[duration_ms]",
     "event": "step_finished",
     "phase_timings": [],
-    "sequence": "[sequence:12]",
+    "sequence": "[sequence:7]",
     "step_display_name": "stream summary",
     "step_index": 2,
     "step_kind": "Command",
@@ -231,7 +170,7 @@ expression: redacted
     "dry_run": false,
     "duration_ms": "[duration_ms]",
     "event": "command_finished",
-    "sequence": "[sequence:13]",
+    "sequence": "[sequence:8]",
     "total_steps": 2
   }
 ]

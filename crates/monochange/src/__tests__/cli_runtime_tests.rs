@@ -65,109 +65,6 @@ fn cli_context() -> CliContext {
 }
 
 #[test]
-fn expected_progress_phases_cover_dark_area_steps() {
-	assert_eq!(
-		expected_progress_phases(&CliStepDefinition::Discover {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-		}),
-		&[
-			"using loaded workspace configuration",
-			"scanning ecosystems for package manifests",
-			"reporting package counts",
-		]
-	);
-	assert_eq!(
-		expected_progress_phases(&CliStepDefinition::PrepareRelease {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-			allow_empty_changesets: false,
-		}),
-		&[
-			"loading changesets",
-			"computing dependency graph",
-			"planning versions",
-			"rendering changelogs",
-			"updating package files",
-			"refreshing lockfiles",
-		]
-	);
-	assert!(
-		expected_progress_phases(&CliStepDefinition::Config {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-		})
-		.is_empty()
-	);
-}
-
-#[test]
-fn expected_progress_phases_cover_provider_and_registry_steps() {
-	assert!(
-		expected_progress_phases(&CliStepDefinition::PublishRelease {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-		})
-		.contains(&"preparing source provider API client")
-	);
-	assert!(
-		expected_progress_phases(&CliStepDefinition::OpenReleaseRequest {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-			no_verify: false,
-			stage_all: false,
-		})
-		.contains(&"applying release request labels and automerge settings")
-	);
-	assert!(
-		expected_progress_phases(&CliStepDefinition::PlanPublishRateLimits {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-		})
-		.contains(&"planning registry rate limits")
-	);
-	assert!(
-		expected_progress_phases(&CliStepDefinition::PlaceholderPublish {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-		})
-		.contains(&"publishing placeholders per package")
-	);
-	assert!(
-		expected_progress_phases(&CliStepDefinition::PublishPackages {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-		})
-		.contains(&"publishing packages with bounded registry feedback")
-	);
-	assert!(
-		expected_progress_phases(&CliStepDefinition::PublishReadiness {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-		})
-		.contains(&"checking package registry readiness")
-	);
-}
-
-#[test]
 fn resolve_step_input_override_treats_inherited_as_empty() {
 	let context = cli_context();
 	let mut template_context = None;
@@ -1444,6 +1341,96 @@ fn filter_placeholder_publish_report_hides_completed_dry_run_packages_by_default
 }
 
 #[test]
+fn placeholder_rendering_keeps_complete_summary_when_detail_rows_are_filtered() {
+	let mut context = cli_context();
+	context.package_publish_report = Some(package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Placeholder,
+		dry_run: false,
+		packages: vec![
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::Published,
+				package_publish::TrustedPublishingStatus::Configured,
+			),
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::SkippedExisting,
+				package_publish::TrustedPublishingStatus::Configured,
+			),
+		],
+	});
+	let command = CliCommandDefinition {
+		name: "placeholder".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: Vec::new(),
+		dry_run: false,
+	};
+
+	let text = render_cli_command_result(&command, &context);
+	assert!(text.contains("summary: 2 expected, 1 succeeded, 0 failed, 1 skipped"));
+	assert_eq!(text.matches(" via ").count(), 1);
+
+	let markdown = render_cli_command_markdown_result(&command, &context);
+	assert!(markdown.contains("**Summary:** 2 expected, 1 succeeded, 0 failed, 1 skipped"));
+}
+
+#[test]
+fn placeholder_json_and_template_outputs_filter_package_rows_but_keep_complete_summary() {
+	let mut context = cli_context();
+	context.last_step_inputs = BTreeMap::from([
+		("format".to_string(), vec!["json".to_string()]),
+		("show-all".to_string(), vec!["false".to_string()]),
+	]);
+	context.package_publish_report = Some(package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Placeholder,
+		dry_run: false,
+		packages: vec![
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::Published,
+				package_publish::TrustedPublishingStatus::Configured,
+			),
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::SkippedExisting,
+				package_publish::TrustedPublishingStatus::Configured,
+			),
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::Failed,
+				package_publish::TrustedPublishingStatus::Disabled,
+			),
+		],
+	});
+	let command = CliCommandDefinition {
+		name: "placeholder".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: Vec::new(),
+		dry_run: false,
+	};
+
+	let rendered = resolve_command_output(&command, &context, true, None)
+		.unwrap_or_else(|error| panic!("package publish json output: {error}"));
+	let parsed: serde_json::Value =
+		serde_json::from_str(&rendered).unwrap_or_else(|error| panic!("parse json: {error}"));
+	assert_eq!(parsed["package_publish"]["summary"]["expected"], 3);
+	assert_eq!(
+		parsed["package_publish"]["packages"]
+			.as_array()
+			.expect("package rows")
+			.len(),
+		2
+	);
+
+	let template_context = build_cli_template_context(&context, &context.last_step_inputs, None);
+	assert_eq!(template_context["publish"]["summary"]["expected"], 3);
+	assert_eq!(
+		template_context["publish"]["packages"]
+			.as_array()
+			.expect("template package rows")
+			.len(),
+		2
+	);
+}
+
+#[test]
 fn filter_placeholder_publish_report_hides_unchanged_real_run_packages_by_default() {
 	let report = package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Placeholder,
@@ -1491,11 +1478,18 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 	assert_eq!(text_lines[0], "placeholder publishing:");
 	assert_eq!(
 		text_lines[1],
+		"  summary: 0 expected, 0 succeeded, 0 failed, 0 skipped"
+	);
+	assert_eq!(
+		text_lines[2],
 		"- no packages matched the publishing criteria"
 	);
 	assert_eq!(
 		render_package_publish_report_markdown(&empty_placeholder, false),
-		vec!["- no packages matched the publishing criteria".to_string()]
+		vec![
+			"- **Summary:** 0 expected, 0 succeeded, 0 failed, 0 skipped".to_string(),
+			"- no packages matched the publishing criteria".to_string(),
+		]
 	);
 
 	let detailed_report = package_publish::PackagePublishReport {
@@ -1609,6 +1603,7 @@ fn package_publish_status_labels_cover_all_variants() {
 		package_publish_status_label(package_publish::PackagePublishStatus::SkippedExternal),
 		"skipped-external"
 	);
+
 	assert_eq!(
 		package_publish_status_label(package_publish::PackagePublishStatus::Blocked),
 		"blocked"
@@ -1706,6 +1701,15 @@ fn resolve_command_output_supports_package_publish_json_without_release_state() 
 	assert_eq!(
 		parsed["package_publish"]["dry_run"],
 		serde_json::json!(true)
+	);
+	assert_eq!(
+		parsed["package_publish"]["summary"],
+		serde_json::json!({
+			"expected": 1,
+			"succeeded": 0,
+			"failed": 0,
+			"skipped": 1,
+		})
 	);
 	assert_eq!(
 		parsed["package_publish"]["packages"][0]["package"],
@@ -2079,19 +2083,23 @@ fn take_process_stream_reports_missing_pipes() {
 }
 
 #[test]
-fn step_shows_progress_disables_interactive_change_steps_by_default() {
-	let step = CliStepDefinition::CreateChangeFile {
+fn step_shows_progress_enables_every_step_by_default() {
+	let change_step = CliStepDefinition::CreateChangeFile {
 		show_progress: None,
 		name: Some("interactive change".to_string()),
 		when: None,
 		always_run: false,
 		inputs: BTreeMap::new(),
 	};
-	let mut step_inputs = BTreeMap::new();
-	step_inputs.insert("interactive".to_string(), vec!["true".to_string()]);
-	assert!(!step_shows_progress(&step, &step_inputs));
-	step_inputs.insert("interactive".to_string(), vec!["false".to_string()]);
-	assert!(step_shows_progress(&step, &step_inputs));
+	let config_step = CliStepDefinition::Config {
+		name: Some("load config".to_string()),
+		when: None,
+		always_run: false,
+		inputs: BTreeMap::new(),
+	};
+
+	assert!(step_shows_progress(&change_step));
+	assert!(step_shows_progress(&config_step));
 }
 
 #[test]
@@ -2108,7 +2116,7 @@ fn step_shows_progress_respects_explicit_step_flags() {
 		variables: None,
 		inputs: BTreeMap::new(),
 	};
-	assert!(!step_shows_progress(&step, &BTreeMap::new()));
+	assert!(!step_shows_progress(&step));
 }
 
 #[test]
@@ -2435,7 +2443,52 @@ async fn execute_cli_command_reports_command_failures_after_progress_callbacks()
 	.unwrap_err();
 	assert_eq!(
 		error.to_string(),
-		"discovery error: command `printf 'boom\\n' >&2; exit 3` failed: boom"
+		"discovery error: command `printf 'boom\\n' >&2; exit 3` failed: exit status: 3\nstderr:\nboom"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_preserves_stdout_and_stderr_from_failed_commands() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = sample_configuration(tempdir.path());
+	let cli_command = CliCommandDefinition {
+		name: "fail".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::Command {
+			show_progress: None,
+			name: Some("fail with output".to_string()),
+			when: None,
+			always_run: false,
+			command: "printf 'stdout detail\\n'; printf 'stderr detail\\n' >&2; exit 4".to_string(),
+			dry_run_command: None,
+			shell: ShellConfig::Default,
+			id: None,
+			variables: None,
+			inputs: BTreeMap::new(),
+		}],
+		dry_run: false,
+	};
+
+	let error = execute_cli_command_with_options(
+		tempdir.path(),
+		&configuration,
+		&cli_command,
+		ExecuteCliCommandOptions {
+			dry_run: false,
+			quiet: true,
+			show_diff: false,
+			inputs: BTreeMap::new(),
+			prepared_release_path: None,
+			progress_format: ProgressFormat::Auto,
+		},
+	)
+	.await
+	.unwrap_err();
+
+	assert_eq!(
+		error.to_string(),
+		"discovery error: command `printf 'stdout detail\\n'; printf 'stderr detail\\n' >&2; exit 4` failed: exit status: 4\nstdout:\nstdout detail\n\nstderr:\nstderr detail"
 	);
 }
 
@@ -3101,32 +3154,6 @@ fn optional_publish_resume_and_output_paths_trim_and_reject_blank_values() {
 	let error =
 		optional_publish_resume_artifact_path(&blank).expect_err("blank resume path should fail");
 	assert!(error.to_string().contains("blank `resume` path"));
-}
-
-#[test]
-fn has_remaining_always_run_steps_detects_always_run_later_in_sequence() {
-	let steps = vec![
-		CliStepDefinition::Validate {
-			name: None,
-			when: None,
-			always_run: false,
-			inputs: BTreeMap::new(),
-		},
-		CliStepDefinition::Command {
-			show_progress: None,
-			name: None,
-			when: None,
-			always_run: true,
-			command: String::new(),
-			dry_run_command: None,
-			shell: ShellConfig::Default,
-			id: None,
-			variables: None,
-			inputs: BTreeMap::new(),
-		},
-	];
-	assert!(has_remaining_always_run_steps(&steps, 0));
-	assert!(!has_remaining_always_run_steps(&steps, 1));
 }
 
 #[test]

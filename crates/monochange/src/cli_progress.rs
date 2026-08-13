@@ -137,13 +137,11 @@ impl CliProgressReporter {
 		let ci = running_in_ci() && !running_under_test();
 		let (enabled, render_mode, symbols) = match format {
 			ProgressFormat::Auto => {
-				if quiet || no_progress {
-					(false, ProgressRenderMode::Human, UNICODE_SYMBOLS)
-				} else if stderr_is_terminal || (ci && !no_color) {
-					(true, ProgressRenderMode::Human, UNICODE_SYMBOLS)
-				} else {
-					(false, ProgressRenderMode::Human, UNICODE_SYMBOLS)
-				}
+				(
+					!quiet && !no_progress,
+					ProgressRenderMode::Human,
+					UNICODE_SYMBOLS,
+				)
 			}
 			ProgressFormat::Unicode => (!quiet, ProgressRenderMode::Human, UNICODE_SYMBOLS),
 			ProgressFormat::Ascii => (!quiet, ProgressRenderMode::Human, ASCII_SYMBOLS),
@@ -226,6 +224,32 @@ impl CliProgressReporter {
 		));
 	}
 
+	pub(crate) fn command_failed(&mut self, duration: Duration, error: &str) {
+		if !self.enabled || !self.command_started {
+			return;
+		}
+		self.stop_spinner();
+		if self.render_mode == ProgressRenderMode::Json {
+			let sequence = self.next_sequence();
+			self.emit_json_event(&serde_json::json!({
+				"sequence": sequence,
+				"event": "command_failed",
+				"command": self.command_name,
+				"dry_run": self.dry_run,
+				"total_steps": self.total_steps,
+				"duration_ms": duration_millis(duration),
+				"error": error,
+			}));
+			return;
+		}
+		self.print_line(&format!(
+			"{} {} {}",
+			self.paint(self.symbols.step_failure, Style::Error),
+			self.paint(&format!("`{}` failed", self.command_name), Style::Header),
+			self.paint(&format_duration(duration), Style::Muted),
+		));
+	}
+
 	pub(crate) fn step_started(&mut self, step_index: usize, step: &CliStepDefinition) {
 		if !self.enabled {
 			return;
@@ -251,6 +275,7 @@ impl CliProgressReporter {
 		step_index: usize,
 		step: &CliStepDefinition,
 		condition: Option<&str>,
+		reason: Option<&str>,
 	) {
 		if !self.enabled {
 			return;
@@ -262,6 +287,7 @@ impl CliProgressReporter {
 			payload.extend(
 				condition.map(|condition| ("condition".to_string(), condition.to_string().into())),
 			);
+			payload.extend(reason.map(|reason| ("reason".to_string(), reason.to_string().into())));
 			self.emit_step_event("step_skipped", step_index, step, payload);
 			return;
 		}
@@ -271,11 +297,11 @@ impl CliProgressReporter {
 			self.step_message(step_index, step),
 			self.paint("skipped", Style::Muted),
 		);
-		if let Some(condition) = condition {
+		if let Some(detail) = reason.or(condition) {
 			let _ = write!(
 				line,
 				" {}",
-				self.paint(&format!("({condition})"), Style::Muted)
+				self.paint(&format!("({detail})"), Style::Muted)
 			);
 		}
 		self.print_line(&line);

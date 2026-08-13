@@ -260,6 +260,7 @@ fn build_report_maps_publish_dry_run_statuses_to_readiness_statuses() {
 		readiness.packages[3].status,
 		PublishReadinessPackageStatus::Blocked
 	);
+
 	assert!(!readiness.package_set_fingerprint.is_empty());
 }
 

@@ -247,16 +247,87 @@ fn release_progress_renders_skipped_failed_steps_and_stderr_on_tty() {
 	let (status, transcript) = run_tty_command_result(tempdir.path(), "progress-failure");
 
 	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
-	assert!(transcript.contains("○ [1/3] skip validate (Validate) — skipped ({{ false }})"));
+	assert!(transcript.contains(
+		"○ [1/5] skip validate (Validate) — skipped (when condition `{{ false }}` is false)"
+	));
 	assert!(transcript.contains("stderr only [stderr] warn line"));
-	assert!(transcript.contains("✖ [3/3] fail loud (Command)"));
+	assert!(transcript.contains("✖ [3/5] fail loud (Command)"));
 	assert!(transcript.contains("fail loud [stderr] bad line"));
-	assert!(transcript.contains("└─ command `printf 'bad line\\n' >&2; exit 3` failed: bad line"));
+	assert!(transcript.contains("stderr:\nbad line"));
+	assert!(transcript.contains("✔ [4/5] cleanup (Command)"));
+	assert!(transcript.contains("cleanup [stdout] cleanup complete"));
+	assert!(
+		transcript
+			.contains("○ [5/5] skip after failure (Command) — skipped (an earlier step failed)")
+	);
+	assert!(transcript.contains("`progress-failure` failed"));
+	assert!(!transcript.contains("✔ [3/5] fail loud"));
+	assert!(!transcript.contains("`progress-failure` finished"));
+	assert!(!transcript.contains("must not run"));
 }
 
 #[test]
 #[cfg(unix)]
-fn interactive_change_cli_hides_progress_output_on_tty() {
+fn failure_without_cleanup_reports_every_later_step_as_skipped() {
+	let tempdir = setup_fixture("monochange/release-progress-failure");
+
+	let (status, transcript) =
+		run_tty_command_result(tempdir.path(), "progress-failure-no-cleanup");
+
+	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
+	assert!(transcript.contains("✖ [1/2] primary failure (Command)"));
+	assert!(
+		transcript.contains("○ [2/2] skipped tail (Command) — skipped (an earlier step failed)")
+	);
+	assert!(transcript.contains("`progress-failure-no-cleanup` failed"));
+	assert!(!transcript.contains("must not run"));
+}
+
+#[test]
+#[cfg(unix)]
+fn failing_cleanup_preserves_the_primary_workflow_error() {
+	let tempdir = setup_fixture("monochange/release-progress-failure");
+
+	let (status, transcript) = run_tty_command_result(tempdir.path(), "progress-failing-cleanup");
+
+	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
+	assert!(transcript.contains("✖ [1/2] primary failure (Command)"));
+	assert!(transcript.contains("✖ [2/2] failing cleanup (Command)"));
+	let primary_error = "command `printf 'primary error\\n' >&2; exit 4` failed";
+	let cleanup_error = "command `printf 'cleanup error\\n' >&2; exit 5` failed";
+	assert_eq!(transcript.matches(primary_error).count(), 2, "{transcript}");
+	assert_eq!(transcript.matches(cleanup_error).count(), 1, "{transcript}");
+}
+
+#[test]
+fn json_conditional_skips_retain_condition_and_add_reason() {
+	let tempdir = setup_fixture("monochange/release-progress-failure");
+	let output = monochange_command(Some("2026-04-06"))
+		.current_dir(tempdir.path())
+		.arg("run")
+		.arg("progress-json-skip")
+		.arg("--progress-format")
+		.arg("json")
+		.output()
+		.unwrap_or_else(|error| panic!("run JSON skip command: {error}"));
+	assert!(
+		output.status.success(),
+		"{}",
+		String::from_utf8_lossy(&output.stderr)
+	);
+
+	let events = normalized_progress_events(&String::from_utf8_lossy(&output.stderr));
+	let skipped = events
+		.iter()
+		.find(|event| event["event"] == "step_skipped")
+		.unwrap_or_else(|| panic!("missing step_skipped event: {events:#?}"));
+	assert_eq!(skipped["condition"], "{{ false }}");
+	assert_eq!(skipped["reason"], "when condition `{{ false }}` is false");
+}
+
+#[test]
+#[cfg(unix)]
+fn interactive_change_cli_shows_step_progress_on_tty() {
 	let tempdir = setup_scenario_workspace("monochange/release-base");
 	let output_path = tempdir.path().join(".changeset/interactive.md");
 
@@ -266,9 +337,9 @@ fn interactive_change_cli_hides_progress_output_on_tty() {
 		status, 0,
 		"unexpected interactive transcript:\n{transcript}"
 	);
-	assert!(!transcript.contains("running `change`"), "{transcript}");
-	assert!(!transcript.contains("[1/1]"), "{transcript}");
-	assert!(!transcript.contains("finished"), "{transcript}");
+	assert!(transcript.contains("running `change`"), "{transcript}");
+	assert!(transcript.contains("[1/1]"), "{transcript}");
+	assert!(transcript.contains("`change` finished"), "{transcript}");
 	assert!(transcript.contains("wrote change file .changeset/interactive.md"));
 	assert!(
 		output_path.exists(),
@@ -340,4 +411,12 @@ fn release_progress_renders_skipped_failed_steps_and_stderr_on_tty() {}
 
 #[test]
 #[cfg(not(unix))]
-fn interactive_change_cli_hides_progress_output_on_tty() {}
+fn failure_without_cleanup_reports_every_later_step_as_skipped() {}
+
+#[test]
+#[cfg(not(unix))]
+fn failing_cleanup_preserves_the_primary_workflow_error() {}
+
+#[test]
+#[cfg(not(unix))]
+fn interactive_change_cli_shows_step_progress_on_tty() {}

@@ -180,7 +180,7 @@ Use that when:
 
 ### Step-local `show_progress`
 
-Interactive steps do not show the spinner by default when monochange is waiting on the user. For step kinds that support it, you can also set `show_progress = false` to suppress progress output explicitly.
+Every step reports its start and terminal status by default, including interactive steps. Animation remains terminal-only, and step kinds that support it can set `show_progress = false` to suppress their progress output explicitly.
 
 ### Structured template namespaces
 

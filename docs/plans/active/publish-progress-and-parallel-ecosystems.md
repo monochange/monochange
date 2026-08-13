@@ -54,13 +54,25 @@ This work makes release operations easier to trust by giving users readable prog
 ### 2. Progress across CLI steps
 
 - [ ] Emit step-level progress in `cli_runtime`:
-  - command workflow start/finish,
-  - step start/finish,
-  - skipped steps with `when` context,
+  - command workflow start and exactly one success/failure finish,
+  - step start before fallible input and condition resolution,
+  - exactly one step success/failure/skip finish,
+  - skipped steps with `when` or earlier-failure context,
   - failure context before returning errors.
+- [ ] Enable deterministic default progress on stderr for terminals, CI, editor tasks, and captured processes; only quiet mode, `MONOCHANGE_NO_PROGRESS`, or an explicit per-step opt-out suppresses it.
+- [ ] Preserve subprocess stderr and stdout in configured command and lockfile command failures, including stdout-only failures.
 - [ ] Add step-specific concise summaries for discover, validate/check/lint, prepare release, commit/tag/open release request, publish readiness, issue comments, affected packages, and retargeting.
 - [ ] Ensure JSON output commands remain parseable by keeping progress on stderr.
 - [ ] Add tests/snapshots for CI/plain stderr formatting where the harness supports it.
+
+### 2a. Complete sequential publish failure summaries
+
+- [ ] Preserve one terminal outcome for every package expected by a sequential publish run.
+- [ ] Report packages not attempted after the first failure as skipped because of that failure.
+- [ ] Derive and display expected, succeeded, failed, and skipped totals from the complete report.
+- [ ] Include aggregate totals and the underlying failed package error in the returned CLI error.
+- [ ] Propagate quiet mode into nested publish progress.
+- [ ] Add unit and output coverage for partial success, first failure, skipped tails, resume behavior, and command stdout/stderr diagnostics.
 
 ### 3. Parallel publish by ecosystem
 
@@ -77,6 +89,8 @@ This work makes release operations easier to trust by giving users readable prog
 - Use emojis, not nerdfonts, for portability and readability.
 - Emojis are allowed in CI logs; only spinner/loading animation is terminal-only.
 - stderr is the default channel for progress so stdout remains usable for JSON and command composition.
+- Default progress is deterministic and visible even when stderr is captured or non-interactive; animation remains terminal-only.
+- Sequential publish reports keep fail-fast execution but represent every expected package, including packages skipped after failure.
 - Parallelism starts at ecosystem granularity, not package granularity, to limit registry-rate and dependency-order risk.
 
 ## Open questions

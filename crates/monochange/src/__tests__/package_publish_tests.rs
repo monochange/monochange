@@ -4313,12 +4313,13 @@ async fn run_placeholder_publish_uses_env_overrides_for_registry_endpoints() {
 			Some(server.base_url().as_str()),
 		)],
 		async {
-			let report = run_placeholder_publish_with_npm_otp(
+			let report = try_run_placeholder_publish_with_npm_otp(
 				root.path(),
 				&configuration,
 				&BTreeSet::new(),
 				true,
 				Some("123456"),
+				true,
 			)
 			.await
 			.expect("placeholder report:");
@@ -4516,6 +4517,73 @@ fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 }
 
 #[test]
+fn resumed_publish_progress_offsets_run_totals_and_leaves_package_events_unchanged() {
+	let resumed = monochange_publish::PackagePublishSummary {
+		expected: 12,
+		succeeded: 10,
+		failed: 0,
+		skipped: 2,
+	};
+	let resumed_ecosystems = BTreeSet::from([Ecosystem::Cargo]);
+	let started = offset_publish_progress_event(
+		PublishProgressEvent::RunStarted {
+			mode: PackagePublishRunMode::Release,
+			dry_run: false,
+			total: 33,
+			ecosystems: vec![Ecosystem::Npm],
+		},
+		resumed,
+		&resumed_ecosystems,
+	);
+	assert!(matches!(
+		started,
+		PublishProgressEvent::RunStarted {
+			total: 45,
+			ref ecosystems,
+			..
+		} if ecosystems == &vec![Ecosystem::Cargo, Ecosystem::Npm]
+	));
+
+	let finished = offset_publish_progress_event(
+		PublishProgressEvent::RunFinished {
+			mode: PackagePublishRunMode::Release,
+			total: 33,
+			published: 2,
+			skipped: 30,
+			failed: 1,
+		},
+		resumed,
+		&resumed_ecosystems,
+	);
+	assert!(matches!(
+		finished,
+		PublishProgressEvent::RunFinished {
+			total: 45,
+			published: 12,
+			skipped: 32,
+			failed: 1,
+			..
+		}
+	));
+
+	let package = monochange_publish::PublishProgressPackage {
+		package_id: "pkg".to_string(),
+		package_name: "pkg".to_string(),
+		version: "1.0.0".to_string(),
+		ecosystem: Ecosystem::Npm,
+		registry: "npm".to_string(),
+	};
+	assert_eq!(
+		offset_publish_progress_event(
+			PublishProgressEvent::PackagePublished(package.clone()),
+			resumed,
+			&resumed_ecosystems,
+		),
+		PublishProgressEvent::PackagePublished(package)
+	);
+}
+
+#[test]
 fn fake_executor_reports_missing_outputs_and_render_helpers_match() {
 	let mut executor = FakeExecutor::new(Vec::new());
 	let spec = CommandSpec {
@@ -4539,7 +4607,7 @@ fn fake_executor_reports_missing_outputs_and_render_helpers_match() {
 			stdout: String::new(),
 			stderr: String::new(),
 		}),
-		"command failed"
+		"command failed without output"
 	);
 }
 
@@ -4806,10 +4874,14 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 					&BTreeSet::new(),
 					&selected_groups,
 					&selected_ecosystems,
-					false,
-					true,
-					None,
-					false,
+					PublishPackagesOptions {
+						dry_run: true,
+						output: PublishOutputOptions {
+							stream_output: false,
+							quiet: true,
+						},
+						..PublishPackagesOptions::default()
+					},
 				))
 				.expect("publish report:");
 

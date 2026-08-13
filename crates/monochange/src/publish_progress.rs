@@ -32,12 +32,12 @@ impl StderrPublishProgressReporter {
 				ecosystems,
 			} => {
 				let dry_run = if *dry_run { " dry-run" } else { "" };
-				write!(
-					output,
-					"◆ Publishing {total} packages ({mode:?}{dry_run}) across "
-				)
-				.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-				append_ecosystems(&mut output, ecosystems);
+				write!(output, "◆ Publishing {total} packages ({mode:?}{dry_run})")
+					.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
+				if !ecosystems.is_empty() {
+					output.push_str(" across ");
+					append_ecosystems(&mut output, ecosystems);
+				}
 			}
 			PublishProgressEvent::RegistryCheckStarted(package) => {
 				output.push_str(start_symbol(interactive));
@@ -102,7 +102,7 @@ impl StderrPublishProgressReporter {
 			} => {
 				write!(
 					output,
-					"◆ Publish complete: {total} packages, ✅ {published} published, ⏭️ {skipped} skipped, ❌ {failed} failed"
+					"◆ Publish complete: {total} expected, ✅ {published} succeeded, ❌ {failed} failed, ⏭️ {skipped} skipped"
 				)
 				.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
 			}

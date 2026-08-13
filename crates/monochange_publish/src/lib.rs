@@ -235,6 +235,94 @@ pub struct PackagePublishReport {
 	pub packages: Vec<PackagePublishOutcome>,
 }
 
+#[derive(Debug)]
+pub struct PackagePublishFailure {
+	error: MonochangeError,
+	report: PackagePublishReport,
+}
+
+impl PackagePublishFailure {
+	#[must_use]
+	pub fn new(error: MonochangeError, report: PackagePublishReport) -> Self {
+		Self { error, report }
+	}
+
+	#[must_use]
+	pub fn report(&self) -> &PackagePublishReport {
+		&self.report
+	}
+
+	#[must_use]
+	pub fn into_report(self) -> PackagePublishReport {
+		self.report
+	}
+
+	#[must_use]
+	pub fn error(&self) -> &MonochangeError {
+		&self.error
+	}
+
+	#[must_use]
+	pub fn into_error(self) -> MonochangeError {
+		self.error
+	}
+
+	#[must_use]
+	pub fn into_parts(self) -> (MonochangeError, PackagePublishReport) {
+		(self.error, self.report)
+	}
+
+	#[must_use]
+	pub fn render(&self) -> String {
+		self.error.render()
+	}
+}
+
+impl std::fmt::Display for PackagePublishFailure {
+	fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		self.error.fmt(formatter)
+	}
+}
+
+impl std::error::Error for PackagePublishFailure {}
+
+pub type PackagePublishExecutionResult = Result<PackagePublishReport, PackagePublishFailure>;
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct PackagePublishSummary {
+	pub expected: usize,
+	pub succeeded: usize,
+	pub failed: usize,
+	pub skipped: usize,
+}
+
+impl PackagePublishReport {
+	#[must_use]
+	pub fn summary(&self) -> PackagePublishSummary {
+		let mut summary = PackagePublishSummary {
+			expected: self.packages.len(),
+			succeeded: 0,
+			failed: 0,
+			skipped: 0,
+		};
+
+		for outcome in &self.packages {
+			match outcome.status {
+				PackagePublishStatus::Published => summary.succeeded += 1,
+				PackagePublishStatus::Failed => summary.failed += 1,
+				_ => summary.skipped += 1,
+			}
+		}
+
+		debug_assert_eq!(
+			summary.expected,
+			summary.succeeded + summary.failed + summary.skipped
+		);
+		summary
+	}
+}
+
 #[must_use]
 pub fn disabled_trust_outcome() -> TrustedPublishingOutcome {
 	TrustedPublishingOutcome {
@@ -265,6 +353,89 @@ pub fn failed_publish_outcome(
 		command: None,
 		stdout: None,
 		stderr: None,
+	}
+}
+
+fn append_publish_failure_outcomes(
+	outcomes: &mut Vec<PackagePublishOutcome>,
+	remaining_requests: &[PublishRequest],
+	mode: PackagePublishRunMode,
+	failed_request: &PublishRequest,
+	message: String,
+	progress: &dyn PublishProgressReporter,
+) {
+	progress.report(PublishProgressEvent::PackageFailed {
+		package: publish_progress_package(failed_request),
+		message: message.clone(),
+	});
+	outcomes.push(failed_publish_outcome(mode, failed_request, message));
+	append_skipped_after_failure_outcomes(
+		outcomes,
+		remaining_requests,
+		mode,
+		failed_request,
+		progress,
+	);
+}
+
+fn empty_publish_report(
+	mode: PackagePublishRunMode,
+	dry_run: bool,
+	requests: &[PublishRequest],
+) -> PackagePublishReport {
+	PackagePublishReport {
+		mode,
+		dry_run,
+		packages: requests
+			.iter()
+			.map(|request| {
+				PackagePublishOutcome {
+					package: request.package_id.clone(),
+					ecosystem: request.ecosystem,
+					registry: request.registry.to_string(),
+					version: request.version.clone(),
+					status: PackagePublishStatus::Blocked,
+					message: "not attempted because publishing could not start".to_string(),
+					placeholder: mode == PackagePublishRunMode::Placeholder,
+					trusted_publishing: disabled_trust_outcome(),
+					command: None,
+					stdout: None,
+					stderr: None,
+				}
+			})
+			.collect(),
+	}
+}
+
+fn append_skipped_after_failure_outcomes(
+	outcomes: &mut Vec<PackagePublishOutcome>,
+	requests: &[PublishRequest],
+	mode: PackagePublishRunMode,
+	failed_request: &PublishRequest,
+	progress: &dyn PublishProgressReporter,
+) {
+	for request in requests {
+		let message = format!(
+			"not attempted because publishing {} {} failed earlier in this run",
+			failed_request.package_name, failed_request.version
+		);
+		progress.report(PublishProgressEvent::PackageSkipped {
+			package: publish_progress_package(request),
+			message: message.clone(),
+		});
+		outcomes.push(PackagePublishOutcome {
+			package: request.package_id.clone(),
+			ecosystem: request.ecosystem,
+			registry: request.registry.to_string(),
+			version: request.version.clone(),
+			status: PackagePublishStatus::Blocked,
+			message,
+			placeholder: mode == PackagePublishRunMode::Placeholder,
+			trusted_publishing: disabled_trust_outcome(),
+			command: None,
+			stdout: None,
+			stderr: None,
+		});
 	}
 }
 
@@ -630,7 +801,7 @@ pub async fn execute_publish_requests_with_process(
 	let endpoints = RegistryEndpoints::from_env();
 	let client = registry_client()?;
 	let mut executor = ProcessCommandExecutor::new(false);
-	execute_publish_requests_with_progress(
+	try_execute_publish_requests_with_progress(
 		root,
 		source,
 		mode,
@@ -647,6 +818,7 @@ pub async fn execute_publish_requests_with_process(
 		&NoopPublishProgressReporter,
 	)
 	.await
+	.map_err(PackagePublishFailure::into_error)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -662,11 +834,42 @@ pub async fn execute_publish_requests_with_process_and_progress(
 	trust_handler: &dyn PublishTrustHandler,
 	progress: &dyn PublishProgressReporter,
 ) -> MonochangeResult<PackagePublishReport> {
+	try_execute_publish_requests_with_process_and_progress(
+		root,
+		source,
+		mode,
+		dry_run,
+		requests,
+		command_builder,
+		manifest_writers,
+		readiness,
+		trust_handler,
+		progress,
+	)
+	.await
+	.map_err(PackagePublishFailure::into_error)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn try_execute_publish_requests_with_process_and_progress(
+	root: &Path,
+	source: Option<&SourceConfiguration>,
+	mode: PackagePublishRunMode,
+	dry_run: bool,
+	requests: &[PublishRequest],
+	command_builder: &PublishCommandBuilder,
+	manifest_writers: &PlaceholderManifestWriterRegistry,
+	readiness: &PublishReadinessRegistry,
+	trust_handler: &dyn PublishTrustHandler,
+	progress: &dyn PublishProgressReporter,
+) -> PackagePublishExecutionResult {
 	let env_map = current_env_map();
 	let endpoints = RegistryEndpoints::from_env();
-	let client = registry_client()?;
+	let client = registry_client().map_err(|error| {
+		PackagePublishFailure::new(error, empty_publish_report(mode, dry_run, requests))
+	})?;
 	let mut executor = ProcessCommandExecutor::new(false);
-	execute_publish_requests_with_progress(
+	try_execute_publish_requests_with_progress(
 		root,
 		source,
 		mode,
@@ -701,7 +904,7 @@ pub async fn execute_publish_requests(
 	readiness: &PublishReadinessRegistry,
 	trust_handler: &dyn PublishTrustHandler,
 ) -> MonochangeResult<PackagePublishReport> {
-	execute_publish_requests_with_progress(
+	try_execute_publish_requests_with_progress(
 		root,
 		source,
 		mode,
@@ -718,6 +921,7 @@ pub async fn execute_publish_requests(
 		&NoopPublishProgressReporter,
 	)
 	.await
+	.map_err(PackagePublishFailure::into_error)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -737,6 +941,43 @@ pub async fn execute_publish_requests_with_progress(
 	trust_handler: &dyn PublishTrustHandler,
 	progress: &dyn PublishProgressReporter,
 ) -> MonochangeResult<PackagePublishReport> {
+	try_execute_publish_requests_with_progress(
+		root,
+		source,
+		mode,
+		dry_run,
+		requests,
+		client,
+		endpoints,
+		env_map,
+		executor,
+		command_builder,
+		manifest_writers,
+		readiness,
+		trust_handler,
+		progress,
+	)
+	.await
+	.map_err(PackagePublishFailure::into_error)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn try_execute_publish_requests_with_progress(
+	root: &Path,
+	source: Option<&SourceConfiguration>,
+	mode: PackagePublishRunMode,
+	dry_run: bool,
+	requests: &[PublishRequest],
+	client: &Client,
+	endpoints: &RegistryEndpoints,
+	env_map: &BTreeMap<String, String>,
+	executor: &mut dyn CommandExecutor,
+	command_builder: &PublishCommandBuilder,
+	manifest_writers: &PlaceholderManifestWriterRegistry,
+	readiness: &PublishReadinessRegistry,
+	trust_handler: &dyn PublishTrustHandler,
+	progress: &dyn PublishProgressReporter,
+) -> PackagePublishExecutionResult {
 	let ecosystems = requests
 		.iter()
 		.map(|request| request.ecosystem)
@@ -749,9 +990,12 @@ pub async fn execute_publish_requests_with_progress(
 		total: requests.len(),
 		ecosystems,
 	});
-	let mut outcomes = Vec::new();
+	let mut outcomes = Vec::with_capacity(requests.len());
+	let mut primary_error = None;
 
-	for request in requests {
+	for (request_index, request) in requests.iter().enumerate() {
+		let remaining_requests = requests.get(request_index + 1..).unwrap_or_default();
+
 		// External-mode packages are only skipped during release publishing.
 		// Placeholder publishing is a bootstrap utility that should work for all
 		// publishable packages, regardless of who handles normal release publishes.
@@ -795,7 +1039,22 @@ pub async fn execute_publish_requests_with_progress(
 		progress.report(PublishProgressEvent::RegistryCheckStarted(
 			publish_progress_package(request),
 		));
-		let version_exists = registry_version_exists(client, endpoints, request).await?;
+		let version_exists = match registry_version_exists(client, endpoints, request).await {
+			Ok(version_exists) => version_exists,
+			Err(error) => {
+				let message = error.render();
+				primary_error = Some(error);
+				append_publish_failure_outcomes(
+					&mut outcomes,
+					remaining_requests,
+					mode,
+					request,
+					message,
+					progress,
+				);
+				break;
+			}
+		};
 		if version_exists {
 			info!(
 				package_name = request.package_name,
@@ -831,16 +1090,31 @@ pub async fn execute_publish_requests_with_progress(
 		}
 
 		let blocked_message = if mode == PackagePublishRunMode::Release {
-			readiness.blocked_message(root, request)?
+			match readiness.blocked_message(root, request) {
+				Ok(message) => message,
+				Err(error) => {
+					let message = error.render();
+					primary_error = Some(error);
+					append_publish_failure_outcomes(
+						&mut outcomes,
+						remaining_requests,
+						mode,
+						request,
+						message,
+						progress,
+					);
+					break;
+				}
+			}
 		} else {
 			None
 		};
 		if let Some(message) = blocked_message {
-			progress.report(PublishProgressEvent::PackageSkipped {
-				package: publish_progress_package(request),
-				message: message.clone(),
-			});
 			if dry_run {
+				progress.report(PublishProgressEvent::PackageSkipped {
+					package: publish_progress_package(request),
+					message: message.clone(),
+				});
 				outcomes.push(PackagePublishOutcome {
 					package: request.package_id.clone(),
 					ecosystem: request.ecosystem,
@@ -858,16 +1132,35 @@ pub async fn execute_publish_requests_with_progress(
 				continue;
 			}
 
-			return Err(MonochangeError::Config(message));
+			primary_error = Some(MonochangeError::Config(message.clone()));
+			append_publish_failure_outcomes(
+				&mut outcomes,
+				remaining_requests,
+				mode,
+				request,
+				message,
+				progress,
+			);
+			break;
 		}
 
 		let placeholder_dir = if mode == PackagePublishRunMode::Placeholder {
-			Some(build_placeholder_directory(
-				root,
-				request,
-				source,
-				manifest_writers,
-			)?)
+			match build_placeholder_directory(root, request, source, manifest_writers) {
+				Ok(directory) => Some(directory),
+				Err(error) => {
+					let message = error.render();
+					primary_error = Some(error);
+					append_publish_failure_outcomes(
+						&mut outcomes,
+						remaining_requests,
+						mode,
+						request,
+						message,
+						progress,
+					);
+					break;
+				}
+			}
 		} else {
 			None
 		};
@@ -910,8 +1203,24 @@ pub async fn execute_publish_requests_with_progress(
 		}
 
 		if !dry_run && mode == PackagePublishRunMode::Release {
-			trust_handler.enforce_release_trust_prerequisites(request, source, root, env_map)?;
-			enforce_release_attestation_prerequisites(request, env_map, command_builder)?;
+			let prerequisites = trust_handler
+				.enforce_release_trust_prerequisites(request, source, root, env_map)
+				.and_then(|()| {
+					enforce_release_attestation_prerequisites(request, env_map, command_builder)
+				});
+			if let Err(error) = prerequisites {
+				let message = error.render();
+				primary_error = Some(error);
+				append_publish_failure_outcomes(
+					&mut outcomes,
+					remaining_requests,
+					mode,
+					request,
+					message,
+					progress,
+				);
+				break;
+			}
 		}
 
 		if !dry_run {
@@ -922,10 +1231,6 @@ pub async fn execute_publish_requests_with_progress(
 		let output = match executor.run(&publish_command) {
 			Ok(output) => output,
 			Err(error) => {
-				progress.report(PublishProgressEvent::PackageFailed {
-					package: publish_progress_package(request),
-					message: error.to_string(),
-				});
 				tracing::error!(
 					package_name = request.package_name,
 					version = %request.version,
@@ -933,15 +1238,19 @@ pub async fn execute_publish_requests_with_progress(
 					error = %error,
 					"publish command failed to execute"
 				);
-				outcomes.push(failed_publish_outcome(mode, request, error.to_string()));
+				let message = error.render();
+				append_publish_failure_outcomes(
+					&mut outcomes,
+					remaining_requests,
+					mode,
+					request,
+					message,
+					progress,
+				);
 				break;
 			}
 		};
 		if !output.success {
-			progress.report(PublishProgressEvent::PackageFailed {
-				package: publish_progress_package(request),
-				message: render_publish_command_error(&output, request, mode),
-			});
 			tracing::error!(
 				package_name = request.package_name,
 				version = %request.version,
@@ -978,7 +1287,18 @@ pub async fn execute_publish_requests_with_progress(
 			outcome.command = Some(render_command(&publish_command));
 			outcome.stdout = non_empty_output(output.stdout);
 			outcome.stderr = non_empty_output(output.stderr);
+			progress.report(PublishProgressEvent::PackageFailed {
+				package: publish_progress_package(request),
+				message: outcome.message.clone(),
+			});
 			outcomes.push(outcome);
+			append_skipped_after_failure_outcomes(
+				&mut outcomes,
+				remaining_requests,
+				mode,
+				request,
+				progress,
+			);
 			break;
 		}
 
@@ -1029,27 +1349,23 @@ pub async fn execute_publish_requests_with_progress(
 		});
 	}
 
-	let published = outcomes
-		.iter()
-		.filter(|outcome| outcome.status == PackagePublishStatus::Published)
-		.count();
-	let failed = outcomes
-		.iter()
-		.filter(|outcome| outcome.status == PackagePublishStatus::Failed)
-		.count();
-	let skipped = outcomes.len().saturating_sub(published + failed);
-	progress.report(PublishProgressEvent::RunFinished {
-		mode,
-		total: outcomes.len(),
-		published,
-		skipped,
-		failed,
-	});
-	Ok(PackagePublishReport {
+	let report = PackagePublishReport {
 		mode,
 		dry_run,
 		packages: outcomes,
-	})
+	};
+	let summary = report.summary();
+	progress.report(PublishProgressEvent::RunFinished {
+		mode,
+		total: summary.expected,
+		published: summary.succeeded,
+		skipped: summary.skipped,
+		failed: summary.failed,
+	});
+	if let Some(error) = primary_error {
+		return Err(PackagePublishFailure::new(error, report));
+	}
+	Ok(report)
 }
 
 pub fn build_placeholder_requests(
@@ -1510,10 +1826,11 @@ pub fn render_command(spec: &CommandSpec) -> String {
 }
 
 pub fn render_command_error(output: &CommandOutput) -> String {
-	if output.stderr.is_empty() {
-		"command failed".to_string()
-	} else {
-		output.stderr.clone()
+	match (output.stdout.is_empty(), output.stderr.is_empty()) {
+		(true, true) => "command failed without output".to_string(),
+		(false, true) => output.stdout.clone(),
+		(true, false) => output.stderr.clone(),
+		(false, false) => format!("stdout:\n{}\n\nstderr:\n{}", output.stdout, output.stderr),
 	}
 }
 
@@ -2559,6 +2876,7 @@ pub fn write_publish_report_artifact(
 }
 
 pub fn ensure_publish_report_succeeded(report: &PackagePublishReport) -> MonochangeResult<()> {
+	let summary = report.summary();
 	let Some(failed) = report
 		.packages
 		.iter()
@@ -2568,8 +2886,14 @@ pub fn ensure_publish_report_succeeded(report: &PackagePublishReport) -> Monocha
 	};
 
 	Err(MonochangeError::Discovery(format!(
-		"package publish failed for {} {}: {}",
-		failed.package, failed.version, failed.message
+		"package publishing did not complete: expected {}, succeeded {}, failed {}, skipped {}; failed package {} {}: {}",
+		summary.expected,
+		summary.succeeded,
+		summary.failed,
+		summary.skipped,
+		failed.package,
+		failed.version,
+		failed.message
 	)))
 }
 

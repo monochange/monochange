@@ -417,6 +417,43 @@ fn sample_publish_request_for_registry(registry: RegistryKind) -> PublishRequest
 }
 
 #[test]
+fn render_command_error_preserves_available_output_streams() {
+	let stdout_only = CommandOutput {
+		success: false,
+		stdout: "useful stdout".to_string(),
+		stderr: String::new(),
+	};
+	assert_eq!(render_command_error(&stdout_only), "useful stdout");
+
+	let stderr_only = CommandOutput {
+		success: false,
+		stdout: String::new(),
+		stderr: "useful stderr".to_string(),
+	};
+	assert_eq!(render_command_error(&stderr_only), "useful stderr");
+
+	let both = CommandOutput {
+		success: false,
+		stdout: "useful stdout".to_string(),
+		stderr: "useful stderr".to_string(),
+	};
+	assert_eq!(
+		render_command_error(&both),
+		"stdout:\nuseful stdout\n\nstderr:\nuseful stderr"
+	);
+
+	let empty = CommandOutput {
+		success: false,
+		stdout: String::new(),
+		stderr: String::new(),
+	};
+	assert_eq!(
+		render_command_error(&empty),
+		"command failed without output"
+	);
+}
+
+#[test]
 fn render_publish_command_error_adds_npm_otp_recovery_guidance() {
 	let request = sample_publish_request_for_registry(RegistryKind::Npm);
 	let output = CommandOutput {
@@ -574,6 +611,168 @@ impl CommandExecutor for PanickingCommandExecutor {
 	}
 }
 
+struct SequencedCommandExecutor {
+	commands: Vec<CommandSpec>,
+	outputs: std::collections::VecDeque<MonochangeResult<CommandOutput>>,
+}
+
+impl SequencedCommandExecutor {
+	fn new(outputs: impl IntoIterator<Item = MonochangeResult<CommandOutput>>) -> Self {
+		Self {
+			commands: Vec::new(),
+			outputs: outputs.into_iter().collect(),
+		}
+	}
+}
+
+impl CommandExecutor for SequencedCommandExecutor {
+	fn run(&mut self, spec: &CommandSpec) -> MonochangeResult<CommandOutput> {
+		self.commands.push(spec.clone());
+		self.outputs
+			.pop_front()
+			.unwrap_or_else(|| panic!("unexpected publish command: {}", render_command(spec)))
+	}
+}
+
+fn publish_request(package: &str) -> PublishRequest {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.package_id = package.to_string();
+	request.package_name = package.to_string();
+	request
+}
+
+fn npm_registry_response_endpoints(
+	request_count: usize,
+	response: &'static [u8],
+) -> (RegistryEndpoints, std::thread::JoinHandle<()>) {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("test registry address: {error}"));
+	let thread = std::thread::spawn(move || {
+		for _ in 0..request_count {
+			let (mut stream, _) = listener
+				.accept()
+				.unwrap_or_else(|error| panic!("accept registry request: {error}"));
+			let mut request = [0_u8; 2048];
+			std::io::Read::read(&mut stream, &mut request)
+				.unwrap_or_else(|error| panic!("read registry request: {error}"));
+			std::io::Write::write_all(&mut stream, response)
+				.unwrap_or_else(|error| panic!("write registry response: {error}"));
+		}
+	});
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.npm_registry = format!("http://{address}");
+	(endpoints, thread)
+}
+
+fn npm_not_found_endpoints(
+	request_count: usize,
+) -> (RegistryEndpoints, std::thread::JoinHandle<()>) {
+	npm_registry_response_endpoints(
+		request_count,
+		b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+	)
+}
+
+fn npm_failure_endpoints() -> (RegistryEndpoints, std::thread::JoinHandle<()>) {
+	npm_registry_response_endpoints(
+		1,
+		b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+	)
+}
+
+fn command_output(success: bool, stdout: &str, stderr: &str) -> CommandOutput {
+	CommandOutput {
+		success,
+		stdout: stdout.to_string(),
+		stderr: stderr.to_string(),
+	}
+}
+
+fn assert_complete_failed_publish_run(
+	report: &PackagePublishReport,
+	requests: &[PublishRequest],
+	progress: &RecordingPublishProgressReporter,
+	expected_failure: &str,
+	expected_placeholder: bool,
+) {
+	assert_eq!(report.packages.len(), requests.len());
+	assert_eq!(
+		report
+			.packages
+			.iter()
+			.map(|outcome| outcome.package.as_str())
+			.collect::<Vec<_>>(),
+		requests
+			.iter()
+			.map(|request| request.package_id.as_str())
+			.collect::<Vec<_>>()
+	);
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Failed);
+	assert!(report.packages[0].message.contains(expected_failure));
+	assert_eq!(report.packages[0].placeholder, expected_placeholder);
+	assert!(report.packages[1..].iter().all(|outcome| {
+		outcome.status == PackagePublishStatus::Blocked
+			&& outcome.placeholder == expected_placeholder
+			&& outcome.message.contains(&format!(
+				"publishing {} {} failed earlier",
+				requests[0].package_name, requests[0].version
+			))
+	}));
+	assert_eq!(
+		report.summary(),
+		PackagePublishSummary {
+			expected: requests.len(),
+			succeeded: 0,
+			failed: 1,
+			skipped: requests.len() - 1,
+		}
+	);
+
+	let events = progress.events.lock().unwrap();
+	assert!(matches!(
+		events.first(),
+		Some(PublishProgressEvent::RunStarted {
+			mode,
+			dry_run,
+			total,
+			..
+		}) if *mode == report.mode && *dry_run == report.dry_run && *total == requests.len()
+	));
+	assert!(events.iter().any(|event| {
+		matches!(
+			event,
+			PublishProgressEvent::PackageFailed { package, message }
+				if package.package_id == requests[0].package_id
+					&& message.contains(expected_failure)
+		)
+	}));
+	for request in &requests[1..] {
+		assert!(events.iter().any(|event| {
+			matches!(
+				event,
+				PublishProgressEvent::PackageSkipped { package, message }
+					if package.package_id == request.package_id
+						&& message.contains("failed earlier")
+			)
+		}));
+	}
+	assert!(matches!(
+		events.last(),
+		Some(PublishProgressEvent::RunFinished {
+			mode,
+			total,
+			published: 0,
+			skipped,
+			failed: 1,
+		}) if *mode == report.mode
+			&& *total == requests.len()
+			&& *skipped == requests.len() - 1
+	));
+}
+
 struct TestPublishTrustHandler;
 
 impl PublishTrustHandler for TestPublishTrustHandler {
@@ -605,6 +804,42 @@ impl PublishTrustHandler for TestPublishTrustHandler {
 		_env_map: &BTreeMap<String, String>,
 	) -> MonochangeResult<()> {
 		Ok(())
+	}
+}
+
+struct FailingPublishTrustHandler;
+
+impl PublishTrustHandler for FailingPublishTrustHandler {
+	fn trust_outcome_for_skip(
+		&self,
+		_request: &PublishRequest,
+		_source: Option<&SourceConfiguration>,
+		_root: &Path,
+		_env_map: &BTreeMap<String, String>,
+	) -> TrustedPublishingOutcome {
+		disabled_trust_outcome()
+	}
+
+	fn planned_trust_outcome(
+		&self,
+		_request: &PublishRequest,
+		_source: Option<&SourceConfiguration>,
+		_root: &Path,
+		_env_map: &BTreeMap<String, String>,
+	) -> TrustedPublishingOutcome {
+		disabled_trust_outcome()
+	}
+
+	fn enforce_release_trust_prerequisites(
+		&self,
+		_request: &PublishRequest,
+		_source: Option<&SourceConfiguration>,
+		_root: &Path,
+		_env_map: &BTreeMap<String, String>,
+	) -> MonochangeResult<()> {
+		Err(MonochangeError::Config(
+			"trusted publishing prerequisite failed".to_string(),
+		))
 	}
 }
 
@@ -691,6 +926,564 @@ async fn publish_progress_reports_external_skip_and_summary_events() {
 			..
 		})
 	));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn real_publish_failure_records_tail_outcomes_and_progress_summary() {
+	let requests = [
+		publish_request("first"),
+		publish_request("failed"),
+		publish_request("tail"),
+	];
+	let (endpoints, registry_thread) = npm_not_found_endpoints(2);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor = SequencedCommandExecutor::new([
+		Ok(command_output(true, "published first", "")),
+		Ok(command_output(
+			false,
+			"partial upload",
+			"registry rejected package",
+		)),
+	]);
+
+	let report = execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute publish requests: {error}"));
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert_eq!(executor.commands.len(), 2);
+	assert_eq!(report.packages.len(), requests.len());
+	assert_eq!(
+		report
+			.packages
+			.iter()
+			.map(|outcome| outcome.status)
+			.collect::<Vec<_>>(),
+		vec![
+			PackagePublishStatus::Published,
+			PackagePublishStatus::Failed,
+			PackagePublishStatus::Blocked,
+		]
+	);
+	assert_eq!(
+		report.summary(),
+		PackagePublishSummary {
+			expected: 3,
+			succeeded: 1,
+			failed: 1,
+			skipped: 1,
+		}
+	);
+
+	assert!(report.packages[1].message.contains("partial upload"));
+	assert!(
+		report.packages[1]
+			.message
+			.contains("registry rejected package")
+	);
+	assert!(
+		report.packages[2]
+			.message
+			.contains("publishing failed 1.0.0 failed earlier")
+	);
+
+	let events = progress.events.lock().unwrap();
+	assert!(events.iter().any(|event| {
+		matches!(
+			event,
+			PublishProgressEvent::PackageSkipped { package, message }
+				if package.package_name == "tail" && message.contains("failed earlier")
+		)
+	}));
+	assert!(matches!(
+		events.last(),
+		Some(PublishProgressEvent::RunFinished {
+			total: 3,
+			published: 1,
+			skipped: 1,
+			failed: 1,
+			..
+		})
+	));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn real_publish_spawn_failure_records_every_unattempted_package() {
+	let requests = [
+		publish_request("failed"),
+		publish_request("tail-one"),
+		publish_request("tail-two"),
+	];
+	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	let mut executor = SequencedCommandExecutor::new([Err(MonochangeError::Io(
+		"publisher executable was not found".to_string(),
+	))]);
+
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&NoopPublishProgressReporter,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute publish requests: {error}"));
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert_eq!(executor.commands.len(), 1);
+	assert_eq!(report.packages.len(), 3);
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Failed);
+	assert!(
+		report.packages[1..]
+			.iter()
+			.all(|outcome| outcome.status == PackagePublishStatus::Blocked)
+	);
+	assert_eq!(
+		report.summary(),
+		PackagePublishSummary {
+			expected: 3,
+			succeeded: 0,
+			failed: 1,
+			skipped: 2,
+		}
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_lookup_failure_records_failed_package_blocked_tail_and_finished_total() {
+	let requests = [
+		publish_request("failed"),
+		publish_request("tail-one"),
+		publish_request("tail-two"),
+	];
+	let (endpoints, registry_thread) = npm_failure_endpoints();
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor =
+		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
+
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.expect_err("registry lookup failure should carry a report")
+	.into_report();
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert!(executor.commands.is_empty());
+	assert_complete_failed_publish_run(&report, &requests, &progress, "npm registry lookup", false);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn readiness_checker_error_records_failed_package_blocked_tail_and_finished_total() {
+	let requests = [publish_request("failed"), publish_request("tail")];
+	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	let readiness = PublishReadinessRegistry::new().with_checker(
+		RegistryKind::Npm,
+		Box::new(|_, _| {
+			Err(MonochangeError::Config(
+				"readiness checker failed".to_string(),
+			))
+		}),
+	);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor =
+		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
+
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&readiness,
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.expect_err("readiness checker failure should carry a report")
+	.into_report();
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert!(executor.commands.is_empty());
+	assert_complete_failed_publish_run(
+		&report,
+		&requests,
+		&progress,
+		"readiness checker failed",
+		false,
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn real_run_readiness_block_records_failed_package_instead_of_returning_error() {
+	let requests = [publish_request("failed"), publish_request("tail")];
+	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	let readiness = PublishReadinessRegistry::new().with_checker(
+		RegistryKind::Npm,
+		Box::new(|_, _| Ok(Some("release is not ready".to_string()))),
+	);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor =
+		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
+
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&readiness,
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.expect_err("blocked readiness should carry a report")
+	.into_report();
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert!(executor.commands.is_empty());
+	assert_complete_failed_publish_run(
+		&report,
+		&requests,
+		&progress,
+		"release is not ready",
+		false,
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn placeholder_manifest_writer_failure_records_failed_package_and_blocked_tail() {
+	let mut requests = [publish_request("failed"), publish_request("tail")];
+	for request in &mut requests {
+		request.placeholder = true;
+	}
+	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	let manifest_writers = PlaceholderManifestWriterRegistry::new().with_writer(
+		RegistryKind::Npm,
+		Box::new(|_, _, _, _| {
+			Err(MonochangeError::Io(
+				"placeholder manifest writer failed".to_string(),
+			))
+		}),
+	);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor =
+		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
+
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Placeholder,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&manifest_writers,
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.expect_err("placeholder manifest failure should carry a report")
+	.into_report();
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert!(executor.commands.is_empty());
+	assert_complete_failed_publish_run(
+		&report,
+		&requests,
+		&progress,
+		"placeholder manifest writer failed",
+		true,
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn trust_prerequisite_failure_records_failed_package_and_blocked_tail() {
+	let requests = [publish_request("failed"), publish_request("tail")];
+	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor =
+		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
+
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&FailingPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.expect_err("trust prerequisite failure should carry a report")
+	.into_report();
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert!(executor.commands.is_empty());
+	assert_complete_failed_publish_run(
+		&report,
+		&requests,
+		&progress,
+		"trusted publishing prerequisite failed",
+		false,
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn attestation_prerequisite_failure_records_failed_package_and_blocked_tail() {
+	let mut requests = [publish_request("failed"), publish_request("tail")];
+	requests[0].trusted_publishing.enabled = false;
+	requests[0].attestations.require_registry_provenance = true;
+	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor =
+		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
+
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.expect_err("attestation prerequisite failure should carry a report")
+	.into_report();
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert!(executor.commands.is_empty());
+	assert_complete_failed_publish_run(
+		&report,
+		&requests,
+		&progress,
+		"trusted publishing is disabled",
+		false,
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dry_run_spawn_failure_records_failed_package_blocked_tail_and_expected_total() {
+	let requests = [
+		publish_request("failed"),
+		publish_request("tail-one"),
+		publish_request("tail-two"),
+	];
+	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor = SequencedCommandExecutor::new([Err(MonochangeError::Io(
+		"dry-run publisher executable was not found".to_string(),
+	))]);
+
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		true,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute publish dry run: {error}"));
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert_eq!(executor.commands.len(), 1);
+	assert_complete_failed_publish_run(
+		&report,
+		&requests,
+		&progress,
+		"dry-run publisher executable was not found",
+		false,
+	);
+}
+
+#[test]
+fn blocked_packages_are_pending_when_resuming() {
+	let requests = [publish_request("done"), publish_request("tail")];
+	let report = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: vec![
+			PackagePublishOutcome {
+				package: "done".to_string(),
+				ecosystem: Ecosystem::Npm,
+				registry: RegistryKind::Npm.to_string(),
+				version: "1.0.0".to_string(),
+				status: PackagePublishStatus::Published,
+				message: "published".to_string(),
+				placeholder: false,
+				trusted_publishing: disabled_trust_outcome(),
+				command: None,
+				stdout: None,
+				stderr: None,
+			},
+			PackagePublishOutcome {
+				package: "tail".to_string(),
+				ecosystem: Ecosystem::Npm,
+				registry: RegistryKind::Npm.to_string(),
+				version: "1.0.0".to_string(),
+				status: PackagePublishStatus::Blocked,
+				message: "not attempted".to_string(),
+				placeholder: false,
+				trusted_publishing: disabled_trust_outcome(),
+				command: None,
+				stdout: None,
+				stderr: None,
+			},
+		],
+	};
+
+	assert!(!package_publish_status_is_resumable_complete(
+		PackagePublishStatus::Blocked
+	));
+	let (pending, completed) = resume_publish_requests(&requests, Some(&report))
+		.unwrap_or_else(|error| panic!("resume requests: {error}"));
+	assert_eq!(
+		pending
+			.iter()
+			.map(|request| request.package_id.as_str())
+			.collect::<Vec<_>>(),
+		vec!["tail"]
+	);
+	assert_eq!(completed.len(), 1);
+	assert_eq!(completed[0].package, "done");
+}
+
+#[test]
+fn ensure_publish_report_succeeded_includes_summary_and_failed_package_detail() {
+	let report = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: vec![
+			PackagePublishOutcome {
+				package: "failed".to_string(),
+				ecosystem: Ecosystem::Npm,
+				registry: RegistryKind::Npm.to_string(),
+				version: "2.0.0".to_string(),
+				status: PackagePublishStatus::Failed,
+				message: "registry denied publication".to_string(),
+				placeholder: false,
+				trusted_publishing: disabled_trust_outcome(),
+				command: None,
+				stdout: None,
+				stderr: None,
+			},
+			PackagePublishOutcome {
+				package: "tail".to_string(),
+				ecosystem: Ecosystem::Npm,
+				registry: RegistryKind::Npm.to_string(),
+				version: "2.0.0".to_string(),
+				status: PackagePublishStatus::Blocked,
+				message: "not attempted".to_string(),
+				placeholder: false,
+				trusted_publishing: disabled_trust_outcome(),
+				command: None,
+				stdout: None,
+				stderr: None,
+			},
+		],
+	};
+
+	let error = ensure_publish_report_succeeded(&report)
+		.expect_err("failed report should produce an aggregate error")
+		.to_string();
+	assert!(error.contains("expected 2, succeeded 0, failed 1, skipped 1"));
+	assert!(error.contains("failed package failed 2.0.0"));
+	assert!(error.contains("registry denied publication"));
 }
 
 #[tokio::test(flavor = "multi_thread")]

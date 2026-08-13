@@ -3281,7 +3281,10 @@ fn command_release_dry_run_discovers_changesets_without_mutating_files() {
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
-	assert!(output.contains("# `step prepare-release` (dry-run)"));
+	assert!(
+		output.contains("step prepare-release") && output.contains("(dry-run)"),
+		"unexpected command output:\n{output}"
+	);
 	assert!(output.contains("1.1.0"));
 	assert!(output.contains("workflow-app"));
 	assert!(output.contains("workflow-core"));
@@ -3655,8 +3658,11 @@ fn command_release_updates_manifests_changelogs_and_deletes_changesets() {
 		.unwrap_or_else(|error| panic!("group versioned file: {error}"));
 	let package_versioned_file = fs::read_to_string(tempdir.path().join("crates/core/extra.toml"))
 		.unwrap_or_else(|error| panic!("package versioned file: {error}"));
-	assert!(output.contains("# `step prepare-release`"));
-	assert!(output.contains("group `sdk`"));
+	assert!(
+		output.contains("step prepare-release"),
+		"unexpected command output:\n{output}"
+	);
+	assert!(output.contains("group ") && output.contains("sdk"));
 	assert!(output.contains("v1.1.0"));
 	assert!(workspace_manifest.contains("version = \"1.1.0\""));
 	assert!(core_changelog.contains("## 1.1.0"));
@@ -3907,7 +3913,7 @@ fn command_release_uses_empty_update_message_precedence_for_grouped_changelogs()
 	let group_changelog = fs::read_to_string(tempdir.path().join("changelog.md"))
 		.unwrap_or_else(|error| panic!("group changelog: {error}"));
 
-	assert!(output.contains("# `step prepare-release`"));
+	assert!(output.contains("step prepare-release"));
 	assert!(core_changelog.contains("Package override for workflow-core -> 1.0.1"));
 	assert!(app_changelog.contains("Update triggered by group sdk; version 1.0.1."));
 	assert!(group_changelog.contains("Update triggered by group sdk; version 1.0.1."));
@@ -13163,7 +13169,7 @@ fn command_release_without_diff_skips_file_diff_previews() {
 	)
 	.unwrap_or_else(|error| panic!("release without diff: {error}"));
 	set_force_build_file_diff_previews_error(false);
-	assert!(output.contains("# `step prepare-release`"));
+	assert!(output.contains("step prepare-release"));
 }
 
 #[test]

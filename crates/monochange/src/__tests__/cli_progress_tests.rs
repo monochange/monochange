@@ -114,6 +114,12 @@ fn progress_format_parsing_and_renderer_selection_cover_all_variants() {
 	assert_eq!(ascii.render_mode, ProgressRenderMode::Human);
 	assert_eq!(ascii.symbols.command_success, ASCII_SYMBOLS.command_success);
 
+	let auto = CliProgressReporter::new(&command, false, false, ProgressFormat::Auto);
+	assert!(auto.enabled);
+
+	let quiet = CliProgressReporter::new(&command, false, true, ProgressFormat::Auto);
+	assert!(!quiet.enabled);
+
 	let json = CliProgressReporter::new(&command, false, false, ProgressFormat::Json);
 	assert!(json.enabled);
 	assert_eq!(json.render_mode, ProgressRenderMode::Json);
@@ -125,10 +131,11 @@ fn progress_reporter_renders_skips_failures_and_stderr_output_when_enabled() {
 	let mut reporter = progress_reporter(true, false);
 	let step = named_command_step("announce release");
 
-	reporter.step_skipped(0, &step, None);
-	reporter.step_skipped(0, &step, Some("{{ false }}"));
+	reporter.step_skipped(0, &step, None, None);
+	reporter.step_skipped(0, &step, Some("{{ false }}"), Some("condition is false"));
 	reporter.log_command_output(0, &step, CommandStream::Stderr, "warn line\n");
 	reporter.step_failed(1, &step, Duration::from_millis(25), "boom\nagain");
+	reporter.command_failed(Duration::from_millis(30), "boom");
 }
 
 #[test]
@@ -137,8 +144,9 @@ fn progress_reporter_emits_json_skip_and_failure_events() {
 	reporter.render_mode = ProgressRenderMode::Json;
 	let step = named_command_step("announce release");
 
-	reporter.step_skipped(0, &step, Some("{{ false }}"));
+	reporter.step_skipped(0, &step, Some("{{ false }}"), Some("condition is false"));
 	reporter.step_failed(1, &step, Duration::from_millis(25), "boom");
+	reporter.command_failed(Duration::from_millis(30), "boom");
 }
 
 #[test]

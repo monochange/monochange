@@ -1046,6 +1046,26 @@ fn lockfile_update_helpers_cover_missing_dirs_unreadable_files_and_stderr_paths(
 	.err()
 	.unwrap_or_else(|| panic!("expected stderr failure for in-place lockfile command"));
 	assert!(stderr_error.to_string().contains("bad stderr"));
+
+	fs::write(&script_path, "#!/bin/sh\necho useful stdout\nexit 7\n")
+		.unwrap_or_else(|error| panic!("rewrite failing script: {error}"));
+	let stdout_error = run_lockfile_command_in_place(
+		root,
+		&LockfileCommandExecution {
+			command: script_path.display().to_string(),
+			cwd: PathBuf::from("."),
+			shell: ShellConfig::None,
+		},
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected stdout failure for in-place lockfile command"));
+	assert_eq!(
+		stdout_error.to_string(),
+		format!(
+			"config error: lockfile command `{}` failed in .: exit status: 7\nstdout:\nuseful stdout",
+			script_path.display()
+		)
+	);
 }
 
 #[test]
