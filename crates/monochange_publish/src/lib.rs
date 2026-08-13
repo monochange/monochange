@@ -868,8 +868,8 @@ pub async fn try_execute_publish_requests_with_process_and_progress(
 	let client = registry_client().map_err(|error| {
 		// patch-coverage:ignore-start -- registry client build failure requires a broken TLS/network environment.
 		PackagePublishFailure::new(error, empty_publish_report(mode, dry_run, requests))
-		// patch-coverage:ignore-end
 	})?;
+	// patch-coverage:ignore-end
 	let mut executor = ProcessCommandExecutor::new(false);
 	try_execute_publish_requests_with_progress(
 		root,
