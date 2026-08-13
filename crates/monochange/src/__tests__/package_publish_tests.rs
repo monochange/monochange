@@ -4583,6 +4583,70 @@ fn resumed_publish_progress_offsets_run_totals_and_leaves_package_events_unchang
 	);
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_maps_discovery_errors_to_report_carrying_failure() {
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let bad_root = tempdir.path().join("not-a-directory.txt");
+	std::fs::write(&bad_root, "not a directory").expect("write file:");
+	let configuration = crate::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("load configuration: {error}"));
+
+	let error = try_run_publish_packages_with_resume(
+		&bad_root,
+		&configuration,
+		None,
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		PublishPackagesOptions::default(),
+	)
+	.await
+	.expect_err("discovery error should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_maps_resume_artifact_errors() {
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let root = tempdir.path();
+	let configuration = crate::load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load configuration: {error}"));
+	let missing_resume = root.join("missing-resume.json");
+
+	let error = try_run_publish_packages_with_resume(
+		root,
+		&configuration,
+		None,
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			resume_path: Some(&missing_resume),
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect_err("missing resume artifact should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[test]
+fn package_publish_failure_into_parts_returns_error_and_report() {
+	let report = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: Vec::new(),
+	};
+	let error = MonochangeError::Config("test error".to_string());
+	let failure = monochange_publish::PackagePublishFailure::new(error, report.clone());
+	let (_returned_error, returned_report) = failure.into_parts();
+	assert_eq!(returned_report, report);
+}
+
 #[test]
 fn fake_executor_reports_missing_outputs_and_render_helpers_match() {
 	let mut executor = FakeExecutor::new(Vec::new());

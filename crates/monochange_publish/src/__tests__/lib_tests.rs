@@ -2330,3 +2330,48 @@ async fn dry_run_publish_executes_registry_dry_run_and_captures_output() {
 			.is_some_and(|command| command.contains("--dry-run"))
 	);
 }
+
+#[test]
+fn package_publish_failure_exposes_error_and_report_accessors() {
+	let report = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: Vec::new(),
+	};
+	let error = MonochangeError::Config("boom".to_string());
+	let failure = PackagePublishFailure::new(error, report.clone());
+
+	assert_eq!(failure.report(), &report);
+	assert_eq!(failure.error().to_string(), "config error: boom");
+	assert_eq!(failure.render(), "config error: boom");
+	assert_eq!(failure.to_string(), "config error: boom");
+	assert!(std::error::Error::source(&failure).is_none());
+
+	let into_report = failure.into_report();
+	assert_eq!(into_report, report);
+
+	let failure =
+		PackagePublishFailure::new(MonochangeError::Config("boom".to_string()), report.clone());
+	let (returned_error, returned_report) = failure.into_parts();
+	assert_eq!(returned_error.to_string(), "config error: boom");
+	assert_eq!(returned_report.mode, PackagePublishRunMode::Release);
+
+	let failure = PackagePublishFailure::new(MonochangeError::Config("boom".to_string()), report);
+	assert_eq!(failure.into_error().to_string(), "config error: boom");
+}
+
+#[test]
+fn empty_publish_report_marks_every_request_as_blocked() {
+	let requests = [publish_request("first"), publish_request("second")];
+	let report = empty_publish_report(PackagePublishRunMode::Release, false, &requests);
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(!report.dry_run);
+	assert_eq!(report.packages.len(), 2);
+	assert!(report.packages.iter().all(|outcome| {
+		outcome.status == PackagePublishStatus::Blocked
+			&& outcome.message.contains("could not start")
+	}));
+	assert_eq!(report.summary().expected, 2);
+	assert_eq!(report.summary().failed, 0);
+	assert_eq!(report.summary().skipped, 2);
+}
