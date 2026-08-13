@@ -412,14 +412,14 @@ jobs:
           free-runner-space: "true"
 
       - name: build PR binary
-        run: cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/mc-pr
+        run: cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/monochange-pr
         shell: devenv shell -- bash -e {0}
 
       - name: build main binary
         run: |
           git stash --include-untracked
           git checkout origin/main
-          cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/mc-main
+          cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/monochange-main
           git checkout -
           git stash pop || true
         shell: devenv shell -- bash -e {0}
@@ -428,8 +428,8 @@ jobs:
         id: bench
         run: |
           pnpm node scripts/benchmark-cli.ts run \
-            --main-bin /tmp/mc-main \
-            --pr-bin /tmp/mc-pr \
+            --main-bin /tmp/monochange-main \
+            --pr-bin /tmp/monochange-pr \
             --output /tmp/benchmark-comment.md \
             --violations-output /tmp/benchmark-violations.txt
 
@@ -480,14 +480,14 @@ jobs:
           free-runner-space: "true"
 
       - name: build PR binary
-        run: cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/mc-pr
+        run: cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/monochange-pr
         shell: devenv shell -- bash -e {0}
 
       - name: build main binary
         run: |
           git stash --include-untracked
           git checkout origin/main
-          cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/mc-main
+          cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/monochange-main
           git checkout -
           git stash pop || true
         shell: devenv shell -- bash -e {0}
@@ -496,8 +496,8 @@ jobs:
         id: size
         run: |
           pnpm node scripts/binary-size.ts compare \
-            --main-bin /tmp/mc-main \
-            --pr-bin /tmp/mc-pr \
+            --main-bin /tmp/monochange-main \
+            --pr-bin /tmp/monochange-pr \
             --output /tmp/size-comment.md
 
           {

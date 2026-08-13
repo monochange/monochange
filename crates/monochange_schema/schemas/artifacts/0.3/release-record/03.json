@@ -28,7 +28,7 @@
 			]
 		}
 	],
-	"command": "mc release --commit",
+	"command": "monochange release --commit",
 	"createdAt": "2026-01-03T00:00:00Z",
 	"deletedChangesets": [
 		".changeset/schema-artifact-3.md"

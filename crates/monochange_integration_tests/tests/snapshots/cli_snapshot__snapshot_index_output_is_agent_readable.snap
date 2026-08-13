@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_snapshot.rs
-assertion_line: 15
 expression: value
 ---
 {
@@ -787,7 +786,7 @@ expression: value
     }
   },
   "tool": {
-    "name": "mc",
+    "name": "monochange",
     "version": "[version]"
   }
 }

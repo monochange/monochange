@@ -46,8 +46,8 @@ Build the `main` and PR binaries first, then run the benchmark script against a 
 gh repo clone ifiokjr/monochange-release-benchmark-fixture /tmp/monochange-release-benchmark-fixture
 
 pnpm node scripts/benchmark-cli.ts run-fixture \
-  --main-bin /tmp/mc-main \
-  --pr-bin /tmp/mc-pr \
+  --main-bin /tmp/monochange-main \
+  --pr-bin /tmp/monochange-pr \
   --fixture-dir /tmp/monochange-release-benchmark-fixture \
   --scenario-id hosted_github \
   --scenario-name "Hosted GitHub fixture" \

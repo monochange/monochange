@@ -86,12 +86,12 @@ Measured with `hyperfine --warmup 1 --runs 6`.
 | :------------------------------------------------- | :--------------------------------------- | --------: | -------: | ------: | --------: |
 | Baseline, 20 packages / 50 changesets / 50 commits | `monochange step validate`               |   37.5 ms |  25.4 ms |   0.68× |     32.3% |
 | Baseline, 20 packages / 50 changesets / 50 commits | `monochange step discover --format json` |   31.2 ms |  16.4 ms |   0.53× |     47.4% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc release --dry-run`                   |  316.6 ms | 131.8 ms |   0.42× |     58.4% |
-| Baseline, 20 packages / 50 changesets / 50 commits | `mc release`                             |  345.9 ms | 148.9 ms |   0.43× |     57.0% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `monochange release --dry-run`           |  316.6 ms | 131.8 ms |   0.42× |     58.4% |
+| Baseline, 20 packages / 50 changesets / 50 commits | `monochange release`                     |  345.9 ms | 148.9 ms |   0.43× |     57.0% |
 | Large, 200 packages / 500 changesets / 500 commits | `monochange step validate`               |  595.1 ms | 475.3 ms |   0.80× |     20.1% |
 | Large, 200 packages / 500 changesets / 500 commits | `monochange step discover --format json` |  548.0 ms | 380.7 ms |   0.69× |     30.5% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc release --dry-run`                   | 2769.8 ms | 708.6 ms |   0.26× |     74.4% |
-| Large, 200 packages / 500 changesets / 500 commits | `mc release`                             | 3021.1 ms | 784.6 ms |   0.26× |     74.0% |
+| Large, 200 packages / 500 changesets / 500 commits | `monochange release --dry-run`           | 2769.8 ms | 708.6 ms |   0.26× |     74.4% |
+| Large, 200 packages / 500 changesets / 500 commits | `monochange release`                     | 3021.1 ms | 784.6 ms |   0.26× |     74.0% |
 
 Top-level CLI benchmark violations: `0`.
 
@@ -182,7 +182,7 @@ Peak memory sampling with `/usr/bin/time -l` for `step diagnose-changesets` impr
    - The low-gain follow-up rerun now shows this command faster than `main`; remaining work is to isolate prepare-release and serialization costs for additional headroom.
 4. Large-fixture `monochange step validate` still spends roughly `0.49 s` on the PR branch.
    - Next work: identify whether validation repeatedly loads manifests or performs serial registry/source checks that can be cached or batched.
-5. Release phase timings do not fully explain the wall-clock `mc release` / `mc release --dry-run` durations.
+5. Release phase timings do not fully explain the wall-clock `monochange release` / `monochange release --dry-run` durations.
    - Next work: add or inspect outer phase spans around command startup, fixture setup, workflow orchestration, and subprocess boundaries so the remaining wall time is attributable.
 6. Memory usage has targeted spot checks but not broad benchmark coverage yet.
    - Next work: add peak RSS measurements for the benchmarked command matrix, then target allocation-heavy structures with borrowed data, streaming iteration, or smaller owned summaries.
@@ -212,14 +212,14 @@ devenv shell -- coverage:patch
 ```sh
 workdir=/tmp/monochange-async-perf-20260513
 node "$workdir/async/scripts/benchmark-cli.ts" run \
-  --main-bin "$workdir/main/target/release/mc" \
-  --pr-bin "$workdir/async/target/release/mc" \
+  --main-bin "$workdir/main/target/release/monochange" \
+  --pr-bin "$workdir/async/target/release/monochange" \
   --output "$workdir/async-performance.md" \
   --violations-output "$workdir/async-performance-violations.txt"
 
 node "$workdir/async/scripts/benchmark-step-commands.ts" run \
-  --main-bin "$workdir/main/target/release/mc" \
-  --pr-bin "$workdir/async/target/release/mc" \
+  --main-bin "$workdir/main/target/release/monochange" \
+  --pr-bin "$workdir/async/target/release/monochange" \
   --output "$workdir/async-step-performance-rerun.md" \
   --violations-output "$workdir/async-step-performance-rerun-violations.txt" \
   --warmup 3 \

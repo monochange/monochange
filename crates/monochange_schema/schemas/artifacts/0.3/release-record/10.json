@@ -25,7 +25,7 @@
 			]
 		}
 	],
-	"command": "mc release --commit",
+	"command": "monochange release --commit",
 	"createdAt": "2026-01-10T00:00:00Z",
 	"deletedChangesets": [
 		".changeset/schema-artifact-10.md"

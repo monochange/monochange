@@ -29,8 +29,8 @@ Make monochange feel alive and predictable in lesser-used ecosystems and provide
 12. Placeholder publish: dry-run and real publish paths need visible package-by-package progress.
 13. Git provenance/diagnostics: deep history and `git log --follow` style operations can become slow.
 14. Release-record reconstruction: tag/commit discovery can be slow in repos with many tags.
-15. `mc init`: broad auto-discovery across all ecosystems can walk the tree many times.
-16. `mc check --fix`: manifest rewrite paths should report per-file progress and avoid rereading unchanged files.
+15. `monochange init`: broad auto-discovery across all ecosystems can walk the tree many times.
+16. `monochange check --fix`: manifest rewrite paths should report per-file progress and avoid rereading unchanged files.
 17. Lint suites: each ecosystem linter may reread manifests already parsed during discovery.
 18. MCP operations: agent callers need JSON progress or structured “still working” output for long tasks.
 19. Provider HTTP clients: missing explicit connect/request timeouts can create indefinite waits.

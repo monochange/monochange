@@ -51,10 +51,10 @@ fn mc_release(root: &Path, args: &[&str]) -> String {
 		.args(["run", "release", "--dry-run"])
 		.args(args)
 		.output()
-		.unwrap_or_else(|error| panic!("run mc release: {error}"));
+		.unwrap_or_else(|error| panic!("run monochange release: {error}"));
 	assert!(
 		output.status.success(),
-		"mc release failed\nstdout:\n{}\nstderr:\n{}",
+		"monochange release failed\nstdout:\n{}\nstderr:\n{}",
 		String::from_utf8_lossy(&output.stdout),
 		String::from_utf8_lossy(&output.stderr)
 	);

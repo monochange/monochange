@@ -9,14 +9,14 @@
  *
  * Usage:
  *   node scripts/binary-size.ts compare \
- *     --main-bin /tmp/mc-main \
- *     --pr-bin /tmp/mc-pr \
+ *     --main-bin /tmp/monochange-main \
+ *     --pr-bin /tmp/monochange-pr \
  *     --output /tmp/size-comment.md
  *
  *   node scripts/binary-size.ts compare \
- *     --main-bin /tmp/mc-main \
+ *     --main-bin /tmp/monochange-main \
  *     --main-size-bytes 30_886_048 \
- *     --pr-bin /tmp/mc-pr \
+ *     --pr-bin /tmp/monochange-pr \
  *     --output /tmp/size-comment.md
  *
  * When --main-size-bytes is provided, the main binary itself is not

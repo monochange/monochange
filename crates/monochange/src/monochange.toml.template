@@ -500,7 +500,7 @@ version_format = "primary"
 # this top-level section.
 #
 [lints]
-# Start with baseline presets so existing repositories can adopt `mc check`
+# Start with baseline presets so existing repositories can adopt `monochange check`
 # without turning formatting preferences into blocking errors. Upgrade to
 # `*/recommended` or `*/strict` when the workspace is ready to enforce policy.
 use = ["cargo/baseline", "npm/baseline", "dart/baseline"]
