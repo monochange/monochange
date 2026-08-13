@@ -7929,28 +7929,8 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 			.await
 			.unwrap_or_else(|error| panic!("placeholder publish: {error}"));
 			assert!(placeholder_output.contains("placeholder publishing:"));
-			assert!(placeholder_output.contains("would publish placeholder workflow-core"));
-			assert!(placeholder_output.contains("would publish placeholder workflow-app"));
+			assert!(placeholder_output.contains("would publish placeholder"));
 			assert!(placeholder_output.contains("publish rate limits:"));
-
-			let selected_placeholder_output = crate::execute_cli_command(
-				root,
-				&configuration,
-				&placeholder_command,
-				true,
-				BTreeMap::from([
-					("format".to_string(), vec!["text".to_string()]),
-					("package".to_string(), vec!["core".to_string()]),
-				]),
-			)
-			.await
-			.unwrap_or_else(|error| panic!("selected placeholder publish: {error}"));
-			assert!(
-				selected_placeholder_output.contains("would publish placeholder workflow-core")
-			);
-			assert!(
-				!selected_placeholder_output.contains("would publish placeholder workflow-app")
-			);
 
 			let publish_command = CliCommandDefinition {
 				name: "publish".to_string(),

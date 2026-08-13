@@ -505,6 +505,7 @@ changed_paths = ["codecov.yml"]
 # Files that should not trigger changeset requirements.
 ignored_paths = [
 	"**/tests/**",
+	"**/__tests__/**",
 	"**/__tests.rs",
 	"**/snapshots/**",
 	"fixtures/tests/**",
