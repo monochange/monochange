@@ -2363,6 +2363,9 @@
 					],
 					"default": null
 				},
+				"timeout": {
+					"$ref": "#/$defs/publish_timeout_settings"
+				},
 				"trusted_publishing": {
 					"anyOf": [
 						{
@@ -2371,6 +2374,30 @@
 						{
 							"type": "null"
 						}
+					]
+				}
+			},
+			"type": "object"
+		},
+		"publish_timeout_settings": {
+			"additionalProperties": false,
+			"properties": {
+				"retries": {
+					"default": null,
+					"format": "uint32",
+					"minimum": 0,
+					"type": [
+						"integer",
+						"null"
+					]
+				},
+				"timeout_seconds": {
+					"default": null,
+					"format": "uint64",
+					"minimum": 0,
+					"type": [
+						"integer",
+						"null"
 					]
 				}
 			},
