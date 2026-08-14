@@ -2,6 +2,7 @@
 monochange_core: minor
 monochange_config: minor
 monochange_publish: minor
+monochange_npm: patch
 monochange: patch
 monochange_schema: patch
 ---
