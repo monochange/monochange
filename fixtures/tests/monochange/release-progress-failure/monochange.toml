@@ -39,4 +39,32 @@ steps = [
   { type = "Validate", name = "skip validate", when = "{{ false }}" },
   { type = "Command", name = "stderr only", shell = true, command = "printf 'warn line\n' >&2" },
   { type = "Command", name = "fail loud", shell = true, command = "printf 'bad line\n' >&2; exit 3" },
+  { type = "Command", name = "cleanup", shell = true, command = "printf 'cleanup complete\n'", always_run = true },
+  { type = "Command", name = "skip after failure", shell = true, command = "printf 'must not run\n'" },
+]
+
+[cli.progress-failure-no-cleanup]
+help_text = "Exercise failure skips without cleanup"
+steps = [
+  { type = "Command", name = "primary failure", shell = true, command = "printf 'primary error\n' >&2; exit 4" },
+  { type = "Command", name = "skipped tail", shell = true, command = "printf 'must not run\n'" },
+]
+
+[cli.progress-failing-cleanup]
+help_text = "Exercise primary failure preservation"
+steps = [
+  { type = "Command", name = "primary failure", shell = true, command = "printf 'primary error\n' >&2; exit 4" },
+  { type = "Command", name = "failing cleanup", shell = true, command = "printf 'cleanup error\n' >&2; exit 5", always_run = true },
+]
+
+[cli.progress-json-skip]
+help_text = "Exercise JSON skip compatibility"
+steps = [
+  { type = "Validate", name = "conditional skip", when = "{{ false }}" },
+]
+
+[cli.progress-stdout-failure]
+help_text = "Exercise stdout-only command failure details"
+steps = [
+  { type = "Command", name = "fail stdout only", shell = true, command = "printf 'stdout failure line\n'; exit 6" },
 ]

@@ -650,12 +650,7 @@ pub(crate) async fn execute_cli_command_with_options(
 	let mut output = None;
 	let command_started_at = Instant::now();
 	let mut progress = CliProgressReporter::new(cli_command, dry_run, quiet, progress_format);
-	// Release can spend noticeable time resolving early steps before the first
-	// step-level progress event, so show the command header immediately without
-	// changing interactive command output.
-	if cli_command.name == "release" {
-		progress.command_started();
-	}
+	progress.command_started();
 	let telemetry = CliTelemetry::new(
 		TelemetrySink::from_env(),
 		cli_command,
@@ -668,7 +663,11 @@ pub(crate) async fn execute_cli_command_with_options(
 
 	for (step_index, step) in cli_command.steps.iter().enumerate() {
 		let step_started_at = Instant::now();
+		let show_progress = step_shows_progress(step);
 		if command_error.is_some() && !step.always_run() {
+			if show_progress {
+				progress.step_skipped(step_index, step, None, Some("an earlier step failed"));
+			}
 			telemetry.capture_step(
 				step_index,
 				step,
@@ -679,43 +678,55 @@ pub(crate) async fn execute_cli_command_with_options(
 			);
 			continue;
 		}
+		if show_progress {
+			progress.step_started(step_index, step);
+		}
 		let step_inputs = match resolve_step_inputs(&context, step) {
 			Ok(step_inputs) => step_inputs,
 			Err(error) => {
+				let elapsed = step_started_at.elapsed();
+				report_cli_step_failure(
+					&mut progress,
+					show_progress,
+					step_index,
+					step,
+					elapsed,
+					&error,
+				);
 				telemetry.capture_step(
 					step_index,
 					step,
 					false,
-					step_started_at.elapsed(),
+					elapsed,
 					TelemetryOutcome::Error,
 					Some(&error),
 				);
-				if !has_remaining_always_run_steps(&cli_command.steps, step_index) {
-					telemetry.capture_command(TelemetryOutcome::Error, Some(&error));
-					return Err(error);
-				}
-				command_error = Some(error);
+				command_error.get_or_insert(error);
 				continue;
 			}
 		};
-		let show_progress = step_shows_progress(step, &step_inputs);
 
 		let should_execute = match should_execute_cli_step(step, &context, &step_inputs) {
 			Ok(should_execute) => should_execute,
 			Err(error) => {
+				let elapsed = step_started_at.elapsed();
+				report_cli_step_failure(
+					&mut progress,
+					show_progress,
+					step_index,
+					step,
+					elapsed,
+					&error,
+				);
 				telemetry.capture_step(
 					step_index,
 					step,
 					false,
-					step_started_at.elapsed(),
+					elapsed,
 					TelemetryOutcome::Error,
 					Some(&error),
 				);
-				if !has_remaining_always_run_steps(&cli_command.steps, step_index) {
-					telemetry.capture_command(TelemetryOutcome::Error, Some(&error));
-					return Err(error);
-				}
-				command_error = Some(error);
+				command_error.get_or_insert(error);
 				continue;
 			}
 		};
@@ -734,16 +745,8 @@ pub(crate) async fn execute_cli_command_with_options(
 
 		context.last_step_inputs = step_inputs.clone();
 
-		if show_progress {
-			progress.step_started(step_index, step);
-		}
 		tracing::debug!(step = step.kind_name(), "executing CLI step");
 		let mut step_phase_timings = Vec::new();
-		if show_progress {
-			for phase in expected_progress_phases(step) {
-				progress.step_status(step_index, step, phase);
-			}
-		}
 		let step_result: MonochangeResult<()> = async {
 			match step {
 				CliStepDefinition::Config { .. } => {
@@ -975,16 +978,33 @@ pub(crate) async fn execute_cli_command_with_options(
 							publish_rate_limits::PublishRateLimitMode::Placeholder,
 						)?;
 					}
-					let report = package_publish::run_placeholder_publish_with_npm_otp(
+					let report = match package_publish::try_run_placeholder_publish_with_npm_otp(
 						root,
 						configuration,
 						&selected_packages,
 						context.dry_run,
 						npm_otp,
+						context.quiet,
 					)
-					.await?;
-					context.package_publish_report =
-						Some(filter_placeholder_publish_report(report, show_all_packages));
+					.await
+					{
+						Ok(report) => report,
+						Err(error) => {
+							let (primary_error, report) = error.into_parts();
+							let error =
+								monochange_publish::ensure_publish_report_succeeded(&report)
+									.err()
+									.unwrap_or(primary_error);
+							context.package_publish_report = Some(report);
+							context.rate_limit_report = Some(rate_limit_report);
+							return Err(error);
+						}
+					};
+					monochange_publish::ensure_publish_report_succeeded(&report)?;
+					context.package_publish_report = Some(report);
+					context
+						.last_step_inputs
+						.insert("show-all".to_string(), vec![show_all_packages.to_string()]);
 					context.rate_limit_report = Some(rate_limit_report);
 					output = None;
 					Ok(())
@@ -1023,19 +1043,45 @@ pub(crate) async fn execute_cli_command_with_options(
 							publish_rate_limits::PublishRateLimitMode::Publish,
 						)?;
 					}
-					let report = package_publish::run_publish_packages_with_resume(
+					let report = match package_publish::try_run_publish_packages_with_resume(
 						root,
 						configuration,
 						context.prepared_release.as_ref(),
 						&selected_packages,
 						&selected_groups,
 						&selected_ecosystems,
-						publish_all,
-						context.dry_run,
-						resume_path.as_deref(),
-						stream_output,
+						package_publish::PublishPackagesOptions {
+							publish_all_configured_packages: publish_all,
+							dry_run: context.dry_run,
+							resume_path: resume_path.as_deref(),
+							output: package_publish::PublishOutputOptions {
+								stream_output,
+								quiet: context.quiet,
+							},
+						},
 					)
-					.await?;
+					.await
+					{
+						Ok(report) => report,
+						Err(error) => {
+							let (primary_error, report) = error.into_parts();
+							if !context.dry_run
+								&& let Some(output_path) = output_path.as_deref()
+							{
+								monochange_publish::write_publish_report_artifact(
+									output_path,
+									&report,
+								)?;
+							}
+							let error =
+								monochange_publish::ensure_publish_report_succeeded(&report)
+									.err()
+									.unwrap_or(primary_error);
+							context.package_publish_report = Some(report);
+							context.rate_limit_report = Some(rate_limit_report);
+							return Err(error);
+						}
+					};
 					if !context.dry_run
 						&& let Some(output_path) = output_path.as_deref()
 					{
@@ -1448,12 +1494,8 @@ pub(crate) async fn execute_cli_command_with_options(
 				TelemetryOutcome::Error,
 				Some(&error),
 			);
-			if !has_remaining_always_run_steps(&cli_command.steps, step_index) {
-				telemetry.capture_command(TelemetryOutcome::Error, Some(&error));
-
-				return Err(error);
-			}
-			command_error = Some(error);
+			command_error.get_or_insert(error);
+			continue;
 		}
 		let elapsed = step_started_at.elapsed();
 		if show_progress {
@@ -1469,9 +1511,8 @@ pub(crate) async fn execute_cli_command_with_options(
 		);
 	}
 
-	progress.command_finished(command_started_at.elapsed());
-
 	if let Some(error) = command_error {
+		progress.command_failed(command_started_at.elapsed(), &error.render());
 		telemetry.capture_command(TelemetryOutcome::Error, Some(&error));
 		return Err(error);
 	}
@@ -1481,8 +1522,14 @@ pub(crate) async fn execute_cli_command_with_options(
 		.await
 		.and_then(|()| resolve_command_output(cli_command, &context, dry_run, output));
 	match &result {
-		Ok(_) => telemetry.capture_command(TelemetryOutcome::Success, None),
-		Err(error) => telemetry.capture_command(TelemetryOutcome::Error, Some(error)),
+		Ok(_) => {
+			progress.command_finished(command_started_at.elapsed());
+			telemetry.capture_command(TelemetryOutcome::Success, None);
+		}
+		Err(error) => {
+			progress.command_failed(command_started_at.elapsed(), &error.render());
+			telemetry.capture_command(TelemetryOutcome::Error, Some(error));
+		}
 	}
 
 	result
@@ -1559,13 +1606,6 @@ pub(crate) fn should_execute_cli_step(
 		return Ok(true);
 	};
 	evaluate_cli_step_condition(condition, context, step_inputs)
-}
-
-fn has_remaining_always_run_steps(steps: &[CliStepDefinition], current_index: usize) -> bool {
-	steps
-		.iter()
-		.skip(current_index + 1)
-		.any(CliStepDefinition::always_run)
 }
 
 fn steps_reference_release_file_diffs(steps: &[CliStepDefinition]) -> bool {
@@ -1824,93 +1864,8 @@ struct CommandStepOptions<'a> {
 	step_inputs: &'a BTreeMap<String, Vec<String>>,
 }
 
-fn step_shows_progress(
-	step: &CliStepDefinition,
-	step_inputs: &BTreeMap<String, Vec<String>>,
-) -> bool {
-	if matches!(step, CliStepDefinition::Config { .. }) {
-		return false;
-	}
-	if matches!(step, CliStepDefinition::CreateChangeFile { .. })
-		&& step_inputs
-			.get("interactive")
-			.and_then(|values| values.first())
-			.is_some_and(|value| value == "true")
-	{
-		return false;
-	}
+fn step_shows_progress(step: &CliStepDefinition) -> bool {
 	step.show_progress().unwrap_or(true)
-}
-
-fn expected_progress_phases(step: &CliStepDefinition) -> &'static [&'static str] {
-	match step {
-		CliStepDefinition::Discover { .. } => {
-			&[
-				"using loaded workspace configuration",
-				"scanning ecosystems for package manifests",
-				"reporting package counts",
-			]
-		}
-		CliStepDefinition::PrepareRelease { .. } => {
-			&[
-				"loading changesets",
-				"computing dependency graph",
-				"planning versions",
-				"rendering changelogs",
-				"updating package files",
-				"refreshing lockfiles",
-			]
-		}
-		CliStepDefinition::PublishRelease { .. } => {
-			&[
-				"preparing source provider API client",
-				"looking up existing hosted releases",
-				"creating or updating hosted releases",
-			]
-		}
-		CliStepDefinition::OpenReleaseRequest { .. } => {
-			&[
-				"preparing source provider API client",
-				"looking up existing release request",
-				"creating or updating release request",
-				"applying release request labels and automerge settings",
-			]
-		}
-		CliStepDefinition::CommentReleasedIssues { .. } => {
-			&[
-				"preparing source provider API client",
-				"planning released issue comments",
-				"creating or updating released issue comments",
-			]
-		}
-		CliStepDefinition::PublishReadiness { .. } => {
-			&[
-				"checking package registry readiness",
-				"summarizing publish blockers",
-			]
-		}
-		CliStepDefinition::PlanPublishRateLimits { .. } => {
-			&[
-				"checking package registry requirements",
-				"planning registry rate limits",
-			]
-		}
-		CliStepDefinition::PlaceholderPublish { .. } => {
-			&[
-				"checking packages before placeholder publish",
-				"planning registry rate limits",
-				"publishing placeholders per package",
-			]
-		}
-		CliStepDefinition::PublishPackages { .. } => {
-			&[
-				"checking packages before publish",
-				"planning registry rate limits",
-				"publishing packages with bounded registry feedback",
-			]
-		}
-		_ => &[],
-	}
 }
 
 fn run_cli_command_command(
@@ -1931,6 +1886,16 @@ fn run_cli_command_command(
 		options.step_inputs,
 	);
 	let mut process_command = build_process_command(&context.root, options.shell, &interpolated)?;
+	if show_progress {
+		progress.step_status(
+			step_index,
+			step,
+			&format!(
+				"running command `{}`",
+				render_command_for_error(&interpolated)
+			),
+		);
+	}
 	let output = execute_process_command(
 		&mut process_command,
 		progress,
@@ -1955,7 +1920,10 @@ fn record_skipped_cli_step(
 	show_progress: bool,
 ) {
 	if show_progress {
-		progress.step_skipped(step_index, step, step.when());
+		let reason = step
+			.when()
+			.map(|condition| format!("when condition `{condition}` is false"));
+		progress.step_skipped(step_index, step, step.when(), reason.as_deref());
 	}
 
 	let Some(condition) = step.when() else {
@@ -2058,12 +2026,7 @@ fn ensure_command_succeeded(
 		return Ok(());
 	}
 
-	let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-	let details = if stderr.is_empty() {
-		format!("exit status {}", output.status)
-	} else {
-		stderr
-	};
+	let details = render_process_failure_details(output);
 	let rendered_command = render_command_for_error(interpolated);
 
 	Err(MonochangeError::Discovery(format!(
@@ -2256,13 +2219,17 @@ fn spawn_stream_reader(
 	})
 }
 
-fn progress_error_detail(error: &MonochangeError) -> &str {
-	match error {
-		MonochangeError::Io(message)
-		| MonochangeError::Config(message)
-		| MonochangeError::Discovery(message)
-		| MonochangeError::Diagnostic(message) => message,
-		_ => "",
+fn render_process_failure_details(output: &PreparedProcessOutput) -> String {
+	let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+	let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
+	match (stdout.is_empty(), stderr.is_empty()) {
+		(true, true) => output.status.to_string(),
+		(false, true) => format!("{}\nstdout:\n{stdout}", output.status),
+		(true, false) => format!("{}\nstderr:\n{stderr}", output.status),
+		(false, false) => {
+			format!("{}\nstdout:\n{stdout}\n\nstderr:\n{stderr}", output.status)
+		}
 	}
 }
 
@@ -2447,9 +2414,17 @@ pub(crate) fn build_cli_template_context(
 
 	// Structured publish.* namespace
 	if let Some(report) = &context.package_publish_report {
+		let details = filter_placeholder_publish_report(
+			report.clone(),
+			boolean_step_input(&context.last_step_inputs, "show-all"),
+		);
 		template_context.insert(
 			"publish".to_string(),
-			build_package_publish_template_value(report, context.rate_limit_report.as_ref()),
+			build_package_publish_template_value(
+				report,
+				&details,
+				context.rate_limit_report.as_ref(),
+			),
 		);
 	} else if let Some(report) = &context.rate_limit_report {
 		template_context.insert(
@@ -2626,16 +2601,21 @@ fn build_release_commit_template_value(report: &CommitReleaseReport) -> serde_js
 
 fn build_package_publish_template_value(
 	report: &package_publish::PackagePublishReport,
+	details: &package_publish::PackagePublishReport,
 	rate_limit_report: Option<&monochange_core::PublishRateLimitReport>,
 ) -> serde_json::Value {
-	let mut value = serde_json::to_value(report).unwrap_or(serde_json::Value::Null);
-	if let Some(rate_limit_report) = rate_limit_report
-		&& let Some(object) = value.as_object_mut()
-	{
+	let mut value = serde_json::to_value(details).unwrap_or(serde_json::Value::Null);
+	if let Some(object) = value.as_object_mut() {
 		object.insert(
-			"rate_limits".to_string(),
-			serde_json::to_value(rate_limit_report).unwrap_or(serde_json::Value::Null),
+			"summary".to_string(),
+			serde_json::to_value(report.summary()).unwrap_or(serde_json::Value::Null),
 		);
+		if let Some(rate_limit_report) = rate_limit_report {
+			object.insert(
+				"rate_limits".to_string(),
+				serde_json::to_value(rate_limit_report).unwrap_or(serde_json::Value::Null),
+			);
+		}
 	}
 	value
 }
@@ -2651,11 +2631,20 @@ where
 
 fn render_publish_command_json(
 	package_publish: Option<&package_publish::PackagePublishReport>,
+	details: Option<&package_publish::PackagePublishReport>,
 	rate_limit_report: Option<&monochange_core::PublishRateLimitReport>,
 ) -> MonochangeResult<String> {
 	render_json_output(
 		&serde_json::json!({
-			"package_publish": package_publish,
+			"package_publish": package_publish.map(|report| {
+				let details = details.unwrap_or(report);
+				serde_json::json!({
+					"mode": report.mode,
+					"dry_run": report.dry_run,
+					"summary": report.summary(),
+					"packages": details.packages,
+				})
+			}),
 			"publish_rate_limits": rate_limit_report,
 		}),
 		"combined publish output",
@@ -3034,12 +3023,17 @@ fn render_release_commit_report(report: &CommitReleaseReport) -> Vec<String> {
 }
 
 fn render_package_publish_report(report: &package_publish::PackagePublishReport) -> Vec<String> {
+	let summary = report.summary();
 	let mut lines = vec![match report.mode {
 		package_publish::PackagePublishRunMode::Placeholder => {
 			"placeholder publishing:".to_string()
 		}
 		package_publish::PackagePublishRunMode::Release => "package publishing:".to_string(),
 	}];
+	lines.push(format!(
+		"  summary: {} expected, {} succeeded, {} failed, {} skipped",
+		summary.expected, summary.succeeded, summary.failed, summary.skipped
+	));
 
 	if report.packages.is_empty() {
 		lines.push("- no packages matched the publishing criteria".to_string());
@@ -3136,11 +3130,16 @@ fn render_package_publish_report_markdown(
 	report: &package_publish::PackagePublishReport,
 	color: bool,
 ) -> Vec<String> {
+	let summary = report.summary();
+	let mut lines = vec![format!(
+		"- **Summary:** {} expected, {} succeeded, {} failed, {} skipped",
+		summary.expected, summary.succeeded, summary.failed, summary.skipped
+	)];
 	if report.packages.is_empty() {
-		return vec!["- no packages matched the publishing criteria".to_string()];
+		lines.push("- no packages matched the publishing criteria".to_string());
+		return lines;
 	}
 
-	let mut lines = Vec::new();
 	for package in &report.packages {
 		lines.push(format!(
 			"- **{}** {} via {} → {}",
@@ -3396,7 +3395,21 @@ pub(crate) fn render_cli_command_result(
 	}
 
 	if let Some(report) = &context.package_publish_report {
-		lines.extend(render_package_publish_report(report));
+		let details = filter_placeholder_publish_report(
+			report.clone(),
+			boolean_step_input(&context.last_step_inputs, "show-all"),
+		);
+		let mut rendered = render_package_publish_report(&details);
+		if details.packages.len() != report.packages.len()
+			&& let Some(summary) = rendered.get_mut(1)
+		{
+			let complete = report.summary();
+			*summary = format!(
+				"  summary: {} expected, {} succeeded, {} failed, {} skipped",
+				complete.expected, complete.succeeded, complete.failed, complete.skipped
+			);
+		}
+		lines.extend(rendered);
 	}
 	if let Some(report) = &context.rate_limit_report {
 		lines.push("publish rate limits:".to_string());
@@ -3941,11 +3954,21 @@ pub(crate) fn render_cli_command_markdown_result(
 			package_publish::PackagePublishRunMode::Placeholder => "Placeholder publishing",
 			package_publish::PackagePublishRunMode::Release => "Package publishing",
 		};
-		sections.push(render_markdown_section(
-			title,
-			&render_package_publish_report_markdown(report, color),
-			color,
-		));
+		let details = filter_placeholder_publish_report(
+			report.clone(),
+			boolean_step_input(&context.last_step_inputs, "show-all"),
+		);
+		let mut rendered = render_package_publish_report_markdown(&details, color);
+		if details.packages.len() != report.packages.len()
+			&& let Some(summary) = rendered.first_mut()
+		{
+			let complete = report.summary();
+			*summary = format!(
+				"- **Summary:** {} expected, {} succeeded, {} failed, {} skipped",
+				complete.expected, complete.succeeded, complete.failed, complete.skipped
+			);
+		}
+		sections.push(render_markdown_section(title, &rendered, color));
 	}
 	if !context.command_logs.is_empty() {
 		let lines = context
@@ -4226,8 +4249,7 @@ fn report_cli_step_failure(
 		return;
 	}
 
-	let progress_error = progress_error_detail(error).to_string();
-	progress.step_failed(step_index, step, elapsed, &progress_error);
+	progress.step_failed(step_index, step, elapsed, &error.render());
 }
 
 fn maybe_fail_enforced_changeset_policy(
@@ -4352,7 +4374,15 @@ fn resolve_command_output(
 		let format = cli_command_output_format(&context.last_step_inputs)?;
 		let rendered = match format {
 			OutputFormat::Json => {
-				render_publish_command_json(Some(report), context.rate_limit_report.as_ref())?
+				let details = filter_placeholder_publish_report(
+					report.clone(),
+					boolean_step_input(&context.last_step_inputs, "show-all"),
+				);
+				render_publish_command_json(
+					Some(report),
+					Some(&details),
+					context.rate_limit_report.as_ref(),
+				)?
 			}
 			OutputFormat::Markdown => render_cli_command_markdown_result(cli_command, context),
 			OutputFormat::Text => render_cli_command_result(cli_command, context),
@@ -4365,7 +4395,7 @@ fn resolve_command_output(
 		}
 		let format = cli_command_output_format(&context.last_step_inputs)?;
 		let rendered = match format {
-			OutputFormat::Json => render_publish_command_json(None, Some(report))?,
+			OutputFormat::Json => render_publish_command_json(None, None, Some(report))?,
 			OutputFormat::Markdown | OutputFormat::Text => {
 				render_cli_command_result(cli_command, context)
 			}

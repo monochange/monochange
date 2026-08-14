@@ -55,6 +55,21 @@ fn render_event_streams_run_start_summary_with_ecosystems() {
 }
 
 #[test]
+fn render_event_streams_run_start_summary_without_ecosystems() {
+	let line = StderrPublishProgressReporter::render_event(
+		&PublishProgressEvent::RunStarted {
+			mode: PackagePublishRunMode::Release,
+			dry_run: false,
+			total: 2,
+			ecosystems: Vec::new(),
+		},
+		false,
+	);
+
+	assert_eq!(line, "◆ Publishing 2 packages (Release)");
+}
+
+#[test]
 fn render_event_summarizes_publish_run_with_emojis() {
 	let line = StderrPublishProgressReporter::render_event(
 		&PublishProgressEvent::RunFinished {
@@ -69,7 +84,7 @@ fn render_event_summarizes_publish_run_with_emojis() {
 
 	assert_eq!(
 		line,
-		"◆ Publish complete: 3 packages, ✅ 2 published, ⏭️ 1 skipped, ❌ 0 failed"
+		"◆ Publish complete: 3 expected, ✅ 2 succeeded, ❌ 0 failed, ⏭️ 1 skipped"
 	);
 }
 

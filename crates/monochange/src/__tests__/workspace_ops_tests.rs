@@ -1046,6 +1046,26 @@ fn lockfile_update_helpers_cover_missing_dirs_unreadable_files_and_stderr_paths(
 	.err()
 	.unwrap_or_else(|| panic!("expected stderr failure for in-place lockfile command"));
 	assert!(stderr_error.to_string().contains("bad stderr"));
+
+	fs::write(&script_path, "#!/bin/sh\necho useful stdout\nexit 7\n")
+		.unwrap_or_else(|error| panic!("rewrite failing script: {error}"));
+	let stdout_error = run_lockfile_command_in_place(
+		root,
+		&LockfileCommandExecution {
+			command: script_path.display().to_string(),
+			cwd: PathBuf::from("."),
+			shell: ShellConfig::None,
+		},
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected stdout failure for in-place lockfile command"));
+	assert_eq!(
+		stdout_error.to_string(),
+		format!(
+			"config error: lockfile command `{}` failed in .: exit status: 7\nstdout:\nuseful stdout",
+			script_path.display()
+		)
+	);
 }
 
 #[test]
@@ -1109,6 +1129,28 @@ fn run_lockfile_command_in_place_reports_failures() {
 	.unwrap_or_else(|| panic!("expected error from failing command"));
 
 	assert!(error.to_string().contains("failed"));
+
+	let both_script = root.join("both.sh");
+	fs::write(
+		&both_script,
+		"#!/bin/sh\necho useful stdout\necho bad stderr >&2\nexit 8\n",
+	)
+	.unwrap_or_else(|error| panic!("write both script: {error}"));
+	fs::set_permissions(&both_script, fs::Permissions::from_mode(0o755))
+		.unwrap_or_else(|error| panic!("chmod both script: {error}"));
+	let both_error = run_lockfile_command_in_place(
+		root,
+		&LockfileCommandExecution {
+			command: both_script.display().to_string(),
+			cwd: root.to_path_buf(),
+			shell: ShellConfig::None,
+		},
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected both-streams error"));
+	let both_text = both_error.to_string();
+	assert!(both_text.contains("useful stdout"), "{both_text}");
+	assert!(both_text.contains("bad stderr"), "{both_text}");
 }
 
 #[test]

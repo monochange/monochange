@@ -48,6 +48,7 @@ fn mc_release(root: &Path, args: &[&str]) -> String {
 		.env("NO_COLOR", "1")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-04-06")
 		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
 		.args(["run", "release", "--dry-run"])
 		.args(args)
 		.output()

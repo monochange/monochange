@@ -8,7 +8,7 @@ Use the global `--progress-format <FORMAT>` flag or set `MONOCHANGE_PROGRESS_FOR
 
 Supported values:
 
-- `auto`: default behavior. Human progress output is enabled only when stderr is a terminal.
+- `auto`: default behavior. Deterministic human progress output is enabled for terminals, CI logs, editor tasks, and captured processes; animation is terminal-only.
 - `unicode`: force the human renderer with Unicode symbols and spinners.
 - `ascii`: force the human renderer with ASCII-safe symbols.
 - `json`: emit newline-delimited JSON progress events on stderr.
@@ -39,6 +39,7 @@ Common lifecycle events:
 - `step_failed`
 - `step_skipped`
 - `command_finished`
+- `command_failed`
 
 Shared fields:
 
@@ -56,8 +57,9 @@ Event-specific fields:
 - `command_output` adds `stream` and `text`
 - `step_finished` adds `durationMs` and `phaseTimings`
 - `step_failed` adds `durationMs` and `error`
-- `step_skipped` may add `condition`
+- `step_skipped` may add the backward-compatible `condition` field for conditional skips and `reason` for a human-readable explanation
 - `command_finished` adds `durationMs`
+- `command_failed` adds `durationMs` and `error`
 
 Example:
 

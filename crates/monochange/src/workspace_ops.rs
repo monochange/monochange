@@ -1754,11 +1754,15 @@ fn run_lockfile_command_in_place(
 		return Ok(());
 	}
 
+	let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
 	let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-	let details = if stderr.is_empty() {
-		format!("exit status {}", output.status)
-	} else {
-		stderr
+	let details = match (stdout.is_empty(), stderr.is_empty()) {
+		(true, true) => output.status.to_string(),
+		(false, true) => format!("{}\nstdout:\n{stdout}", output.status),
+		(true, false) => format!("{}\nstderr:\n{stderr}", output.status),
+		(false, false) => {
+			format!("{}\nstdout:\n{stdout}\n\nstderr:\n{stderr}", output.status)
+		}
 	};
 
 	Err(MonochangeError::Config(format!(

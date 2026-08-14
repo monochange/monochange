@@ -4313,12 +4313,13 @@ async fn run_placeholder_publish_uses_env_overrides_for_registry_endpoints() {
 			Some(server.base_url().as_str()),
 		)],
 		async {
-			let report = run_placeholder_publish_with_npm_otp(
+			let report = try_run_placeholder_publish_with_npm_otp(
 				root.path(),
 				&configuration,
 				&BTreeSet::new(),
 				true,
 				Some("123456"),
+				true,
 			)
 			.await
 			.expect("placeholder report:");
@@ -4516,6 +4517,458 @@ fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 }
 
 #[test]
+fn resumed_publish_progress_offsets_run_totals_and_leaves_package_events_unchanged() {
+	let resumed = monochange_publish::PackagePublishSummary {
+		expected: 12,
+		succeeded: 10,
+		failed: 0,
+		skipped: 2,
+	};
+	let resumed_ecosystems = BTreeSet::from([Ecosystem::Cargo]);
+	let started = offset_publish_progress_event(
+		PublishProgressEvent::RunStarted {
+			mode: PackagePublishRunMode::Release,
+			dry_run: false,
+			total: 33,
+			ecosystems: vec![Ecosystem::Npm],
+		},
+		resumed,
+		&resumed_ecosystems,
+	);
+	assert!(matches!(
+		started,
+		PublishProgressEvent::RunStarted {
+			total: 45,
+			ref ecosystems,
+			..
+		} if ecosystems == &vec![Ecosystem::Cargo, Ecosystem::Npm]
+	));
+
+	let finished = offset_publish_progress_event(
+		PublishProgressEvent::RunFinished {
+			mode: PackagePublishRunMode::Release,
+			total: 33,
+			published: 2,
+			skipped: 30,
+			failed: 1,
+		},
+		resumed,
+		&resumed_ecosystems,
+	);
+	assert!(matches!(
+		finished,
+		PublishProgressEvent::RunFinished {
+			total: 45,
+			published: 12,
+			skipped: 32,
+			failed: 1,
+			..
+		}
+	));
+
+	let package = monochange_publish::PublishProgressPackage {
+		package_id: "pkg".to_string(),
+		package_name: "pkg".to_string(),
+		version: "1.0.0".to_string(),
+		ecosystem: Ecosystem::Npm,
+		registry: "npm".to_string(),
+	};
+	assert_eq!(
+		offset_publish_progress_event(
+			PublishProgressEvent::PackagePublished(package.clone()),
+			resumed,
+			&resumed_ecosystems,
+		),
+		PublishProgressEvent::PackagePublished(package)
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_maps_discovery_errors_to_report_carrying_failure() {
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let bad_root = tempdir.path().join("not-a-directory.txt");
+	std::fs::write(&bad_root, "not a directory").expect("write file:");
+	let configuration = crate::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("load configuration: {error}"));
+
+	let error = try_run_publish_packages_with_resume(
+		&bad_root,
+		&configuration,
+		None,
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		PublishPackagesOptions::default(),
+	)
+	.await
+	.expect_err("discovery error should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_placeholder_publish_maps_build_request_errors() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let mut configuration =
+		crate::load_workspace_configuration(root.path()).expect("configuration");
+	configuration.packages[0].publish.registry =
+		Some(PublishRegistry::Custom("internal".to_string()));
+
+	let error = try_run_placeholder_publish_with_npm_otp(
+		root.path(),
+		&configuration,
+		&BTreeSet::new(),
+		true,
+		None,
+		true,
+	)
+	.await
+	.expect_err("custom registry should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Placeholder);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_placeholder_publish_maps_discovery_errors_via_malformed_config() {
+	let valid_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		valid_root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(valid_root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		valid_root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration =
+		crate::load_workspace_configuration(valid_root.path()).expect("configuration");
+
+	let malformed_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		malformed_root.path().join("monochange.toml"),
+		"not valid toml [[[",
+	)
+	.expect("write malformed config");
+
+	let error = try_run_placeholder_publish_with_npm_otp(
+		malformed_root.path(),
+		&configuration,
+		&BTreeSet::new(),
+		true,
+		None,
+		true,
+	)
+	.await
+	.expect_err("malformed config should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Placeholder);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_maps_resume_artifact_errors() {
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let root = tempdir.path();
+	let configuration = crate::load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load configuration: {error}"));
+	let missing_resume = root.join("missing-resume.json");
+
+	let error = try_run_publish_packages_with_resume(
+		root,
+		&configuration,
+		None,
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			resume_path: Some(&missing_resume),
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect_err("missing resume artifact should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_maps_publish_all_discovery_errors_via_malformed_config() {
+	let valid_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		valid_root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(valid_root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		valid_root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration =
+		crate::load_workspace_configuration(valid_root.path()).expect("configuration");
+
+	let malformed_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		malformed_root.path().join("monochange.toml"),
+		"not valid toml [[[",
+	)
+	.expect("write malformed config");
+
+	let error = try_run_publish_packages_with_resume(
+		malformed_root.path(),
+		&configuration,
+		None,
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			publish_all_configured_packages: true,
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect_err("publish-all malformed config should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_discovery_errors_via_malformed_config() {
+	let valid_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		valid_root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(valid_root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		valid_root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration =
+		crate::load_workspace_configuration(valid_root.path()).expect("configuration");
+
+	let malformed_root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		malformed_root.path().join("monochange.toml"),
+		"not valid toml [[[",
+	)
+	.expect("write malformed config");
+
+	let error = try_run_publish_packages_with_publications_and_resume(
+		malformed_root.path(),
+		&configuration,
+		&[],
+		&BTreeSet::new(),
+		PublishPackagesOptions::default(),
+	)
+	.await
+	.expect_err("malformed config should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_build_request_errors() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration");
+	let publication = PackagePublicationTarget {
+		package: "pkg".to_string(),
+		ecosystem: Ecosystem::Npm,
+		registry: Some(PublishRegistry::Custom("internal".to_string())),
+		version: "1.0.0".to_string(),
+		mode: PublishMode::Builtin,
+		trusted_publishing: TrustedPublishingSettings::default(),
+		attestations: PublishAttestationSettings::default(),
+	};
+
+	let error = try_run_publish_packages_with_publications_and_resume(
+		root.path(),
+		&configuration,
+		&[publication],
+		&BTreeSet::new(),
+		PublishPackagesOptions::default(),
+	)
+	.await
+	.expect_err("custom registry should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_resume_artifact_errors() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration");
+	let missing_resume = root.path().join("missing-resume.json");
+
+	let error = try_run_publish_packages_with_publications_and_resume(
+		root.path(),
+		&configuration,
+		&[],
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			resume_path: Some(&missing_resume),
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect_err("missing resume artifact should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_invalid_resume_report_errors() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration");
+	let resume_path = root.path().join("resume.json");
+	fs::write(
+		&resume_path,
+		r#"{ "mode": "release", "dry_run": true, "packages": [] }"#,
+	)
+	.expect("write invalid resume report");
+
+	let error = try_run_publish_packages_with_publications_and_resume(
+		root.path(),
+		&configuration,
+		&[],
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			resume_path: Some(&resume_path),
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect_err("invalid resume report should produce a failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert!(report.packages.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_publish_execution_failures() {
+	install_rustls_ring_provider();
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration");
+	let publication = PackagePublicationTarget {
+		package: "pkg".to_string(),
+		ecosystem: Ecosystem::Npm,
+		registry: None,
+		version: "1.0.0".to_string(),
+		mode: PublishMode::Builtin,
+		trusted_publishing: TrustedPublishingSettings::default(),
+		attestations: PublishAttestationSettings::default(),
+	};
+
+	// A failing registry lookup during publish execution returns a
+	// report-carrying failure that the resume wrapper merges with the resumed
+	// outcomes before surfacing.
+	let server = MockServer::start();
+	let _failure = server.mock(|when, then| {
+		when.method(GET);
+		then.status(500);
+	});
+	let error = temp_env::async_with_vars(
+		[("MONOCHANGE_NPM_REGISTRY_URL", Some(server.base_url()))],
+		async {
+			try_run_publish_packages_with_publications_and_resume(
+				root.path(),
+				&configuration,
+				&[publication],
+				&BTreeSet::new(),
+				PublishPackagesOptions::default(),
+			)
+			.await
+		},
+	)
+	.await
+	.expect_err("registry failure should produce a report-carrying failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert_eq!(report.packages.len(), 1);
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Failed);
+}
+
+#[test]
+fn package_publish_failure_into_parts_returns_error_and_report() {
+	let report = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: Vec::new(),
+	};
+	let error = MonochangeError::Config("test error".to_string());
+	let failure = monochange_publish::PackagePublishFailure::new(error, report.clone());
+	let (_returned_error, returned_report) = failure.into_parts();
+	assert_eq!(returned_report, report);
+}
+
+#[test]
 fn fake_executor_reports_missing_outputs_and_render_helpers_match() {
 	let mut executor = FakeExecutor::new(Vec::new());
 	let spec = CommandSpec {
@@ -4539,7 +4992,7 @@ fn fake_executor_reports_missing_outputs_and_render_helpers_match() {
 			stdout: String::new(),
 			stderr: String::new(),
 		}),
-		"command failed"
+		"command failed without output"
 	);
 }
 
@@ -4806,10 +5259,14 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 					&BTreeSet::new(),
 					&selected_groups,
 					&selected_ecosystems,
-					false,
-					true,
-					None,
-					false,
+					PublishPackagesOptions {
+						dry_run: true,
+						output: PublishOutputOptions {
+							stream_output: false,
+							quiet: true,
+						},
+						..PublishPackagesOptions::default()
+					},
 				))
 				.expect("publish report:");
 

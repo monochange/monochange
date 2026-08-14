@@ -36,6 +36,7 @@ fn monochange_command(release_date: &str) -> Command {
 	let mut command = Command::new(get_cargo_bin("monochange"));
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
+	command.env("MONOCHANGE_NO_PROGRESS", "1");
 	command.env("MONOCHANGE_RELEASE_DATE", release_date);
 	command
 }

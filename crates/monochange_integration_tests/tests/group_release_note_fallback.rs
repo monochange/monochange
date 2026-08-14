@@ -57,6 +57,7 @@ fn mc_json(root: &Path, args: &[&str]) -> Value {
 		.env("NO_COLOR", "1")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-04-06")
 		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
 		.args(args)
 		.output()
 		.unwrap_or_else(|error| panic!("run monochange {}: {error}", args.join(" ")));

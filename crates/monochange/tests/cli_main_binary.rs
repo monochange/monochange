@@ -13,6 +13,7 @@ fn fixture_path(relative: &str) -> PathBuf {
 fn monochange_cli() -> Command {
 	let mut command = Command::new(get_cargo_bin("monochange"));
 	command.env("NO_COLOR", "1");
+	command.env("MONOCHANGE_NO_PROGRESS", "1");
 	command
 }
 

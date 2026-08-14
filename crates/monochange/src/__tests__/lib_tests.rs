@@ -3281,7 +3281,10 @@ fn command_release_dry_run_discovers_changesets_without_mutating_files() {
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
-	assert!(output.contains("# `step prepare-release` (dry-run)"));
+	assert!(
+		output.contains("step prepare-release") && output.contains("(dry-run)"),
+		"unexpected command output:\n{output}"
+	);
 	assert!(output.contains("1.1.0"));
 	assert!(output.contains("workflow-app"));
 	assert!(output.contains("workflow-core"));
@@ -3655,8 +3658,11 @@ fn command_release_updates_manifests_changelogs_and_deletes_changesets() {
 		.unwrap_or_else(|error| panic!("group versioned file: {error}"));
 	let package_versioned_file = fs::read_to_string(tempdir.path().join("crates/core/extra.toml"))
 		.unwrap_or_else(|error| panic!("package versioned file: {error}"));
-	assert!(output.contains("# `step prepare-release`"));
-	assert!(output.contains("group `sdk`"));
+	assert!(
+		output.contains("step prepare-release"),
+		"unexpected command output:\n{output}"
+	);
+	assert!(output.contains("group ") && output.contains("sdk"));
 	assert!(output.contains("v1.1.0"));
 	assert!(workspace_manifest.contains("version = \"1.1.0\""));
 	assert!(core_changelog.contains("## 1.1.0"));
@@ -3907,7 +3913,7 @@ fn command_release_uses_empty_update_message_precedence_for_grouped_changelogs()
 	let group_changelog = fs::read_to_string(tempdir.path().join("changelog.md"))
 		.unwrap_or_else(|error| panic!("group changelog: {error}"));
 
-	assert!(output.contains("# `step prepare-release`"));
+	assert!(output.contains("step prepare-release"));
 	assert!(core_changelog.contains("Package override for workflow-core -> 1.0.1"));
 	assert!(app_changelog.contains("Update triggered by group sdk; version 1.0.1."));
 	assert!(group_changelog.contains("Update triggered by group sdk; version 1.0.1."));
@@ -7971,6 +7977,556 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 				"publish output:\n{publish_output}"
 			);
 			assert!(publish_output.contains("publish rate limits:"));
+		},
+	)
+	.await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_placeholder_publish_step_surfaces_report_carrying_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	let root = tempdir.path();
+	let mut configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+	// A custom registry is unsupported by built-in placeholder publishing, so
+	// `build_placeholder_requests` returns a report-carrying failure that the
+	// CLI runtime must surface while preserving the publish report.
+	configuration.packages[0].publish.registry = Some(monochange_core::PublishRegistry::Custom(
+		"internal".to_string(),
+	));
+
+	let placeholder_command = CliCommandDefinition {
+		name: "placeholder-publish".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PlaceholderPublish {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: inherited_format_package_step_inputs(),
+		}],
+		dry_run: false,
+	};
+
+	let server = MockServer::start();
+	let _registry = server.mock(|when, then| {
+		when.method(GET);
+		then.status(404);
+	});
+
+	temp_env::async_with_vars(
+		[("MONOCHANGE_CRATES_IO_API_URL", Some(server.base_url()))],
+		async {
+			let error = crate::execute_cli_command(
+				root,
+				&configuration,
+				&placeholder_command,
+				true,
+				BTreeMap::from([("format".to_string(), vec!["text".to_string()])]),
+			)
+			.await
+			.expect_err("custom registry placeholder publish should fail");
+			assert!(
+				error.render().contains("custom registry `internal`"),
+				"unexpected error: {}",
+				error.render()
+			);
+		},
+	)
+	.await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_publish_packages_step_surfaces_report_carrying_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	let root = tempdir.path();
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	// Without a prepared release or `--all`, the publish-packages step looks up
+	// a release record at HEAD. None exists in the fixture, so the step returns a
+	// report-carrying failure that the CLI runtime surfaces.
+	let publish_command = CliCommandDefinition {
+		name: "publish".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PublishPackages {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: inherited_format_package_step_inputs(),
+		}],
+		dry_run: false,
+	};
+
+	let server = MockServer::start();
+	let _registry = server.mock(|when, then| {
+		when.method(GET);
+		then.status(404);
+	});
+
+	temp_env::async_with_vars(
+		[("MONOCHANGE_CRATES_IO_API_URL", Some(server.base_url()))],
+		async {
+			let error = crate::execute_cli_command(
+				root,
+				&configuration,
+				&publish_command,
+				true,
+				BTreeMap::from([("format".to_string(), vec!["text".to_string()])]),
+			)
+			.await
+			.expect_err("publish without a release record should fail");
+			assert!(
+				error.render().contains("HEAD"),
+				"unexpected error: {}",
+				error.render()
+			);
+		},
+	)
+	.await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	fs::create_dir_all(root.join("packages/pkg")).unwrap_or_else(|error| panic!("mkdir: {error}"));
+	fs::write(
+		root.join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let placeholder_command = CliCommandDefinition {
+		name: "placeholder-publish".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PlaceholderPublish {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: inherited_format_package_step_inputs(),
+		}],
+		dry_run: false,
+	};
+
+	let registry = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
+	let registry_address = registry
+		.local_addr()
+		.unwrap_or_else(|error| panic!("registry address: {error}"));
+	let registry_thread = std::thread::spawn(move || {
+		let mut served_not_found = false;
+		for _ in 0..2 {
+			let Ok((mut stream, _)) = registry.accept() else {
+				break;
+			};
+			let mut request = [0_u8; 2048];
+			let _ = std::io::Read::read(&mut stream, &mut request);
+			let response: &[u8] = if served_not_found {
+				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			} else {
+				served_not_found = true;
+				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			};
+			let _ = std::io::Write::write_all(&mut stream, response);
+		}
+	});
+
+	temp_env::async_with_vars(
+		[(
+			"MONOCHANGE_NPM_REGISTRY_URL",
+			Some(format!("http://{registry_address}")),
+		)],
+		async {
+			let error = crate::execute_cli_command(
+				root,
+				&configuration,
+				&placeholder_command,
+				true,
+				BTreeMap::from([("format".to_string(), vec!["text".to_string()])]),
+			)
+			.await
+			.expect_err("registry failure during placeholder publish should fail");
+			assert!(
+				error.render().contains("npm registry lookup"),
+				"unexpected error: {}",
+				error.render()
+			);
+		},
+	)
+	.await;
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_publish_packages_step_surfaces_publish_execution_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	fs::create_dir_all(root.join("packages/pkg")).unwrap_or_else(|error| panic!("mkdir: {error}"));
+	fs::write(
+		root.join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let mut publish_step_inputs = inherited_format_package_step_inputs();
+	publish_step_inputs.insert(
+		"all".to_string(),
+		monochange_core::CliStepInputValue::Inherited,
+	);
+
+	let publish_command = CliCommandDefinition {
+		name: "publish".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PublishPackages {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: publish_step_inputs,
+		}],
+		dry_run: false,
+	};
+
+	// The plan step's `filter_pending_publish_requests` lookup returns 404
+	// (version not yet published), so planning succeeds. The subsequent publish
+	// execution lookup returns 500, surfacing a report-carrying failure through
+	// the CLI runtime's publish-packages error branch.
+	let registry = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
+	let registry_address = registry
+		.local_addr()
+		.unwrap_or_else(|error| panic!("registry address: {error}"));
+	let registry_thread = std::thread::spawn(move || {
+		let mut served_not_found = false;
+		for _ in 0..2 {
+			let Ok((mut stream, _)) = registry.accept() else {
+				break;
+			};
+			let mut request = [0_u8; 2048];
+			let _ = std::io::Read::read(&mut stream, &mut request);
+			let response: &[u8] = if served_not_found {
+				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			} else {
+				served_not_found = true;
+				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			};
+			let _ = std::io::Write::write_all(&mut stream, response);
+		}
+	});
+
+	temp_env::async_with_vars(
+		[(
+			"MONOCHANGE_NPM_REGISTRY_URL",
+			Some(format!("http://{registry_address}")),
+		)],
+		async {
+			let error = crate::execute_cli_command(
+				root,
+				&configuration,
+				&publish_command,
+				true,
+				BTreeMap::from([
+					("format".to_string(), vec!["text".to_string()]),
+					("all".to_string(), vec!["true".to_string()]),
+				]),
+			)
+			.await
+			.expect_err("registry failure during publish should fail");
+			assert!(
+				error.render().contains("npm registry lookup"),
+				"unexpected error: {}",
+				error.render()
+			);
+		},
+	)
+	.await;
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_publish_packages_step_writes_report_artifact_on_execution_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	fs::create_dir_all(root.join("packages/pkg")).unwrap_or_else(|error| panic!("mkdir: {error}"));
+	fs::write(
+		root.join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let mut publish_step_inputs = inherited_format_package_step_inputs();
+	publish_step_inputs.insert(
+		"all".to_string(),
+		monochange_core::CliStepInputValue::Inherited,
+	);
+	publish_step_inputs.insert(
+		"output".to_string(),
+		monochange_core::CliStepInputValue::Inherited,
+	);
+
+	let publish_command = CliCommandDefinition {
+		name: "publish".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PublishPackages {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: publish_step_inputs,
+		}],
+		dry_run: false,
+	};
+
+	let output_artifact = root.join("publish-report.json");
+
+	// A real (non-dry-run) publish that fails at the registry writes the
+	// report-carrying failure artifact before surfacing the error, covering the
+	// CLI runtime's write-publish-report-artifact branch.
+	let registry = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
+	let registry_address = registry
+		.local_addr()
+		.unwrap_or_else(|error| panic!("registry address: {error}"));
+	let registry_thread = std::thread::spawn(move || {
+		let mut served_not_found = false;
+		for _ in 0..2 {
+			let Ok((mut stream, _)) = registry.accept() else {
+				break;
+			};
+			let mut request = [0_u8; 2048];
+			let _ = std::io::Read::read(&mut stream, &mut request);
+			let response: &[u8] = if served_not_found {
+				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			} else {
+				served_not_found = true;
+				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			};
+			let _ = std::io::Write::write_all(&mut stream, response);
+		}
+	});
+
+	temp_env::async_with_vars(
+		[(
+			"MONOCHANGE_NPM_REGISTRY_URL",
+			Some(format!("http://{registry_address}")),
+		)],
+		async {
+			let error = crate::execute_cli_command(
+				root,
+				&configuration,
+				&publish_command,
+				false,
+				BTreeMap::from([
+					("format".to_string(), vec!["text".to_string()]),
+					("all".to_string(), vec!["true".to_string()]),
+					(
+						"output".to_string(),
+						vec![output_artifact.display().to_string()],
+					),
+				]),
+			)
+			.await
+			.expect_err("registry failure during publish should fail");
+			assert!(
+				error.render().contains("npm registry lookup"),
+				"unexpected error: {}",
+				error.render()
+			);
+		},
+	)
+	.await;
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+	assert!(
+		output_artifact.is_file(),
+		"publish report artifact should be written on failure"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_publish_packages_step_surfaces_write_artifact_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	fs::create_dir_all(root.join("packages/pkg")).unwrap_or_else(|error| panic!("mkdir: {error}"));
+	fs::write(
+		root.join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let mut publish_step_inputs = inherited_format_package_step_inputs();
+	publish_step_inputs.insert(
+		"all".to_string(),
+		monochange_core::CliStepInputValue::Inherited,
+	);
+	publish_step_inputs.insert(
+		"output".to_string(),
+		monochange_core::CliStepInputValue::Inherited,
+	);
+
+	let publish_command = CliCommandDefinition {
+		name: "publish".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PublishPackages {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: publish_step_inputs,
+		}],
+		dry_run: false,
+	};
+
+	// An output path whose parent is a file (not a directory) makes
+	// `write_publish_report_artifact` fail, surfacing the write error through
+	// the CLI runtime's `?` propagation.
+	let blocker = root.join("blocker-file");
+	fs::write(&blocker, "not a directory").unwrap_or_else(|error| panic!("write blocker: {error}"));
+	let invalid_output = blocker.join("report.json");
+
+	let registry = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
+	let registry_address = registry
+		.local_addr()
+		.unwrap_or_else(|error| panic!("registry address: {error}"));
+	let registry_thread = std::thread::spawn(move || {
+		let mut served_not_found = false;
+		for _ in 0..2 {
+			let Ok((mut stream, _)) = registry.accept() else {
+				break;
+			};
+			let mut request = [0_u8; 2048];
+			let _ = std::io::Read::read(&mut stream, &mut request);
+			let response: &[u8] = if served_not_found {
+				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			} else {
+				served_not_found = true;
+				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			};
+			let _ = std::io::Write::write_all(&mut stream, response);
+		}
+	});
+
+	temp_env::async_with_vars(
+		[(
+			"MONOCHANGE_NPM_REGISTRY_URL",
+			Some(format!("http://{registry_address}")),
+		)],
+		async {
+			let error = crate::execute_cli_command(
+				root,
+				&configuration,
+				&publish_command,
+				false,
+				BTreeMap::from([
+					("format".to_string(), vec!["text".to_string()]),
+					("all".to_string(), vec!["true".to_string()]),
+					(
+						"output".to_string(),
+						vec![invalid_output.display().to_string()],
+					),
+				]),
+			)
+			.await
+			.expect_err("write artifact failure should surface an error");
+			assert!(
+				error.render().contains("blocker-file"),
+				"unexpected error: {}",
+				error.render()
+			);
+		},
+	)
+	.await;
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_plan_publish_rate_limits_renders_json_output() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	let root = tempdir.path();
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let plan_command = CliCommandDefinition {
+		name: "publish-plan".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PlanPublishRateLimits {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: inherited_publish_plan_step_inputs(),
+		}],
+		dry_run: false,
+	};
+
+	let server = MockServer::start();
+	let _registry = server.mock(|when, then| {
+		when.method(GET);
+		then.status(404);
+	});
+
+	temp_env::async_with_vars(
+		[("MONOCHANGE_CRATES_IO_API_URL", Some(server.base_url()))],
+		async {
+			let output = crate::execute_cli_command(
+				root,
+				&configuration,
+				&plan_command,
+				true,
+				BTreeMap::from([
+					("format".to_string(), vec!["json".to_string()]),
+					("mode".to_string(), vec!["placeholder".to_string()]),
+					("package".to_string(), vec!["missing-package".to_string()]),
+				]),
+			)
+			.await
+			.unwrap_or_else(|error| panic!("plan publish rate limits json: {error}"));
+			assert!(
+				output.contains("\"publish_rate_limits\""),
+				"expected json rate limit output: {output}"
+			);
 		},
 	)
 	.await;
@@ -13143,7 +13699,7 @@ fn command_release_without_diff_skips_file_diff_previews() {
 	)
 	.unwrap_or_else(|error| panic!("release without diff: {error}"));
 	set_force_build_file_diff_previews_error(false);
-	assert!(output.contains("# `step prepare-release`"));
+	assert!(output.contains("step prepare-release"));
 }
 
 #[test]

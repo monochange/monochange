@@ -35,6 +35,7 @@ fn prepare_release(root: &Path) -> Value {
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-04-07")
 		.arg("step")
 		.arg("prepare-release")
@@ -90,6 +91,7 @@ fn run_release(root: &Path, args: &[&str]) {
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-04-07")
 		.arg("run")
 		.arg("release")
@@ -109,6 +111,7 @@ fn check_failure(root: &Path) -> String {
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
 		.arg("check")
 		.output()
 		.unwrap_or_else(|error| panic!("run check: {error}"));
