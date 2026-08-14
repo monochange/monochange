@@ -316,6 +316,12 @@ warn_on_group_mismatch = true
 #                             package set requires more than one known registry
 #                             rate-limit window. Use `monochange publish-plan` to inspect
 #                             batches first. (default: false)
+#     timeout.timeout_seconds - maximum seconds a single package publish command
+#                             may run before it is killed and retried. Set to 0
+#                             to disable the timeout. (default: 60)
+#     timeout.retries       - number of times to retry a publish command that
+#                             times out before reporting the package as failed.
+#                             (default: 2)
 #     placeholder.readme    - inline README text to use when publishing a
 #                             placeholder package for the first bootstrap
 #                             release

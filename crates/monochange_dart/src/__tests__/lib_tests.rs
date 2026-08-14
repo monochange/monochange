@@ -8,6 +8,7 @@ use monochange_core::PackageRecord;
 use monochange_core::PublishAttestationSettings;
 use monochange_core::PublishMode;
 use monochange_core::PublishState;
+use monochange_core::PublishTimeoutSettings;
 use monochange_core::RegistryKind;
 use monochange_core::TrustedPublishingSettings;
 use monochange_publish::PublishRequest;
@@ -97,6 +98,7 @@ fn sample_publish_request(root: &Path) -> PublishRequest {
 		placeholder: true,
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
 		placeholder_readme: String::new(),
 	}
 }

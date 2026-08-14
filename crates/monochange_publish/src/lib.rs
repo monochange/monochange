@@ -5,6 +5,7 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::time::Duration;
 
 use monochange_core::DependencyEdge;
 use monochange_core::DependencyKind;
@@ -20,6 +21,7 @@ use monochange_core::PublishAttestationSettings;
 use monochange_core::PublishMode;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishState;
+use monochange_core::PublishTimeoutSettings;
 use monochange_core::RegistryKind;
 use monochange_core::SourceConfiguration;
 use monochange_core::TrustedPublishingSettings;
@@ -584,6 +586,7 @@ pub struct PublishRequest {
 	pub placeholder: bool,
 	pub trusted_publishing: TrustedPublishingSettings,
 	pub attestations: PublishAttestationSettings,
+	pub timeout: PublishTimeoutSettings,
 	pub placeholder_readme: String,
 }
 
@@ -593,11 +596,13 @@ pub struct CommandSpec {
 	pub args: Vec<String>,
 	pub cwd: PathBuf,
 	pub env: BTreeMap<String, String>,
+	pub timeout: Option<Duration>,
 }
 
 const NPM_PUBLISH_OTP_METADATA_KEY: &str = "monochange:npm_publish_otp";
 const PUBLISH_STREAM_OUTPUT_ENV_KEY: &str = "MONOCHANGE_PUBLISH_STREAM_OUTPUT";
 const PUBLISH_STREAM_OUTPUT_METADATA_KEY: &str = "monochange:stream_output";
+const PUBLISH_TIMEOUT_ERROR_PREFIX: &str = "monochange:publish-timeout";
 
 pub fn set_npm_publish_otp_for_requests(requests: &mut [PublishRequest], otp: &str) {
 	for request in requests
@@ -1166,12 +1171,13 @@ pub async fn try_execute_publish_requests_with_progress(
 		} else {
 			None
 		};
-		let publish_command = command_builder.build_publish_command(
+		let mut publish_command = command_builder.build_publish_command(
 			request,
 			mode,
 			placeholder_dir.as_ref().map(TempDir::path),
 			dry_run,
 		);
+		publish_command.timeout = publish_command_timeout(request);
 
 		if dry_run {
 			progress.report(PublishProgressEvent::PackagePlanned(
@@ -1229,8 +1235,16 @@ pub async fn try_execute_publish_requests_with_progress(
 			progress.report(PublishProgressEvent::PackageStarted(
 				publish_progress_package(request),
 			));
+			if let Some(warning) = dart_protected_publishing_warning(request, env_map) {
+				tracing::warn!(
+					package_name = request.package_name,
+					version = %request.version,
+					registry = %request.registry,
+					"{warning}"
+				);
+			}
 		}
-		let output = match executor.run(&publish_command) {
+		let output = match run_publish_command_with_retries(executor, &publish_command, request) {
 			Ok(output) => output,
 			Err(error) => {
 				tracing::error!(
@@ -1240,7 +1254,7 @@ pub async fn try_execute_publish_requests_with_progress(
 					error = %error,
 					"publish command failed to execute"
 				);
-				let message = error.render();
+				let message = publish_command_failure_message(request, &error);
 				append_publish_failure_outcomes(
 					&mut outcomes,
 					remaining_requests,
@@ -1411,6 +1425,7 @@ pub fn build_placeholder_requests(
 				placeholder: true,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
+				timeout: package_definition.publish.timeout.clone(),
 				placeholder_readme: resolve_placeholder_readme(
 					root,
 					package_definition.publish.placeholder.readme.as_deref(),
@@ -1450,6 +1465,7 @@ pub fn configured_package_publication_targets(
 				mode: package_definition.publish.mode,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
+				timeout: package_definition.publish.timeout.clone(),
 			})
 		})
 		.collect()
@@ -1520,6 +1536,7 @@ pub fn build_release_requests(
 			placeholder: false,
 			trusted_publishing: publication.trusted_publishing.clone(),
 			attestations: publication.attestations.clone(),
+			timeout: publication.timeout.clone(),
 			placeholder_readme: default_placeholder_readme(&package.name),
 		});
 	}
@@ -1713,18 +1730,34 @@ fn run_captured_process_command(spec: &CommandSpec) -> MonochangeResult<CommandO
 		.args(&spec.args)
 		.current_dir(&spec.cwd)
 		.envs(&spec.env)
-		.stdin(Stdio::null());
-	let output = command.output().map_err(|error| {
+		.stdin(Stdio::null())
+		.stdout(Stdio::piped())
+		.stderr(Stdio::piped());
+	let mut child = command.spawn().map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to run `{}` in {}: {error}",
 			render_command(spec),
 			spec.cwd.display()
 		))
 	})?;
+	let stdout = child
+		.stdout
+		.take()
+		.expect("stdout was configured for piping");
+	let stderr = child
+		.stderr
+		.take()
+		.expect("stderr was configured for piping");
+	let stdout_thread = std::thread::spawn(move || read_child_output(stdout));
+	let stderr_thread = std::thread::spawn(move || read_child_output(stderr));
+	let status = wait_child_with_timeout(&mut child, spec)?;
+	let stdout = join_child_output(stdout_thread, spec, "stdout")?;
+	let stderr = join_child_output(stderr_thread, spec, "stderr")?;
+
 	Ok(CommandOutput {
-		success: output.status.success(),
-		stdout: String::from_utf8_lossy(&output.stdout).trim().to_string(),
-		stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+		success: status.success(),
+		stdout: String::from_utf8_lossy(&stdout).trim().to_string(),
+		stderr: String::from_utf8_lossy(&stderr).trim().to_string(),
 	})
 }
 
@@ -1753,9 +1786,7 @@ fn run_streaming_process_command(spec: &CommandSpec) -> MonochangeResult<Command
 		.expect("stderr was configured for piping");
 	let stdout_thread = std::thread::spawn(move || tee_child_output(stdout, std::io::stdout()));
 	let stderr_thread = std::thread::spawn(move || tee_child_output(stderr, std::io::stderr()));
-	let status = child
-		.wait()
-		.map_err(|error| process_command_error(spec, "wait for", &error))?;
+	let status = wait_child_with_timeout(&mut child, spec)?;
 	let stdout = join_child_output(stdout_thread, spec, "stdout")?;
 	let stderr = join_child_output(stderr_thread, spec, "stderr")?;
 
@@ -1764,6 +1795,149 @@ fn run_streaming_process_command(spec: &CommandSpec) -> MonochangeResult<Command
 		stdout: String::from_utf8_lossy(&stdout).trim().to_string(),
 		stderr: String::from_utf8_lossy(&stderr).trim().to_string(),
 	})
+}
+
+fn wait_child_with_timeout(
+	child: &mut std::process::Child,
+	spec: &CommandSpec,
+) -> MonochangeResult<std::process::ExitStatus> {
+	let Some(timeout) = spec.timeout else {
+		return child
+			.wait()
+			.map_err(|error| process_command_error(spec, "wait for", &error));
+	};
+	let deadline = std::time::Instant::now() + timeout;
+	loop {
+		match child.try_wait() {
+			Ok(Some(status)) => return Ok(status),
+			Ok(None) => {
+				if std::time::Instant::now() >= deadline {
+					let _ = child.kill();
+					let _ = child.wait();
+					return Err(publish_timeout_error(spec, timeout));
+				}
+				std::thread::sleep(Duration::from_millis(100));
+			}
+			Err(error) => return Err(process_command_error(spec, "wait for", &error)),
+		}
+	}
+}
+
+fn read_child_output(mut reader: impl std::io::Read) -> std::io::Result<Vec<u8>> {
+	let mut buffer = Vec::new();
+	std::io::Read::read_to_end(&mut reader, &mut buffer)?;
+	Ok(buffer)
+}
+
+fn publish_timeout_error(spec: &CommandSpec, timeout: Duration) -> MonochangeError {
+	MonochangeError::Io(format!(
+		"{PUBLISH_TIMEOUT_ERROR_PREFIX}: `{}` in {} timed out after {} seconds",
+		render_command(spec),
+		spec.cwd.display(),
+		timeout.as_secs()
+	))
+}
+
+fn publish_command_timeout(request: &PublishRequest) -> Option<Duration> {
+	if request.timeout.disabled() {
+		None
+	} else {
+		Some(Duration::from_secs(request.timeout.timeout_seconds))
+	}
+}
+
+/// Returns `true` when a [`CommandExecutor::run`] failure was caused by the
+/// configured publish timeout rather than a registry or command error.
+#[must_use]
+pub fn is_publish_timeout_error(error: &MonochangeError) -> bool {
+	error.render().contains(PUBLISH_TIMEOUT_ERROR_PREFIX)
+}
+
+fn run_publish_command_with_retries(
+	executor: &mut dyn CommandExecutor,
+	publish_command: &CommandSpec,
+	request: &PublishRequest,
+) -> Result<CommandOutput, MonochangeError> {
+	let max_attempts = 1usize + request.timeout.retries as usize;
+	let mut last_error = None;
+	for attempt in 1..=max_attempts {
+		match executor.run(publish_command) {
+			Ok(output) => return Ok(output),
+			Err(error) => {
+				let timed_out = is_publish_timeout_error(&error);
+				tracing::warn!(
+					package_name = request.package_name,
+					version = %request.version,
+					registry = %request.registry,
+					attempt,
+					max_attempts,
+					timed_out,
+					error = %error,
+					"publish command attempt failed"
+				);
+				if !timed_out || attempt == max_attempts {
+					return Err(error);
+				}
+				last_error = Some(error);
+			}
+		}
+	}
+	Err(last_error.expect("retry loop runs at least once"))
+}
+
+fn publish_command_failure_message(request: &PublishRequest, error: &MonochangeError) -> String {
+	if is_publish_timeout_error(error) {
+		let mut message = format!(
+			"publish for `{}` version `{}` timed out after {} attempt(s); {}",
+			request.package_name,
+			request.version,
+			request.timeout.retries + 1,
+			error.render()
+		);
+		if request.registry == RegistryKind::PubDev {
+			message.push_str("\n\n");
+			message.push_str(dart_protected_publishing_guidance());
+		}
+		return message;
+	}
+	error.render()
+}
+
+/// Explanatory guidance appended to Dart/pub.dev publish failures and timeouts
+/// explaining that protected (trusted) publishing may require publishing from a
+/// pushed tag rather than a `workflow_dispatch` event.
+pub fn dart_protected_publishing_guidance() -> &'static str {
+	"pub.dev protected publishing may require publishing directly from a pushed tag rather than a `workflow_dispatch` event. If the publish hangs or fails non-interactively, verify the pub.dev automated publishing publisher is configured for the tag push event (not `workflow_dispatch`), or provide a `PUB_TOKEN` fallback with `dart pub token add https://pub.dev --env-var PUB_TOKEN` before publishing."
+}
+
+/// Returns a warning when a Dart package uses protected (trusted) publishing
+/// from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN`
+/// fallback, which pub.dev automated publishing commonly rejects.
+#[must_use]
+pub fn dart_protected_publishing_warning(
+	request: &PublishRequest,
+	env_map: &BTreeMap<String, String>,
+) -> Option<String> {
+	if request.registry != RegistryKind::PubDev || !request.trusted_publishing.enabled {
+		return None;
+	}
+	let event_is_workflow_dispatch = env_map
+		.get("GITHUB_EVENT_NAME")
+		.is_some_and(|event| event == "workflow_dispatch")
+		|| env_map
+			.get("GITHUB_REF")
+			.is_some_and(|reference| reference.starts_with("refs/heads/"));
+	if !event_is_workflow_dispatch {
+		return None;
+	}
+	if env_map.contains_key("PUB_TOKEN") {
+		return None;
+	}
+	Some(format!(
+		"`{}` uses pub.dev protected publishing from a `workflow_dispatch` event without a `PUB_TOKEN` fallback. {}",
+		request.package_name,
+		dart_protected_publishing_guidance()
+	))
 }
 
 fn process_command_error(
@@ -2193,6 +2367,7 @@ pub fn build_npm_placeholder_publish_command(
 		],
 		cwd: request.package_root.clone(),
 		env: npm_publish_env(request),
+		timeout: None,
 	}
 }
 
@@ -2210,6 +2385,7 @@ pub fn build_npm_release_publish_command(request: &PublishRequest) -> CommandSpe
 		args,
 		cwd: request.package_root.clone(),
 		env: npm_publish_env(request),
+		timeout: None,
 	}
 }
 
@@ -2243,6 +2419,7 @@ fn build_cargo_placeholder_publish_command(
 		],
 		cwd: request.package_root.clone(),
 		env: BTreeMap::new(),
+		timeout: None,
 	}
 }
 
@@ -2257,6 +2434,7 @@ fn build_cargo_release_publish_command(request: &PublishRequest) -> CommandSpec 
 		],
 		cwd: request.package_root.clone(),
 		env: BTreeMap::new(),
+		timeout: None,
 	}
 }
 
@@ -2279,6 +2457,7 @@ fn build_dart_publish_command(request: &PublishRequest, cwd: &Path) -> CommandSp
 		],
 		cwd: cwd.to_path_buf(),
 		env: BTreeMap::new(),
+		timeout: None,
 	}
 }
 
@@ -2288,6 +2467,7 @@ fn build_jsr_publish_command(cwd: &Path) -> CommandSpec {
 		args: vec!["publish".to_string()],
 		cwd: cwd.to_path_buf(),
 		env: BTreeMap::new(),
+		timeout: None,
 	}
 }
 
@@ -2305,6 +2485,7 @@ fn build_python_publish_command(request: &PublishRequest, cwd: &Path) -> Command
 		args: vec!["-c".to_string(), script],
 		cwd: cwd.to_path_buf(),
 		env: BTreeMap::new(),
+		timeout: None,
 	}
 }
 
@@ -2314,6 +2495,7 @@ fn build_go_publish_command(request: &PublishRequest) -> CommandSpec {
 		args: vec!["tag".to_string(), go_module_tag_name(request)],
 		cwd: request.package_root.clone(),
 		env: BTreeMap::new(),
+		timeout: None,
 	}
 }
 

@@ -1098,6 +1098,7 @@ fn build_npm_cli_command(request: &PublishRequest, args: Vec<String>) -> Command
 			args: wrapped_args,
 			cwd: request.package_root.clone(),
 			env: BTreeMap::new(),
+			timeout: None,
 		};
 	}
 
@@ -1106,6 +1107,7 @@ fn build_npm_cli_command(request: &PublishRequest, args: Vec<String>) -> Command
 		args,
 		cwd: request.package_root.clone(),
 		env: BTreeMap::new(),
+		timeout: None,
 	}
 }
 

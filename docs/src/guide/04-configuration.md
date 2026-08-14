@@ -252,6 +252,8 @@ Supported fields:
 - `trusted_publishing` - `true`/`false` or a table with `enabled`, `repository`, `workflow`, and `environment`
 - `attestations.require_registry_provenance` - require registry-native package provenance when the selected registry/provider capability supports it
 - `rate_limits.enforce` - block built-in publish runs when the selected package set exceeds a known single registry window
+- `timeout.timeout_seconds` - maximum seconds a single package publish command may run before it is killed and retried; set to `0` to disable the timeout (default: `60`)
+- `timeout.retries` - number of times to retry a publish command that times out before reporting the package as failed (default: `2`)
 - `placeholder.readme` - inline placeholder README content
 - `publish_order.dependency_fields` - ecosystem-level dependency fields used to topologically order package publishes
 - `placeholder.readme_file` - workspace-relative file to use as placeholder README content
