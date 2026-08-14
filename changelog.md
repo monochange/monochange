@@ -4,6 +4,243 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Remove the `mc` npm bin alias
+
+_Packages:_ _@monochange/cli_
+
+> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.
+>
+> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.
+
+The Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.
+
+```nu
+# before
+mc check
+mc versions --format json
+
+# after
+monochange check
+monochange versions --format json
+```
+
+Add a local alias if you still want the short name:
+
+```nu
+alias mc = monochange
+```
+
+Update any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)
+
+#### Remove colon-delimited built-in step compatibility
+
+_Packages:_ _monochange_
+
+> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.
+>
+> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.
+
+monochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.
+
+Use the nested invocation:
+
+```nu
+monochange step validate
+```
+
+Update automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `["step", "validate"]`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)
+
+### 🚀 Feature
+
+#### Add a configurable publish timeout with retries and a Dart protected-publishing warning
+
+_Packages:_ _monochange_config_, _monochange_core_, _monochange_publish_
+
+- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.
+- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.
+- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch
+
+Configure the timeout per package or ecosystem:
+
+```toml
+[package.my-dart-package.publish.timeout]
+timeout_seconds = 90
+retries = 3
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)
+
+#### Add GitHub CLI token fallback
+
+_Packages:_ _monochange_github_
+
+GitHub release and release-request automation now resolves an API token with the precedence `GITHUB_TOKEN` > `GH_TOKEN` > `gh auth token`. When neither environment variable is set, monochange retrieves the authenticated GitHub CLI credential via `gh auth token`, so local workflows that are already signed in with `gh auth login` no longer need a manual token variable.
+
+The Git Database commit-verification client still requires `GITHUB_COMMIT_TOKEN` or `GITHUB_TOKEN` so GitHub Actions can keep auto-signing verified commits with the web-flow GPG key.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #627](https://github.com/monochange/monochange/pull/627)
+
+### 🐛 Fixed
+
+#### Show workflow progress and preserve command failure output
+
+_Packages:_ _monochange_
+
+Configured workflows now report command and step starts on stderr by default, including captured editor and CI runs. Quiet mode and `MONOCHANGE_NO_PROGRESS` still suppress progress. Failed workflows now emit exactly one failed terminal event, run `always_run` cleanup steps, identify later steps skipped after the failure, and never report the failed step or command as successful.
+
+Command:
+
+```bash
+monochange run release
+```
+
+**Before (stderr):**
+
+```text
+# no status while a captured command was running
+error: command `build-project` failed: exit status 1
+```
+
+**After (stderr):**
+
+```text
+monochange running `release`
+▶ [1/2] build project (Command)
+▶ [1/2] build project (Command) — running command `build-project`
+✖ [1/2] build project (Command)
+  └─ discovery error: command `build-project` failed: exit status: 1
+  │ stdout:
+  │ compiler diagnostic
+✖ `release` failed
+```
+
+Configured command and lockfile command failures preserve the exit status and useful stdout as well as stderr, so users no longer need to rerun the child command to discover stdout-only diagnostics. Package-publish progress also respects quiet mode.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)
+
+#### Add a configurable publish timeout with retries and a Dart protected-publishing warning
+
+_Packages:_ _monochange_, _monochange_npm_
+
+- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.
+- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.
+- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch
+
+Configure the timeout per package or ecosystem:
+
+```toml
+[package.my-dart-package.publish.timeout]
+timeout_seconds = 90
+retries = 3
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)
+
+#### Sync dependency constraints during release preparation
+
+_Packages:_ _monochange_
+
+`PrepareRelease` now automatically refreshes internal workspace dependency constraints after it bumps package versions. For example, a Dart package depending on a sibling that was released from `1.0.0` to `1.1.0` is updated from `sibling: ^1.0.0` to `sibling: ^1.1.0` during release preparation instead of requiring a separate `monochange versions sync` command.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #607](https://github.com/monochange/monochange/pull/607) · _Closed issues:_ [#606](https://github.com/monochange/monochange/issues/606)
+
+#### Remove the `mc` npm bin alias
+
+_Packages:_ _monochange_
+
+> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.
+>
+> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.
+
+The Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.
+
+```nu
+# before
+mc check
+mc versions --format json
+
+# after
+monochange check
+monochange versions --format json
+```
+
+Add a local alias if you still want the short name:
+
+```nu
+alias mc = monochange
+```
+
+Update any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)
+
+#### Remove colon-delimited built-in step compatibility
+
+_Packages:_ _monochange_config_, _monochange_publish_, _monochange_telemetry_
+
+> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.
+>
+> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.
+
+monochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.
+
+Use the nested invocation:
+
+```nu
+monochange step validate
+```
+
+Update automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `["step", "validate"]`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)
+
+#### Report every expected package after publishing stops on failure
+
+_Packages:_ _monochange_publish_
+
+Sequential package publishing remains fail-fast, but its report now includes every package that was expected. Packages not attempted after the first failure are recorded as blocked with an explanation, reported as skipped in progress totals, and remain eligible for a resumed publish.
+
+**Before:**
+
+```text
+◆ Publish complete: 13 packages, ✅ 12 published, ⏭️ 0 skipped, ❌ 1 failed
+```
+
+**After:**
+
+```text
+◆ Publish complete: 45 expected, ✅ 12 succeeded, ❌ 1 failed, ⏭️ 32 skipped
+```
+
+The library also exposes a derived summary without changing the persisted report schema:
+
+```rust
+// before
+let report: PackagePublishReport = execute_publish_requests(...).await?;
+
+// after
+let report: PackagePublishReport = execute_publish_requests(...).await?;
+let summary: PackagePublishSummary = report.summary();
+assert_eq!(summary.expected, 45);
+assert_eq!(summary.succeeded, 12);
+assert_eq!(summary.failed, 1);
+assert_eq!(summary.skipped, 32);
+```
+
+Publish errors now include these aggregate counts and retain the failed package's command diagnostics. Command error rendering preserves stdout-only failures and clearly labels both streams when both are available.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)
+
 ## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
 
 Grouped release for `main`.
