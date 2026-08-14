@@ -9,6 +9,7 @@ use monochange_core::PackageRecord;
 use monochange_core::PublishAttestationSettings;
 use monochange_core::PublishMode;
 use monochange_core::PublishState;
+use monochange_core::PublishTimeoutSettings;
 use monochange_core::RegistryKind;
 use monochange_core::TrustedPublishingSettings;
 use monochange_core::materialize_dependency_edges;
@@ -1006,6 +1007,7 @@ fn npm_trust_command_wraps_npm_with_pnpm_for_pnpm_managed_packages() {
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
 		placeholder_readme: "placeholder".to_string(),
 	};
 	let context = GitHubTrustContext {

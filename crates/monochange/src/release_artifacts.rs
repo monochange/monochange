@@ -321,6 +321,7 @@ pub(crate) fn build_package_publication_targets(
 				mode: package_definition.publish.mode,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
+				timeout: package_definition.publish.timeout.clone(),
 			})
 		})
 		.collect::<Vec<_>>();

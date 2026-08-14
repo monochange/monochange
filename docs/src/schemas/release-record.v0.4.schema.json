@@ -419,6 +419,9 @@
 					],
 					"default": null
 				},
+				"timeout": {
+					"$ref": "#/$defs/PublishTimeoutSettings"
+				},
 				"trusted_publishing": {
 					"$ref": "#/$defs/TrustedPublishingSettings",
 					"default": {
@@ -565,6 +568,23 @@
 					"type": "string"
 				}
 			]
+		},
+		"PublishTimeoutSettings": {
+			"properties": {
+				"retries": {
+					"default": 2,
+					"format": "uint32",
+					"minimum": 0,
+					"type": "integer"
+				},
+				"timeout_seconds": {
+					"default": 60,
+					"format": "uint64",
+					"minimum": 0,
+					"type": "integer"
+				}
+			},
+			"type": "object"
 		},
 		"RegistryKind": {
 			"enum": [

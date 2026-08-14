@@ -17,6 +17,7 @@ use monochange_core::PublishAttestationSettings;
 use monochange_core::PublishMode;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishState;
+use monochange_core::PublishTimeoutSettings;
 use monochange_core::ReleaseRecord;
 use monochange_core::SourceProvider;
 use monochange_core::TrustedPublishingSettings;
@@ -204,6 +205,7 @@ fn sample_request(registry: RegistryKind) -> PublishRequest {
 			environment: None,
 		},
 		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
 		placeholder_readme: "placeholder".to_string(),
 	}
 }
@@ -349,6 +351,7 @@ fn build_npm_trust_list_command(request: &PublishRequest) -> CommandSpec {
 		],
 		cwd: PathBuf::new(),
 		env: BTreeMap::new(),
+		timeout: None,
 	}
 }
 
@@ -2072,6 +2075,7 @@ fn sample_npm_publication(package: &str) -> PackagePublicationTarget {
 		mode: PublishMode::Builtin,
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
 	}
 }
 
@@ -2271,6 +2275,7 @@ fn build_release_requests_skips_unknown_publication_targets() {
 			mode: PublishMode::Builtin,
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		},
 		PackagePublicationTarget {
 			package: "pkg".to_string(),
@@ -2280,6 +2285,7 @@ fn build_release_requests_skips_unknown_publication_targets() {
 			mode: PublishMode::Builtin,
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		},
 	];
 
@@ -2317,6 +2323,7 @@ fn build_release_requests_skips_publication_targets_missing_from_discovery() {
 		mode: PublishMode::Builtin,
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
 	}];
 
 	let requests = build_release_requests(&configuration, &[], &publications, &BTreeSet::new())
@@ -2379,6 +2386,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			mode: PublishMode::Builtin,
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		},
 		PackagePublicationTarget {
 			package: "disabled".to_string(),
@@ -2388,6 +2396,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			mode: PublishMode::Builtin,
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		},
 		PackagePublicationTarget {
 			package: "private".to_string(),
@@ -2397,6 +2406,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			mode: PublishMode::Builtin,
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		},
 	];
 
@@ -4024,6 +4034,7 @@ async fn release_dry_run_orders_cargo_dev_and_build_dependencies_before_dependen
 				mode: PublishMode::Builtin,
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
+				timeout: PublishTimeoutSettings::default(),
 			}
 		})
 		.collect::<Vec<_>>();
@@ -4361,6 +4372,7 @@ async fn run_publish_packages_uses_prepared_release_publications() {
 			mode: PublishMode::Builtin,
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		}],
 	);
 
@@ -4428,6 +4440,7 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 			mode: PublishMode::Builtin,
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		}],
 	);
 	let discovered = release_record_package_publications_from_prepared_or_head(root.path(), None)
@@ -4471,6 +4484,7 @@ fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 		],
 		cwd: tempdir.path().to_path_buf(),
 		env: BTreeMap::new(),
+		timeout: None,
 	};
 
 	let mut captured_executor = ProcessCommandExecutor::new(false);
@@ -4507,6 +4521,7 @@ fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 			args: Vec::new(),
 			cwd: tempdir.path().to_path_buf(),
 			env: BTreeMap::new(),
+			timeout: None,
 		})
 		.expect_err("expected command failure");
 	assert!(
@@ -4811,6 +4826,7 @@ async fn try_run_publish_packages_with_publications_maps_build_request_errors() 
 		mode: PublishMode::Builtin,
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
 	};
 
 	let error = try_run_publish_packages_with_publications_and_resume(
@@ -4924,6 +4940,7 @@ async fn try_run_publish_packages_with_publications_maps_publish_execution_failu
 		mode: PublishMode::Builtin,
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
 	};
 
 	// A failing registry lookup during publish execution returns a
@@ -4980,6 +4997,7 @@ fn fake_executor_reports_missing_outputs_and_render_helpers_match() {
 		],
 		cwd: PathBuf::from("."),
 		env: BTreeMap::new(),
+		timeout: None,
 	};
 	let error = executor
 		.run(&spec)
@@ -5189,6 +5207,7 @@ fn build_release_requests_uses_publication_targets_and_package_metadata() {
 		mode: PublishMode::Builtin,
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
 	};
 	let configuration = sample_configuration(&[("pkg", monochange_core::PackageType::Npm, true)]);
 	let requests =
@@ -5236,6 +5255,7 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 			mode: PublishMode::Builtin,
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		}],
 	);
 

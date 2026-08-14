@@ -495,6 +495,8 @@ pub(crate) struct RawPublishSettings {
 	#[serde(default)]
 	rate_limits: RawPublishRateLimitSettings,
 	#[serde(default)]
+	timeout: RawPublishTimeoutSettings,
+	#[serde(default)]
 	placeholder: RawPlaceholderSettings,
 }
 
@@ -512,6 +514,16 @@ pub(crate) struct RawPublishAttestationSettings {
 pub(crate) struct RawPublishRateLimitSettings {
 	#[serde(default)]
 	enforce: Option<bool>,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Deserialize, Default)]
+#[cfg_attr(feature = "schema", schemars(rename = "publish_timeout_settings"))]
+pub(crate) struct RawPublishTimeoutSettings {
+	#[serde(default)]
+	timeout_seconds: Option<u64>,
+	#[serde(default)]
+	retries: Option<u32>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1397,6 +1409,12 @@ fn normalize_publish_settings(
 	);
 	if let Some(enforce) = raw.rate_limits.enforce {
 		settings.rate_limits.enforce = enforce;
+	}
+	if let Some(timeout_seconds) = raw.timeout.timeout_seconds {
+		settings.timeout.timeout_seconds = timeout_seconds;
+	}
+	if let Some(retries) = raw.timeout.retries {
+		settings.timeout.retries = retries;
 	}
 	if raw.placeholder.readme.is_some() {
 		settings.placeholder.readme_file = None;

@@ -12,6 +12,7 @@ use monochange_core::PublishMode;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishSettings;
 use monochange_core::PublishState;
+use monochange_core::PublishTimeoutSettings;
 use monochange_core::RegistryKind;
 use monochange_core::ReleaseDecision;
 use monochange_core::ReleaseManifest;
@@ -440,6 +441,10 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			release: true,
 			publish: PublishSettings {
 				registry: Some(PublishRegistry::Builtin(RegistryKind::CratesIo)),
+				timeout: PublishTimeoutSettings {
+					timeout_seconds: 90,
+					retries: 3,
+				},
 				..PublishSettings::default()
 			},
 			version_format: VersionFormat::Primary,
@@ -591,6 +596,10 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				mode: PublishMode::Builtin,
 				trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 				attestations: monochange_core::PublishAttestationSettings::default(),
+				timeout: PublishTimeoutSettings {
+					timeout_seconds: 90,
+					retries: 3,
+				},
 			},
 			PackagePublicationTarget {
 				package: "web".to_string(),
@@ -600,6 +609,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				mode: PublishMode::External,
 				trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 				attestations: monochange_core::PublishAttestationSettings::default(),
+				timeout: PublishTimeoutSettings::default(),
 			},
 		]
 	);
@@ -641,6 +651,7 @@ fn build_release_manifest_copies_package_publications_from_prepared_release() {
 			mode: PublishMode::Builtin,
 			trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 			attestations: monochange_core::PublishAttestationSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 		}],
 		dry_run: false,
 	};

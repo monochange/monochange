@@ -2169,6 +2169,44 @@ pub struct PublishRateLimitSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PublishTimeoutSettings {
+	#[serde(default = "default_publish_timeout_seconds")]
+	pub timeout_seconds: u64,
+	#[serde(default = "default_publish_timeout_retries")]
+	pub retries: u32,
+}
+
+impl Default for PublishTimeoutSettings {
+	fn default() -> Self {
+		Self {
+			timeout_seconds: default_publish_timeout_seconds(),
+			retries: default_publish_timeout_retries(),
+		}
+	}
+}
+
+impl PublishTimeoutSettings {
+	#[must_use]
+	pub fn is_default(&self) -> bool {
+		self == &Self::default()
+	}
+
+	#[must_use]
+	pub fn disabled(&self) -> bool {
+		self.timeout_seconds == 0
+	}
+}
+
+fn default_publish_timeout_seconds() -> u64 {
+	60
+}
+
+fn default_publish_timeout_retries() -> u32 {
+	2
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TrustedPublishingSettings {
 	#[serde(default = "default_true")]
 	pub enabled: bool,
@@ -2238,6 +2276,8 @@ pub struct PublishSettings {
 	pub attestations: PublishAttestationSettings,
 	#[serde(default)]
 	pub rate_limits: PublishRateLimitSettings,
+	#[serde(default, skip_serializing_if = "PublishTimeoutSettings::is_default")]
+	pub timeout: PublishTimeoutSettings,
 	#[serde(default)]
 	pub placeholder: PlaceholderSettings,
 }
@@ -2251,6 +2291,7 @@ impl Default for PublishSettings {
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			rate_limits: PublishRateLimitSettings::default(),
+			timeout: PublishTimeoutSettings::default(),
 			placeholder: PlaceholderSettings::default(),
 		}
 	}
@@ -3792,6 +3833,8 @@ pub struct PackagePublicationTarget {
 		skip_serializing_if = "PublishAttestationSettings::is_default"
 	)]
 	pub attestations: PublishAttestationSettings,
+	#[serde(default, skip_serializing_if = "PublishTimeoutSettings::is_default")]
+	pub timeout: PublishTimeoutSettings,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]

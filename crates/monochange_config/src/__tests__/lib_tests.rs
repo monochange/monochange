@@ -4005,6 +4005,42 @@ enforce = true
 }
 
 #[test]
+fn normalize_publish_settings_parses_timeout_seconds_and_retries() {
+	let parsed = crate::normalize_publish_settings(
+		r"[package.core.publish.timeout]
+timeout_seconds = 90
+retries = 3
+",
+		None,
+		crate::RawPublishSettings {
+			timeout: crate::RawPublishTimeoutSettings {
+				timeout_seconds: Some(90),
+				retries: Some(3),
+			},
+			..crate::RawPublishSettings::default()
+		},
+		"package",
+		"core",
+		EcosystemType::Cargo,
+	)
+	.unwrap_or_else(|error| panic!("publish settings: {error}"));
+	assert_eq!(parsed.timeout.timeout_seconds, 90);
+	assert_eq!(parsed.timeout.retries, 3);
+
+	let defaults = crate::normalize_publish_settings(
+		"",
+		None,
+		crate::RawPublishSettings::default(),
+		"package",
+		"core",
+		EcosystemType::Cargo,
+	)
+	.unwrap_or_else(|error| panic!("publish settings: {error}"));
+	assert_eq!(defaults.timeout.timeout_seconds, 60);
+	assert_eq!(defaults.timeout.retries, 2);
+}
+
+#[test]
 fn load_workspace_configuration_inherits_ecosystem_publish_trusted_publishing_defaults() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
