@@ -292,6 +292,22 @@ fn failure_without_cleanup_reports_every_later_step_as_skipped() {
 
 #[test]
 #[cfg(unix)]
+fn release_progress_renders_stdout_only_command_failure_details() {
+	let tempdir = setup_fixture("monochange/release-progress-failure");
+
+	let (status, transcript) = run_tty_command_result(tempdir.path(), "progress-stdout-failure");
+
+	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
+	assert!(transcript.contains("✖ [1/1] fail stdout only (Command)"));
+	assert!(
+		transcript.contains("stdout:\nstdout failure line"),
+		"expected stdout-only failure details in transcript:\n{transcript}"
+	);
+	assert!(!transcript.contains("stderr:"));
+}
+
+#[test]
+#[cfg(unix)]
 fn failing_cleanup_preserves_the_primary_workflow_error() {
 	let tempdir = setup_fixture("monochange/release-progress-failure");
 

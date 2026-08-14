@@ -62,3 +62,9 @@ help_text = "Exercise JSON skip compatibility"
 steps = [
   { type = "Validate", name = "conditional skip", when = "{{ false }}" },
 ]
+
+[cli.progress-stdout-failure]
+help_text = "Exercise stdout-only command failure details"
+steps = [
+  { type = "Command", name = "fail stdout only", shell = true, command = "printf 'stdout failure line\n'; exit 6" },
+]
