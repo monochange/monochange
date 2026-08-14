@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
+
+### 🐛 Fixed
+
+#### Remove colon-delimited built-in step compatibility
+
+> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.
+>
+> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.
+
+monochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.
+
+Use the nested invocation:
+
+```nu
+monochange step validate
+```
+
+Update automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `["step", "validate"]`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)
+
 ## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
 
 ### Changed

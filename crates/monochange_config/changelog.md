@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
+
+### 🚀 Feature
+
+#### Add a configurable publish timeout with retries and a Dart protected-publishing warning
+
+- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.
+- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.
+- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch
+
+Configure the timeout per package or ecosystem:
+
+```toml
+[package.my-dart-package.publish.timeout]
+timeout_seconds = 90
+retries = 3
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)
+
+### 🐛 Fixed
+
+#### Remove colon-delimited built-in step compatibility
+
+> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.
+>
+> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.
+
+monochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.
+
+Use the nested invocation:
+
+```nu
+monochange step validate
+```
+
+Update automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `["step", "validate"]`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)
+
 ## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
 
 ### 🐛 Fixed

@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
+
+### 💥 Breaking Change
+
+#### Remove the `mc` npm bin alias
+
+> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.
+>
+> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.
+
+The Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.
+
+```nu
+# before
+mc check
+mc versions --format json
+
+# after
+monochange check
+monochange versions --format json
+```
+
+Add a local alias if you still want the short name:
+
+```nu
+alias mc = monochange
+```
+
+Update any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)
+
 ## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
 
 ### Changed

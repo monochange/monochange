@@ -755,3 +755,69 @@ Releasing `app` to `1.2.3` updates it to:
 ```
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #609](https://github.com/monochange/monochange/pull/609)
+
+## monochange_schema [0.4.3](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.3) (2026-08-14)
+
+### 🐛 Fixed
+
+#### Add a configurable publish timeout with retries and a Dart protected-publishing warning
+
+- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.
+- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.
+- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch
+
+Configure the timeout per package or ecosystem:
+
+```toml
+[package.my-dart-package.publish.timeout]
+timeout_seconds = 90
+retries = 3
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)
+
+#### Remove the `mc` npm bin alias
+
+> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.
+>
+> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.
+
+The Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.
+
+```nu
+# before
+mc check
+mc versions --format json
+
+# after
+monochange check
+monochange versions --format json
+```
+
+Add a local alias if you still want the short name:
+
+```nu
+alias mc = monochange
+```
+
+Update any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)
+
+#### Remove colon-delimited built-in step compatibility
+
+> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.
+>
+> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.
+
+monochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.
+
+Use the nested invocation:
+
+```nu
+monochange step validate
+```
+
+Update automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `["step", "validate"]`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)

@@ -1,0 +1,2298 @@
+{
+	"schema_version": "0.4",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-08-14T15:13:35Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.9.0",
+		"monochange_schema": "0.4.3"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.9.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.9.0",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.4.3",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.4.3",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/cli-command-progress-feedback.md",
+		".changeset/complete-publish-failure-summary.md",
+		".changeset/dart-publish-timeout-retries.md",
+		".changeset/github-cli-token-fallback.md",
+		".changeset/prepare-release-sync-dependencies.md",
+		".changeset/remove-mc-npm-alias.md",
+		".changeset/remove-step-colon-compatibility.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/cli-command-progress-feedback.md",
+			"summary": "Show workflow progress and preserve command failure output",
+			"details": "Configured workflows now report command and step starts on stderr by default, including captured editor and CI runs. Quiet mode and `MONOCHANGE_NO_PROGRESS` still suppress progress. Failed workflows now emit exactly one failed terminal event, run `always_run` cleanup steps, identify later steps skipped after the failure, and never report the failed step or command as successful.\n\nCommand:\n\n```bash\nmonochange run release\n```\n\n**Before (stderr):**\n\n```text\n# no status while a captured command was running\nerror: command `build-project` failed: exit status 1\n```\n\n**After (stderr):**\n\n```text\nmonochange running `release`\n▶ [1/2] build project (Command)\n▶ [1/2] build project (Command) — running command `build-project`\n✖ [1/2] build project (Command)\n  └─ discovery error: command `build-project` failed: exit status: 1\n  │ stdout:\n  │ compiler diagnostic\n✖ `release` failed\n```\n\nConfigured command and lockfile command failures preserve the exit status and useful stdout as well as stderr, so users no longer need to rerun the child command to discover stdout-only diagnostics. Package-publish progress also respects quiet mode.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "794363d472583cc605d461b16e4c3106231b257a",
+						"short_sha": "794363d",
+						"url": "https://github.com/monochange/monochange/commit/794363d472583cc605d461b16e4c3106231b257a",
+						"authored_at": "2026-08-14T09:08:06+01:00",
+						"committed_at": "2026-08-14T09:08:06+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#629",
+						"title": "fix(cli): improve publish and workflow failure feedback",
+						"url": "https://github.com/monochange/monochange/pull/629",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "794363d472583cc605d461b16e4c3106231b257a",
+						"short_sha": "794363d",
+						"url": "https://github.com/monochange/monochange/commit/794363d472583cc605d461b16e4c3106231b257a",
+						"authored_at": "2026-08-14T09:08:06+01:00",
+						"committed_at": "2026-08-14T09:08:06+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#629",
+						"title": "fix(cli): improve publish and workflow failure feedback",
+						"url": "https://github.com/monochange/monochange/pull/629",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/complete-publish-failure-summary.md",
+			"summary": "Report every expected package after publishing stops on failure",
+			"details": "Sequential package publishing remains fail-fast, but its report now includes every package that was expected. Packages not attempted after the first failure are recorded as blocked with an explanation, reported as skipped in progress totals, and remain eligible for a resumed publish.\n\n**Before:**\n\n```text\n◆ Publish complete: 13 packages, ✅ 12 published, ⏭️ 0 skipped, ❌ 1 failed\n```\n\n**After:**\n\n```text\n◆ Publish complete: 45 expected, ✅ 12 succeeded, ❌ 1 failed, ⏭️ 32 skipped\n```\n\nThe library also exposes a derived summary without changing the persisted report schema:\n\n```rust\n// before\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\n\n// after\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\nlet summary: PackagePublishSummary = report.summary();\nassert_eq!(summary.expected, 45);\nassert_eq!(summary.succeeded, 12);\nassert_eq!(summary.failed, 1);\nassert_eq!(summary.skipped, 32);\n```\n\nPublish errors now include these aggregate counts and retain the failed package's command diagnostics. Command error rendering preserves stdout-only failures and clearly labels both streams when both are available.",
+			"targets": [
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "794363d472583cc605d461b16e4c3106231b257a",
+						"short_sha": "794363d",
+						"url": "https://github.com/monochange/monochange/commit/794363d472583cc605d461b16e4c3106231b257a",
+						"authored_at": "2026-08-14T09:08:06+01:00",
+						"committed_at": "2026-08-14T09:08:06+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#629",
+						"title": "fix(cli): improve publish and workflow failure feedback",
+						"url": "https://github.com/monochange/monochange/pull/629",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "794363d472583cc605d461b16e4c3106231b257a",
+						"short_sha": "794363d",
+						"url": "https://github.com/monochange/monochange/commit/794363d472583cc605d461b16e4c3106231b257a",
+						"authored_at": "2026-08-14T09:08:06+01:00",
+						"committed_at": "2026-08-14T09:08:06+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#629",
+						"title": "fix(cli): improve publish and workflow failure feedback",
+						"url": "https://github.com/monochange/monochange/pull/629",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/dart-publish-timeout-retries.md",
+			"summary": "Add a configurable publish timeout with retries and a Dart protected-publishing warning",
+			"details": "- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "079287cda1e11851892ceb5d93c0efe50543fc2a",
+						"short_sha": "079287c",
+						"url": "https://github.com/monochange/monochange/commit/079287cda1e11851892ceb5d93c0efe50543fc2a",
+						"authored_at": "2026-08-14T14:50:15Z",
+						"committed_at": "2026-08-14T14:50:15Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#630",
+						"title": "feat(publish): add configurable publish timeout with retries and Dart protected-publishing warning",
+						"url": "https://github.com/monochange/monochange/pull/630",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "079287cda1e11851892ceb5d93c0efe50543fc2a",
+						"short_sha": "079287c",
+						"url": "https://github.com/monochange/monochange/commit/079287cda1e11851892ceb5d93c0efe50543fc2a",
+						"authored_at": "2026-08-14T14:50:15Z",
+						"committed_at": "2026-08-14T14:50:15Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#630",
+						"title": "feat(publish): add configurable publish timeout with retries and Dart protected-publishing warning",
+						"url": "https://github.com/monochange/monochange/pull/630",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/github-cli-token-fallback.md",
+			"summary": "Add GitHub CLI token fallback",
+			"details": "GitHub release and release-request automation now resolves an API token with the precedence `GITHUB_TOKEN` > `GH_TOKEN` > `gh auth token`. When neither environment variable is set, monochange retrieves the authenticated GitHub CLI credential via `gh auth token`, so local workflows that are already signed in with `gh auth login` no longer need a manual token variable.\n\nThe Git Database commit-verification client still requires `GITHUB_COMMIT_TOKEN` or `GITHUB_TOKEN` so GitHub Actions can keep auto-signing verified commits with the web-flow GPG key.",
+			"targets": [
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ea942935bd35de9618e6620c70976685ba77e4ee",
+						"short_sha": "ea94293",
+						"url": "https://github.com/monochange/monochange/commit/ea942935bd35de9618e6620c70976685ba77e4ee",
+						"authored_at": "2026-08-13T08:27:36+01:00",
+						"committed_at": "2026-08-13T08:27:36+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#627",
+						"title": "feat(github): fall back to gh auth token for API authentication",
+						"url": "https://github.com/monochange/monochange/pull/627",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ea942935bd35de9618e6620c70976685ba77e4ee",
+						"short_sha": "ea94293",
+						"url": "https://github.com/monochange/monochange/commit/ea942935bd35de9618e6620c70976685ba77e4ee",
+						"authored_at": "2026-08-13T08:27:36+01:00",
+						"committed_at": "2026-08-13T08:27:36+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#627",
+						"title": "feat(github): fall back to gh auth token for API authentication",
+						"url": "https://github.com/monochange/monochange/pull/627",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/prepare-release-sync-dependencies.md",
+			"summary": "Sync dependency constraints during release preparation",
+			"details": "`PrepareRelease` now automatically refreshes internal workspace dependency constraints after it bumps package versions. For example, a Dart package depending on a sibling that was released from `1.0.0` to `1.1.0` is updated from `sibling: ^1.0.0` to `sibling: ^1.1.0` during release preparation instead of requiring a separate `monochange versions sync` command.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4238560cbbbad3460c056000a416e8daa4162c4d",
+						"short_sha": "4238560",
+						"url": "https://github.com/monochange/monochange/commit/4238560cbbbad3460c056000a416e8daa4162c4d",
+						"authored_at": "2026-08-13T12:08:54+01:00",
+						"committed_at": "2026-08-13T12:08:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#607",
+						"title": "fix: sync dependencies during release preparation",
+						"url": "https://github.com/monochange/monochange/pull/607",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4238560cbbbad3460c056000a416e8daa4162c4d",
+						"short_sha": "4238560",
+						"url": "https://github.com/monochange/monochange/commit/4238560cbbbad3460c056000a416e8daa4162c4d",
+						"authored_at": "2026-08-13T12:08:54+01:00",
+						"committed_at": "2026-08-13T12:08:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#607",
+						"title": "fix: sync dependencies during release preparation",
+						"url": "https://github.com/monochange/monochange/pull/607",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#606",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/606",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/remove-mc-npm-alias.md",
+			"summary": "Remove the `mc` npm bin alias",
+			"details": "> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.",
+			"targets": [
+				{
+					"id": "@monochange/cli",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "dc194da5a4324911493207f5d080b81cc47d45f8",
+						"short_sha": "dc194da",
+						"url": "https://github.com/monochange/monochange/commit/dc194da5a4324911493207f5d080b81cc47d45f8",
+						"authored_at": "2026-08-13T11:10:19+01:00",
+						"committed_at": "2026-08-13T11:10:19+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#628",
+						"title": "chore(cli)!: remove mc npm bin alias and remaining mc references",
+						"url": "https://github.com/monochange/monochange/pull/628",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "dc194da5a4324911493207f5d080b81cc47d45f8",
+						"short_sha": "dc194da",
+						"url": "https://github.com/monochange/monochange/commit/dc194da5a4324911493207f5d080b81cc47d45f8",
+						"authored_at": "2026-08-13T11:10:19+01:00",
+						"committed_at": "2026-08-13T11:10:19+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#628",
+						"title": "chore(cli)!: remove mc npm bin alias and remaining mc references",
+						"url": "https://github.com/monochange/monochange/pull/628",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/remove-step-colon-compatibility.md",
+			"summary": "Remove colon-delimited built-in step compatibility",
+			"details": "> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_telemetry",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8d1ac42087ea06d19c3387bc8b56087949d25b45",
+						"short_sha": "8d1ac42",
+						"url": "https://github.com/monochange/monochange/commit/8d1ac42087ea06d19c3387bc8b56087949d25b45",
+						"authored_at": "2026-08-12T22:43:08+01:00",
+						"committed_at": "2026-08-12T22:43:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#625",
+						"title": "fix(cli)!: remove colon-delimited step compatibility",
+						"url": "https://github.com/monochange/monochange/pull/625",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8d1ac42087ea06d19c3387bc8b56087949d25b45",
+						"short_sha": "8d1ac42",
+						"url": "https://github.com/monochange/monochange/commit/8d1ac42087ea06d19c3387bc8b56087949d25b45",
+						"authored_at": "2026-08-12T22:43:08+01:00",
+						"committed_at": "2026-08-12T22:43:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#625",
+						"title": "fix(cli)!: remove colon-delimited step compatibility",
+						"url": "https://github.com/monochange/monochange/pull/625",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Remove the `mc` npm bin alias\n_Packages:_ _@monochange/cli_\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)",
+							"#### Remove colon-delimited built-in step compatibility\n_Packages:_ _monochange_\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n_Packages:_ _monochange_config_, _monochange_core_, _monochange_publish_\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)",
+							"#### Add GitHub CLI token fallback\n_Packages:_ _monochange_github_\n\nGitHub release and release-request automation now resolves an API token with the precedence `GITHUB_TOKEN` > `GH_TOKEN` > `gh auth token`. When neither environment variable is set, monochange retrieves the authenticated GitHub CLI credential via `gh auth token`, so local workflows that are already signed in with `gh auth login` no longer need a manual token variable.\n\nThe Git Database commit-verification client still requires `GITHUB_COMMIT_TOKEN` or `GITHUB_TOKEN` so GitHub Actions can keep auto-signing verified commits with the web-flow GPG key.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #627](https://github.com/monochange/monochange/pull/627)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Show workflow progress and preserve command failure output\n_Packages:_ _monochange_\n\nConfigured workflows now report command and step starts on stderr by default, including captured editor and CI runs. Quiet mode and `MONOCHANGE_NO_PROGRESS` still suppress progress. Failed workflows now emit exactly one failed terminal event, run `always_run` cleanup steps, identify later steps skipped after the failure, and never report the failed step or command as successful.\n\nCommand:\n\n```bash\nmonochange run release\n```\n\n**Before (stderr):**\n\n```text\n# no status while a captured command was running\nerror: command `build-project` failed: exit status 1\n```\n\n**After (stderr):**\n\n```text\nmonochange running `release`\n▶ [1/2] build project (Command)\n▶ [1/2] build project (Command) — running command `build-project`\n✖ [1/2] build project (Command)\n  └─ discovery error: command `build-project` failed: exit status: 1\n  │ stdout:\n  │ compiler diagnostic\n✖ `release` failed\n```\n\nConfigured command and lockfile command failures preserve the exit status and useful stdout as well as stderr, so users no longer need to rerun the child command to discover stdout-only diagnostics. Package-publish progress also respects quiet mode.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)",
+							"#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n_Packages:_ _monochange_, _monochange_npm_\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)",
+							"#### Sync dependency constraints during release preparation\n_Packages:_ _monochange_\n\n`PrepareRelease` now automatically refreshes internal workspace dependency constraints after it bumps package versions. For example, a Dart package depending on a sibling that was released from `1.0.0` to `1.1.0` is updated from `sibling: ^1.0.0` to `sibling: ^1.1.0` during release preparation instead of requiring a separate `monochange versions sync` command.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #607](https://github.com/monochange/monochange/pull/607) · _Closed issues:_ [#606](https://github.com/monochange/monochange/issues/606)",
+							"#### Remove the `mc` npm bin alias\n_Packages:_ _monochange_\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)",
+							"#### Remove colon-delimited built-in step compatibility\n_Packages:_ _monochange_config_, _monochange_publish_, _monochange_telemetry_\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)",
+							"#### Report every expected package after publishing stops on failure\n_Packages:_ _monochange_publish_\n\nSequential package publishing remains fail-fast, but its report now includes every package that was expected. Packages not attempted after the first failure are recorded as blocked with an explanation, reported as skipped in progress totals, and remain eligible for a resumed publish.\n\n**Before:**\n\n```text\n◆ Publish complete: 13 packages, ✅ 12 published, ⏭️ 0 skipped, ❌ 1 failed\n```\n\n**After:**\n\n```text\n◆ Publish complete: 45 expected, ✅ 12 succeeded, ❌ 1 failed, ⏭️ 32 skipped\n```\n\nThe library also exposes a derived summary without changing the persisted report schema:\n\n```rust\n// before\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\n\n// after\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\nlet summary: PackagePublishSummary = report.summary();\nassert_eq!(summary.expected, 45);\nassert_eq!(summary.succeeded, 12);\nassert_eq!(summary.failed, 1);\nassert_eq!(summary.skipped, 32);\n```\n\nPublish errors now include these aggregate counts and retain the failed package's command diagnostics. Command error rendering preserves stdout-only failures and clearly labels both streams when both are available.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\nGrouped release for `main`.\n### 💥 Breaking Change\n\n#### Remove the `mc` npm bin alias\n_Packages:_ _@monochange/cli_\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)\n\n#### Remove colon-delimited built-in step compatibility\n_Packages:_ _monochange_\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)\n\n### 🚀 Feature\n\n#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n_Packages:_ _monochange_config_, _monochange_core_, _monochange_publish_\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)\n\n#### Add GitHub CLI token fallback\n_Packages:_ _monochange_github_\n\nGitHub release and release-request automation now resolves an API token with the precedence `GITHUB_TOKEN` > `GH_TOKEN` > `gh auth token`. When neither environment variable is set, monochange retrieves the authenticated GitHub CLI credential via `gh auth token`, so local workflows that are already signed in with `gh auth login` no longer need a manual token variable.\n\nThe Git Database commit-verification client still requires `GITHUB_COMMIT_TOKEN` or `GITHUB_TOKEN` so GitHub Actions can keep auto-signing verified commits with the web-flow GPG key.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #627](https://github.com/monochange/monochange/pull/627)\n\n### 🐛 Fixed\n\n#### Show workflow progress and preserve command failure output\n_Packages:_ _monochange_\n\nConfigured workflows now report command and step starts on stderr by default, including captured editor and CI runs. Quiet mode and `MONOCHANGE_NO_PROGRESS` still suppress progress. Failed workflows now emit exactly one failed terminal event, run `always_run` cleanup steps, identify later steps skipped after the failure, and never report the failed step or command as successful.\n\nCommand:\n\n```bash\nmonochange run release\n```\n\n**Before (stderr):**\n\n```text\n# no status while a captured command was running\nerror: command `build-project` failed: exit status 1\n```\n\n**After (stderr):**\n\n```text\nmonochange running `release`\n▶ [1/2] build project (Command)\n▶ [1/2] build project (Command) — running command `build-project`\n✖ [1/2] build project (Command)\n  └─ discovery error: command `build-project` failed: exit status: 1\n  │ stdout:\n  │ compiler diagnostic\n✖ `release` failed\n```\n\nConfigured command and lockfile command failures preserve the exit status and useful stdout as well as stderr, so users no longer need to rerun the child command to discover stdout-only diagnostics. Package-publish progress also respects quiet mode.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)\n\n#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n_Packages:_ _monochange_, _monochange_npm_\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)\n\n#### Sync dependency constraints during release preparation\n_Packages:_ _monochange_\n\n`PrepareRelease` now automatically refreshes internal workspace dependency constraints after it bumps package versions. For example, a Dart package depending on a sibling that was released from `1.0.0` to `1.1.0` is updated from `sibling: ^1.0.0` to `sibling: ^1.1.0` during release preparation instead of requiring a separate `monochange versions sync` command.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #607](https://github.com/monochange/monochange/pull/607) · _Closed issues:_ [#606](https://github.com/monochange/monochange/issues/606)\n\n#### Remove the `mc` npm bin alias\n_Packages:_ _monochange_\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)\n\n#### Remove colon-delimited built-in step compatibility\n_Packages:_ _monochange_config_, _monochange_publish_, _monochange_telemetry_\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)\n\n#### Report every expected package after publishing stops on failure\n_Packages:_ _monochange_publish_\n\nSequential package publishing remains fail-fast, but its report now includes every package that was expected. Packages not attempted after the first failure are recorded as blocked with an explanation, reported as skipped in progress totals, and remain eligible for a resumed publish.\n\n**Before:**\n\n```text\n◆ Publish complete: 13 packages, ✅ 12 published, ⏭️ 0 skipped, ❌ 1 failed\n```\n\n**After:**\n\n```text\n◆ Publish complete: 45 expected, ✅ 12 succeeded, ❌ 1 failed, ⏭️ 32 skipped\n```\n\nThe library also exposes a derived summary without changing the persisted report schema:\n\n```rust\n// before\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\n\n// after\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\nlet summary: PackagePublishSummary = report.summary();\nassert_eq!(summary.expected, 45);\nassert_eq!(summary.succeeded, 12);\nassert_eq!(summary.failed, 1);\nassert_eq!(summary.skipped, 32);\n```\n\nPublish errors now include these aggregate counts and retain the failed package's command diagnostics. Command error rendering preserves stdout-only failures and clearly labels both streams when both are available.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Show workflow progress and preserve command failure output\n\nConfigured workflows now report command and step starts on stderr by default, including captured editor and CI runs. Quiet mode and `MONOCHANGE_NO_PROGRESS` still suppress progress. Failed workflows now emit exactly one failed terminal event, run `always_run` cleanup steps, identify later steps skipped after the failure, and never report the failed step or command as successful.\n\nCommand:\n\n```bash\nmonochange run release\n```\n\n**Before (stderr):**\n\n```text\n# no status while a captured command was running\nerror: command `build-project` failed: exit status 1\n```\n\n**After (stderr):**\n\n```text\nmonochange running `release`\n▶ [1/2] build project (Command)\n▶ [1/2] build project (Command) — running command `build-project`\n✖ [1/2] build project (Command)\n  └─ discovery error: command `build-project` failed: exit status: 1\n  │ stdout:\n  │ compiler diagnostic\n✖ `release` failed\n```\n\nConfigured command and lockfile command failures preserve the exit status and useful stdout as well as stderr, so users no longer need to rerun the child command to discover stdout-only diagnostics. Package-publish progress also respects quiet mode.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)",
+							"#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)",
+							"#### Sync dependency constraints during release preparation\n\n`PrepareRelease` now automatically refreshes internal workspace dependency constraints after it bumps package versions. For example, a Dart package depending on a sibling that was released from `1.0.0` to `1.1.0` is updated from `sibling: ^1.0.0` to `sibling: ^1.1.0` during release preparation instead of requiring a separate `monochange versions sync` command.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #607](https://github.com/monochange/monochange/pull/607) · _Closed issues:_ [#606](https://github.com/monochange/monochange/issues/606)",
+							"#### Remove the `mc` npm bin alias\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### 💥 Breaking Change\n\n#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)\n\n### 🐛 Fixed\n\n#### Show workflow progress and preserve command failure output\n\nConfigured workflows now report command and step starts on stderr by default, including captured editor and CI runs. Quiet mode and `MONOCHANGE_NO_PROGRESS` still suppress progress. Failed workflows now emit exactly one failed terminal event, run `always_run` cleanup steps, identify later steps skipped after the failure, and never report the failed step or command as successful.\n\nCommand:\n\n```bash\nmonochange run release\n```\n\n**Before (stderr):**\n\n```text\n# no status while a captured command was running\nerror: command `build-project` failed: exit status 1\n```\n\n**After (stderr):**\n\n```text\nmonochange running `release`\n▶ [1/2] build project (Command)\n▶ [1/2] build project (Command) — running command `build-project`\n✖ [1/2] build project (Command)\n  └─ discovery error: command `build-project` failed: exit status: 1\n  │ stdout:\n  │ compiler diagnostic\n✖ `release` failed\n```\n\nConfigured command and lockfile command failures preserve the exit status and useful stdout as well as stderr, so users no longer need to rerun the child command to discover stdout-only diagnostics. Package-publish progress also respects quiet mode.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)\n\n#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)\n\n#### Sync dependency constraints during release preparation\n\n`PrepareRelease` now automatically refreshes internal workspace dependency constraints after it bumps package versions. For example, a Dart package depending on a sibling that was released from `1.0.0` to `1.1.0` is updated from `sibling: ^1.0.0` to `sibling: ^1.1.0` during release preparation instead of requiring a separate `monochange versions sync` command.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #607](https://github.com/monochange/monochange/pull/607) · _Closed issues:_ [#606](https://github.com/monochange/monochange/issues/606)\n\n#### Remove the `mc` npm bin alias\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_analysis` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_analysis` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_cargo` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_cargo` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_changelog` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_changelog` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### 🚀 Feature\n\n#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)\n\n### 🐛 Fixed\n\n#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### 🚀 Feature\n\n#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_dart` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_dart` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_deno` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_deno` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitea` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitea` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add GitHub CLI token fallback\n\nGitHub release and release-request automation now resolves an API token with the precedence `GITHUB_TOKEN` > `GH_TOKEN` > `gh auth token`. When neither environment variable is set, monochange retrieves the authenticated GitHub CLI credential via `gh auth token`, so local workflows that are already signed in with `gh auth login` no longer need a manual token variable.\n\nThe Git Database commit-verification client still requires `GITHUB_COMMIT_TOKEN` or `GITHUB_TOKEN` so GitHub Actions can keep auto-signing verified commits with the web-flow GPG key.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #627](https://github.com/monochange/monochange/pull/627)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### 🚀 Feature\n\n#### Add GitHub CLI token fallback\n\nGitHub release and release-request automation now resolves an API token with the precedence `GITHUB_TOKEN` > `GH_TOKEN` > `gh auth token`. When neither environment variable is set, monochange retrieves the authenticated GitHub CLI credential via `gh auth token`, so local workflows that are already signed in with `gh auth login` no longer need a manual token variable.\n\nThe Git Database commit-verification client still requires `GITHUB_COMMIT_TOKEN` or `GITHUB_TOKEN` so GitHub Actions can keep auto-signing verified commits with the web-flow GPG key.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #627](https://github.com/monochange/monochange/pull/627)"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_go` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_go` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_graph` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_graph` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_hosting` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_hosting` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_lint` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_lint` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_linting` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_linting` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### 🐛 Fixed\n\n#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Report every expected package after publishing stops on failure\n\nSequential package publishing remains fail-fast, but its report now includes every package that was expected. Packages not attempted after the first failure are recorded as blocked with an explanation, reported as skipped in progress totals, and remain eligible for a resumed publish.\n\n**Before:**\n\n```text\n◆ Publish complete: 13 packages, ✅ 12 published, ⏭️ 0 skipped, ❌ 1 failed\n```\n\n**After:**\n\n```text\n◆ Publish complete: 45 expected, ✅ 12 succeeded, ❌ 1 failed, ⏭️ 32 skipped\n```\n\nThe library also exposes a derived summary without changing the persisted report schema:\n\n```rust\n// before\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\n\n// after\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\nlet summary: PackagePublishSummary = report.summary();\nassert_eq!(summary.expected, 45);\nassert_eq!(summary.succeeded, 12);\nassert_eq!(summary.failed, 1);\nassert_eq!(summary.skipped, 32);\n```\n\nPublish errors now include these aggregate counts and retain the failed package's command diagnostics. Command error rendering preserves stdout-only failures and clearly labels both streams when both are available.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)",
+							"#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### 🚀 Feature\n\n#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)\n\n### 🐛 Fixed\n\n#### Report every expected package after publishing stops on failure\n\nSequential package publishing remains fail-fast, but its report now includes every package that was expected. Packages not attempted after the first failure are recorded as blocked with an explanation, reported as skipped in progress totals, and remain eligible for a resumed publish.\n\n**Before:**\n\n```text\n◆ Publish complete: 13 packages, ✅ 12 published, ⏭️ 0 skipped, ❌ 1 failed\n```\n\n**After:**\n\n```text\n◆ Publish complete: 45 expected, ✅ 12 succeeded, ❌ 1 failed, ⏭️ 32 skipped\n```\n\nThe library also exposes a derived summary without changing the persisted report schema:\n\n```rust\n// before\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\n\n// after\nlet report: PackagePublishReport = execute_publish_requests(...).await?;\nlet summary: PackagePublishSummary = report.summary();\nassert_eq!(summary.expected, 45);\nassert_eq!(summary.succeeded, 12);\nassert_eq!(summary.failed, 1);\nassert_eq!(summary.skipped, 32);\n```\n\nPublish errors now include these aggregate counts and retain the failed package's command diagnostics. Command error rendering preserves stdout-only failures and clearly labels both streams when both are available.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #629](https://github.com/monochange/monochange/pull/629)\n\n#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_python` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_python` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.4.3](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.3) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)",
+							"#### Remove the `mc` npm bin alias\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)",
+							"#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.4.3](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.3) (2026-08-14)\n\n### 🐛 Fixed\n\n#### Add a configurable publish timeout with retries and a Dart protected-publishing warning\n\n- New `publish.timeout` settings (`timeout_seconds` default 60, `retries` default 2) cap how long a single package publish command may hang before it is killed and retried. Set `timeout_seconds = 0` to disable the timeout.\n- Publish commands that time out are retried up to `retries` times; after the final attempt the package is reported as timed out instead of hanging the whole job.\n- Dart/pub.dev packages using protected (trusted) publishing from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN` fallback now emit a warning explaining that pub.dev automated publishing may require publishing from a pushed tag rather than a workflow dispatch\n\nConfigure the timeout per package or ecosystem:\n\n```toml\n[package.my-dart-package.publish.timeout]\ntimeout_seconds = 90\nretries = 3\n```\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #630](https://github.com/monochange/monochange/pull/630)\n\n#### Remove the `mc` npm bin alias\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)\n\n#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_semver` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_semver` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### 🐛 Fixed\n\n#### Remove colon-delimited built-in step compatibility\n\n> **Breaking change** — colon-delimited top-level built-in step tokens are no longer accepted.\n>\n> Split each obsolete generated-step token into two arguments: the `step` namespace followed by the step name.\n\nmonochange now recognizes built-in steps only through the nested `step <name>` command tree. Obsolete colon-delimited names are no longer parsed, classified, reserved by configuration validation, or suggested by publishing errors, so scripts, telemetry, help text, and configuration all agree on one command shape.\n\nUse the nested invocation:\n\n```nu\nmonochange step validate\n```\n\nUpdate automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `[\"step\", \"validate\"]`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Remove the `mc` npm bin alias\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### 💥 Breaking Change\n\n#### Remove the `mc` npm bin alias\n\n> **Breaking change** — the `@monochange/cli` package no longer installs an `mc` executable.\n>\n> Invoke `monochange` directly, or add your own shell alias if you want the short name locally.\n\nThe Rust binary already shipped only `monochange`; this removes the leftover npm `mc` bin entry so the published package and the migration guide agree.\n\n```nu\n# before\nmc check\nmc versions --format json\n\n# after\nmonochange check\nmonochange versions --format json\n```\n\nAdd a local alias if you still want the short name:\n\n```nu\nalias mc = monochange\n```\n\nUpdate any scripts, CI workflows, or docs that call `mc` to use `monochange` instead.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #628](https://github.com/monochange/monochange/pull/628)"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.9.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/skill` was updated to 0.9.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/skill` was updated to 0.9.0 as part of group `main`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

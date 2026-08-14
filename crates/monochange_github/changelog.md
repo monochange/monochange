@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
+
+### 🚀 Feature
+
+#### Add GitHub CLI token fallback
+
+GitHub release and release-request automation now resolves an API token with the precedence `GITHUB_TOKEN` > `GH_TOKEN` > `gh auth token`. When neither environment variable is set, monochange retrieves the authenticated GitHub CLI credential via `gh auth token`, so local workflows that are already signed in with `gh auth login` no longer need a manual token variable.
+
+The Git Database commit-verification client still requires `GITHUB_COMMIT_TOKEN` or `GITHUB_TOKEN` so GitHub Actions can keep auto-signing verified commits with the web-flow GPG key.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #627](https://github.com/monochange/monochange/pull/627)
+
 ## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
 
 ### Changed
