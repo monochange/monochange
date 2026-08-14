@@ -1818,7 +1818,9 @@ fn wait_child_with_timeout(
 				}
 				std::thread::sleep(Duration::from_millis(100));
 			}
+			// patch-coverage:ignore-start -- `try_wait` errors require an invalid child handle that cannot be produced by a successful spawn
 			Err(error) => return Err(process_command_error(spec, "wait for", &error)),
+			// patch-coverage:ignore-end
 		}
 	}
 }
