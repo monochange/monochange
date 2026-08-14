@@ -8003,6 +8003,113 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_placeholder_publish_step_surfaces_report_carrying_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	let root = tempdir.path();
+	let mut configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+	// A custom registry is unsupported by built-in placeholder publishing, so
+	// `build_placeholder_requests` returns a report-carrying failure that the
+	// CLI runtime must surface while preserving the publish report.
+	configuration.packages[0].publish.registry = Some(monochange_core::PublishRegistry::Custom(
+		"internal".to_string(),
+	));
+
+	let placeholder_command = CliCommandDefinition {
+		name: "placeholder-publish".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PlaceholderPublish {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: inherited_format_package_step_inputs(),
+		}],
+		dry_run: false,
+	};
+
+	let server = MockServer::start();
+	let _registry = server.mock(|when, then| {
+		when.method(GET);
+		then.status(404);
+	});
+
+	temp_env::async_with_vars(
+		[("MONOCHANGE_CRATES_IO_API_URL", Some(server.base_url()))],
+		async {
+			let error = crate::execute_cli_command(
+				root,
+				&configuration,
+				&placeholder_command,
+				true,
+				BTreeMap::from([("format".to_string(), vec!["text".to_string()])]),
+			)
+			.await
+			.expect_err("custom registry placeholder publish should fail");
+			assert!(
+				error.render().contains("custom registry `internal`"),
+				"unexpected error: {}",
+				error.render()
+			);
+		},
+	)
+	.await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_publish_packages_step_surfaces_report_carrying_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	let root = tempdir.path();
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	// Without a prepared release or `--all`, the publish-packages step looks up
+	// a release record at HEAD. None exists in the fixture, so the step returns a
+	// report-carrying failure that the CLI runtime surfaces.
+	let publish_command = CliCommandDefinition {
+		name: "publish".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::PublishPackages {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: inherited_format_package_step_inputs(),
+		}],
+		dry_run: false,
+	};
+
+	let server = MockServer::start();
+	let _registry = server.mock(|when, then| {
+		when.method(GET);
+		then.status(404);
+	});
+
+	temp_env::async_with_vars(
+		[("MONOCHANGE_CRATES_IO_API_URL", Some(server.base_url()))],
+		async {
+			let error = crate::execute_cli_command(
+				root,
+				&configuration,
+				&publish_command,
+				true,
+				BTreeMap::from([("format".to_string(), vec!["text".to_string()])]),
+			)
+			.await
+			.expect_err("publish without a release record should fail");
+			assert!(
+				error.render().contains("HEAD"),
+				"unexpected error: {}",
+				error.render()
+			);
+		},
+	)
+	.await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_matching_packages() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	copy_fixture("monochange/release-base", tempdir.path());

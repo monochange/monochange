@@ -4900,6 +4900,61 @@ async fn try_run_publish_packages_with_publications_maps_invalid_resume_report_e
 	assert!(report.packages.is_empty());
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn try_run_publish_packages_with_publications_maps_publish_execution_failures() {
+	install_rustls_ring_provider();
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+	)
+	.expect("write config");
+	fs::create_dir_all(root.path().join("packages/pkg")).expect("mkdir");
+	fs::write(
+		root.path().join("packages/pkg/package.json"),
+		r#"{ "name": "pkg", "version": "1.0.0" }"#,
+	)
+	.expect("write package.json");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration");
+	let publication = PackagePublicationTarget {
+		package: "pkg".to_string(),
+		ecosystem: Ecosystem::Npm,
+		registry: None,
+		version: "1.0.0".to_string(),
+		mode: PublishMode::Builtin,
+		trusted_publishing: TrustedPublishingSettings::default(),
+		attestations: PublishAttestationSettings::default(),
+	};
+
+	// A failing registry lookup during publish execution returns a
+	// report-carrying failure that the resume wrapper merges with the resumed
+	// outcomes before surfacing.
+	let server = MockServer::start();
+	let _failure = server.mock(|when, then| {
+		when.method(GET);
+		then.status(500);
+	});
+	let error = temp_env::async_with_vars(
+		[("MONOCHANGE_NPM_REGISTRY_URL", Some(server.base_url()))],
+		async {
+			try_run_publish_packages_with_publications_and_resume(
+				root.path(),
+				&configuration,
+				&[publication],
+				&BTreeSet::new(),
+				PublishPackagesOptions::default(),
+			)
+			.await
+		},
+	)
+	.await
+	.expect_err("registry failure should produce a report-carrying failure");
+	let report = error.into_report();
+	assert_eq!(report.mode, PackagePublishRunMode::Release);
+	assert_eq!(report.packages.len(), 1);
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Failed);
+}
+
 #[test]
 fn package_publish_failure_into_parts_returns_error_and_report() {
 	let report = PackagePublishReport {
