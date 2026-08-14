@@ -441,6 +441,10 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			release: true,
 			publish: PublishSettings {
 				registry: Some(PublishRegistry::Builtin(RegistryKind::CratesIo)),
+				timeout: PublishTimeoutSettings {
+					timeout_seconds: 90,
+					retries: 3,
+				},
 				..PublishSettings::default()
 			},
 			version_format: VersionFormat::Primary,
@@ -592,7 +596,10 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				mode: PublishMode::Builtin,
 				trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 				attestations: monochange_core::PublishAttestationSettings::default(),
-				timeout: PublishTimeoutSettings::default(),
+				timeout: PublishTimeoutSettings {
+					timeout_seconds: 90,
+					retries: 3,
+				},
 			},
 			PackagePublicationTarget {
 				package: "web".to_string(),

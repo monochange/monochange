@@ -2569,3 +2569,114 @@ fn dart_protected_publishing_warning_returns_none_for_non_dart_registries() {
 	]);
 	assert!(dart_protected_publishing_warning(&request, &env_map).is_none());
 }
+
+#[test]
+fn process_command_executor_kills_command_exceeding_timeout() {
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let spec = CommandSpec {
+		program: "sh".to_string(),
+		args: vec!["-c".to_string(), "sleep 5".to_string()],
+		cwd: root.path().to_path_buf(),
+		env: BTreeMap::new(),
+		timeout: Some(Duration::from_millis(300)),
+	};
+	let mut executor = ProcessCommandExecutor::new(false);
+	let error = executor
+		.run(&spec)
+		.expect_err("sleep command should be killed by the timeout");
+	assert!(
+		is_publish_timeout_error(&error),
+		"expected timeout error, got: {error}"
+	);
+	assert!(error.to_string().contains("timed out after"));
+}
+
+#[test]
+fn process_command_executor_allows_command_within_timeout() {
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let spec = CommandSpec {
+		program: "sh".to_string(),
+		args: vec!["-c".to_string(), "printf done".to_string()],
+		cwd: root.path().to_path_buf(),
+		env: BTreeMap::new(),
+		timeout: Some(Duration::from_secs(5)),
+	};
+	let mut executor = ProcessCommandExecutor::new(false);
+	let output = executor
+		.run(&spec)
+		.unwrap_or_else(|error| panic!("run command within timeout: {error}"));
+	assert!(output.success);
+	assert_eq!(output.stdout, "done");
+}
+
+#[test]
+fn publish_command_timeout_uses_request_settings() {
+	let mut request = publish_request("pkg");
+	request.timeout.timeout_seconds = 90;
+	assert_eq!(
+		publish_command_timeout(&request),
+		Some(Duration::from_secs(90))
+	);
+	request.timeout.timeout_seconds = 0;
+	assert_eq!(publish_command_timeout(&request), None);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dart_protected_publishing_warning_emitted_for_workflow_dispatch_publish() {
+	let request = pub_dev_publish_request("pkg");
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
+	let registry_address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("registry address: {error}"));
+	let registry_thread = std::thread::spawn(move || {
+		let Ok((mut stream, _)) = listener.accept() else {
+			return;
+		};
+		let mut request = [0_u8; 2048];
+		let _ = std::io::Read::read(&mut stream, &mut request);
+		let _ = std::io::Write::write_all(
+			&mut stream,
+			b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+		);
+	});
+	let env_map = BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		(
+			"GITHUB_EVENT_NAME".to_string(),
+			"workflow_dispatch".to_string(),
+		),
+		("GITHUB_REF".to_string(), "refs/heads/main".to_string()),
+	]);
+	let mut executor = SequencedCommandExecutor::new([Ok(CommandOutput {
+		success: true,
+		stdout: "published pkg".to_string(),
+		stderr: String::new(),
+	})]);
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.pub_dev_api = format!("http://{registry_address}");
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		std::slice::from_ref(&request),
+		&registry_client().unwrap(),
+		&endpoints,
+		&env_map,
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&NoopPublishProgressReporter,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("publish request: {error}"));
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+	assert_eq!(report.packages.len(), 1);
+	assert_eq!(executor.commands.len(), 1);
+	assert!(executor.commands[0].program.contains("dart"));
+}

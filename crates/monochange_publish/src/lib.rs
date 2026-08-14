@@ -1875,10 +1875,10 @@ fn run_publish_command_with_retries(
 					error = %error,
 					"publish command attempt failed"
 				);
-				if !timed_out || attempt == max_attempts {
-					return Err(error);
-				}
 				last_error = Some(error);
+				if !timed_out || attempt == max_attempts {
+					break;
+				}
 			}
 		}
 	}
