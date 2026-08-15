@@ -1,6 +1,7 @@
 use std::fmt::Write as _;
 use std::io;
 use std::io::IsTerminal;
+use std::io::Write;
 
 use monochange_publish::EcosystemProgressPresentation;
 use monochange_publish::PublishProgressEvent;
@@ -116,8 +117,28 @@ impl PublishProgressReporter for StderrPublishProgressReporter {
 		if !self.enabled {
 			return;
 		}
-		eprintln!("{}", Self::render_event(&event, self.interactive));
+		let output = render_report_line(&event, self.interactive);
+		let stderr = io::stderr();
+		let mut lock = stderr.lock();
+		let _ = lock.write_all(output.as_bytes());
+		let _ = lock.flush();
 	}
+}
+
+/// Renders a publish progress line, clearing any active CLI step spinner line
+/// first so publish progress always starts on its own line instead of appending
+/// to the spinner.
+fn render_report_line(event: &PublishProgressEvent, interactive: bool) -> String {
+	let mut output = String::new();
+	if interactive {
+		output.push_str("\r\u{1b}[2K\u{1b}[0m");
+	}
+	output.push_str(&StderrPublishProgressReporter::render_event(
+		event,
+		interactive,
+	));
+	output.push('\n');
+	output
 }
 
 fn start_symbol(interactive: bool) -> &'static str {

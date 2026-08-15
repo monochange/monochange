@@ -5,7 +5,6 @@ use std::io;
 use std::io::IsTerminal;
 use std::io::Write;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::thread;
@@ -102,7 +101,6 @@ pub(crate) struct CliProgressReporter {
 	command_name: String,
 	dry_run: bool,
 	total_steps: usize,
-	writer_lock: Arc<Mutex<()>>,
 	active_spinner: Option<SpinnerState>,
 	command_started: bool,
 	render_mode: ProgressRenderMode,
@@ -158,7 +156,6 @@ impl CliProgressReporter {
 			command_name: cli_command.name.clone(),
 			dry_run,
 			total_steps: cli_command.steps.len(),
-			writer_lock: Arc::new(Mutex::new(())),
 			active_spinner: None,
 			command_started: false,
 			render_mode,
@@ -180,7 +177,7 @@ impl CliProgressReporter {
 
 		if self.render_mode == ProgressRenderMode::Json {
 			let sequence = self.next_sequence();
-			self.emit_json_event(&serde_json::json!({
+			Self::emit_json_event(&serde_json::json!({
 				"sequence": sequence,
 				"event": "command_started",
 				"command": self.command_name,
@@ -191,7 +188,7 @@ impl CliProgressReporter {
 		}
 
 		let suffix = if self.dry_run { " (dry-run)" } else { "" };
-		self.print_line(&format!(
+		Self::print_line(&format!(
 			"{} {}{}",
 			self.paint("monochange", Style::Accent),
 			self.paint(&format!("running `{}`", self.command_name), Style::Header),
@@ -206,7 +203,7 @@ impl CliProgressReporter {
 		self.stop_spinner();
 		if self.render_mode == ProgressRenderMode::Json {
 			let sequence = self.next_sequence();
-			self.emit_json_event(&serde_json::json!({
+			Self::emit_json_event(&serde_json::json!({
 				"sequence": sequence,
 				"event": "command_finished",
 				"command": self.command_name,
@@ -216,7 +213,7 @@ impl CliProgressReporter {
 			}));
 			return;
 		}
-		self.print_line(&format!(
+		Self::print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.command_success, Style::Success),
 			self.paint(&format!("`{}` finished", self.command_name), Style::Header),
@@ -231,7 +228,7 @@ impl CliProgressReporter {
 		self.stop_spinner();
 		if self.render_mode == ProgressRenderMode::Json {
 			let sequence = self.next_sequence();
-			self.emit_json_event(&serde_json::json!({
+			Self::emit_json_event(&serde_json::json!({
 				"sequence": sequence,
 				"event": "command_failed",
 				"command": self.command_name,
@@ -242,7 +239,7 @@ impl CliProgressReporter {
 			}));
 			return;
 		}
-		self.print_line(&format!(
+		Self::print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.step_failure, Style::Error),
 			self.paint(&format!("`{}` failed", self.command_name), Style::Header),
@@ -263,7 +260,7 @@ impl CliProgressReporter {
 		if self.animate {
 			self.start_spinner(message);
 		} else {
-			self.print_line(&format!(
+			Self::print_line(&format!(
 				"{} {message}",
 				self.paint(self.symbols.step_start, Style::Accent)
 			));
@@ -304,7 +301,7 @@ impl CliProgressReporter {
 				self.paint(&format!("({detail})"), Style::Muted)
 			);
 		}
-		self.print_line(&line);
+		Self::print_line(&line);
 	}
 
 	pub(crate) fn step_status(
@@ -333,7 +330,7 @@ impl CliProgressReporter {
 		if self.animate {
 			self.start_spinner(message);
 		} else {
-			self.print_line(&format!(
+			Self::print_line(&format!(
 				"{} {message}",
 				self.paint(self.symbols.step_start, Style::Accent),
 			));
@@ -376,14 +373,14 @@ impl CliProgressReporter {
 			self.emit_step_event("step_finished", step_index, step, payload);
 			return;
 		}
-		self.print_line(&format!(
+		Self::print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.step_success, Style::Success),
 			self.step_message(step_index, step),
 			self.paint(&format_duration(duration), Style::Muted),
 		));
 		for phase in summarized_phase_timings(phase_timings) {
-			self.print_line(&format!(
+			Self::print_line(&format!(
 				"  {} {} {}\u{1b}[0m",
 				self.paint(self.symbols.bullet, Style::Muted),
 				self.paint(&phase.label, Style::Detail),
@@ -417,7 +414,7 @@ impl CliProgressReporter {
 			self.emit_step_event("step_failed", step_index, step, payload);
 			return;
 		}
-		self.print_line(&format!(
+		Self::print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.step_failure, Style::Error),
 			self.step_message(step_index, step),
@@ -429,7 +426,7 @@ impl CliProgressReporter {
 			} else {
 				self.symbols.log_pipe
 			};
-			self.print_line(&format!(
+			Self::print_line(&format!(
 				"  {} {}",
 				self.paint(branch, Style::Error),
 				self.paint(line, Style::Error),
@@ -470,7 +467,7 @@ impl CliProgressReporter {
 		};
 		let step_label = step.display_name();
 		for line in text.lines() {
-			self.print_line(&format!(
+			Self::print_line(&format!(
 				"  {} {} {}\u{1b}[0m",
 				self.paint(self.symbols.log_pipe, Style::Muted),
 				self.paint(&format!("{step_label} [{stream_label}]"), Style::Detail),
@@ -504,7 +501,6 @@ impl CliProgressReporter {
 		let rendered = Arc::new(AtomicBool::new(false));
 		let stop_flag = Arc::clone(&stop);
 		let rendered_flag = Arc::clone(&rendered);
-		let writer_lock = Arc::clone(&self.writer_lock);
 		let color = self.color;
 		let spinner_frames = self.symbols.spinner_frames;
 		let handle = thread::spawn(move || {
@@ -513,13 +509,14 @@ impl CliProgressReporter {
 				if stop_flag.load(Ordering::Relaxed) {
 					break;
 				}
-				with_stderr_lock(&writer_lock, || {
-					eprint!(
+				with_stderr_lock(|lock| {
+					let _ = write!(
+						lock,
 						"\r\u{1b}[2K\u{1b}[0m{} {}",
 						paint_text(frame, Style::Accent, color),
 						message,
 					);
-					let _ = io::stderr().flush();
+					let _ = lock.flush();
 				});
 				rendered_flag.store(true, Ordering::Relaxed);
 				thread::sleep(SPINNER_TICK);
@@ -539,18 +536,18 @@ impl CliProgressReporter {
 		spinner.stop.store(true, Ordering::Relaxed);
 		let _ = spinner.handle.join();
 		if spinner.rendered.load(Ordering::Relaxed) {
-			with_stderr_lock(&self.writer_lock, || {
-				eprint!("\r\u{1b}[2K\u{1b}[0m");
-				let _ = io::stderr().flush();
+			with_stderr_lock(|lock| {
+				let _ = write!(lock, "\r\u{1b}[2K\u{1b}[0m");
+				let _ = lock.flush();
 			});
 		}
 	}
 
-	fn print_line(&self, text: &str) {
-		with_stderr_lock(&self.writer_lock, || {
-			eprint!("\r\u{1b}[2K\u{1b}[0m");
-			eprintln!("{text}");
-			let _ = io::stderr().flush();
+	fn print_line(text: &str) {
+		with_stderr_lock(|lock| {
+			let _ = write!(lock, "\r\u{1b}[2K\u{1b}[0m");
+			let _ = writeln!(lock, "{text}");
+			let _ = lock.flush();
 		});
 	}
 
@@ -606,17 +603,18 @@ impl CliProgressReporter {
 				serde_json::Value::String(name.to_string())
 			}),
 		);
-		self.emit_json_event(&serde_json::Value::Object(payload));
+		Self::emit_json_event(&serde_json::Value::Object(payload));
 	}
 
-	fn emit_json_event(&self, value: &serde_json::Value) {
-		with_stderr_lock(&self.writer_lock, || {
-			eprintln!(
+	fn emit_json_event(value: &serde_json::Value) {
+		with_stderr_lock(|lock| {
+			let _ = writeln!(
+				lock,
 				"{}",
 				serde_json::to_string(&value)
 					.unwrap_or_else(|error| panic!("progress json event serialization: {error}"))
 			);
-			let _ = io::stderr().flush();
+			let _ = lock.flush();
 		});
 	}
 }
@@ -654,11 +652,10 @@ fn paint_text(text: &str, style: Style, color: bool) -> String {
 	format!("\u{1b}[{code}m{text}\u{1b}[0m")
 }
 
-fn with_stderr_lock(write_lock: &Arc<Mutex<()>>, action: impl FnOnce()) {
-	let _lock = write_lock
-		.lock()
-		.unwrap_or_else(std::sync::PoisonError::into_inner);
-	action();
+fn with_stderr_lock(action: impl FnOnce(&mut io::StderrLock<'static>)) {
+	let stderr = io::stderr();
+	let mut lock = stderr.lock();
+	action(&mut lock);
 }
 
 fn format_duration(duration: Duration) -> String {

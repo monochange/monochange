@@ -116,3 +116,29 @@ fn disabled_reporter_ignores_events() {
 	StderrPublishProgressReporter::new(true)
 		.report(PublishProgressEvent::PackageStarted(package()));
 }
+
+#[test]
+fn render_report_line_clears_active_spinner_line_when_interactive() {
+	let event = PublishProgressEvent::RunStarted {
+		mode: PackagePublishRunMode::Placeholder,
+		dry_run: false,
+		total: 1,
+		ecosystems: vec![Ecosystem::Npm],
+	};
+
+	let interactive = render_report_line(&event, true);
+	assert!(
+		interactive.starts_with("\r\u{1b}[2K\u{1b}[0m"),
+		"interactive publish progress must clear the active spinner line first: {interactive:?}"
+	);
+	assert!(interactive.ends_with('\n'));
+	assert!(interactive.contains("◆ Publishing 1 packages"));
+
+	let plain = render_report_line(&event, false);
+	assert!(
+		!plain.starts_with("\r\u{1b}[2K"),
+		"non-interactive publish progress must not emit terminal clear codes: {plain:?}"
+	);
+	assert!(plain.ends_with('\n'));
+	assert!(plain.contains("◆ Publishing 1 packages"));
+}
