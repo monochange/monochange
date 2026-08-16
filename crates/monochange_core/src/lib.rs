@@ -3324,7 +3324,9 @@ impl CliStepDefinition {
 			Self::Config { .. } | Self::Discover { .. } | Self::DisplayVersions { .. } => {
 				Some(&["format"])
 			}
-			Self::PrepareRelease { .. } => Some(&["format", "write_empty_release_record"]),
+			Self::PrepareRelease { .. } => {
+				Some(&["format", "write_empty_release_record", "release_json"])
+			}
 			Self::CommentReleasedIssues { .. } => {
 				Some(&["format", "from-ref", "auto-close-issues"])
 			}
@@ -3438,7 +3440,7 @@ impl CliStepDefinition {
 			Self::PrepareRelease { .. } => {
 				match name {
 					"format" => Some(CliInputKind::Choice),
-					"write_empty_release_record" => Some(CliInputKind::Boolean),
+					"write_empty_release_record" | "release_json" => Some(CliInputKind::Boolean),
 					_ => None,
 				}
 			}

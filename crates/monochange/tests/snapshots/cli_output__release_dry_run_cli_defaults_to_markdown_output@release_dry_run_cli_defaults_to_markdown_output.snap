@@ -35,4 +35,8 @@ exit_code: 0
 - `crates/app/Cargo.toml`
 - `crates/core/Cargo.toml`
 
+## Commands
+
+- skipped release record: dry-run preview (pass `--release-json` to write release.json)
+
 ----- stderr -----

@@ -26,6 +26,8 @@ If your command eventually needs release metadata, start with `PrepareRelease` r
 ## Inputs
 
 - `format` — `markdown`, `text`, or `json`
+- `write_empty_release_record` — boolean; write a release record even when no packages were released
+- `release_json` — boolean; write the release record (`.monochange/releases/<hash>/release.json`) during dry-run preview. By default `monochange preview` skips the release record; pass `--release-json` to write it.
 
 ## Step-level `when` condition
 

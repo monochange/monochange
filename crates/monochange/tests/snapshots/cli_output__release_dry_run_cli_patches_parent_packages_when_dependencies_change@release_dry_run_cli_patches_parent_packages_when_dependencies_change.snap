@@ -24,5 +24,7 @@ release manifest: .monochange/local/release-manifest.json
 changed files:
 - crates/app/Cargo.toml
 - crates/core/Cargo.toml
+commands:
+- skipped release record: dry-run preview (pass `--release-json` to write release.json)
 
 ----- stderr -----
