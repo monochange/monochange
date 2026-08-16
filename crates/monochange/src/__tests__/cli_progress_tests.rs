@@ -19,7 +19,6 @@ fn progress_reporter(enabled: bool, color: bool) -> CliProgressReporter {
 		command_name: "release".to_string(),
 		dry_run: false,
 		total_steps: 3,
-		writer_lock: Arc::new(Mutex::new(())),
 		active_spinner: None,
 		command_started: false,
 		render_mode: ProgressRenderMode::Human,
