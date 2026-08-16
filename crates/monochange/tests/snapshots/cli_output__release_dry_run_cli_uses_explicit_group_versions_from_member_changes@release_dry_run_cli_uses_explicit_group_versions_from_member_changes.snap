@@ -28,5 +28,7 @@ changed files:
 - crates/core/CHANGELOG.md
 - crates/core/Cargo.toml
 - group.toml
+commands:
+- skipped release record: dry-run preview (pass `--release-json` to write release.json)
 
 ----- stderr -----

@@ -832,6 +832,8 @@ pub(crate) async fn execute_cli_command_with_options(
 					let write_empty_release_record =
 						parse_boolean_step_input(&step_inputs, "write_empty_release_record")?
 							.unwrap_or(false);
+					let write_release_json =
+						parse_boolean_step_input(&step_inputs, "release_json")?.unwrap_or(false);
 					let build_file_diffs = context.show_diff
 						|| cli_command
 							.steps
@@ -874,11 +876,18 @@ pub(crate) async fn execute_cli_command_with_options(
 						prepared_release,
 						write_empty_release_record,
 					) {
-						let _record_path = write_release_record_file(
-							root,
-							configuration.source.as_ref(),
-							&manifest,
-						)?;
+						if dry_run && !write_release_json {
+							context.command_logs.push(
+								"skipped release record: dry-run preview (pass `--release-json` to write release.json)"
+									.to_string(),
+							);
+						} else {
+							let _record_path = write_release_record_file(
+								root,
+								configuration.source.as_ref(),
+								&manifest,
+							)?;
+						}
 						context.release_manifest_path =
 							Some(write_default_release_manifest_file(root, &manifest).await?);
 					} else {

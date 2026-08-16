@@ -8,7 +8,7 @@ Command: monochange preview
 
 Preview planned version bumps, changelogs, and release artifacts without writing files
 
-[1m[97mUsage:[0m monochange preview [--dry-run] [--diff] [--prepared-release <PATH>] [--format <FORMAT>] [--write-empty-release-record]
+[1m[97mUsage:[0m monochange preview [--dry-run] [--diff] [--prepared-release <PATH>] [--format <FORMAT>] [--write-empty-release-record] [--release-json]
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
@@ -29,6 +29,9 @@ Preview planned version bumps, changelogs, and release artifacts without writing
           [possible values: text, json, md]
 
       [93m--write-empty-release-record[0m
+          
+
+      [93m--release-json[0m
           
 
 [1m[96mGlobal Options:[0m

@@ -7847,6 +7847,180 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 	assert!(!comments_output.is_empty());
 }
 
+fn find_release_records(root: &Path) -> Vec<PathBuf> {
+	let releases_dir = root.join(".monochange/releases");
+	let Ok(entries) = fs::read_dir(&releases_dir) else {
+		return Vec::new();
+	};
+	let mut records = Vec::new();
+	for entry in entries.flatten() {
+		let record_path = entry.path().join("release.json");
+		if record_path.is_file() {
+			records.push(record_path);
+		}
+	}
+	records
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_prepare_release_dry_run_skips_release_record_unless_release_json() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	fs::OpenOptions::new()
+		.append(true)
+		.open(tempdir.path().join("monochange.toml"))
+		.and_then(|mut file| {
+			use std::io::Write;
+			writeln!(
+				file,
+				"\n[source]\nprovider = \"github\"\nowner = \"ifiokjr\"\nrepo = \"monochange\"\n"
+			)
+		})
+		.unwrap_or_else(|error| panic!("append source config: {error}"));
+	let root = tempdir.path();
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let mut prepare_step_inputs = text_format_step_inputs();
+	prepare_step_inputs.insert(
+		"release_json".to_string(),
+		monochange_core::CliStepInputValue::Inherited,
+	);
+	let prepare_release = CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![monochange_core::CliStepDefinition::PrepareRelease {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: prepare_step_inputs,
+			allow_empty_changesets: false,
+		}],
+		dry_run: false,
+	};
+
+	// Dry-run (preview) must not write the release record by default.
+	let preview_output = crate::execute_cli_command(
+		root,
+		&configuration,
+		&prepare_release,
+		true,
+		BTreeMap::from([("format".to_string(), vec!["text".to_string()])]),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("preview prepare release: {error}"));
+	assert!(
+		preview_output.contains("skipped release record"),
+		"preview output should explain the release record was skipped: {preview_output}"
+	);
+	assert!(
+		find_release_records(root).is_empty(),
+		"preview must not write a release record by default"
+	);
+
+	// `--release-json` opts preview back into writing the release record.
+	let record_output = crate::execute_cli_command(
+		root,
+		&configuration,
+		&prepare_release,
+		true,
+		BTreeMap::from([
+			("format".to_string(), vec!["text".to_string()]),
+			("release_json".to_string(), vec!["true".to_string()]),
+		]),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("preview with release json: {error}"));
+	assert!(
+		!record_output.contains("skipped release record"),
+		"preview with --release-json should write the release record: {record_output}"
+	);
+	assert!(
+		!find_release_records(root).is_empty(),
+		"--release-json must write a release record"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_prepare_release_surfaces_release_record_write_failure() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("monochange/release-base", tempdir.path());
+	fs::OpenOptions::new()
+		.append(true)
+		.open(tempdir.path().join("monochange.toml"))
+		.and_then(|mut file| {
+			use std::io::Write;
+			writeln!(
+				file,
+				"\n[source]\nprovider = \"github\"\nowner = \"ifiokjr\"\nrepo = \"monochange\"\n"
+			)
+		})
+		.unwrap_or_else(|error| panic!("append source config: {error}"));
+	let root = tempdir.path();
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let mut prepare_step_inputs = text_format_step_inputs();
+	prepare_step_inputs.insert(
+		"release_json".to_string(),
+		monochange_core::CliStepInputValue::Inherited,
+	);
+	let prepare_release = CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![monochange_core::CliStepDefinition::PrepareRelease {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: prepare_step_inputs,
+			allow_empty_changesets: false,
+		}],
+		dry_run: false,
+	};
+	let release_json_inputs = BTreeMap::from([
+		("format".to_string(), vec!["text".to_string()]),
+		("release_json".to_string(), vec!["true".to_string()]),
+	]);
+
+	// Write the record once so we can discover the deterministic hash dir, then
+	// replace it with a file so the next write fails and surfaces the error.
+	let _ = crate::execute_cli_command(
+		root,
+		&configuration,
+		&prepare_release,
+		true,
+		release_json_inputs.clone(),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("first prepare release: {error}"));
+	let releases_dir = root.join(".monochange/releases");
+	let hash_path = fs::read_dir(&releases_dir)
+		.unwrap_or_else(|error| panic!("read releases dir: {error}"))
+		.flatten()
+		.find(|entry| entry.path().is_dir())
+		.unwrap_or_else(|| panic!("expected a release record hash dir"))
+		.path();
+	fs::remove_dir_all(&hash_path).unwrap_or_else(|error| panic!("remove hash dir: {error}"));
+	fs::write(&hash_path, "blocking file").unwrap_or_else(|error| panic!("write blocker: {error}"));
+
+	let error = crate::execute_cli_command(
+		root,
+		&configuration,
+		&prepare_release,
+		true,
+		release_json_inputs,
+	)
+	.await
+	.expect_err("blocked release record write should fail the command");
+	assert!(
+		error.render().contains("create release record dir"),
+		"expected a release record write error, got: {}",
+		error.render()
+	);
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));

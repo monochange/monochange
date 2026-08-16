@@ -27,4 +27,5 @@ expression: stdout
 
 ## Commands
 
+- skipped release record: dry-run preview (pass `--release-json` to write release.json)
 - skipped step `Command` because when condition `false` is false
