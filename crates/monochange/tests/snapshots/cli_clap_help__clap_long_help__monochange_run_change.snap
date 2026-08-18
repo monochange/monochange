@@ -1,6 +1,6 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-expression: "render_help_snapshot(&path, version)"
+expression: render_help_snapshot(&path)
 ---
 Version: [current]
 Command: monochange run change
@@ -18,7 +18,7 @@ Create a change file for one or more packages
           Run the command in dry-run mode when supported
 
 [1m[96mOptions:[0m
-      [93m--interactive[0m
+  [93m-i[0m, [93m--interactive[0m
           
 
       [93m--package[0m[95m [0m[95m<PACKAGE>[0m

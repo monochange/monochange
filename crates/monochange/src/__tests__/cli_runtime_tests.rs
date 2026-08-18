@@ -2074,6 +2074,75 @@ fn run_cli_command_command_streams_output_when_progress_is_enabled() {
 }
 
 #[test]
+fn run_cli_command_command_runs_interactive_steps_without_capturing_output() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let mut context = cli_context();
+	context.root = tempdir.path().to_path_buf();
+	let step_inputs = BTreeMap::from([("interactive".to_string(), vec!["true".to_string()])]);
+	let step = CliStepDefinition::Command {
+		name: Some("run tui".to_string()),
+		when: None,
+		always_run: false,
+		command: "printf 'tui output\\n'".to_string(),
+		dry_run_command: None,
+		show_progress: None,
+		shell: ShellConfig::Default,
+		id: Some("tui".to_string()),
+		variables: None,
+		inputs: BTreeMap::new(),
+	};
+	let cli_command = CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: Some("release".to_string()),
+		inputs: Vec::new(),
+		steps: vec![step.clone()],
+		dry_run: false,
+	};
+	let mut progress = CliProgressReporter::new(&cli_command, false, false, ProgressFormat::Json);
+
+	run_cli_command_command(
+		&mut context,
+		&step,
+		0,
+		&mut progress,
+		true,
+		CommandStepOptions {
+			command: "printf 'tui output\\n'",
+			dry_run_command: None,
+			shell: &ShellConfig::Default,
+			step_id: Some("tui"),
+			variables: None,
+			step_inputs: &step_inputs,
+		},
+	)
+	.unwrap_or_else(|error| panic!("interactive command step: {error}"));
+
+	// Interactive steps inherit stdio, so nothing is captured and the log
+	// records the command itself rather than its output.
+	assert_eq!(
+		context
+			.step_outputs
+			.get("tui")
+			.map(|output| output.stdout.as_str()),
+		Some("")
+	);
+	assert_eq!(
+		context.command_logs,
+		vec!["ran `printf 'tui output\\n'`".to_string()]
+	);
+}
+
+#[test]
+fn step_input_is_true_checks_the_first_value() {
+	let mut inputs = BTreeMap::new();
+	assert!(!step_input_is_true(&inputs, "interactive"));
+	inputs.insert("interactive".to_string(), vec!["true".to_string()]);
+	assert!(step_input_is_true(&inputs, "interactive"));
+	inputs.insert("interactive".to_string(), vec!["false".to_string()]);
+	assert!(!step_input_is_true(&inputs, "interactive"));
+}
+
+#[test]
 fn take_process_stream_reports_missing_pipes() {
 	let error = take_process_stream::<Vec<u8>>(None, "stdout", "echo hello").unwrap_err();
 	assert_eq!(
@@ -2265,6 +2334,52 @@ async fn configured_config_step_uses_generic_completion_without_config_json() {
 
 	assert_eq!(output, "command `configured-config` completed (dry-run)");
 	assert!(!output.contains("project_root"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_cli_command_suppresses_progress_for_interactive_command_steps() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = sample_configuration(tempdir.path());
+	let cli_command = CliCommandDefinition {
+		name: "interactive-command".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::Command {
+			name: Some("run tui".to_string()),
+			when: None,
+			always_run: false,
+			command: "printf 'tui output\\n'".to_string(),
+			dry_run_command: None,
+			show_progress: None,
+			shell: ShellConfig::Default,
+			id: None,
+			variables: None,
+			inputs: BTreeMap::from([("interactive".to_string(), CliStepInputValue::Boolean(true))]),
+		}],
+		dry_run: false,
+	};
+
+	let output = execute_cli_command_with_options(
+		tempdir.path(),
+		&configuration,
+		&cli_command,
+		ExecuteCliCommandOptions {
+			dry_run: false,
+			quiet: false,
+			show_diff: false,
+			inputs: BTreeMap::new(),
+			prepared_release_path: None,
+			progress_format: ProgressFormat::Auto,
+		},
+	)
+	.await
+	.unwrap_or_else(|error| panic!("interactive command: {error}"));
+
+	// The step ran without streaming or capturing its output, and no
+	// `running command` status line was emitted.
+	assert!(output.contains("completed"));
+	assert!(output.contains("ran `printf 'tui output\\n'`"));
+	assert!(!output.contains("running command"));
 }
 
 #[tokio::test(flavor = "multi_thread")]

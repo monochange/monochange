@@ -749,7 +749,7 @@ verified_commits = true
 [cli.change]
 help_text = "Create a change file for one or more packages"
 inputs = [
-	{ name = "interactive", type = "boolean", default = false },
+	{ name = "interactive", type = "boolean", default = false, short = "i" },
 	{ name = "package", type = "string_list", required = true },
 	{ name = "bump", type = "choice", choices = ["none", "patch", "minor", "major"], default = "patch" },
 	{ name = "reason", type = "string", required = true },

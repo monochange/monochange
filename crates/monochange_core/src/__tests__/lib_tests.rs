@@ -2086,6 +2086,26 @@ fn valid_input_names_returns_expected_names_for_create_change_file() {
 }
 
 #[test]
+fn step_inputs_schema_assigns_short_flag_to_interactive_input() {
+	let step = CliStepDefinition::CreateChangeFile {
+		show_progress: None,
+		name: None,
+		when: None,
+		always_run: false,
+		inputs: BTreeMap::new(),
+	};
+	let schema = step.step_inputs_schema();
+	let interactive = schema
+		.iter()
+		.find(|input| input.name == "interactive")
+		.expect("create change file should accept interactive");
+	assert_eq!(interactive.short, Some('i'));
+	for input in schema.iter().filter(|input| input.name != "interactive") {
+		assert_eq!(input.short, None, "unexpected short flag on {}", input.name);
+	}
+}
+
+#[test]
 fn expected_input_kind_returns_correct_types_for_affected_packages() {
 	use crate::CliInputKind;
 	let step = CliStepDefinition::AffectedPackages {

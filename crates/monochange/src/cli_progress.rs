@@ -543,6 +543,16 @@ impl CliProgressReporter {
 		}
 	}
 
+	/// Stop the active spinner without printing a completion line so that
+	/// interactive prompts can take over the terminal. Returns whether a
+	/// spinner was actually running; callers can use that to restart it
+	/// with `step_status` once the interactive work is done.
+	pub(crate) fn pause_spinner(&mut self) -> bool {
+		let was_active = self.active_spinner.is_some();
+		self.stop_spinner();
+		was_active
+	}
+
 	fn print_line(text: &str) {
 		with_stderr_lock(|lock| {
 			let _ = write!(lock, "\r\u{1b}[2K\u{1b}[0m");

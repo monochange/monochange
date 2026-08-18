@@ -191,6 +191,23 @@ fn progress_reporter_animates_named_steps_and_stops_cleanly() {
 }
 
 #[test]
+fn pause_spinner_stops_animation_and_reports_whether_it_was_active() {
+	let mut reporter = progress_reporter(true, true);
+	reporter.animate = true;
+	let step = named_command_step("announce release");
+
+	// No active spinner: pause reports false and is a no-op.
+	assert!(!reporter.pause_spinner());
+
+	reporter.step_started(0, &step);
+	thread::sleep(SPINNER_DELAY + SPINNER_TICK + Duration::from_millis(20));
+	assert!(reporter.pause_spinner());
+
+	// The spinner thread is stopped; a second pause reports false.
+	assert!(!reporter.pause_spinner());
+}
+
+#[test]
 fn log_command_output_appends_ansi_reset_after_raw_lines() {
 	let _step = named_command_step("prepare");
 	// Simulate a subprocess emitting ANSI yellow/brown without a trailing reset

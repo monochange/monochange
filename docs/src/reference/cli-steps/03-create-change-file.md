@@ -61,7 +61,7 @@ None. `CreateChangeFile` is standalone.
 - writes a new changeset file
 - reports the written path
 - does not prepare release state for later steps
-- automatically hides the progress spinner during interactive prompting so the selector UI stays readable
+- automatically hides the progress spinner during interactive prompting so the selector UI stays readable, and restarts it while the change file is written
 - automatically wraps package/group ids in quotes when the authored frontmatter key contains YAML-sensitive characters such as `@` or `/`
 
 ## Example

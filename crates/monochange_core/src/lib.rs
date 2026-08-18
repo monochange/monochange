@@ -3605,7 +3605,10 @@ impl CliStepDefinition {
 					required: false,
 					default,
 					choices,
-					short: None,
+					short: match *name {
+						"interactive" => Some('i'),
+						_ => None,
+					},
 				}
 			})
 			.collect()
