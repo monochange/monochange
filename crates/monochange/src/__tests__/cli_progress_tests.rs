@@ -191,7 +191,6 @@ fn progress_reporter_animates_named_steps_and_stops_cleanly() {
 }
 
 #[test]
-#[test]
 fn pause_spinner_stops_animation_and_reports_whether_it_was_active() {
 	let mut reporter = progress_reporter(true, true);
 	reporter.animate = true;

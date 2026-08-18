@@ -311,7 +311,9 @@ pub fn run_in_tty(
 
 /// Run a monochange command in a pty with additional environment variables
 /// applied to the child process.
+#[cfg(unix)]
 #[allow(clippy::too_many_arguments)]
+#[allow(dead_code)]
 pub fn run_in_tty_with_env(
 	workspace: &Path,
 	args: &[&str],
