@@ -306,6 +306,19 @@ pub fn run_in_tty(
 	release_date: Option<&str>,
 	actions: &[TtyAction<'_>],
 ) -> (i32, String) {
+	run_in_tty_with_env(workspace, args, release_date, &[], actions)
+}
+
+/// Run a monochange command in a pty with additional environment variables
+/// applied to the child process.
+#[allow(clippy::too_many_arguments)]
+pub fn run_in_tty_with_env(
+	workspace: &Path,
+	args: &[&str],
+	release_date: Option<&str>,
+	env: &[(&str, &str)],
+	actions: &[TtyAction<'_>],
+) -> (i32, String) {
 	use std::io::Read as _;
 	use std::io::Write as _;
 	use std::thread;
@@ -325,6 +338,9 @@ pub fn run_in_tty(
 	command.env_remove("RUST_LOG");
 	if let Some(release_date) = release_date {
 		command.env("MONOCHANGE_RELEASE_DATE", release_date);
+	}
+	for (key, value) in env {
+		command.env(key, value);
 	}
 	if !matches!(args.first().copied(), Some("step" | "run" | "help")) {
 		command.arg("run");

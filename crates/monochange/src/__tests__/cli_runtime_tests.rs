@@ -2133,6 +2133,60 @@ fn run_cli_command_command_runs_interactive_steps_without_capturing_output() {
 }
 
 #[test]
+fn interactive_command_step_surfaces_spawn_failures() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let mut context = cli_context();
+	context.root = tempdir.path().to_path_buf();
+	let step_inputs = BTreeMap::from([("interactive".to_string(), vec!["true".to_string()])]);
+	let step = CliStepDefinition::Command {
+		name: Some("run tui".to_string()),
+		when: None,
+		always_run: false,
+		command: "printf 'tui output\\n'".to_string(),
+		dry_run_command: None,
+		show_progress: None,
+		shell: ShellConfig::Custom("definitely-not-a-real-shell".to_string()),
+		id: Some("tui".to_string()),
+		variables: None,
+		inputs: BTreeMap::new(),
+	};
+	let cli_command = CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: Some("release".to_string()),
+		inputs: Vec::new(),
+		steps: vec![step.clone()],
+		dry_run: false,
+	};
+	let mut progress = CliProgressReporter::new(&cli_command, false, false, ProgressFormat::Json);
+
+	let error = run_cli_command_command(
+		&mut context,
+		&step,
+		0,
+		&mut progress,
+		true,
+		CommandStepOptions {
+			command: "printf 'tui output\\n'",
+			dry_run_command: None,
+			shell: &ShellConfig::Custom("definitely-not-a-real-shell".to_string()),
+			step_id: Some("tui"),
+			variables: None,
+			step_inputs: &step_inputs,
+		},
+	)
+	.unwrap_err();
+
+	assert!(
+		error.to_string().contains("failed to run command"),
+		"expected spawn failure: {error}"
+	);
+	assert!(
+		error.to_string().contains("printf 'tui output\\n'"),
+		"expected the failing command in the error: {error}"
+	);
+}
+
+#[test]
 fn step_input_is_true_checks_the_first_value() {
 	let mut inputs = BTreeMap::new();
 	assert!(!step_input_is_true(&inputs, "interactive"));

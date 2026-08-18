@@ -12,6 +12,7 @@ use test_support::assert_readable_json_snapshot;
 use test_support::current_test_name;
 use test_support::monochange_command;
 use test_support::run_in_tty;
+use test_support::run_in_tty_with_env;
 use test_support::setup_fixture;
 use test_support::setup_scenario_workspace;
 use test_support::snapshot_settings;
@@ -208,7 +209,7 @@ fn run_tty_interactive_change(workspace: &Path, output_path: &Path) -> (i32, Str
 		},
 	];
 	let output = output_path.display().to_string();
-	let (status, transcript) = run_in_tty(
+	let (status, transcript) = run_in_tty_with_env(
 		workspace,
 		&[
 			"change",
@@ -221,6 +222,9 @@ fn run_tty_interactive_change(workspace: &Path, output_path: &Path) -> (i32, Str
 			output.as_str(),
 		],
 		None,
+		// Force spinner animation even when CI env vars are set so the
+		// spinner pause/resume path is exercised deterministically.
+		&[("INSTA_WORKSPACE_ROOT", "1")],
 		&actions,
 	);
 	(status, normalize_terminal_transcript(&transcript))
