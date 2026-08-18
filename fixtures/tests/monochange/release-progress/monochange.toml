@@ -47,6 +47,12 @@ steps = [
   { type = "Command", name = "stream summary", shell = true, command = "printf 'line one\n\nline three\n'" },
 ]
 
+[cli.progress-spinner]
+help_text = "Exercise spinner output"
+steps = [
+  { type = "Command", name = "slow spinner", shell = true, command = "sleep 1.5; echo done" },
+]
+
 [cli.progress-json]
 help_text = "Exercise progress output"
 steps = [

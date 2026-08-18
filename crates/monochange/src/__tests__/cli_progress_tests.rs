@@ -191,6 +191,7 @@ fn progress_reporter_animates_named_steps_and_stops_cleanly() {
 }
 
 #[test]
+#[test]
 fn pause_spinner_stops_animation_and_reports_whether_it_was_active() {
 	let mut reporter = progress_reporter(true, true);
 	reporter.animate = true;
@@ -205,6 +206,47 @@ fn pause_spinner_stops_animation_and_reports_whether_it_was_active() {
 
 	// The spinner thread is stopped; a second pause reports false.
 	assert!(!reporter.pause_spinner());
+}
+
+#[test]
+fn spinner_tick_renders_full_line_only_when_content_changes() {
+	// First tick (or after another writer cleared the line): full line with
+	// erase so the message is always visible.
+	assert_eq!(
+		render_spinner_tick("\u{2B8B}", "running command `x`", false, true),
+		"\r\u{1b}[2K\u{1b}[0m\u{2B8B} running command `x`",
+	);
+	// Unchanged content: only the frame is swapped in place, the message is
+	// not reprinted.
+	assert_eq!(
+		render_spinner_tick("\u{2B99}", "running command `x`", false, false),
+		"\r\u{2B99}",
+	);
+	// Color mode paints the frame.
+	assert_eq!(
+		render_spinner_tick("\u{2B8B}", "msg", true, true),
+		"\r\u{1b}[2K\u{1b}[0m\u{1b}[36;1m\u{2B8B}\u{1b}[0m msg",
+	);
+	assert_eq!(
+		render_spinner_tick("\u{2B99}", "msg", true, false),
+		"\r\u{1b}[36;1m\u{2B99}\u{1b}[0m",
+	);
+}
+
+#[test]
+fn spinner_rewrites_full_line_after_another_writer_clears_it() {
+	let mut reporter = progress_reporter(true, true);
+	reporter.animate = true;
+	let step = named_command_step("announce release");
+
+	reporter.step_started(0, &step);
+	thread::sleep(SPINNER_DELAY + SPINNER_TICK + Duration::from_millis(20));
+	// Simulate another writer (for example `print_line` or publish progress)
+	// clearing the spinner line: the next tick must restore the full line.
+	mark_spinner_line_cleared();
+	thread::sleep(SPINNER_TICK + Duration::from_millis(20));
+	reporter.step_finished(0, &step, Duration::from_millis(12), &[]);
+	reporter.command_finished(Duration::from_millis(25));
 }
 
 #[test]
