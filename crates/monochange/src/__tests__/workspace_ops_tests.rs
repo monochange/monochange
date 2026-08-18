@@ -2167,3 +2167,44 @@ fn fixed_prerelease_base_overrides_group_planned_version() {
 		Some(semver::Version::parse("0.5.0-alpha.0").unwrap())
 	);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn prepare_release_execution_with_configuration_uses_passed_configuration() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	monochange_test_helpers::fs::copy_directory(
+		&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/dart/monorepo"),
+		fixture.path(),
+	);
+	fs::create_dir_all(fixture.path().join(".changeset"))
+		.unwrap_or_else(|error| panic!("create changeset dir: {error}"));
+
+	let mut configuration = load_workspace_configuration(fixture.path())
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	// Flip a behavior-affecting field that a freshly loaded configuration would
+	// not have. If the execution path reloaded the configuration instead of
+	// using the passed one, prerelease planning would not run and the command
+	// would fail with "no releaseable packages were found".
+	configuration.prerelease.enabled = true;
+
+	let prepared = prepare_release_execution_with_configuration(
+		fixture.path(),
+		&configuration,
+		false,
+		false,
+		false,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("prepare release with passed configuration: {error}"));
+
+	assert!(
+		!prepared.prepared_release.released_packages.is_empty(),
+		"prerelease planning should release packages from the passed configuration"
+	);
+	assert!(
+		prepared
+			.phase_timings
+			.iter()
+			.any(|phase| phase.label == "apply prerelease versions"),
+		"prerelease phases should run when the passed configuration enables prerelease"
+	);
+}

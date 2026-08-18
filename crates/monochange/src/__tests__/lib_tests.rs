@@ -79,7 +79,6 @@ use crate::interactive::InteractiveChangeResult;
 use crate::interactive::InteractiveTarget;
 use crate::parse_snapshot_request;
 use crate::plan_release;
-use crate::prepare_release_execution_with_file_diffs;
 use crate::push_change_target_markdown;
 use crate::release_artifacts::validate_release_record_file;
 use crate::release_artifacts::write_release_record_file;
@@ -91,6 +90,7 @@ use crate::snapshot_view;
 use crate::tests::TEST_ENV_LOCK;
 use crate::workspace_ops::build_lockfile_command_executions;
 use crate::workspace_ops::change_type_default_bump;
+use crate::workspace_ops::prepare_release_execution_with_file_diffs;
 use crate::workspace_ops::render_cli_commands_toml;
 use crate::workspace_ops::render_interactive_changeset_markdown;
 
@@ -3338,7 +3338,12 @@ fn prepare_release_allows_empty_changesets_when_configured() {
 		.unwrap_or_else(|error| panic!("remove changesets: {error}"));
 
 	let strict_error = crate::tests::block_on_in_context(
-		crate::prepare_release_execution_with_file_diffs(tempdir.path(), true, false, false),
+		crate::workspace_ops::prepare_release_execution_with_file_diffs(
+			tempdir.path(),
+			true,
+			false,
+			false,
+		),
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected missing changeset error"));
@@ -3349,7 +3354,12 @@ fn prepare_release_allows_empty_changesets_when_configured() {
 	);
 
 	let execution = crate::tests::block_on_in_context(
-		crate::prepare_release_execution_with_file_diffs(tempdir.path(), true, true, true),
+		crate::workspace_ops::prepare_release_execution_with_file_diffs(
+			tempdir.path(),
+			true,
+			true,
+			true,
+		),
 	)
 	.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
 

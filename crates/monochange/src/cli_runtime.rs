@@ -805,8 +805,14 @@ pub(crate) async fn execute_cli_command_with_options(
 					{
 						Some(loaded) => loaded.execution,
 						None => {
-							prepare_release_execution_with_file_diffs(root, true, false, false)
-								.await?
+							prepare_release_execution_with_configuration(
+								root,
+								configuration,
+								true,
+								false,
+								false,
+							)
+							.await?
 						}
 					};
 					step_phase_timings.clone_from(&prepared_execution.phase_timings);
@@ -855,8 +861,9 @@ pub(crate) async fn execute_cli_command_with_options(
 						context.command_logs.push(loaded.message);
 						loaded.execution
 					} else {
-						prepare_release_execution_with_file_diffs(
+						prepare_release_execution_with_configuration(
 							root,
+							configuration,
 							dry_run,
 							build_file_diffs,
 							*allow_empty_changesets,

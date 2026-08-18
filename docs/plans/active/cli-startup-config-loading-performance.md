@@ -281,3 +281,17 @@ Remaining possible follow-ups:
 - Extend inherited-glob Criterion fixtures across Cargo, npm, Deno, Dart, Python, and Go.
 - Split `step config` onto a lighter config path if it should avoid full package/glob validation.
 - Continue moving command-specific execution paths from full validated config to targeted loaders where safe.
+
+## Implementation update (2026-08-18)
+
+Follow-up from the 2026-05-30 work: `step prepare-release` (and the `DisplayVersions` step) still loaded the full workspace configuration twice — once for CLI command dispatch and again inside release planning (`prepare_release_execution_with_file_diffs`). Each load re-expands workspace globs and re-validates package definitions, so the redundant load doubled the config-load cost on the command hot path.
+
+Implemented:
+
+- Added `prepare_release_execution_with_configuration(root, configuration, ...)` in `workspace_ops`, which accepts an already-loaded configuration.
+- `prepare_release_execution_with_file_diffs` now delegates to it after loading the configuration, preserving the public `prepare_release` API and existing callers.
+- The CLI step runner passes the configuration it already holds for command dispatch into both `PrepareRelease` and `DisplayVersions` step execution, eliminating the second full load.
+- Phase timing output is unchanged: the passed-in configuration records a zero-duration `load workspace configuration` phase entry, which the summary renderer filters below its display minimum.
+- Added a regression test (`prepare_release_execution_with_configuration_uses_passed_configuration`) that flips `prerelease.enabled` on the passed configuration and asserts prerelease planning runs — a reloaded configuration would fail with "no releaseable packages".
+
+Verified in `solana_kit` (60 packages, `**/pubspec.yaml` versioned_files glob): the step's own phase timings no longer include a config-load phase, and cache-miss runs drop from two config loads to one. On machines where each full config load is costly (the pre-dedupe behavior was ~28s per load), this halves the `step prepare-release` startup cost.

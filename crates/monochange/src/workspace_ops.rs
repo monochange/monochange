@@ -1784,21 +1784,46 @@ pub async fn prepare_release(root: &Path, dry_run: bool) -> MonochangeResult<Pre
 		.map(|execution| execution.prepared_release)
 }
 
-#[tracing::instrument(skip_all, fields(dry_run, build_file_diffs))]
 pub(crate) async fn prepare_release_execution_with_file_diffs(
 	root: &Path,
 	dry_run: bool,
 	build_file_diffs: bool,
 	allow_empty_changesets: bool,
 ) -> MonochangeResult<PreparedReleaseExecution> {
+	let configuration = load_workspace_configuration(root)?;
+	prepare_release_execution_with_configuration(
+		root,
+		&configuration,
+		dry_run,
+		build_file_diffs,
+		allow_empty_changesets,
+	)
+	.await
+}
+
+/// Prepare a release using an already-loaded workspace configuration.
+///
+/// CLI command execution loads the workspace configuration once for command
+/// dispatch; passing it through here avoids a second full configuration load
+/// (including repeated workspace glob expansion and package validation) during
+/// release planning.
+#[tracing::instrument(skip_all, fields(dry_run, build_file_diffs))]
+pub(crate) async fn prepare_release_execution_with_configuration(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	dry_run: bool,
+	build_file_diffs: bool,
+	allow_empty_changesets: bool,
+) -> MonochangeResult<PreparedReleaseExecution> {
 	let mut phase_timings = Vec::new();
-	let configuration =
-		measure_prepare_phase(&mut phase_timings, "load workspace configuration", || {
-			load_workspace_configuration(root)
-		})?;
+	record_prepare_phase_timing(
+		&mut phase_timings,
+		"load workspace configuration",
+		Instant::now(),
+	);
 	let discovery =
 		measure_prepare_phase(&mut phase_timings, "discover release workspace", || {
-			discover_release_workspace(root, &configuration)
+			discover_release_workspace(root, configuration)
 		})?;
 	let previous_prerelease_state =
 		measure_prepare_phase(&mut phase_timings, "load prerelease state", || {
@@ -1859,7 +1884,7 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 	// it often parses every pending `.changeset/*.md` file in the repo. Reusing a
 	// single context keeps package/group lookup costs flat instead of multiplying
 	// them by the number of changesets.
-	let changeset_context = build_changeset_load_context(&configuration, &discovery.packages);
+	let changeset_context = build_changeset_load_context(configuration, &discovery.packages);
 	// Split changeset loading into two phases:
 	// 1. read every tiny file in a simple sequential pass
 	// 2. parse the already-loaded text in parallel
@@ -1925,7 +1950,7 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 		if configuration.prerelease.enabled && change_signals.is_empty() {
 			Ok(synthesize_no_changeset_prerelease_plan(&planning_discovery))
 		} else {
-			build_release_plan_from_signals(&configuration, &planning_discovery, &change_signals)
+			build_release_plan_from_signals(configuration, &planning_discovery, &change_signals)
 		}
 	})?;
 	if configuration.prerelease.enabled {
@@ -1957,7 +1982,7 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 			rayon::join(
 				|| {
 					capture_prepare_phase("resolve changelog targets", || {
-						resolve_changelog_targets(&configuration, &discovery.packages)
+						resolve_changelog_targets(configuration, &discovery.packages)
 					})
 				},
 				|| {
@@ -1978,7 +2003,7 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 					capture_prepare_phase("build lockfile refresh plan", || {
 						build_lockfile_command_executions(
 							root,
-							&configuration,
+							configuration,
 							&discovery.packages,
 							&plan,
 						)
@@ -2008,7 +2033,7 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 			measure_prepare_phase(&mut phase_timings, "build versioned file updates", || {
 				build_versioned_file_updates_with_base_updates(
 					root,
-					&configuration,
+					configuration,
 					&discovery.packages,
 					&plan,
 					&manifest_updates,
@@ -2018,12 +2043,12 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 	let release_targets = measure_async_prepare_phase(
 		&mut phase_timings,
 		"build release targets",
-		build_release_targets(&configuration, &discovery.packages, &plan, &changeset_paths),
+		build_release_targets(configuration, &discovery.packages, &plan, &changeset_paths),
 	)
 	.await;
 	let lockfile_commands = lockfile_commands_result.0?;
 	let mut package_publications =
-		build_package_publication_targets(&configuration, &discovery.packages, &plan);
+		build_package_publication_targets(configuration, &discovery.packages, &plan);
 	if configuration.prerelease.enabled && !configuration.prerelease.publish_packages {
 		package_publications.clear();
 	}
@@ -2059,7 +2084,7 @@ pub(crate) async fn prepare_release_execution_with_file_diffs(
 				build_changelog_updates(
 					ChangelogBuildContext::builder()
 						.root(root)
-						.configuration(&configuration)
+						.configuration(configuration)
 						.packages(&discovery.packages)
 						.plan(&plan)
 						.change_signals(&change_signals)
