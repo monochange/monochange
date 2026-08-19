@@ -822,6 +822,9 @@ pub(crate) async fn execute_cli_command_with_options(
 						root,
 						configuration,
 						&step_inputs,
+						&mut progress,
+						step_index,
+						step,
 					)?);
 					Ok(())
 				}
@@ -1877,6 +1880,13 @@ fn step_shows_progress(step: &CliStepDefinition) -> bool {
 	step.show_progress().unwrap_or(true)
 }
 
+fn step_input_is_true(step_inputs: &BTreeMap<String, Vec<String>>, name: &str) -> bool {
+	step_inputs
+		.get(name)
+		.and_then(|values| values.first())
+		.is_some_and(|value| value == "true")
+}
+
 fn run_cli_command_command(
 	context: &mut CliContext,
 	step: &CliStepDefinition,
@@ -1894,8 +1904,9 @@ fn run_cli_command_command(
 		options.variables,
 		options.step_inputs,
 	);
+	let interactive = step_input_is_true(options.step_inputs, "interactive");
 	let mut process_command = build_process_command(&context.root, options.shell, &interpolated)?;
-	if show_progress {
+	if show_progress && !interactive {
 		progress.step_status(
 			step_index,
 			step,
@@ -1905,10 +1916,16 @@ fn run_cli_command_command(
 			),
 		);
 	}
+	if interactive {
+		// Let the command own the terminal: pause the spinner so it does
+		// not animate over the command's own UI.
+		progress.pause_spinner();
+	}
 	let output = execute_process_command(
 		&mut process_command,
 		progress,
-		show_progress,
+		show_progress && !interactive,
+		interactive,
 		step_index,
 		step,
 		&interpolated,
@@ -2002,10 +2019,23 @@ fn execute_process_command(
 	process_command: &mut ProcessCommand,
 	progress: &mut CliProgressReporter,
 	show_progress: bool,
+	interactive: bool,
 	step_index: usize,
 	step: &CliStepDefinition,
 	interpolated: &str,
 ) -> MonochangeResult<PreparedProcessOutput> {
+	if interactive {
+		// Let the command own the terminal: inherit stdio so it can read
+		// input and render its own UI without spinner interference.
+		let status = process_command.status().map_err(|error| {
+			MonochangeError::Io(format!("failed to run command `{interpolated}`: {error}"))
+		})?;
+		return Ok(PreparedProcessOutput {
+			status,
+			stdout: Vec::new(),
+			stderr: Vec::new(),
+		});
+	}
 	if progress.is_enabled() && show_progress {
 		return run_process_with_streaming(
 			process_command,
@@ -4121,11 +4151,11 @@ fn execute_create_change_file_step(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 	step_inputs: &BTreeMap<String, Vec<String>>,
+	progress: &mut CliProgressReporter,
+	step_index: usize,
+	step: &CliStepDefinition,
 ) -> MonochangeResult<String> {
-	let is_interactive = step_inputs
-		.get("interactive")
-		.and_then(|values| values.first())
-		.is_some_and(|value| value == "true");
+	let is_interactive = step_input_is_true(step_inputs, "interactive");
 
 	if is_interactive {
 		let options = interactive::InteractiveOptions {
@@ -4139,7 +4169,13 @@ fn execute_create_change_file_step(
 				.and_then(|values| values.first())
 				.cloned(),
 		};
+		// Pause the spinner while the wizard owns the terminal, then restart
+		// it for the actual file write so the loader only shows during work.
+		let spinner_was_active = progress.pause_spinner();
 		let result = interactive::run_interactive_change(configuration, &options)?;
+		if spinner_was_active {
+			progress.step_status(step_index, step, "writing change file");
+		}
 		let output_path = step_inputs
 			.get("output")
 			.and_then(|values| values.first())

@@ -31,6 +31,7 @@ use super::normalize_optional_text;
 use super::parse_change_type_selection;
 use super::parse_selected_bump;
 use super::prompt_change_type_for_target;
+use super::render_group_target_display;
 use super::run_interactive_change;
 use super::validate_reason_input;
 use super::validate_semver_input;
@@ -242,6 +243,22 @@ fn build_selectable_targets_lists_groups_then_standalone_then_group_members() {
 			"[package] core (member of group `sdk`)".to_string(),
 		]
 	);
+}
+
+#[test]
+fn group_display_falls_back_to_count_label_when_inline_list_is_too_long() {
+	let package_ids = (0..40)
+		.map(|index| format!("very-long-package-name-{index:02}"))
+		.collect::<Vec<_>>();
+	let display = render_group_target_display("main", &package_ids);
+	assert_eq!(display, "[group] main (40 packages)");
+	assert!(display.len() <= super::MAX_GROUP_DISPLAY_LENGTH);
+}
+
+#[test]
+fn group_display_inlines_short_package_lists() {
+	let display = render_group_target_display("sdk", &["core".to_string(), "app".to_string()]);
+	assert_eq!(display, "[group] sdk (core, app)");
 }
 
 #[test]

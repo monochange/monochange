@@ -24,7 +24,7 @@ Release Options:
       --dry-run  Run the command in dry-run mode when supported
 
 Options:
-      --interactive            
+  -i, --interactive            
       --package <PACKAGE>      
       --bump <BUMP>            [default: patch] [possible values: none, patch, minor, major]
       --reason <REASON>        

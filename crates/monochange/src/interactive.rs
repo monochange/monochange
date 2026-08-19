@@ -195,16 +195,22 @@ fn build_selectable_targets(configuration: &WorkspaceConfiguration) -> Vec<Selec
 	targets
 }
 
+/// Maximum length for an inline group label in the interactive picker.
+///
+/// inquire lays out one option per terminal row and does not handle wrapped
+/// lines, so a label longer than the terminal width corrupts list rendering,
+/// breaking option scrolling and input echo. Groups can contain dozens of
+/// packages, so only inline every id while the result stays short and fall
+/// back to a count-based label otherwise.
+const MAX_GROUP_DISPLAY_LENGTH: usize = 64;
+
 fn render_group_target_display(group_id: &str, package_ids: &[String]) -> String {
-	let mut display = format!("[group] {group_id} (");
-	for (index, package_id) in package_ids.iter().enumerate() {
-		if index > 0 {
-			display.push_str(", ");
-		}
-		display.push_str(package_id);
+	let full = format!("[group] {group_id} ({})", package_ids.join(", "));
+	if full.len() <= MAX_GROUP_DISPLAY_LENGTH {
+		full
+	} else {
+		format!("[group] {group_id} ({} packages)", package_ids.len())
 	}
-	display.push(')');
-	display
 }
 
 fn prompt_select_targets(targets: &[SelectableTarget]) -> MonochangeResult<Vec<SelectableTarget>> {
