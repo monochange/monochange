@@ -72,9 +72,11 @@ fn explicit_artifact_path(root: &Path) -> PathBuf {
 async fn save_artifact(root: &Path, dry_run: bool, explicit_path: &Path) -> WorkspaceConfiguration {
 	let configuration = load_workspace_configuration(root)
 		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
-	let prepared = crate::prepare_release_execution_with_file_diffs(root, dry_run, false, false)
-		.await
-		.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
+	let prepared = crate::workspace_ops::prepare_release_execution_with_file_diffs(
+		root, dry_run, false, false,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
 	save_prepared_release_execution(
 		root,
 		&configuration,
@@ -187,9 +189,10 @@ async fn tracked_path_snapshots_deduplicate_paths_and_mark_deleted_entries() {
 	let root = tempdir.path();
 	let configuration = load_workspace_configuration(root)
 		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
-	let prepared = crate::prepare_release_execution_with_file_diffs(root, true, false, false)
-		.await
-		.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
+	let prepared =
+		crate::workspace_ops::prepare_release_execution_with_file_diffs(root, true, false, false)
+			.await
+			.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
 	let changed_file = prepared
 		.prepared_release
 		.changed_files
@@ -268,9 +271,10 @@ async fn load_prepared_release_execution_returns_cached_release_with_message_and
 	let artifact_path = explicit_artifact_path(root);
 	let configuration = load_workspace_configuration(root)
 		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
-	let prepared = crate::prepare_release_execution_with_file_diffs(root, false, true, false)
-		.await
-		.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
+	let prepared =
+		crate::workspace_ops::prepare_release_execution_with_file_diffs(root, false, true, false)
+			.await
+			.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
 	save_prepared_release_execution(
 		root,
 		&configuration,
@@ -425,9 +429,10 @@ async fn maybe_load_prepared_release_execution_ignores_stale_default_cache() {
 	let default_path = default_prepared_release_cache_path(root);
 	let configuration = load_workspace_configuration(root)
 		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
-	let prepared = crate::prepare_release_execution_with_file_diffs(root, false, false, false)
-		.await
-		.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
+	let prepared =
+		crate::workspace_ops::prepare_release_execution_with_file_diffs(root, false, false, false)
+			.await
+			.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
 	save_prepared_release_execution(
 		root,
 		&configuration,
@@ -526,9 +531,10 @@ async fn save_prepared_release_execution_reports_parent_and_write_failures() {
 	let root = tempdir.path();
 	let configuration = load_workspace_configuration(root)
 		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
-	let prepared = crate::prepare_release_execution_with_file_diffs(root, false, false, false)
-		.await
-		.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
+	let prepared =
+		crate::workspace_ops::prepare_release_execution_with_file_diffs(root, false, false, false)
+			.await
+			.unwrap_or_else(|error| panic!("prepare release execution: {error}"));
 
 	let parent_file = root.join("artifact-parent");
 	fs::write(&parent_file, "file\n").unwrap_or_else(|error| panic!("write parent file: {error}"));
