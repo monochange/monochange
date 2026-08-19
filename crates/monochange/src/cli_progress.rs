@@ -24,6 +24,17 @@ const SPINNER_DELAY: Duration = Duration::from_millis(120);
 const PHASE_TIMING_DETAIL_LIMIT: usize = 5;
 const PHASE_TIMING_MINIMUM: Duration = Duration::from_millis(5);
 
+/// Set by any writer that clears the active spinner line (for example
+/// `print_line` or publish progress) so the spinner thread knows the message
+/// must be rewritten in full instead of swapping only the frame in place.
+static SPINNER_LINE_CLEARED: AtomicBool = AtomicBool::new(false);
+
+/// Marks the active spinner line as cleared by another writer. The next
+/// spinner tick rewrites the full line so the message stays visible.
+pub(crate) fn mark_spinner_line_cleared() {
+	SPINNER_LINE_CLEARED.store(true, Ordering::Relaxed);
+}
+
 #[derive(Clone, Copy)]
 pub(crate) enum CommandStream {
 	Stdout,
@@ -505,17 +516,17 @@ impl CliProgressReporter {
 		let spinner_frames = self.symbols.spinner_frames;
 		let handle = thread::spawn(move || {
 			thread::sleep(SPINNER_DELAY);
+			let mut full_line = true;
 			for frame in spinner_frames.iter().copied().cycle() {
 				if stop_flag.load(Ordering::Relaxed) {
 					break;
 				}
 				with_stderr_lock(|lock| {
-					let _ = write!(
-						lock,
-						"\r\u{1b}[2K\u{1b}[0m{} {}",
-						paint_text(frame, Style::Accent, color),
-						message,
-					);
+					let line_cleared = SPINNER_LINE_CLEARED.swap(false, Ordering::Relaxed);
+					let rendered =
+						render_spinner_tick(frame, &message, color, full_line || line_cleared);
+					full_line = false;
+					let _ = lock.write_all(rendered.as_bytes());
 					let _ = lock.flush();
 				});
 				rendered_flag.store(true, Ordering::Relaxed);
@@ -558,6 +569,7 @@ impl CliProgressReporter {
 			let _ = write!(lock, "\r\u{1b}[2K\u{1b}[0m");
 			let _ = writeln!(lock, "{text}");
 			let _ = lock.flush();
+			SPINNER_LINE_CLEARED.store(true, Ordering::Relaxed);
 		});
 	}
 
@@ -660,6 +672,22 @@ fn paint_text(text: &str, style: Style, color: bool) -> String {
 		Style::Muted => "2",
 	};
 	format!("\u{1b}[{code}m{text}\u{1b}[0m")
+}
+
+/// Renders a single spinner tick. The full line (with erase) is only written
+/// when the message must be (re)established — the first tick or after another
+/// writer cleared the line. Otherwise only the frame is swapped in place so
+/// captured output does not reprint the whole line on every tick.
+fn render_spinner_tick(frame: &str, message: &str, color: bool, full_line: bool) -> String {
+	if full_line {
+		format!(
+			"\r\u{1b}[2K\u{1b}[0m{} {}",
+			paint_text(frame, Style::Accent, color),
+			message,
+		)
+	} else {
+		format!("\r{}", paint_text(frame, Style::Accent, color))
+	}
 }
 
 fn with_stderr_lock(action: impl FnOnce(&mut io::StderrLock<'static>)) {

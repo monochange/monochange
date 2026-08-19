@@ -118,6 +118,13 @@ fn disabled_reporter_ignores_events() {
 }
 
 #[test]
+fn interactive_reporter_marks_spinner_line_cleared() {
+	let mut reporter = StderrPublishProgressReporter::new(false);
+	reporter.interactive = true;
+	reporter.report(PublishProgressEvent::PackageStarted(package()));
+}
+
+#[test]
 fn render_report_line_clears_active_spinner_line_when_interactive() {
 	let event = PublishProgressEvent::RunStarted {
 		mode: PackagePublishRunMode::Placeholder,

@@ -252,6 +252,40 @@ fn release_progress_streams_named_steps_on_tty() {
 
 #[test]
 #[cfg(unix)]
+fn spinner_swaps_frames_in_place_without_reprinting_the_full_line() {
+	let tempdir = setup_fixture("monochange/release-progress");
+
+	// Force the test-harness detection so the spinner animates even when the
+	// test runner does not set the usual harness variables (for example the
+	// coverage job runs plain `cargo llvm-cov test` with CI env vars set).
+	let (status, transcript) = run_in_tty_with_env(
+		tempdir.path(),
+		&["progress-spinner"],
+		None,
+		&[("INSTA_WORKSPACE_ROOT", "1")],
+		&[],
+	);
+	assert_eq!(status, 0, "{transcript}");
+
+	// The full spinner line (message included) must only be written when the
+	// content changes: once when the spinner starts and once after the command
+	// output line clears it. Frame-only in-place updates must not reprint it.
+	let full_line_count = transcript
+		.matches("running command `sleep 1.5; echo done`")
+		.count();
+	assert!(
+		full_line_count <= 4,
+		"spinner reprinted the full line {full_line_count} times:\n{transcript}"
+	);
+	// The spinner still animates in place between full-line writes.
+	assert!(
+		transcript.contains("\r⠙"),
+		"expected in-place frame updates in transcript:\n{transcript}"
+	);
+}
+
+#[test]
+#[cfg(unix)]
 fn release_progress_renders_skipped_failed_steps_and_stderr_on_tty() {
 	let tempdir = setup_fixture("monochange/release-progress-failure");
 

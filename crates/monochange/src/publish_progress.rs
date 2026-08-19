@@ -122,6 +122,9 @@ impl PublishProgressReporter for StderrPublishProgressReporter {
 		let mut lock = stderr.lock();
 		let _ = lock.write_all(output.as_bytes());
 		let _ = lock.flush();
+		if self.interactive {
+			crate::cli_progress::mark_spinner_line_cleared();
+		}
 	}
 }
 
