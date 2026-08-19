@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)
+
+### 🚀 Feature
+
+#### Add `--release-json` opt-in for writing release records during preview
+
+`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.
+
+```bash
+# preview without touching the release record
+monochange preview
+
+# preview that also writes release.json
+monochange preview --release-json
+```
+
+Dry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)
+
+### 🐛 Fixed
+
+#### Add `-i` short flag and hide the loader during interactive prompts
+
+`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.
+
+The progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.
+
+Custom commands can now run interactive tools in `Command` steps by passing an `interactive` input:
+
+```toml
+[cli.wizard]
+inputs = [
+	{ name = "interactive", type = "boolean", default = false, short = "i" },
+]
+steps = [
+	{ name = "run wizard", type = "Command", command = "my-tui", inputs = ["interactive"] },
+]
+```
+
+Interactive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)
+
 ## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
 
 ### 🚀 Feature
