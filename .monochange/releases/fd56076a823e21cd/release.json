@@ -1,0 +1,2054 @@
+{
+	"schema_version": "0.4",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-08-19T14:09:58Z",
+	"command": "release",
+	"version": "0.9.1",
+	"versions": {
+		"main": "0.9.1"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.9.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.9.1",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/interactive-picker-group-label-length.md",
+		".changeset/interactive-short-flag-and-spinner-pause.md",
+		".changeset/preview-release-json-opt-in.md",
+		".changeset/publish-progress-line-collision.md",
+		".changeset/spinner-frame-in-place-update.md",
+		".changeset/step-prepare-release-single-config-load.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/interactive-picker-group-label-length.md",
+			"summary": "Cap the group option label length in the interactive change picker",
+			"details": "Groups can contain dozens of packages, and the picker previously inlined every package id into the option label. A label longer than the terminal width wraps onto multiple rows, which corrupts the picker's single-row-per-option layout: option scrolling and filter input echo stop working. Labels now inline the package ids only while the result stays short and fall back to `[group] <id> (<count> packages)` otherwise.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c59f7f773667bbee53f2e20447275436edd5931f",
+						"short_sha": "c59f7f7",
+						"url": "https://github.com/monochange/monochange/commit/c59f7f773667bbee53f2e20447275436edd5931f",
+						"authored_at": "2026-08-19T10:00:25Z",
+						"committed_at": "2026-08-19T10:00:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#636",
+						"title": "fix(cli): add -i short flag and hide the loader during interactive prompts",
+						"url": "https://github.com/monochange/monochange/pull/636",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c59f7f773667bbee53f2e20447275436edd5931f",
+						"short_sha": "c59f7f7",
+						"url": "https://github.com/monochange/monochange/commit/c59f7f773667bbee53f2e20447275436edd5931f",
+						"authored_at": "2026-08-19T10:00:25Z",
+						"committed_at": "2026-08-19T10:00:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#636",
+						"title": "fix(cli): add -i short flag and hide the loader during interactive prompts",
+						"url": "https://github.com/monochange/monochange/pull/636",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/interactive-short-flag-and-spinner-pause.md",
+			"summary": "Add `-i` short flag and hide the loader during interactive prompts",
+			"details": "`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.\n\nThe progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.\n\nCustom commands can now run interactive tools in `Command` steps by passing an `interactive` input:\n\n```toml\n[cli.wizard]\ninputs = [\n\t{ name = \"interactive\", type = \"boolean\", default = false, short = \"i\" },\n]\nsteps = [\n\t{ name = \"run wizard\", type = \"Command\", command = \"my-tui\", inputs = [\"interactive\"] },\n]\n```\n\nInteractive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c59f7f773667bbee53f2e20447275436edd5931f",
+						"short_sha": "c59f7f7",
+						"url": "https://github.com/monochange/monochange/commit/c59f7f773667bbee53f2e20447275436edd5931f",
+						"authored_at": "2026-08-19T10:00:25Z",
+						"committed_at": "2026-08-19T10:00:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#636",
+						"title": "fix(cli): add -i short flag and hide the loader during interactive prompts",
+						"url": "https://github.com/monochange/monochange/pull/636",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c59f7f773667bbee53f2e20447275436edd5931f",
+						"short_sha": "c59f7f7",
+						"url": "https://github.com/monochange/monochange/commit/c59f7f773667bbee53f2e20447275436edd5931f",
+						"authored_at": "2026-08-19T10:00:25Z",
+						"committed_at": "2026-08-19T10:00:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#636",
+						"title": "fix(cli): add -i short flag and hide the loader during interactive prompts",
+						"url": "https://github.com/monochange/monochange/pull/636",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/preview-release-json-opt-in.md",
+			"summary": "Add `--release-json` opt-in for writing release records during preview",
+			"details": "`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3a38d8cc4dda83c9d57e31459fef5ada59ac0444",
+						"short_sha": "3a38d8c",
+						"url": "https://github.com/monochange/monochange/commit/3a38d8cc4dda83c9d57e31459fef5ada59ac0444",
+						"authored_at": "2026-08-16T06:11:08Z",
+						"committed_at": "2026-08-16T06:11:08Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#633",
+						"title": "feat(preview): add --release-json opt-in for writing release records during dry runs",
+						"url": "https://github.com/monochange/monochange/pull/633",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3a38d8cc4dda83c9d57e31459fef5ada59ac0444",
+						"short_sha": "3a38d8c",
+						"url": "https://github.com/monochange/monochange/commit/3a38d8cc4dda83c9d57e31459fef5ada59ac0444",
+						"authored_at": "2026-08-16T06:11:08Z",
+						"committed_at": "2026-08-16T06:11:08Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#633",
+						"title": "feat(preview): add --release-json opt-in for writing release records during dry runs",
+						"url": "https://github.com/monochange/monochange/pull/633",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/publish-progress-line-collision.md",
+			"summary": "Keep publish progress lines on their own lines next to the step spinner",
+			"details": "Publish progress events (for example `◆ Publishing 56 packages …` and per-package `⏭️`/`✅`/`❌` lines) previously appended to the active CLI step spinner line, so leading symbols appeared mid-line instead of at the start of a new line.\n\nBoth reporters now share the global stderr lock, and publish progress clears the active spinner line before writing, so every publish progress line starts on its own line while the step spinner continues animating below it.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "bf0e1f9bfe4cd82fd2c07e2ae697677d18a9a8d1",
+						"short_sha": "bf0e1f9",
+						"url": "https://github.com/monochange/monochange/commit/bf0e1f9bfe4cd82fd2c07e2ae697677d18a9a8d1",
+						"authored_at": "2026-08-16T04:47:16+01:00",
+						"committed_at": "2026-08-16T04:47:16+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#631",
+						"title": "fix(cli): keep publish progress lines on their own lines next to the step spinner",
+						"url": "https://github.com/monochange/monochange/pull/631",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "bf0e1f9bfe4cd82fd2c07e2ae697677d18a9a8d1",
+						"short_sha": "bf0e1f9",
+						"url": "https://github.com/monochange/monochange/commit/bf0e1f9bfe4cd82fd2c07e2ae697677d18a9a8d1",
+						"authored_at": "2026-08-16T04:47:16+01:00",
+						"committed_at": "2026-08-16T04:47:16+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#631",
+						"title": "fix(cli): keep publish progress lines on their own lines next to the step spinner",
+						"url": "https://github.com/monochange/monochange/pull/631",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/spinner-frame-in-place-update.md",
+			"summary": "Swap the load status indicator frames in place instead of reprinting the line",
+			"details": "The load status indicator (spinner) previously rewrote its full line on every 90ms frame tick. When output is captured through a pty or log capture tool that renders carriage returns as new lines, every frame change produced a separate line, making logs very long.\n\nThe spinner now writes the full line only when the content changes — when it starts or after another writer (for example command output or publish progress) clears the line. Between those events it swaps only the frame character in place, so captured output stays compact while terminals still animate.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "9d0f2fc45f7c88e46bafac47fee0f67b6de4d7fc",
+						"short_sha": "9d0f2fc",
+						"url": "https://github.com/monochange/monochange/commit/9d0f2fc45f7c88e46bafac47fee0f67b6de4d7fc",
+						"authored_at": "2026-08-19T13:40:13Z",
+						"committed_at": "2026-08-19T13:40:13Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#635",
+						"title": "fix(cli): swap spinner frames in place instead of reprinting the full line",
+						"url": "https://github.com/monochange/monochange/pull/635",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "9d0f2fc45f7c88e46bafac47fee0f67b6de4d7fc",
+						"short_sha": "9d0f2fc",
+						"url": "https://github.com/monochange/monochange/commit/9d0f2fc45f7c88e46bafac47fee0f67b6de4d7fc",
+						"authored_at": "2026-08-19T13:40:13Z",
+						"committed_at": "2026-08-19T13:40:13Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#635",
+						"title": "fix(cli): swap spinner frames in place instead of reprinting the full line",
+						"url": "https://github.com/monochange/monochange/pull/635",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/step-prepare-release-single-config-load.md",
+			"summary": "Skip the second workspace configuration load during `step prepare-release`",
+			"details": "`step prepare-release` (and the `DisplayVersions` step) previously loaded the full workspace configuration twice: once for CLI command dispatch and again inside release planning. In repositories with many packages or broad `versioned_files` globs, each load re-expands workspace globs and re-validates package definitions, so the redundant load doubled the startup cost.\n\nRelease planning now accepts the already-loaded configuration, so the CLI passes it through instead of reloading. The public `prepare_release` API keeps loading the configuration itself, and phase timing output is unchanged.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ec955b266881b73a3adafd08d629233e7ec5ace4",
+						"short_sha": "ec955b2",
+						"url": "https://github.com/monochange/monochange/commit/ec955b266881b73a3adafd08d629233e7ec5ace4",
+						"authored_at": "2026-08-19T13:40:07Z",
+						"committed_at": "2026-08-19T13:40:07Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#634",
+						"title": "perf(step): skip the second workspace configuration load during prepare-release",
+						"url": "https://github.com/monochange/monochange/pull/634",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ec955b266881b73a3adafd08d629233e7ec5ace4",
+						"short_sha": "ec955b2",
+						"url": "https://github.com/monochange/monochange/commit/ec955b266881b73a3adafd08d629233e7ec5ace4",
+						"authored_at": "2026-08-19T13:40:07Z",
+						"committed_at": "2026-08-19T13:40:07Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#634",
+						"title": "perf(step): skip the second workspace configuration load during prepare-release",
+						"url": "https://github.com/monochange/monochange/pull/634",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#568",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/568",
+						"relationship": "referenced_by_review_request"
+					},
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#620",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/620",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add `--release-json` opt-in for writing release records during preview\n_Packages:_ _monochange_core_\n\n`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Cap the group option label length in the interactive change picker\n_Packages:_ _monochange_\n\nGroups can contain dozens of packages, and the picker previously inlined every package id into the option label. A label longer than the terminal width wraps onto multiple rows, which corrupts the picker's single-row-per-option layout: option scrolling and filter input echo stop working. Labels now inline the package ids only while the result stays short and fall back to `[group] <id> (<count> packages)` otherwise.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)",
+							"#### Add `-i` short flag and hide the loader during interactive prompts\n_Packages:_ _monochange_, _monochange_core_\n\n`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.\n\nThe progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.\n\nCustom commands can now run interactive tools in `Command` steps by passing an `interactive` input:\n\n```toml\n[cli.wizard]\ninputs = [\n\t{ name = \"interactive\", type = \"boolean\", default = false, short = \"i\" },\n]\nsteps = [\n\t{ name = \"run wizard\", type = \"Command\", command = \"my-tui\", inputs = [\"interactive\"] },\n]\n```\n\nInteractive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)",
+							"#### Add `--release-json` opt-in for writing release records during preview\n_Packages:_ _monochange_\n\n`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)",
+							"#### Keep publish progress lines on their own lines next to the step spinner\n_Packages:_ _monochange_\n\nPublish progress events (for example `◆ Publishing 56 packages …` and per-package `⏭️`/`✅`/`❌` lines) previously appended to the active CLI step spinner line, so leading symbols appeared mid-line instead of at the start of a new line.\n\nBoth reporters now share the global stderr lock, and publish progress clears the active spinner line before writing, so every publish progress line starts on its own line while the step spinner continues animating below it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #631](https://github.com/monochange/monochange/pull/631)",
+							"#### Swap the load status indicator frames in place instead of reprinting the line\n_Packages:_ _monochange_\n\nThe load status indicator (spinner) previously rewrote its full line on every 90ms frame tick. When output is captured through a pty or log capture tool that renders carriage returns as new lines, every frame change produced a separate line, making logs very long.\n\nThe spinner now writes the full line only when the content changes — when it starts or after another writer (for example command output or publish progress) clears the line. Between those events it swaps only the frame character in place, so captured output stays compact while terminals still animate.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #635](https://github.com/monochange/monochange/pull/635)",
+							"#### Skip the second workspace configuration load during `step prepare-release`\n_Packages:_ _monochange_\n\n`step prepare-release` (and the `DisplayVersions` step) previously loaded the full workspace configuration twice: once for CLI command dispatch and again inside release planning. In repositories with many packages or broad `versioned_files` globs, each load re-expands workspace globs and re-validates package definitions, so the redundant load doubled the startup cost.\n\nRelease planning now accepts the already-loaded configuration, so the CLI passes it through instead of reloading. The public `prepare_release` API keeps loading the configuration itself, and phase timing output is unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #634](https://github.com/monochange/monochange/pull/634) · _Related issues:_ [#568](https://github.com/monochange/monochange/issues/568), [#620](https://github.com/monochange/monochange/issues/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\nGrouped release for `main`.\n### 🚀 Feature\n\n#### Add `--release-json` opt-in for writing release records during preview\n_Packages:_ _monochange_core_\n\n`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)\n\n### 🐛 Fixed\n\n#### Cap the group option label length in the interactive change picker\n_Packages:_ _monochange_\n\nGroups can contain dozens of packages, and the picker previously inlined every package id into the option label. A label longer than the terminal width wraps onto multiple rows, which corrupts the picker's single-row-per-option layout: option scrolling and filter input echo stop working. Labels now inline the package ids only while the result stays short and fall back to `[group] <id> (<count> packages)` otherwise.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)\n\n#### Add `-i` short flag and hide the loader during interactive prompts\n_Packages:_ _monochange_, _monochange_core_\n\n`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.\n\nThe progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.\n\nCustom commands can now run interactive tools in `Command` steps by passing an `interactive` input:\n\n```toml\n[cli.wizard]\ninputs = [\n\t{ name = \"interactive\", type = \"boolean\", default = false, short = \"i\" },\n]\nsteps = [\n\t{ name = \"run wizard\", type = \"Command\", command = \"my-tui\", inputs = [\"interactive\"] },\n]\n```\n\nInteractive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)\n\n#### Add `--release-json` opt-in for writing release records during preview\n_Packages:_ _monochange_\n\n`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)\n\n#### Keep publish progress lines on their own lines next to the step spinner\n_Packages:_ _monochange_\n\nPublish progress events (for example `◆ Publishing 56 packages …` and per-package `⏭️`/`✅`/`❌` lines) previously appended to the active CLI step spinner line, so leading symbols appeared mid-line instead of at the start of a new line.\n\nBoth reporters now share the global stderr lock, and publish progress clears the active spinner line before writing, so every publish progress line starts on its own line while the step spinner continues animating below it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #631](https://github.com/monochange/monochange/pull/631)\n\n#### Swap the load status indicator frames in place instead of reprinting the line\n_Packages:_ _monochange_\n\nThe load status indicator (spinner) previously rewrote its full line on every 90ms frame tick. When output is captured through a pty or log capture tool that renders carriage returns as new lines, every frame change produced a separate line, making logs very long.\n\nThe spinner now writes the full line only when the content changes — when it starts or after another writer (for example command output or publish progress) clears the line. Between those events it swaps only the frame character in place, so captured output stays compact while terminals still animate.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #635](https://github.com/monochange/monochange/pull/635)\n\n#### Skip the second workspace configuration load during `step prepare-release`\n_Packages:_ _monochange_\n\n`step prepare-release` (and the `DisplayVersions` step) previously loaded the full workspace configuration twice: once for CLI command dispatch and again inside release planning. In repositories with many packages or broad `versioned_files` globs, each load re-expands workspace globs and re-validates package definitions, so the redundant load doubled the startup cost.\n\nRelease planning now accepts the already-loaded configuration, so the CLI passes it through instead of reloading. The public `prepare_release` API keeps loading the configuration itself, and phase timing output is unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #634](https://github.com/monochange/monochange/pull/634) · _Related issues:_ [#568](https://github.com/monochange/monochange/issues/568), [#620](https://github.com/monochange/monochange/issues/620)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Cap the group option label length in the interactive change picker\n\nGroups can contain dozens of packages, and the picker previously inlined every package id into the option label. A label longer than the terminal width wraps onto multiple rows, which corrupts the picker's single-row-per-option layout: option scrolling and filter input echo stop working. Labels now inline the package ids only while the result stays short and fall back to `[group] <id> (<count> packages)` otherwise.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)",
+							"#### Add `-i` short flag and hide the loader during interactive prompts\n\n`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.\n\nThe progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.\n\nCustom commands can now run interactive tools in `Command` steps by passing an `interactive` input:\n\n```toml\n[cli.wizard]\ninputs = [\n\t{ name = \"interactive\", type = \"boolean\", default = false, short = \"i\" },\n]\nsteps = [\n\t{ name = \"run wizard\", type = \"Command\", command = \"my-tui\", inputs = [\"interactive\"] },\n]\n```\n\nInteractive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)",
+							"#### Add `--release-json` opt-in for writing release records during preview\n\n`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)",
+							"#### Keep publish progress lines on their own lines next to the step spinner\n\nPublish progress events (for example `◆ Publishing 56 packages …` and per-package `⏭️`/`✅`/`❌` lines) previously appended to the active CLI step spinner line, so leading symbols appeared mid-line instead of at the start of a new line.\n\nBoth reporters now share the global stderr lock, and publish progress clears the active spinner line before writing, so every publish progress line starts on its own line while the step spinner continues animating below it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #631](https://github.com/monochange/monochange/pull/631)",
+							"#### Swap the load status indicator frames in place instead of reprinting the line\n\nThe load status indicator (spinner) previously rewrote its full line on every 90ms frame tick. When output is captured through a pty or log capture tool that renders carriage returns as new lines, every frame change produced a separate line, making logs very long.\n\nThe spinner now writes the full line only when the content changes — when it starts or after another writer (for example command output or publish progress) clears the line. Between those events it swaps only the frame character in place, so captured output stays compact while terminals still animate.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #635](https://github.com/monochange/monochange/pull/635)",
+							"#### Skip the second workspace configuration load during `step prepare-release`\n\n`step prepare-release` (and the `DisplayVersions` step) previously loaded the full workspace configuration twice: once for CLI command dispatch and again inside release planning. In repositories with many packages or broad `versioned_files` globs, each load re-expands workspace globs and re-validates package definitions, so the redundant load doubled the startup cost.\n\nRelease planning now accepts the already-loaded configuration, so the CLI passes it through instead of reloading. The public `prepare_release` API keeps loading the configuration itself, and phase timing output is unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #634](https://github.com/monochange/monochange/pull/634) · _Related issues:_ [#568](https://github.com/monochange/monochange/issues/568), [#620](https://github.com/monochange/monochange/issues/620)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### 🐛 Fixed\n\n#### Cap the group option label length in the interactive change picker\n\nGroups can contain dozens of packages, and the picker previously inlined every package id into the option label. A label longer than the terminal width wraps onto multiple rows, which corrupts the picker's single-row-per-option layout: option scrolling and filter input echo stop working. Labels now inline the package ids only while the result stays short and fall back to `[group] <id> (<count> packages)` otherwise.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)\n\n#### Add `-i` short flag and hide the loader during interactive prompts\n\n`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.\n\nThe progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.\n\nCustom commands can now run interactive tools in `Command` steps by passing an `interactive` input:\n\n```toml\n[cli.wizard]\ninputs = [\n\t{ name = \"interactive\", type = \"boolean\", default = false, short = \"i\" },\n]\nsteps = [\n\t{ name = \"run wizard\", type = \"Command\", command = \"my-tui\", inputs = [\"interactive\"] },\n]\n```\n\nInteractive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)\n\n#### Add `--release-json` opt-in for writing release records during preview\n\n`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)\n\n#### Keep publish progress lines on their own lines next to the step spinner\n\nPublish progress events (for example `◆ Publishing 56 packages …` and per-package `⏭️`/`✅`/`❌` lines) previously appended to the active CLI step spinner line, so leading symbols appeared mid-line instead of at the start of a new line.\n\nBoth reporters now share the global stderr lock, and publish progress clears the active spinner line before writing, so every publish progress line starts on its own line while the step spinner continues animating below it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #631](https://github.com/monochange/monochange/pull/631)\n\n#### Swap the load status indicator frames in place instead of reprinting the line\n\nThe load status indicator (spinner) previously rewrote its full line on every 90ms frame tick. When output is captured through a pty or log capture tool that renders carriage returns as new lines, every frame change produced a separate line, making logs very long.\n\nThe spinner now writes the full line only when the content changes — when it starts or after another writer (for example command output or publish progress) clears the line. Between those events it swaps only the frame character in place, so captured output stays compact while terminals still animate.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #635](https://github.com/monochange/monochange/pull/635)\n\n#### Skip the second workspace configuration load during `step prepare-release`\n\n`step prepare-release` (and the `DisplayVersions` step) previously loaded the full workspace configuration twice: once for CLI command dispatch and again inside release planning. In repositories with many packages or broad `versioned_files` globs, each load re-expands workspace globs and re-validates package definitions, so the redundant load doubled the startup cost.\n\nRelease planning now accepts the already-loaded configuration, so the CLI passes it through instead of reloading. The public `prepare_release` API keeps loading the configuration itself, and phase timing output is unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #634](https://github.com/monochange/monochange/pull/634) · _Related issues:_ [#568](https://github.com/monochange/monochange/issues/568), [#620](https://github.com/monochange/monochange/issues/620)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_analysis` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_analysis` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_cargo` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_cargo` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_changelog` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_changelog` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_config` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_config` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add `--release-json` opt-in for writing release records during preview\n\n`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add `-i` short flag and hide the loader during interactive prompts\n\n`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.\n\nThe progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.\n\nCustom commands can now run interactive tools in `Command` steps by passing an `interactive` input:\n\n```toml\n[cli.wizard]\ninputs = [\n\t{ name = \"interactive\", type = \"boolean\", default = false, short = \"i\" },\n]\nsteps = [\n\t{ name = \"run wizard\", type = \"Command\", command = \"my-tui\", inputs = [\"interactive\"] },\n]\n```\n\nInteractive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### 🚀 Feature\n\n#### Add `--release-json` opt-in for writing release records during preview\n\n`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.\n\n```bash\n# preview without touching the release record\nmonochange preview\n\n# preview that also writes release.json\nmonochange preview --release-json\n```\n\nDry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)\n\n### 🐛 Fixed\n\n#### Add `-i` short flag and hide the loader during interactive prompts\n\n`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.\n\nThe progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.\n\nCustom commands can now run interactive tools in `Command` steps by passing an `interactive` input:\n\n```toml\n[cli.wizard]\ninputs = [\n\t{ name = \"interactive\", type = \"boolean\", default = false, short = \"i\" },\n]\nsteps = [\n\t{ name = \"run wizard\", type = \"Command\", command = \"my-tui\", inputs = [\"interactive\"] },\n]\n```\n\nInteractive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_dart` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_dart` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_deno` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_deno` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_forgejo` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitea` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitea` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_github` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_github` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_gitlab` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_go` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_go` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_graph` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_graph` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_hosting` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_hosting` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_lint` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_lint` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_linting` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_linting` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_npm` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_npm` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_publish` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_publish` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_python` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_python` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_semver` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_semver` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_telemetry` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.9.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/skill` was updated to 0.9.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/skill` was updated to 0.9.1 as part of group `main`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

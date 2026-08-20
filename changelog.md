@@ -4,6 +4,112 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)
+
+Grouped release for `main`.
+
+### 🚀 Feature
+
+#### Add `--release-json` opt-in for writing release records during preview
+
+_Packages:_ _monochange_core_
+
+`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.
+
+```bash
+# preview without touching the release record
+monochange preview
+
+# preview that also writes release.json
+monochange preview --release-json
+```
+
+Dry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)
+
+### 🐛 Fixed
+
+#### Cap the group option label length in the interactive change picker
+
+_Packages:_ _monochange_
+
+Groups can contain dozens of packages, and the picker previously inlined every package id into the option label. A label longer than the terminal width wraps onto multiple rows, which corrupts the picker's single-row-per-option layout: option scrolling and filter input echo stop working. Labels now inline the package ids only while the result stays short and fall back to `[group] <id> (<count> packages)` otherwise.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)
+
+#### Add `-i` short flag and hide the loader during interactive prompts
+
+_Packages:_ _monochange_, _monochange_core_
+
+`monochange create` (and every schema-built step command) now accepts `-i` as a short flag for `--interactive`, matching the documented example.
+
+The progress spinner is now paused while the interactive change wizard owns the terminal, so the loader no longer animates over the selector UI. It restarts while the change file is written, so the loader only shows while work is actually being done.
+
+Custom commands can now run interactive tools in `Command` steps by passing an `interactive` input:
+
+```toml
+[cli.wizard]
+inputs = [
+	{ name = "interactive", type = "boolean", default = false, short = "i" },
+]
+steps = [
+	{ name = "run wizard", type = "Command", command = "my-tui", inputs = ["interactive"] },
+]
+```
+
+Interactive `Command` steps run with inherited stdio so the tool can read from stdin and render its own UI, and the spinner is suppressed for the step. Output is not captured for interactive steps.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #636](https://github.com/monochange/monochange/pull/636)
+
+#### Add `--release-json` opt-in for writing release records during preview
+
+_Packages:_ _monochange_
+
+`monochange preview` (and any dry-run `PrepareRelease`) no longer writes the release record (`.monochange/releases/<hash>/release.json`) by default. Pass `--release-json` to opt back into writing it during a dry run.
+
+```bash
+# preview without touching the release record
+monochange preview
+
+# preview that also writes release.json
+monochange preview --release-json
+```
+
+Dry-run output now notes when the release record was skipped so the opt-in is discoverable. The git-ignored local manifest cache (`.monochange/local/release-manifest.json`) is still written in dry runs for downstream step rendering.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #633](https://github.com/monochange/monochange/pull/633)
+
+#### Keep publish progress lines on their own lines next to the step spinner
+
+_Packages:_ _monochange_
+
+Publish progress events (for example `◆ Publishing 56 packages …` and per-package `⏭️`/`✅`/`❌` lines) previously appended to the active CLI step spinner line, so leading symbols appeared mid-line instead of at the start of a new line.
+
+Both reporters now share the global stderr lock, and publish progress clears the active spinner line before writing, so every publish progress line starts on its own line while the step spinner continues animating below it.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #631](https://github.com/monochange/monochange/pull/631)
+
+#### Swap the load status indicator frames in place instead of reprinting the line
+
+_Packages:_ _monochange_
+
+The load status indicator (spinner) previously rewrote its full line on every 90ms frame tick. When output is captured through a pty or log capture tool that renders carriage returns as new lines, every frame change produced a separate line, making logs very long.
+
+The spinner now writes the full line only when the content changes — when it starts or after another writer (for example command output or publish progress) clears the line. Between those events it swaps only the frame character in place, so captured output stays compact while terminals still animate.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #635](https://github.com/monochange/monochange/pull/635)
+
+#### Skip the second workspace configuration load during `step prepare-release`
+
+_Packages:_ _monochange_
+
+`step prepare-release` (and the `DisplayVersions` step) previously loaded the full workspace configuration twice: once for CLI command dispatch and again inside release planning. In repositories with many packages or broad `versioned_files` globs, each load re-expands workspace globs and re-validates package definitions, so the redundant load doubled the startup cost.
+
+Release planning now accepts the already-loaded configuration, so the CLI passes it through instead of reloading. The public `prepare_release` API keeps loading the configuration itself, and phase timing output is unchanged.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #634](https://github.com/monochange/monochange/pull/634) · _Related issues:_ [#568](https://github.com/monochange/monochange/issues/568), [#620](https://github.com/monochange/monochange/issues/620)
+
 ## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
 
 Grouped release for `main`.
