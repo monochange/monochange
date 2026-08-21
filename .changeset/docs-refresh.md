@@ -5,6 +5,12 @@ monochange:
 monochange_core:
   bump: patch
   type: docs
+monochange_linting:
+  bump: patch
+  type: docs
+monochange_schema:
+  bump: patch
+  type: docs
 "@monochange/cli":
   bump: patch
   type: docs
