@@ -2,6 +2,9 @@
 monochange:
   bump: patch
   type: docs
+monochange_core:
+  bump: patch
+  type: docs
 "@monochange/skill":
   bump: patch
   type: docs
