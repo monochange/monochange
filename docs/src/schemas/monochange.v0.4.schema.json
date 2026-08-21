@@ -763,7 +763,7 @@
 				},
 				{
 					"additionalProperties": false,
-					"description": "Comment on linked released issues after a prepared release.\n\nRequires a previous `PrepareRelease` step and currently expects\n`[source].provider = \"github\"`.",
+					"description": "Comment on linked released issues after a prepared release.\n\nRequires a previous `PrepareRelease` step and expects\n`[source].provider = \"github\"`.",
 					"properties": {
 						"always_run": {
 							"default": false,

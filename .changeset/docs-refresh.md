@@ -1,6 +1,6 @@
 ---
 monochange:
-  bump: none
+  bump: patch
   type: docs
 monochange_core:
   bump: none
