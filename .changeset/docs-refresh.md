@@ -1,22 +1,10 @@
 ---
-monochange:
-  bump: patch
-  type: docs
-monochange_core:
-  bump: none
-  type: docs
-monochange_linting:
-  bump: none
-  type: docs
-monochange_schema:
-  bump: none
-  type: docs
-"@monochange/cli":
-  bump: none
-  type: docs
-"@monochange/skill":
-  bump: none
-  type: docs
+monochange: docs
+monochange_core: docs
+monochange_linting: docs
+monochange_schema: docs
+"@monochange/cli": docs
+"@monochange/skill": docs
 ---
 
 # refresh documentation and remove stale CLI references

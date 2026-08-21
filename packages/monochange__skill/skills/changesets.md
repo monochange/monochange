@@ -50,7 +50,19 @@ When using configured changelog types, the type can be the target value when it 
 Users can now filter webhook deliveries by event type and delivery status.
 ```
 
-The shorthand above is compact, but only use it when the configured changelog type already implies the intended bump. If you need to override the bump, pin a version, or attach dependency context, switch to object syntax.
+Prefer the inline form. Whenever the bump you want matches the configured type's default bump, write the type as the target value and nothing else. For example, `docs` maps to `bump: none` in a typical config, so a documentation-only change is:
+
+```md
+---
+"@acme/api": docs
+---
+
+# Document the webhook behavior
+
+Explain the retry and delivery semantics in the README.
+```
+
+This applies to every configured type: `feat` implies its default bump, `fix` implies its default, `docs` implies `none`, and so on. Use the inline form as the default choice. Object syntax is reserved for cases where the inline form cannot express the intent.
 
 Use object syntax when you need `bump`, `type`, `version`, or `caused_by` together:
 
@@ -95,6 +107,22 @@ Use explicit versions only when you need a specific version rather than semver b
 
 # Stabilize webhook filter endpoints
 ```
+
+### Overriding a type's default bump
+
+Object syntax also lets you keep a type while changing its bump. For example, `docs` defaults to `bump: none`, but you might want a docs change to ship a `patch` bump, or a `minor` bump:
+
+```md
+---
+"@acme/web":
+  bump: patch
+  type: docs
+---
+
+# Document the webhook behavior
+```
+
+Overrides like this are possible, but treat them as the exception. Only override a type's default bump when the user explicitly asks for that version behavior; otherwise use the inline form and let the type's default bump stand.
 
 ## `caused_by`
 
