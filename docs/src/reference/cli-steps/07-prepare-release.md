@@ -25,9 +25,9 @@ If your command eventually needs release metadata, start with `PrepareRelease` r
 
 ## Inputs
 
-- `format` — `markdown`, `text`, or `json`
-- `write_empty_release_record` — boolean; write a release record even when no packages were released
-- `release_json` — boolean; write the release record (`.monochange/releases/<hash>/release.json`) during dry-run preview. By default `monochange preview` skips the release record; pass `--release-json` to write it.
+- `format`: `markdown`, `text`, or `json`
+- `write_empty_release_record`: boolean; write a release record even when no packages were released
+- `release_json`: boolean; write the release record (`.monochange/releases/<hash>/release.json`) during dry-run preview. By default `monochange preview` skips the release record; pass `--release-json` to write it.
 
 ## Step-level `when` condition
 
@@ -68,7 +68,7 @@ It can produce:
 - structured `release.*` template values for later `Command` steps
 - `manifest.path` for later `Command` steps that need the on-disk JSON artifact
 
-Built-in release-oriented commands now default their human-readable `format` input to `markdown`. Use `text` when you explicitly want the older plain-text style, or `json` for automation.
+Built-in release-oriented commands default their human-readable `format` input to `markdown`. Use `text` when you explicitly want the older plain-text style, or `json` for automation.
 
 When you only need the resolved package and group versions, use the dedicated [`DisplayVersions`](14-display-versions.md) step or the built-in `monochange versions` command instead of overloading `PrepareRelease`.
 
@@ -144,7 +144,7 @@ Because the later steps all depend on the same prepared state, you should genera
 
 ### Reuse prepared state across separate commands
 
-When you do need to split the workflow across separate commands, monochange can now reuse a prepared release artifact instead of recomputing the release plan from scratch.
+When you do need to split the workflow across separate commands, monochange can reuse a prepared release artifact instead of recomputing the release plan from scratch.
 
 When a repository defines workflow wrappers, the default cache path is automatic. For example, a repo with `release` and `release-pr` wrappers might run:
 

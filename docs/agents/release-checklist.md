@@ -67,13 +67,13 @@ npm packages are handled differently from cargo crates. Platform-specific npm pa
 - [ ] Run `monochange step validate` and fix any errors or warnings.
 - [ ] Run `lint:monochange` (devenv script) and fix any lint errors.
 - [ ] Check that every changeset targeting a new package uses `major` (not `patch`) for the first release of that package.
-- [ ] Verify the `main` group's `version_format = "primary"` is set — only one package or group may use `"primary"` and it produces the top-level `vX.Y.Z` tag.
+- [ ] Verify the `main` group's `version_format = "primary"` is set: only one package or group may use `"primary"` and it produces the top-level `vX.Y.Z` tag.
 - [ ] Verify `versioned_files` in the group entry covers all files that need version bumps (currently `Cargo.toml` with `workspace.package.version`).
 
 ## 9. Asset build and attestation
 
 - [ ] `release.yml` cross-compiles for all targets in the matrix. Verify the target list matches what npm platform packages expect (`darwin-arm64`, `darwin-x64`, `linux-arm64-gnu`, `linux-arm64-musl`, `linux-x64-gnu`, `linux-x64-musl`, `win32-x64-msvc`, `win32-arm64-msvc`).
-- [ ] Verify `taiki-e/upload-rust-binary-action` is configured with `bin: monochange` and `archive: "monochange-$target-$tag"` — the download step in `publish.yml` matches this pattern (`monochange-*-${RELEASE_TAG}.tar.gz` / `.zip`) and cargo-binstall can find the package binary in each archive.
+- [ ] Verify `taiki-e/upload-rust-binary-action` is configured with `bin: monochange` and `archive: "monochange-$target-$tag"`: the download step in `publish.yml` matches this pattern (`monochange-*-${RELEASE_TAG}.tar.gz` / `.zip`) and cargo-binstall can find the package binary in each archive.
 - [ ] Build attestations (`actions/attest-build-provenance@v3`) and verification steps exist and pass.
 
 ## 10. Post-release verification

@@ -18,7 +18,7 @@ This is especially valuable when:
 
 ## Inputs
 
-- `format` — `text` or `json`
+- `format`: `text` or `json`
 
 ## Step-level `when` condition
 
@@ -118,4 +118,4 @@ Because the built-in step already consumes monochange's linked issue and review 
 
 ## Common mistake
 
-Using `CommentReleasedIssues` without a GitHub source configuration. This step is intentionally provider-specific today.
+Using `CommentReleasedIssues` without a GitHub source configuration. This step is intentionally provider-specific.

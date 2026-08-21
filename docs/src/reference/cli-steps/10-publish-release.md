@@ -23,7 +23,7 @@ Use `monochange step publish-packages` instead when you want monochange to run `
 
 ## Inputs
 
-- `format` — `text` or `json`
+- `format`: `text` or `json`
 
 ## Step-level `when` condition
 

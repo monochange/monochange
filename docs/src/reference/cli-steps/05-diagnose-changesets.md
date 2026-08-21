@@ -22,8 +22,8 @@ This makes it especially useful for debugging rich release-note context and CI p
 
 ## Inputs
 
-- `format` — `text` or `json`
-- `changeset` — one or more explicit changeset paths; omit to inspect all discovered changesets
+- `format`: `text` or `json`
+- `changeset`: one or more explicit changeset paths; omit to inspect all discovered changesets
 
 ## Step-level `when` condition
 

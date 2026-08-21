@@ -40,7 +40,7 @@ Trusted publishing support is not uniform across registries or CI providers. mon
 
 monochange also detects CircleCI publish-time identity, but none of the built-in public registry combinations above are treated as CircleCI trusted-publishing support today. Unknown local shells and unsupported providers are never treated as trusted.
 
-npm is currently the only ecosystem where monochange can render precise GitHub trusted-publisher repair commands. It still does not run `npm trust` during real package publishing; use `mode = "external"` for any registry workflow that should stay outside monochange's built-in publisher.
+npm is the only ecosystem where monochange can render precise GitHub trusted-publisher repair commands. It still does not run `npm trust` during real package publishing; use `mode = "external"` for any registry workflow that should stay outside monochange's built-in publisher.
 
 Go module publishing is included in the built-in package publisher, but it is not an OIDC trusted-publishing flow. Go versions are published by creating VCS tags. monochange uses `git tag`, choosing `v1.2.3` for a root module and path-prefixed tags such as `api/v1.2.3` for submodules, then checks availability through the Go module proxy.
 
@@ -180,7 +180,7 @@ Use this sequence when adopting trusted publishing for an existing workspace:
 2. Run `monochange step placeholder-publish --dry-run` to see which packages do not exist yet.
 3. If needed, run `monochange step placeholder-publish` so the package exists in the registry first.
 4. Complete the registry-side trusted-publishing setup for each package.
-5. Run `monochange step publish-packages --dry-run` to confirm monochange now sees the expected trust configuration.
+5. Run `monochange step publish-packages --dry-run` to confirm monochange sees the expected trust configuration.
 6. Optionally generate a readiness artifact in CI with `monochange step publish-readiness --from HEAD --output .monochange/readiness.json` for preflight review or publish planning.
 7. Publish from CI with `monochange step publish-packages --output .monochange/publish-result.json`.
 
@@ -198,10 +198,10 @@ On npm, trusted publishing can be configured from the package settings page or t
 
 **Fields to enter for GitHub Actions**
 
-- **Organization or user** — GitHub owner
-- **Repository** — GitHub repository name
-- **Workflow filename** — for example `publish.yml`
-- **Environment name** — optional, for example `publisher`
+- **Organization or user**: GitHub owner
+- **Repository**: GitHub repository name
+- **Workflow filename**: for example `publish.yml`
+- **Environment name**: optional, for example `publisher`
 
 Only the workflow filename is required, not the full `.github/workflows/...` path.
 
@@ -265,7 +265,7 @@ permissions:
 
 ### Registry-side setup
 
-crates.io supports trusted publishing through CI-issued OIDC. monochange currently models GitHub Actions for built-in trusted-publishing diagnostics and keeps other crates.io provider combinations manual until registry-side verification is available.
+crates.io supports trusted publishing through CI-issued OIDC. monochange models GitHub Actions for built-in trusted-publishing diagnostics and keeps other crates.io provider combinations manual until registry-side verification is available.
 
 Trusted publishing on crates.io exchanges your CI identity for a short-lived publish token, so you do not need a long-lived crates.io API token in CI.
 
@@ -283,10 +283,10 @@ If the crate does not exist yet, bootstrap it first with a real initial release 
 
 **Fields to enter for GitHub Actions**
 
-- **Repository owner** — GitHub owner
-- **Repository name** — GitHub repository name
-- **Workflow filename** — for example `release.yml`
-- **Environment** — optional, for example `release`
+- **Repository owner**: GitHub owner
+- **Repository name**: GitHub repository name
+- **Workflow filename**: for example `release.yml`
+- **Environment**: optional, for example `release`
 
 Use the workflow filename only, not the full `.github/workflows/...` path.
 
@@ -323,7 +323,7 @@ If you configure an environment on crates.io, the GitHub job must use the same e
 ### monochange notes
 
 - monochange does not create the `crates.io` trusted-publisher record for you yet.
-- monochange now preflights the GitHub repository/workflow/environment context it expects for manual registries and reports when one of those values still needs to be set explicitly in config.
+- monochange preflights the GitHub repository/workflow/environment context it expects for manual registries and reports when one of those values still needs to be set explicitly in config.
 - Once the registry-side configuration exists, monochange can publish with the temporary token exposed by `rust-lang/crates-io-auth-action@v1`.
 - crates.io issues a short-lived publish token; the current docs describe these tokens as expiring after 30 minutes.
 - Use a specific workflow filename and, when needed, a protected GitHub environment to reduce the publish attack surface.
@@ -346,7 +346,7 @@ JSR supports tokenless publishing from GitHub Actions.
 - open **Settings**
 - link the package to the GitHub repository that is allowed to publish it
 
-monochange currently reports the package URL and expects this repository-linking step to be completed manually.
+monochange reports the package URL and expects this repository-linking step to be completed manually.
 
 ### Workflow setup
 
@@ -370,7 +370,7 @@ deno publish
 
 ### monochange notes
 
-- JSR's tokenless publishing is currently GitHub Actions focused.
+- JSR's tokenless publishing is GitHub Actions focused.
 - Other CI providers still need token-based publishing.
 - monochange does not yet link the package to the repository for you.
 - If the package does not exist yet, placeholder publishing can bootstrap the registry entry before you finish the repository-link step.
@@ -404,8 +404,8 @@ If the package does not exist yet, publish it once first or use `monochange step
 
 **Fields to enter**
 
-- **Repository** — `owner/repo`
-- **Tag pattern** — a string containing `{{version}}`
+- **Repository**: `owner/repo`
+- **Tag pattern**: a string containing `{{version}}`
 
 Examples:
 
@@ -528,15 +528,15 @@ Today, monochange does not perform registry-side trusted-publishing enrollment d
 
 Areas that may become more automated later, where the registry and CI contracts make it safe enough, include:
 
-- **`crates.io`** — stronger preflight validation around explicit workflow filenames, environment alignment, and clearer checks for first-publish bootstrap versus post-bootstrap trusted publishing
-- **`jsr`** — better repository-link diagnostics and package metadata checks before publish, especially when the package already exists but repository-side linking is incomplete
-- **`pub.dev`** — stronger validation that tag patterns, workflow triggers, working directories, and optional environments still match the automated-publishing setup expected by pub.dev
-- **PyPI** — stronger validation that the project trusted-publisher settings match the workflow name, environment, and package path monochange expects before running `uv publish`
+- **`crates.io`**: stronger preflight validation around explicit workflow filenames, environment alignment, and clearer checks for first-publish bootstrap versus post-bootstrap trusted publishing
+- **`jsr`**: better repository-link diagnostics and package metadata checks before publish, especially when the package already exists but repository-side linking is incomplete
+- **`pub.dev`**: stronger validation that tag patterns, workflow triggers, working directories, and optional environments still match the automated-publishing setup expected by pub.dev
+- **PyPI**: stronger validation that the project trusted-publisher settings match the workflow name, environment, and package path monochange expects before running `uv publish`
 
-Areas that monochange does **not** promise today:
+Areas that monochange does **not** promise:
 
 - auto-enrolling registry-side trusted-publisher records for any registry, including npm, `crates.io`, `jsr`, `pub.dev`, or PyPI
 - bypassing browser-confirmed or admin-page-only steps that the registry intentionally keeps manual
 - inferring enough registry-side state to claim a package is fully enrolled when the registry does not expose that state safely or consistently
 
-Treat this as a direction of travel, not a guarantee of upcoming behavior. If you need a registry-native workflow today, keep the package on `mode = "external"` and let the registry-maintained workflow own the actual publish command.
+Treat this as a direction of travel, not a guarantee of upcoming behavior. If you need a registry-native workflow, keep the package on `mode = "external"` and let the registry-maintained workflow own the actual publish command.

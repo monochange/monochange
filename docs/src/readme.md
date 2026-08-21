@@ -17,7 +17,6 @@ Install the prebuilt CLI from npm:
 ```bash
 npm install -g @monochange/cli
 monochange --help
-monochange --help
 ```
 
 Then run the core beginner flow:
@@ -84,7 +83,7 @@ When you are ready to prepare the release locally, run `monochange run release`.
 
 <!-- {/projectCoreWorkflow} -->
 
-For human-readable local output, `monochange run release --dry-run` now defaults to terminal-friendly markdown. Use `--format json` for automation, `--format text` when you explicitly want the older plain-text rendering, and `--quiet` when you want dry-run behavior without stdout/stderr output. Use `monochange step display-versions` when you only need planned package and group versions; use `monochange versions --dry-run` when you want to preview internal dependency constraint updates before writing them.
+For human-readable local output, `monochange run release --dry-run` defaults to terminal-friendly markdown. Use `--format json` for automation, `--format text` when you explicitly want the older plain-text rendering, and `--quiet` when you want dry-run behavior without stdout/stderr output. Use `monochange step display-versions` when you only need planned package and group versions; use `monochange versions --dry-run` when you want to preview internal dependency constraint updates before writing them.
 
 This book is maintained with `mdt` so shared content blocks stay synchronized across pages. See the [Configuration reference](guide/04-configuration.md#shared-documentation) for how template updates work.
 
@@ -92,15 +91,15 @@ If you want a slower, more guided walkthrough, continue with [Start here](./guid
 
 ## What to read next
 
-- [Start here](./guide/00-start-here.md) — install, `monochange init`, validation, discovery, and `--dry-run`
-- [Installation](./guide/01-installation.md) — npm, Cargo, optional assistant tooling, and repository development setup
-- [Your first release plan](./guide/02-setup.md) — generated config first, package ids before groups
-- [Configuration reference](./guide/04-configuration.md) — the full package, group, changelog, and CLI model
-- [Release planning](./guide/06-release-planning.md) — changesets, dry runs, diff previews, and planning rules
-- [Advanced: GitHub automation](./guide/08-github-automation.md) — provider publishing and release requests
-- [Advanced: CI, package publishing, and release PR flows](./guide/13-ci-and-publishing.md) — per-provider CI patterns, trusted publishing, and long-running release PR design notes
-- [Advanced: Assistant setup and MCP](./guide/09-assistant-setup.md) — optional AI-assisted workflows
-- [Reference: Manifest linting with `monochange check`](./reference/linting.md) — `[lints]` rules for Cargo and npm-family manifests
+- [Start here](./guide/00-start-here.md): install, `monochange init`, validation, discovery, and `--dry-run`
+- [Installation](./guide/01-installation.md): npm, Cargo, optional assistant tooling, and repository development setup
+- [Your first release plan](./guide/02-setup.md): generated config first, package ids before groups
+- [Configuration reference](./guide/04-configuration.md): the full package, group, changelog, and CLI model
+- [Release planning](./guide/06-release-planning.md): changesets, dry runs, diff previews, and planning rules
+- [Advanced: GitHub automation](./guide/08-github-automation.md): provider publishing and release requests
+- [Advanced: CI, package publishing, and release PR flows](./guide/13-ci-and-publishing.md): per-provider CI patterns, trusted publishing, and long-running release PR design notes
+- [Advanced: Assistant setup and MCP](./guide/09-assistant-setup.md): optional AI-assisted workflows
+- [Reference: Manifest linting with `monochange check`](./reference/linting.md): `[lints]` rules for Cargo and npm-family manifests
 
 <!-- {=projectRecentPublishingImprovements} -->
 
@@ -108,11 +107,11 @@ If you want a slower, more guided walkthrough, continue with [Start here](./guid
 
 Recent `monochange` improvements made package publishing guidance and diagnostics much more actionable:
 
-- a dedicated trusted-publishing guide now covers `npm`, `crates.io`, `jsr`, and `pub.dev`
-- CI examples now prefer the official registry-maintained workflows for `crates.io` and `pub.dev`
-- a dedicated multi-package publishing guide now covers monorepo tag, workflow, and package-boundary patterns
-- CLI output now gives clearer manual next steps for registries that still require registry-side trusted-publishing enrollment
-- built-in publish preflight now validates and reports the expected GitHub repository, workflow, and environment context for manual registries when it can infer them
+- a dedicated trusted-publishing guide covers `npm`, `crates.io`, `jsr`, and `pub.dev`
+- CI examples prefer the official registry-maintained workflows for `crates.io` and `pub.dev`
+- a dedicated multi-package publishing guide covers monorepo tag, workflow, and package-boundary patterns
+- CLI output gives clearer manual next steps for registries that still require registry-side trusted-publishing enrollment
+- built-in publish preflight validates and reports the expected GitHub repository, workflow, and environment context for manual registries when it can infer them
 - the monochange repository wires `monochange run publish-check` as a dry-run `PublishPackages` workflow so CI can verify package-publishing readiness without publishing
 
 <!-- {/projectRecentPublishingImprovements} -->
@@ -147,7 +146,7 @@ These are common commands for repositories using monochange. With the current CL
 
 `monochange step publish-readiness` performs non-mutating registry checks before `monochange step publish-packages`. For built-in Cargo publishes to crates.io it also verifies current manifest publishability: `publish = false` blocks publishing, `publish = [...]` must include `crates-io`, `description` must be set, and either `license` or `license-file` must be set. Workspace-inherited Cargo metadata is accepted, and already-published versions remain non-blocking in readiness reports. The artifact fingerprints `monochange.toml`, package manifests, lockfiles, and registry/tooling files, so rerun `monochange step publish-readiness` after those inputs change. `monochange step plan-publish-rate-limits --readiness <path>` validates the artifact for planning and limits rate-limit batches to package ids that are ready in both the artifact and the fresh local readiness check. `monochange step publish-packages` publishes directly from prepared release or `HEAD` release state and does not require the readiness artifact. If readiness shows missing first-time registry packages, run `monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json`, then rerun readiness before real publishing.
 
-## What monochange can do today
+## What monochange can do
 
 <!-- {=projectMilestoneCapabilities} -->
 

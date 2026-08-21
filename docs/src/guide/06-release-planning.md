@@ -73,8 +73,8 @@ sdk: minor
 
 A quick rule of thumb:
 
-- **package id** — the leaf package changed and monochange can propagate the rest
-- **group id** — the note should read as one coordinated release for all members
+- **package id**: the leaf package changed and monochange can propagate the rest
+- **group id**: the note should read as one coordinated release for all members
 
 <!-- {=releaseExplicitVersionChangesetExample} -->
 
@@ -169,7 +169,7 @@ monochange run release --dry-run --format json
 
 <!-- {/projectPlanCommand} -->
 
-For human-readable local output, `monochange run release --dry-run` now defaults to terminal-friendly markdown. Use `--format text` when you want the older plain-text style, or keep `--format json` for automation.
+For human-readable local output, `monochange run release --dry-run` defaults to terminal-friendly markdown. Use `--format text` when you want the older plain-text style, or keep `--format json` for automation.
 
 Preferred repository command flow:
 
@@ -201,10 +201,10 @@ monochange run release --dry-run --diff
 
 Use each command for a different question:
 
-- `monochange step validate` — is the config and changeset set valid?
-- `monochange step discover --format json` — which package ids, groups, and dependency edges exist?
-- `monochange step diagnose-changesets --format json` — who introduced these changesets and what review context is attached?
-- `monochange run release --dry-run --diff` — what exact files would change if I prepared the release now?
+- `monochange step validate`: is the config and changeset set valid?
+- `monochange step discover --format json`: which package ids, groups, and dependency edges exist?
+- `monochange step diagnose-changesets --format json`: who introduced these changesets and what review context is attached?
+- `monochange run release --dry-run --diff`: what exact files would change if I prepared the release now?
 
 ### Compare preview modes
 
@@ -322,7 +322,7 @@ jobs:
 
 <!-- {/changesetPolicyGitHubActionWorkflow} -->
 
-Current planning rules:
+Planning rules:
 
 <!-- {=releasePlanningRules} -->
 
@@ -353,9 +353,9 @@ Current planning rules:
 
 These commands answer different questions:
 
-- `monochange step diagnose-changesets --format json` — what is currently pending in `.changeset/*.md`, and who introduced it?
-- `monochange step release-record --from <ref>` — what did a past release commit declare durably in git history?
-- `monochange step tag-release --from HEAD` — if `HEAD` is the merged release commit, which release tags should be created now?
+- `monochange step diagnose-changesets --format json`: what is currently pending in `.changeset/*.md`, and who introduced it?
+- `monochange step release-record --from <ref>`: what did a past release commit declare durably in git history?
+- `monochange step tag-release --from HEAD`: if `HEAD` is the merged release commit, which release tags should be created now?
 
 Use diagnostics **before** you release. Use release records **after** a release exists and you need to inspect it. Use `monochange step tag-release` in post-merge CI when the release commit has landed on the default branch and you want to create the declared tag set from that durable history record.
 
@@ -363,4 +363,4 @@ Across release-oriented commands, global `--quiet` suppresses stdout/stderr and 
 
 ## Concurrency
 
-`monochange run release` is designed for sequential execution. Do not run multiple `monochange run release` commands concurrently on the same workspace — there is no file locking, so concurrent runs could produce duplicate changelog entries, inconsistent version files, or corrupted release records. If you need parallel release preparation across workspaces, use separate working copies.
+`monochange run release` is designed for sequential execution. Do not run multiple `monochange run release` commands concurrently on the same workspace. There is no file locking, so concurrent runs could produce duplicate changelog entries, inconsistent version files, or corrupted release records. If you need parallel release preparation across workspaces, use separate working copies.

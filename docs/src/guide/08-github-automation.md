@@ -31,10 +31,10 @@ monochange init --provider github
 
 This single command generates:
 
-1. **Complete source configuration** — `[source]`, `[source.releases]`, and `[source.pull_requests]` sections
-2. **Automation CLI commands** — `commit-release` and `release-pr` commands ready to use
-3. **GitHub Actions workflows** — `release.yml` and `changeset-policy.yml` for CI/CD
-4. **Auto-detected repository info** — parses your git remote to pre-fill owner and repo
+1. **Complete source configuration** - `[source]`, `[source.releases]`, and `[source.pull_requests]` sections
+2. **Automation CLI commands** - `commit-release` and `release-pr` commands ready to use
+3. **GitHub Actions workflows** - `release.yml` and `changeset-policy.yml` for CI/CD
+4. **Auto-detected repository info** - parses your git remote to pre-fill owner and repo
 
 <!-- {/initProviderQuickStart} -->
 
@@ -53,7 +53,7 @@ monochange step affected-packages --format json --verify --changed-paths crates/
 
 ## Inspecting and repairing a recent release
 
-GitHub automation now has a repair-oriented history flow in addition to the existing manifest-driven execution flow.
+GitHub automation has a repair-oriented history flow in addition to the existing manifest-driven execution flow.
 
 Use these commands when you need to inspect, tag, or repair a just-created release:
 
@@ -121,7 +121,7 @@ Package publishing is separate from provider release publishing:
 - `monochange step publish-packages` handles package registries such as `crates.io`, `npm`, `jsr`, and `pub.dev`
 - `monochange step publish-release` handles hosted source-provider releases such as GitHub releases
 
-When `publish.trusted_publishing` is enabled, monochange can derive GitHub trust metadata from the workflow runtime and the configured `[source]` block. npm packages get the richest built-in diagnostics today:
+When `publish.trusted_publishing` is enabled, monochange can derive GitHub trust metadata from the workflow runtime and the configured `[source]` block. npm packages get the richest built-in diagnostics:
 
 - monochange rejects long-lived npm token environment variables for trusted-publishing runs
 - monochange verifies that the current GitHub Actions OIDC context matches the configured trusted-publisher context
@@ -132,7 +132,7 @@ For `crates.io`, `jsr`, and `pub.dev`, monochange reports the setup URL for the 
 
 For exact registry-side setup steps and field mappings, see [Trusted publishing and OIDC](./07-trusted-publishing.md).
 
-For full GitHub and GitLab CI examples by ecosystem — npm, Cargo, Deno/JSR, and Dart/pub.dev — see [Advanced: CI, package publishing, and release PR flows](./13-ci-and-publishing.md).
+For full GitHub and GitLab CI examples by ecosystem, including npm, Cargo, Deno/JSR, and Dart/pub.dev, see [Advanced: CI, package publishing, and release PR flows](./13-ci-and-publishing.md).
 
 ## Release notes, GitHub releases, and release PRs
 
@@ -294,7 +294,7 @@ type = "AffectedPackages"
 
 ## Release and npm publish workflows
 
-monochange now includes a release workflow modeled around long-running release PR refresh plus post-merge tagging:
+monochange includes a release workflow modeled around long-running release PR refresh plus post-merge tagging:
 
 - `.github/workflows/release.yml` refreshes the dedicated release PR branch on normal `main` pushes
 - the same workflow detects when `HEAD` is already a merged monochange release commit, runs `monochange step tag-release --from HEAD`, runs `monochange step publish-readiness --from HEAD --output <path>`, and then runs `monochange step publish-packages`
@@ -409,11 +409,11 @@ After publishing, verify npm provenance from the package page or with npm's prov
 
 The `--provider` flag supports three source providers:
 
-| Provider | `--provider` value | Workflow generation       | Release automation | Pull/merge requests |
-| -------- | ------------------ | ------------------------- | ------------------ | ------------------- |
-| GitHub   | `github`           | Yes — GitHub Actions      | Yes                | Yes                 |
-| GitLab   | `gitlab`           | No — use `.gitlab-ci.yml` | Yes                | Yes                 |
-| Gitea    | `gitea`            | No — use Gitea Actions    | Yes                | Yes                 |
+| Provider | `--provider` value | Workflow generation      | Release automation | Pull/merge requests |
+| -------- | ------------------ | ------------------------ | ------------------ | ------------------- |
+| GitHub   | `github`           | Yes: GitHub Actions      | Yes                | Yes                 |
+| GitLab   | `gitlab`           | No: use `.gitlab-ci.yml` | Yes                | Yes                 |
+| Gitea    | `gitea`            | No: use Gitea Actions    | Yes                | Yes                 |
 
 All providers configure the `[source]` section in `monochange.toml` with appropriate settings for releases and pull/merge requests. GitLab and Gitea require manual CI configuration since they don't support GitHub Actions workflow files.
 

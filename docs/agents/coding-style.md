@@ -1,6 +1,6 @@
 # Coding style
 
-This guide defines the code aesthetics and layout standards for the monochange codebase. It focuses on **how code looks** rather than what it does—whitespace placement, comment positioning, code simplification patterns, and visual organization to maximize readability.
+This guide defines the code aesthetics and layout standards for the monochange codebase. It focuses on **how code looks** rather than what it does: whitespace placement, comment positioning, code simplification patterns, and visual organization to maximize readability.
 
 > **Note**: This guide does not dictate which functions, methods, or language features to use. Those decisions are documented in other guides (e.g., [Rust quality and safety](rust-quality.md), [Architecture rules](architecture.md)). This guide is purely about the _visual presentation_ of code.
 
@@ -31,7 +31,7 @@ if !is_valid_signature(input) {
 
 ### Whitespace is semantics
 
-Blank lines are not just for decoration—they separate concepts and give the reader time to breathe.
+Blank lines separate concepts and give the reader time to breathe.
 
 **Where to place blank lines:**
 

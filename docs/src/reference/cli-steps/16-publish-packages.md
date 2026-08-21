@@ -70,12 +70,12 @@ Use `PlaceholderPublish` instead when you need to bootstrap a package that does 
 
 ## Inputs
 
-- `format` — `text`, `markdown`, or `json`
-- `package` — optional repeated package ids used to filter the publish set
-- `group` — optional repeated group ids; all packages in each group are added to the publish set
-- `ecosystem` — optional repeated ecosystem names (`cargo`, `npm`, `deno`, `dart`, `python`, `go`; `flutter` is accepted as a legacy alias for `dart`); only packages targeting the selected ecosystems are published
-- `resume` — optional path to a JSON result artifact from an earlier real `monochange step publish-packages` or configured publish workflow run; completed package versions are skipped and failed or pending work is retried
-- `output` — optional path where monochange writes the package publish result JSON artifact for retry/resume workflows
+- `format`: `text`, `markdown`, or `json`
+- `package`: optional repeated package ids used to filter the publish set
+- `group`: optional repeated group ids; all packages in each group are added to the publish set
+- `ecosystem`: optional repeated ecosystem names (`cargo`, `npm`, `deno`, `dart`, `python`, `go`; `flutter` is accepted as a legacy alias for `dart`); only packages targeting the selected ecosystems are published
+- `resume`: optional path to a JSON result artifact from an earlier real `monochange step publish-packages` or configured publish workflow run; completed package versions are skipped and failed or pending work is retried
+- `output`: optional path where monochange writes the package publish result JSON artifact for retry/resume workflows
 
 ## Step-level `when` condition
 
@@ -218,7 +218,7 @@ Because `PublishPackages` understands:
 
 Packages with `publish.mode = "external"` are skipped by `PublishPackages`. If your CI or scripts handle publishing for a package, set `mode = "external"` to tell monochange not to publish that package during release publishing.
 
-Placeholder publishing (`PlaceholderPublish`) is not affected by `publish.mode` — it processes all packages with `publish.enabled = true` regardless of mode. This is because placeholder publishing is a one-time bootstrap step, not a release publishing step.
+Placeholder publishing (`PlaceholderPublish`) is not affected by `publish.mode`. It processes all packages with `publish.enabled = true` regardless of mode. This is because placeholder publishing is a one-time bootstrap step, not a release publishing step.
 
 ## Common mistakes
 

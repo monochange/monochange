@@ -19,7 +19,7 @@ This is particularly valuable in mixed-ecosystem monorepos where discovery rules
 
 ## Inputs
 
-- `format` — `text` or `json`
+- `format`: `text` or `json`
 
 ## Step-level `when` condition
 

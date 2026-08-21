@@ -1,6 +1,6 @@
 # Changeset quality
 
-A changeset is not just a version bump marker — it is a permanent record of how the project changed from the perspective of the person using it. Write changesets so a user who has never seen the source code can understand exactly what moved, why it matters, and how to adapt.
+A changeset is a permanent record of how the project changed from the perspective of the person using it, not just a version bump marker. Write changesets so a user who has never seen the source code can understand exactly what moved, why it matters, and how to adapt.
 
 ## Required content
 
@@ -147,7 +147,7 @@ Any change that requires callers to update their code, config, or workflows must
 
 Example:
 
-> **Breaking change** — `[[workflows]]` config is no longer accepted.
+> **Breaking change:** `[[workflows]]` config is no longer accepted.
 >
 > Rename every `[[workflows]]` table to `[cli.<command>]` and move `[[workflows.steps]]` entries to `[[cli.<command>.steps]]`.
 

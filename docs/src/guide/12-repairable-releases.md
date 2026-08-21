@@ -14,7 +14,7 @@ monochange solves that by storing a durable release declaration in git history a
 
 ## The two artifacts: release manifest vs release record
 
-monochange now has two related but different release artifacts:
+monochange has two related but different release artifacts:
 
 | Artifact                                                      | What it means                                  | When it exists                                    | What it is for                                                                    |
 | ------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |

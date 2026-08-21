@@ -20,12 +20,12 @@ The report includes:
 
 `monochange step plan-publish-rate-limits` only counts package versions that are still missing from their registries. If you rerun a release after some packages were already published, the remaining batches shrink automatically. When you pass `--readiness <path>`, the plan first validates that the readiness artifact covers the current release record, selected package set, and publish input fingerprint, then excludes package ids that are not ready in both the artifact and the fresh local readiness check.
 
-## Current built-in coverage
+## Built-in coverage
 
-- `crates.io` — source-backed publish window metadata
-- `npm` — conservative advisory metadata when exact package publish quotas are not officially documented
-- `jsr` — official publish-window metadata
-- `pub.dev` — conservative daily publish planning metadata for CI batching
+- `crates.io`: source-backed publish window metadata
+- `npm`: conservative advisory metadata when exact package publish quotas are not officially documented
+- `jsr`: official publish-window metadata
+- `pub.dev`: conservative daily publish planning metadata for CI batching
 
 Use `monochange step publish-readiness --from HEAD --output <path>`, then `monochange step plan-publish-rate-limits --readiness <path>`, then `monochange step publish-packages` when you want CI to fail early instead of discovering registry throttling mid-release. Rerun `monochange step publish-readiness` if workspace config, package manifests, lockfiles, or registry/tooling files changed since the artifact was written. The `--readiness` input is only valid for normal publish planning; placeholder planning still uses `monochange step plan-publish-rate-limits --mode placeholder` without a readiness artifact.
 

@@ -22,15 +22,15 @@ That gives you a few advantages over rolling your own shell template generator:
 
 ## Inputs
 
-- `interactive` — boolean; use interactive prompting instead of explicit package arguments
-- `package` — list of package or group ids to target
-- `bump` — `none`, `patch`, `minor`, or `major`
-- `version` — explicit version pin for the change
-- `reason` — summary line
-- `type` — optional release-note type
-- `caused_by` — optional list of package or group ids that explain dependency-only follow-up changes
-- `details` — optional long-form body
-- `output` — optional explicit file path
+- `interactive`: boolean; use interactive prompting instead of explicit package arguments
+- `package`: list of package or group ids to target
+- `bump`: `none`, `patch`, `minor`, or `major`
+- `version`: explicit version pin for the change
+- `reason`: summary line
+- `type`: optional release-note type
+- `caused_by`: optional list of package or group ids that explain dependency-only follow-up changes
+- `details`: optional long-form body
+- `output`: optional explicit file path
 
 ## Step-level `when` condition
 

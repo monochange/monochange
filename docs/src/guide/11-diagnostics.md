@@ -49,27 +49,27 @@ monochange step diagnose-changesets --format json
 
 The JSON envelope includes:
 
-- `requested_changesets` — the resolved paths that were queried
-- `changesets` — full `PreparedChangeset` records, each with:
-  - `path` — workspace-relative path to the changeset file
-  - `summary` — the first paragraph of the markdown body
-  - `details` — optional follow-up paragraphs
-  - `targets` — package/group bump entries, each with `kind`, `id`, `bump`, `origin`, and optional `evidence_refs`
-  - `context` — git and review context (see below)
+- `requested_changesets`: the resolved paths that were queried
+- `changesets`: full `PreparedChangeset` records, each with:
+  - `path`: workspace-relative path to the changeset file
+  - `summary`: the first paragraph of the markdown body
+  - `details`: optional follow-up paragraphs
+  - `targets`: package/group bump entries, each with `kind`, `id`, `bump`, `origin`, and optional `evidence_refs`
+  - `context`: git and review context (see below)
 
 ## Context fields
 
 When a changeset has been committed to a git repository, each `context` record contains:
 
-- `introduced` — revision where the changeset file was first committed
-- `last_updated` — revision where it was most recently changed (omitted when same as `introduced`)
-- `related_issues` — issues linked by the changeset or the PR that introduced it
+- `introduced`: revision where the changeset file was first committed
+- `last_updated`: revision where it was most recently changed (omitted when same as `introduced`)
+- `related_issues`: issues linked by the changeset or the PR that introduced it
 
 Each revision record includes:
 
-- `commit.sha` — full commit SHA
-- `commit.short_sha` — short SHA for display
-- `review_request` — PR/MR number and URL when the commit is associated with a pull request
+- `commit.sha`: full commit SHA
+- `commit.short_sha`: short SHA for display
+- `review_request`: PR/MR number and URL when the commit is associated with a pull request
 
 ## Command
 
@@ -87,13 +87,13 @@ You only need a `[cli.*]` entry if you want a repository-specific alias that wra
 
 A typical agent workflow looks like this:
 
-1. `monochange step discover --format json` — understand the workspace package graph
-2. `monochange step diagnose-changesets --format json` — see all pending changesets, linked PRs, and introduced commits
-3. `monochange run release --dry-run --format json` — preview the computed release plan
-4. `monochange run change ...` — add, update, or remove changesets as needed
-5. `monochange run release` — execute the release when everything looks correct
+1. `monochange step discover --format json`: understand the workspace package graph
+2. `monochange step diagnose-changesets --format json`: see all pending changesets, linked PRs, and introduced commits
+3. `monochange run release --dry-run --format json`: preview the computed release plan
+4. `monochange run change ...`: add, update, or remove changesets as needed
+5. `monochange run release`: execute the release when everything looks correct
 
-Because `monochange step diagnose-changesets` and `monochange_diagnostics` return stable, workspace-relative paths and structured JSON, agents can parse the output without needing to read raw markdown files directly. Each changeset record includes enough context — who introduced it, which PR it belongs to, which issues it closes — for an agent to make targeted decisions about whether to proceed with a release or request changes.
+Because `monochange step diagnose-changesets` and `monochange_diagnostics` return stable, workspace-relative paths and structured JSON, agents can parse the output without needing to read raw markdown files directly. Each changeset record includes enough context, such as who introduced it, which PR it belongs to, and which issues it closes, for an agent to make targeted decisions about whether to proceed with a release or request changes.
 
 ### Example: check for undocumented packages before a release
 

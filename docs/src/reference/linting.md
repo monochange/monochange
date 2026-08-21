@@ -141,12 +141,12 @@ use = ["changesets/recommended"]
 
 **Useful options:**
 
-- `required` — require the summary heading.
-- `heading_level` — require a Markdown heading level from `1` to `6`.
-- `min_length` / `max_length` — constrain summary text length.
-- `forbid_trailing_period` — reject summaries ending in `.`.
-- `forbid_conventional_commit_prefix` — reject summaries such as `feat: add parser`.
-- `require_description` — require a non-empty paragraph after the heading.
+- `required`: require the summary heading.
+- `heading_level`: require a Markdown heading level from `1` to `6`.
+- `min_length` / `max_length`: constrain summary text length.
+- `forbid_trailing_period`: reject summaries ending in `.`.
+- `forbid_conventional_commit_prefix`: reject summaries such as `feat: add parser`.
+- `require_description`: require a non-empty paragraph after the heading.
 
 ### `changesets/no_section_headings`
 
@@ -162,11 +162,11 @@ use = ["changesets/recommended"]
 
 **Useful options:**
 
-- `required_sections` — headings that must appear in the body.
-- `forbidden_headings` — headings that must not appear in the body.
-- `min_body_chars` / `max_body_chars` — body length bounds.
-- `require_code_block` — require a fenced code block.
-- `required_bump` — require entries governed by this rule to use a specific bump severity.
+- `required_sections`: headings that must appear in the body.
+- `forbidden_headings`: headings that must not appear in the body.
+- `min_body_chars` / `max_body_chars`: body length bounds.
+- `require_code_block`: require a fenced code block.
+- `required_bump`: require entries governed by this rule to use a specific bump severity.
 
 ### `changesets/types/<type>`
 
@@ -209,7 +209,7 @@ serde = { workspace = true, features = ["derive"] }
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites the dependency entry when safe.
+- `fix`: defaults to `true`; rewrites the dependency entry when safe.
 
 ### `cargo/internal-dependency-workspace`
 
@@ -233,8 +233,8 @@ monochange_core = { workspace = true }
 
 **Options:**
 
-- `require_workspace` — defaults to `true`; require internal dependencies to use `workspace = true`.
-- `fix` — defaults to `true`; rewrites safe internal dependency entries.
+- `require_workspace`: defaults to `true`; require internal dependencies to use `workspace = true`.
+- `fix`: defaults to `true`; rewrites safe internal dependency entries.
 
 ### `cargo/publishable-dependencies`
 
@@ -286,7 +286,7 @@ version = "0.1.0"
 
 **Options:**
 
-- `fields` — replace the default required-field list.
+- `fields`: replace the default required-field list.
 
 Example:
 
@@ -319,7 +319,7 @@ zzzz = "1.0"
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
+- `fix`: defaults to `true`; rewrites dependency sections in sorted order.
 
 ### `cargo/unlisted-package-private`
 
@@ -349,7 +349,7 @@ publish = false
 
 **Options:**
 
-- `fix` — defaults to `true`; inserts `publish = false` when safe.
+- `fix`: defaults to `true`; inserts `publish = false` when safe.
 
 ### `cargo/manifest-repository`
 
@@ -429,8 +429,8 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `require_for_private` — defaults to `false`; also enforce the rule for private packages.
-- `fix` — defaults to `true`; rewrites internal dependency ranges to `workspace:` ranges.
+- `require_for_private`: defaults to `false`; also enforce the rule for private packages.
+- `fix`: defaults to `true`; rewrites internal dependency ranges to `workspace:` ranges.
 
 ### `npm/sorted-dependencies`
 
@@ -460,7 +460,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
+- `fix`: defaults to `true`; rewrites dependency sections in sorted order.
 
 ### `npm/required-package-fields`
 
@@ -485,7 +485,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fields` — replace the default required-field list.
+- `fields`: replace the default required-field list.
 
 ### `npm/root-no-prod-deps`
 
@@ -505,7 +505,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fix` — defaults to `true`; moves root `dependencies` into `devDependencies`.
+- `fix`: defaults to `true`; moves root `dependencies` into `devDependencies`.
 
 ### `npm/no-duplicate-dependencies`
 
@@ -528,7 +528,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fix` — defaults to `true`; removes duplicate entries from later sections.
+- `fix`: defaults to `true`; removes duplicate entries from later sections.
 
 ### `npm/unlisted-package-private`
 
@@ -560,7 +560,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fix` — defaults to `true`; inserts `private: true` when safe.
+- `fix`: defaults to `true`; inserts `private: true` when safe.
 
 ### `npm/manifest-repository`
 
@@ -638,8 +638,8 @@ environment:
 
 **Options:**
 
-- `minimum` — override the minimum lower bound for your workspace.
-- `require_upper_bound` — set to `false` if your policy intentionally omits an upper bound.
+- `minimum`: override the minimum lower bound for your workspace.
+- `require_upper_bound`: set to `false` if your policy intentionally omits an upper bound.
 
 Example:
 
@@ -670,7 +670,7 @@ dependencies:
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
+- `fix`: defaults to `true`; rewrites dependency sections in sorted order.
 
 ### `dart/required-package-fields`
 
@@ -693,7 +693,7 @@ version: 1.0.0
 
 **Options:**
 
-- `fields` — replace the default required-field list.
+- `fields`: replace the default required-field list.
 
 Example:
 
@@ -719,7 +719,7 @@ dependencies:
 
 **Options:**
 
-- `allow` — list dependency names that may use `git:` sources.
+- `allow`: list dependency names that may use `git:` sources.
 
 Example:
 
@@ -754,7 +754,7 @@ publish_to: none
 
 **Options:**
 
-- `fix` — defaults to `true`; inserts `publish_to: none` when safe.
+- `fix`: defaults to `true`; inserts `publish_to: none` when safe.
 
 ### `dart/no-unexpected-dependency-overrides`
 
@@ -764,8 +764,8 @@ publish_to: none
 
 **Options:**
 
-- `allow_for_private` — defaults to `true`; allow overrides in private packages.
-- `allow_packages` — list package names that may keep `dependency_overrides`.
+- `allow_for_private`: defaults to `true`; allow overrides in private packages.
+- `allow_packages`: list package names that may keep `dependency_overrides`.
 
 Example:
 
@@ -784,7 +784,7 @@ With Dart workspace resolution, Dart resolves versioned internal dependencies to
 
 **Options:**
 
-- `mode` — choose `"path"` or `"hosted"` for packages that do not use `resolution: workspace`.
+- `mode`: choose `"path"` or `"hosted"` for packages that do not use `resolution: workspace`.
 
 Example:
 
@@ -850,7 +850,7 @@ flutter:
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites Flutter assets and fonts in sorted order.
+- `fix`: defaults to `true`; rewrites Flutter assets and fonts in sorted order.
 
 ### `dart/manifest-repository`
 

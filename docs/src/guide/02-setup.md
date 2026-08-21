@@ -30,10 +30,10 @@ monochange init --provider github
 
 The `--provider` flag supports `github`, `gitlab`, and `gitea`. When provided, `monochange init`:
 
-1. **Configures the `[source]` section** — adds provider-specific settings for releases and pull/merge requests
-2. **Generates provider CLI commands** — includes `commit-release` and `release-pr` commands in `monochange.toml`
-3. **Creates workflow files** (GitHub only) — writes `.github/workflows/release.yml` and `.github/workflows/changeset-policy.yml`
-4. **Auto-detects owner/repo** — parses `git remote get-url origin` to pre-populate `[source]`
+1. **Configures the `[source]` section** - adds provider-specific settings for releases and pull/merge requests
+2. **Generates provider CLI commands** - includes `commit-release` and `release-pr` commands in `monochange.toml`
+3. **Creates workflow files** (GitHub only) - writes `.github/workflows/release.yml` and `.github/workflows/changeset-policy.yml`
+4. **Auto-detects owner/repo** - parses `git remote get-url origin` to pre-populate `[source]`
 
 Example generated configuration with `--provider github`:
 
@@ -48,8 +48,6 @@ enabled = true
 draft = false
 prerelease = false
 source = "monochange"
-
-[source.releases]
 branches = ["main", "release/*"]
 enforce_for_tags = true
 enforce_for_publish = true
@@ -89,8 +87,8 @@ name = "open release PR"
 
 The GitHub Actions workflows enable:
 
-- **Release automation** — `release.yml` refreshes the release PR on normal `main` pushes, then tags and publishes when the merged release commit lands on `main`
-- **Changeset policy enforcement** — `changeset-policy.yml` validates PRs have required changeset coverage
+- **Release automation** - `release.yml` refreshes the release PR on normal `main` pushes, then tags and publishes when the merged release commit lands on `main`
+- **Changeset policy enforcement** - `changeset-policy.yml` validates PRs have required changeset coverage
 
 For GitLab and Gitea, the `[source]` section is configured but workflows are not generated (use their respective CI configuration files).
 
@@ -111,7 +109,6 @@ If validation fails, fix the reported problem first, then rerun `monochange step
 <!-- {=projectDiscoverCommand} -->
 
 ```bash
-monochange step validate
 monochange step discover --format json
 ```
 
@@ -156,8 +153,8 @@ When you are ready to move beyond planning:
 
 Use this rule of thumb:
 
-- **package ids first** — most authored changes belong to one package
-- **group ids later** — use a group id only when the change is intentionally owned by the whole group
+- **package ids first**: most authored changes belong to one package
+- **group ids later**: use a group id only when the change is intentionally owned by the whole group
 
 That keeps your first changes simple while still letting monochange synchronize grouped packages when needed.
 

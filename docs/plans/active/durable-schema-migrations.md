@@ -250,7 +250,7 @@ schema:release:check
 
 ## Implementation checklist
 
-### Commit 1 — crate scaffold
+### Commit 1: crate scaffold
 
 - Add `crates/monochange_schema`.
 - Add explicit independent crate version.
@@ -258,14 +258,14 @@ schema:release:check
 - Add monochange package entry outside `group.main`.
 - Add readme documenting durable schema guarantees.
 
-### Commit 2 — version/header foundation
+### Commit 2: version/header foundation
 
 - Implement `SchemaVersion` parser/rendering for `major.minor` strings.
 - Implement artifact header detection for `kind` and `v`.
 - Implement `SchemaError` with missing, malformed, unsupported-newer, unsupported-kind, and migration-failed cases.
 - Add tests for current/newer/missing versions; older-version tests begin once `0.2` introduces a migration edge.
 
-### Commit 3 — release record migration
+### Commit 3: release record migration
 
 - Move or mirror release record DTOs into `monochange_schema::release_record`.
 - Establish `v = "0.1"` as the first public release-record schema.
@@ -274,33 +274,33 @@ schema:release:check
 - Keep future historical release commits readable in memory only once migrations exist.
 - Add fixtures for current v, missing version, and future v.
 
-### Commit 4 — readiness/bootstrap artifacts
+### Commit 4: readiness/bootstrap artifacts
 
 - Move `PublishReadinessReport` and `PublishBootstrapReport` wire DTOs into `monochange_schema`.
 - Remove serde defaults that accept missing versions/kinds for durable artifact parsing.
 - Establish `v = "0.1"` as the first public readiness/bootstrap schema.
 - Add canonical parsers for bootstrap artifacts even if currently only written.
 
-### Commit 5 — prepared release cache
+### Commit 5: prepared release cache
 
 - Move prepared release cache wire DTO into `monochange_schema` or wrap it with schema parsing there.
 - Establish `v = "0.1"` as the first public prepared-release cache schema.
 - Keep freshness validation separate from schema migration.
 - Default cache may still be ignored when stale; explicit cache should fail only after parse/migration succeeds and freshness checks fail.
 
-### Commit 6 — package publish resume/result artifact
+### Commit 6: package publish resume/result artifact
 
 - Add `kind` and `v` to `PackagePublishReport`.
 - Reject no-version resume artifacts with a clear rerun message, per missing-version policy.
 - Add current schema fixtures.
 
-### Commit 7 — JSON Schema generation
+### Commit 7: JSON Schema generation
 
 - Add `schemars` derives or manual schema generation.
 - Generate committed schema files for every current durable artifact.
 - Add tests that fail when committed schemas are stale.
 
-### Commit 8 — compatibility guardrails
+### Commit 8: compatibility guardrails
 
 - Add a fixture directory such as `crates/monochange_schema/fixtures/<artifact>/<version>/*.json`.
 - Add tests proving every fixture migrates to current.

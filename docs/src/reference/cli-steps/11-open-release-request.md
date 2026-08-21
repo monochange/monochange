@@ -18,7 +18,7 @@ This is a strong fit when your release process includes:
 
 ## Inputs
 
-- `format` — `text` or `json`
+- `format`: `text` or `json`
 
 ## Step-level `when` condition
 

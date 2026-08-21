@@ -213,7 +213,7 @@ This pattern is especially useful when multiple packages live in the same ecosys
 | --------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | npm       | one post-merge `monochange step publish-readiness` + `monochange step publish-packages` job when possible                        | monochange can automate npm trusted-publishing setup on GitHub        |
 | crates.io | one job per crate when using external OIDC auth                                                                                  | trusted publishing is enrolled per crate and workflow context matters |
-| jsr       | built-in `monochange step publish-readiness` + `monochange step publish-packages` is often fine, but keep setup package-specific | registry linking is still manual today                                |
+| jsr       | built-in `monochange step publish-readiness` + `monochange step publish-packages` is often fine, but keep setup package-specific | registry linking is still manual                                      |
 | pub.dev   | package-specific tags and often one workflow per package                                                                         | automated publishing is tag-driven and package-specific               |
 
 ## Keep config, tags, and workflows aligned

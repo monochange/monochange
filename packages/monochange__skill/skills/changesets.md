@@ -119,10 +119,10 @@ Use `caused_by` to explain propagation instead of pretending a dependent package
 
 ## Bump rules
 
-- `major` — breaking API, CLI, protocol, data, or user workflow changes.
-- `minor` — new user-facing functionality or behavior.
-- `patch` — fixes and compatible improvements.
-- `none` — documentation, tests, rebuilds, or dependency/context notes with no version impact.
+- `major`: breaking API, CLI, protocol, data, or user workflow changes.
+- `minor`: new user-facing functionality or behavior.
+- `patch`: fixes and compatible improvements.
+- `none`: documentation, tests, rebuilds, or dependency/context notes with no version impact.
 
 Breaking changes should have their own changeset with migration guidance.
 

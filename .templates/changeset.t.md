@@ -10,12 +10,12 @@ Different artifact types have different user-facing boundaries:
 
 As features are added and removed, changesets must be actively managed throughout the development lifecycle:
 
-1. **Analyze existing changesets** before creating new ones — read every `.changeset/*.md` file and understand what each covers
+1. **Analyze existing changesets** before creating new ones: read every `.changeset/*.md` file and understand what each covers
 2. **Determine the appropriate action** for each change:
-   - **Create new** — For genuinely new changes (preferred)
-   - **Update existing** — When expanding the scope of a change already described
-   - **Remove obsolete** — When the feature was reverted or the change no longer exists
-   - **Replace** — When the same intent is now implemented differently
+   - **Create new**: For genuinely new changes (preferred)
+   - **Update existing**: When expanding the scope of a change already described
+   - **Remove obsolete**: When the feature was reverted or the change no longer exists
+   - **Replace**: When the same intent is now implemented differently
 
 **Golden rule:** Err on the side of creating a new changeset. It's easier to consolidate later than to split apart.
 

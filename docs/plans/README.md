@@ -4,9 +4,9 @@ Use `docs/plans/` to keep multi-step work, implementation notes, and follow-up c
 
 ## Layout
 
-- `docs/plans/active/` — current plans with status, decisions, and next steps
-- `docs/plans/completed/` — archived plans that reflect shipped work
-- `docs/plans/tech-debt.md` — recurring cleanup targets, deferred follow-ups, and quality notes
+- `docs/plans/active/`: current plans with status, decisions, and next steps
+- `docs/plans/completed/`: archived plans that reflect shipped work
+- `docs/plans/tech-debt.md`: recurring cleanup targets, deferred follow-ups, and quality notes
 
 ## Workflow
 

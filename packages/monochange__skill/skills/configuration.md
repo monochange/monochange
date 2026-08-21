@@ -149,7 +149,7 @@ docs = { heading = "Documentation", priority = 40 }
 
 ## Custom CLI workflows
 
-`[cli.<name>]` creates `monochange <name>` in that repository. These workflows are the maintainable place to compose built-in steps with local shell commands, input defaults, dry-run behavior, and CI-specific guards.
+`[cli.<name>]` creates `monochange run <name>` in that repository. These workflows are the maintainable place to compose built-in steps with local shell commands, input defaults, dry-run behavior, and CI-specific guards.
 
 Name workflow commands after user intent (`change`, `release`, `publish-check`) rather than implementation detail. Keep destructive workflows explicit, and expose safe dry-run or JSON-producing workflows for agents and automation.
 

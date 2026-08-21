@@ -12,16 +12,16 @@ Use these examples when you want something larger and more concrete than the bun
 - make builtin vs external publishing recommendations explicit
 - keep examples small enough to understand, but structured enough to test end to end over time
 
-## Current example tracks
+## Example tracks
 
-- [github-npm-quickstart](./github-npm-quickstart/README.md) — greenfield GitHub Actions setup for npm or pnpm workspaces
-- [github-cargo-quickstart](./github-cargo-quickstart/README.md) — greenfield GitHub Actions setup for Cargo workspaces
-- [mixed-workspace](./mixed-workspace/README.md) — cross-ecosystem monorepo with mixed package types and shared discovery concerns
-- [gitlab-migration](./gitlab-migration/README.md) — adopting monochange into an existing GitLab-based repository
-- [public-packages-placeholder-publish](./public-packages-placeholder-publish/README.md) — reserving package names before the real release flow is ready
-- [internal-only-workspace](./internal-only-workspace/README.md) — release planning, linting, and changesets without public package publishing
-- [release-pr-workflow](./release-pr-workflow/README.md) — long-running release PR branch automation
-- [publishing-test-lab](./publishing-test-lab/README.md) — follow-up plan for real publishing verification outside this repository
+- [github-npm-quickstart](./github-npm-quickstart/README.md): greenfield GitHub Actions setup for npm or pnpm workspaces
+- [github-cargo-quickstart](./github-cargo-quickstart/README.md): greenfield GitHub Actions setup for Cargo workspaces
+- [mixed-workspace](./mixed-workspace/README.md): cross-ecosystem monorepo with mixed package types and shared discovery concerns
+- [gitlab-migration](./gitlab-migration/README.md): adopting monochange into an existing GitLab-based repository
+- [public-packages-placeholder-publish](./public-packages-placeholder-publish/README.md): reserving package names before the real release flow is ready
+- [internal-only-workspace](./internal-only-workspace/README.md): release planning, linting, and changesets without public package publishing
+- [release-pr-workflow](./release-pr-workflow/README.md): long-running release PR branch automation
+- [publishing-test-lab](./publishing-test-lab/README.md): follow-up plan for real publishing verification outside this repository
 
 ## Validation policy
 
@@ -31,7 +31,7 @@ The long-term intent is:
 - real registry publishing should be validated in a separate test repository so package names, auth, and rate limits can be managed safely
 - examples in this folder should grow into repo-shaped test fixtures as the product surface stabilizes
 
-Today:
+Current state:
 
 - `github-cargo-quickstart`, `github-npm-quickstart`, `gitlab-migration`, `internal-only-workspace`, `mixed-workspace`, `public-packages-placeholder-publish`, and `release-pr-workflow` are repo-shaped examples with actual workspace and config files
 - `publishing-test-lab` remains an issue-driven planning directory because real publish verification belongs in a separate repository

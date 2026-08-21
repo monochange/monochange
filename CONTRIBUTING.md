@@ -53,7 +53,6 @@ Shared documentation blocks live in `.templates/` and are synchronized with `mdt
 
 ```bash
 monochange --help
-monochange --help
 docs:check
 docs:update
 monochange step validate

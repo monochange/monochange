@@ -17,7 +17,7 @@
 
 ## What was accomplished in Phase 2
 
-### `monochange_graph` — 6 missed → 4 killed, 2 equivalent
+### `monochange_graph`: 6 missed → 4 killed, 2 equivalent
 
 | Surviving Mutant                       | Status               | Resolution                                                             |
 | -------------------------------------- | -------------------- | ---------------------------------------------------------------------- |
@@ -28,7 +28,7 @@
 | trigger_type deletion in DecisionState | **EQUIVALENT**       | `Default` impl already sets `"none"`                                   |
 | `>` → `>=` in trigger priority         | **EQUIVALENT**       | Unique priority values (0,1,2,3)                                       |
 
-### `monochange_config` — 7+ missed → 4 killed, 3 equivalent
+### `monochange_config`: 7+ missed → 4 killed, 3 equivalent
 
 | Surviving Mutant                                             | Status              | Resolution                                                                  |
 | ------------------------------------------------------------ | ------------------- | --------------------------------------------------------------------------- |
@@ -40,7 +40,7 @@
 | Delete `EcosystemType::Deno`                                 | Presumed equivalent | Needs non-empty `deno_ecosystem.versioned_files`                            |
 | Delete `EcosystemType::Dart`                                 | Presumed equivalent | Needs non-empty `dart_ecosystem.versioned_files`                            |
 
-### `monochange_semver` — clean
+### `monochange_semver`: clean
 
 Already mutation-clean before Phase 2. Now has 7 property-based tests as well.
 

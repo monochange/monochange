@@ -8,7 +8,6 @@
 ## Common commands
 
 - `monochange --help`
-- `monochange --help`
 - `monochange help subagents`
 - `monochange subagents pi`
 - `monochange mcp`

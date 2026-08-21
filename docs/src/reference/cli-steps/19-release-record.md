@@ -18,8 +18,8 @@ It is especially useful for:
 
 ## Inputs
 
-- `from` — required tag or commit-ish used to locate the release record
-- `format` — `text` or `json` output, defaulting to `text`
+- `from`: required tag or commit-ish used to locate the release record
+- `format`: `text` or `json` output, defaulting to `text`
 
 ## Prerequisites
 

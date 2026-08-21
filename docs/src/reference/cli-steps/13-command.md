@@ -24,16 +24,16 @@ Use `Command` for what is truly custom.
 
 ## Core fields
 
-- `command` — the command to run in normal mode
-- `when` — optional boolean condition controlling whether the step runs
-- `dry_run_command` — optional replacement command used only when the command runs with `--dry-run`
-- `shell` — whether to run through a shell (`true`, `false`, or a custom shell binary name)
-- `id` — optional identifier that exposes `steps.<id>.stdout` and `steps.<id>.stderr` to later steps
-- `variables` — optional custom variable mapping for command substitution
-- `inputs` — optional step-local input overrides
-- `show_progress` — optional boolean; set to `false` when the command itself is interactive and spinner output would get in the way
-- `interactive` — optional step input; when set to `true` the step runs with inherited stdio so the command can own the terminal, and the progress spinner is suppressed for the step. This is the recommended way to run interactive tools such as wizards or TUIs; unlike `show_progress = false`, the command can read from stdin and render directly to the terminal. Output is not captured, so `steps.<id>.stdout` and `steps.<id>.stderr` are empty for interactive steps
-- `always_run` — optional boolean; set to `true` to run this step even when a previous step has failed
+- `command`: the command to run in normal mode
+- `when`: optional boolean condition controlling whether the step runs
+- `dry_run_command`: optional replacement command used only when the command runs with `--dry-run`
+- `shell`: whether to run through a shell (`true`, `false`, or a custom shell binary name)
+- `id`: optional identifier that exposes `steps.<id>.stdout` and `steps.<id>.stderr` to later steps
+- `variables`: optional custom variable mapping for command substitution
+- `inputs`: optional step-local input overrides
+- `show_progress`: optional boolean; set to `false` when the command itself is interactive and spinner output would get in the way
+- `interactive`: optional step input; when set to `true` the step runs with inherited stdio so the command can own the terminal, and the progress spinner is suppressed for the step. This is the recommended way to run interactive tools such as wizards or TUIs; unlike `show_progress = false`, the command can read from stdin and render directly to the terminal. Output is not captured, so `steps.<id>.stdout` and `steps.<id>.stderr` are empty for interactive steps
+- `always_run`: optional boolean; set to `true` to run this step even when a previous step has failed
 
 ## Prerequisites
 

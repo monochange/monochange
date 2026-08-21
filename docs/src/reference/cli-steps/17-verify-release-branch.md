@@ -18,7 +18,7 @@ enforce_for_commit = false
 
 ## Inputs
 
-- `from` — git ref to verify. Defaults to `HEAD`.
+- `from`: git ref to verify. Defaults to `HEAD`.
 
 ## Step-level `always_run` flag
 

@@ -19,7 +19,7 @@ monochange step config
 monochange step discover --format json
 ```
 
-If a repository defines user workflows, `monochange help` will show them under user-defined commands. The monochange repo currently defines `change`, `publish-check`, and `release`; those are configuration-defined, not universal built-ins.
+If a repository defines user workflows, `monochange help` will show them under user-defined commands. The monochange repo defines `change`, `publish-check`, and `release`; those are configuration-defined, not universal built-ins.
 
 ## Version planning flow
 
