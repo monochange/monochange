@@ -388,8 +388,6 @@ enabled = true
 draft = false
 prerelease = false
 source = "monochange"
-
-[source.releases]
 branches = ["main", "release/*"]
 enforce_for_tags = true
 enforce_for_publish = true
