@@ -1,21 +1,21 @@
 ---
 monochange:
-  bump: patch
+  bump: none
   type: docs
 monochange_core:
-  bump: patch
+  bump: none
   type: docs
 monochange_linting:
-  bump: patch
+  bump: none
   type: docs
 monochange_schema:
-  bump: patch
+  bump: none
   type: docs
 "@monochange/cli":
-  bump: patch
+  bump: none
   type: docs
 "@monochange/skill":
-  bump: patch
+  bump: none
   type: docs
 ---
 
