@@ -5,6 +5,9 @@ monochange:
 monochange_core:
   bump: patch
   type: docs
+"@monochange/cli":
+  bump: patch
+  type: docs
 "@monochange/skill":
   bump: patch
   type: docs
