@@ -2,7 +2,7 @@
 
 `monochange` discovers packages from native manifests and workspace definitions. For a capability-by-capability comparison of each adapter, see [Ecosystems](./ecosystems.md).
 
-Supported sources today:
+Supported sources:
 
 <!-- {=discoverySupportedSources} -->
 
@@ -20,7 +20,6 @@ Run discovery:
 <!-- {=projectDiscoverCommand} -->
 
 ```bash
-monochange step validate
 monochange step discover --format json
 ```
 
@@ -37,6 +36,6 @@ Key behaviors:
 - version-group assignments are attached after discovery
 - unmatched group members (declared in config but not found during discovery) produce warnings
 - unresolvable group members (invalid package IDs in `group.packages`) produce errors during configuration loading
-- discovery currently scans all supported ecosystems regardless of `[ecosystems.*]` toggles in `monochange.toml`
+- discovery scans all supported ecosystems regardless of `[ecosystems.*]` toggles in `monochange.toml`
 
 <!-- {/discoveryKeyBehaviors} -->

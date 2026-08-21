@@ -46,9 +46,9 @@ A practical rule of thumb:
 
 monochange has three related but different automation layers:
 
-1. **Release planning** — `monochange run release --dry-run`, `monochange run release`, `monochange step diagnose-changesets`
-2. **Package registries** — `monochange step publish-readiness`, `monochange step placeholder-publish --from HEAD`, `monochange step plan-publish-rate-limits --readiness <path>`, `monochange step publish-packages`, and lower-level `monochange step placeholder-publish`
-3. **Hosted providers** — `monochange step open-release-request`, `monochange step publish-release`, `monochange step retarget-release`
+1. **Release planning**: `monochange run release --dry-run`, `monochange run release`, `monochange step diagnose-changesets`
+2. **Package registries**: `monochange step publish-readiness`, `monochange step placeholder-publish --from HEAD`, `monochange step plan-publish-rate-limits --readiness <path>`, `monochange step publish-packages`, and lower-level `monochange step placeholder-publish`
+3. **Hosted providers**: `monochange step open-release-request`, `monochange step publish-release`, `monochange step retarget-release`
 
 Keeping those layers separate is important. Package publication and hosted-release publication are not the same job.
 
@@ -71,7 +71,7 @@ Keeping those layers separate is important. Package publication and hosted-relea
 | Built-in registry publishing                                                   | `crates.io`, `npm`, `jsr`, `pub.dev`, `pypi`, Go proxy tags; use external mode for custom registries                                       |
 | GitHub npm trusted-publishing diagnostics                                      | Built in; registry-side enrollment stays manual or external                                                                                |
 | GitHub trusted-publishing guidance for `crates.io`, `jsr`, `pub.dev`, and PyPI | Built in, but manual registry enrollment is still required                                                                                 |
-| GitLab trusted-publishing auto-derivation                                      | Not built in today                                                                                                                         |
+| GitLab trusted-publishing auto-derivation                                      | Not built in                                                                                                                               |
 | Release-retarget sync for hosted releases                                      | GitHub first                                                                                                                               |
 
 <!-- {/projectCapabilityMatrix} -->
@@ -309,11 +309,11 @@ Important current behavior:
 
 - monochange can carry the trust expectation in config
 - monochange can report the setup URL and enforce that trust is configured before built-in release publishing continues
-- for built-in crates.io publishing, `monochange step publish-readiness` now blocks packages whose current `Cargo.toml` cannot be published: `publish = false`, `publish = [...]` without `crates-io`, missing `description`, or missing both `license` and `license-file`
+- for built-in crates.io publishing, `monochange step publish-readiness` blocks packages whose current `Cargo.toml` cannot be published: `publish = false`, `publish = [...]` without `crates-io`, missing `description`, or missing both `license` and `license-file`
 - workspace-inherited Cargo metadata such as `description = { workspace = true }` and `license = { workspace = true }` is accepted when `[workspace.package]` supplies the value
 - already-published Cargo versions remain non-blocking and are skipped when current readiness and the saved readiness artifact agree
-- monochange does **not** currently auto-configure `crates.io` trust; registry-side enrollment remains manual
-- if you want the most literal crates.io/OIDC workflow today, `mode = "external"` plus `rust-lang/crates-io-auth-action@v1` is the clearest path
+- monochange does **not** auto-configure `crates.io` trust; registry-side enrollment remains manual
+- if you want the most literal crates.io/OIDC workflow, `mode = "external"` plus `rust-lang/crates-io-auth-action@v1` is the clearest path
 
 Recommended setup:
 
@@ -383,7 +383,7 @@ jobs:
 Current behavior matches Cargo more than npm:
 
 - monochange can validate the trust expectation and report the setup URL
-- monochange does **not** auto-configure JSR trust on GitHub for you today
+- monochange does **not** auto-configure JSR trust on GitHub
 - manual registry enrollment is still required before the built-in publish can proceed
 
 ### GitHub + Dart / Flutter (`pub.dev`) trusted publishing
@@ -483,8 +483,8 @@ Current behavior:
 
 - monochange can enforce the configured trust expectation
 - monochange reports the manual setup URL when trust is not configured
-- monochange does **not** auto-configure `pub.dev` trusted publishing today
-- if you want the most copy-pasteable pub.dev flow today, `mode = "external"` plus the reusable `dart-lang/setup-dart` workflow is the clearest path
+- monochange does **not** auto-configure `pub.dev` trusted publishing
+- if you want the most copy-pasteable pub.dev flow, `mode = "external"` plus the reusable `dart-lang/setup-dart` workflow is the clearest path
 
 ### GitHub post-merge package publish flow
 
@@ -504,7 +504,7 @@ That pattern works well because `monochange step publish-readiness` and `monocha
 
 GitLab is a supported source provider for hosted releases and release requests.
 
-For package publishing, monochange can still run built-in package publication commands from GitLab CI, but the trust auto-derivation and npm `trust github` automation are GitHub-specific today.
+For package publishing, monochange can still run built-in package publication commands from GitLab CI, but the trust auto-derivation and npm `trust github` automation are GitHub-specific.
 
 That means the practical GitLab pattern is:
 
@@ -660,9 +660,9 @@ This is the flow you described:
 3. the release PR stays open and keeps tracking the latest releasable state
 4. when the PR merges, publication happens from that merged release commit
 
-### What monochange supports now
+### What monochange supports
 
-monochange now supports the core post-merge pieces of this shape directly:
+monochange supports the core post-merge pieces of this shape directly:
 
 - `monochange step open-release-request` can open or update a release request branch from current release state
 - `monochange step commit-release` can create a durable monochange release commit with an embedded `ReleaseRecord`
@@ -686,7 +686,7 @@ That is why pre-merge tagging on a long-running release PR is usually the wrong 
 
 ### Recommended workflow
 
-For the long-running release PR model, the recommended shape is now:
+For the long-running release PR model, the recommended shape is:
 
 1. on every push to `main`, run `monochange step open-release-request` to refresh the dedicated release PR branch
 2. do **not** create tags on the release PR branch

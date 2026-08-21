@@ -23,11 +23,11 @@ It is the best fit for:
 
 ## Inputs
 
-- `format` — `text` or `json`
-- `changed_paths` — explicit changed paths
-- `from` — revision to diff against; takes priority over `changed_paths`
-- `verify` — whether to enforce non-zero failure on uncovered packages
-- `label` — skip labels supplied from CI
+- `format`: `text` or `json`
+- `changed_paths`: explicit changed paths
+- `from`: revision to diff against; takes priority over `changed_paths`
+- `verify`: whether to enforce non-zero failure on uncovered packages
+- `label`: skip labels supplied from CI
 
 ## Step-level `when` condition
 

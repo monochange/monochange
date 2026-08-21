@@ -28,8 +28,8 @@ Use `PublishPackages` instead when you want to publish the real planned versions
 
 ## Inputs
 
-- `format` — `text`, `markdown`, or `json`
-- `package` — optional repeated package ids used to filter the publish set
+- `format`: `text`, `markdown`, or `json`
+- `package`: optional repeated package ids used to filter the publish set
 
 ## Step-level `when` condition
 
@@ -59,7 +59,7 @@ None. `PlaceholderPublish` does not require a previous `PrepareRelease` step.
 
 Placeholder publishing works for all packages with `publish.enabled = true`, regardless of `publish.mode`.
 
-Setting `publish.mode = "external"` tells monochange not to run built-in release publishing for a package — your own CI or scripts handle real version publishes. This is the right choice for packages published with `melos publish`, `pnpm publish`, or other external tools.
+Setting `publish.mode = "external"` tells monochange not to run built-in release publishing for a package. Your own CI or scripts handle real version publishes. This is the right choice for packages published with `melos publish`, `pnpm publish`, or other external tools.
 
 But placeholder publishing is a separate concern: it exists to bootstrap packages into their registries before any release, including before trusted publishing setup. That bootstrap step is useful regardless of who handles the real release publishing. So `PlaceholderPublish` always processes packages with `publish.enabled = true`, even when `publish.mode = "external"`.
 

@@ -8,16 +8,16 @@ monochange discovers packages in a monorepo, reads release intent from `.changes
 
 ## Start here
 
-- [SKILL.md](./SKILL.md) — short runtime instructions for agents.
-- [skills/readme.md](./skills/readme.md) — index of focused modules and when to open each one.
-- [skills/commands.md](./skills/commands.md) — verified built-in commands, step commands, and step types.
-- [skills/configuration.md](./skills/configuration.md) — authoring `monochange.toml` with copyable examples.
-- [skills/changesets.md](./skills/changesets.md) — creating and maintaining `.changeset/*.md` files.
-- [skills/reference.md](./skills/reference.md) — complete reference for day-to-day operation.
-- [skills/linting.md](./skills/linting.md) — `monochange check`, lint presets, rule severity, and manifest policy.
-- [skills/multi-package-publishing.md](./skills/multi-package-publishing.md) — readiness, bootstrap, and package publishing flows.
-- [skills/trusted-publishing.md](./skills/trusted-publishing.md) — OIDC/trusted-publishing notes for package registries.
-- [examples/readme.md](./examples/readme.md) — scenario examples.
+- [SKILL.md](./SKILL.md): short runtime instructions for agents.
+- [skills/readme.md](./skills/readme.md): index of focused modules and when to open each one.
+- [skills/commands.md](./skills/commands.md): verified built-in commands, step commands, and step types.
+- [skills/configuration.md](./skills/configuration.md): authoring `monochange.toml` with copyable examples.
+- [skills/changesets.md](./skills/changesets.md): creating and maintaining `.changeset/*.md` files.
+- [skills/reference.md](./skills/reference.md): complete reference for day-to-day operation.
+- [skills/linting.md](./skills/linting.md): `monochange check`, lint presets, rule severity, and manifest policy.
+- [skills/multi-package-publishing.md](./skills/multi-package-publishing.md): readiness, bootstrap, and package publishing flows.
+- [skills/trusted-publishing.md](./skills/trusted-publishing.md): OIDC/trusted-publishing notes for package registries.
+- [examples/readme.md](./examples/readme.md): scenario examples.
 
 <!-- {=manifestRepositoryLintReadmeSummary} -->
 

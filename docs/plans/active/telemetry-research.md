@@ -82,10 +82,10 @@ Files:
 
 High-signal events:
 
-- `release_prepare` — packages changed count, files planned count, phase timings, dry-run.
-- `release_publish` — provider kind, request count, dry-run, outcome category.
-- `package_publish` — selected package count, ecosystem counts, dry-run, trust/rate-limit outcome categories.
-- `prepared_release_cache` — cache hit/miss and artifact save/load outcome.
+- `release_prepare`: packages changed count, files planned count, phase timings, dry-run.
+- `release_publish`: provider kind, request count, dry-run, outcome category.
+- `package_publish`: selected package count, ecosystem counts, dry-run, trust/rate-limit outcome categories.
+- `prepared_release_cache`: cache hit/miss and artifact save/load outcome.
 
 ### Hosted source integrations
 

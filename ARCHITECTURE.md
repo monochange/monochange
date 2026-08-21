@@ -20,6 +20,13 @@
 - `crates/monochange_core` defines shared domain types, command definitions, release artifacts, and lint contracts.
 - `crates/monochange_graph` builds release plans from normalized package and dependency data.
 - `crates/monochange_semver` and `crates/monochange_analysis` provide compatibility and semantic-diff evidence.
+- `crates/monochange_changelog` renders changelogs and release notes from structured change data.
+- `crates/monochange_publish` handles registry publishing and trusted-publishing capability helpers.
+- `crates/monochange_ecmascript` shares JavaScript/TypeScript ecosystem utilities across the npm, Deno, and JSR adapters.
+- `crates/monochange_schema` owns the generated JSON Schema assets for `monochange.toml`.
+- `crates/monochange_snapshot` provides snapshot-style output helpers for deterministic CLI rendering.
+- `crates/monochange_telemetry` provides the local-only telemetry event sink.
+- `crates/monochange_test_helpers` shares fixture and assertion helpers across unit tests.
 
 ### Adapter layer
 
@@ -28,15 +35,19 @@
   - `crates/monochange_npm`
   - `crates/monochange_deno`
   - `crates/monochange_dart`
+  - `crates/monochange_python`
+  - `crates/monochange_go`
 - Source-provider crates own hosted automation behavior:
   - `crates/monochange_github`
   - `crates/monochange_gitlab`
   - `crates/monochange_gitea`
+  - `crates/monochange_forgejo`
+- `crates/monochange_hosting` shares release-request abstractions across the source providers.
 
 ### Configuration and linting support
 
 - `crates/monochange_config` parses and normalizes `monochange.toml`, then delegates adapter-specific validation when behavior depends on a concrete ecosystem or provider.
-- `crates/monochange_lint`, `crates/monochange_linting`, and `crates/monochange_lint_testing` provide the generic lint engine, authoring helpers, and test helpers.
+- `crates/monochange_lint` and `crates/monochange_linting` provide the generic lint engine and authoring helpers.
 
 ### Packages and assistant surfaces
 
@@ -59,7 +70,7 @@ Direct `SourceProvider` and `EcosystemType` branching is intentionally concentra
 
 ### Provider dispatch
 
-These files are the current reviewed exceptions inside the orchestration/config layers:
+These files are the reviewed exceptions inside the orchestration/config layers:
 
 - `crates/monochange/src/hosted_sources.rs`
 - `crates/monochange/src/release_artifacts.rs`
@@ -72,7 +83,7 @@ These files are the current reviewed exceptions inside the orchestration/config 
 
 ### Ecosystem dispatch
 
-These files are the current reviewed exceptions inside the orchestration/config layers:
+These files are the reviewed exceptions inside the orchestration/config layers:
 
 - `crates/monochange/src/versioned_files.rs`
 - `crates/monochange/src/workspace_ops.rs`

@@ -19,10 +19,10 @@ It is especially useful for:
 
 ## Inputs
 
-- `from` — required release commit ref
-- `push` — boolean, defaulting to `true`; set `--push=false` to create tags locally without pushing
-- `dry_run` — preview without creating or pushing tags
-- `format` — `text` or `json`, defaulting to `text`
+- `from`: required release commit ref
+- `push`: boolean, defaulting to `true`; set `--push=false` to create tags locally without pushing
+- `dry_run`: preview without creating or pushing tags
+- `format`: `text` or `json`, defaulting to `text`
 
 ## Prerequisites
 

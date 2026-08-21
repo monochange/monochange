@@ -18,7 +18,7 @@
 - version-group assignments are attached after discovery
 - unmatched group members (declared in config but not found during discovery) produce warnings
 - unresolvable group members (invalid package IDs in `group.packages`) produce errors during configuration loading
-- discovery currently scans all supported ecosystems regardless of `[ecosystems.*]` toggles in `monochange.toml`
+- discovery scans all supported ecosystems regardless of `[ecosystems.*]` toggles in `monochange.toml`
 
 <!-- {/discoveryKeyBehaviors} -->
 
@@ -26,10 +26,10 @@
 
 The `--provider` flag supports `github`, `gitlab`, and `gitea`. When provided, `monochange init`:
 
-1. **Configures the `[source]` section** — adds provider-specific settings for releases and pull/merge requests
-2. **Generates provider CLI commands** — includes `commit-release` and `release-pr` commands in `monochange.toml`
-3. **Creates workflow files** (GitHub only) — writes `.github/workflows/release.yml` and `.github/workflows/changeset-policy.yml`
-4. **Auto-detects owner/repo** — parses `git remote get-url origin` to pre-populate `[source]`
+1. **Configures the `[source]` section** - adds provider-specific settings for releases and pull/merge requests
+2. **Generates provider CLI commands** - includes `commit-release` and `release-pr` commands in `monochange.toml`
+3. **Creates workflow files** (GitHub only) - writes `.github/workflows/release.yml` and `.github/workflows/changeset-policy.yml`
+4. **Auto-detects owner/repo** - parses `git remote get-url origin` to pre-populate `[source]`
 
 Example generated configuration with `--provider github`:
 
@@ -44,8 +44,6 @@ enabled = true
 draft = false
 prerelease = false
 source = "monochange"
-
-[source.releases]
 branches = ["main", "release/*"]
 enforce_for_tags = true
 enforce_for_publish = true
@@ -85,8 +83,8 @@ name = "open release PR"
 
 The GitHub Actions workflows enable:
 
-- **Release automation** — `release.yml` refreshes the release PR on normal `main` pushes, then tags and publishes when the merged release commit lands on `main`
-- **Changeset policy enforcement** — `changeset-policy.yml` validates PRs have required changeset coverage
+- **Release automation** - `release.yml` refreshes the release PR on normal `main` pushes, then tags and publishes when the merged release commit lands on `main`
+- **Changeset policy enforcement** - `changeset-policy.yml` validates PRs have required changeset coverage
 
 For GitLab and Gitea, the `[source]` section is configured but workflows are not generated (use their respective CI configuration files).
 
@@ -106,10 +104,10 @@ monochange init --provider github
 
 This single command generates:
 
-1. **Complete source configuration** — `[source]`, `[source.releases]`, and `[source.pull_requests]` sections
-2. **Automation CLI commands** — `commit-release` and `release-pr` commands ready to use
-3. **GitHub Actions workflows** — `release.yml` and `changeset-policy.yml` for CI/CD
-4. **Auto-detected repository info** — parses your git remote to pre-fill owner and repo
+1. **Complete source configuration** - `[source]`, `[source.releases]`, and `[source.pull_requests]` sections
+2. **Automation CLI commands** - `commit-release` and `release-pr` commands ready to use
+3. **GitHub Actions workflows** - `release.yml` and `changeset-policy.yml` for CI/CD
+4. **Auto-detected repository info** - parses your git remote to pre-fill owner and repo
 
 <!-- {/initProviderQuickStart} -->
 
@@ -159,7 +157,7 @@ format = "monochange"
 
 <!-- {@configurationRegexVersionedFilesSnippet} -->
 
-Regex entries let you version-stamp any plain-text file — README badges, download links, install scripts — without needing an ecosystem-specific parser. The regex must contain a named `version` capture group; monochange replaces the captured substring with the new version while preserving the surrounding text.
+Regex entries let you version-stamp any plain-text file, such as README badges, download links, or install scripts, without needing an ecosystem-specific parser. The regex must contain a named `version` capture group; monochange replaces the captured substring with the new version while preserving the surrounding text.
 
 ```toml
 [package.core]
@@ -187,7 +185,7 @@ versioned_files = [
 
 Key rules:
 
-- `regex` entries cannot set `type`, `prefix`, `fields`, or `name` — they operate on raw text
+- `regex` entries cannot set `type`, `prefix`, `fields`, or `name`: they operate on raw text
 - the regex must include a `(?<version>...)` named capture group
 - the `path` field supports glob patterns (e.g. `**/README.md`)
 - regex entries work on packages, groups, and ecosystem-level `versioned_files`
@@ -198,7 +196,7 @@ Key rules:
 
 When `[defaults].package_type` is set, package entries may omit an explicit `type`.
 
-monochange currently supports two changelog formats:
+monochange supports two changelog formats:
 
 - `monochange` keeps the current heading-and-bullets layout
 - `keep_a_changelog` renders section headings such as `### Features`, `### Fixes`, and `### Breaking changes`
@@ -240,7 +238,7 @@ Supported template variables include:
 | `{{ related_issues }}`           | plain-text list of related issues that were referenced but not closed | host support may vary                                                                                      |
 | `{{ related_issue_links }}`      | markdown links to related issues that were referenced but not closed  | host support may vary                                                                                      |
 
-The `*_link` variants render markdown links when the hosting provider exposes URLs. By default `{{ context }}` renders the highest-value metadata for readers — owner, review request, introduced commit, last updated commit when different, and linked issues — without exposing the transient `.changeset/*.md` path unless you explicitly reference `{{ changeset_path }}` in your template.
+The `*_link` variants render markdown links when the hosting provider exposes URLs. By default `{{ context }}` renders the highest-value metadata for readers: owner, review request, introduced commit, last updated commit when different, and linked issues. It does not expose the transient `.changeset/*.md` path unless you explicitly reference `{{ changeset_path }}` in your template.
 
 <!-- {/configurationPackageOverridesSnippet} -->
 
@@ -331,18 +329,6 @@ name = "open release request"
 type = "OpenReleaseRequest"
 inputs = ["format"]
 
-name = "format"
-type = "choice"
-choices = ["text", "json"]
-default = "text"
-
-type = "PrepareRelease"
-
-type = "Command"
-command = "cargo test --workspace --all-features"
-dry_run_command = "cargo test --workspace --all-features"
-shell = true
-
 [cli.affected]
 help_text = "Evaluate pull-request changeset policy"
 
@@ -402,8 +388,6 @@ enabled = true
 draft = false
 prerelease = false
 source = "monochange"
-
-[source.releases]
 branches = ["main", "release/*"]
 enforce_for_tags = true
 enforce_for_publish = true
@@ -461,7 +445,7 @@ lockfile_commands = [
 
 [ecosystems.deno]
 enabled = true
-# Deno currently has no inferred lockfile command.
+# Deno has no inferred lockfile command.
 
 [ecosystems.dart]
 enabled = true
@@ -491,16 +475,16 @@ Use a group id only when the change is intentionally owned by the whole group an
 
 <!-- {@configurationCurrentStatus} -->
 
-Current implementation notes:
+Implementation notes:
 
 - `defaults.include_private` is parsed, but discovery behavior is still centered on the supported fixture-driven CLI commands documented here
-- `[ecosystems.*].enabled/roots/exclude` are parsed, but discovery still scans all supported ecosystems regardless of those settings today
+- `[ecosystems.*].enabled/roots/exclude` are parsed, but discovery still scans all supported ecosystems regardless of those settings
 - `defaults.strict_version_conflicts` controls whether conflicting explicit `version` entries across changesets warn-and-pick-highest (default) or fail planning outright
 - source automation expects `[source]` with provider release settings and release branch policy under `[source.releases]`, pull request settings under `[source.pull_requests]`, and affected-package policy settings under `[changesets.affected]`; GitHub remains the default provider
 - live GitHub release and release-request publishing uses `octocrab` with `GITHUB_TOKEN` / `GH_TOKEN`, falling back to the authenticated GitHub CLI credential via `gh auth token` when neither variable is set; GitLab and Gitea use direct HTTP APIs
 - release-request publishing still uses local `git` for branch, commit, and push operations before provider API updates when not in dry-run mode
-- changeset policy commands currently apply only to the GitHub provider and expect `[changesets.affected]`, a `changed_paths` command input, and reusable diagnostics for GitHub Actions consumption
-- supported `[[cli.<command>.steps]]` types today are `Config`, `Validate`, `Discover`, `DisplayVersions`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `VerifyReleaseBranch`, `PublishRelease`, `PlaceholderPublish`, `PublishPackages`, `PlanPublishRateLimits`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, `ReleaseRecord`, `PublishReadiness`, `TagRelease`, and `Command`
+- changeset policy commands apply only to the GitHub provider and expect `[changesets.affected]`, a `changed_paths` command input, and reusable diagnostics for GitHub Actions consumption
+- supported `[[cli.<command>.steps]]` types are `Config`, `Validate`, `Discover`, `DisplayVersions`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `VerifyReleaseBranch`, `PublishRelease`, `PlaceholderPublish`, `PublishPackages`, `PlanPublishRateLimits`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, `ReleaseRecord`, `PublishReadiness`, `TagRelease`, and `Command`
 - see the [CLI step reference](../reference/cli-steps/00-index.md) for detailed per-step guidance, prerequisites, and composition examples
 
 <!-- {/configurationCurrentStatus} -->
@@ -921,15 +905,15 @@ After publishing, verify npm provenance from the package page or with npm's prov
 
 After copying the bundled skill, you get a small documentation set that is designed to load in layers:
 
-- `SKILL.md` — concise entrypoint for agents
-- `REFERENCE.md` — broader high-context reference with more examples
-- `skills/README.md` — index of focused deep dives
-- `skills/adoption.md` — setup-depth questions, migration guidance, and recommendation patterns
-- `skills/changesets.md` — changeset authoring and lifecycle guidance
-- `skills/commands.md` — built-in command catalog and workflow selection
-- `skills/configuration.md` — `monochange.toml` setup and editing guidance
-- `skills/linting.md` — `[lints]` presets, `monochange check`, and manifest-focused examples
-- `examples/README.md` — condensed scenario examples for quick recommendations
+- `SKILL.md`: concise entrypoint for agents
+- `REFERENCE.md`: broader high-context reference with more examples
+- `skills/README.md`: index of focused deep dives
+- `skills/adoption.md`: setup-depth questions, migration guidance, and recommendation patterns
+- `skills/changesets.md`: changeset authoring and lifecycle guidance
+- `skills/commands.md`: built-in command catalog and workflow selection
+- `skills/configuration.md`: `monochange.toml` setup and editing guidance
+- `skills/linting.md`: `[lints]` presets, `monochange check`, and manifest-focused examples
+- `examples/README.md`: condensed scenario examples for quick recommendations
 
 This layout keeps the top-level skill small while still making the richer guidance available when an assistant needs more context.
 
@@ -937,18 +921,18 @@ This layout keeps the top-level skill small while still making the richer guidan
 
 <!-- {@mcpToolsList} -->
 
-- `monochange_validate` — validate `monochange.toml` and `.changeset` targets
-- `monochange_discover` — discover packages, dependencies, and groups across the repository
-- `monochange_diagnostics` — inspect pending changesets with git and review context as structured JSON
-- `monochange_change` — write a `.changeset` markdown file for one or more package or group ids
-- `monochange_release_preview` — prepare a dry-run release preview from discovered `.changeset` files
-- `monochange_release_manifest` — generate a dry-run release manifest JSON document for downstream automation
-- `monochange_affected_packages` — evaluate changeset policy from changed paths and optional labels
-- `monochange_lint_catalog` — list registered manifest lint rules and presets
-- `monochange_lint_explain` — explain one manifest lint rule or preset
-- `monochange_analyze_changes` — analyze git diff state and return ecosystem-specific semantic changes
-- `monochange_classify_changes` — classify API-impacting changes and recommend package bumps
-- `monochange_validate_changeset` — validate one changeset against the current semantic diff
+- `monochange_validate`: validate `monochange.toml` and `.changeset` targets
+- `monochange_discover`: discover packages, dependencies, and groups across the repository
+- `monochange_diagnostics`: inspect pending changesets with git and review context as structured JSON
+- `monochange_change`: write a `.changeset` markdown file for one or more package or group ids
+- `monochange_release_preview`: prepare a dry-run release preview from discovered `.changeset` files
+- `monochange_release_manifest`: generate a dry-run release manifest JSON document for downstream automation
+- `monochange_affected_packages`: evaluate changeset policy from changed paths and optional labels
+- `monochange_lint_catalog`: list registered manifest lint rules and presets
+- `monochange_lint_explain`: explain one manifest lint rule or preset
+- `monochange_analyze_changes`: analyze git diff state and return ecosystem-specific semantic changes
+- `monochange_classify_changes`: classify API-impacting changes and recommend package bumps
+- `monochange_validate_changeset`: validate one changeset against the current semantic diff
 
 <!-- {/mcpToolsList} -->
 
@@ -1118,12 +1102,12 @@ use = ["changesets/recommended"]
 
 **Useful options:**
 
-- `required` — require the summary heading.
-- `heading_level` — require a Markdown heading level from `1` to `6`.
-- `min_length` / `max_length` — constrain summary text length.
-- `forbid_trailing_period` — reject summaries ending in `.`.
-- `forbid_conventional_commit_prefix` — reject summaries such as `feat: add parser`.
-- `require_description` — require a non-empty paragraph after the heading.
+- `required`: require the summary heading.
+- `heading_level`: require a Markdown heading level from `1` to `6`.
+- `min_length` / `max_length`: constrain summary text length.
+- `forbid_trailing_period`: reject summaries ending in `.`.
+- `forbid_conventional_commit_prefix`: reject summaries such as `feat: add parser`.
+- `require_description`: require a non-empty paragraph after the heading.
 
 ### `changesets/no_section_headings`
 
@@ -1139,11 +1123,11 @@ use = ["changesets/recommended"]
 
 **Useful options:**
 
-- `required_sections` — headings that must appear in the body.
-- `forbidden_headings` — headings that must not appear in the body.
-- `min_body_chars` / `max_body_chars` — body length bounds.
-- `require_code_block` — require a fenced code block.
-- `required_bump` — require entries governed by this rule to use a specific bump severity.
+- `required_sections`: headings that must appear in the body.
+- `forbidden_headings`: headings that must not appear in the body.
+- `min_body_chars` / `max_body_chars`: body length bounds.
+- `require_code_block`: require a fenced code block.
+- `required_bump`: require entries governed by this rule to use a specific bump severity.
 
 ### `changesets/types/<type>`
 
@@ -1186,7 +1170,7 @@ serde = { workspace = true, features = ["derive"] }
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites the dependency entry when safe.
+- `fix`: defaults to `true`; rewrites the dependency entry when safe.
 
 ### `cargo/internal-dependency-workspace`
 
@@ -1210,8 +1194,8 @@ monochange_core = { workspace = true }
 
 **Options:**
 
-- `require_workspace` — defaults to `true`; require internal dependencies to use `workspace = true`.
-- `fix` — defaults to `true`; rewrites safe internal dependency entries.
+- `require_workspace`: defaults to `true`; require internal dependencies to use `workspace = true`.
+- `fix`: defaults to `true`; rewrites safe internal dependency entries.
 
 ### `cargo/publishable-dependencies`
 
@@ -1263,7 +1247,7 @@ version = "0.1.0"
 
 **Options:**
 
-- `fields` — replace the default required-field list.
+- `fields`: replace the default required-field list.
 
 Example:
 
@@ -1296,7 +1280,7 @@ zzzz = "1.0"
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
+- `fix`: defaults to `true`; rewrites dependency sections in sorted order.
 
 ### `cargo/unlisted-package-private`
 
@@ -1326,7 +1310,7 @@ publish = false
 
 **Options:**
 
-- `fix` — defaults to `true`; inserts `publish = false` when safe.
+- `fix`: defaults to `true`; inserts `publish = false` when safe.
 
 ### `cargo/manifest-repository`
 
@@ -1406,8 +1390,8 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `require_for_private` — defaults to `false`; also enforce the rule for private packages.
-- `fix` — defaults to `true`; rewrites internal dependency ranges to `workspace:` ranges.
+- `require_for_private`: defaults to `false`; also enforce the rule for private packages.
+- `fix`: defaults to `true`; rewrites internal dependency ranges to `workspace:` ranges.
 
 ### `npm/sorted-dependencies`
 
@@ -1437,7 +1421,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
+- `fix`: defaults to `true`; rewrites dependency sections in sorted order.
 
 ### `npm/required-package-fields`
 
@@ -1462,7 +1446,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fields` — replace the default required-field list.
+- `fields`: replace the default required-field list.
 
 ### `npm/root-no-prod-deps`
 
@@ -1482,7 +1466,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fix` — defaults to `true`; moves root `dependencies` into `devDependencies`.
+- `fix`: defaults to `true`; moves root `dependencies` into `devDependencies`.
 
 ### `npm/no-duplicate-dependencies`
 
@@ -1505,7 +1489,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fix` — defaults to `true`; removes duplicate entries from later sections.
+- `fix`: defaults to `true`; removes duplicate entries from later sections.
 
 ### `npm/unlisted-package-private`
 
@@ -1537,7 +1521,7 @@ npm-family rules apply to `package.json` manifests discovered through npm, pnpm,
 
 **Options:**
 
-- `fix` — defaults to `true`; inserts `private: true` when safe.
+- `fix`: defaults to `true`; inserts `private: true` when safe.
 
 ### `npm/manifest-repository`
 
@@ -1615,8 +1599,8 @@ environment:
 
 **Options:**
 
-- `minimum` — override the minimum lower bound for your workspace.
-- `require_upper_bound` — set to `false` if your policy intentionally omits an upper bound.
+- `minimum`: override the minimum lower bound for your workspace.
+- `require_upper_bound`: set to `false` if your policy intentionally omits an upper bound.
 
 Example:
 
@@ -1647,7 +1631,7 @@ dependencies:
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites dependency sections in sorted order.
+- `fix`: defaults to `true`; rewrites dependency sections in sorted order.
 
 ### `dart/required-package-fields`
 
@@ -1670,7 +1654,7 @@ version: 1.0.0
 
 **Options:**
 
-- `fields` — replace the default required-field list.
+- `fields`: replace the default required-field list.
 
 Example:
 
@@ -1696,7 +1680,7 @@ dependencies:
 
 **Options:**
 
-- `allow` — list dependency names that may use `git:` sources.
+- `allow`: list dependency names that may use `git:` sources.
 
 Example:
 
@@ -1731,7 +1715,7 @@ publish_to: none
 
 **Options:**
 
-- `fix` — defaults to `true`; inserts `publish_to: none` when safe.
+- `fix`: defaults to `true`; inserts `publish_to: none` when safe.
 
 ### `dart/no-unexpected-dependency-overrides`
 
@@ -1741,8 +1725,8 @@ publish_to: none
 
 **Options:**
 
-- `allow_for_private` — defaults to `true`; allow overrides in private packages.
-- `allow_packages` — list package names that may keep `dependency_overrides`.
+- `allow_for_private`: defaults to `true`; allow overrides in private packages.
+- `allow_packages`: list package names that may keep `dependency_overrides`.
 
 Example:
 
@@ -1761,7 +1745,7 @@ With Dart workspace resolution, Dart resolves versioned internal dependencies to
 
 **Options:**
 
-- `mode` — choose `"path"` or `"hosted"` for packages that do not use `resolution: workspace`.
+- `mode`: choose `"path"` or `"hosted"` for packages that do not use `resolution: workspace`.
 
 Example:
 
@@ -1827,7 +1811,7 @@ flutter:
 
 **Options:**
 
-- `fix` — defaults to `true`; rewrites Flutter assets and fonts in sorted order.
+- `fix`: defaults to `true`; rewrites Flutter assets and fonts in sorted order.
 
 ### `dart/manifest-repository`
 

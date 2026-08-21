@@ -207,9 +207,9 @@ publish_packages = false
 
 Base strategies:
 
-- `planned` — compute the next stable version from changesets and dependency propagation, then append the prerelease suffix.
-- `current-stable` — use the current/original stable manifest version as the prerelease base.
-- `fixed` — use `base_version`, which is useful for binary/nightly workflows such as `0.0.0-alpha.0`.
+- `planned`: compute the next stable version from changesets and dependency propagation, then append the prerelease suffix.
+- `current-stable`: use the current/original stable manifest version as the prerelease base.
+- `fixed`: use `base_version`, which is useful for binary/nightly workflows such as `0.0.0-alpha.0`.
 
 When no changesets exist, prerelease mode still synthesizes release decisions from discovered packages and version groups. Repeated prerelease runs persist state in `.monochange/prerelease-state.json` so a series advances from `alpha.0` to `alpha.1` without repeatedly reapplying the same stable bump. Set `branches` when prerelease tag/publish workflow steps should be allowed from a different branch set than stable releases. Disable prerelease mode for the final stable release; successful stable preparation removes the state file. If prerelease mode is disabled and `.monochange/prerelease-state.json` is still present, validation/check fails so stale prerelease state is not ignored.
 
@@ -247,7 +247,7 @@ trusted_publishing = false
 Supported fields:
 
 - `enabled` - include this package in managed publishing
-- `mode` - `builtin` or `external`. When `builtin` (the default), monochange's built-in publisher handles release publishing. When `external`, monochange skips the package during release publishing (`PublishPackages`) — your own CI or scripts handle release publishing instead. The `mode` setting does **not** affect placeholder publishing (`PlaceholderPublish`), which processes all packages with `publish.enabled = true`.
+- `mode` - `builtin` or `external`. When `builtin` (the default), monochange's built-in publisher handles release publishing. When `external`, monochange skips the package during release publishing (`PublishPackages`): your own CI or scripts handle release publishing instead. The `mode` setting does **not** affect placeholder publishing (`PlaceholderPublish`), which processes all packages with `publish.enabled = true`.
 - `registry` - public registry override for the package ecosystem
 - `trusted_publishing` - `true`/`false` or a table with `enabled`, `repository`, `workflow`, and `environment`
 - `attestations.require_registry_provenance` - require registry-native package provenance when the selected registry/provider capability supports it
@@ -260,7 +260,7 @@ Supported fields:
 
 Inheritance flows from `[ecosystems.<name>.publish]` to matching packages, and package-level values override the inherited ecosystem defaults. Configure shared trusted-publishing, attestation, and context policy on the ecosystem, then use package-level publish settings for opt-outs or package-specific workflows.
 
-Built-in publishing currently targets only the canonical public registry for each supported ecosystem:
+Built-in publishing targets only the canonical public registry for each supported ecosystem:
 
 - Cargo → `crates.io`
 - npm packages → `npm`
@@ -268,9 +268,8 @@ Built-in publishing currently targets only the canonical public registry for eac
 - Dart / Flutter packages → `pub.dev`
 - Python packages → `pypi`
 - Go modules → `go_proxy` via VCS tags
-- Python packages → `pypi`
 
-Private registries and custom publication flows are still external. For those packages, set `mode = "external"` and handle release publication outside monochange. Placeholder publishing (`monochange placeholder-publish`) still works for external-mode packages because it is a bootstrap utility, not a release publishing step.
+Private registries and custom publication flows are still external. For those packages, set `mode = "external"` and handle release publication outside monochange. Placeholder publishing (`monochange step placeholder-publish`) still works for external-mode packages because it is a bootstrap utility, not a release publishing step.
 
 ### Placeholder publishing
 
@@ -316,7 +315,7 @@ dependency_fields = ["dependencies", "optional-dependencies", "group.dependencie
 dependency_fields = []
 ```
 
-The same resolved policy is used by `monochange plan-release-publish` and `monochange step publish-packages`.
+The same resolved policy is used by `monochange step plan-publish-rate-limits` and `monochange step publish-packages`.
 
 ### Trusted publishing
 
@@ -360,7 +359,7 @@ require_registry_provenance = true
 require_registry_provenance = false
 ```
 
-monochange currently treats npm provenance and JSR package provenance as enforceable built-in registry provenance. `PyPI` PEP 740 attestations are modeled in the capability matrix, but `require_registry_provenance` is rejected for `PyPI` until the built-in Python publisher exposes a publish command that can require uploading those attestations. `crates.io`, `pub.dev`, Go proxy publishing, and custom registries are also rejected when this requirement is enabled because monochange cannot verify equivalent registry-native package attestations for those flows.
+monochange treats npm provenance and JSR package provenance as enforceable built-in registry provenance. `PyPI` PEP 740 attestations are modeled in the capability matrix, but `require_registry_provenance` is rejected for `PyPI` until the built-in Python publisher exposes a publish command that can require uploading those attestations. `crates.io`, `pub.dev`, Go proxy publishing, and custom registries are also rejected when this requirement is enabled because monochange cannot verify equivalent registry-native package attestations for those flows.
 
 GitHub release asset attestations are a separate release policy under `[source.releases.attestations]` and are valid only for the GitHub source provider:
 
@@ -379,15 +378,15 @@ monochange resolves the GitHub trust context from:
 
 If monochange cannot determine the GitHub repository or workflow for an npm package, it cannot render a precise `npm trust github ...` repair command or verify the expected GitHub context.
 
-### Current implementation limits
+### Implementation limits
 
-The built-in package publishing flow is intentionally narrow for now:
+The built-in package publishing flow is intentionally narrow:
 
 - no private or custom registry support in `mode = "builtin"`
 - rate-limit planning can batch work and enforce single-window safety, but monochange still does not sleep across windows or requeue later batches automatically
 - registry-side trusted-publisher enrollment is still manual for every registry; npm is special only because monochange can render and verify the GitHub setup context
 
-If your workflow needs any of those today, keep the package on `mode = "external"` and let your own CI or scripts own publication.
+If your workflow needs any of these, keep the package on `mode = "external"` and let your own CI or scripts own publication.
 
 For end-to-end GitHub and GitLab examples - including npm trusted publishing on GitHub and token/external-mode patterns on GitLab - see [Advanced: CI, package publishing, and release PR flows](./13-ci-and-publishing.md).
 
@@ -492,7 +491,7 @@ Key rules:
 
 <!-- {=configurationRegexVersionedFilesSnippet} -->
 
-Regex entries let you version-stamp any plain-text file — README badges, download links, install scripts — without needing an ecosystem-specific parser. The regex must contain a named `version` capture group; monochange replaces the captured substring with the new version while preserving the surrounding text.
+Regex entries let you version-stamp any plain-text file, such as README badges, download links, or install scripts, without needing an ecosystem-specific parser. The regex must contain a named `version` capture group; monochange replaces the captured substring with the new version while preserving the surrounding text.
 
 ```toml
 [package.core]
@@ -520,7 +519,7 @@ versioned_files = [
 
 Key rules:
 
-- `regex` entries cannot set `type`, `prefix`, `fields`, or `name` — they operate on raw text
+- `regex` entries cannot set `type`, `prefix`, `fields`, or `name`: they operate on raw text
 - the regex must include a `(?<version>...)` named capture group
 - the `path` field supports glob patterns (e.g. `**/README.md`)
 - regex entries work on packages, groups, and ecosystem-level `versioned_files`
@@ -558,13 +557,13 @@ lockfile_commands = [
 
 ## CLI commands
 
-CLI workflow commands are user-defined top-level commands. Each `[cli.<command>]` table in `monochange.toml` becomes `monochange <command>`, with its own help text, inputs, and ordered step list.
+CLI workflow commands are user-defined commands that run as `monochange run <command>`. Each `[cli.<command>]` table in `monochange.toml` defines one workflow with its own help text, inputs, and ordered step list.
 
 `monochange init` writes a minimal starter config and does not seed default `[cli.*]` workflow aliases. Add `[cli.<command>]` tables only for repository-specific workflows that need to chain multiple steps, expose custom names, or run shell `Command` steps.
 
 Built-in steps are also available directly as immutable `monochange step <name>` commands. The binary generates those commands from the step schemas, so `monochange step discover`, `monochange step prepare-release`, `monochange step affected-packages`, and the other step commands do not require config entries. Use `monochange step <name>` in CI when you want a stable built-in operation without depending on a repository-defined wrapper.
 
-Some top-level names are reserved for binary commands, including `init`, `mcp`, `help`, `version`, `analyze`, `check`, and `step`. The `step` command namespace is reserved for immutable built-in step commands. Do not define `[cli.step]` tables.
+Some top-level names are reserved for binary commands, including `init`, `mcp`, `help`, `version`, `analyze`, `check`, and `step`. The `step` command namespace is reserved for immutable built-in step commands, and `run` is reserved for executing configured workflows. Do not define `[cli.step]` or `[cli.run]` tables.
 
 <!-- {=cliStepExplicitInputInheritance} -->
 
@@ -572,7 +571,7 @@ Some top-level names are reserved for binary commands, including `init`, `mcp`, 
 
 Config-defined workflow commands have two input layers:
 
-1. `[[cli.<command>.inputs]]` declares the flags and arguments accepted by `monochange <command>`.
+1. `[[cli.<command>.inputs]]` declares the flags and arguments accepted by `monochange run <command>`.
 2. `inputs` on each step decides which of those parsed command inputs are visible while that step runs.
 
 Command inputs are **not inherited automatically**. A step receives a command input only when the step explicitly lists it. This makes wrappers predictable when a command-level flag and a step-specific input share the same name.
@@ -696,18 +695,6 @@ name = "open release request"
 type = "OpenReleaseRequest"
 inputs = ["format"]
 
-name = "format"
-type = "choice"
-choices = ["text", "json"]
-default = "text"
-
-type = "PrepareRelease"
-
-type = "Command"
-command = "cargo test --workspace --all-features"
-dry_run_command = "cargo test --workspace --all-features"
-shell = true
-
 [cli.affected]
 help_text = "Evaluate pull-request changeset policy"
 
@@ -779,8 +766,6 @@ enabled = true
 draft = false
 prerelease = false
 source = "monochange"
-
-[source.releases]
 branches = ["main", "release/*"]
 enforce_for_tags = true
 enforce_for_publish = true
@@ -842,7 +827,7 @@ lockfile_commands = [
 
 [ecosystems.deno]
 enabled = true
-# Deno currently has no inferred lockfile command.
+# Deno has no inferred lockfile command.
 
 [ecosystems.dart]
 enabled = true
@@ -866,7 +851,7 @@ lockfile_commands = [{ command = "go mod tidy" }]
 
 When `[defaults].package_type` is set, package entries may omit an explicit `type`.
 
-monochange currently supports two changelog formats:
+monochange supports two changelog formats:
 
 - `monochange` keeps the current heading-and-bullets layout
 - `keep_a_changelog` renders section headings such as `### Features`, `### Fixes`, and `### Breaking changes`
@@ -908,7 +893,7 @@ Supported template variables include:
 | `{{ related_issues }}`           | plain-text list of related issues that were referenced but not closed | host support may vary                                                                                      |
 | `{{ related_issue_links }}`      | markdown links to related issues that were referenced but not closed  | host support may vary                                                                                      |
 
-The `*_link` variants render markdown links when the hosting provider exposes URLs. By default `{{ context }}` renders the highest-value metadata for readers — owner, review request, introduced commit, last updated commit when different, and linked issues — without exposing the transient `.changeset/*.md` path unless you explicitly reference `{{ changeset_path }}` in your template.
+The `*_link` variants render markdown links when the hosting provider exposes URLs. By default `{{ context }}` renders the highest-value metadata for readers: owner, review request, introduced commit, last updated commit when different, and linked issues. It does not expose the transient `.changeset/*.md` path unless you explicitly reference `{{ changeset_path }}` in your template.
 
 <!-- {/configurationPackageOverridesSnippet} -->
 
@@ -928,16 +913,16 @@ Use a group id only when the change is intentionally owned by the whole group an
 
 <!-- {=configurationCurrentStatus} -->
 
-Current implementation notes:
+Implementation notes:
 
 - `defaults.include_private` is parsed, but discovery behavior is still centered on the supported fixture-driven CLI commands documented here
-- `[ecosystems.*].enabled/roots/exclude` are parsed, but discovery still scans all supported ecosystems regardless of those settings today
+- `[ecosystems.*].enabled/roots/exclude` are parsed, but discovery still scans all supported ecosystems regardless of those settings
 - `defaults.strict_version_conflicts` controls whether conflicting explicit `version` entries across changesets warn-and-pick-highest (default) or fail planning outright
 - source automation expects `[source]` with provider release settings and release branch policy under `[source.releases]`, pull request settings under `[source.pull_requests]`, and affected-package policy settings under `[changesets.affected]`; GitHub remains the default provider
 - live GitHub release and release-request publishing uses `octocrab` with `GITHUB_TOKEN` / `GH_TOKEN`, falling back to the authenticated GitHub CLI credential via `gh auth token` when neither variable is set; GitLab and Gitea use direct HTTP APIs
 - release-request publishing still uses local `git` for branch, commit, and push operations before provider API updates when not in dry-run mode
-- changeset policy commands currently apply only to the GitHub provider and expect `[changesets.affected]`, a `changed_paths` command input, and reusable diagnostics for GitHub Actions consumption
-- supported `[[cli.<command>.steps]]` types today are `Config`, `Validate`, `Discover`, `DisplayVersions`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `VerifyReleaseBranch`, `PublishRelease`, `PlaceholderPublish`, `PublishPackages`, `PlanPublishRateLimits`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, `ReleaseRecord`, `PublishReadiness`, `TagRelease`, and `Command`
+- changeset policy commands apply only to the GitHub provider and expect `[changesets.affected]`, a `changed_paths` command input, and reusable diagnostics for GitHub Actions consumption
+- supported `[[cli.<command>.steps]]` types are `Config`, `Validate`, `Discover`, `DisplayVersions`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `VerifyReleaseBranch`, `PublishRelease`, `PlaceholderPublish`, `PublishPackages`, `PlanPublishRateLimits`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, `ReleaseRecord`, `PublishReadiness`, `TagRelease`, and `Command`
 - see the [CLI step reference](../reference/cli-steps/00-index.md) for detailed per-step guidance, prerequisites, and composition examples
 
 <!-- {/configurationCurrentStatus} -->

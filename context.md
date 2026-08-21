@@ -1,22 +1,13 @@
-Written findings to `context.md`. Here's the summary:
+## Summary
 
----
+**Merge Queue Monitor Results:**
 
-**The color bleed source is `CliProgressReporter::log_command_output`** in `cli_progress.rs` (line 414-454).
+| PR                                              | Status                                    | Action Needed                           |
+| ----------------------------------------------- | ----------------------------------------- | --------------------------------------- |
+| **#634** (perf/step-prepare-release-solana-kit) | OPEN, BLOCKED: merge group run **failed** | No code fix needed: re-queue when ready |
+| **#635** (fix/load-indicator-reprint)           | OPEN, BLOCKED: never entered merge queue  | No code fix needed: re-queue when ready |
+| **#636** (fix/create-interactive-short-flag)    | **MERGED** ✅                             | None                                    |
 
-**The exact code path:**
+**Root cause of #634's failure:** `cargo deny` flagged `h2 v0.4.15` vulnerability (RUSTSEC-2026-0258: unbounded empty DATA frames). The fix (upgrading h2 to 0.4.16) is already in place. It was included when PR #636 merged into main (commit `c59f7f773`), and both #634 and #635's branches already descend from that commit. Both worktrees verified clean locally (`cargo deny check`, `cargo fmt`, `cargo clippy`, `cargo test` all pass).
 
-1. `execute_command_step` spawns a child process (e.g., cargo, npm)
-2. A streaming loop at `cli_runtime.rs:1946` reads raw stdout/stderr chunks from the child process
-3. Each chunk is converted via `String::from_utf8_lossy` and passed directly to `progress.log_command_output()`
-4. `log_command_output` iterates each line and embeds it raw into a formatted progress line via `self.print_line(&format!("  {} {} {}", ...pipe, ...label, line))`
-5. The `line` variable contains unmodified ANSI escape codes from the child process
-
-**The bug:** Child process ANSI color codes (like `\x1b[33m` for cargo warnings) pass through to stderr without being stripped or reset. If a child process doesn't emit a final `\x1b[0m` at the end of its output, the color state bleeds into the next step's spinner, step indicators, and progress lines.
-
-**Properly handled code (no issues):**
-
-- `paint_text()` — each fragment individually gets `\x1b[0m` reset
-- `push_ansi_style()` in `release_artifacts.rs` — same, per-line reset
-- `print_line()` — clears with `\r\x1b[2K` before writing
-- Final stdout output — plain text, no ANSI codes
+**No fix commits were pushed.** Both PRs just need to be re-added to the merge queue by the human maintainer.

@@ -20,14 +20,12 @@ The fastest path is the prebuilt npm package:
 ```bash
 npm install -g @monochange/cli
 monochange --help
-monochange --help
 ```
 
 If you prefer a Rust-native install, use:
 
 ```bash
 cargo install monochange
-monochange --help
 monochange --help
 ```
 
@@ -116,7 +114,7 @@ monochange run change \
 monochange run release --dry-run
 ```
 
-By default this now renders a human-friendly markdown preview in the terminal. Use `--format json` when you want structured output for tooling, `--format text` when you explicitly want the older plain-text rendering, or `monochange step display-versions` when you only need the planned package and group versions. Use `monochange versions --dry-run` when you want to preview internal dependency constraint updates without modifying manifests.
+By default this renders a markdown preview in the terminal. Use `--format json` when you want structured output for tooling, `--format text` when you explicitly want the older plain-text rendering, or `monochange step display-versions` when you only need the planned package and group versions. Use `monochange versions --dry-run` when you want to preview internal dependency constraint updates without modifying manifests.
 
 When you want to see the exact file patch without mutating the workspace, add `--diff`:
 
@@ -154,11 +152,11 @@ If you need a silent safety check, run `monochange run release --quiet`. Quiet m
 
 ## Next steps
 
-- [Installation](./01-installation.md) — install paths, optional assistant tooling, and repository development setup
-- [Your first release plan](./02-setup.md) — a fuller walkthrough built around `monochange init`
-- [Discovery](./03-discovery.md) — what discovery finds and how ids are rendered
-- [Configuration](./04-configuration.md) — evolve the generated config once the basics feel familiar
-- [Release planning](./06-release-planning.md) — compare preview modes, grouped releases, and planning rules
-- [Advanced: GitHub automation](./08-github-automation.md) — provider publishing, release PRs, and automation
-- [Advanced: Assistant setup and MCP](./09-assistant-setup.md) — optional AI-assisted workflows
-- [Reference: Manifest linting with `monochange check`](../reference/linting.md) — `[lints]` rules for Cargo and npm-family manifests
+- [Installation](./01-installation.md): install paths, optional assistant tooling, and repository development setup
+- [Your first release plan](./02-setup.md): a fuller walkthrough built around `monochange init`
+- [Discovery](./03-discovery.md): what discovery finds and how ids are rendered
+- [Configuration](./04-configuration.md): evolve the generated config once the basics feel familiar
+- [Release planning](./06-release-planning.md): compare preview modes, grouped releases, and planning rules
+- [Advanced: GitHub automation](./08-github-automation.md): provider publishing, release PRs, and automation
+- [Advanced: Assistant setup and MCP](./09-assistant-setup.md): optional AI-assisted workflows
+- [Reference: Manifest linting with `monochange check`](../reference/linting.md): `[lints]` rules for Cargo and npm-family manifests

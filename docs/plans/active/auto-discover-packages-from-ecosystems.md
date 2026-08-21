@@ -6,7 +6,7 @@
 
 ## Problem
 
-Declaring 30+ packages one-by-one in `monochange.toml` is repetitive. Most packages only need `path` and inherit everything else from `[defaults]`. In the monochange repo itself, all 35 `[package.*]` entries are boilerplate — 21 Cargo packages and 14 npm packages, most with only `path = "..."`.
+Declaring 30+ packages one-by-one in `monochange.toml` is repetitive. Most packages only need `path` and inherit everything else from `[defaults]`. In the monochange repo itself, all 35 `[package.*]` entries are boilerplate: 21 Cargo packages and 14 npm packages, most with only `path = "..."`.
 
 ## Proposed API
 
@@ -145,8 +145,8 @@ The `{{ name }}` default means auto-discovered packages use the same canonical i
 
 ## Open questions
 
-- Should `auto_discover` also apply to `[ecosystems.dart]` and `[ecosystems.go]`? Yes — the same mechanism works for all ecosystems.
-- Should `auto_discover.include` support `**` for recursive matching? Yes — use the `glob` crate which already supports `**`.
+- Should `auto_discover` also apply to `[ecosystems.dart]` and `[ecosystems.go]`? Yes: the same mechanism works for all ecosystems.
+- Should `auto_discover.include` support `**` for recursive matching? Yes: use the `glob` crate which already supports `**`.
 - Should `auto_discover` be a boolean shorthand? E.g. `auto_discover = true` uses `[ecosystems.*].roots` or the workspace root as the include pattern. Decision: start with the explicit table form only; add shorthand later if users request it.
 - How does `auto_discover` interact with `[ecosystems.*].roots` and `exclude`? If `roots` is set, auto-discovery is restricted to those root directories. If `exclude` is set, matching paths are excluded from both filesystem discovery and auto-discovery.
 

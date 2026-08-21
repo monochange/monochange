@@ -80,12 +80,12 @@ Introduces unified diff output for dry-run releases.
 
 As features are added and removed, changesets must be actively managed throughout the development lifecycle:
 
-1. **Analyze existing changesets** before creating new ones — read every `.changeset/*.md` file and understand what each covers
+1. **Analyze existing changesets** before creating new ones: read every `.changeset/*.md` file and understand what each covers
 2. **Determine the appropriate action** for each change:
-   - **Create new** — For genuinely new changes (preferred)
-   - **Update existing** — When expanding the scope of a change already described
-   - **Remove obsolete** — When the feature was reverted or the change no longer exists
-   - **Replace** — When the same intent is now implemented differently
+   - **Create new**: For genuinely new changes (preferred)
+   - **Update existing**: When expanding the scope of a change already described
+   - **Remove obsolete**: When the feature was reverted or the change no longer exists
+   - **Replace**: When the same intent is now implemented differently
 
 **Golden rule:** Err on the side of creating a new changeset. It's easier to consolidate later than to split apart.
 
@@ -222,9 +222,9 @@ The `monochange_analyze_changes` tool should:
 1. **Scan existing changesets** in `.changeset/` directory
 2. **Compare with current code changes**
 3. **Suggest actions** for each changeset:
-   - "This changeset references `ConfigValidator` which no longer exists — suggest removal"
-   - "New changes to config validation — suggest updating existing changeset"
-   - "New lockfile validation feature — suggest creating new changeset"
+   - "This changeset references `ConfigValidator` which no longer exists: suggest removal"
+   - "New changes to config validation: suggest updating existing changeset"
+   - "New lockfile validation feature: suggest creating new changeset"
 
 **Output format:**
 
@@ -316,9 +316,9 @@ When deciding how many changesets to create for a single PR or branch:
 
 Every user-facing changeset must include:
 
-1. **What changed** — High-level description
-2. **Why it matters** — Impact on users
-3. **Before/after examples** — Concrete migration path when the example itself changed
+1. **What changed**: High-level description
+2. **Why it matters**: Impact on users
+3. **Before/after examples**: Concrete migration path when the example itself changed
 
 When the command, config snippet, or code example is identical before and after, do **not** print it twice. Show the unchanged example once, then highlight only the changed output, behavior, or migration note.
 
@@ -541,10 +541,10 @@ pub fn group_changes(
 
 For each group, generate:
 
-1. **Summary headline** — `#### add <description>`
-2. **Impact description** — Why this matters to users
-3. **Before/after examples** — Concrete usage patterns
-4. **Migration notes** — If breaking or significant
+1. **Summary headline**: `#### add <description>`
+2. **Impact description**: Why this matters to users
+3. **Before/after examples**: Concrete usage patterns
+4. **Migration notes**: If breaking or significant
 
 ## Configuration
 
@@ -882,8 +882,8 @@ Adds verbose output for debugging.
 #### add --verbose and --debug flags
 
 Adds verbose and debug output options:
-- `--verbose` — Show detailed progress information
-- `--debug` — Show internal state and timing data
+- `--verbose`: Show detailed progress information
+- `--debug`: Show internal state and timing data
 ```
 
 ### Example 4: Lifecycle - Distinct features
@@ -942,7 +942,7 @@ Even though both are "validation", they target different files and should be tra
 
 #### rename `WorkflowDefinition` to `CliCommandDefinition`
 
-**Breaking change** — The configuration structure for CLI commands has been renamed and restructured.
+**Breaking change:** The configuration structure for CLI commands has been renamed and restructured.
 
 **Before:**
 
@@ -968,7 +968,7 @@ for input in &cmd.inputs { ... }  // New: input definitions
 
 1. Replace all `WorkflowDefinition` imports with `CliCommandDefinition`
 2. Update config file references from `workflows` to `cli`
-3. Review step definitions — some fields may have changed
+3. Review step definitions. Some fields may have changed.
 
 `````
 ## Edge cases
@@ -1102,18 +1102,18 @@ Before finalizing changesets, verify:
 
 This document extends and works alongside:
 
-- **[changeset-quality.md](changeset-quality.md)** — Content standards and examples
-- **[product-rules.md](product-rules.md)** — Architecture and crate organization
-- **[coding-style.md](coding-style.md)** — Code formatting and structure
+- **[changeset-quality.md](changeset-quality.md)**: Content standards and examples
+- **[product-rules.md](product-rules.md)**: Architecture and crate organization
+- **[coding-style.md](coding-style.md)**: Code formatting and structure
 
 Always cross-reference when generating changesets to ensure quality.
 
 ## Key lifecycle principles
 
-1. **Err on the side of creating new changesets** — It's easier to consolidate than split
-2. **Remove stale changesets promptly** — Don't release notes for removed features
-3. **Update existing only for same feature expansion** — Keep related changes together
-4. **Create separate for distinct features** — Even if they touch the same package
-5. **Review existing changesets before creating new ones** — Always check for conflicts
+1. **Err on the side of creating new changesets**: It's easier to consolidate than split
+2. **Remove stale changesets promptly**: Don't release notes for removed features
+3. **Update existing only for same feature expansion**: Keep related changes together
+4. **Create separate for distinct features**: Even if they touch the same package
+5. **Review existing changesets before creating new ones**: Always check for conflicts
 
 Remember: **Granularity is preferred. When in doubt, create a new changeset.**

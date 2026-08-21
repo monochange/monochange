@@ -23,11 +23,11 @@ Typical use cases include:
 
 ## Inputs
 
-- `from` — tag or commit-ish used to discover the release record
-- `target` — commit-ish to move the release to; defaults to `HEAD`
-- `force` — allow non-descendant retargets
-- `sync_provider` — whether hosted provider state should be synchronized
-- `format` — `text` or `json`
+- `from`: tag or commit-ish used to discover the release record
+- `target`: commit-ish to move the release to; defaults to `HEAD`
+- `force`: allow non-descendant retargets
+- `sync_provider`: whether hosted provider state should be synchronized
+- `format`: `text` or `json`
 
 ## Step-level `when` condition
 

@@ -3,8 +3,8 @@
 ## Core vs adapters
 
 - `crates/monochange_core`, `crates/monochange_graph`, and `crates/monochange_semver` define shared domain models, plans, and capability contracts.
-- Ecosystem crates (`monochange_cargo`, `monochange_npm`, `monochange_deno`, `monochange_dart`) own ecosystem-specific discovery, validation, manifest updates, and lockfile updates.
-- Source crates (`monochange_github`, `monochange_gitlab`, `monochange_gitea`) own provider-specific capability declarations, validation, request shaping, and publishing.
+- Ecosystem crates (`monochange_cargo`, `monochange_npm`, `monochange_deno`, `monochange_dart`, `monochange_python`, `monochange_go`) own ecosystem-specific discovery, validation, manifest updates, and lockfile updates.
+- Source crates (`monochange_github`, `monochange_gitlab`, `monochange_gitea`, `monochange_forgejo`) own provider-specific capability declarations, validation, request shaping, and publishing.
 - `crates/monochange` orchestrates commands by dispatching to adapters. It should not own adapter implementation details.
 - `crates/monochange_config` parses and normalizes configuration. When behavior depends on a specific ecosystem or provider, validation should be delegated to that adapter crate.
 

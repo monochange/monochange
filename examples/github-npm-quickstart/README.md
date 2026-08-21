@@ -36,7 +36,7 @@ monochange run release --dry-run --diff
 ## Why this example is opinionated
 
 - it uses `pnpm` so the workspace protocol story is explicit
-- it enables built-in npm publishing because GitHub + npm is the most automated monochange publishing path today
+- it enables built-in npm publishing because GitHub + npm is the most automated monochange publishing path
 - it uses `[lints].use = ["npm/recommended"]` and a small scoped override instead of hand-writing every lint rule
 - it keeps publishing in CI, while local work stops at validation, linting, and dry-run release planning
 

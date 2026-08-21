@@ -11,11 +11,11 @@ Use it when you want to answer questions like:
 
 ## Inputs
 
-- `format` — `text`, `markdown`, or `json`
-- `mode` — `publish` (default) or `placeholder`
-- `package` — optional repeated package ids used to filter the plan
-- `readiness` — optional path to a JSON artifact from `monochange step publish-readiness`; only valid when `mode = "publish"`
-- `ci` — optional `github-actions` or `gitlab-ci` snippet renderer
+- `format`: `text`, `markdown`, or `json`
+- `mode`: `publish` (default) or `placeholder`
+- `package`: optional repeated package ids used to filter the plan
+- `readiness`: optional path to a JSON artifact from `monochange step publish-readiness`; only valid when `mode = "publish"`
+- `ci`: optional `github-actions` or `gitlab-ci` snippet renderer
 
 ## Step-level `always_run` flag
 

@@ -54,8 +54,8 @@ This slice extends readiness artifacts so they include a deterministic `inputFin
 - [x] Update docs, skill guidance, and changeset.
 - [x] Run formatting and validation.
 - [x] Run coverage and confirm 100% patch coverage after commit.
-- [x] Push branch and open PR — PR #324.
-- [x] Merge after required checks pass — merge commit `69f221dc1f9b4823e8aa98ebdea6b84aaa57baeb`.
+- [x] Push branch and open PR: PR #324.
+- [x] Merge after required checks pass: merge commit `69f221dc1f9b4823e8aa98ebdea6b84aaa57baeb`.
 
 ## Validation log
 
@@ -67,7 +67,7 @@ This slice extends readiness artifacts so they include a deterministic `inputFin
 - [x] `devenv shell monochange step validate`
 - [x] `devenv shell lint:test`
 - [x] `devenv shell coverage:all`
-- [x] `devenv shell coverage:patch` after commit — `PATCH_COVERAGE 267/267 (100.00%)`
+- [x] `devenv shell coverage:patch` after commit: `PATCH_COVERAGE 267/267 (100.00%)`
 - [x] `CI=false devenv shell build:all`
 - [x] GitHub required checks for PR #324: `lint`, `test`, `build`, `coverage`, `codecov/patch`, `benchmark`, `benchmark-binary`, and changeset policy `check`
 

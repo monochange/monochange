@@ -19,10 +19,10 @@ It is especially useful for:
 
 ## Inputs
 
-- `from` — required tag or commit-ish used to locate the release record
-- `format` — `text`, `markdown`, or `json`, defaulting to `markdown`
-- `package` — optional repeated package ids used to restrict the report
-- `output` — optional path for a JSON readiness artifact
+- `from`: required tag or commit-ish used to locate the release record
+- `format`: `text`, `markdown`, or `json`, defaulting to `markdown`
+- `package`: optional repeated package ids used to restrict the report
+- `output`: optional path for a JSON readiness artifact
 
 ## Prerequisites
 

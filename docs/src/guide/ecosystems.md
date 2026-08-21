@@ -34,7 +34,7 @@ All supported ecosystems feed the same planner. After discovery, monochange can:
 - render changelogs and release notes from `.changeset/*.md`
 - create durable release records and post-merge tags
 
-`[ecosystems.<name>]` configuration currently controls settings such as dependency-version prefixes, extra versioned files, publish defaults, and lockfile commands. Discovery still scans every supported ecosystem regardless of `[ecosystems.*].enabled`, `roots`, or `exclude` toggles.
+`[ecosystems.<name>]` configuration controls settings such as dependency-version prefixes, extra versioned files, publish defaults, and lockfile commands. Discovery still scans every supported ecosystem regardless of `[ecosystems.*].enabled`, `roots`, or `exclude` toggles.
 
 ## Syncing internal dependency versions
 
@@ -45,7 +45,7 @@ monochange versions --dry-run
 monochange versions --strategy exact
 ```
 
-The `--strategy` flag accepts `default`, `exact`, `caret`, or `compatible`. `default` uses each supported ecosystem's normal constraint style; for `monochange versions` that means each ecosystem's configured or default constraint style. Dart version sync scans `dependencies`, `dev_dependencies`, and `dependency_overrides`; when a pubspec uses `resolution: workspace`, path references to internal packages are converted to version constraints. npm version sync scans package dependency sections and leaves `workspace:*` protocol references alone. Other ecosystems still receive dependency-version updates during release preparation, but ad hoc `monochange versions` support is currently limited to Dart and npm.
+The `--strategy` flag accepts `default`, `exact`, `caret`, or `compatible`. `default` uses each supported ecosystem's normal constraint style; for `monochange versions` that means each ecosystem's configured or default constraint style. Dart version sync scans `dependencies`, `dev_dependencies`, and `dependency_overrides`; when a pubspec uses `resolution: workspace`, path references to internal packages are converted to version constraints. npm version sync scans package dependency sections and leaves `workspace:*` protocol references alone. Cargo, Deno, Go, and Python manifests are also rewritten when they reference another workspace package.
 
 ## Cargo
 

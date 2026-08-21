@@ -24,11 +24,11 @@ This work makes release operations easier to trust by giving users readable prog
 
 ## Affected areas
 
-- `crates/monochange/src/cli_runtime.rs` — CLI step start/finish/skip progress.
-- `crates/monochange/src/cli_theme.rs` / new progress module — shared styling and stderr rendering.
-- `crates/monochange/src/package_publish.rs` — wire publish progress from the app layer.
-- `crates/monochange_publish/src/lib.rs` — publish events, ecosystem emoji trait, and later ecosystem scheduler.
-- `crates/monochange*/src/__tests__/` — focused unit coverage for changed executable lines.
+- `crates/monochange/src/cli_runtime.rs`: CLI step start/finish/skip progress.
+- `crates/monochange/src/cli_theme.rs` / new progress module: shared styling and stderr rendering.
+- `crates/monochange/src/package_publish.rs`: wire publish progress from the app layer.
+- `crates/monochange_publish/src/lib.rs`: publish events, ecosystem emoji trait, and later ecosystem scheduler.
+- `crates/monochange*/src/__tests__/`: focused unit coverage for changed executable lines.
 - CLI snapshots/integration tests where human output intentionally changes.
 
 ## PR split

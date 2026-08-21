@@ -7,7 +7,6 @@ If you want the fastest path to a first successful run, install the prebuilt CLI
 ```bash
 npm install -g @monochange/cli
 monochange --help
-monochange --help
 ```
 
 Then continue with [Start here](./00-start-here.md) or [Your first release plan](./02-setup.md).
@@ -48,7 +47,6 @@ If you prefer to install from Rust tooling instead:
 ```bash
 cargo install monochange
 monochange --help
-monochange --help
 ```
 
 ## Optional: assistant skill package
@@ -70,15 +68,15 @@ monochange skill -a pi -y
 
 After copying the bundled skill, you get a small documentation set that is designed to load in layers:
 
-- `SKILL.md` — concise entrypoint for agents
-- `REFERENCE.md` — broader high-context reference with more examples
-- `skills/README.md` — index of focused deep dives
-- `skills/adoption.md` — setup-depth questions, migration guidance, and recommendation patterns
-- `skills/changesets.md` — changeset authoring and lifecycle guidance
-- `skills/commands.md` — built-in command catalog and workflow selection
-- `skills/configuration.md` — `monochange.toml` setup and editing guidance
-- `skills/linting.md` — `[lints]` presets, `monochange check`, and manifest-focused examples
-- `examples/README.md` — condensed scenario examples for quick recommendations
+- `SKILL.md`: concise entrypoint for agents
+- `REFERENCE.md`: broader high-context reference with more examples
+- `skills/README.md`: index of focused deep dives
+- `skills/adoption.md`: setup-depth questions, migration guidance, and recommendation patterns
+- `skills/changesets.md`: changeset authoring and lifecycle guidance
+- `skills/commands.md`: built-in command catalog and workflow selection
+- `skills/configuration.md`: `monochange.toml` setup and editing guidance
+- `skills/linting.md`: `[lints]` presets, `monochange check`, and manifest-focused examples
+- `examples/README.md`: condensed scenario examples for quick recommendations
 
 This layout keeps the top-level skill small while still making the richer guidance available when an assistant needs more context.
 
@@ -86,9 +84,9 @@ This layout keeps the top-level skill small while still making the richer guidan
 
 Assistant-specific setup is covered in [Advanced: Assistant setup and MCP](./09-assistant-setup.md).
 
-## CLI names
+## CLI name
 
-The main CLI is `monochange` and the short alias is `monochange`.
+The CLI executable is `monochange`. The old `mc` binary alias was removed, so repository automation should call `monochange` directly.
 
 ## Repository development
 
@@ -124,7 +122,6 @@ Useful repository-development commands:
 <!-- {=repoCommonDevelopmentCommands} -->
 
 ```bash
-monochange --help
 monochange --help
 docs:check      # verify mdt shared-doc synchronization
 docs:update     # synchronize shared docs via mdt update

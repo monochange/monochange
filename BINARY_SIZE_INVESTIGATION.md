@@ -4,7 +4,7 @@
 
 ## Executive summary
 
-The `monochange` binary is **32.4 MiB** in a default release build. With LTO + codegen-units=1 + strip (as already configured in CI via environment variables), it drops to **18.3 MiB** — a **43.5% reduction**. However, the CI release workflow only sets these profile overrides via `CARGO_PROFILE_RELEASE_*` env vars and doesn't codify them in `Cargo.toml`, meaning local `cargo build --release` builds don't benefit.
+The `monochange` binary is **32.4 MiB** in a default release build. With LTO + codegen-units=1 + strip (as already configured in CI via environment variables), it drops to **18.3 MiB**, a **43.5% reduction**. However, the CI release workflow only sets these profile overrides via `CARGO_PROFILE_RELEASE_*` env vars and doesn't codify them in `Cargo.toml`, meaning local `cargo build --release` builds don't benefit.
 
 Beyond profile settings, I identified **7 actionable optimizations** that could reduce the binary by a further **3–6 MiB** combined, and **2 architectural improvements** for long-term impact.
 
@@ -53,7 +53,7 @@ Beyond profile settings, I identified **7 actionable optimizations** that could 
 ### 1. **[HIGH] Add a `[profile.dist]` profile to `Cargo.toml`**
 
 **Impact:** 5.5 MiB (from 32.4 → ~25.8 MiB baseline, or better with LTO)\
-**Risk:** None — purely additive, doesn't change dev builds\
+**Risk:** None. purely additive, doesn't change dev builds\
 **Effort:** Tiny (5 lines in Cargo.toml)
 
 The CI workflow sets `CARGO_PROFILE_RELEASE_LTO=true`, `CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1`, and `CARGO_PROFILE_RELEASE_STRIP=symbols` as env vars in `release.yml`. This means local `cargo build --release` **does not get these optimizations**. Codify a `[profile.dist]` that inherits from release:
@@ -71,7 +71,7 @@ Then use `cargo build --profile dist` for distribution builds. This also means `
 ### 2. **[HIGH] Remove `reqwest` `blocking` feature from production dependencies**
 
 **Impact:** ~500–800 KiB (removes hyper blocking adapter + sync thread pool)\
-**Risk:** Low — `reqwest::blocking` is only used in test code\
+**Risk:** Low. `reqwest::blocking` is only used in test code\
 **Effort:** Small
 
 `reqwest` with `blocking` pulls in `tokio::blocking` internals and the `hyper` blocking adapter. In production code, all HTTP calls use the async `reqwest::Client`. The `blocking` feature is only used in:
@@ -114,7 +114,7 @@ Since this is a dev-dependency, it won't affect the binary. The key change is re
 ### 3. **[MEDIUM] Feature-gate the MCP server (`rmcp`) behind a feature flag**
 
 **Impact:** ~1.0 MiB (313 KiB rmcp + 340 KiB schemars + chrono + futures + tokio-util + base64)\
-**Risk:** Low — the `mcp` subcommand is specialized and rarely used\
+**Risk:** Low. the `mcp` subcommand is specialized and rarely used\
 **Effort:** Medium (feature flag wiring + CLI dispatch)
 
 The `rmcp` crate (313 KiB .text) plus its unique transitive deps (`schemars` at 44 KiB, `chrono` at 58 KiB, `futures` at ~50 KiB, `tokio-util`, `base64`) totals roughly 1 MiB. MCP is a specialized server-mode feature that most CLI invocations don't use.
@@ -147,7 +147,7 @@ Then gate `mod mcp;` and the `mcp` subcommand with `#[cfg(feature = "mcp")]`.
 ### 4. **[MEDIUM] Replace `EnvFilter` with a minimal level filter**
 
 **Impact:** ~1.4 MiB (regex-automata 405 KiB + matchers 60 KiB + sharded-slab 47 KiB + nu-ansi-term 21 KiB + tracing-log 65 KiB + thread_local + regex-syntax 225 KiB)\
-**Risk:** Medium — loses full `RUST_LOG=target::module=level` directive syntax\
+**Risk:** Medium. loses full `RUST_LOG=target::module=level` directive syntax\
 **Effort:** Small
 
 `tracing-subscriber` with `env-filter` pulls in the full `regex-automata` engine plus `matchers`, `sharded-slab`, `nu-ansi-term`, and `tracing-log`. The CLI only uses `EnvFilter` in `tracing_setup.rs` for two scenarios:
@@ -170,7 +170,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 ### 5. **[MEDIUM] Reduce `tokio` feature set**
 
 **Impact:** ~100–200 KiB\
-**Risk:** Low — features are unused\
+**Risk:** Low. features are unused\
 **Effort:** Small
 
 The workspace `tokio` dependency already specifies minimal features (`["rt", "rt-multi-thread", "macros", "process", "fs", "time", "sync"]`), but crates using `default-features = true` pull in the full default feature set, which adds `io-std`, `io-util`, `net`, `signal`, and more.
@@ -187,7 +187,7 @@ Every crate that says `tokio = { workspace = true, default-features = true }` sh
 ### 6. **[MEDIUM] Reduce `chrono` feature surface**
 
 **Impact:** ~200 KiB (removes `iana-time-zone`, `core-foundation-sys`, `num-traits`, `libm`)\
-**Risk:** Low — `chrono` is only used for `Local::now()` and RFC3339 formatting\
+**Risk:** Low. `chrono` is only used for `Local::now()` and RFC3339 formatting\
 **Effort:** Small
 
 `chrono` with default features pulls in `iana-time-zone` → `core-foundation-sys` (250 KiB compiled), `num-traits` → `libm`. The only production usage of `chrono` is in `release_artifacts.rs` for getting the current local timestamp.
@@ -199,17 +199,17 @@ Note: `rmcp` also depends on `chrono`, so this only helps if `rmcp` is feature-g
 ### 7. **[LOW] Feature-gate `octocrab` / GitHub behind the existing `github` feature**
 
 **Impact:** ~700 KiB (octocrab 441 KiB + jsonwebtoken 130 KiB + rsa 44 KiB + p256/p384/ed25519/curve25519-dalek)\
-**Risk:** Very low — the `github` feature already exists!\
+**Risk:** Very low. the `github` feature already exists!\
 **Effort:** Tiny
 
 The `github` feature already gates `monochange_github` and `monochange_core/http`. This means distributions that don't need GitHub already get this via `default = [...]`, but custom builds can already omit it.
 
-**Already working as designed.** No change needed — just call out that disabling the `github` feature saves ~700 KiB.
+**Already working as designed.** No change needed. Just call out that disabling the `github` feature saves ~700 KiB.
 
 ### 8. **[LOW] Reduce `regex` feature set**
 
 **Impact:** ~100–200 KiB\
-**Risk:** Low — most regex usage doesn't need full Unicode\
+**Risk:** Low. most regex usage doesn't need full Unicode\
 **Effort:** Small
 
 The workspace `regex` dep already uses minimal features (`["std", "unicode-perl"]`), but crates with `default-features = true` get the full regex engine. The main consumers are `monochange_config` and `monochange_github`.
@@ -218,7 +218,7 @@ Ensure all crates use `regex = { workspace = true }` without `default-features =
 
 ### 9. **[INFO] `serde` `rc` feature is enabled but unused**
 
-The workspace `serde` dep has `features = ["derive"]` but the resolved feature set includes `rc`. This is because `rc` is enabled by some transitive dependency. Cargo feature unification means we can't easily disable it, but we also shouldn't worry — `rc` adds almost no code, just the ability to serialize `Arc<T>` and `Rc<T>`.
+The workspace `serde` dep has `features = ["derive"]` but the resolved feature set includes `rc`. This is because `rc` is enabled by some transitive dependency. Cargo feature unification means we can't easily disable it, but we also shouldn't worry. `rc` adds almost no code, just the ability to serialize `Arc<T>` and `Rc<T>`.
 
 ---
 
@@ -238,7 +238,7 @@ Each disabled ecosystem saves its crate size + transitive deps. For example, rem
 
 ### B. **Consider replacing `oxc_parser` with a lightweight JS/TS import extractor**
 
-`oxc_parser` + `oxc_ast` + `oxc_span` + `oxc_allocator` + `oxc_regular_expression` + `oxc_syntax` + `oxc_ecmascript` together total ~500 KiB of .text. `monochange_ecmascript` only uses the parser to extract import/export specifiers — it doesn't need a full JavaScript/TypeScript parser.
+`oxc_parser` + `oxc_ast` + `oxc_span` + `oxc_allocator` + `oxc_regular_expression` + `oxc_syntax` + `oxc_ecmascript` together total ~500 KiB of .text. `monochange_ecmascript` only uses the parser to extract import/export specifiers. It does not need a full JavaScript/TypeScript parser.
 
 A custom lexer that extracts just `import`/`export` statements could replace the ~500 KiB OXC stack with ~20 KiB. This is a significant architectural change though.
 
@@ -280,9 +280,9 @@ Removed `blocking` from the workspace `reqwest` spec and from `monochange/Cargo.
 
 Where the workspace already specifies `default-features = false` with required features, the crate-level `default-features = true` overrides were pulling in unnecessary features. Changed the following to inherit workspace defaults:
 
-- `tracing-subscriber` — removed `default-features = true`, which previously forced re-inclusion of `tracing-log`, `smallvec`, and `valuable`
-- `tokio` — removed `default-features = true`, keeping only the specified features (prevents pulling in `net`, `signal`, `io-std`)
-- `chrono`, `serde`, `serde_json`, `semver`, `anstyle`, `glob`, `shlex`, `urlencoding`, `typed-builder`, `thiserror`, `tempfile`, `similar`, `toml`, `toml_edit`, `regex`, `rayon`, `serde_yaml_ng`, `minijinja`, `termimad`, `rmcp` — all changed to just `workspace = true`
+- `tracing-subscriber`: removed `default-features = true`, which previously forced re-inclusion of `tracing-log`, `smallvec`, and `valuable`
+- `tokio`: removed `default-features = true`, keeping only the specified features (prevents pulling in `net`, `signal`, `io-std`)
+- `chrono`, `serde`, `serde_json`, `semver`, `anstyle`, `glob`, `shlex`, `urlencoding`, `typed-builder`, `thiserror`, `tempfile`, `similar`, `toml`, `toml_edit`, `regex`, `rayon`, `serde_yaml_ng`, `minijinja`, `termimad`, `rmcp`: all changed to just `workspace = true`
 
 ### Verified savings from these changes
 

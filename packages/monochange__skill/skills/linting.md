@@ -15,8 +15,8 @@ monochange lint explain <rule-or-preset-id>
 
 MCP equivalents:
 
-- `monochange_lint_catalog` — list rules and presets for an agent UI or planning step.
-- `monochange_lint_explain` — explain why a rule exists, which manifests it applies to, and what remediation usually looks like.
+- `monochange_lint_catalog`: list rules and presets for an agent UI or planning step.
+- `monochange_lint_explain`: explain why a rule exists, which manifests it applies to, and what remediation usually looks like.
 
 <!-- {=manifestRepositoryLintReadmeSummary} -->
 

@@ -2967,7 +2967,7 @@ pub enum CliStepDefinition {
 	},
 	/// Comment on linked released issues after a prepared release.
 	///
-	/// Requires a previous `PrepareRelease` step and currently expects
+	/// Requires a previous `PrepareRelease` step and expects
 	/// `[source].provider = "github"`.
 	CommentReleasedIssues {
 		#[serde(default)]

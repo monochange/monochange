@@ -381,7 +381,6 @@ When working on release planning, versioning, changesets, changelogs, or monocha
 2. Prefer the monochange CLI over MCP tools.
 3. Choose the CLI executable in this order:
    - `monochange`
-   - `monochange`
    - `npx -y @monochange/cli`
 4. Use structured JSON output when inspecting workspace state:
    - `<cli> validate`
@@ -408,7 +407,6 @@ fn shared_cursor_instructions() -> &'static str {
 1. Read `monochange.toml` first.
 2. Prefer the monochange CLI over MCP tools.
 3. Choose the CLI executable in this order:
-   - `monochange`
    - `monochange`
    - `npx -y @monochange/cli`
 4. Use JSON output when inspecting repository state:

@@ -18,7 +18,7 @@ It is the best fit for:
 
 ## Inputs
 
-- `format` — `text`, `markdown`, or `json`
+- `format`: `text`, `markdown`, or `json`
 
 ## Step-level `when` condition
 

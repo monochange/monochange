@@ -2,7 +2,7 @@
 
 This guide walks through converting a `knope.toml` configuration to `monochange.toml`.
 
-monochange was originally inspired by knope and shares many of the same ideas — changeset-driven releases, configurable workflows, GitHub integration — but uses a different configuration surface and adds cross-ecosystem support.
+monochange was originally inspired by knope and shares many of the same ideas: changeset-driven releases, configurable workflows, and GitHub integration. It uses a different configuration surface and adds cross-ecosystem support.
 
 ## Quick comparison
 
@@ -21,11 +21,11 @@ monochange was originally inspired by knope and shares many of the same ideas �
 | Ecosystem support      | Rust, Go, JS                  | Rust, npm, pnpm, Bun, Deno, Dart, Flutter, Python |
 | Dependency propagation | Not built-in                  | Automatic parent bumps                            |
 
-## Step 1 — Replace the config file
+## Step 1: Replace the config file
 
 Delete `knope.toml` and create `monochange.toml` at the repository root.
 
-## Step 2 — Migrate package declarations
+## Step 2: Migrate package declarations
 
 ### Single-package knope repository
 
@@ -66,7 +66,7 @@ extra_changelog_sections = [
 ]
 ```
 
-> **Note:** knope's `scopes` filter conventional commits to specific packages. monochange does not use conventional commits — use changeset frontmatter keys instead.
+> **Note:** knope's `scopes` filter conventional commits to specific packages. monochange does not use conventional commits. Use changeset frontmatter keys instead.
 
 ### Multi-package knope repository
 
@@ -114,9 +114,9 @@ versioned_files = [
 ]
 ```
 
-> **Tip:** you do not need to list the package's own `Cargo.toml` as a versioned file — monochange discovers and updates native manifests automatically.
+> **Tip:** you do not need to list the package's own `Cargo.toml` as a versioned file. monochange discovers and updates native manifests automatically.
 
-## Step 3 — Migrate version groups
+## Step 3: Migrate version groups
 
 knope's single `[package]` table implicitly groups all crates under one version. When migrating a repo that uses `[package]` with multiple `versioned_files` dependency entries, create an explicit `[group.<id>]`:
 
@@ -139,7 +139,7 @@ Group behavior:
 - member packages can still have their own changelogs
 - members without direct changes get a configurable `empty_update_message` fallback
 
-## Step 4 — Migrate workflows to CLI commands
+## Step 4: Migrate workflows to CLI commands
 
 knope uses `[[workflows]]` arrays. monochange uses `[cli.<command>]` map entries that become top-level CLI subcommands.
 
@@ -207,12 +207,12 @@ type = "PublishRelease"
 | `CreateChangeFile` | `CreateChangeFile`      | Same name                                                                                                         |
 | `Release`          | `PublishRelease`        | knope's `Release` creates GitHub releases; monochange calls this `PublishRelease` and supports multiple providers |
 | `Command`          | `Command`               | Same name; monochange adds `dry_run_command` and `shell = true`                                                   |
-| —                  | `OpenReleaseRequest`    | New: open/update a release PR                                                                                     |
-| —                  | `PrepareRelease`        | New: refresh the cached `.monochange/release-manifest.json` artifact for downstream CI                            |
-| —                  | `AffectedPackages`      | New: PR changeset policy enforcement                                                                              |
-| —                  | `Validate`              | New: validate config and changesets                                                                               |
-| —                  | `Discover`              | New: list workspace packages                                                                                      |
-| —                  | `CommentReleasedIssues` | New: comment on closed issues referenced in changesets                                                            |
+| :                  | `OpenReleaseRequest`    | New: open/update a release PR                                                                                     |
+| :                  | `PrepareRelease`        | New: refresh the cached `.monochange/release-manifest.json` artifact for downstream CI                            |
+| :                  | `AffectedPackages`      | New: PR changeset policy enforcement                                                                              |
+| :                  | `Validate`              | New: validate config and changesets                                                                               |
+| :                  | `Discover`              | New: list workspace packages                                                                                      |
+| :                  | `CommentReleasedIssues` | New: comment on closed issues referenced in changesets                                                            |
 
 ### Common knope workflow → monochange command recipes
 
@@ -259,7 +259,7 @@ type = "OpenReleaseRequest"
 
 > **Key difference:** knope workflows often include manual `git add`, `git commit`, and `git push` Command steps. monochange handles git operations internally when using `PublishRelease` or `OpenReleaseRequest`, so you can drop those manual steps.
 
-## Step 5 — Migrate GitHub configuration
+## Step 5: Migrate GitHub configuration
 
 ### knope
 
@@ -310,7 +310,7 @@ repo = "my-project"
 host = "gitlab.example.com"
 ```
 
-## Step 6 — Migrate changeset files
+## Step 6: Migrate changeset files
 
 monochange and knope both use markdown-frontmatter changesets under `.changeset/`. The format is compatible, but there are differences in how packages are referenced.
 
@@ -328,7 +328,7 @@ Details about the feature.
 
 ### monochange changeset
 
-Same format — but use declared **package ids** or **group ids** as keys:
+Same format, but use declared **package ids** or **group ids** as keys:
 
 ```markdown
 ---
@@ -352,11 +352,11 @@ main: minor
 
 > **Note:** a changeset may not reference both a group id and one of its member package ids in the same file. Use either the group id or individual package ids.
 
-## Step 7 — Handle knope-specific features
+## Step 7: Handle knope-specific features
 
 ### Conventional commits
 
-knope can derive version bumps from conventional commit messages. monochange does not support conventional commits — all version changes must come from changeset files.
+knope can derive version bumps from conventional commit messages. monochange does not support conventional commits. All version changes must come from changeset files.
 
 If your knope config uses conventional commits alongside changesets:
 
@@ -412,16 +412,19 @@ versioned_files = [
 ]
 ```
 
-monochange does not currently support regex-based version file updates. For now, handle these with a `Command` step:
+monochange supports the same `regex` versioned-file entries with an identical shape. The regex must include a `(?<version>...)` named capture group, and monochange replaces only the captured substring:
 
 ```toml
-[[cli.release.steps]]
-type = "Command"
-command = "sed -i 's/my_crate = \"[0-9.]*\"/my_crate = \"{{ version }}\"/' readme.md"
-shell = true
+[package.core]
+path = "crates/core"
+versioned_files = [
+	{ path = "readme.md", regex = 'my_crate = "(?<version>\d+\.\d+\.\d+)"' },
+]
 ```
 
-## Step 8 — Migrate GitHub Actions workflows
+Regex entries accept glob `path` patterns and work on packages, groups, and ecosystem-level `versioned_files`. See [Regex versioned files](./04-configuration.md#regex-versioned-files) for the full rule set.
+
+## Step 8: Migrate GitHub Actions workflows
 
 ### knope GitHub Actions
 
@@ -459,7 +462,7 @@ See [GitHub automation](./08-github-automation.md) for a complete workflow examp
 
 ## Complete migration example
 
-### Before — `knope.toml`
+### Before: `knope.toml`
 
 ```toml
 [package]
@@ -520,7 +523,7 @@ owner = "my-org"
 repo = "my-repo"
 ```
 
-### After — `monochange.toml`
+### After: `monochange.toml`
 
 ```toml
 [defaults]

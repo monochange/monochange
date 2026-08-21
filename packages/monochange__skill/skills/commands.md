@@ -253,7 +253,7 @@ Use `choice` for values that should be self-documenting in `monochange help`, su
 
 Config-defined workflow commands have two input layers:
 
-1. `[[cli.<command>.inputs]]` declares the flags and arguments accepted by `monochange <command>`.
+1. `[[cli.<command>.inputs]]` declares the flags and arguments accepted by `monochange run <command>`.
 2. `inputs` on each step decides which of those parsed command inputs are visible while that step runs.
 
 Command inputs are **not inherited automatically**. A step receives a command input only when the step explicitly lists it. This makes wrappers predictable when a command-level flag and a step-specific input share the same name.
