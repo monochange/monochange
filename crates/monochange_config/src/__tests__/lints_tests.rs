@@ -887,7 +887,7 @@ fn prefer_inline_rule_requires_valid_types_for_known_targets() {
 	);
 	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
 	assert_eq!(
-		apply_single_fix(&unknown_target_type_only, &results),
+		apply_single_fix(unknown_target_type_only, &results),
 		"---\nmystery: feat\n---\n\n#### Summary\n"
 	);
 }
