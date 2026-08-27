@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/check_lint_output.rs
+expression: flow_changeset
+---
+---
+core: feat
+cli: fix
+---
+
+#### Convert redundant flow entries to inline form
+
+Flow mappings collapse to the inline form the same way.

@@ -1032,7 +1032,7 @@ Preset rules provide the baseline. Explicit entries in `[lints.rules]` override 
 
 | Preset                   | What it is for                                                  | Rules enabled                                                                                                                                                                                                                                                                                                                           |
 | ------------------------ | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `changesets/recommended` | Baseline changeset hygiene.                                     | `changesets/summary = error`                                                                                                                                                                                                                                                                                                            |
+| `changesets/recommended` | Baseline changeset hygiene.                                     | `changesets/summary = error`, `changesets/prefer-inline = error`                                                                                                                                                                                                                                                                        |
 | `cargo/recommended`      | Balanced Cargo manifest policy for most workspaces.             | `cargo/internal-dependency-workspace = error`, `cargo/publishable-dependencies = error`, `cargo/required-package-fields = error`, `cargo/dependency-field-order = warning`, `cargo/sorted-dependencies = warning`, `cargo/unlisted-package-private = warning`                                                                           |
 | `cargo/strict`           | Cargo policy with style rules promoted to errors.               | Same as `cargo/recommended`, but `cargo/dependency-field-order` and `cargo/sorted-dependencies` are `error`.                                                                                                                                                                                                                            |
 | `npm/recommended`        | Balanced npm-family manifest policy.                            | `npm/workspace-protocol = error`, `npm/no-duplicate-dependencies = error`, `npm/required-package-fields = error`, `npm/root-no-prod-deps = error`, `npm/sorted-dependencies = warning`, `npm/unlisted-package-private = warning`                                                                                                        |
@@ -1046,6 +1046,7 @@ Preset rules provide the baseline. Explicit entries in `[lints.rules]` override 
 | ------------------------------------------------ | -------------- | ------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `changesets/summary`                             | changesets     | correctness   | no      | Requires a changeset body to start with a summary heading.                                                                          |
 | `changesets/no_section_headings`                 | changesets     | correctness   | no      | Rejects change-type headings inside changeset bodies.                                                                               |
+| `changesets/prefer-inline`                       | changesets     | style         | yes     | Rewrites object change entries that repeat what the inline form already implies.                                                    |
 | `changesets/bump/none`                           | changesets     | correctness   | no      | Applies scoped body policy to `none` bump entries.                                                                                  |
 | `changesets/bump/patch`                          | changesets     | correctness   | no      | Applies scoped body policy to `patch` bump entries.                                                                                 |
 | `changesets/bump/minor`                          | changesets     | correctness   | no      | Applies scoped body policy to `minor` bump entries.                                                                                 |
@@ -1114,6 +1115,38 @@ use = ["changesets/recommended"]
 **Why:** change types already come from the changeset entries. Repeating them as body headings creates noisy generated changelogs.
 
 **With the rule:** headings that duplicate configured changelog types, such as `## Breaking` or `## Fix`, are rejected.
+
+### `changesets/prefer-inline`
+
+**Why:** change entries read best in the inline `target: type` form. Writing an object that only repeats what the inline form already implies adds noise for agents and humans authoring changesets.
+
+**What it checks:** object (table) change entries whose fields are exactly equivalent to the inline form:
+
+- `type` alone (`core: { type: "feat" }`),
+- `type` plus a `bump` that the type already implies (`core: { type: "feat", bump: "minor" }`, since `feat` implies `minor`), and
+- a bare `bump` whose keyword is also a configured change type that implies the same bump (`core: { bump: "minor" }`, since `minor` is a change type with default bump `minor`; the inline entry keeps the bump and gains the type).
+
+Entries with a `version`, a `caused_by`, an unknown field, an unknown change type, or a `bump` that disagrees with the type default are left untouched, because the inline form cannot express them without changing meaning. A bare `bump: none` is also left alone: changeset validation rejects it outright.
+
+**Before:**
+
+```markdown
+---
+"@monochange/cli":
+  bump: minor
+  type: feat
+---
+```
+
+**After (`monochange check --fix`):**
+
+```markdown
+---
+"@monochange/cli": feat
+---
+```
+
+The rule is on by default for every project and included in `changesets/recommended`.
 
 ### `changesets/bump/<severity>`
 

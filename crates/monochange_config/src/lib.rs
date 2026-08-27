@@ -2983,7 +2983,7 @@ fn changeset_lint_settings_from_rules(
 			continue;
 		}
 		match rule_id.as_str() {
-			"changesets/duplicate" => {}
+			"changesets/duplicate" | "changesets/prefer-inline" => {}
 			"changesets/no_section_headings" => settings.no_section_headings = true,
 			"changesets/summary" => {
 				settings.summary = changeset_summary_lint_settings_from_rule(rule_id, config)?;
