@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
-assertion_line: 688
 expression: content_text(&result)
 ---
 {
@@ -58,6 +57,7 @@ expression: content_text(&result)
       "maturity": "stable",
       "name": "Changesets recommended",
       "rules": {
+        "changesets/prefer-inline": "error",
         "changesets/summary": "error"
       }
     },
@@ -306,6 +306,15 @@ expression: content_text(&result)
       "id": "changesets/no_section_headings",
       "maturity": "stable",
       "name": "Changeset no section headings",
+      "options": []
+    },
+    {
+      "autofixable": true,
+      "category": "style",
+      "description": "Prefers inline `target: type` change entries when the object form only repeats what the inline form already implies",
+      "id": "changesets/prefer-inline",
+      "maturity": "stable",
+      "name": "Changeset prefer inline entries",
       "options": []
     },
     {
@@ -588,5 +597,5 @@ expression: content_text(&result)
       ]
     }
   ],
-  "summary": "Loaded 32 lint rule(s) and 10 preset(s)."
+  "summary": "Loaded 33 lint rule(s) and 10 preset(s)."
 }

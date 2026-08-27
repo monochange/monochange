@@ -1,0 +1,23 @@
+---
+source: crates/monochange_integration_tests/tests/check_lint_output.rs
+expression: output
+---
+config error: check failed:
+workspace validation passed for [workspace]
+lint: 2 errors, 0 warnings
+
+[workspace]/.changeset/redundant-flow.md:
+  ✗ **changesets/prefer-inline** at 2:6 [fixable]
+     changeset entry for `core` repeats a bump that type `feat` already implies; use the inline form `core: feat`
+     severity: error
+     span: 9..35
+     fix: Convert change entry to inline form
+
+[workspace]/.changeset/redundant-object.md:
+  ✗ **changesets/prefer-inline** at 2:6 [fixable]
+     changeset entry for `core` repeats a bump that type `feat` already implies; use the inline form `core: feat`
+     severity: error
+     span: 9..36
+     fix: Convert change entry to inline form
+
+2 issue(s) can be auto-fixed. Run with --fix to apply.

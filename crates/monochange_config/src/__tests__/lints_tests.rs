@@ -28,7 +28,24 @@ fn lint_file(body: &str, changes: Vec<RawChangeEntry>) -> ChangesetLintFile {
 	ChangesetLintFile {
 		body: body.to_string(),
 		changes,
+		raw_values: Vec::new(),
+		target_types: BTreeMap::new(),
 	}
+}
+
+/// Build target change-type metadata from `(type, default bump)` pairs.
+fn target_types(types: &[(&str, BumpSeverity)]) -> BTreeMap<String, TargetChangeTypes> {
+	let mut target_types = BTreeMap::new();
+	target_types.insert(
+		"core".to_string(),
+		TargetChangeTypes {
+			default_bumps: types
+				.iter()
+				.map(|(name, bump)| ((*name).to_string(), *bump))
+				.collect(),
+		},
+	);
+	target_types
 }
 
 fn metadata() -> LintTargetMetadata {
@@ -48,7 +65,7 @@ fn workspace_configuration(root: &Path) -> WorkspaceConfiguration {
 	WorkspaceConfiguration {
 		root_path: root.to_path_buf(),
 		defaults: monochange_core::WorkspaceDefaults::default(),
-		changelog: monochange_core::ChangelogSettings::default(),
+		changelog: ChangelogSettings::default(),
 		prerelease: monochange_core::PrereleaseConfiguration::default(),
 		packages: Vec::new(),
 		groups: Vec::new(),
@@ -118,25 +135,33 @@ fn parse_changeset_for_lint_parses_frontmatter_shapes() {
 		"---\r\ncore: patch\r\ncli: feature\r\napi:\r\n  bump: minor\r\n  type: migration\r\nempty: ''\r\n---\r\n\r\n# Ship changes\r\n\r\nBody\r\n",
 	)
 	.expect("expected changeset to parse");
-	assert_eq!(parsed.0, "# Ship changes\n\nBody");
-	assert_eq!(parsed.1.len(), 4);
+	assert_eq!(parsed.body, "# Ship changes\n\nBody");
+	assert_eq!(parsed.changes.len(), 4);
 	assert!(
 		parsed
-			.1
+			.changes
 			.iter()
 			.any(|entry| { entry.package == "core" && entry.bump == Some(BumpSeverity::Patch) })
 	);
-	assert!(parsed.1.iter().any(|entry| {
+	assert!(parsed.changes.iter().any(|entry| {
 		entry.package == "cli" && entry.change_type.as_deref() == Some("feature")
 	}));
-	assert!(parsed.1.iter().any(|entry| {
+	assert!(parsed.changes.iter().any(|entry| {
 		entry.package == "api"
 			&& entry.bump == Some(BumpSeverity::Minor)
 			&& entry.change_type.as_deref() == Some("migration")
 	}));
-	assert!(parsed.1.iter().any(|entry| {
+	assert!(parsed.changes.iter().any(|entry| {
 		entry.package == "empty" && entry.bump.is_none() && entry.change_type.is_none()
 	}));
+	assert_eq!(
+		parsed
+			.raw_values
+			.iter()
+			.map(|(package, _)| package.as_str())
+			.collect::<Vec<_>>(),
+		vec!["core", "cli", "api", "empty"]
+	);
 }
 
 #[test]
@@ -159,6 +184,7 @@ fn lint_suite_exposes_changeset_rules_and_presets() {
 		.collect::<Vec<_>>();
 	assert!(ids.iter().any(|id| id == "changesets/summary"));
 	assert!(ids.iter().any(|id| id == "changesets/no_section_headings"));
+	assert!(ids.iter().any(|id| id == "changesets/prefer-inline"));
 	assert!(ids.iter().any(|id| id == "changesets/bump/none"));
 	assert!(ids.iter().any(|id| id == "changesets/bump/patch"));
 	assert!(ids.iter().any(|id| id == "changesets/bump/minor"));
@@ -166,7 +192,9 @@ fn lint_suite_exposes_changeset_rules_and_presets() {
 
 	let presets = suite.presets();
 	assert!(presets.iter().any(|preset| {
-		preset.id == "changesets/recommended" && preset.rules.contains_key("changesets/summary")
+		preset.id == "changesets/recommended"
+			&& preset.rules.contains_key("changesets/summary")
+			&& preset.rules.contains_key("changesets/prefer-inline")
 	}));
 }
 
@@ -643,4 +671,367 @@ fn lint_rule_config_extension_reads_bool_and_string_list_options() {
 	assert!(
 		<LintRuleConfig as LintRuleConfigExt>::string_list_option(&config, "missing").is_none()
 	);
+}
+
+// ── Prefer inline rule ─────────────────────────────────────────────────────
+
+/// Run the prefer-inline rule against a full changeset file.
+fn run_prefer_inline(
+	contents: &str,
+	target_types: BTreeMap<String, TargetChangeTypes>,
+	config: &LintRuleConfig,
+) -> Vec<LintResult> {
+	let rule = PreferInlineRule::new();
+	let metadata = metadata();
+	let mut file = parse_changeset_for_lint(contents).expect("changeset should parse");
+	file.target_types = target_types;
+	let ctx = LintContext {
+		workspace_root: Path::new("."),
+		manifest_path: Path::new(".changeset/change.md"),
+		contents,
+		metadata: &metadata,
+		parsed: &file,
+	};
+	rule.run(&ctx, config)
+}
+
+/// Apply the fix of the single reported result and return the fixed contents.
+fn apply_single_fix(contents: &str, results: &[LintResult]) -> String {
+	let result = results.first().expect("expected one lint result");
+	let fix = result.fix.as_ref().expect("expected a fix");
+	assert_eq!(fix.edits.len(), 1);
+	let edit = &fix.edits[0];
+	let mut fixed = contents.to_string();
+	fixed.replace_range(edit.span.0..edit.span.1, &edit.replacement);
+	fixed
+}
+
+#[test]
+fn prefer_inline_rule_reports_block_bump_and_type_redundancy() {
+	let contents = "---\ncore:\n  bump: minor\n  type: feat\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		contents,
+		target_types(&[("feat", BumpSeverity::Minor)]),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	let result = results.first().expect("result");
+	assert!(result.message.contains("use the inline form `core: feat`"));
+	assert_eq!(result.location.line, 1);
+	assert_eq!(result.location.column, 1);
+	assert_eq!(result.location.span, Some((9, 36)));
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\ncore: feat\n---\n\n#### Summary\n"
+	);
+	assert!(
+		run_prefer_inline(
+			contents,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Off)
+		)
+		.is_empty()
+	);
+}
+
+#[test]
+fn prefer_inline_rule_reports_type_only_entries() {
+	let contents = "---\ncore:\n  type: feat\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		contents,
+		target_types(&[("feat", BumpSeverity::Minor)]),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert!(
+		results
+			.first()
+			.expect("result")
+			.message
+			.contains("only declares `type`")
+	);
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\ncore: feat\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_reports_flow_mapping_entries() {
+	let contents = "---\ncore: {bump: minor, type: feat}\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		contents,
+		target_types(&[("feat", BumpSeverity::Minor)]),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\ncore: feat\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_reports_quoted_flow_keys() {
+	let contents = "---\n\"@scope/core\": {type: feat}\n---\n\n#### Summary\n";
+	let mut target_types = BTreeMap::new();
+	target_types.insert(
+		"@scope/core".to_string(),
+		TargetChangeTypes {
+			default_bumps: BTreeMap::from([("feat".to_string(), BumpSeverity::Minor)]),
+		},
+	);
+	let results = run_prefer_inline(contents, target_types, &severity(LintSeverity::Error));
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\n\"@scope/core\": feat\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_keeps_meaningful_object_entries() {
+	// Explicit bumps that disagree with the type default are meaningful.
+	let bump_mismatch = "---\ncore:\n  bump: minor\n  type: fix\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			bump_mismatch,
+			target_types(&[("feat", BumpSeverity::Minor), ("fix", BumpSeverity::Patch)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+	// Bare bump entries gain a change type when converted inline.
+	let bare_bump = "---\ncore:\n  bump: minor\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			bare_bump,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+	// Explicit versions cannot be proven redundant by the linter.
+	let explicit_version =
+		"---\ncore:\n  bump: minor\n  type: feat\n  version: \"1.2.0\"\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			explicit_version,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+	// `caused_by` has no inline representation.
+	let caused_by = "---\ncore:\n  type: feat\n  caused_by: [cli]\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			caused_by,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+	// Unknown fields are invalid changesets; leave them alone.
+	let unknown_field = "---\ncore:\n  type: feat\n  extra: true\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			unknown_field,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+	// Inline scalar entries are already preferred.
+	let inline = "---\ncore: feat\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			inline,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+}
+
+#[test]
+fn prefer_inline_rule_requires_valid_types_for_known_targets() {
+	// Unknown types would break the inline form for configured targets.
+	let contents = "---\ncore:\n  type: mystery\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			contents,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+
+	// Unknown targets keep the type but lose explicit bumps inline.
+	let unknown_target_with_bump =
+		"---\nmystery:\n  bump: minor\n  type: feat\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			unknown_target_with_bump,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+
+	let unknown_target_type_only = "---\nmystery:\n  type: feat\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		unknown_target_type_only,
+		target_types(&[("feat", BumpSeverity::Minor)]),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(&unknown_target_type_only, &results),
+		"---\nmystery: feat\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_skips_duplicate_target_keys() {
+	// The YAML parser rejects duplicate keys, so ambiguous entries never
+	// reach the rule; the changeset is simply not linted.
+	let contents = "---\ncore:\n  type: feat\ncore: feat\n---\n\n#### Summary\n";
+	assert!(parse_changeset_for_lint(contents).is_none());
+}
+
+#[test]
+fn prefer_inline_rule_skips_comments_inside_block_values() {
+	let contents = "---\ncore:\n  # note\n  type: feat\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		contents,
+		target_types(&[("feat", BumpSeverity::Minor)]),
+		&severity(LintSeverity::Error),
+	);
+	assert!(results.is_empty(), "unexpected results: {results:?}");
+}
+
+#[test]
+fn prefer_inline_rule_skips_wrong_parsed_targets() {
+	let rule = PreferInlineRule::new();
+	assert!(run_rule_with_wrong_parsed(&rule, &severity(LintSeverity::Error)).is_empty());
+}
+
+#[test]
+fn prefer_inline_rule_handles_blocks_before_and_after_other_entries() {
+	let contents =
+		"---\ncli: feat\ncore:\n  bump: minor\n  type: feat\nother: patch\n---\n\n#### Summary\n";
+	let mut target_types = target_types(&[("feat", BumpSeverity::Minor)]);
+	target_types.insert(
+		"other".to_string(),
+		TargetChangeTypes {
+			default_bumps: BTreeMap::from([("patch".to_string(), BumpSeverity::Patch)]),
+		},
+	);
+	let results = run_prefer_inline(contents, target_types, &severity(LintSeverity::Error));
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\ncli: feat\ncore: feat\nother: patch\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_quotes_unsafe_inline_tokens() {
+	let contents = "---\ncore:\n  type: \"@weird type\"\n---\n\n#### Summary\n";
+	let mut target_types = target_types(&[]);
+	target_types.insert(
+		"core".to_string(),
+		TargetChangeTypes {
+			default_bumps: BTreeMap::from([("@weird type".to_string(), BumpSeverity::Minor)]),
+		},
+	);
+	let results = run_prefer_inline(contents, target_types, &severity(LintSeverity::Error));
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\ncore: \"@weird type\"\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn collect_targets_populates_target_types_from_configuration() {
+	let tempdir = must(tempfile::tempdir(), "tempdir");
+	let changeset_dir = tempdir.path().join(".changeset");
+	must(fs::create_dir_all(&changeset_dir), "changeset dir");
+	must(
+		fs::write(
+			changeset_dir.join("change.md"),
+			"---\ncore:\n  bump: minor\n  type: feat\n---\n\n#### Add target\n",
+		),
+		"write changeset",
+	);
+
+	let mut configuration = workspace_configuration(tempdir.path());
+	configuration
+		.packages
+		.push(monochange_core::PackageDefinition {
+			id: "core".to_string(),
+			path: tempdir.path().join("crates/core"),
+			package_type: monochange_core::PackageType::Cargo,
+			changelog: None,
+			excluded_changelog_types: Vec::new(),
+			empty_update_message: None,
+			release_title: None,
+			changelog_version_title: None,
+			versioned_files: Vec::new(),
+			ignore_ecosystem_versioned_files: false,
+			ignored_paths: Vec::new(),
+			additional_paths: Vec::new(),
+			tag: true,
+			release: true,
+			version_format: monochange_core::VersionFormat::Namespaced,
+			publish: monochange_core::PublishSettings::default(),
+		});
+
+	let targets = must(
+		ChangesetLintSuite::new().collect_targets(tempdir.path(), &configuration),
+		"collect targets",
+	);
+	assert_eq!(targets.len(), 1);
+	let parsed = targets
+		.first()
+		.expect("target")
+		.parsed
+		.downcast_ref::<ChangesetLintFile>()
+		.expect("changeset lint file");
+	let target = parsed
+		.target_types
+		.get("core")
+		.expect("configured target types");
+	assert_eq!(target.default_bumps.get("feat"), Some(&BumpSeverity::Minor));
+}
+
+#[test]
+fn normalize_change_bumps_resolves_implied_bumps_for_configured_types() {
+	let mut file =
+		parse_changeset_for_lint("---\ncore: feat\nmystery: feat\n---\n\n#### Add target\n")
+			.expect("changeset should parse");
+	file.target_types = target_types(&[("feat", BumpSeverity::Minor)]);
+
+	assert!(
+		file.changes
+			.iter()
+			.all(|entry| entry.package != "core" || entry.bump.is_none())
+	);
+	normalize_change_bumps(&mut file);
+
+	let core = file
+		.changes
+		.iter()
+		.find(|entry| entry.package == "core")
+		.expect("core entry");
+	assert_eq!(core.bump, Some(BumpSeverity::Minor));
+	// Unknown targets keep no implied bump, matching release planning.
+	let mystery = file
+		.changes
+		.iter()
+		.find(|entry| entry.package == "mystery")
+		.expect("mystery entry");
+	assert_eq!(mystery.bump, None);
 }

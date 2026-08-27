@@ -120,3 +120,28 @@ fn check_fix_preserves_package_json_when_multiple_full_file_fixes_exist() {
     "dependencies""#
 	));
 }
+
+#[test]
+fn check_reports_redundant_changeset_entries_without_fix() {
+	let fixture = setup_fixture("check-output", "changeset-prefer-inline");
+	let output = run_check(fixture.path(), &["--format", "text", "--verbose"]);
+
+	insta::assert_snapshot!(output);
+}
+
+#[test]
+fn check_fix_converts_redundant_changeset_entries_to_inline() {
+	let fixture = setup_fixture("check-output", "changeset-prefer-inline");
+	let output = run_check(fixture.path(), &["--format", "text", "--fix"]);
+
+	let block_changeset =
+		std::fs::read_to_string(fixture.path().join(".changeset/redundant-object.md"))
+			.unwrap_or_else(|error| panic!("read redundant-object.md: {error}"));
+	let flow_changeset =
+		std::fs::read_to_string(fixture.path().join(".changeset/redundant-flow.md"))
+			.unwrap_or_else(|error| panic!("read redundant-flow.md: {error}"));
+
+	insta::assert_snapshot!(normalize_workspace_paths(fixture.path(), output));
+	insta::assert_snapshot!(block_changeset);
+	insta::assert_snapshot!(flow_changeset);
+}

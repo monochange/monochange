@@ -1,0 +1,23 @@
+[defaults]
+package_type = "cargo"
+changelog = false
+
+[lints.rules]
+"cargo/dependency-field-order" = "off"
+"cargo/internal-dependency-workspace" = "off"
+"cargo/manifest-repository" = "off"
+"cargo/required-package-fields" = "off"
+"cargo/sorted-dependencies" = "off"
+"cargo/unlisted-package-private" = "off"
+
+[package.core]
+path = "crates/core"
+
+[package.cli]
+path = "crates/cli"
+
+[package.shared]
+path = "crates/shared"
+
+[ecosystems.cargo]
+enabled = true
