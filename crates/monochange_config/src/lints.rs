@@ -702,7 +702,7 @@ impl PreferInlineRule {
 			rule: LintRule::new(
 				"changesets/prefer-inline",
 				"Changeset prefer inline entries",
-				"Prefers inline `target: type` change entries when the object form only repeats what the inline form already implies",
+				"Prefers inline `target: type` change entries when the object form only repeats what the inline form already implies, including bare bumps that are also change types",
 				LintCategory::Style,
 				LintMaturity::Stable,
 				true,
@@ -739,10 +739,11 @@ impl LintRuleRunner for PreferInlineRule {
 			let Some(span) = span_by_target.get(package.as_str()) else {
 				continue;
 			};
-			let Some(token) = inline_equivalent_token(package, value, &file.target_types) else {
+			let Some((token, case)) = inline_equivalent_token(package, value, &file.target_types)
+			else {
 				continue;
 			};
-			let message = prefer_inline_message(package, value, &token);
+			let message = prefer_inline_message(package, case, &token);
 			results.push(
 				LintResult::new(
 					self.rule.id.clone(),
@@ -763,14 +764,16 @@ impl LintRuleRunner for PreferInlineRule {
 }
 
 /// Decide whether a raw frontmatter value is exactly equivalent to the inline
-/// `target: token` form, returning the inline token when it is.
+/// `target: token` form, returning the inline token and the redundant shape
+/// when it is.
 fn inline_equivalent_token(
 	package: &str,
 	value: &serde_yaml_ng::Value,
 	target_types: &BTreeMap<String, TargetChangeTypes>,
-) -> Option<String> {
+) -> Option<(String, PreferInlineCase)> {
 	let mapping = value.as_mapping()?;
 	let mut bump: Option<BumpSeverity> = None;
+	let mut bump_token: Option<String> = None;
 	let mut change_type: Option<String> = None;
 	for (key, field) in mapping {
 		match key.as_str()? {
@@ -780,6 +783,7 @@ fn inline_equivalent_token(
 					.map(str::trim)
 					.filter(|token| !token.is_empty())?;
 				bump = Some(parse_bump_severity(token)?);
+				bump_token = Some(token.to_string());
 			}
 			"type" => {
 				let token = field
@@ -795,40 +799,79 @@ fn inline_equivalent_token(
 		}
 	}
 
-	let token = change_type?;
-	match target_types.get(package) {
-		Some(target) => {
-			// For configured targets the inline form only accepts valid types.
-			let default_bump = target.default_bumps.get(token.as_str())?;
-			if bump.is_some_and(|explicit| explicit != *default_bump) {
-				return None;
+	let (token, case) = if let Some(token) = change_type {
+		match target_types.get(package) {
+			Some(target) => {
+				// For configured targets the inline form only accepts valid types.
+				let default_bump = target.default_bumps.get(token.as_str())?;
+				if bump.is_some_and(|explicit| explicit != *default_bump) {
+					return None;
+				}
+			}
+			None => {
+				// Unknown targets keep the type but lose any explicit bump inline.
+				if bump.is_some() {
+					return None;
+				}
 			}
 		}
-		None => {
-			// Unknown targets keep the type but lose any explicit bump inline.
-			if bump.is_some() {
-				return None;
-			}
+		let case = if bump.is_some() {
+			PreferInlineCase::TypeAndBump
+		} else {
+			PreferInlineCase::TypeOnly
+		};
+		(token, case)
+	} else {
+		// A bare bump converts inline when the bump keyword is also a
+		// configured change type that implies the same bump: the inline
+		// entry keeps the bump and gains the type.
+		let name = bump_token?;
+		let severity = bump?;
+		if severity == BumpSeverity::None {
+			// `bump: none` alone is rejected by changeset validation, so the
+			// inline form is not an equivalent rewrite.
+			return None;
 		}
-	}
-	Some(token)
+		let default_bump = target_types
+			.get(package)?
+			.default_bumps
+			.get(name.as_str())?;
+		if *default_bump != severity {
+			return None;
+		}
+		(name, PreferInlineCase::BareBump)
+	};
+	Some((token, case))
 }
 
-fn prefer_inline_message(package: &str, value: &serde_yaml_ng::Value, token: &str) -> String {
-	let repeats_bump = value
-		.as_mapping()
-		.and_then(|mapping| mapping.get(serde_yaml_ng::Value::String("bump".to_string())))
-		.and_then(serde_yaml_ng::Value::as_str)
-		.and_then(parse_bump_severity)
-		.is_some();
-	if repeats_bump {
-		format!(
-			"changeset entry for `{package}` repeats a bump that type `{token}` already implies; use the inline form `{package}: {token}`"
-		)
-	} else {
-		format!(
-			"changeset entry for `{package}` only declares `type`; use the inline form `{package}: {token}`"
-		)
+/// Which redundant shape an object change entry has; drives the lint message.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum PreferInlineCase {
+	/// The entry declares a type plus a bump the type already implies.
+	TypeAndBump,
+	/// The entry only declares a type.
+	TypeOnly,
+	/// The entry declares a bare bump whose keyword is also a change type.
+	BareBump,
+}
+
+fn prefer_inline_message(package: &str, case: PreferInlineCase, token: &str) -> String {
+	match case {
+		PreferInlineCase::TypeAndBump => {
+			format!(
+				"changeset entry for `{package}` repeats a bump that type `{token}` already implies; use the inline form `{package}: {token}`",
+			)
+		}
+		PreferInlineCase::TypeOnly => {
+			format!(
+				"changeset entry for `{package}` only declares `type`; use the inline form `{package}: {token}`",
+			)
+		}
+		PreferInlineCase::BareBump => {
+			format!(
+				"changeset entry for `{package}` declares a bare bump that is also a change type; use the inline form `{package}: {token}`",
+			)
+		}
 	}
 }
 

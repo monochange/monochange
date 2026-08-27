@@ -4,7 +4,7 @@ expression: output
 ---
 config error: check failed:
 workspace validation passed for [workspace]
-lint: 2 errors, 0 warnings
+lint: 3 errors, 0 warnings
 
 [workspace]/.changeset/redundant-flow.md:
   ✗ **changesets/prefer-inline** at 2:6 [fixable]
@@ -19,5 +19,10 @@ lint: 2 errors, 0 warnings
      severity: error
      span: 9..36
      fix: Convert change entry to inline form
+  ✗ **changesets/prefer-inline** at 8:8 [fixable]
+     changeset entry for `shared` declares a bare bump that is also a change type; use the inline form `shared: patch`
+     severity: error
+     span: 75..89
+     fix: Convert change entry to inline form
 
-2 issue(s) can be auto-fixed. Run with --fix to apply.
+3 issue(s) can be auto-fixed. Run with --fix to apply.

@@ -801,7 +801,8 @@ fn prefer_inline_rule_keeps_meaningful_object_entries() {
 		)
 		.is_empty()
 	);
-	// Bare bump entries gain a change type when converted inline.
+	// Bare bump entries stay untouched when the bump keyword is not also a
+	// configured change type for the target.
 	let bare_bump = "---\ncore:\n  bump: minor\n---\n\n#### Summary\n";
 	assert!(
 		run_prefer_inline(
@@ -1312,4 +1313,110 @@ fn frontmatter_entry_spans_rejects_truncated_and_mismatched_quoted_keys() {
 	assert!(spans_of("---\n\"core\\\n---\n").is_none());
 	// A quoted key whose colon is followed by a bare value.
 	assert!(spans_of("---\n\"core\":feat\n---\n").is_none());
+}
+
+#[test]
+fn prefer_inline_rule_reports_bare_bump_entries_that_are_types() {
+	// `minor` is a configured type whose default bump is Minor, so the bare
+	// bump entry converts inline and gains the type.
+	let contents = "---\ncore:\n  bump: minor\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		contents,
+		target_types(&[
+			("feat", BumpSeverity::Minor),
+			("minor", BumpSeverity::Minor),
+		]),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert!(
+		results
+			.first()
+			.expect("result")
+			.message
+			.contains("declares a bare bump that is also a change type")
+	);
+	assert!(
+		results
+			.first()
+			.expect("result")
+			.message
+			.contains("use the inline form `core: minor`")
+	);
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\ncore: minor\n---\n\n#### Summary\n"
+	);
+
+	// Flow form works the same way.
+	let flow = "---\ncore: {bump: patch}\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		flow,
+		target_types(&[("patch", BumpSeverity::Patch)]),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(flow, &results),
+		"---\ncore: patch\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_keeps_bare_bumps_that_are_not_equivalent() {
+	// The bump keyword is not a configured change type for the target.
+	let unconfigured = "---\ncore:\n  bump: minor\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			unconfigured,
+			target_types(&[("feat", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+
+	// The configured type implies a different bump than the keyword itself.
+	let mismatched = "---\ncore:\n  bump: minor\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			mismatched,
+			target_types(&[("minor", BumpSeverity::Patch)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+
+	// Unknown targets lose the explicit bump inline.
+	let unknown_target = "---\nmystery:\n  bump: minor\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			unknown_target,
+			target_types(&[("minor", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+
+	// `bump: none` alone is rejected by changeset validation; the rule does
+	// not rewrite invalid entries.
+	let none_bump = "---\ncore:\n  bump: none\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			none_bump,
+			target_types(&[("none", BumpSeverity::None)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
+
+	// `caused_by` still blocks the conversion.
+	let caused_by = "---\ncore:\n  bump: minor\n  caused_by: [cli]\n---\n\n#### Summary\n";
+	assert!(
+		run_prefer_inline(
+			caused_by,
+			target_types(&[("minor", BumpSeverity::Minor)]),
+			&severity(LintSeverity::Error)
+		)
+		.is_empty()
+	);
 }

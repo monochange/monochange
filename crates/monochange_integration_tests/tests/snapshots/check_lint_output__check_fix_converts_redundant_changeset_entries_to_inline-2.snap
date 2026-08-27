@@ -7,8 +7,7 @@ core: feat
 cli:
   bump: minor
   type: fix
-shared:
-  bump: patch
+shared: patch
 ---
 
 #### Convert redundant changeset entries to inline form

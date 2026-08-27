@@ -311,7 +311,7 @@ expression: content_text(&result)
     {
       "autofixable": true,
       "category": "style",
-      "description": "Prefers inline `target: type` change entries when the object form only repeats what the inline form already implies",
+      "description": "Prefers inline `target: type` change entries when the object form only repeats what the inline form already implies, including bare bumps that are also change types",
       "id": "changesets/prefer-inline",
       "maturity": "stable",
       "name": "Changeset prefer inline entries",

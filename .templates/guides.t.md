@@ -1122,10 +1122,11 @@ use = ["changesets/recommended"]
 
 **What it checks:** object (table) change entries whose fields are exactly equivalent to the inline form:
 
-- `type` alone (`core: { type: "feat" }`), and
-- `type` plus a `bump` that the type already implies (`core: { type: "feat", bump: "minor" }`, since `feat` implies `minor`).
+- `type` alone (`core: { type: "feat" }`),
+- `type` plus a `bump` that the type already implies (`core: { type: "feat", bump: "minor" }`, since `feat` implies `minor`), and
+- a bare `bump` whose keyword is also a configured change type that implies the same bump (`core: { bump: "minor" }`, since `minor` is a change type with default bump `minor`; the inline entry keeps the bump and gains the type).
 
-Entries with a `version`, a `caused_by`, an unknown field, an unknown change type, or a `bump` that disagrees with the type default are left untouched, because the inline form cannot express them without changing meaning. Bare `bump` entries are also left alone: the inline token would gain a change type.
+Entries with a `version`, a `caused_by`, an unknown field, an unknown change type, or a `bump` that disagrees with the type default are left untouched, because the inline form cannot express them without changing meaning. A bare `bump: none` is also left alone: changeset validation rejects it outright.
 
 **Before:**
 
