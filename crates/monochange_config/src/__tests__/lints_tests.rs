@@ -988,6 +988,21 @@ fn collect_targets_populates_target_types_from_configuration() {
 			version_format: monochange_core::VersionFormat::Namespaced,
 			publish: monochange_core::PublishSettings::default(),
 		});
+	configuration.groups.push(monochange_core::GroupDefinition {
+		id: "group".to_string(),
+		packages: vec!["core".to_string()],
+		package_max_bumps: BTreeMap::new(),
+		changelog: None,
+		changelog_include: monochange_core::GroupChangelogInclude::default(),
+		excluded_changelog_types: Vec::new(),
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		tag: true,
+		release: true,
+		version_format: monochange_core::VersionFormat::Namespaced,
+	});
 
 	let targets = must(
 		ChangesetLintSuite::new().collect_targets(tempdir.path(), &configuration),
@@ -1003,15 +1018,21 @@ fn collect_targets_populates_target_types_from_configuration() {
 	let target = parsed
 		.target_types
 		.get("core")
-		.expect("configured target types");
+		.expect("configured package target types");
 	assert_eq!(target.default_bumps.get("feat"), Some(&BumpSeverity::Minor));
+	let group = parsed
+		.target_types
+		.get("group")
+		.expect("configured group target types");
+	assert_eq!(group.default_bumps.get("feat"), Some(&BumpSeverity::Minor));
 }
 
 #[test]
 fn normalize_change_bumps_resolves_implied_bumps_for_configured_types() {
-	let mut file =
-		parse_changeset_for_lint("---\ncore: feat\nmystery: feat\n---\n\n#### Add target\n")
-			.expect("changeset should parse");
+	let mut file = parse_changeset_for_lint(
+		"---\ncore: feat\nmystery: feat\nempty: ''\n---\n\n#### Add target\n",
+	)
+	.expect("changeset should parse");
 	file.target_types = target_types(&[("feat", BumpSeverity::Minor)]);
 
 	assert!(
@@ -1034,4 +1055,261 @@ fn normalize_change_bumps_resolves_implied_bumps_for_configured_types() {
 		.find(|entry| entry.package == "mystery")
 		.expect("mystery entry");
 	assert_eq!(mystery.bump, None);
+	// Entries without a change type keep their bump untouched.
+	let empty = file
+		.changes
+		.iter()
+		.find(|entry| entry.package == "empty")
+		.expect("empty entry");
+	assert_eq!(empty.bump, None);
+}
+
+// The following tests exercise `frontmatter_entry_spans` directly so the raw
+// scanner behavior is covered independently of the serde frontmatter parse.
+
+fn spans_of(contents: &str) -> Option<Vec<(String, (usize, usize))>> {
+	frontmatter_entry_spans(contents).map(|entries| {
+		entries
+			.into_iter()
+			.map(|entry| (entry.package, entry.span))
+			.collect()
+	})
+}
+
+#[test]
+fn frontmatter_entry_spans_reports_block_and_flow_spans() {
+	let contents = "---\ncore:\n  type: feat\nother: {type: fix}\n---\n";
+	let spans = spans_of(contents).expect("entries");
+	assert_eq!(spans.len(), 2);
+	assert_eq!(spans[0].0, "core");
+	assert_eq!(spans[0].1, (9, 22));
+	assert_eq!(spans[1].0, "other");
+	assert_eq!(spans[1].1, (29, 41));
+}
+
+#[test]
+fn frontmatter_entry_spans_bails_out_on_ambiguous_inputs() {
+	// Duplicate keys make span attribution ambiguous, even when only one
+	// of the duplicates is a mapping.
+	assert!(spans_of("---\ncore: a\ncore: b\n---\n").is_none());
+	assert!(spans_of("---\ncore:\n  type: feat\ncore: feat\n---\n").is_none());
+	// A leading line without a `key:` shape cannot be attributed.
+	assert!(spans_of("---\njusttext\n---\n").is_none());
+	// YAML explicit keys are not attributed to spans.
+	assert!(spans_of("---\n? core\n: feat\n---\n").is_none());
+}
+
+#[test]
+fn frontmatter_entry_spans_skips_scalar_and_comment_values() {
+	let contents = "---\ncore: feat\n# comment\nother:\n---\n";
+	let spans = spans_of(contents).expect("entries");
+	assert!(spans.is_empty(), "unexpected spans: {spans:?}");
+}
+
+#[test]
+fn frontmatter_entry_spans_handles_quoted_keys() {
+	let contents = "---\n\"core\":\n  type: feat\n'other':\n  type: fix\n---\n";
+	let spans = spans_of(contents).expect("entries");
+	assert_eq!(spans.len(), 2);
+	assert_eq!(spans[0].0, "core");
+	assert_eq!(spans[0].1, (11, 24));
+	assert_eq!(spans[1].0, "other");
+}
+
+#[test]
+fn frontmatter_entry_spans_rejects_malformed_keys() {
+	// Quoted key with no colon after the closing quote.
+	assert!(spans_of("---\n\"core\" feat\n---\n").is_none());
+	// Quoted key followed by a bare value.
+	assert!(spans_of("---\n\"core\"feat\n---\n").is_none());
+	// A top-level key without a colon terminator.
+	assert!(spans_of("---\ncore\n---\n").is_none());
+	// A key:value pair without whitespace after the colon.
+	assert!(spans_of("---\ncore:feat\n---\n").is_none());
+	// Empty top-level key.
+	assert!(spans_of("---\n: v\n---\n").is_none());
+}
+
+#[test]
+fn frontmatter_entry_spans_skips_unrewritable_flow_values() {
+	// Unbalanced flow mappings produce no entries.
+	assert!(
+		spans_of("---\ncore: {type: feat\n---\n")
+			.expect("entries")
+			.is_empty()
+	);
+	// Flow mappings followed by trailing content are not rewritten.
+	assert!(
+		spans_of("---\ncore: {type: feat} trailing\n---\n")
+			.expect("entries")
+			.is_empty()
+	);
+}
+
+#[test]
+fn frontmatter_entry_spans_scans_flow_values_across_quotes() {
+	let contents = "---\ncore: {type: \"feat\"}\n---\n";
+	let spans = spans_of(contents).expect("entries");
+	assert_eq!(spans.len(), 1);
+	assert_eq!(spans[0].1, (9, 24));
+
+	// Nested braces stay balanced.
+	let nested = "---\ncore: {caused: {a: 1}, type: feat}\n---\n";
+	let spans = spans_of(nested).expect("entries");
+	assert_eq!(spans[0].1, (9, 38));
+
+	// Braces inside quotes do not affect nesting.
+	let quoted = "---\ncore: {type: \"}\"}\n---\n";
+	let spans = spans_of(quoted).expect("entries");
+	assert_eq!(spans[0].1, (9, 21));
+}
+
+#[test]
+fn prefer_inline_rule_reports_explicit_keys_as_ambiguous() {
+	// YAML explicit keys parse fine in serde but cannot be attributed to raw
+	// spans; the rule skips the file instead of rewriting them.
+	let contents = "---\n? core\n: feat\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		contents,
+		target_types(&[("feat", BumpSeverity::Minor)]),
+		&severity(LintSeverity::Error),
+	);
+	assert!(results.is_empty(), "unexpected results: {results:?}");
+}
+
+#[test]
+fn prefer_inline_rule_quotes_yaml_special_tokens() {
+	// Tokens that could be misread as other YAML scalars are quoted.
+	let contents = "---\ncore:\n  type: no\n---\n\n#### Summary\n";
+	let mut target_types = target_types(&[]);
+	target_types.insert(
+		"core".to_string(),
+		TargetChangeTypes {
+			default_bumps: BTreeMap::from([("no".to_string(), BumpSeverity::Minor)]),
+		},
+	);
+	let results = run_prefer_inline(contents, target_types, &severity(LintSeverity::Error));
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\ncore: \"no\"\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_handles_single_quoted_keys() {
+	let contents = "---\n'@scope/core': {type: feat}\n---\n\n#### Summary\n";
+	let mut target_types = BTreeMap::new();
+	target_types.insert(
+		"@scope/core".to_string(),
+		TargetChangeTypes {
+			default_bumps: BTreeMap::from([("feat".to_string(), BumpSeverity::Minor)]),
+		},
+	);
+	let results = run_prefer_inline(contents, target_types, &severity(LintSeverity::Error));
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\n'@scope/core': feat\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_handles_escaped_quoted_keys() {
+	// Double-quoted keys support escapes; single-quoted keys support ''.
+	let contents = "---\n\"core\\\"x\": {type: feat}\n'it''s': {type: feat}\n---\n\n#### Summary\n";
+	let mut target_types = BTreeMap::new();
+	target_types.insert(
+		"core\"x".to_string(),
+		TargetChangeTypes {
+			default_bumps: BTreeMap::from([("feat".to_string(), BumpSeverity::Minor)]),
+		},
+	);
+	target_types.insert(
+		"it's".to_string(),
+		TargetChangeTypes {
+			default_bumps: BTreeMap::from([("feat".to_string(), BumpSeverity::Minor)]),
+		},
+	);
+	let results = run_prefer_inline(contents, target_types, &severity(LintSeverity::Error));
+	assert_eq!(results.len(), 2, "unexpected results: {results:?}");
+
+	let spans = spans_of(contents).expect("entries");
+	assert_eq!(spans.len(), 2);
+	assert_eq!(spans[0].0, "core\"x");
+	assert_eq!(spans[1].0, "it's");
+}
+
+#[test]
+fn prefer_inline_rule_reports_entries_with_blank_lines_in_blocks() {
+	let contents = "---\ncore:\n  bump: minor\n\n  type: feat\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		contents,
+		target_types(&[("feat", BumpSeverity::Minor)]),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(contents, &results),
+		"---\ncore: feat\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn prefer_inline_rule_rewrites_flow_entries_with_quoted_values() {
+	let mut target_types = target_types(&[]);
+	target_types.insert(
+		"core".to_string(),
+		TargetChangeTypes {
+			default_bumps: BTreeMap::from([
+				("feat".to_string(), BumpSeverity::Minor),
+				("fix".to_string(), BumpSeverity::Patch),
+				("a\"b".to_string(), BumpSeverity::Minor),
+				("it's".to_string(), BumpSeverity::Minor),
+			]),
+		},
+	);
+
+	// Double-quoted values, including escaped quotes.
+	let escaped = "---\ncore: {type: \"a\\\"b\"}\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		escaped,
+		target_types.clone(),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(escaped, &results),
+		"---\ncore: \"a\\\"b\"\n---\n\n#### Summary\n"
+	);
+
+	// Single-quoted values close normally.
+	let single = "---\ncore: {type: 'fix'}\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(single, target_types.clone(), &severity(LintSeverity::Error));
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(single, &results),
+		"---\ncore: fix\n---\n\n#### Summary\n"
+	);
+
+	// Single-quoted values support the '' escape.
+	let doubled = "---\ncore: {type: 'it''s'}\n---\n\n#### Summary\n";
+	let results = run_prefer_inline(
+		doubled,
+		target_types.clone(),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(results.len(), 1, "unexpected results: {results:?}");
+	assert_eq!(
+		apply_single_fix(doubled, &results),
+		"---\ncore: \"it's\"\n---\n\n#### Summary\n"
+	);
+}
+
+#[test]
+fn frontmatter_entry_spans_rejects_truncated_and_mismatched_quoted_keys() {
+	// An escape with no following character cannot close the key.
+	assert!(spans_of("---\n\"core\\\n---\n").is_none());
+	// A quoted key whose colon is followed by a bare value.
+	assert!(spans_of("---\n\"core\":feat\n---\n").is_none());
 }

@@ -729,25 +729,16 @@ impl LintRuleRunner for PreferInlineRule {
 		let Some(entries) = frontmatter_entry_spans(ctx.contents) else {
 			return Vec::new();
 		};
-		let mut span_by_target: BTreeMap<String, FrontmatterValueSpan> = BTreeMap::new();
-		for entry in entries {
-			if span_by_target
-				.insert(entry.package.clone(), entry.span)
-				.is_some()
-			{
-				// Duplicate keys make span attribution ambiguous.
-				return Vec::new();
-			}
-		}
+		let span_by_target: BTreeMap<String, (usize, usize)> = entries
+			.into_iter()
+			.map(|entry| (entry.package, entry.span))
+			.collect();
 
 		let mut results = Vec::new();
 		for (package, value) in &file.raw_values {
 			let Some(span) = span_by_target.get(package.as_str()) else {
 				continue;
 			};
-			if !span.is_mapping {
-				continue;
-			}
 			let Some(token) = inline_equivalent_token(package, value, &file.target_types) else {
 				continue;
 			};
@@ -755,14 +746,13 @@ impl LintRuleRunner for PreferInlineRule {
 			results.push(
 				LintResult::new(
 					self.rule.id.clone(),
-					LintLocation::new(ctx.manifest_path, 1, 1)
-						.with_span(span.value_span.0, span.value_span.1),
+					LintLocation::new(ctx.manifest_path, 1, 1).with_span(span.0, span.1),
 					message,
 					severity,
 				)
 				.with_fix(LintFix::single(
 					"Convert change entry to inline form",
-					span.value_span,
+					*span,
 					format!(" {}", inline_scalar_token(&token)),
 				)),
 			);
@@ -862,17 +852,11 @@ fn inline_scalar_token(token: &str) -> String {
 	}
 }
 
-/// The raw value span of one top-level frontmatter entry.
-struct FrontmatterValueSpan {
-	/// Byte span covering the value region an inline conversion replaces.
-	value_span: (usize, usize),
-	/// Whether the raw value is a YAML mapping.
-	is_mapping: bool,
-}
-
+/// One top-level frontmatter entry and the byte span of its raw value.
 struct FrontmatterEntrySpan {
 	package: String,
-	span: FrontmatterValueSpan,
+	/// Byte span covering the value region an inline conversion replaces.
+	span: (usize, usize),
 }
 
 /// Locate the top-level entries of a changeset frontmatter and the raw value
@@ -887,6 +871,7 @@ fn frontmatter_entry_spans(contents: &str) -> Option<Vec<FrontmatterEntrySpan>> 
 	let lines = collect_frontmatter_lines(frontmatter, 3);
 
 	let mut entries = Vec::new();
+	let mut keys = Vec::new();
 	let mut index = 0usize;
 	while let Some((line_start, line)) = lines.get(index) {
 		let trimmed = line.trim();
@@ -902,6 +887,7 @@ fn frontmatter_entry_spans(contents: &str) -> Option<Vec<FrontmatterEntrySpan>> 
 		}
 
 		let (package, after_colon) = parse_frontmatter_entry_line(line)?;
+		keys.push(package.clone());
 		let inline_value = line.get(after_colon..).unwrap_or("").trim_start();
 		if inline_value.is_empty() || inline_value.starts_with('#') {
 			let (span, next_index) = block_value_span(&lines, index, *line_start, after_colon);
@@ -917,12 +903,9 @@ fn frontmatter_entry_spans(contents: &str) -> Option<Vec<FrontmatterEntrySpan>> 
 			if let Some(value_end) = flow_mapping_end(contents, value_start) {
 				entries.push(FrontmatterEntrySpan {
 					package,
-					span: FrontmatterValueSpan {
-						// Start right after the colon so the fix aligns with the
-						// block-form rewrite below.
-						value_span: (line_start + after_colon, value_end),
-						is_mapping: true,
-					},
+					// Start right after the colon so the fix aligns with the
+					// block-form rewrite below.
+					span: (line_start + after_colon, value_end),
 				});
 			}
 			index += 1;
@@ -933,26 +916,21 @@ fn frontmatter_entry_spans(contents: &str) -> Option<Vec<FrontmatterEntrySpan>> 
 		index += 1;
 	}
 
+	if keys.iter().collect::<BTreeSet<_>>().len() != keys.len() {
+		// Duplicate keys make span attribution ambiguous.
+		return None;
+	}
+
 	Some(entries)
 }
 
 /// Collect frontmatter lines with their absolute byte offsets.
 fn collect_frontmatter_lines(frontmatter: &str, base: usize) -> Vec<(usize, String)> {
 	let mut lines = Vec::new();
-	let mut cursor = 0usize;
-	while cursor < frontmatter.len() {
-		if !frontmatter.is_char_boundary(cursor) {
-			return lines;
-		}
-		let Some(remainder) = frontmatter.get(cursor..) else {
-			return lines;
-		};
-		let (raw_line, advance) = match remainder.split_once('\n') {
-			Some((line, _)) => (line, line.len() + 1),
-			None => (remainder, remainder.len()),
-		};
-		lines.push((base + cursor, raw_line.trim_end_matches('\r').to_string()));
-		cursor += advance;
+	let mut offset = 0usize;
+	for line in frontmatter.split('\n') {
+		lines.push((base + offset, line.trim_end_matches('\r').to_string()));
+		offset += line.len() + 1;
 	}
 	lines
 }
@@ -965,7 +943,7 @@ fn block_value_span(
 	entry_index: usize,
 	entry_line_start: usize,
 	after_colon: usize,
-) -> (Option<FrontmatterValueSpan>, usize) {
+) -> (Option<(usize, usize)>, usize) {
 	let mut value_end: Option<usize> = None;
 	let mut index = entry_index + 1;
 	while let Some((line_start, line)) = lines.get(index) {
@@ -985,12 +963,7 @@ fn block_value_span(
 		value_end = Some(line_start + line.len());
 		index += 1;
 	}
-	let span = value_end.map(|end| {
-		FrontmatterValueSpan {
-			value_span: (entry_line_start + after_colon, end),
-			is_mapping: true,
-		}
-	});
+	let span = value_end.map(|end| (entry_line_start + after_colon, end));
 	(span, index)
 }
 
@@ -1077,10 +1050,6 @@ fn parse_plain_entry_key(line: &str) -> Option<(String, usize)> {
 		return None;
 	}
 	let after_colon = colon + 1;
-	let rest = line.get(after_colon..).unwrap_or("");
-	if !rest.is_empty() && !rest.starts_with(' ') && !rest.starts_with('\t') {
-		return None;
-	}
 	Some((key, after_colon))
 }
 
