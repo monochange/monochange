@@ -563,7 +563,7 @@ Roll the signing key before the release window closes.
 
 <!-- {@releaseExplicitVersionChangesetExample} -->
 
-Use scalar shorthand for plain bumps (`sdk-core: minor`) or for configured change types (`sdk-core: security`). To pin an exact version or combine `bump`, `version`, and `type`, use the object syntax:
+Prefer the inline form: write a configured change type as the target value when its default bump is what you want (`sdk-core: docs` for a documentation-only change, `sdk-core: fix` for a patch fix). Use scalar bumps (`sdk-core: minor`) for plain bumps without a custom type. Use the object syntax only when you need to pin an exact version, combine `bump`, `version`, and `type`, or override a type's default bump (for example `docs` with a `patch` bump):
 
 ```markdown
 ---
@@ -575,7 +575,7 @@ sdk-core:
 # promote to stable
 ```
 
-When `version` is provided without `bump`, the bump is inferred from the current version. If the package belongs to a version group, the explicit version propagates to the whole group.
+When `version` is provided without `bump`, the bump is inferred from the current version. If the package belongs to a version group, the explicit version propagates to the whole group. Overriding a type's default bump is possible but should be avoided unless the user explicitly asks for that version behavior.
 
 <!-- {/releaseExplicitVersionChangesetExample} -->
 
