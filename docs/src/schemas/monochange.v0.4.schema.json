@@ -1099,6 +1099,10 @@
 					"type": "boolean"
 				},
 				{
+					"format": "double",
+					"type": "number"
+				},
+				{
 					"items": {
 						"type": "string"
 					},

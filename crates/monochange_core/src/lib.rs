@@ -2555,6 +2555,7 @@ pub enum CliStepInputValue {
 enum CliStepInputOverrideValueSchema {
 	String(String),
 	Boolean(bool),
+	Number(f64),
 	List(Vec<String>),
 }
 
@@ -2619,12 +2620,17 @@ where
 	#[derive(Deserialize)]
 	#[serde(untagged)]
 	enum RawInputs {
-		Overrides(BTreeMap<String, CliStepInputValue>),
+		Overrides(BTreeMap<String, RawCliStepInputValue>),
 		Inherited(Vec<String>),
 	}
 
 	match RawInputs::deserialize(deserializer)? {
-		RawInputs::Overrides(overrides) => Ok(overrides),
+		RawInputs::Overrides(overrides) => {
+			Ok(overrides
+				.into_iter()
+				.map(|(name, value)| (name, coerce_raw_cli_step_input_value(value)))
+				.collect())
+		}
 		RawInputs::Inherited(names) => {
 			Ok(names
 				.into_iter()
@@ -2633,6 +2639,33 @@ where
 		}
 	}
 }
+
+/// The literal shapes accepted for CLI step input overrides in `monochange.toml`.
+///
+/// TOML authors can write strings, booleans, and numbers. Booleans stay native
+/// through parsing and are stringified when the step runs; numbers are coerced
+/// to their string form immediately (`2.5` becomes `"2.5"`) so downstream input
+/// handling keeps operating on strings.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RawCliStepInputValue {
+	String(String),
+	Boolean(bool),
+	Integer(i64),
+	Float(f64),
+	List(Vec<String>),
+}
+
+fn coerce_raw_cli_step_input_value(value: RawCliStepInputValue) -> CliStepInputValue {
+	match value {
+		RawCliStepInputValue::String(value) => CliStepInputValue::String(value),
+		RawCliStepInputValue::Boolean(value) => CliStepInputValue::Boolean(value),
+		RawCliStepInputValue::Integer(value) => CliStepInputValue::String(value.to_string()),
+		RawCliStepInputValue::Float(value) => CliStepInputValue::String(value.to_string()),
+		RawCliStepInputValue::List(values) => CliStepInputValue::List(values),
+	}
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
