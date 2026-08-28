@@ -286,28 +286,6 @@ steps = [
 
 Step-local `when` expressions and command templates evaluate against the same explicit step input context. If a `when` condition references `inputs.publish`, the step must include `publish` in its `inputs` array or map. Use `inputs = ["publish"]` for unchanged inheritance, or `inputs = { publish = "{{ inputs.publish }}" }` when you need the map form for other overrides.
 
-Override values in the map form accept native TOML literals: strings, booleans, integers, and floats. Booleans pass through as `"true"`/`"false"` when the step runs; numbers are coerced to strings at parse time, so `{ jobs = 4 }` is equivalent to `{ jobs = "4" }`.
-
-To let a `Command` step own the terminal (prompts, TUIs), declare an `interactive` boolean input, pass it to the step, and run with `--interactive`:
-
-```toml
-[cli.publish]
-help_text = "Publish packages"
-
-[[cli.publish.inputs]]
-name = "interactive"
-type = "boolean"
-default = false
-
-[[cli.publish.steps]]
-name = "publish"
-type = "Command"
-command = "npm publish"
-inputs = ["interactive"]
-```
-
-Leave it unset for CI so publishing stays non-interactive. Interactive steps do not capture output.
-
 Override values in the map form accept native TOML literals: strings, booleans, integers, and floats. Booleans stay booleans in the parsed model and are stringified to `"true"`/`"false"` when the step runs; numbers are coerced to their string form at parse time, so writing `{ jobs = 4, ratio = 2.5 }` is exactly the same as writing `{ jobs = "4", ratio = "2.5" }`:
 
 ```toml
