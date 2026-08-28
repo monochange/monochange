@@ -1,3 +1,8 @@
+#![doc(
+	html_logo_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-512.png",
+	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
+)]
+
 //! Normalized snapshots for command and API surfaces.
 
 use std::collections::BTreeMap;

@@ -1,3 +1,8 @@
+#![doc(
+	html_logo_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-512.png",
+	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
+)]
+
 //! # `monochange_test_helpers`
 //!
 //! `monochange_test_helpers` packages the shared fixture, snapshot, git, and RMCP helpers used across the workspace test suite.

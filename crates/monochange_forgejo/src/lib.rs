@@ -1,3 +1,8 @@
+#![doc(
+	html_logo_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-512.png",
+	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
+)]
+
 //! # `monochange_forgejo`
 //!
 //! `monochange_forgejo` turns `monochange` release manifests into Forgejo automation requests.
