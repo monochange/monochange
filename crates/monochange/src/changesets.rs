@@ -602,6 +602,8 @@ pub(crate) fn build_release_plan_from_signals(
 	let mut compatibility_evidence = compatibility_evidence;
 	compatibility_evidence.extend(semantic_evidence);
 
+	let bump_propagations =
+		monochange_config::package_bump_propagations(configuration, &discovery.packages);
 	let mut plan = build_release_plan(
 		&discovery.workspace_root,
 		&discovery.packages,
@@ -610,6 +612,7 @@ pub(crate) fn build_release_plan_from_signals(
 		change_signals,
 		&compatibility_evidence,
 		configuration.defaults.parent_bump,
+		&bump_propagations,
 		configuration.defaults.strict_version_conflicts,
 	)?;
 	plan.warnings.extend(semantic_warnings);

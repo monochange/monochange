@@ -75,6 +75,38 @@ format = "monochange"
 
 <!-- {/configurationVersionGroupsSnippet} -->
 
+## Bump propagation to dependents
+
+<!-- {=configurationBumpPropagationSnippet} -->
+
+Packages and groups declare what their own changes mean for the packages that depend on them via `bump_propagation`:
+
+```toml
+[package.core]
+# Dependents match this package's release severity, never exceeding `minor`.
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+[package.tooling]
+# Dependents always receive at least a minor bump from this package's changes.
+bump_propagation = "minor"
+
+[package.leaf]
+# Dependents never release because of this package.
+bump_propagation = "none"
+
+[group.sdk]
+# A group declaration overrides declarations of its member packages.
+packages = ["core"]
+bump_propagation = "major"
+```
+
+- `inherit` matches the target's own release severity: a breaking change in the package means breaking changes for its dependents. `bump_propagation_max` clamps the inherited severity (only valid with `inherit`).
+- A fixed severity (`none`, `patch`, `minor`, `major`) is a floor: dependents release at least that severity whenever the package releases. `none` disables dependency propagation entirely.
+- Targets without a declaration fall back to `[defaults].parent_bump`. Semantic compatibility evidence can still escalate beyond the declared floor.
+
+<!-- {/configurationBumpPropagationSnippet} -->
+
 Required fields:
 
 - `path`

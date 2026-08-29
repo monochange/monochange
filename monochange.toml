@@ -200,6 +200,13 @@ perf = { bump = "none", section = "perf", description = "Performance and benchma
 #   excluded_changelog_types — list of changelog type keys to exclude from
 #                                this target; the target inherits workspace
 #                                defaults minus the listed types
+#   bump_propagation        — how this package's changes propagate to
+#                             dependents: "inherit" (dependents match this
+#                             bump), or a floor "none"/"patch"/"minor"/"major";
+#                             defaults to [defaults].parent_bump
+#   bump_propagation_max    — clamp for "inherit" so dependents never exceed
+#                             the given severity (requires
+#                             bump_propagation = "inherit")
 #   empty_update_message    — per-package fallback text for transitive bumps
 #   versioned_files         — additional files to update with the new version
 #                             package-scoped string entries infer the package ecosystem,
@@ -378,6 +385,9 @@ type = "npm"
 #   packages — list of [package.*] ids that belong to this group
 #
 # Optional fields:
+#   bump_propagation        — how this group's changes propagate to dependents
+#                             of member packages; overrides member package
+#                             declarations (same values as package fields)
 #   changelog               — path or table for the group-level changelog;
 #                             tables may also set `include = "all"`,
 #                             `include = "group-only"`, or

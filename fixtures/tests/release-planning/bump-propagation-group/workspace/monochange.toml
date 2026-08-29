@@ -1,0 +1,30 @@
+[defaults]
+package_type = "cargo"
+parent_bump = "patch"
+changelog = false
+
+# The package-level clamp would bound dependents at minor, but the group
+# declaration overrides it: this kit's dependents must always release at
+# least a major when core breaks.
+[package.core]
+path = "crates/core"
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+[group.kit]
+packages = ["core"]
+bump_propagation = "inherit"
+
+[package.engine]
+path = "crates/engine"
+
+[ecosystems.cargo]
+enabled = true
+roots = ["crates/*"]
+
+[cli.release]
+inputs = [{ name = "format", type = "choice", choices = ["markdown", "json"], default = "json" }]
+
+[[cli.release.steps]]
+type = "PrepareRelease"
+inputs = ["format"]

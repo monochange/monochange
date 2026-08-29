@@ -356,6 +356,7 @@ fn group_definition(id: &str, packages: &[&str]) -> GroupDefinition {
 		changelog: None,
 		changelog_include: GroupChangelogInclude::default(),
 		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
 		empty_update_message: None,
 		release_title: None,
 		changelog_version_title: None,

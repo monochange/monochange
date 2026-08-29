@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use monochange_core::BumpPropagation;
+use monochange_core::BumpPropagationMode;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::CompatibilityAssessment;
@@ -160,7 +162,7 @@ fn direct_release_severity_keeps_requested_bump_when_higher_than_assessment() {
 #[test]
 fn propagated_release_severity_uses_default_parent_bump_without_assessment() {
 	assert_eq!(
-		propagated_release_severity(BumpSeverity::Patch, None),
+		propagated_release_severity(BumpSeverity::Patch, None, BumpSeverity::Patch, None),
 		BumpSeverity::Patch
 	);
 }
@@ -169,7 +171,12 @@ fn propagated_release_severity_uses_default_parent_bump_without_assessment() {
 fn propagated_release_severity_escalates_to_assessment_when_higher() {
 	let assessment = make_assessment("core", BumpSeverity::Major);
 	assert_eq!(
-		propagated_release_severity(BumpSeverity::Patch, Some(&assessment)),
+		propagated_release_severity(
+			BumpSeverity::Patch,
+			None,
+			BumpSeverity::Patch,
+			Some(&assessment)
+		),
 		BumpSeverity::Major
 	);
 }
@@ -178,7 +185,12 @@ fn propagated_release_severity_escalates_to_assessment_when_higher() {
 fn propagated_release_severity_keeps_parent_bump_when_higher_than_assessment() {
 	let assessment = make_assessment("core", BumpSeverity::Patch);
 	assert_eq!(
-		propagated_release_severity(BumpSeverity::Minor, Some(&assessment)),
+		propagated_release_severity(
+			BumpSeverity::Minor,
+			None,
+			BumpSeverity::Patch,
+			Some(&assessment)
+		),
 		BumpSeverity::Minor
 	);
 }
@@ -358,7 +370,7 @@ proptest! {
 		assessment in arbitrary_bump_severity()
 	) {
 		let assessment = make_assessment("core", assessment);
-		let result = propagated_release_severity(parent, Some(&assessment));
+		let result = propagated_release_severity(parent, None, BumpSeverity::Patch, Some(&assessment));
 		prop_assert!(
 			result >= parent,
 			"propagated_release_severity({parent:?}, Some({assessment:?})) = {result:?}"
@@ -589,4 +601,142 @@ fn semantic_assessment_confidence_describes_each_supported_severity() {
 #[test]
 fn semantic_changes_assessment_returns_none_without_release_impact() {
 	assert!(semantic_changes_assessment("core", "semantic", &[]).is_none());
+}
+
+#[test]
+fn propagated_release_severity_inherits_the_source_severity() {
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::Patch,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::Inherit,
+				max: None,
+			}),
+			BumpSeverity::Major,
+			None,
+		),
+		BumpSeverity::Major
+	);
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::Major,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::Inherit,
+				max: None,
+			}),
+			BumpSeverity::Patch,
+			None,
+		),
+		BumpSeverity::Patch
+	);
+}
+
+#[test]
+fn propagated_release_severity_inherit_includes_assessment_evidence() {
+	let assessment = make_assessment("core", BumpSeverity::Minor);
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::None,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::Inherit,
+				max: None,
+			}),
+			BumpSeverity::None,
+			Some(&assessment),
+		),
+		BumpSeverity::Minor
+	);
+}
+
+#[test]
+fn propagated_release_severity_clamps_inherited_severity() {
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::None,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::Inherit,
+				max: Some(BumpSeverity::Minor),
+			}),
+			BumpSeverity::Major,
+			None,
+		),
+		BumpSeverity::Minor
+	);
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::None,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::Inherit,
+				max: Some(BumpSeverity::Minor),
+			}),
+			BumpSeverity::Patch,
+			None,
+		),
+		BumpSeverity::Patch
+	);
+}
+
+#[test]
+fn propagated_release_severity_clamp_never_lowers_below_inherited_floor() {
+	// A clamp only limits the inherited severity; it cannot produce no-op
+	// propagation for a releasing source below... a patch source with a
+	// `none` clamp still propagates nothing.
+	let assessment = make_assessment("core", BumpSeverity::Major);
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::Patch,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::Inherit,
+				max: Some(BumpSeverity::None),
+			}),
+			BumpSeverity::Minor,
+			Some(&assessment),
+		),
+		BumpSeverity::None
+	);
+}
+
+#[test]
+fn propagated_release_severity_fixed_floor_ignores_source_severity() {
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::Major,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::None,
+				max: None,
+			}),
+			BumpSeverity::Major,
+			None,
+		),
+		BumpSeverity::None
+	);
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::Patch,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::Minor,
+				max: None,
+			}),
+			BumpSeverity::None,
+			None,
+		),
+		BumpSeverity::Minor
+	);
+}
+
+#[test]
+fn propagated_release_severity_fixed_floor_escalates_with_assessment() {
+	let assessment = make_assessment("core", BumpSeverity::Major);
+	assert_eq!(
+		propagated_release_severity(
+			BumpSeverity::Patch,
+			Some(&BumpPropagation {
+				mode: BumpPropagationMode::None,
+				max: None,
+			}),
+			BumpSeverity::None,
+			Some(&assessment),
+		),
+		BumpSeverity::Major
+	);
 }

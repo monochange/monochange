@@ -7,6 +7,8 @@ use std::path::PathBuf;
 use miette::LabeledSpan;
 use monochange_core::AutoDiscoverPackageDefaults;
 use monochange_core::AutoDiscoverSettings;
+use monochange_core::BumpPropagation;
+use monochange_core::BumpPropagationMode;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangelogDefinition;
 use monochange_core::ChangelogFormat;
@@ -90,6 +92,7 @@ use crate::line_index_for_offset;
 use crate::load_change_signals;
 use crate::load_changeset_file;
 use crate::load_workspace_configuration;
+use crate::package_bump_propagations;
 use crate::range_to_span;
 use crate::render_diagnostic_notes;
 use crate::render_source_diagnostic;
@@ -4972,6 +4975,7 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		package_type: monochange_core::PackageType::Cargo,
 		changelog: None,
 		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
 		empty_update_message: None,
 		release_title: None,
 		changelog_version_title: None,
@@ -5393,6 +5397,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		id: "sdk".to_string(),
 		packages: vec![core.id.clone(), app.id.clone()],
 		package_max_bumps: BTreeMap::new(),
+		bump_propagation: None,
 		changelog: None,
 		changelog_include: GroupChangelogInclude::All,
 		excluded_changelog_types: Vec::new(),
@@ -5421,6 +5426,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		id: "sdk-missing".to_string(),
 		packages: vec![core.id.clone(), "missing".to_string(), app.id.clone()],
 		package_max_bumps: BTreeMap::new(),
+		bump_propagation: None,
 		changelog: None,
 		changelog_include: GroupChangelogInclude::All,
 		excluded_changelog_types: Vec::new(),
@@ -6801,6 +6807,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		package_type: monochange_core::PackageType::Npm,
 		changelog: None,
 		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
 		empty_update_message: None,
 		release_title: None,
 		changelog_version_title: None,
@@ -8385,4 +8392,129 @@ fn load_workspace_configuration_rejects_invalid_custom_version_format_tags() {
 		.expect_err("invalid custom version format tags should be rejected")
 		.render();
 	assert!(error.contains("contains whitespace"));
+}
+
+#[test]
+fn load_workspace_configuration_parses_bump_propagation() {
+	let root = fixture_path("config/bump-propagation");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let core = configuration
+		.package_by_id("core")
+		.expect("expected core package");
+	assert_eq!(
+		core.bump_propagation,
+		Some(BumpPropagation {
+			mode: BumpPropagationMode::Inherit,
+			max: Some(BumpSeverity::Minor),
+		})
+	);
+
+	let lib = configuration
+		.package_by_id("lib")
+		.expect("expected lib package");
+	assert_eq!(
+		lib.bump_propagation,
+		Some(BumpPropagation {
+			mode: BumpPropagationMode::None,
+			max: None,
+		})
+	);
+
+	let web = configuration
+		.package_by_id("npm:web")
+		.expect("expected web package");
+	assert_eq!(
+		web.bump_propagation,
+		Some(BumpPropagation {
+			mode: BumpPropagationMode::Minor,
+			max: None,
+		})
+	);
+
+	let plain = configuration
+		.package_by_id("plain")
+		.expect("expected plain package");
+	assert_eq!(plain.bump_propagation, None);
+
+	let group = configuration
+		.group_by_id("umbrella")
+		.expect("expected umbrella group");
+	assert_eq!(
+		group.bump_propagation,
+		Some(BumpPropagation {
+			mode: BumpPropagationMode::Major,
+			max: None,
+		})
+	);
+}
+
+#[test]
+fn package_bump_propagations_resolves_group_override_and_defaults() {
+	let root = fixture_path("config/bump-propagation");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	fn record(root: &std::path::Path, id: &str, path: &str, ecosystem: Ecosystem) -> PackageRecord {
+		let mut record = PackageRecord::new(
+			ecosystem,
+			id,
+			root.join(path),
+			root.to_path_buf(),
+			Some(Version::new(1, 0, 0)),
+			PublishState::Public,
+		);
+		record.id = id.to_string();
+		record
+	}
+
+	let packages = vec![
+		record(&root, "core", "crates/core/Cargo.toml", Ecosystem::Cargo),
+		record(&root, "lib", "crates/lib/Cargo.toml", Ecosystem::Cargo),
+		record(&root, "web", "packages/web/package.json", Ecosystem::Npm),
+		record(&root, "plain", "crates/plain/Cargo.toml", Ecosystem::Cargo),
+	];
+
+	let propagations = package_bump_propagations(&configuration, &packages);
+
+	// The group declaration (`major`) overrides the member package's own
+	// `inherit` declaration.
+	assert_eq!(
+		propagations.get("core"),
+		Some(&monochange_core::BumpPropagation {
+			mode: monochange_core::BumpPropagationMode::Major,
+			max: None,
+		})
+	);
+	assert_eq!(
+		propagations.get("lib"),
+		Some(&monochange_core::BumpPropagation {
+			mode: monochange_core::BumpPropagationMode::None,
+			max: None,
+		})
+	);
+	assert_eq!(
+		propagations.get("web"),
+		Some(&monochange_core::BumpPropagation {
+			mode: monochange_core::BumpPropagationMode::Minor,
+			max: None,
+		})
+	);
+	// Packages without a declaration stay out of the map so
+	// `[defaults].parent_bump` applies.
+	assert!(!propagations.contains_key("plain"));
+}
+
+#[test]
+fn load_workspace_configuration_rejects_bump_propagation_max_without_inherit() {
+	let root = fixture_path("config/bump-propagation-invalid");
+	let error = load_workspace_configuration(&root)
+		.expect_err("expected bump_propagation_max validation error");
+	assert!(
+		error
+			.to_string()
+			.contains("sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"),
+		"unexpected error: {error}"
+	);
 }

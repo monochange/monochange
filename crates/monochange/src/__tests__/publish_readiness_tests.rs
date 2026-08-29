@@ -183,6 +183,7 @@ fn sample_package_definition(
 		package_type,
 		changelog: None,
 		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
 		empty_update_message: None,
 		release_title: None,
 		changelog_version_title: None,

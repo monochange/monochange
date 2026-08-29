@@ -45,7 +45,7 @@ Examples:
   monochange run release
 
 Planning reminders:
-  - Direct package changes propagate to dependents using defaults.parent_bump.
+  - Direct package changes propagate to dependents using defaults.parent_bump or the target's bump_propagation override (including inherit with an optional bump_propagation_max clamp).
   - Group synchronization happens before final output is rendered.
   - Explicit versions on grouped members propagate to the whole group.
 
