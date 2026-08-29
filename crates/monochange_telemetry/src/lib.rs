@@ -1,3 +1,8 @@
+#![doc(
+	html_logo_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-512.png",
+	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
+)]
+
 //! # `monochange_telemetry`
 //!
 //! `monochange_telemetry` provides local-only telemetry primitives for the `monochange` CLI.

@@ -33,6 +33,33 @@ Use `Command` for what is truly custom.
 - `inputs`: optional step-local input overrides
 - `show_progress`: optional boolean; set to `false` when the command itself is interactive and spinner output would get in the way
 - `interactive`: optional step input; when set to `true` the step runs with inherited stdio so the command can own the terminal, and the progress spinner is suppressed for the step. This is the recommended way to run interactive tools such as wizards or TUIs; unlike `show_progress = false`, the command can read from stdin and render directly to the terminal. Output is not captured, so `steps.<id>.stdout` and `steps.<id>.stderr` are empty for interactive steps
+
+Example: publish through a configured workflow while keeping an interactive terminal available for prompts. Declare the boolean input, pass it to the step, and set it with `--interactive` when you run locally; CI stays non-interactive by leaving it unset.
+
+```toml
+[cli.publish]
+help_text = "Publish packages"
+
+[[cli.publish.inputs]]
+name = "interactive"
+type = "boolean"
+default = false
+
+[[cli.publish.steps]]
+name = "publish"
+type = "Command"
+command = "npm publish"
+inputs = ["interactive"]
+```
+
+```bash
+# local run with the terminal handed to the command
+monochange run publish --interactive
+
+# CI run without a terminal
+monochange run publish
+```
+
 - `always_run`: optional boolean; set to `true` to run this step even when a previous step has failed
 
 ## Prerequisites

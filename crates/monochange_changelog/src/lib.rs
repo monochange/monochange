@@ -1,3 +1,8 @@
+#![doc(
+	html_logo_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-512.png",
+	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
+)]
+
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;

@@ -286,6 +286,42 @@ steps = [
 
 Step-local `when` expressions and command templates evaluate against the same explicit step input context. If a `when` condition references `inputs.publish`, the step must include `publish` in its `inputs` array or map. Use `inputs = ["publish"]` for unchanged inheritance, or `inputs = { publish = "{{ inputs.publish }}" }` when you need the map form for other overrides.
 
+Override values in the map form accept native TOML literals: strings, booleans, integers, and floats. Booleans stay booleans in the parsed model and are stringified to `"true"`/`"false"` when the step runs; numbers are coerced to their string form at parse time, so writing `{ jobs = 4, ratio = 2.5 }` is exactly the same as writing `{ jobs = "4", ratio = "2.5" }`:
+
+```toml
+[[cli.release.steps]]
+name = "publish"
+type = "Command"
+command = "npm publish --jobs {{ inputs.jobs }}"
+inputs = { jobs = 4, dry_run = true }
+```
+
+### Interactive command steps
+
+Add an explicit `interactive` boolean input to the command, pass it to a `Command` step, and run the workflow with `--interactive` when you want the command to own the terminal. The step inherits stdio for that run, so prompts and terminal UIs work, and the progress spinner is suppressed while the command runs.
+
+```toml
+[cli.publish]
+help_text = "Publish packages"
+
+[[cli.publish.inputs]]
+name = "interactive"
+type = "boolean"
+default = false
+
+[[cli.publish.steps]]
+name = "publish"
+type = "Command"
+command = "npm publish"
+inputs = ["interactive"]
+```
+
+```bash
+monochange run publish --interactive
+```
+
+Leave `interactive` unset (the default) for CI and scripted runs so those commands stay non-interactive. Interactive steps do not capture output: `steps.<id>.stdout` and `steps.<id>.stderr` are empty for them, so downstream steps cannot read what an interactive command printed.
+
 Built-in `monochange step <name>` commands are different: they are generated directly from the step schema, so their CLI flags map to that single step without a `[cli.*]` wrapper.
 
 <!-- {/cliStepExplicitInputInheritance} -->

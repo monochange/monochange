@@ -33,6 +33,7 @@ use monochange_core::PublishState;
 use monochange_core::RegistryKind;
 use monochange_core::ShellConfig;
 use monochange_core::SourceProvider;
+use monochange_core::WorkspaceConfiguration;
 use monochange_core::lint::ChangesetLintSettings;
 use monochange_core::lint::ChangesetScopedLintSettings;
 use monochange_core::lint::ChangesetSummaryLintSettings;
@@ -8575,4 +8576,80 @@ fn load_workspace_configuration_rejects_group_bump_propagation_max_without_inher
 		),
 		"unexpected error: {error}"
 	);
+}
+
+fn load_workspace_configuration_from_toml(contents: &str) -> WorkspaceConfiguration {
+	let temp_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(temp_dir.path().join("monochange.toml"), contents)
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+	load_workspace_configuration(temp_dir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"))
+}
+
+#[test]
+fn load_workspace_configuration_coerces_numeric_literals_in_cli_step_input_overrides() {
+	let configuration = load_workspace_configuration_from_toml(
+		"[cli.probe]\nhelp_text = \"probe\"\n\n[[cli.probe.inputs]]\nname = \"jobs\"\ntype = \"string\"\n\n[[cli.probe.steps]]\nname = \"step\"\ntype = \"Command\"\ncommand = \"echo probe\"\ninputs = { jobs = 4, ratio = 2.5 }\n",
+	);
+
+	let Some(CliStepDefinition::Command { inputs, .. }) = configuration
+		.cli
+		.first()
+		.and_then(|command| command.steps.first())
+	else {
+		panic!("expected Command step");
+	};
+
+	assert_eq!(
+		inputs.get("jobs"),
+		Some(&CliStepInputValue::String("4".to_string()))
+	);
+	assert_eq!(
+		inputs.get("ratio"),
+		Some(&CliStepInputValue::String("2.5".to_string()))
+	);
+}
+
+#[test]
+fn load_workspace_configuration_accepts_boolean_literals_in_cli_step_input_overrides() {
+	let configuration = load_workspace_configuration_from_toml(
+		"[cli.probe]\nhelp_text = \"probe\"\n\n[[cli.probe.steps]]\nname = \"step\"\ntype = \"Command\"\ncommand = \"echo probe\"\ninputs = { open_as_draft = true, keep_open = false }\n",
+	);
+
+	let Some(CliStepDefinition::Command { inputs, .. }) = configuration
+		.cli
+		.first()
+		.and_then(|command| command.steps.first())
+	else {
+		panic!("expected Command step");
+	};
+
+	assert_eq!(
+		inputs.get("open_as_draft"),
+		Some(&CliStepInputValue::Boolean(true))
+	);
+	assert_eq!(
+		inputs.get("keep_open"),
+		Some(&CliStepInputValue::Boolean(false))
+	);
+}
+
+#[test]
+fn load_workspace_configuration_coerces_literal_defaults_in_cli_input_declarations() {
+	let configuration = load_workspace_configuration_from_toml(
+		"[cli.probe]\nhelp_text = \"probe\"\n\n[[cli.probe.inputs]]\nname = \"draft\"\ntype = \"boolean\"\ndefault = true\n\n[[cli.probe.inputs]]\nname = \"jobs\"\ntype = \"string\"\ndefault = 4\n\n[[cli.probe.inputs]]\nname = \"ratio\"\ntype = \"string\"\ndefault = 2.5\n\n[[cli.probe.steps]]\nname = \"step\"\ntype = \"Command\"\ncommand = \"echo probe\"\ninputs = [\"draft\", \"jobs\", \"ratio\"]\n",
+	);
+
+	let defaults = configuration
+		.cli
+		.first()
+		.expect("cli command")
+		.inputs
+		.iter()
+		.map(|definition| (definition.name.clone(), definition.default.clone()))
+		.collect::<BTreeMap<_, _>>();
+
+	assert_eq!(defaults.get("draft"), Some(&Some("true".to_string())));
+	assert_eq!(defaults.get("jobs"), Some(&Some("4".to_string())));
+	assert_eq!(defaults.get("ratio"), Some(&Some("2.5".to_string())));
 }

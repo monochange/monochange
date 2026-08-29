@@ -1,3 +1,7 @@
+#![doc(
+	html_logo_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-512.png",
+	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
+)]
 #![forbid(clippy::indexing_slicing)]
 
 //! # `monochange_semver`
