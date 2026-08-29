@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### add the monochange logo across readme, docs.rs, and the mdBook
+
+Every published crate now renders the monochange mark on docs.rs through `html_logo_url`, and docs.rs pages use the matching favicon through `html_favicon_url`. The mark itself is a chunky lowercase `mc` monogram with a version-bump arrow in the negative space.
+
+- the readme gains a top-level hero logo that follows the reader's theme: a light variant on light GitHub themes and a light-on-dark variant on dark themes, using the `picture` element with `prefers-color-scheme`
+- the mdBook in `docs/` picks up a new `favicon.png`
+- `assets/` holds the exported logo sizes (280, 512, 1024), the dark variant, and a multi-size `favicon.ico`
+- a reserve mark (the navy Converge badge) is kept under `assets/reserve/` for a future rebrand
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #641](https://github.com/monochange/monochange/pull/641)
+
+</details>
+
 ## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)
 
 ### Changed
