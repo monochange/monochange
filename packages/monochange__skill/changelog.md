@@ -8,6 +8,114 @@
 - Documented verified built-in commands, step commands, MCP tools, user-defined command behavior, and all current CLI step types.
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 
+## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### declare how packages and groups propagate bumps to dependents
+
+Release planning now supports per-package and per-group `bump_propagation` in `monochange.toml`. A package or group can declare that its changes are matched by dependents (`inherit`), bounded by a maximum (`bump_propagation_max`), pinned to a fixed floor (`none`/`patch`/`minor`/`major`), or left at the workspace `[defaults].parent_bump`. `monochange check` and release planning honor these declarations, and the JSON schema and the monochange skill documentation describe the new fields.
+
+**Before (only the workspace-wide floor existed; a breaking dependency left dependents at `parent_bump`):**
+
+```toml
+[defaults]
+parent_bump = "patch"
+```
+
+```markdown
+---
+sdk-core: breaking
+---
+```
+
+Plan: `sdk-core` → major, but every dependent (app, cli) only → patch, even though a breaking dependency is itself breaking for them.
+
+**After (declare inheritance with a clamp, and a floor on another package):**
+
+```toml
+[package."@solana/kit"]
+path = "crates/kit"
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+[package."@solana/leaf"]
+path = "crates/leaf"
+bump_propagation = "none"
+```
+
+```markdown
+---
+kit: breaking
+---
+```
+
+Release plan: `kit` → major, `app` → minor (inherit matches breaking, clamped to minor), and nothing releases for the leaf's dependent. Groups can declare their own propagation, which overrides declarations of member packages, and changesets can still author an explicit bump for a dependent with `caused_by`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #643](https://github.com/monochange/monochange/pull/643)
+
+#### add `[defaults].bump_propagation` and most-specific-first precedence
+
+Bump propagation policies now resolve most-specific-first: a package declaration overrides its group declaration, which overrides the new `[defaults].bump_propagation` (with the optional `[defaults].bump_propagation_max` clamp), which overrides the legacy `[defaults].parent_bump` floor.
+
+**Before (only the workspace floor applied to undeclared targets):**
+
+```toml
+[defaults]
+parent_bump = "major"
+```
+
+Every dependent of any changed package had to release major, even when the source's change was a patch.
+
+**After (workspace-wide inherit fallback without redeclaring per package):**
+
+```toml
+[defaults]
+bump_propagation = "inherit"
+
+[group.kit]
+packages = ["kit-core"]
+
+[package.kit-core]
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+```
+
+Precedence: the most specific declaration wins — the kit-core package clamp (minor) overrides the group's unclamped inherit, which overrides the defaults. Packages and groups with no declaration pick up the defaults inherit; a target can still pin itself with `bump_propagation = "none"`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #644](https://github.com/monochange/monochange/pull/644) · _Related issues:_ [#643](https://github.com/monochange/monochange/issues/643)
+
+#### accept native TOML booleans and numbers in CLI step inputs
+
+CLI step input overrides in `monochange.toml` no longer need to be strings. Authoring `{ draft = true }` (boolean) and `{ jobs = 4, ratio = 2.5 }` (numbers) in a step `inputs` map now parses, and the JSON Schema for the config accepts all three literal shapes:
+
+- booleans keep their native type through parsing and are stringified to `"true"`/`"false"` when the step runs (unchanged behavior, now covered by tests)
+- numbers are coerced to their string form at parse time, so `{ jobs = 4 }` is exactly `{ jobs = "4" }` once the step runs
+- input declarations already accepted boolean and number `default` literals; that behavior is now covered by tests and documented
+- the generated JSON Schema for step input overrides accepts `string`, `boolean`, and `number` values
+- the configuration guide, the Command step reference, and the bundled skill gain an explicit interactive `Command` step example: declare an `interactive` boolean input, pass it to the step, and run the workflow with `--interactive` so the command inherits stdio and owns the terminal
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #642](https://github.com/monochange/monochange/pull/642)
+
+#### refresh documentation and remove stale CLI references
+
+Updated the guide, reference, crate readme, and agent-facing documentation to match the current CLI model:
+
+- configured `[cli.*]` workflows are documented as `monochange run <name>` commands
+- the removed `mc` binary alias is no longer referenced as an install option
+- stale `monochange <command>` invocations were replaced with the nested `step` or `run` paths
+- generated subagent instructions no longer list the `monochange` executable twice
+- knope migration guide now shows the built-in regex versioned-file support instead of a manual `sed` fallback
+- duplicated `monochange --help` lines and a duplicated registry entry were removed
+- prose was tightened and em dashes were replaced with colons or sentence breaks
+
+The monochange skill now prefers the inline changeset type shorthand whenever the intended bump matches the type's default bump, and reserves object syntax for overriding a type's default bump.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #637](https://github.com/monochange/monochange/pull/637) · _Related issues:_ [#637](https://github.com/monochange/monochange/issues/637)
+
+</details>
+
 ## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)
 
 ### Changed

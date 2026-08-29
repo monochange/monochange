@@ -4,6 +4,143 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
+
+### 🚀 Feature
+
+#### condense redundant changeset entries with `changesets/prefer-inline`
+
+Change entries written as objects can now be flagged and automatically rewritten when they only repeat what the inline form already implies. `monochange check` reports a `changesets/prefer-inline` error for entries such as `bump` plus `type` where the type already implies the same bump, for objects that only declare `type`, and for bare `bump` entries whose bump keyword is also a change type that implies the same bump. `monochange check --fix` collapses them to the concise inline entry. The rule is on by default for every project and is part of the `changesets/recommended` preset.
+
+**Before:**
+
+```markdown
+---
+"@monochange/cli":
+  bump: minor
+  type: feat
+---
+```
+
+**After (`monochange check --fix`):**
+
+```markdown
+---
+"@monochange/cli": feat
+---
+```
+
+A bare bump entry is converted too when the bump keyword is also a change type that implies the same bump: `"@monochange/cli": { bump: minor }` becomes `"@monochange/cli": minor`, keeping the bump and gaining the type.
+
+Entries that would change meaning inline are left untouched: explicit `version` values, `caused_by` references, bumps that disagree with the type default, and bare `bump` keywords that are not configured change types.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #640](https://github.com/monochange/monochange/pull/640)
+
+#### declare how packages and groups propagate bumps to dependents
+
+Release planning now supports per-package and per-group `bump_propagation` in `monochange.toml`. A package or group can declare that its changes are matched by dependents (`inherit`), bounded by a maximum (`bump_propagation_max`), pinned to a fixed floor (`none`/`patch`/`minor`/`major`), or left at the workspace `[defaults].parent_bump`. `monochange check` and release planning honor these declarations, and the JSON schema and the monochange skill documentation describe the new fields.
+
+**Before (only the workspace-wide floor existed; a breaking dependency left dependents at `parent_bump`):**
+
+```toml
+[defaults]
+parent_bump = "patch"
+```
+
+```markdown
+---
+sdk-core: breaking
+---
+```
+
+Plan: `sdk-core` → major, but every dependent (app, cli) only → patch, even though a breaking dependency is itself breaking for them.
+
+**After (declare inheritance with a clamp, and a floor on another package):**
+
+```toml
+[package."@solana/kit"]
+path = "crates/kit"
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+[package."@solana/leaf"]
+path = "crates/leaf"
+bump_propagation = "none"
+```
+
+```markdown
+---
+kit: breaking
+---
+```
+
+Release plan: `kit` → major, `app` → minor (inherit matches breaking, clamped to minor), and nothing releases for the leaf's dependent. Groups can declare their own propagation, which overrides declarations of member packages, and changesets can still author an explicit bump for a dependent with `caused_by`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #643](https://github.com/monochange/monochange/pull/643)
+
+#### add `[defaults].bump_propagation` and most-specific-first precedence
+
+Bump propagation policies now resolve most-specific-first: a package declaration overrides its group declaration, which overrides the new `[defaults].bump_propagation` (with the optional `[defaults].bump_propagation_max` clamp), which overrides the legacy `[defaults].parent_bump` floor.
+
+**Before (only the workspace floor applied to undeclared targets):**
+
+```toml
+[defaults]
+parent_bump = "major"
+```
+
+Every dependent of any changed package had to release major, even when the source's change was a patch.
+
+**After (workspace-wide inherit fallback without redeclaring per package):**
+
+```toml
+[defaults]
+bump_propagation = "inherit"
+
+[group.kit]
+packages = ["kit-core"]
+
+[package.kit-core]
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+```
+
+Precedence: the most specific declaration wins — the kit-core package clamp (minor) overrides the group's unclamped inherit, which overrides the defaults. Packages and groups with no declaration pick up the defaults inherit; a target can still pin itself with `bump_propagation = "none"`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #644](https://github.com/monochange/monochange/pull/644) · _Related issues:_ [#643](https://github.com/monochange/monochange/issues/643)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### refresh documentation and remove stale CLI references
+
+Updated the guide, reference, crate readme, and agent-facing documentation to match the current CLI model:
+
+- configured `[cli.*]` workflows are documented as `monochange run <name>` commands
+- the removed `mc` binary alias is no longer referenced as an install option
+- stale `monochange <command>` invocations were replaced with the nested `step` or `run` paths
+- generated subagent instructions no longer list the `monochange` executable twice
+- knope migration guide now shows the built-in regex versioned-file support instead of a manual `sed` fallback
+- duplicated `monochange --help` lines and a duplicated registry entry were removed
+- prose was tightened and em dashes were replaced with colons or sentence breaks
+
+The monochange skill now prefers the inline changeset type shorthand whenever the intended bump matches the type's default bump, and reserves object syntax for overriding a type's default bump.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #637](https://github.com/monochange/monochange/pull/637) · _Related issues:_ [#637](https://github.com/monochange/monochange/issues/637)
+
+#### add the monochange logo across readme, docs.rs, and the mdBook
+
+Every published crate now renders the monochange mark on docs.rs through `html_logo_url`, and docs.rs pages use the matching favicon through `html_favicon_url`. The mark itself is a chunky lowercase `mc` monogram with a version-bump arrow in the negative space.
+
+- the readme gains a top-level hero logo that follows the reader's theme: a light variant on light GitHub themes and a light-on-dark variant on dark themes, using the `picture` element with `prefers-color-scheme`
+- the mdBook in `docs/` picks up a new `favicon.png`
+- `assets/` holds the exported logo sizes (280, 512, 1024), the dark variant, and a multi-size `favicon.ico`
+- a reserve mark (the navy Converge badge) is kept under `assets/reserve/` for a future rebrand
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #641](https://github.com/monochange/monochange/pull/641)
+
+</details>
+
 ## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)
 
 ### 🐛 Fixed

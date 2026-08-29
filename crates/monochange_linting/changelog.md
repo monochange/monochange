@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### refresh documentation and remove stale CLI references
+
+Updated the guide, reference, crate readme, and agent-facing documentation to match the current CLI model:
+
+- configured `[cli.*]` workflows are documented as `monochange run <name>` commands
+- the removed `mc` binary alias is no longer referenced as an install option
+- stale `monochange <command>` invocations were replaced with the nested `step` or `run` paths
+- generated subagent instructions no longer list the `monochange` executable twice
+- knope migration guide now shows the built-in regex versioned-file support instead of a manual `sed` fallback
+- duplicated `monochange --help` lines and a duplicated registry entry were removed
+- prose was tightened and em dashes were replaced with colons or sentence breaks
+
+The monochange skill now prefers the inline changeset type shorthand whenever the intended bump matches the type's default bump, and reserves object syntax for overriding a type's default bump.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #637](https://github.com/monochange/monochange/pull/637) · _Related issues:_ [#637](https://github.com/monochange/monochange/issues/637)
+
+#### add the monochange logo across readme, docs.rs, and the mdBook
+
+Every published crate now renders the monochange mark on docs.rs through `html_logo_url`, and docs.rs pages use the matching favicon through `html_favicon_url`. The mark itself is a chunky lowercase `mc` monogram with a version-bump arrow in the negative space.
+
+- the readme gains a top-level hero logo that follows the reader's theme: a light variant on light GitHub themes and a light-on-dark variant on dark themes, using the `picture` element with `prefers-color-scheme`
+- the mdBook in `docs/` picks up a new `favicon.png`
+- `assets/` holds the exported logo sizes (280, 512, 1024), the dark variant, and a multi-size `favicon.ico`
+- a reserve mark (the navy Converge badge) is kept under `assets/reserve/` for a future rebrand
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #641](https://github.com/monochange/monochange/pull/641)
+
+</details>
+
 ## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)
 
 ### Changed
