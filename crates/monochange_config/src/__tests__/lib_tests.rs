@@ -85,6 +85,8 @@ fn infer_group_bump_from_explicit_version(
 		.map(|current_version| crate::infer_bump_from_versions(current_version, explicit_version)))
 }
 
+use monochange_core::VersionFormat;
+
 use crate::apply_version_groups;
 use crate::cli_input_kind_matches_step_input;
 use crate::frontmatter_span_for_line_column;
@@ -8454,7 +8456,7 @@ fn load_workspace_configuration_parses_bump_propagation() {
 #[test]
 fn package_bump_propagations_resolves_precedence_package_group_default() {
 	let root = fixture_path("config/bump-propagation-defaults");
-	let configuration = load_workspace_configuration(&root)
+	let mut configuration = load_workspace_configuration(&root)
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 
 	fn record(root: &Path, id: &str, path: &str) -> PackageRecord {
@@ -8469,6 +8471,25 @@ fn package_bump_propagations_resolves_precedence_package_group_default() {
 		record.id = id.to_string();
 		record
 	}
+
+	// A group with no bump_propagation declaration participates in the
+	// chain as a no-op layer (the defaults still fill its members).
+	configuration.groups.push(GroupDefinition {
+		id: "nodecl".to_string(),
+		packages: vec!["standalone".to_string()],
+		package_max_bumps: BTreeMap::new(),
+		bump_propagation: None,
+		changelog: None,
+		changelog_include: GroupChangelogInclude::default(),
+		excluded_changelog_types: Vec::new(),
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		tag: false,
+		release: false,
+		version_format: VersionFormat::Namespaced,
+	});
 
 	// packages: core (declares inherit+max minor), engine (group member, no
 	// declaration), standalone (no declarations anywhere)
