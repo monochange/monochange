@@ -4,11 +4,13 @@ monochange_config: minor
 monochange_graph: minor
 monochange_semver: minor
 monochange_core: minor
+monochange_schema: docs
+"@monochange/skill": docs
 ---
 
 # declare how packages and groups propagate bumps to dependents
 
-Release planning now supports per-package and per-group `bump_propagation` in `monochange.toml`. A package or group can declare that its changes are matched by dependents (`inherit`), bounded by a maximum (`bump_propagation_max`), pinned to a fixed floor (`none`/`patch`/`minor`/`major`), or left at the workspace `[defaults].parent_bump`. `monochange check` and release planning honor these declarations, and the JSON schema documents the new fields.
+Release planning now supports per-package and per-group `bump_propagation` in `monochange.toml`. A package or group can declare that its changes are matched by dependents (`inherit`), bounded by a maximum (`bump_propagation_max`), pinned to a fixed floor (`none`/`patch`/`minor`/`major`), or left at the workspace `[defaults].parent_bump`. `monochange check` and release planning honor these declarations, and the JSON schema and the monochange skill documentation describe the new fields.
 
 **Before (only the workspace-wide floor existed; a breaking dependency left dependents at `parent_bump`):**
 
