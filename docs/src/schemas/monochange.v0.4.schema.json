@@ -1,7 +1,7 @@
 {
 	"$defs": {
 		"BumpPropagationMode": {
-			"description": "Declares how a target's own changes propagate to its dependents.\n\nConfigure this on a `[[package]]` or a group with `bump_propagation` and\nthe optional `bump_propagation_max` clamp. Targets without a declaration\nfall back to `[defaults].parent_bump`.",
+			"description": "Declares how a target's own changes propagate to its dependents.\n\nConfigure this on a `[[package]]` or `group` with `bump_propagation` and\nthe optional `bump_propagation_max` clamp. Policy resolution is\nmost-specific-first: the package declaration wins over its owning\ngroup's, which wins over `[defaults].bump_propagation`, which wins over\nthe legacy `[defaults].parent_bump` floor.",
 			"oneOf": [
 				{
 					"const": "inherit",
@@ -1953,7 +1953,8 @@
 							"type": "null"
 						}
 					],
-					"default": null
+					"default": null,
+					"description": "Workspace-wide bump propagation for packages and groups with no\ndeclaration of their own: `\"inherit\"` matches the source's bump, and\nfixed severities act as floors. Precedence (most specific first):\npackage, group, defaults, legacy `parent_bump`."
 				},
 				"bump_propagation_max": {
 					"anyOf": [
@@ -1964,7 +1965,8 @@
 							"type": "null"
 						}
 					],
-					"default": null
+					"default": null,
+					"description": "Clamp `bump_propagation` so dependents never exceed this severity\n(only valid with `bump_propagation = \"inherit\"`)."
 				},
 				"changelog": {
 					"anyOf": [
@@ -2148,7 +2150,8 @@
 							"type": "null"
 						}
 					],
-					"default": null
+					"default": null,
+					"description": "How this package's changes propagate to dependents: `\"inherit\"` matches\nthis bump, fixed severities act as floors; defaults to\n`[defaults].bump_propagation`."
 				},
 				"bump_propagation_max": {
 					"anyOf": [
@@ -2159,7 +2162,8 @@
 							"type": "null"
 						}
 					],
-					"default": null
+					"default": null,
+					"description": "Clamp `bump_propagation` so dependents never exceed this severity."
 				},
 				"changelog": {
 					"anyOf": [
@@ -2274,7 +2278,8 @@
 							"type": "null"
 						}
 					],
-					"default": null
+					"default": null,
+					"description": "How this package's changes propagate to dependents: `\"inherit\"` matches\nthis bump, fixed severities act as floors; defaults to\n`[defaults].bump_propagation`."
 				},
 				"bump_propagation_max": {
 					"anyOf": [
@@ -2285,7 +2290,8 @@
 							"type": "null"
 						}
 					],
-					"default": null
+					"default": null,
+					"description": "Clamp `bump_propagation` so dependents never exceed this severity."
 				},
 				"changelog": {
 					"anyOf": [

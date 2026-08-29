@@ -227,8 +227,14 @@ pub(crate) struct RawWorkspaceConfiguration {
 pub(crate) struct RawWorkspaceDefaults {
 	#[serde(default = "default_parent_bump")]
 	parent_bump: BumpSeverity,
+	/// Workspace-wide bump propagation for packages and groups with no
+	/// declaration of their own: `"inherit"` matches the source's bump, and
+	/// fixed severities act as floors. Precedence (most specific first):
+	/// package, group, defaults, legacy `parent_bump`.
 	#[serde(default)]
 	bump_propagation: Option<BumpPropagationMode>,
+	/// Clamp `bump_propagation` so dependents never exceed this severity
+	/// (only valid with `bump_propagation = "inherit"`).
 	#[serde(default)]
 	bump_propagation_max: Option<BumpSeverity>,
 	#[serde(default)]
@@ -324,8 +330,12 @@ pub(crate) struct RawPackageDefinition {
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
 	pub excluded_changelog_types: Vec<String>,
+	/// How this package's changes propagate to dependents: `"inherit"` matches
+	/// this bump, fixed severities act as floors; defaults to
+	/// `[defaults].bump_propagation`.
 	#[serde(default)]
 	bump_propagation: Option<BumpPropagationMode>,
+	/// Clamp `bump_propagation` so dependents never exceed this severity.
 	#[serde(default)]
 	bump_propagation_max: Option<BumpSeverity>,
 	#[serde(default)]
@@ -383,8 +393,12 @@ pub(crate) struct RawGroupDefinition {
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
 	pub excluded_changelog_types: Vec<String>,
+	/// How this package's changes propagate to dependents: `"inherit"` matches
+	/// this bump, fixed severities act as floors; defaults to
+	/// `[defaults].bump_propagation`.
 	#[serde(default)]
 	bump_propagation: Option<BumpPropagationMode>,
+	/// Clamp `bump_propagation` so dependents never exceed this severity.
 	#[serde(default)]
 	bump_propagation_max: Option<BumpSeverity>,
 	#[serde(default)]
@@ -1513,6 +1527,10 @@ pub fn load_cli_commands(root: &Path) -> MonochangeResult<Vec<CliCommandDefiniti
 	Ok(merge_cli_commands(raw.cli))
 }
 
+/// Pair a bump propagation mode with its optional clamp and validate the
+/// pairing at one layer (`[[package]]`, `group`, or `[defaults]`):
+/// `bump_propagation_max` requires `inherit`; any fixed severity passes
+/// through as a floor.
 #[allow(clippy::too_many_arguments, clippy::option_as_ref_cloned)]
 fn resolve_bump_propagation(
 	contents: &str,
@@ -5773,12 +5791,13 @@ fn extract_frontmatter(contents: &str) -> Option<(Range<usize>, &str)> {
 	Some((start..start + frontmatter.len(), frontmatter))
 }
 
-/// Apply configured version groups to discovered packages.
 /// Resolve the effective bump propagation policy per discovered package.
 ///
-/// A group declaration overrides the member package's own declaration, and
-/// packages without any declaration are absent from the map (so the global
-/// `[defaults].parent_bump` applies).
+/// Precedence is most-specific-first: the package's own declaration
+/// overrides its owning group's, which overrides
+/// `[defaults].bump_propagation`. Targets with no declaration anywhere are
+/// absent from the map, so the legacy `[defaults].parent_bump` floor
+/// applies.
 #[must_use]
 pub fn package_bump_propagations(
 	configuration: &WorkspaceConfiguration,

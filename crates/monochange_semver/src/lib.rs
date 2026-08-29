@@ -132,6 +132,10 @@ pub fn direct_release_severity(
 
 /// Calculate the propagated severity applied to dependents of a changed package.
 ///
+/// The effective policy resolves most-specific-first: the source package's
+/// declaration, then its owning group's, then `[defaults].bump_propagation`,
+/// then the legacy `default_parent_bump` floor.
+///
 /// Without a per-target declaration the propagated severity is the configured
 /// `default_parent_bump`, escalated by compatibility evidence for the source.
 /// In `inherit` mode the dependent instead receives the source's own release
