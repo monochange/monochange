@@ -79,9 +79,14 @@ format = "monochange"
 
 <!-- {=configurationBumpPropagationSnippet} -->
 
-Packages and groups declare what their own changes mean for the packages that depend on them via `bump_propagation`:
+Packages, groups, and the `defaults` section declare what a target's own changes mean for the packages that depend on them via `bump_propagation`:
 
 ```toml
+[defaults]
+# Workspace-wide fallback for dependents with no package or group declaration.
+bump_propagation = "inherit"
+bump_propagation_max = "major"
+
 [package.core]
 # Dependents match this package's release severity, never exceeding `minor`.
 bump_propagation = "inherit"
@@ -96,14 +101,14 @@ bump_propagation = "minor"
 bump_propagation = "none"
 
 [group.sdk]
-# A group declaration overrides declarations of its member packages.
+# A group declaration applies to members that declare nothing.
 packages = ["core"]
 bump_propagation = "major"
 ```
 
 - `inherit` matches the target's own release severity: a breaking change in the package means breaking changes for its dependents. `bump_propagation_max` clamps the inherited severity (only valid with `inherit`).
 - A fixed severity (`none`, `patch`, `minor`, `major`) is a floor: dependents release at least that severity whenever the package releases. `none` disables dependency propagation entirely.
-- Targets without a declaration fall back to `[defaults].parent_bump`. Semantic compatibility evidence can still escalate beyond the declared floor.
+- Declarations resolve most-specific-first: a package declaration overrides its group's declaration, which overrides `[defaults].bump_propagation`. Targets matching no declaration fall back to the legacy `[defaults].parent_bump` floor. Semantic compatibility evidence can still escalate beyond the declared floor.
 
 <!-- {/configurationBumpPropagationSnippet} -->
 

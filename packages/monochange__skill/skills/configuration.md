@@ -65,7 +65,7 @@ bump_propagation = "none"
 
 [group.sdk]
 packages = ["@acme/api"]
-# a group declaration overrides declarations of its member packages
+# a group declaration applies to members that declare nothing
 bump_propagation = "major"
 ```
 
