@@ -4988,7 +4988,7 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		additional_paths: Vec::new(),
 		tag: true,
 		release: true,
-		version_format: monochange_core::VersionFormat::Namespaced,
+		version_format: VersionFormat::Namespaced,
 		publish: monochange_core::PublishSettings::default(),
 	}
 }
@@ -5410,7 +5410,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		versioned_files: Vec::new(),
 		tag: true,
 		release: true,
-		version_format: monochange_core::VersionFormat::Primary,
+		version_format: VersionFormat::Primary,
 	};
 	assert_eq!(
 		infer_group_bump_from_explicit_version(
@@ -5439,7 +5439,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		versioned_files: Vec::new(),
 		tag: true,
 		release: true,
-		version_format: monochange_core::VersionFormat::Primary,
+		version_format: VersionFormat::Primary,
 	};
 	let error = infer_group_bump_from_explicit_version(
 		&group_with_missing,
@@ -6057,9 +6057,9 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 	);
 
 	let mut primary_core = package_definition("core", "crates/core");
-	primary_core.version_format = monochange_core::VersionFormat::Primary;
+	primary_core.version_format = VersionFormat::Primary;
 	let mut primary_util = package_definition("util", "crates/util");
-	primary_util.version_format = monochange_core::VersionFormat::Primary;
+	primary_util.version_format = VersionFormat::Primary;
 	let duplicate_primary_error = validate_package_and_group_definitions_for_test(
 		&root,
 		"[package.core]\nversion_format = 'primary'\n\n[package.util]\nversion_format = 'primary'\n",
@@ -6820,7 +6820,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		additional_paths: Vec::new(),
 		tag: true,
 		release: true,
-		version_format: monochange_core::VersionFormat::Primary,
+		version_format: VersionFormat::Primary,
 		publish: monochange_core::PublishSettings::default(),
 	};
 	assert_eq!(
@@ -7989,7 +7989,7 @@ fn normalize_auto_discover_settings_converts_defaults() {
 		defaults: Some(crate::RawAutoDiscoverPackageDefaults {
 			tag: Some(false),
 			release: None,
-			version_format: Some(monochange_core::VersionFormat::Primary),
+			version_format: Some(VersionFormat::Primary),
 		}),
 	};
 	let settings = crate::normalize_auto_discover_settings(Some(raw))
@@ -7998,7 +7998,7 @@ fn normalize_auto_discover_settings_converts_defaults() {
 	assert_eq!(settings.defaults.release, None);
 	assert_eq!(
 		settings.defaults.version_format,
-		Some(monochange_core::VersionFormat::Primary)
+		Some(VersionFormat::Primary)
 	);
 }
 
@@ -8095,10 +8095,7 @@ version_format = "primary"
 		vec![PathBuf::from("crates/ignored")]
 	);
 	assert_eq!(util_package.versioned_files.len(), 1);
-	assert_eq!(
-		util_package.version_format,
-		monochange_core::VersionFormat::Namespaced
-	);
+	assert_eq!(util_package.version_format, VersionFormat::Namespaced);
 	assert_eq!(
 		util_package
 			.changelog
@@ -8155,10 +8152,7 @@ include = ["packages/*"]
 	assert_eq!(package.package_type, monochange_core::PackageType::Npm);
 	assert_eq!(package.path, PathBuf::from("packages/web-app"));
 	assert!(package.versioned_files.is_empty());
-	assert_eq!(
-		package.version_format,
-		monochange_core::VersionFormat::Primary
-	);
+	assert_eq!(package.version_format, VersionFormat::Primary);
 }
 
 #[test]
@@ -8352,19 +8346,17 @@ fn load_workspace_configuration_accepts_custom_version_formats() {
 	let core = configuration.package_by_id("core").expect("core package");
 	assert_eq!(
 		core.version_format,
-		monochange_core::VersionFormat::Custom(
-			"{{ ecosystem }}/{{ name }}/v{{ version }}".to_string()
-		)
+		VersionFormat::Custom("{{ ecosystem }}/{{ name }}/v{{ version }}".to_string())
 	);
 	let cli = configuration.package_by_id("cli").expect("cli package");
 	assert_eq!(
 		cli.version_format,
-		monochange_core::VersionFormat::Custom("{{ name }}-v{{ version }}".to_string())
+		VersionFormat::Custom("{{ name }}-v{{ version }}".to_string())
 	);
 	let group = configuration.group_by_id("sdk").expect("sdk group");
 	assert_eq!(
 		group.version_format,
-		monochange_core::VersionFormat::Custom("groups/{{ name }}/v{{ version }}".to_string())
+		VersionFormat::Custom("groups/{{ name }}/v{{ version }}".to_string())
 	);
 }
 
@@ -8564,7 +8556,7 @@ fn package_bump_propagations_skips_group_members_without_definitions() {
 		versioned_files: Vec::new(),
 		tag: false,
 		release: false,
-		version_format: monochange_core::VersionFormat::Namespaced,
+		version_format: VersionFormat::Namespaced,
 	});
 
 	let propagations = package_bump_propagations(&configuration, &[]);
