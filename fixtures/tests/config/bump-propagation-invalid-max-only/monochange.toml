@@ -1,0 +1,6 @@
+[defaults]
+package_type = "cargo"
+
+[package.core]
+path = "crates/core"
+bump_propagation_max = "minor"

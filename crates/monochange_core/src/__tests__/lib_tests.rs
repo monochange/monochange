@@ -10,6 +10,7 @@ use tempfile::tempdir;
 
 use crate::AutoDiscoverPackageDefaults;
 use crate::AutoDiscoverSettings;
+use crate::BumpPropagationMode;
 use crate::BumpSeverity;
 use crate::ChangelogFormat;
 use crate::ChangelogSectionDef;
@@ -4455,4 +4456,34 @@ fn source_configuration_default_branch_reads_configured_base() {
 		},
 	};
 	assert_eq!(config.default_branch(), "develop");
+}
+
+#[test]
+fn bump_propagation_mode_floor_returns_fixed_severities() {
+	assert_eq!(BumpPropagationMode::Inherit.floor(), None);
+	assert_eq!(BumpPropagationMode::None.floor(), Some(BumpSeverity::None));
+	assert_eq!(
+		BumpPropagationMode::Patch.floor(),
+		Some(BumpSeverity::Patch)
+	);
+	assert_eq!(
+		BumpPropagationMode::Minor.floor(),
+		Some(BumpSeverity::Minor)
+	);
+	assert_eq!(
+		BumpPropagationMode::Major.floor(),
+		Some(BumpSeverity::Major)
+	);
+}
+
+#[test]
+fn bump_severity_min_severity_returns_the_smaller_severity() {
+	assert_eq!(
+		BumpSeverity::Minor.min_severity(BumpSeverity::Major),
+		BumpSeverity::Minor
+	);
+	assert_eq!(
+		BumpSeverity::Major.min_severity(BumpSeverity::Minor),
+		BumpSeverity::Minor
+	);
 }

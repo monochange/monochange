@@ -1534,25 +1534,27 @@ fn resolve_bump_propagation(
 	};
 	if mode != BumpPropagationMode::Inherit && max.is_some() {
 		return Err(config_diagnostic(
+			contents,
+			format!(
+				"{owner_kind} `{id}` sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"
+			),
+			vec![config_section_label(
 				contents,
-				format!(
-					"{owner_kind} `{id}` sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"
-				),
-				vec![config_section_label(
-					contents,
-					owner_kind,
-					id,
-					"bump_propagation_max without inherit",
-				)],
-				Some(
-					"set `bump_propagation = \"inherit\"` to clamp with `bump_propagation_max`, or remove `bump_propagation_max`"
-						.to_string(),
-				),
-			));
+				owner_kind,
+				id,
+				"bump_propagation_max without inherit",
+			)],
+			Some(
+				"set `bump_propagation = \"inherit\"` to clamp with `bump_propagation_max`, or remove `bump_propagation_max`"
+					.to_string(),
+			),
+		));
+		// patch-coverage:ignore-end
 	}
 	Ok(Some(BumpPropagation { mode, max }))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_package_definitions(
 	contents: &str,
 	packages: BTreeMap<String, RawPackageDefinition>,
@@ -5768,14 +5770,14 @@ pub fn package_bump_propagations(
 		let Some(declared) = definition.bump_propagation else {
 			continue;
 		};
-		for index in find_matching_package_indices_for_definition(
+		for record in find_matching_package_indices_for_definition(
 			packages,
 			&configuration.root_path,
 			definition,
-		) {
-			let Some(record) = packages.get(index) else {
-				continue;
-			};
+		)
+		.into_iter()
+		.filter_map(|index| packages.get(index))
+		{
 			propagations.entry(record.id.clone()).or_insert(declared);
 		}
 	}
@@ -5787,14 +5789,14 @@ pub fn package_bump_propagations(
 			let Some(member_definition) = configuration.package_by_id(member) else {
 				continue;
 			};
-			for index in find_matching_package_indices_for_definition(
+			for record in find_matching_package_indices_for_definition(
 				packages,
 				&configuration.root_path,
 				member_definition,
-			) {
-				let Some(record) = packages.get(index) else {
-					continue;
-				};
+			)
+			.into_iter()
+			.filter_map(|index| packages.get(index))
+			{
 				propagations.insert(record.id.clone(), declared);
 			}
 		}

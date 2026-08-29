@@ -8456,7 +8456,7 @@ fn package_bump_propagations_resolves_group_override_and_defaults() {
 	let configuration = load_workspace_configuration(&root)
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 
-	fn record(root: &std::path::Path, id: &str, path: &str, ecosystem: Ecosystem) -> PackageRecord {
+	fn record(root: &Path, id: &str, path: &str, ecosystem: Ecosystem) -> PackageRecord {
 		let mut record = PackageRecord::new(
 			ecosystem,
 			id,
@@ -8482,22 +8482,22 @@ fn package_bump_propagations_resolves_group_override_and_defaults() {
 	// `inherit` declaration.
 	assert_eq!(
 		propagations.get("core"),
-		Some(&monochange_core::BumpPropagation {
-			mode: monochange_core::BumpPropagationMode::Major,
+		Some(&BumpPropagation {
+			mode: BumpPropagationMode::Major,
 			max: None,
 		})
 	);
 	assert_eq!(
 		propagations.get("lib"),
-		Some(&monochange_core::BumpPropagation {
-			mode: monochange_core::BumpPropagationMode::None,
+		Some(&BumpPropagation {
+			mode: BumpPropagationMode::None,
 			max: None,
 		})
 	);
 	assert_eq!(
 		propagations.get("web"),
-		Some(&monochange_core::BumpPropagation {
-			mode: monochange_core::BumpPropagationMode::Minor,
+		Some(&BumpPropagation {
+			mode: BumpPropagationMode::Minor,
 			max: None,
 		})
 	);
@@ -8515,6 +8515,64 @@ fn load_workspace_configuration_rejects_bump_propagation_max_without_inherit() {
 		error
 			.to_string()
 			.contains("sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn package_bump_propagations_skips_group_members_without_definitions() {
+	let root = fixture_path("config/bump-propagation");
+	let mut configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	configuration.groups.push(GroupDefinition {
+		id: "dangling".to_string(),
+		packages: vec!["ghost".to_string()],
+		package_max_bumps: BTreeMap::new(),
+		bump_propagation: Some(BumpPropagation {
+			mode: BumpPropagationMode::Patch,
+			max: None,
+		}),
+		changelog: None,
+		changelog_include: GroupChangelogInclude::default(),
+		excluded_changelog_types: Vec::new(),
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		tag: false,
+		release: false,
+		version_format: monochange_core::VersionFormat::Namespaced,
+	});
+
+	let propagations = package_bump_propagations(&configuration, &[]);
+
+	// A group member with no matching package definition is skipped instead
+	// of surfacing a declaration keyed by a nonexistent package id.
+	assert!(propagations.is_empty());
+}
+
+#[test]
+fn load_workspace_configuration_rejects_bare_bump_propagation_max() {
+	let root = fixture_path("config/bump-propagation-invalid-max-only");
+	let error = load_workspace_configuration(&root)
+		.expect_err("expected bare bump_propagation_max validation error");
+	assert!(
+		error
+			.to_string()
+			.contains("sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_group_bump_propagation_max_without_inherit() {
+	let root = fixture_path("config/bump-propagation-invalid-group");
+	let error = load_workspace_configuration(&root)
+		.expect_err("expected group bump_propagation_max validation error");
+	assert!(
+		error.to_string().contains(
+			"group `sdk` sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"
+		),
 		"unexpected error: {error}"
 	);
 }
