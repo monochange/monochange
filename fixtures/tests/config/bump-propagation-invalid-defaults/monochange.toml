@@ -1,0 +1,7 @@
+[defaults]
+package_type = "cargo"
+bump_propagation = "patch"
+bump_propagation_max = "minor"
+
+[package.core]
+path = "crates/core"

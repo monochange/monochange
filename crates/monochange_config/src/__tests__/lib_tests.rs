@@ -85,6 +85,8 @@ fn infer_group_bump_from_explicit_version(
 		.map(|current_version| crate::infer_bump_from_versions(current_version, explicit_version)))
 }
 
+use monochange_core::VersionFormat;
+
 use crate::apply_version_groups;
 use crate::cli_input_kind_matches_step_input;
 use crate::frontmatter_span_for_line_column;
@@ -4986,7 +4988,7 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		additional_paths: Vec::new(),
 		tag: true,
 		release: true,
-		version_format: monochange_core::VersionFormat::Namespaced,
+		version_format: VersionFormat::Namespaced,
 		publish: monochange_core::PublishSettings::default(),
 	}
 }
@@ -5408,7 +5410,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		versioned_files: Vec::new(),
 		tag: true,
 		release: true,
-		version_format: monochange_core::VersionFormat::Primary,
+		version_format: VersionFormat::Primary,
 	};
 	assert_eq!(
 		infer_group_bump_from_explicit_version(
@@ -5437,7 +5439,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		versioned_files: Vec::new(),
 		tag: true,
 		release: true,
-		version_format: monochange_core::VersionFormat::Primary,
+		version_format: VersionFormat::Primary,
 	};
 	let error = infer_group_bump_from_explicit_version(
 		&group_with_missing,
@@ -6055,9 +6057,9 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 	);
 
 	let mut primary_core = package_definition("core", "crates/core");
-	primary_core.version_format = monochange_core::VersionFormat::Primary;
+	primary_core.version_format = VersionFormat::Primary;
 	let mut primary_util = package_definition("util", "crates/util");
-	primary_util.version_format = monochange_core::VersionFormat::Primary;
+	primary_util.version_format = VersionFormat::Primary;
 	let duplicate_primary_error = validate_package_and_group_definitions_for_test(
 		&root,
 		"[package.core]\nversion_format = 'primary'\n\n[package.util]\nversion_format = 'primary'\n",
@@ -6818,7 +6820,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		additional_paths: Vec::new(),
 		tag: true,
 		release: true,
-		version_format: monochange_core::VersionFormat::Primary,
+		version_format: VersionFormat::Primary,
 		publish: monochange_core::PublishSettings::default(),
 	};
 	assert_eq!(
@@ -7987,7 +7989,7 @@ fn normalize_auto_discover_settings_converts_defaults() {
 		defaults: Some(crate::RawAutoDiscoverPackageDefaults {
 			tag: Some(false),
 			release: None,
-			version_format: Some(monochange_core::VersionFormat::Primary),
+			version_format: Some(VersionFormat::Primary),
 		}),
 	};
 	let settings = crate::normalize_auto_discover_settings(Some(raw))
@@ -7996,7 +7998,7 @@ fn normalize_auto_discover_settings_converts_defaults() {
 	assert_eq!(settings.defaults.release, None);
 	assert_eq!(
 		settings.defaults.version_format,
-		Some(monochange_core::VersionFormat::Primary)
+		Some(VersionFormat::Primary)
 	);
 }
 
@@ -8093,10 +8095,7 @@ version_format = "primary"
 		vec![PathBuf::from("crates/ignored")]
 	);
 	assert_eq!(util_package.versioned_files.len(), 1);
-	assert_eq!(
-		util_package.version_format,
-		monochange_core::VersionFormat::Namespaced
-	);
+	assert_eq!(util_package.version_format, VersionFormat::Namespaced);
 	assert_eq!(
 		util_package
 			.changelog
@@ -8153,10 +8152,7 @@ include = ["packages/*"]
 	assert_eq!(package.package_type, monochange_core::PackageType::Npm);
 	assert_eq!(package.path, PathBuf::from("packages/web-app"));
 	assert!(package.versioned_files.is_empty());
-	assert_eq!(
-		package.version_format,
-		monochange_core::VersionFormat::Primary
-	);
+	assert_eq!(package.version_format, VersionFormat::Primary);
 }
 
 #[test]
@@ -8350,19 +8346,17 @@ fn load_workspace_configuration_accepts_custom_version_formats() {
 	let core = configuration.package_by_id("core").expect("core package");
 	assert_eq!(
 		core.version_format,
-		monochange_core::VersionFormat::Custom(
-			"{{ ecosystem }}/{{ name }}/v{{ version }}".to_string()
-		)
+		VersionFormat::Custom("{{ ecosystem }}/{{ name }}/v{{ version }}".to_string())
 	);
 	let cli = configuration.package_by_id("cli").expect("cli package");
 	assert_eq!(
 		cli.version_format,
-		monochange_core::VersionFormat::Custom("{{ name }}-v{{ version }}".to_string())
+		VersionFormat::Custom("{{ name }}-v{{ version }}".to_string())
 	);
 	let group = configuration.group_by_id("sdk").expect("sdk group");
 	assert_eq!(
 		group.version_format,
-		monochange_core::VersionFormat::Custom("groups/{{ name }}/v{{ version }}".to_string())
+		VersionFormat::Custom("groups/{{ name }}/v{{ version }}".to_string())
 	);
 }
 
@@ -8452,14 +8446,14 @@ fn load_workspace_configuration_parses_bump_propagation() {
 }
 
 #[test]
-fn package_bump_propagations_resolves_group_override_and_defaults() {
-	let root = fixture_path("config/bump-propagation");
-	let configuration = load_workspace_configuration(&root)
+fn package_bump_propagations_resolves_precedence_package_group_default() {
+	let root = fixture_path("config/bump-propagation-defaults");
+	let mut configuration = load_workspace_configuration(&root)
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 
-	fn record(root: &Path, id: &str, path: &str, ecosystem: Ecosystem) -> PackageRecord {
+	fn record(root: &Path, id: &str, path: &str) -> PackageRecord {
 		let mut record = PackageRecord::new(
-			ecosystem,
+			Ecosystem::Cargo,
 			id,
 			root.join(path),
 			root.to_path_buf(),
@@ -8470,43 +8464,63 @@ fn package_bump_propagations_resolves_group_override_and_defaults() {
 		record
 	}
 
+	// A group with no bump_propagation declaration participates in the
+	// chain as a no-op layer (the defaults still fill its members).
+	configuration.groups.push(GroupDefinition {
+		id: "nodecl".to_string(),
+		packages: vec!["standalone".to_string()],
+		package_max_bumps: BTreeMap::new(),
+		bump_propagation: None,
+		changelog: None,
+		changelog_include: GroupChangelogInclude::default(),
+		excluded_changelog_types: Vec::new(),
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		tag: false,
+		release: false,
+		version_format: VersionFormat::Namespaced,
+	});
+
+	// packages: core (declares inherit+max minor), engine (group member, no
+	// declaration), standalone (no declarations anywhere)
 	let packages = vec![
-		record(&root, "core", "crates/core/Cargo.toml", Ecosystem::Cargo),
-		record(&root, "lib", "crates/lib/Cargo.toml", Ecosystem::Cargo),
-		record(&root, "web", "packages/web/package.json", Ecosystem::Npm),
-		record(&root, "plain", "crates/plain/Cargo.toml", Ecosystem::Cargo),
+		record(&root, "core", "crates/core/Cargo.toml"),
+		record(&root, "engine", "crates/engine/Cargo.toml"),
+		record(&root, "standalone", "crates/standalone/Cargo.toml"),
 	];
 
 	let propagations = package_bump_propagations(&configuration, &packages);
 
-	// The group declaration (`major`) overrides the member package's own
-	// `inherit` declaration.
+	// Package layer beats the group layer: core clamps to minor even though
+	// its group declares a fixed major floor.
 	assert_eq!(
 		propagations.get("core"),
+		Some(&BumpPropagation {
+			mode: BumpPropagationMode::Inherit,
+			max: Some(BumpSeverity::Minor),
+		})
+	);
+	// Group layer beats the defaults layer: engine has no package
+	// declaration, so its group's fixed major floor applies.
+	assert_eq!(
+		propagations.get("engine"),
 		Some(&BumpPropagation {
 			mode: BumpPropagationMode::Major,
 			max: None,
 		})
 	);
+	// Defaults layer applies to packages with no declaration and no group,
+	// carrying the defaults declaration (inherit + max major).
 	assert_eq!(
-		propagations.get("lib"),
+		propagations.get("standalone"),
 		Some(&BumpPropagation {
-			mode: BumpPropagationMode::None,
-			max: None,
+			mode: BumpPropagationMode::Inherit,
+			max: Some(BumpSeverity::Major),
 		})
 	);
-	assert_eq!(
-		propagations.get("web"),
-		Some(&BumpPropagation {
-			mode: BumpPropagationMode::Minor,
-			max: None,
-		})
-	);
-	// Packages without a declaration stay out of the map so
-	// `[defaults].parent_bump` applies.
-	assert!(!propagations.contains_key("plain"));
 }
-
 #[test]
 fn load_workspace_configuration_rejects_bump_propagation_max_without_inherit() {
 	let root = fixture_path("config/bump-propagation-invalid");
@@ -8542,7 +8556,7 @@ fn package_bump_propagations_skips_group_members_without_definitions() {
 		versioned_files: Vec::new(),
 		tag: false,
 		release: false,
-		version_format: monochange_core::VersionFormat::Namespaced,
+		version_format: VersionFormat::Namespaced,
 	});
 
 	let propagations = package_bump_propagations(&configuration, &[]);
@@ -8553,14 +8567,28 @@ fn package_bump_propagations_skips_group_members_without_definitions() {
 }
 
 #[test]
-fn load_workspace_configuration_rejects_bare_bump_propagation_max() {
-	let root = fixture_path("config/bump-propagation-invalid-max-only");
+fn load_workspace_configuration_parses_defaults_bump_propagation() {
+	let root = fixture_path("config/bump-propagation-defaults");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	assert_eq!(
+		configuration.defaults.bump_propagation,
+		Some(BumpPropagation {
+			mode: BumpPropagationMode::Inherit,
+			max: Some(BumpSeverity::Major),
+		})
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_defaults_bump_propagation_max_without_inherit() {
+	let root = fixture_path("config/bump-propagation-invalid-defaults");
 	let error = load_workspace_configuration(&root)
-		.expect_err("expected bare bump_propagation_max validation error");
+		.expect_err("expected defaults bump_propagation_max validation error");
 	assert!(
-		error
-			.to_string()
-			.contains("sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"),
+		error.to_string().contains(
+			"defaults `defaults` sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"
+		),
 		"unexpected error: {error}"
 	);
 }

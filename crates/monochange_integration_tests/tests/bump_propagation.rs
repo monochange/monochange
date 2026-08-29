@@ -11,8 +11,11 @@
 //!   `[defaults].parent_bump`
 //! - `leaf` (source): `none`, so its dependent `standalone` never releases
 //!
-//! The second fixture covers group overrides: a group declaration replaces
-//! the member package's own clamp.
+//! The second fixture covers the group layer: with no package declaration,
+//! the group's own declaration applies, overriding the defaults layer. The
+//! third covers the defaults layer: `[defaults].bump_propagation` applies to
+//! packages with no declaration of their own (and no group), riding above
+//! the `parent_bump` floor.
 
 use std::path::Path;
 use std::path::PathBuf;
@@ -124,8 +127,16 @@ fn breaking_source_follows_clamped_inheritance_and_floors() {
 }
 
 #[test]
-fn group_declaration_overrides_the_member_clamp() {
+fn group_declaration_applies_when_the_package_declares_none() {
 	let tempdir = setup_workspace("bump-propagation-group");
+	let json = mc_release(tempdir.path(), &[]);
+
+	assert_json_snapshot!(plan_decisions(&json));
+}
+
+#[test]
+fn defaults_bump_propagation_applies_without_declarations() {
+	let tempdir = setup_workspace("bump-propagation-defaults");
 	let json = mc_release(tempdir.path(), &[]);
 
 	assert_json_snapshot!(plan_decisions(&json));

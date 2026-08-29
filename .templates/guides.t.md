@@ -244,9 +244,14 @@ The `*_link` variants render markdown links when the hosting provider exposes UR
 
 <!-- {@configurationBumpPropagationSnippet} -->
 
-Packages and groups declare what their own changes mean for the packages that depend on them via `bump_propagation`:
+Packages, groups, and the `defaults` section declare what a target's own changes mean for the packages that depend on them via `bump_propagation`:
 
 ```toml
+[defaults]
+# Workspace-wide fallback for dependents with no package or group declaration.
+bump_propagation = "inherit"
+bump_propagation_max = "major"
+
 [package.core]
 # Dependents match this package's release severity, never exceeding `minor`.
 bump_propagation = "inherit"
@@ -261,16 +266,22 @@ bump_propagation = "minor"
 bump_propagation = "none"
 
 [group.sdk]
-# A group declaration overrides declarations of its member packages.
+# A group declaration applies to members that declare nothing.
 packages = ["core"]
 bump_propagation = "major"
 ```
 
 - `inherit` matches the target's own release severity: a breaking change in the package means breaking changes for its dependents. `bump_propagation_max` clamps the inherited severity (only valid with `inherit`).
 - A fixed severity (`none`, `patch`, `minor`, `major`) is a floor: dependents release at least that severity whenever the package releases. `none` disables dependency propagation entirely.
-- Targets without a declaration fall back to `[defaults].parent_bump`. Semantic compatibility evidence can still escalate beyond the declared floor.
+- Declarations resolve most-specific-first: a package declaration overrides its group's declaration, which overrides `[defaults].bump_propagation`. Targets matching no declaration fall back to the legacy `[defaults].parent_bump` floor. Semantic compatibility evidence can still escalate beyond the declared floor.
 
 <!-- {/configurationBumpPropagationSnippet} -->
+
+<!-- {@releaseBumpPropagationReadme} -->
+
+Dependency-driven version bumps are declarative too. Packages and groups declare what their own changes mean for dependents with `bump_propagation`: `"inherit"` matches the source's bump (optionally clamped by `bump_propagation_max`), and fixed severities (`none`/`patch`/`minor`/`major`) act as floors. Resolution is most-specific-first (package beats group beats defaults), so one kit core package can bring breaking changes to every dependent the moment upstream does — without hand-authoring dependent bumps.
+
+<!-- {/releaseBumpPropagationReadme} -->
 
 <!-- {@configurationWorkflowsSnippet} -->
 
@@ -621,7 +632,7 @@ When `version` is provided without `bump`, the bump is inferred from the current
 - `monochange run change` accepts repeated `--caused-by <id>` flags, and `--bump none` is the right fit when you want to acknowledge an affected package without forcing a user-facing version bump
 - `monochange run change` can write to a deterministic path with `--output ...`
 - change templates support detailed multi-line release-note entries through `{{ details }}`, compact metadata blocks through `{{ context }}`, and fine-grained linked metadata like `{{ change_owner_link }}`, `{{ review_request_link }}`, and `{{ closed_issue_links }}`
-- dependents default to the configured `parent_bump`, including packages outside a changed version group when they depend on a synchronized member; packages and groups override this with `bump_propagation` (`inherit` matches the target's own severity, optionally clamped by `bump_propagation_max`, and fixed severities act as floors)
+- dependents resolve their propagation policy most-specific-first: `[[package]].bump_propagation` overrides `group` declarations, which override `[defaults].bump_propagation`, which falls back to the `[defaults].parent_bump` floor; `inherit` matches the source's own severity (optionally clamped by `bump_propagation_max`) and fixed severities act as floors
 - computed compatibility evidence can still escalate both the changed crate and its dependents when provider analysis produces it
 - configured groups synchronize before final output is rendered
 - release targets carry effective `tag`, `release`, and `version_format` metadata

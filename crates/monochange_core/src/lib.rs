@@ -235,9 +235,11 @@ impl BumpSeverity {
 
 /// Declares how a target's own changes propagate to its dependents.
 ///
-/// Configure this on a `[[package]]` or a group with `bump_propagation` and
-/// the optional `bump_propagation_max` clamp. Targets without a declaration
-/// fall back to `[defaults].parent_bump`.
+/// Configure this on a `[[package]]` or `group` with `bump_propagation` and
+/// the optional `bump_propagation_max` clamp. Policy resolution is
+/// most-specific-first: the package declaration wins over its owning
+/// group's, which wins over `[defaults].bump_propagation`, which wins over
+/// the legacy `[defaults].parent_bump` floor.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -274,6 +276,10 @@ impl BumpPropagationMode {
 }
 
 /// The effective bump propagation policy for one release target.
+///
+/// Resolved most-specific-first from the package `bump_propagation`, the
+/// owning group's declaration, and `[defaults].bump_propagation`; targets
+/// with no declaration anywhere inherit the `[defaults].parent_bump` floor.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BumpPropagation {
@@ -2432,6 +2438,13 @@ pub struct GroupDefinition {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkspaceDefaults {
 	pub parent_bump: BumpSeverity,
+	/// The workspace-wide bump propagation policy for packages and groups
+	/// without a declaration of their own. Precedence (most specific first):
+	/// package, group, defaults, legacy `parent_bump` floor. When unset, the
+	/// legacy `parent_bump` floor applies.
+	#[cfg_attr(feature = "schema", schemars(default))]
+	pub bump_propagation: Option<BumpPropagation>,
+	#[serde(default)]
 	pub include_private: bool,
 	pub warn_on_group_mismatch: bool,
 	pub strict_version_conflicts: bool,
@@ -2446,6 +2459,7 @@ pub struct WorkspaceDefaults {
 impl Default for WorkspaceDefaults {
 	fn default() -> Self {
 		Self {
+			bump_propagation: None,
 			parent_bump: BumpSeverity::Patch,
 			include_private: false,
 			warn_on_group_mismatch: true,

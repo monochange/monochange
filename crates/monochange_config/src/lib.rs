@@ -227,6 +227,16 @@ pub(crate) struct RawWorkspaceConfiguration {
 pub(crate) struct RawWorkspaceDefaults {
 	#[serde(default = "default_parent_bump")]
 	parent_bump: BumpSeverity,
+	/// Workspace-wide bump propagation for packages and groups with no
+	/// declaration of their own: `"inherit"` matches the source's bump, and
+	/// fixed severities act as floors. Precedence (most specific first):
+	/// package, group, defaults, legacy `parent_bump`.
+	#[serde(default)]
+	bump_propagation: Option<BumpPropagationMode>,
+	/// Clamp `bump_propagation` so dependents never exceed this severity
+	/// (only valid with `bump_propagation = "inherit"`).
+	#[serde(default)]
+	bump_propagation_max: Option<BumpSeverity>,
 	#[serde(default)]
 	include_private: bool,
 	#[serde(default = "default_warn_on_group_mismatch")]
@@ -251,6 +261,8 @@ impl Default for RawWorkspaceDefaults {
 	fn default() -> Self {
 		Self {
 			parent_bump: default_parent_bump(),
+			bump_propagation: None,
+			bump_propagation_max: None,
 			include_private: false,
 			warn_on_group_mismatch: default_warn_on_group_mismatch(),
 			strict_version_conflicts: false,
@@ -318,8 +330,12 @@ pub(crate) struct RawPackageDefinition {
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
 	pub excluded_changelog_types: Vec<String>,
+	/// How this package's changes propagate to dependents: `"inherit"` matches
+	/// this bump, fixed severities act as floors; defaults to
+	/// `[defaults].bump_propagation`.
 	#[serde(default)]
 	bump_propagation: Option<BumpPropagationMode>,
+	/// Clamp `bump_propagation` so dependents never exceed this severity.
 	#[serde(default)]
 	bump_propagation_max: Option<BumpSeverity>,
 	#[serde(default)]
@@ -377,8 +393,12 @@ pub(crate) struct RawGroupDefinition {
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
 	pub excluded_changelog_types: Vec<String>,
+	/// How this package's changes propagate to dependents: `"inherit"` matches
+	/// this bump, fixed severities act as floors; defaults to
+	/// `[defaults].bump_propagation`.
 	#[serde(default)]
 	bump_propagation: Option<BumpPropagationMode>,
+	/// Clamp `bump_propagation` so dependents never exceed this severity.
 	#[serde(default)]
 	bump_propagation_max: Option<BumpSeverity>,
 	#[serde(default)]
@@ -1507,6 +1527,10 @@ pub fn load_cli_commands(root: &Path) -> MonochangeResult<Vec<CliCommandDefiniti
 	Ok(merge_cli_commands(raw.cli))
 }
 
+/// Pair a bump propagation mode with its optional clamp and validate the
+/// pairing at one layer (`[[package]]`, `group`, or `[defaults]`):
+/// `bump_propagation_max` requires `inherit`; any fixed severity passes
+/// through as a floor.
 #[allow(clippy::too_many_arguments, clippy::option_as_ref_cloned)]
 fn resolve_bump_propagation(
 	contents: &str,
@@ -2068,10 +2092,19 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	)?;
 	validate_cli_runtime_requirements(&cli, &changesets, source.as_ref())?;
 
+	let defaults_bump_propagation = resolve_bump_propagation(
+		&contents,
+		"defaults",
+		"defaults",
+		defaults.bump_propagation,
+		defaults.bump_propagation_max,
+	)?;
+
 	Ok(WorkspaceConfiguration {
 		root_path: root.to_path_buf(),
 		defaults: WorkspaceDefaults {
 			parent_bump: defaults.parent_bump,
+			bump_propagation: defaults_bump_propagation,
 			include_private: defaults.include_private,
 			warn_on_group_mismatch: defaults.warn_on_group_mismatch,
 			strict_version_conflicts: defaults.strict_version_conflicts,
@@ -5758,33 +5791,21 @@ fn extract_frontmatter(contents: &str) -> Option<(Range<usize>, &str)> {
 	Some((start..start + frontmatter.len(), frontmatter))
 }
 
-/// Apply configured version groups to discovered packages.
 /// Resolve the effective bump propagation policy per discovered package.
 ///
-/// A group declaration overrides the member package's own declaration, and
-/// packages without any declaration are absent from the map (so the global
-/// `[defaults].parent_bump` applies).
+/// Precedence is most-specific-first: the package's own declaration
+/// overrides its owning group's, which overrides
+/// `[defaults].bump_propagation`. Targets with no declaration anywhere are
+/// absent from the map, so the legacy `[defaults].parent_bump` floor
+/// applies.
 #[must_use]
 pub fn package_bump_propagations(
 	configuration: &WorkspaceConfiguration,
 	packages: &[PackageRecord],
 ) -> BTreeMap<String, BumpPropagation> {
 	let mut propagations: BTreeMap<String, BumpPropagation> = BTreeMap::new();
-	for definition in &configuration.packages {
-		let Some(declared) = definition.bump_propagation else {
-			continue;
-		};
-		for record in find_matching_package_indices_for_definition(
-			packages,
-			&configuration.root_path,
-			definition,
-		)
-		.into_iter()
-		.filter_map(|index| packages.get(index))
-		{
-			propagations.entry(record.id.clone()).or_insert(declared);
-		}
-	}
+
+	// Group layer: least specific declared layer applied first.
 	for group in &configuration.groups {
 		let Some(declared) = group.bump_propagation else {
 			continue;
@@ -5801,10 +5822,37 @@ pub fn package_bump_propagations(
 			.into_iter()
 			.filter_map(|index| packages.get(index))
 			{
-				propagations.insert(record.id.clone(), declared);
+				propagations.entry(record.id.clone()).or_insert(declared);
 			}
 		}
 	}
+
+	// Package layer: most specific declaration overrides the group.
+	for definition in &configuration.packages {
+		let Some(declared) = definition.bump_propagation else {
+			continue;
+		};
+		for record in find_matching_package_indices_for_definition(
+			packages,
+			&configuration.root_path,
+			definition,
+		)
+		.into_iter()
+		.filter_map(|index| packages.get(index))
+		{
+			propagations.insert(record.id.clone(), declared);
+		}
+	}
+
+	// Defaults layer: workspace-wide fallback for targets with no
+	// declaration. Targets still missing from the map fall back to the
+	// legacy `[defaults].parent_bump` floor in release planning.
+	if let Some(declared) = configuration.defaults.bump_propagation {
+		for record in packages {
+			propagations.entry(record.id.clone()).or_insert(declared);
+		}
+	}
+
 	propagations
 }
 

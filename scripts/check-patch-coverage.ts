@@ -62,7 +62,12 @@ export function parseLcov(text, repoRoot = process.cwd()) {
 			continue;
 		}
 
-		coverageByFile.get(currentFile).set(lineNumber, hits);
+		// llvm-cov can emit multiple SF records for the same file (one per
+		// codegen-unit instantiation). Duplicate function copies that never
+		// ran would otherwise overwrite covered counts from the instantiations
+		// that did run, so keep the strongest per-line observation.
+		const previousHits = coverageByFile.get(currentFile).get(lineNumber) ?? 0;
+		coverageByFile.get(currentFile).set(lineNumber, Math.max(previousHits, hits));
 	}
 
 	return coverageByFile;

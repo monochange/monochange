@@ -1,20 +1,17 @@
 [defaults]
 package_type = "cargo"
 parent_bump = "patch"
-changelog = false
-
-# The group declaration (inherit, unclamped) applies because the member
-# package declares nothing: core's breaking changes propagate unmatched to
-# its dependents.
-[group.kit]
-packages = ["core"]
 bump_propagation = "inherit"
+changelog = false
 
 [package.core]
 path = "crates/core"
 
 [package.engine]
 path = "crates/engine"
+
+[package.summary]
+path = "crates/summary"
 
 [ecosystems.cargo]
 enabled = true
@@ -26,3 +23,4 @@ inputs = [{ name = "format", type = "choice", choices = ["markdown", "json"], de
 [[cli.release.steps]]
 type = "PrepareRelease"
 inputs = ["format"]
+

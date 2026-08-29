@@ -336,7 +336,7 @@ Planning rules:
 - `monochange run change` accepts repeated `--caused-by <id>` flags, and `--bump none` is the right fit when you want to acknowledge an affected package without forcing a user-facing version bump
 - `monochange run change` can write to a deterministic path with `--output ...`
 - change templates support detailed multi-line release-note entries through `{{ details }}`, compact metadata blocks through `{{ context }}`, and fine-grained linked metadata like `{{ change_owner_link }}`, `{{ review_request_link }}`, and `{{ closed_issue_links }}`
-- dependents default to the configured `parent_bump`, including packages outside a changed version group when they depend on a synchronized member; packages and groups override this with `bump_propagation` (`inherit` matches the target's own severity, optionally clamped by `bump_propagation_max`, and fixed severities act as floors)
+- dependents resolve their propagation policy most-specific-first: `[[package]].bump_propagation` overrides `group` declarations, which override `[defaults].bump_propagation`, which falls back to the `[defaults].parent_bump` floor; `inherit` matches the source's own severity (optionally clamped by `bump_propagation_max`) and fixed severities act as floors
 - computed compatibility evidence can still escalate both the changed crate and its dependents when provider analysis produces it
 - configured groups synchronize before final output is rendered
 - release targets carry effective `tag`, `release`, and `version_format` metadata
