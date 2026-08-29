@@ -2432,6 +2432,12 @@ pub struct GroupDefinition {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkspaceDefaults {
 	pub parent_bump: BumpSeverity,
+	/// The fallback bump propagation policy for packages and groups without
+	/// their own declaration. Precedence (most specific first): package,
+	/// group, defaults. When unset, the legacy `parent_bump` floor applies.
+	#[cfg_attr(feature = "schema", schemars(default))]
+	pub bump_propagation: Option<BumpPropagation>,
+	#[serde(default)]
 	pub include_private: bool,
 	pub warn_on_group_mismatch: bool,
 	pub strict_version_conflicts: bool,
@@ -2446,6 +2452,7 @@ pub struct WorkspaceDefaults {
 impl Default for WorkspaceDefaults {
 	fn default() -> Self {
 		Self {
+			bump_propagation: None,
 			parent_bump: BumpSeverity::Patch,
 			include_private: false,
 			warn_on_group_mismatch: true,

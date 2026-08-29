@@ -228,6 +228,10 @@ pub(crate) struct RawWorkspaceDefaults {
 	#[serde(default = "default_parent_bump")]
 	parent_bump: BumpSeverity,
 	#[serde(default)]
+	bump_propagation: Option<BumpPropagationMode>,
+	#[serde(default)]
+	bump_propagation_max: Option<BumpSeverity>,
+	#[serde(default)]
 	include_private: bool,
 	#[serde(default = "default_warn_on_group_mismatch")]
 	warn_on_group_mismatch: bool,
@@ -251,6 +255,8 @@ impl Default for RawWorkspaceDefaults {
 	fn default() -> Self {
 		Self {
 			parent_bump: default_parent_bump(),
+			bump_propagation: None,
+			bump_propagation_max: None,
 			include_private: false,
 			warn_on_group_mismatch: default_warn_on_group_mismatch(),
 			strict_version_conflicts: false,
@@ -2068,10 +2074,19 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	)?;
 	validate_cli_runtime_requirements(&cli, &changesets, source.as_ref())?;
 
+	let defaults_bump_propagation = resolve_bump_propagation(
+		&contents,
+		"defaults",
+		"defaults",
+		defaults.bump_propagation,
+		defaults.bump_propagation_max,
+	)?;
+
 	Ok(WorkspaceConfiguration {
 		root_path: root.to_path_buf(),
 		defaults: WorkspaceDefaults {
 			parent_bump: defaults.parent_bump,
+			bump_propagation: defaults_bump_propagation,
 			include_private: defaults.include_private,
 			warn_on_group_mismatch: defaults.warn_on_group_mismatch,
 			strict_version_conflicts: defaults.strict_version_conflicts,
@@ -5770,21 +5785,8 @@ pub fn package_bump_propagations(
 	packages: &[PackageRecord],
 ) -> BTreeMap<String, BumpPropagation> {
 	let mut propagations: BTreeMap<String, BumpPropagation> = BTreeMap::new();
-	for definition in &configuration.packages {
-		let Some(declared) = definition.bump_propagation else {
-			continue;
-		};
-		for record in find_matching_package_indices_for_definition(
-			packages,
-			&configuration.root_path,
-			definition,
-		)
-		.into_iter()
-		.filter_map(|index| packages.get(index))
-		{
-			propagations.entry(record.id.clone()).or_insert(declared);
-		}
-	}
+
+	// Group layer: least specific declared layer applied first.
 	for group in &configuration.groups {
 		let Some(declared) = group.bump_propagation else {
 			continue;
@@ -5801,10 +5803,37 @@ pub fn package_bump_propagations(
 			.into_iter()
 			.filter_map(|index| packages.get(index))
 			{
-				propagations.insert(record.id.clone(), declared);
+				propagations.entry(record.id.clone()).or_insert(declared);
 			}
 		}
 	}
+
+	// Package layer: most specific declaration overrides the group.
+	for definition in &configuration.packages {
+		let Some(declared) = definition.bump_propagation else {
+			continue;
+		};
+		for record in find_matching_package_indices_for_definition(
+			packages,
+			&configuration.root_path,
+			definition,
+		)
+		.into_iter()
+		.filter_map(|index| packages.get(index))
+		{
+			propagations.insert(record.id.clone(), declared);
+		}
+	}
+
+	// Defaults layer: workspace-wide fallback for targets with no
+	// declaration. Targets still missing from the map fall back to the
+	// legacy `[defaults].parent_bump` floor in release planning.
+	if let Some(declared) = configuration.defaults.bump_propagation {
+		for record in packages {
+			propagations.entry(record.id.clone()).or_insert(declared);
+		}
+	}
+
 	propagations
 }
 

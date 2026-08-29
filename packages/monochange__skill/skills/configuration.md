@@ -69,7 +69,7 @@ packages = ["@acme/api"]
 bump_propagation = "major"
 ```
 
-`inherit` matches the target's own release severity (breaking in the package means breaking for dependents). A fixed severity is a floor. Targets without a declaration fall back to `[defaults].parent_bump` (default `patch`). `bump_propagation_max` clamps inherit mode and is invalid otherwise. Changesets can always author an explicit bump for a dependent, and `caused_by` suppresses the automatic propagation record for that relationship.
+`inherit` matches the target's own release severity (breaking in the package means breaking for dependents). A fixed severity is a floor. Precedence is most-specific-first: the package declaration beats its group's, which beats `[defaults].bump_propagation` (workspace-wide policy), which beats the legacy `[defaults].parent_bump` floor. `bump_propagation_max` clamps inherit mode and is invalid otherwise (validated at every layer). Changesets can always author an explicit bump for a dependent, and `caused_by` suppresses the automatic propagation record for that relationship.
 
 ## Grouped versions
 

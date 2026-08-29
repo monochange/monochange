@@ -1944,6 +1944,28 @@
 		"defaults": {
 			"additionalProperties": false,
 			"properties": {
+				"bump_propagation": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpPropagationMode"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"bump_propagation_max": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
 				"changelog": {
 					"anyOf": [
 						{

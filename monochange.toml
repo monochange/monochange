@@ -83,6 +83,13 @@ This changelog is managed by [monochange](https://github.com/monochange/monochan
 # strict_version_conflicts = false
 #
 
+# Workspace-wide bump propagation for packages and groups with no
+# declaration of their own. "inherit" matches the source's bump; fixed
+# severities act as floors. Precedence: package > group > defaults >
+# [defaults].parent_bump.
+# bump_propagation = "inherit"
+# bump_propagation_max = "major"
+
 # Default empty_update_message applied when a package is bumped but has no
 # direct changeset entries (e.g. transitive dependency bumps or group
 # synchronization). Template placeholders are interpolated at render time.

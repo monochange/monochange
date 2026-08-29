@@ -1,0 +1,24 @@
+[defaults]
+package_type = "cargo"
+parent_bump = "patch"
+bump_propagation = "inherit"
+bump_propagation_max = "major"
+changelog = false
+
+[package.core]
+path = "crates/core"
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+[group.grouped]
+packages = ["engine"]
+bump_propagation = "major"
+
+[package.engine]
+path = "crates/engine"
+
+[package.standalone]
+path = "crates/standalone"
+
+[ecosystems.cargo]
+enabled = true

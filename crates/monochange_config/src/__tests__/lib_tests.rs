@@ -8452,14 +8452,14 @@ fn load_workspace_configuration_parses_bump_propagation() {
 }
 
 #[test]
-fn package_bump_propagations_resolves_group_override_and_defaults() {
-	let root = fixture_path("config/bump-propagation");
+fn package_bump_propagations_resolves_precedence_package_group_default() {
+	let root = fixture_path("config/bump-propagation-defaults");
 	let configuration = load_workspace_configuration(&root)
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 
-	fn record(root: &Path, id: &str, path: &str, ecosystem: Ecosystem) -> PackageRecord {
+	fn record(root: &Path, id: &str, path: &str) -> PackageRecord {
 		let mut record = PackageRecord::new(
-			ecosystem,
+			Ecosystem::Cargo,
 			id,
 			root.join(path),
 			root.to_path_buf(),
@@ -8470,43 +8470,44 @@ fn package_bump_propagations_resolves_group_override_and_defaults() {
 		record
 	}
 
+	// packages: core (declares inherit+max minor), engine (group member, no
+	// declaration), standalone (no declarations anywhere)
 	let packages = vec![
-		record(&root, "core", "crates/core/Cargo.toml", Ecosystem::Cargo),
-		record(&root, "lib", "crates/lib/Cargo.toml", Ecosystem::Cargo),
-		record(&root, "web", "packages/web/package.json", Ecosystem::Npm),
-		record(&root, "plain", "crates/plain/Cargo.toml", Ecosystem::Cargo),
+		record(&root, "core", "crates/core/Cargo.toml"),
+		record(&root, "engine", "crates/engine/Cargo.toml"),
+		record(&root, "standalone", "crates/standalone/Cargo.toml"),
 	];
 
 	let propagations = package_bump_propagations(&configuration, &packages);
 
-	// The group declaration (`major`) overrides the member package's own
-	// `inherit` declaration.
+	// Package layer beats the group layer: core clamps to minor even though
+	// its group declares a fixed major floor.
 	assert_eq!(
 		propagations.get("core"),
+		Some(&BumpPropagation {
+			mode: BumpPropagationMode::Inherit,
+			max: Some(BumpSeverity::Minor),
+		})
+	);
+	// Group layer beats the defaults layer: engine has no package
+	// declaration, so its group's fixed major floor applies.
+	assert_eq!(
+		propagations.get("engine"),
 		Some(&BumpPropagation {
 			mode: BumpPropagationMode::Major,
 			max: None,
 		})
 	);
+	// Defaults layer applies to packages with no declaration and no group,
+	// carrying the defaults declaration (inherit + max major).
 	assert_eq!(
-		propagations.get("lib"),
+		propagations.get("standalone"),
 		Some(&BumpPropagation {
-			mode: BumpPropagationMode::None,
-			max: None,
+			mode: BumpPropagationMode::Inherit,
+			max: Some(BumpSeverity::Major),
 		})
 	);
-	assert_eq!(
-		propagations.get("web"),
-		Some(&BumpPropagation {
-			mode: BumpPropagationMode::Minor,
-			max: None,
-		})
-	);
-	// Packages without a declaration stay out of the map so
-	// `[defaults].parent_bump` applies.
-	assert!(!propagations.contains_key("plain"));
 }
-
 #[test]
 fn load_workspace_configuration_rejects_bump_propagation_max_without_inherit() {
 	let root = fixture_path("config/bump-propagation-invalid");
@@ -8553,14 +8554,28 @@ fn package_bump_propagations_skips_group_members_without_definitions() {
 }
 
 #[test]
-fn load_workspace_configuration_rejects_bare_bump_propagation_max() {
-	let root = fixture_path("config/bump-propagation-invalid-max-only");
+fn load_workspace_configuration_parses_defaults_bump_propagation() {
+	let root = fixture_path("config/bump-propagation-defaults");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	assert_eq!(
+		configuration.defaults.bump_propagation,
+		Some(BumpPropagation {
+			mode: BumpPropagationMode::Inherit,
+			max: Some(BumpSeverity::Major),
+		})
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_defaults_bump_propagation_max_without_inherit() {
+	let root = fixture_path("config/bump-propagation-invalid-defaults");
 	let error = load_workspace_configuration(&root)
-		.expect_err("expected bare bump_propagation_max validation error");
+		.expect_err("expected defaults bump_propagation_max validation error");
 	assert!(
-		error
-			.to_string()
-			.contains("sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"),
+		error.to_string().contains(
+			"defaults `defaults` sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"
+		),
 		"unexpected error: {error}"
 	);
 }
