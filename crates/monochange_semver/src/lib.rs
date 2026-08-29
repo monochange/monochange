@@ -42,6 +42,8 @@
 //! assert_eq!(merged, BumpSeverity::Minor);
 //! assert_eq!(direct, BumpSeverity::Minor);
 //! ```
+use monochange_core::BumpPropagation;
+use monochange_core::BumpPropagationMode;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::CompatibilityAssessment;
@@ -129,15 +131,34 @@ pub fn direct_release_severity(
 }
 
 /// Calculate the propagated severity applied to dependents of a changed package.
+///
+/// Without a per-target declaration the propagated severity is the configured
+/// `default_parent_bump`, escalated by compatibility evidence for the source.
+/// In `inherit` mode the dependent instead receives the source's own release
+/// severity (which already includes that evidence), clamped by `max` when
+/// present, so a breaking source means breaking dependents and a clamped
+/// source means dependents never exceed the clamp.
 #[must_use]
 pub fn propagated_release_severity(
 	default_parent_bump: BumpSeverity,
+	declaration: Option<&BumpPropagation>,
+	source_severity: BumpSeverity,
 	assessment: Option<&CompatibilityAssessment>,
 ) -> BumpSeverity {
-	merge_severities(
-		default_parent_bump,
-		assessment.map_or(BumpSeverity::None, |value| value.severity),
-	)
+	let assessment_severity = assessment.map_or(BumpSeverity::None, |value| value.severity);
+	match declaration {
+		Some(BumpPropagation {
+			mode: BumpPropagationMode::Inherit,
+			max,
+		}) => {
+			let inherited = merge_severities(source_severity, assessment_severity);
+			max.map_or(inherited, |cap| inherited.min_severity(cap))
+		}
+		Some(BumpPropagation { mode, .. }) => {
+			merge_severities(mode.floor().unwrap_or_default(), assessment_severity)
+		}
+		None => merge_severities(default_parent_bump, assessment_severity),
+	}
 }
 
 /// Infer the minimum `SemVer` bump for one semantic diff record.

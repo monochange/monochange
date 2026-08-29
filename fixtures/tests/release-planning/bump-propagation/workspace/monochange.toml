@@ -1,0 +1,36 @@
+[defaults]
+package_type = "cargo"
+parent_bump = "patch"
+changelog = false
+
+# core's breaking changes must be matched by dependents, but never exceed a
+# minor: the clamp bounds what dependents are asked to do.
+[package.core]
+path = "crates/core"
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+# leaf never forces its dependents to release.
+[package.leaf]
+path = "crates/leaf"
+bump_propagation = "none"
+
+[package.engine]
+path = "crates/engine"
+
+[package.summary]
+path = "crates/summary"
+
+[package.standalone]
+path = "crates/standalone"
+
+[ecosystems.cargo]
+enabled = true
+roots = ["crates/*"]
+
+[cli.release]
+inputs = [{ name = "format", type = "choice", choices = ["markdown", "json"], default = "json" }]
+
+[[cli.release.steps]]
+type = "PrepareRelease"
+inputs = ["format"]

@@ -1,0 +1,34 @@
+[defaults]
+package_type = "cargo"
+parent_bump = "patch"
+changelog = false
+
+[package.core]
+path = "crates/core"
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+[package.lib]
+path = "crates/lib"
+bump_propagation = "none"
+
+[package."npm:web"]
+path = "packages/web"
+type = "npm"
+bump_propagation = "minor"
+
+[package.plain]
+path = "crates/plain"
+
+[group.umbrella]
+packages = ["core"]
+bump_propagation = "major"
+
+[ecosystems.npm]
+enabled = true
+roots = ["packages/*"]
+
+[cli.release]
+
+[[cli.release.steps]]
+type = "PrepareRelease"

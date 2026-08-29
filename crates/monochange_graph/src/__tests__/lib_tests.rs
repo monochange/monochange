@@ -4,6 +4,8 @@ mod prop_tests;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+use monochange_core::BumpPropagation;
+use monochange_core::BumpPropagationMode;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::CompatibilityAssessment;
@@ -115,6 +117,7 @@ fn build_release_plan_patches_direct_parents_when_a_dependency_changes() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -158,6 +161,7 @@ fn build_release_plan_propagates_direct_and_transitive_dependency_impact() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -217,6 +221,7 @@ fn build_release_plan_synchronizes_version_groups() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -275,6 +280,7 @@ fn build_release_plan_caps_group_bump_influence_per_member() {
 		],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -323,6 +329,7 @@ fn build_release_plan_ignores_none_capped_group_member_when_others_do_not_bump()
 		&[change_signal(&docs.id, BumpSeverity::Major)],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -369,6 +376,7 @@ fn build_release_plan_shifts_major_to_minor_for_pre_stable_versions() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -425,6 +433,7 @@ fn build_release_plan_uses_compatibility_assessments_to_escalate_parents() {
 			evidence_location: None,
 		}],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -459,6 +468,7 @@ fn build_release_plan_uses_explicit_package_versions() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -502,6 +512,7 @@ fn build_release_plan_propagates_explicit_member_versions_to_group_version() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -554,6 +565,7 @@ fn build_release_plan_uses_highest_conflicting_explicit_version_with_warning() {
 		],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -610,6 +622,7 @@ fn build_release_plan_rejects_conflicting_explicit_versions_in_strict_mode() {
 		],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		true,
 	)
 	.err()
@@ -643,6 +656,7 @@ fn build_release_plan_rejects_explicit_versions_not_greater_than_current() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.err()
@@ -676,6 +690,7 @@ fn build_release_plan_returns_error_for_unknown_package_in_changeset() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.err()
@@ -720,6 +735,7 @@ fn build_release_plan_returns_error_for_unknown_group_in_changeset() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.err()
@@ -761,6 +777,7 @@ fn build_release_plan_warns_on_missing_group_member_during_traversal() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -813,6 +830,7 @@ fn build_release_plan_suppresses_matching_dependency_propagation_when_caused_by_
 		],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -870,6 +888,7 @@ fn build_release_plan_keeps_unrelated_dependency_propagation_when_caused_by_does
 		],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -934,6 +953,7 @@ fn build_release_plan_suppresses_matching_dependency_propagation_when_caused_by_
 		],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -949,4 +969,137 @@ fn build_release_plan_suppresses_matching_dependency_propagation_when_caused_by_
 		app.upstream_sources,
 		vec!["cargo:core".to_string(), "cargo:util".to_string()]
 	);
+}
+
+fn bump_propagation_map(
+	entries: &[(&str, BumpPropagationMode, Option<BumpSeverity>)],
+) -> BTreeMap<String, BumpPropagation> {
+	entries
+		.iter()
+		.map(|(package_id, mode, max)| {
+			(
+				(*package_id).to_string(),
+				BumpPropagation {
+					mode: *mode,
+					max: *max,
+				},
+			)
+		})
+		.collect()
+}
+
+#[test]
+fn build_release_plan_inherits_source_severity_for_dependents() {
+	let packages = vec![
+		package("cargo:core", Version::new(1, 0, 0)),
+		package("cargo:app", Version::new(1, 0, 0)),
+	];
+	let plan = build_release_plan(
+		PathBuf::from("fixtures/cargo").as_path(),
+		&packages,
+		&[edge("cargo:app", "cargo:core")],
+		&[],
+		&[change_signal("cargo:core", BumpSeverity::Major)],
+		&[],
+		BumpSeverity::Patch,
+		&bump_propagation_map(&[("cargo:core", BumpPropagationMode::Inherit, None)]),
+		false,
+	)
+	.unwrap_or_else(|error| panic!("release plan: {error}"));
+
+	let app = plan
+		.decisions
+		.iter()
+		.find(|decision| decision.package_id == "cargo:app")
+		.unwrap_or_else(|| panic!("expected app decision"));
+	assert_eq!(app.recommended_bump, BumpSeverity::Major);
+	assert_eq!(app.trigger_type, "transitive-dependency");
+	assert_eq!(app.planned_version, Some(Version::new(2, 0, 0)));
+}
+
+#[test]
+fn build_release_plan_clamps_inherited_severity() {
+	let packages = vec![
+		package("cargo:core", Version::new(1, 0, 0)),
+		package("cargo:app", Version::new(1, 0, 0)),
+	];
+	let plan = build_release_plan(
+		PathBuf::from("fixtures/cargo").as_path(),
+		&packages,
+		&[edge("cargo:app", "cargo:core")],
+		&[],
+		&[change_signal("cargo:core", BumpSeverity::Major)],
+		&[],
+		BumpSeverity::Patch,
+		&bump_propagation_map(&[(
+			"cargo:core",
+			BumpPropagationMode::Inherit,
+			Some(BumpSeverity::Minor),
+		)]),
+		false,
+	)
+	.unwrap_or_else(|error| panic!("release plan: {error}"));
+
+	let app = plan
+		.decisions
+		.iter()
+		.find(|decision| decision.package_id == "cargo:app")
+		.unwrap_or_else(|| panic!("expected app decision"));
+	assert_eq!(app.recommended_bump, BumpSeverity::Minor);
+}
+
+#[test]
+fn build_release_plan_fixed_floor_overrides_default_parent_bump() {
+	// The default parent bump is `major`, but the source declares `none`:
+	// dependents do not release at all.
+	let packages = vec![
+		package("cargo:core", Version::new(1, 0, 0)),
+		package("cargo:app", Version::new(1, 0, 0)),
+	];
+	let plan = build_release_plan(
+		PathBuf::from("fixtures/cargo").as_path(),
+		&packages,
+		&[edge("cargo:app", "cargo:core")],
+		&[],
+		&[change_signal("cargo:core", BumpSeverity::None)],
+		&[],
+		BumpSeverity::Major,
+		&bump_propagation_map(&[("cargo:core", BumpPropagationMode::None, None)]),
+		false,
+	)
+	.unwrap_or_else(|error| panic!("release plan: {error}"));
+
+	let app = plan
+		.decisions
+		.iter()
+		.find(|decision| decision.package_id == "cargo:app")
+		.unwrap_or_else(|| panic!("expected app decision"));
+	assert_eq!(app.recommended_bump, BumpSeverity::None);
+}
+
+#[test]
+fn build_release_plan_fixed_floor_beats_minor_source_severity() {
+	let packages = vec![
+		package("cargo:core", Version::new(1, 0, 0)),
+		package("cargo:app", Version::new(1, 0, 0)),
+	];
+	let plan = build_release_plan(
+		PathBuf::from("fixtures/cargo").as_path(),
+		&packages,
+		&[edge("cargo:app", "cargo:core")],
+		&[],
+		&[change_signal("cargo:core", BumpSeverity::Minor)],
+		&[],
+		BumpSeverity::Major,
+		&bump_propagation_map(&[("cargo:core", BumpPropagationMode::Minor, None)]),
+		false,
+	)
+	.unwrap_or_else(|error| panic!("release plan: {error}"));
+
+	let app = plan
+		.decisions
+		.iter()
+		.find(|decision| decision.package_id == "cargo:app")
+		.unwrap_or_else(|| panic!("expected app decision"));
+	assert_eq!(app.recommended_bump, BumpSeverity::Minor);
 }

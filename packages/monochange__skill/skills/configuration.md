@@ -42,6 +42,35 @@ type = "cargo"
 
 Canonical ecosystem/package types in current code are `cargo`, `npm`, `deno`, `dart`, `python`, and `go`. The legacy `flutter` spelling is accepted as an alias for Dart/Flutter packages and normalizes to the `dart` ecosystem.
 
+## Bump propagation to dependents
+
+Packages and groups declare what their own changes mean for dependent packages via `bump_propagation`:
+
+```toml
+[package."@acme/api"]
+path = "packages/api"
+# dependents match this package's release severity, never exceeding a minor
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+[package."@acme/tooling"]
+path = "packages/tooling"
+# dependents always release at least a minor after this package's changes
+bump_propagation = "minor"
+
+[package."@acme/leaf"]
+path = "packages/leaf"
+# dependents never release because of this package
+bump_propagation = "none"
+
+[group.sdk]
+packages = ["@acme/api"]
+# a group declaration overrides declarations of its member packages
+bump_propagation = "major"
+```
+
+`inherit` matches the target's own release severity (breaking in the package means breaking for dependents). A fixed severity is a floor. Targets without a declaration fall back to `[defaults].parent_bump` (default `patch`). `bump_propagation_max` clamps inherit mode and is invalid otherwise. Changesets can always author an explicit bump for a dependent, and `caused_by` suppresses the automatic propagation record for that relationship.
+
 ## Grouped versions
 
 Groups make multiple packages share one outward version and release identity.

@@ -139,6 +139,7 @@ fn sample_package_definition(config_id: &str) -> PackageDefinition {
 			initial_header: None,
 		}),
 		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
 		empty_update_message: None,
 		release_title: None,
 		changelog_version_title: None,
@@ -158,6 +159,7 @@ fn sample_group_definition(include: GroupChangelogInclude) -> GroupDefinition {
 		id: "sdk".to_string(),
 		packages: vec!["pkg-a".to_string(), "pkg-b".to_string()],
 		package_max_bumps: BTreeMap::new(),
+		bump_propagation: None,
 		changelog: Some(ChangelogTarget {
 			path: PathBuf::from("groups/sdk/CHANGELOG.md"),
 			format: ChangelogFormat::Monochange,

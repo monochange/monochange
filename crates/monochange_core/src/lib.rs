@@ -183,6 +183,15 @@ impl BumpSeverity {
 		version.major == 0
 	}
 
+	/// The smallest severity of this and `other`.
+	///
+	/// Used for clamping inherited severities: `Minor.min_severity(Major)`
+	/// returns `Minor`.
+	#[must_use]
+	pub fn min_severity(self, other: Self) -> Self {
+		self.min(other)
+	}
+
 	/// Apply the severity to `version`, including pre-1.0 bump shifting.
 	#[must_use]
 	pub fn apply_to_version(self, version: &Version) -> Version {
@@ -222,6 +231,58 @@ impl BumpSeverity {
 			}
 		}
 	}
+}
+
+/// Declares how a target's own changes propagate to its dependents.
+///
+/// Configure this on a `[[package]]` or a group with `bump_propagation` and
+/// the optional `bump_propagation_max` clamp. Targets without a declaration
+/// fall back to `[defaults].parent_bump`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum BumpPropagationMode {
+	/// Dependents match this target's release severity: a breaking change in
+	/// this package means breaking changes for its dependents.
+	Inherit,
+	/// Propagation is disabled; dependents do not release because of this
+	/// target. Semantic compatibility evidence can still escalate.
+	None,
+	/// Dependents always receive at least a `patch` bump.
+	#[default]
+	Patch,
+	/// Dependents always receive at least a `minor` bump (pre-stable version
+	/// shifting applies).
+	Minor,
+	/// Dependents always receive at least a `major` bump.
+	Major,
+}
+
+impl BumpPropagationMode {
+	/// The fixed severity floor, or `None` for `inherit` mode.
+	#[must_use]
+	pub fn floor(self) -> Option<BumpSeverity> {
+		match self {
+			Self::Inherit => None,
+			Self::None => Some(BumpSeverity::None),
+			Self::Patch => Some(BumpSeverity::Patch),
+			Self::Minor => Some(BumpSeverity::Minor),
+			Self::Major => Some(BumpSeverity::Major),
+		}
+	}
+}
+
+/// The effective bump propagation policy for one release target.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub struct BumpPropagation {
+	/// Whether dependents inherit this target's severity or receive a fixed
+	/// floor.
+	pub mode: BumpPropagationMode,
+	/// Clamp the inherited severity so dependents never exceed it. Only
+	/// meaningful in `inherit` mode.
+	pub max: Option<BumpSeverity>,
 }
 
 impl fmt::Display for BumpSeverity {
@@ -2309,6 +2370,10 @@ pub struct PackageDefinition {
 	pub package_type: PackageType,
 	pub changelog: Option<ChangelogTarget>,
 	pub excluded_changelog_types: Vec<String>,
+	/// How this package's changes propagate to dependent packages. When
+	/// unset, `[defaults].parent_bump` applies.
+	#[cfg_attr(feature = "schema", schemars(default))]
+	pub bump_propagation: Option<BumpPropagation>,
 	pub empty_update_message: Option<String>,
 	#[serde(default)]
 	pub release_title: Option<String>,
@@ -2344,6 +2409,10 @@ pub struct GroupDefinition {
 	pub packages: Vec<String>,
 	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
 	pub package_max_bumps: BTreeMap<String, BumpSeverity>,
+	/// How this group's changes propagate to dependents of its members.
+	/// Overrides member declarations.
+	#[cfg_attr(feature = "schema", schemars(default))]
+	pub bump_propagation: Option<BumpPropagation>,
 	pub changelog: Option<ChangelogTarget>,
 	#[serde(default)]
 	pub changelog_include: GroupChangelogInclude,

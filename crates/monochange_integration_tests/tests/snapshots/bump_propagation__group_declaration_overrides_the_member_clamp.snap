@@ -1,0 +1,26 @@
+---
+source: crates/monochange_integration_tests/tests/bump_propagation.rs
+expression: plan_decisions(&json)
+---
+{
+  "decisions": [
+    {
+      "bump": "major",
+      "package": "core",
+      "planned_version": "2.0.0",
+      "trigger": "direct-change",
+      "upstream_sources": [
+        "cargo:crates/core/Cargo.toml"
+      ]
+    },
+    {
+      "bump": "major",
+      "package": "engine",
+      "planned_version": "2.0.0",
+      "trigger": "transitive-dependency",
+      "upstream_sources": [
+        "cargo:crates/core/Cargo.toml"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,35 @@
 {
 	"$defs": {
+		"BumpPropagationMode": {
+			"description": "Declares how a target's own changes propagate to its dependents.\n\nConfigure this on a `[[package]]` or a group with `bump_propagation` and\nthe optional `bump_propagation_max` clamp. Targets without a declaration\nfall back to `[defaults].parent_bump`.",
+			"oneOf": [
+				{
+					"const": "inherit",
+					"description": "Dependents match this target's release severity: a breaking change in\nthis package means breaking changes for its dependents.",
+					"type": "string"
+				},
+				{
+					"const": "none",
+					"description": "Propagation is disabled; dependents do not release because of this\ntarget. Semantic compatibility evidence can still escalate.",
+					"type": "string"
+				},
+				{
+					"const": "patch",
+					"description": "Dependents always receive at least a `patch` bump.",
+					"type": "string"
+				},
+				{
+					"const": "minor",
+					"description": "Dependents always receive at least a `minor` bump (pre-stable version\nshifting applies).",
+					"type": "string"
+				},
+				{
+					"const": "major",
+					"description": "Dependents always receive at least a `major` bump.",
+					"type": "string"
+				}
+			]
+		},
 		"BumpSeverity": {
 			"enum": [
 				"none",
@@ -2087,6 +2117,28 @@
 		"group_definition": {
 			"additionalProperties": false,
 			"properties": {
+				"bump_propagation": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpPropagationMode"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"bump_propagation_max": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
 				"changelog": {
 					"anyOf": [
 						{
@@ -2190,6 +2242,28 @@
 						"type": "string"
 					},
 					"type": "array"
+				},
+				"bump_propagation": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpPropagationMode"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
+				"bump_propagation_max": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
 				},
 				"changelog": {
 					"anyOf": [

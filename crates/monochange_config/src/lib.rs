@@ -90,6 +90,8 @@ use miette::LabeledSpan;
 use miette::SourceSpan;
 use monochange_core::AutoDiscoverPackageDefaults;
 use monochange_core::AutoDiscoverSettings;
+use monochange_core::BumpPropagation;
+use monochange_core::BumpPropagationMode;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::ChangelogDefinition;
@@ -317,6 +319,10 @@ pub(crate) struct RawPackageDefinition {
 	#[serde(default)]
 	pub excluded_changelog_types: Vec<String>,
 	#[serde(default)]
+	bump_propagation: Option<BumpPropagationMode>,
+	#[serde(default)]
+	bump_propagation_max: Option<BumpSeverity>,
+	#[serde(default)]
 	empty_update_message: Option<String>,
 	#[serde(default)]
 	release_title: Option<String>,
@@ -371,6 +377,10 @@ pub(crate) struct RawGroupDefinition {
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
 	pub excluded_changelog_types: Vec<String>,
+	#[serde(default)]
+	bump_propagation: Option<BumpPropagationMode>,
+	#[serde(default)]
+	bump_propagation_max: Option<BumpSeverity>,
 	#[serde(default)]
 	empty_update_message: Option<String>,
 	#[serde(default)]
@@ -1498,6 +1508,57 @@ pub fn load_cli_commands(root: &Path) -> MonochangeResult<Vec<CliCommandDefiniti
 }
 
 #[allow(clippy::too_many_arguments, clippy::option_as_ref_cloned)]
+fn resolve_bump_propagation(
+	contents: &str,
+	owner_kind: &str,
+	id: &str,
+	mode: Option<BumpPropagationMode>,
+	max: Option<BumpSeverity>,
+) -> MonochangeResult<Option<BumpPropagation>> {
+	let Some(mode) = mode else {
+		if max.is_some() {
+			return Err(config_diagnostic(
+				contents,
+				format!(
+					"{owner_kind} `{id}` sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"
+				),
+				vec![config_section_label(
+					contents,
+					owner_kind,
+					id,
+					"bump_propagation_max without inherit",
+				)],
+				Some(
+					"set `bump_propagation = \"inherit\"` to clamp with `bump_propagation_max`, or remove `bump_propagation_max`"
+						.to_string(),
+				),
+			));
+		}
+		return Ok(None);
+	};
+	if mode != BumpPropagationMode::Inherit && max.is_some() {
+		return Err(config_diagnostic(
+			contents,
+			format!(
+				"{owner_kind} `{id}` sets `bump_propagation_max` without `bump_propagation = \"inherit\"`"
+			),
+			vec![config_section_label(
+				contents,
+				owner_kind,
+				id,
+				"bump_propagation_max without inherit",
+			)],
+			Some(
+				"set `bump_propagation = \"inherit\"` to clamp with `bump_propagation_max`, or remove `bump_propagation_max`"
+					.to_string(),
+			),
+		));
+		// patch-coverage:ignore-end
+	}
+	Ok(Some(BumpPropagation { mode, max }))
+}
+
+#[allow(clippy::too_many_arguments)]
 fn build_package_definitions(
 	contents: &str,
 	packages: BTreeMap<String, RawPackageDefinition>,
@@ -1595,12 +1656,21 @@ fn build_package_definitions(
 				inferred_ecosystem_type,
 			)?;
 
+			let bump_propagation = resolve_bump_propagation(
+				contents,
+				"package",
+				&id,
+				package.bump_propagation,
+				package.bump_propagation_max,
+			)?;
+
 			Ok::<_, MonochangeError>(PackageDefinition {
 				id,
 				path: package.path,
 				package_type,
 				changelog,
 				excluded_changelog_types: package.excluded_changelog_types,
+				bump_propagation,
 				empty_update_message: package.empty_update_message,
 				release_title: package.release_title,
 				changelog_version_title: package.changelog_version_title,
@@ -1683,10 +1753,19 @@ fn build_group_definitions(
 				&package_ids,
 				group.changelog.as_ref().and_then(RawChangelogConfig::include),
 			)?;
+			let bump_propagation = resolve_bump_propagation(
+				contents,
+				"group",
+				&id,
+				group.bump_propagation,
+				group.bump_propagation_max,
+			)?;
+
 			Ok::<_, MonochangeError>(GroupDefinition {
 				id: id.clone(),
 				packages: package_ids,
 				package_max_bumps,
+				bump_propagation,
 				changelog,
 				changelog_include,
 				excluded_changelog_types: group.excluded_changelog_types,
@@ -1793,6 +1872,7 @@ fn discover_auto_packages(
 				package_type,
 				changelog,
 				excluded_changelog_types: Vec::new(),
+				bump_propagation: None,
 				empty_update_message: None,
 				release_title: None,
 				changelog_version_title: None,
@@ -5679,6 +5759,55 @@ fn extract_frontmatter(contents: &str) -> Option<(Range<usize>, &str)> {
 }
 
 /// Apply configured version groups to discovered packages.
+/// Resolve the effective bump propagation policy per discovered package.
+///
+/// A group declaration overrides the member package's own declaration, and
+/// packages without any declaration are absent from the map (so the global
+/// `[defaults].parent_bump` applies).
+#[must_use]
+pub fn package_bump_propagations(
+	configuration: &WorkspaceConfiguration,
+	packages: &[PackageRecord],
+) -> BTreeMap<String, BumpPropagation> {
+	let mut propagations: BTreeMap<String, BumpPropagation> = BTreeMap::new();
+	for definition in &configuration.packages {
+		let Some(declared) = definition.bump_propagation else {
+			continue;
+		};
+		for record in find_matching_package_indices_for_definition(
+			packages,
+			&configuration.root_path,
+			definition,
+		)
+		.into_iter()
+		.filter_map(|index| packages.get(index))
+		{
+			propagations.entry(record.id.clone()).or_insert(declared);
+		}
+	}
+	for group in &configuration.groups {
+		let Some(declared) = group.bump_propagation else {
+			continue;
+		};
+		for member in &group.packages {
+			let Some(member_definition) = configuration.package_by_id(member) else {
+				continue;
+			};
+			for record in find_matching_package_indices_for_definition(
+				packages,
+				&configuration.root_path,
+				member_definition,
+			)
+			.into_iter()
+			.filter_map(|index| packages.get(index))
+			{
+				propagations.insert(record.id.clone(), declared);
+			}
+		}
+	}
+	propagations
+}
+
 pub fn apply_version_groups(
 	packages: &mut [PackageRecord],
 	configuration: &WorkspaceConfiguration,

@@ -39,6 +39,7 @@ use std::collections::VecDeque;
 use std::path::Path;
 use std::path::PathBuf;
 
+use monochange_core::BumpPropagation;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::CompatibilityAssessment;
@@ -153,6 +154,7 @@ pub fn build_release_plan(
 	change_signals: &[ChangeSignal],
 	compatibility_evidence: &[CompatibilityAssessment],
 	default_parent_bump: BumpSeverity,
+	bump_propagations: &BTreeMap<String, BumpPropagation>,
 	strict_version_conflicts: bool,
 ) -> MonochangeResult<ReleasePlan> {
 	let graph = NormalizedGraph::new(packages, dependency_edges);
@@ -226,8 +228,13 @@ pub fn build_release_plan(
 
 		let source_assessment =
 			strongest_assessment_for_package(compatibility_evidence, source_package_id);
-		let propagated_severity =
-			propagated_release_severity(default_parent_bump, source_assessment.as_ref());
+		let declaration = bump_propagations.get(source_package_id);
+		let propagated_severity = propagated_release_severity(
+			default_parent_bump,
+			declaration,
+			source_state.severity,
+			source_assessment.as_ref(),
+		);
 
 		if propagated_severity.is_release() {
 			for dependent_id in graph.direct_dependents(source_package_id) {

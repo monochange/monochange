@@ -82,6 +82,7 @@ fn build_release_plan_has_no_warning_for_single_explicit_version() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -120,6 +121,7 @@ fn build_release_plan_leaves_unreleased_package_without_planned_version() {
 		}],
 		&[],
 		BumpSeverity::None,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
@@ -171,6 +173,7 @@ fn build_release_plan_uses_group_version_not_standalone_for_group_members() {
 		}],
 		&[],
 		BumpSeverity::Patch,
+		&BTreeMap::new(),
 		false,
 	)
 	.unwrap_or_else(|error| panic!("release plan: {error}"));
