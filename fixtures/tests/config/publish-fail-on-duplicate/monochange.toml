@@ -1,0 +1,13 @@
+[ecosystems.npm.publish]
+fail_on_duplicate = true
+
+[package.web]
+path = "packages/web"
+type = "npm"
+
+[package.legacy]
+path = "packages/legacy"
+type = "npm"
+
+[package.legacy.publish]
+fail_on_duplicate = false

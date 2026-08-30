@@ -2441,6 +2441,13 @@
 						"null"
 					]
 				},
+				"fail_on_duplicate": {
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
+				},
 				"mode": {
 					"anyOf": [
 						{

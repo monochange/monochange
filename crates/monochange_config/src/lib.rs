@@ -532,6 +532,8 @@ pub(crate) struct RawPublishSettings {
 	timeout: RawPublishTimeoutSettings,
 	#[serde(default)]
 	placeholder: RawPlaceholderSettings,
+	#[serde(default)]
+	fail_on_duplicate: Option<bool>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1449,6 +1451,9 @@ fn normalize_publish_settings(
 	}
 	if let Some(retries) = raw.timeout.retries {
 		settings.timeout.retries = retries;
+	}
+	if let Some(fail_on_duplicate) = raw.fail_on_duplicate {
+		settings.fail_on_duplicate = fail_on_duplicate;
 	}
 	if raw.placeholder.readme.is_some() {
 		settings.placeholder.readme_file = None;

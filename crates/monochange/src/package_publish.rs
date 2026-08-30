@@ -119,6 +119,7 @@ pub(crate) struct PublishPackagesOptions<'a> {
 	pub(crate) publish_all_configured_packages: bool,
 	pub(crate) dry_run: bool,
 	pub(crate) resume_path: Option<&'a Path>,
+	pub(crate) fail_on_duplicate: bool,
 	pub(crate) output: PublishOutputOptions,
 }
 
@@ -300,6 +301,10 @@ async fn try_run_publish_packages_with_publications_and_resume(
 			},
 		)
 	})?;
+	monochange_publish::set_fail_on_duplicate_for_requests(
+		&mut requests,
+		options.fail_on_duplicate,
+	);
 	enable_publish_stream_output(&mut requests, options.output.stream_output);
 	let previous_report = options
 		.resume_path

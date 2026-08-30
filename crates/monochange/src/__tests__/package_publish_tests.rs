@@ -207,6 +207,7 @@ fn sample_request(registry: RegistryKind) -> PublishRequest {
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
 		placeholder_readme: "placeholder".to_string(),
+		fail_on_duplicate: false,
 	}
 }
 
@@ -2077,6 +2078,7 @@ fn sample_npm_publication(package: &str) -> PackagePublicationTarget {
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 	}
 }
 
@@ -2277,6 +2279,7 @@ fn build_release_requests_skips_unknown_publication_targets() {
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		},
 		PackagePublicationTarget {
 			package: "pkg".to_string(),
@@ -2287,6 +2290,7 @@ fn build_release_requests_skips_unknown_publication_targets() {
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		},
 	];
 
@@ -2325,6 +2329,7 @@ fn build_release_requests_skips_publication_targets_missing_from_discovery() {
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 	}];
 
 	let requests = build_release_requests(&configuration, &[], &publications, &BTreeSet::new())
@@ -2388,6 +2393,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		},
 		PackagePublicationTarget {
 			package: "disabled".to_string(),
@@ -2398,6 +2404,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		},
 		PackagePublicationTarget {
 			package: "private".to_string(),
@@ -2408,6 +2415,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		},
 	];
 
@@ -4036,6 +4044,7 @@ async fn release_dry_run_orders_cargo_dev_and_build_dependencies_before_dependen
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
+				fail_on_duplicate: false,
 			}
 		})
 		.collect::<Vec<_>>();
@@ -4374,6 +4383,7 @@ async fn run_publish_packages_uses_prepared_release_publications() {
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		}],
 	);
 
@@ -4442,6 +4452,7 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		}],
 	);
 	let discovered = release_record_package_publications_from_prepared_or_head(root.path(), None)
@@ -4828,6 +4839,7 @@ async fn try_run_publish_packages_with_publications_maps_build_request_errors() 
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 	};
 
 	let error = try_run_publish_packages_with_publications_and_resume(
@@ -4942,6 +4954,7 @@ async fn try_run_publish_packages_with_publications_maps_publish_execution_failu
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 	};
 
 	// A failing registry lookup during publish execution returns a
@@ -5209,6 +5222,7 @@ fn build_release_requests_uses_publication_targets_and_package_metadata() {
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 	};
 	let configuration = sample_configuration(&[("pkg", monochange_core::PackageType::Npm, true)]);
 	let requests =
@@ -5257,6 +5271,7 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		}],
 	);
 
@@ -5296,4 +5311,89 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 			},
 		);
 	});
+}
+
+fn duplicate_policy_fixture_path() -> PathBuf {
+	Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/config/publish-fail-on-duplicate")
+}
+
+fn duplicate_policy_record(id: &str, name: &str) -> PackageRecord {
+	PackageRecord {
+		id: id.to_string(),
+		name: name.to_string(),
+		ecosystem: Ecosystem::Npm,
+		manifest_path: PathBuf::from(format!("/fixtures/{id}/package.json")),
+		workspace_root: PathBuf::from("/fixtures"),
+		current_version: Some(Version::parse("1.0.0").expect("version")),
+		publish_state: PublishState::Public,
+		version_group_id: None,
+		metadata: BTreeMap::from([("config_id".to_string(), id.to_string())]),
+		declared_dependencies: Vec::new(),
+	}
+}
+
+#[test]
+fn configured_package_publication_targets_carry_fail_on_duplicate() {
+	let fixture_root = duplicate_policy_fixture_path();
+	let configuration = crate::load_workspace_configuration(&fixture_root).expect("configuration");
+	let packages = [
+		duplicate_policy_record("web", "web"),
+		duplicate_policy_record("legacy", "legacy"),
+	];
+
+	let targets =
+		monochange_publish::configured_package_publication_targets(&configuration, &packages);
+	assert_eq!(targets.len(), 2);
+	let web = targets
+		.iter()
+		.find(|target| target.package == "web")
+		.expect("web target");
+	assert!(web.fail_on_duplicate);
+	let legacy = targets
+		.iter()
+		.find(|outcome| outcome.package == "legacy")
+		.expect("legacy target");
+	assert!(!legacy.fail_on_duplicate);
+}
+
+#[test]
+fn build_release_requests_carry_fail_on_duplicate_from_publications() {
+	let fixture_root = duplicate_policy_fixture_path();
+	let configuration = crate::load_workspace_configuration(&fixture_root).expect("configuration");
+	let packages = [
+		duplicate_policy_record("web", "web"),
+		duplicate_policy_record("legacy", "legacy"),
+	];
+	let mut strict_target = monochange_core::PackagePublicationTarget {
+		package: "web".to_string(),
+		ecosystem: Ecosystem::Npm,
+		registry: None,
+		version: "1.0.0".to_string(),
+		mode: PublishMode::Builtin,
+		trusted_publishing: TrustedPublishingSettings::default(),
+		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: true,
+	};
+	let requests = monochange_publish::build_release_requests(
+		&configuration,
+		&packages,
+		&[strict_target.clone()],
+		&BTreeSet::new(),
+	)
+	.expect("requests");
+	assert_eq!(requests.len(), 1);
+	assert!(requests[0].fail_on_duplicate);
+
+	strict_target.fail_on_duplicate = false;
+	strict_target.package = "legacy".to_string();
+	let requests = monochange_publish::build_release_requests(
+		&configuration,
+		&packages,
+		&[strict_target],
+		&BTreeSet::new(),
+	)
+	.expect("requests");
+	assert!(!requests[0].fail_on_duplicate);
 }

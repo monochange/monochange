@@ -1031,6 +1031,7 @@ pub(crate) async fn execute_cli_command_with_options(
 				CliStepDefinition::PublishPackages { .. } => {
 					let selected_packages = selected_package_ids(&step_inputs);
 					let publish_all = boolean_step_input(&step_inputs, "all");
+					let fail_on_duplicate = boolean_step_input(&step_inputs, "fail-on-duplicate");
 					let selected_groups = selected_group_ids(&step_inputs);
 					let selected_ecosystems = selected_ecosystem_ids(&step_inputs)?;
 					let resume_path = optional_publish_resume_artifact_path(&step_inputs)?;
@@ -1073,6 +1074,7 @@ pub(crate) async fn execute_cli_command_with_options(
 							publish_all_configured_packages: publish_all,
 							dry_run: context.dry_run,
 							resume_path: resume_path.as_deref(),
+							fail_on_duplicate,
 							output: package_publish::PublishOutputOptions {
 								stream_output,
 								quiet: context.quiet,

@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/publish_duplicate_version.rs
+expression: "String::from_utf8_lossy(&output.stderr).trim()"
+---
+discovery error: package publishing did not complete: expected 1, succeeded 0, failed 1, skipped 0; failed package tolerant 1.0.0: tolerant 1.0.0 already exists on npm and `publish.fail_on_duplicate` rejects duplicate version publications

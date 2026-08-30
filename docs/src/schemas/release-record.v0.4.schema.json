@@ -401,6 +401,9 @@
 				"ecosystem": {
 					"$ref": "#/$defs/Ecosystem"
 				},
+				"fail_on_duplicate": {
+					"type": "boolean"
+				},
 				"mode": {
 					"$ref": "#/$defs/PublishMode",
 					"default": "builtin"

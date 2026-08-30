@@ -322,6 +322,7 @@ pub(crate) fn build_package_publication_targets(
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
 				timeout: package_definition.publish.timeout.clone(),
+				fail_on_duplicate: package_definition.publish.fail_on_duplicate,
 			})
 		})
 		.collect::<Vec<_>>();

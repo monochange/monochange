@@ -592,6 +592,7 @@ pub struct PublishRequest {
 	pub trusted_publishing: TrustedPublishingSettings,
 	pub attestations: PublishAttestationSettings,
 	pub timeout: PublishTimeoutSettings,
+	pub fail_on_duplicate: bool,
 	pub placeholder_readme: String,
 }
 
@@ -617,6 +618,22 @@ pub fn set_npm_publish_otp_for_requests(requests: &mut [PublishRequest], otp: &s
 		request
 			.package_metadata
 			.insert(NPM_PUBLISH_OTP_METADATA_KEY.to_string(), otp.to_string());
+	}
+}
+
+/// Force the run-level `publish.fail_on_duplicate` policy onto every request.
+///
+/// A `false` value leaves the per-package configuration untouched so the
+/// built-in publishing step only ever strengthens the policy, never disables it.
+pub fn set_fail_on_duplicate_for_requests(
+	requests: &mut [PublishRequest],
+	fail_on_duplicate: bool,
+) {
+	if !fail_on_duplicate {
+		return;
+	}
+	for request in requests {
+		request.fail_on_duplicate = true;
 	}
 }
 
@@ -1074,12 +1091,34 @@ pub async fn try_execute_publish_requests_with_progress(
 				registry = %request.registry,
 				"skipping already-published version"
 			);
+			let message = format!(
+				"{} {} already exists on {}",
+				request.package_name, request.version, request.registry
+			);
+			if request.fail_on_duplicate && mode == PackagePublishRunMode::Release {
+				info!(
+					package_name = request.package_name,
+					version = %request.version,
+					registry = %request.registry,
+					"failing already-published version because publish.fail_on_duplicate is enabled"
+				);
+				let duplicate_message = format!(
+					"{message} and `publish.fail_on_duplicate` rejects duplicate version publications"
+				);
+				primary_error = Some(MonochangeError::Config(duplicate_message.clone()));
+				append_publish_failure_outcomes(
+					&mut outcomes,
+					remaining_requests,
+					mode,
+					request,
+					duplicate_message,
+					progress,
+				);
+				break;
+			}
 			progress.report(PublishProgressEvent::PackageSkipped {
 				package: publish_progress_package(request),
-				message: format!(
-					"{} {} already exists on {}",
-					request.package_name, request.version, request.registry
-				),
+				message: message.clone(),
 			});
 			outcomes.push(PackagePublishOutcome {
 				package: request.package_id.clone(),
@@ -1087,10 +1126,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				registry: request.registry.to_string(),
 				version: request.version.clone(),
 				status: PackagePublishStatus::SkippedExisting,
-				message: format!(
-					"{} {} already exists on {}",
-					request.package_name, request.version, request.registry
-				),
+				message,
 				placeholder: mode == PackagePublishRunMode::Placeholder,
 				trusted_publishing: trust_handler
 					.trust_outcome_for_skip(request, source, root, env_map),
@@ -1431,6 +1467,7 @@ pub fn build_placeholder_requests(
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
 				timeout: package_definition.publish.timeout.clone(),
+				fail_on_duplicate: package_definition.publish.fail_on_duplicate,
 				placeholder_readme: resolve_placeholder_readme(
 					root,
 					package_definition.publish.placeholder.readme.as_deref(),
@@ -1471,6 +1508,7 @@ pub fn configured_package_publication_targets(
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
 				timeout: package_definition.publish.timeout.clone(),
+				fail_on_duplicate: package_definition.publish.fail_on_duplicate,
 			})
 		})
 		.collect()
@@ -1542,6 +1580,7 @@ pub fn build_release_requests(
 			trusted_publishing: publication.trusted_publishing.clone(),
 			attestations: publication.attestations.clone(),
 			timeout: publication.timeout.clone(),
+			fail_on_duplicate: publication.fail_on_duplicate,
 			placeholder_readme: default_placeholder_readme(&package.name),
 		});
 	}
