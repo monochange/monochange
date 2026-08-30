@@ -193,6 +193,7 @@ fn sample_publish_request(
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
 		placeholder_readme: String::new(),
+		fail_on_duplicate: false,
 	}
 }
 
@@ -668,6 +669,7 @@ async fn plan_publish_rate_limits_summarizes_pending_publications_and_batches() 
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
+				fail_on_duplicate: false,
 			},
 			PackagePublicationTarget {
 				package: "docs".to_string(),
@@ -678,6 +680,7 @@ async fn plan_publish_rate_limits_summarizes_pending_publications_and_batches() 
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
+				fail_on_duplicate: false,
 			},
 			PackagePublicationTarget {
 				package: "web".to_string(),
@@ -688,6 +691,7 @@ async fn plan_publish_rate_limits_summarizes_pending_publications_and_batches() 
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
+				fail_on_duplicate: false,
 			},
 		],
 		version: None,
@@ -880,6 +884,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		},
 		PackagePublicationTarget {
 			package: "private".to_string(),
@@ -890,6 +895,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		},
 		PackagePublicationTarget {
 			package: "docs".to_string(),
@@ -900,6 +906,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		},
 	];
 	let requests = package_publish::build_release_requests(
@@ -951,6 +958,7 @@ async fn plan_publish_rate_limits_skips_versions_that_are_already_published() {
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
+				fail_on_duplicate: false,
 			},
 			PackagePublicationTarget {
 				package: "docs".to_string(),
@@ -961,6 +969,7 @@ async fn plan_publish_rate_limits_skips_versions_that_are_already_published() {
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
+				fail_on_duplicate: false,
 			},
 			PackagePublicationTarget {
 				package: "web".to_string(),
@@ -971,6 +980,7 @@ async fn plan_publish_rate_limits_skips_versions_that_are_already_published() {
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
+				fail_on_duplicate: false,
 			},
 		],
 		version: None,
@@ -1394,6 +1404,7 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
 				placeholder_readme: String::new(),
+				fail_on_duplicate: false,
 			}
 		})
 		.collect::<Vec<_>>();
@@ -1524,6 +1535,7 @@ async fn test_sort_requests_by_dependencies_orders_dependencies_first() {
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
 			placeholder_readme: String::new(),
+			fail_on_duplicate: false,
 		},
 		package_publish::PublishRequest {
 			package_id: helper.id.clone(),
@@ -1541,6 +1553,7 @@ async fn test_sort_requests_by_dependencies_orders_dependencies_first() {
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
 			placeholder_readme: String::new(),
+			fail_on_duplicate: false,
 		},
 	];
 	sort_requests_by_dependencies(&mut requests, &packages);
@@ -1602,6 +1615,7 @@ async fn test_sort_requests_by_dependencies_keeps_original_order_on_cycle() {
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
 			placeholder_readme: String::new(),
+			fail_on_duplicate: false,
 		},
 		package_publish::PublishRequest {
 			package_id: b.id.clone(),
@@ -1619,6 +1633,7 @@ async fn test_sort_requests_by_dependencies_keeps_original_order_on_cycle() {
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
 			placeholder_readme: String::new(),
+			fail_on_duplicate: false,
 		},
 	];
 	sort_requests_by_dependencies(&mut requests, &packages);

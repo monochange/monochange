@@ -606,6 +606,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 					timeout_seconds: 90,
 					retries: 3,
 				},
+				fail_on_duplicate: false,
 			},
 			PackagePublicationTarget {
 				package: "web".to_string(),
@@ -616,6 +617,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 				attestations: monochange_core::PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
+				fail_on_duplicate: false,
 			},
 		]
 	);
@@ -658,6 +660,7 @@ fn build_release_manifest_copies_package_publications_from_prepared_release() {
 			trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 			attestations: monochange_core::PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
 		}],
 		dry_run: false,
 	};

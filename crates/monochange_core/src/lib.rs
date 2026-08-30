@@ -2351,6 +2351,8 @@ pub struct PublishSettings {
 	pub timeout: PublishTimeoutSettings,
 	#[serde(default)]
 	pub placeholder: PlaceholderSettings,
+	#[serde(default, skip_serializing_if = "std::ops::Not::not")]
+	pub fail_on_duplicate: bool,
 }
 
 impl Default for PublishSettings {
@@ -2364,6 +2366,7 @@ impl Default for PublishSettings {
 			rate_limits: PublishRateLimitSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
 			placeholder: PlaceholderSettings::default(),
+			fail_on_duplicate: false,
 		}
 	}
 }
@@ -3960,6 +3963,8 @@ pub struct PackagePublicationTarget {
 	pub attestations: PublishAttestationSettings,
 	#[serde(default, skip_serializing_if = "PublishTimeoutSettings::is_default")]
 	pub timeout: PublishTimeoutSettings,
+	#[serde(default, skip_serializing_if = "std::ops::Not::not")]
+	pub fail_on_duplicate: bool,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]

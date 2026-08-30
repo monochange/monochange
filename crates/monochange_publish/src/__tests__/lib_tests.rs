@@ -342,6 +342,7 @@ fn publication_target(package: &str, ecosystem: Ecosystem) -> PackagePublication
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 	}
 }
 
@@ -415,6 +416,7 @@ fn sample_publish_request_for_registry(registry: RegistryKind) -> PublishRequest
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
 	}
 }
@@ -1045,6 +1047,261 @@ async fn real_publish_failure_records_tail_outcomes_and_progress_summary() {
 			published: 1,
 			skipped: 1,
 			failed: 1,
+			..
+		})
+	));
+}
+
+fn npm_published_endpoints(
+	request_count: usize,
+) -> (RegistryEndpoints, std::thread::JoinHandle<()>) {
+	npm_registry_response_endpoints(
+		request_count,
+		b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{\"versions\":{\"1.0.0\":{}}}",
+	)
+}
+
+fn duplicate_publish_request(package: &str, fail_on_duplicate: bool) -> PublishRequest {
+	let mut request = publish_request(package);
+	request.fail_on_duplicate = fail_on_duplicate;
+	request
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn release_run_skips_already_published_version_by_default() {
+	let requests = [duplicate_publish_request("first", false)];
+	let (endpoints, registry_thread) = npm_published_endpoints(1);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor = SequencedCommandExecutor::new([]);
+
+	let report = execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute publish requests: {error}"));
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert_eq!(executor.commands.len(), 0);
+	assert!(matches!(
+		report.packages.first(),
+		Some(
+			outcome @ PackagePublishOutcome {
+				status: PackagePublishStatus::SkippedExisting,
+				placeholder: false,
+				..
+			}
+		)
+		if outcome.message == "first 1.0.0 already exists on npm"
+	));
+	assert_eq!(
+		report.summary(),
+		PackagePublishSummary {
+			expected: 1,
+			succeeded: 0,
+			failed: 0,
+			skipped: 1,
+		}
+	);
+	let events = progress.events.lock().unwrap();
+	assert!(events.iter().any(|event| {
+		matches!(
+			event,
+			PublishProgressEvent::PackageSkipped { package, message }
+				if package.package_name == "first" && message.contains("already exists on npm")
+		)
+	}));
+	assert!(matches!(
+		events.last(),
+		Some(PublishProgressEvent::RunFinished {
+			total: 1,
+			published: 0,
+			skipped: 1,
+			failed: 0,
+			..
+		})
+	));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn release_run_fails_duplicate_versions_when_fail_on_duplicate_is_enabled() {
+	let requests = [
+		duplicate_publish_request("first", true),
+		duplicate_publish_request("tail", false),
+	];
+	let (endpoints, registry_thread) = npm_published_endpoints(1);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor = SequencedCommandExecutor::new([]);
+
+	let failure = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await;
+	let Err(failure) = failure else {
+		panic!("expected duplicate publish failure, got a successful report")
+	};
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert_eq!(executor.commands.len(), 0);
+	let (error, report) = failure.into_parts();
+	assert!(error.to_string().contains("publish.fail_on_duplicate"));
+	assert_eq!(
+		report
+			.packages
+			.iter()
+			.map(|outcome| (outcome.package.as_str(), outcome.status))
+			.collect::<Vec<_>>(),
+		vec![
+			("first", PackagePublishStatus::Failed),
+			("tail", PackagePublishStatus::Blocked)
+		]
+	);
+	assert_eq!(
+		report.summary(),
+		PackagePublishSummary {
+			expected: 2,
+			succeeded: 0,
+			failed: 1,
+			skipped: 1,
+		}
+	);
+	assert!(
+		report.packages[0]
+			.message
+			.contains("first 1.0.0 already exists on npm and `publish.fail_on_duplicate` rejects")
+	);
+	assert!(
+		report.packages[1]
+			.message
+			.contains("publishing first 1.0.0 failed earlier")
+	);
+	let events = progress.events.lock().unwrap();
+	assert!(events.iter().any(|event| {
+		matches!(
+			event,
+			PublishProgressEvent::PackageFailed { package, message }
+				if package.package_name == "first"
+					&& message.contains("publish.fail_on_duplicate")
+		)
+	}));
+	assert!(matches!(
+		events.last(),
+		Some(PublishProgressEvent::RunFinished {
+			total: 2,
+			published: 0,
+			skipped: 1,
+			failed: 1,
+			..
+		})
+	));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dry_run_release_fails_duplicate_versions_when_fail_on_duplicate_is_enabled() {
+	let requests = [duplicate_publish_request("first", true)];
+	let (endpoints, registry_thread) = npm_published_endpoints(1);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor = SequencedCommandExecutor::new([]);
+
+	let failure = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		true,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await;
+	let Err(failure) = failure else {
+		panic!("expected duplicate publish failure, got a successful report")
+	};
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert_eq!(executor.commands.len(), 0);
+	let (_, report) = failure.into_parts();
+	assert!(matches!(
+		report.packages.first(),
+		Some(PackagePublishOutcome {
+			status: PackagePublishStatus::Failed,
+			..
+		})
+	));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn placeholder_run_keeps_skipping_already_published_versions_with_fail_on_duplicate() {
+	let mut request = duplicate_publish_request("first", true);
+	request.version = PLACEHOLDER_VERSION.to_string();
+	request.placeholder = true;
+	let (endpoints, registry_thread) = npm_published_endpoints(1);
+	let mut executor = SequencedCommandExecutor::new([]);
+
+	let report = execute_publish_requests(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Placeholder,
+		true,
+		&[request],
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute publish requests: {error}"));
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert_eq!(executor.commands.len(), 0);
+	assert!(matches!(
+		report.packages.first(),
+		Some(PackagePublishOutcome {
+			status: PackagePublishStatus::SkippedExisting,
+			placeholder: true,
 			..
 		})
 	));
@@ -2211,6 +2468,7 @@ fn publish_order_request_for_package(package: &PackageRecord) -> PublishRequest 
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 		placeholder_readme: String::new(),
 	}
 }
@@ -2231,6 +2489,7 @@ fn publish_order_request(package: &str) -> PublishRequest {
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 		placeholder_readme: String::new(),
 	}
 }
@@ -2305,6 +2564,7 @@ fn cargo_publish_request() -> PublishRequest {
 		},
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 		placeholder_readme: String::new(),
 	}
 }

@@ -1008,6 +1008,7 @@ fn npm_trust_command_wraps_npm_with_pnpm_for_pnpm_managed_packages() {
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
 	};
 	let context = GitHubTrustContext {

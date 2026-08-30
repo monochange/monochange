@@ -1,0 +1,10 @@
+[package.tolerant]
+path = "packages/tolerant"
+type = "npm"
+
+[package.strict]
+path = "packages/strict"
+type = "npm"
+
+[package.strict.publish]
+fail_on_duplicate = true

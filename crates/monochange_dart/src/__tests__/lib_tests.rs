@@ -99,6 +99,7 @@ fn sample_publish_request(root: &Path) -> PublishRequest {
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
 		placeholder_readme: String::new(),
 	}
 }

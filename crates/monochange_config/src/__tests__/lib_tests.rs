@@ -4251,6 +4251,23 @@ fn load_workspace_configuration_merges_trusted_publishing_details() {
 }
 
 #[test]
+fn load_workspace_configuration_merges_publish_fail_on_duplicate() {
+	let root = fixture_path("config/publish-fail-on-duplicate");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let web = configuration
+		.package_by_id("web")
+		.unwrap_or_else(|| panic!("expected web package"));
+	assert!(web.publish.fail_on_duplicate);
+
+	let legacy = configuration
+		.package_by_id("legacy")
+		.unwrap_or_else(|| panic!("expected legacy package"));
+	assert!(!legacy.publish.fail_on_duplicate);
+}
+
+#[test]
 fn load_workspace_configuration_rejects_builtin_publish_registry_override() {
 	let root = fixture_path("config/rejects-publish-builtin-registry-override");
 	let error = load_workspace_configuration(&root)
