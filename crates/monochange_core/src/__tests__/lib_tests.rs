@@ -1877,6 +1877,7 @@ fn valid_input_names_returns_expected_names_for_display_and_publish_steps() {
 				"resume",
 				"all",
 				"stream-output",
+				"fail-on-duplicate",
 			]
 			.as_slice()
 		)

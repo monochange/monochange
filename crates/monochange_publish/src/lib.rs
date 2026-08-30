@@ -621,6 +621,22 @@ pub fn set_npm_publish_otp_for_requests(requests: &mut [PublishRequest], otp: &s
 	}
 }
 
+/// Force the run-level `publish.fail_on_duplicate` policy onto every request.
+///
+/// A `false` value leaves the per-package configuration untouched so the
+/// built-in publishing step only ever strengthens the policy, never disables it.
+pub fn set_fail_on_duplicate_for_requests(
+	requests: &mut [PublishRequest],
+	fail_on_duplicate: bool,
+) {
+	if !fail_on_duplicate {
+		return;
+	}
+	for request in requests {
+		request.fail_on_duplicate = true;
+	}
+}
+
 fn npm_publish_env(request: &PublishRequest) -> BTreeMap<String, String> {
 	let mut env = BTreeMap::new();
 	if let Some(otp) = request.package_metadata.get(NPM_PUBLISH_OTP_METADATA_KEY) {

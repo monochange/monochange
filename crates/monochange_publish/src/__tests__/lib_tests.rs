@@ -1061,6 +1061,36 @@ fn npm_published_endpoints(
 	)
 }
 
+#[test]
+fn set_fail_on_duplicate_for_requests_forces_the_policy_onto_every_request() {
+	let requests = vec![
+		duplicate_publish_request("configured", false),
+		duplicate_publish_request("already-configured", true),
+	];
+
+	let mut requests = requests;
+	set_fail_on_duplicate_for_requests(&mut requests, true);
+	assert!(requests.iter().all(|request| request.fail_on_duplicate));
+}
+
+#[test]
+fn set_fail_on_duplicate_for_requests_without_the_flag_keeps_configuration() {
+	let mut requests = vec![
+		duplicate_publish_request("configured", false),
+		duplicate_publish_request("already-configured", true),
+	];
+
+	set_fail_on_duplicate_for_requests(&mut requests, false);
+
+	assert_eq!(
+		requests
+			.iter()
+			.map(|request| request.fail_on_duplicate)
+			.collect::<Vec<_>>(),
+		vec![false, true]
+	);
+}
+
 fn duplicate_publish_request(package: &str, fail_on_duplicate: bool) -> PublishRequest {
 	let mut request = publish_request(package);
 	request.fail_on_duplicate = fail_on_duplicate;

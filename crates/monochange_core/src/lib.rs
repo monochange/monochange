@@ -3466,6 +3466,7 @@ impl CliStepDefinition {
 					"resume",
 					"all",
 					"stream-output",
+					"fail-on-duplicate",
 				])
 			}
 			Self::PlanPublishRateLimits { .. } => {
@@ -3604,7 +3605,7 @@ impl CliStepDefinition {
 					"format" => Some(CliInputKind::Choice),
 					"package" => Some(CliInputKind::StringList),
 					"output" | "resume" => Some(CliInputKind::Path),
-					"all" | "stream-output" => Some(CliInputKind::Boolean),
+					"all" | "stream-output" | "fail-on-duplicate" => Some(CliInputKind::Boolean),
 					_ => None,
 				}
 			}
