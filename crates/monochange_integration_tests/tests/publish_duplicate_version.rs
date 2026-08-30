@@ -69,6 +69,23 @@ fn publish_packages_command(root: &Path, registry_port: u16, package: &str) -> C
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
 	command.env("MONOCHANGE_NO_PROGRESS", "1");
+	// GitHub Actions runner environment must not leak into the trusted
+	// publishing snapshot; `GITHUB_REPOSITORY` and `GITHUB_WORKFLOW_REF` would
+	// otherwise flip the `tolerant` outcome from `manual_action_required` to
+	// `configured` on CI while local runs commit the manual variant.
+	for env_var in [
+		"GITHUB_ACTIONS",
+		"GITHUB_REPOSITORY",
+		"GITHUB_WORKFLOW",
+		"GITHUB_WORKFLOW_REF",
+		"GITHUB_ENVIRONMENT",
+		"GITHUB_JOB",
+		"GITHUB_RUN_ID",
+		"GITHUB_REF_NAME",
+		"MONOCHANGE_TRUSTED_PUBLISHING_ENVIRONMENT",
+	] {
+		command.env_remove(env_var);
+	}
 	command.env(
 		"MONOCHANGE_NPM_REGISTRY_URL",
 		format!("http://127.0.0.1:{registry_port}"),
