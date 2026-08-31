@@ -1,0 +1,22 @@
+---
+source: crates/monochange_integration_tests/tests/dart_trusted_publishing.rs
+assertion_line: 335
+expression: "outcomes[0]"
+---
+{
+  "ecosystem": "dart",
+  "message": "would publish placeholder dart_pkg 0.0.0 to pub_dev",
+  "package": "dart_pkg",
+  "placeholder": true,
+  "registry": "pub_dev",
+  "status": "planned",
+  "trusted_publishing": {
+    "environment": null,
+    "message": "configure trusted publishing manually for `dart_pkg` before the next built-in release publish; open https://pub.dev/packages/dart_pkg/admin and finish the GitHub context setup first: config error: trusted publishing could not determine the GitHub workflow; set `publish.trusted_publishing.workflow`. No supported CI provider identity was detected for pub_dev trusted publishing; supported providers: GitHub Actions, Google Cloud Build.",
+    "repository": null,
+    "setup_url": "https://pub.dev/packages/dart_pkg/admin",
+    "status": "manual_action_required",
+    "workflow": null
+  },
+  "version": "0.0.0"
+}

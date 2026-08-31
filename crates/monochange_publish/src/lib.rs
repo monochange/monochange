@@ -42,8 +42,17 @@ use tempfile::TempDir;
 use tracing::info;
 use urlencoding::encode;
 
+pub mod oidc;
 mod rate_limits;
 
+pub use oidc::ACTIONS_ID_TOKEN_REQUEST_TOKEN_ENV;
+pub use oidc::ACTIONS_ID_TOKEN_REQUEST_URL_ENV;
+pub use oidc::ActionsOidcContext;
+pub use oidc::PUB_DEV_AUDIENCE;
+pub use oidc::PUB_TOKEN_ENV_VAR;
+pub use oidc::actions_id_token_request_url;
+pub use oidc::actions_oidc_context;
+pub use oidc::mint_actions_id_token;
 pub use rate_limits::PYPI_TRUSTED_PUBLISHERS_DOCS;
 pub use rate_limits::plan_rate_limit_batches;
 pub use rate_limits::plan_rate_limit_window;
@@ -1284,6 +1293,36 @@ pub async fn try_execute_publish_requests_with_progress(
 					"{warning}"
 				);
 			}
+			if request.registry == RegistryKind::PubDev
+				&& request.trusted_publishing.enabled
+				&& let Err(error) = refresh_pub_dev_trusted_publishing_token(
+					client,
+					env_map,
+					executor,
+					request,
+					&mut publish_command,
+				)
+				.await
+			{
+				tracing::error!(
+					package_name = request.package_name,
+					version = %request.version,
+					registry = %request.registry,
+					error = %error,
+					"failed to refresh the pub.dev trusted publishing token"
+				);
+				let message = error.render();
+				primary_error = Some(error);
+				append_publish_failure_outcomes(
+					&mut outcomes,
+					remaining_requests,
+					mode,
+					request,
+					message,
+					progress,
+				);
+				break;
+			}
 		}
 		let output = match run_publish_command_with_retries(executor, &publish_command, request) {
 			Ok(output) => output,
@@ -1984,6 +2023,86 @@ pub fn dart_protected_publishing_warning(
 		request.package_name,
 		dart_protected_publishing_guidance()
 	))
+}
+
+/// Build the `dart pub token add` command that stores a pub.dev credential
+/// referencing the `PUB_TOKEN` environment variable.
+fn build_dart_pub_token_add_command(cwd: &Path) -> CommandSpec {
+	CommandSpec {
+		program: "dart".to_string(),
+		args: vec![
+			"pub".to_string(),
+			"token".to_string(),
+			"add".to_string(),
+			PUB_DEV_AUDIENCE.to_string(),
+			"--env-var".to_string(),
+			PUB_TOKEN_ENV_VAR.to_string(),
+		],
+		cwd: cwd.to_path_buf(),
+		env: BTreeMap::new(),
+		timeout: None,
+	}
+}
+
+/// Mint a fresh GitHub Actions OIDC token right before the pub.dev publish
+/// command runs and register it with the pub token store.
+///
+/// `dart-lang/setup-dart` performs this exchange once during workflow setup,
+/// but GitHub OIDC tokens expire after five minutes and multi-ecosystem
+/// publish runs can reach the dart step later than that. Minting here keeps
+/// the mint-to-publish gap to seconds.
+///
+/// Steps:
+///
+/// 1. Detect the runner-provided OIDC endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL`
+///    plus `ACTIONS_ID_TOKEN_REQUEST_TOKEN`). Runs missing either variable,
+///    for example outside GitHub Actions or without the ID-token permission,
+///    are left untouched.
+/// 2. Mint an audience-`https://pub.dev` JWT and export it as `PUB_TOKEN` in
+///    the publish command's environment.
+/// 3. Run `dart pub token add https://pub.dev --env-var PUB_TOKEN` so the pub
+///    client reads the fresh token from `PUB_TOKEN` at publish time (the
+///    client reads the env var per request and deletes stale credentials on
+///    auth failures, so re-registering is idempotent and self-healing).
+pub async fn refresh_pub_dev_trusted_publishing_token(
+	client: &Client,
+	env_map: &BTreeMap<String, String>,
+	executor: &mut dyn CommandExecutor,
+	request: &PublishRequest,
+	publish_command: &mut CommandSpec,
+) -> MonochangeResult<()> {
+	let Some(context) = actions_oidc_context(env_map) else {
+		return Ok(());
+	};
+
+	let token = mint_actions_id_token(client, &context)
+		.await
+		.map_err(|error| {
+			MonochangeError::Io(format!(
+				"refreshing the pub.dev trusted publishing token for package `{}` failed: {}",
+				request.package_name,
+				error.render()
+			))
+		})?;
+
+	publish_command
+		.env
+		.insert(PUB_TOKEN_ENV_VAR.to_string(), token.clone());
+
+	let mut token_add_command = build_dart_pub_token_add_command(&request.package_root);
+	token_add_command
+		.env
+		.insert(PUB_TOKEN_ENV_VAR.to_string(), token);
+	let output = executor.run(&token_add_command)?;
+	if !output.success {
+		return Err(MonochangeError::Io(format!(
+			"`{}` in {} failed: {}. monochange registers the fresh pub.dev OIDC token before every trusted publish, so the pub token store must be writable for the publishing user.",
+			render_command(&token_add_command),
+			token_add_command.cwd.display(),
+			render_command_error(&output),
+		)));
+	}
+	Ok(())
 }
 
 fn process_command_error(

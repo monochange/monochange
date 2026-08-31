@@ -1,0 +1,13 @@
+[source]
+provider = "github"
+owner = "monochange"
+repo = "monochange"
+
+[package.dart_pkg]
+path = "packages/dart-pkg"
+type = "dart"
+
+[package.dart_pkg.publish]
+enabled = true
+mode = "builtin"
+trusted_publishing = true
