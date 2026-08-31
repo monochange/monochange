@@ -185,7 +185,7 @@ help_text = "Prepare a release and publish provider releases"
 [[cli.publish-release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.publish-release.steps]]
@@ -204,7 +204,7 @@ help_text = "Prepare a release and open or update a provider release request"
 [[cli.release-pr.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release-pr.steps]]

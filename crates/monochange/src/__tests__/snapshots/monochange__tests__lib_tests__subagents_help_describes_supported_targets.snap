@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/src/__tests__/lib_tests.rs
-assertion_line: 1208
 expression: output
 ---
 Generate repo-local monochange subagents and agent guidance files
@@ -14,7 +13,7 @@ Options:
       --all              Generate files for all supported targets
       --force            Overwrite generated files that already exist with different contents
       --dry-run          Preview the generated files without writing them
-      --format <format>  Output format for the generated subagent plan [default: markdown] [possible values: text, json, markdown, md]
+      --format <format>  Output format for the generated subagent plan [default: markdown] [possible values: text, json, json-min, markdown, md]
       --sha              Output only the commit SHA of the discovered release record
       --no-mcp           Skip repo-local MCP config files for supported targets
   -h, --help             Print help

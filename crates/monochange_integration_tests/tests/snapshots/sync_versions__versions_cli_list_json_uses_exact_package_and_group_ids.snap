@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/sync_versions.rs
-assertion_line: 300
 expression: value
 ---
 {

@@ -41,6 +41,7 @@ use semver::Version;
 use tempfile::tempdir;
 
 use crate::CliContext;
+use crate::OutputFormat;
 use crate::PreparedFileDiff;
 use crate::SnapshotRequest;
 use crate::add_change_file;
@@ -3518,7 +3519,8 @@ fn render_config_step_json_falls_back_to_uncanonicalized_root() {
 		.unwrap_or_else(|error| panic!("config: {error}"));
 	let missing_root = tempdir.path().join("missing-root");
 
-	let output = crate::render_config_step_json(&missing_root, &configuration);
+	let output = crate::render_config_step_json(&missing_root, &configuration, OutputFormat::Json)
+		.unwrap_or_else(|error| panic!("config json: {error}"));
 	let parsed: serde_json::Value =
 		serde_json::from_str(&output).unwrap_or_else(|error| panic!("config json: {error}"));
 
@@ -13970,7 +13972,7 @@ fn format_publish_state_and_source_operation_labels_are_stable() {
 }
 
 #[test]
-fn parse_output_format_accepts_markdown_text_and_json_and_rejects_invalid_values() {
+fn parse_output_format_accepts_markdown_text_json_and_json_min_and_rejects_invalid_values() {
 	assert_eq!(
 		crate::parse_output_format("markdown").unwrap(),
 		crate::OutputFormat::Markdown
@@ -13987,10 +13989,74 @@ fn parse_output_format_accepts_markdown_text_and_json_and_rejects_invalid_values
 		crate::parse_output_format("json").unwrap(),
 		crate::OutputFormat::Json
 	);
+	assert_eq!(
+		crate::parse_output_format("json-min").unwrap(),
+		crate::OutputFormat::JsonMin
+	);
 	let error = crate::parse_output_format("yaml")
 		.err()
 		.unwrap_or_else(|| panic!("expected output format error"));
 	assert!(error.to_string().contains("unsupported output format"));
+}
+
+#[test]
+fn output_format_jjson_only_for_json_and_json_min() {
+	assert!(crate::OutputFormat::Json.is_json());
+	assert!(crate::OutputFormat::JsonMin.is_json());
+	assert!(!crate::OutputFormat::Markdown.is_json());
+	assert!(!crate::OutputFormat::Text.is_json());
+}
+
+#[test]
+fn render_json_value_json_min_is_minified_and_json_is_pretty() {
+	let value = serde_json::json!({"release_targets": [{"id": "core"}], "dry_run": true});
+
+	let minified = crate::OutputFormat::JsonMin
+		.render_json_value(&value, "release summary")
+		.unwrap_or_else(|error| panic!("render json-min: {error}"));
+	assert_eq!(
+		minified,
+		"{\"dry_run\":true,\"release_targets\":[{\"id\":\"core\"}]}"
+	);
+	assert!(!minified.contains('\n'));
+
+	let pretty = crate::OutputFormat::Json
+		.render_json_value(&value, "release summary")
+		.unwrap_or_else(|error| panic!("render json: {error}"));
+	assert!(pretty.contains('\n'));
+
+	let reparsed: serde_json::Value = serde_json::from_str(&minified)
+		.unwrap_or_else(|error| panic!("json-min must stay parseable: {error}"));
+	assert_eq!(
+		reparsed["release_targets"][0]["id"],
+		serde_json::json!("core")
+	);
+}
+
+#[test]
+fn render_json_value_reports_context_on_serialization_failure() {
+	struct BrokenSerialize;
+
+	impl serde::Serialize for BrokenSerialize {
+		fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: serde::Serializer,
+		{
+			Err(serde::ser::Error::custom("broken serialize"))
+		}
+	}
+
+	for format in [crate::OutputFormat::Json, crate::OutputFormat::JsonMin] {
+		let error = format
+			.render_json_value(&BrokenSerialize, "json-min report")
+			.err()
+			.unwrap_or_else(|| panic!("expected serialization error"));
+		assert!(
+			error
+				.to_string()
+				.contains("failed to render json-min report as json")
+		);
+	}
 }
 
 #[test]
@@ -14164,6 +14230,16 @@ fn render_discovery_report_supports_json_and_text_formats() {
 		.unwrap_or_else(|error| panic!("json discovery: {error}"));
 	assert!(json.contains("\"workspace_root\""));
 	assert!(json.contains("\"warning text\""));
+
+	let json_min = crate::render_discovery_report(&report, crate::OutputFormat::JsonMin)
+		.unwrap_or_else(|error| panic!("json-min discovery: {error}"));
+	let parsed_json: serde_json::Value =
+		serde_json::from_str(&json).unwrap_or_else(|error| panic!("parse json discovery: {error}"));
+	let parsed_json_min: serde_json::Value = serde_json::from_str(&json_min)
+		.unwrap_or_else(|error| panic!("parse json-min discovery: {error}"));
+	assert_eq!(parsed_json, parsed_json_min);
+	assert!(!json_min.contains('\n'));
+	assert!(json_min.contains("\"warning text\""));
 
 	let text = crate::render_discovery_report(&report, crate::OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("text discovery: {error}"));

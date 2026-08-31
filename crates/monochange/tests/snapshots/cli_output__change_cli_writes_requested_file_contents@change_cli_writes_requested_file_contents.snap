@@ -3,6 +3,7 @@ source: crates/monochange/tests/cli_output.rs
 info:
   program: monochange
   args:
+    - run
     - change
     - "--package"
     - core
@@ -11,8 +12,9 @@ info:
     - "--reason"
     - document cli snapshots
     - "--output"
-    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpgLg4ZB/feature.md
+    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmp5zH9CW/feature.md
   env:
+    MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---

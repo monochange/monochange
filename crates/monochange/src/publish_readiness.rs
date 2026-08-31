@@ -600,8 +600,9 @@ fn render_report(
 	format: OutputFormat,
 ) -> MonochangeResult<String> {
 	match format {
-		OutputFormat::Json => {
-			serde_json::to_string_pretty(report)
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format
+				.render_json_value(report, "publish readiness report")
 				.map(|mut body| {
 					body.push('\n');
 					body

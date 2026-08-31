@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/json_plain_output.rs
+expression: json_release_summary(&minified_json)
+---
+{
+  "command": "release",
+  "dry_run": true,
+  "released_packages": [
+    "core"
+  ],
+  "version": "0.1.1"
+}

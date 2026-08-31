@@ -395,7 +395,7 @@ help_text = "Discover packages across supported ecosystems"
 [[cli.discover.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.discover.steps]]
@@ -452,7 +452,7 @@ help_text = "Prepare a release from discovered change files"
 [[cli.release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release.steps]]
@@ -466,7 +466,7 @@ help_text = "Prepare a release and publish provider releases"
 [[cli.publish-release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.publish-release.steps]]
@@ -485,7 +485,7 @@ help_text = "Prepare a release and open or update a provider release request"
 [[cli.release-pr.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release-pr.steps]]
@@ -504,7 +504,7 @@ help_text = "Evaluate pull-request changeset policy"
 [[cli.affected.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.affected.inputs]]

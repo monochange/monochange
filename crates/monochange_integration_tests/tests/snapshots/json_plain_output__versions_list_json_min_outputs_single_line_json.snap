@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/json_plain_output.rs
+expression: stdout
+---
+{"core":"0.1.0"}

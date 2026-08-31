@@ -1,11 +1,11 @@
 ---
 source: crates/monochange/tests/cli_main_binary.rs
-assertion_line: 21
 info:
   program: monochange
   args:
     - "--help"
   env:
+    MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
 ---
 success: true

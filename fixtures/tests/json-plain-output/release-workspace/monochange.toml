@@ -1,0 +1,27 @@
+[defaults]
+parent_bump = "patch"
+package_type = "cargo"
+changelog = "{{ path }}/changelog.md"
+
+[package.core]
+path = "crates/core"
+
+[ecosystems.cargo]
+enabled = true
+
+[cli.release]
+help_text = "Plan a release from pending change files"
+inputs = [
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+]
+
+[[cli.release.steps]]
+type = "PrepareRelease"
+inputs = ["format"]
+
+[cli.versions-inventory]
+inputs = [{ name = "format", type = "choice", choices = ["text", "json", "json-min"], default = "text" }]
+
+[[cli.versions-inventory.steps]]
+type = "DisplayVersions"
+inputs = ["format"]

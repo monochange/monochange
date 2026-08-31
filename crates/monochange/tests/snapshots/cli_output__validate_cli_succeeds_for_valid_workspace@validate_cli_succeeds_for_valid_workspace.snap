@@ -3,8 +3,10 @@ source: crates/monochange/tests/cli_output.rs
 info:
   program: monochange
   args:
-    - "step validate"
+    - step
+    - validate
   env:
+    MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---

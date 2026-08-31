@@ -41,7 +41,7 @@ Use the array shorthand when a step should inherit command inputs unchanged:
 ```toml
 [cli.discover]
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json"], default = "text" },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min"], default = "text" },
 ]
 steps = [
 	{ type = "Discover", inputs = ["format"] },
@@ -53,7 +53,7 @@ Use the map form when a step needs fixed values, renamed values, templates, or a
 ```toml
 [cli.release-pr]
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json", "markdown"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
 	{ name = "open_as_draft", type = "boolean", default = false },
 ]
 steps = [
@@ -160,7 +160,7 @@ help_text = "Discover packages across supported ecosystems"
 [[cli.discover.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.discover.steps]]
@@ -241,7 +241,7 @@ help_text = "Prepare a release from discovered change files"
 [[cli.release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release.steps]]
@@ -260,7 +260,7 @@ help_text = "Prepare a release and create a local release commit"
 [[cli.commit-release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.commit-release.steps]]
@@ -282,7 +282,7 @@ help_text = "Prepare a release and publish hosted releases"
 [[cli.publish-release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.publish-release.steps]]
@@ -305,7 +305,7 @@ help_text = "Prepare a release and open or update a release request"
 [[cli.release-pr.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release-pr.steps]]
@@ -346,7 +346,7 @@ help_text = "Publish a release and comment on linked issues"
 [[cli.publish-and-comment.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.publish-and-comment.steps]]
@@ -372,7 +372,7 @@ help_text = "Evaluate pull-request changeset policy"
 [[cli.affected.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.affected.inputs]]
@@ -404,7 +404,7 @@ help_text = "Inspect changeset context and provenance"
 [[cli.diagnostics.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.diagnostics.inputs]]
@@ -447,7 +447,7 @@ default = "true"
 [[cli.repair-release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.repair-release.steps]]
@@ -481,7 +481,7 @@ help_text = "Prepare a release and print a custom summary"
 [[cli.release-with-notes.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release-with-notes.steps]]

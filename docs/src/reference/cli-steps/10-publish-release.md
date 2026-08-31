@@ -67,7 +67,7 @@ help_text = "Prepare a release and publish hosted releases"
 [[cli.publish-release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.publish-release.steps]]
@@ -94,7 +94,7 @@ help_text = "Publish a release and comment on linked issues"
 [[cli.publish-and-comment.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.publish-and-comment.steps]]

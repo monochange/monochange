@@ -10,10 +10,11 @@ info:
   env:
     GITHUB_JOB: release
     GITHUB_WORKFLOW_REF: ifiokjr/monochange/.github/workflows/publish.yml@refs/heads/main
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:62402"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:62402"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:62402"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:62402"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:60995"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:60995"
+    MONOCHANGE_NO_PROGRESS: "1"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:60995"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:60995"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---

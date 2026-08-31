@@ -91,7 +91,7 @@ help_text = "Prepare a release from discovered change files"
 [[cli.release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release.steps]]
@@ -114,7 +114,7 @@ help_text = "Prepare a release and print a custom summary"
 [[cli.release-with-notes.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release-with-notes.steps]]

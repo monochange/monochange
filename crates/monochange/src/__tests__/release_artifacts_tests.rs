@@ -681,6 +681,7 @@ fn render_release_cli_command_json_includes_publish_rate_limits_when_present() {
 		display_diff: "--- a/Cargo.toml\n+++ b/Cargo.toml\n-old\n+new".to_string(),
 	}];
 	let json = render_release_cli_command_json(
+		OutputFormat::Json,
 		&manifest,
 		&ReleaseCliJsonSections {
 			releases: &[],

@@ -106,6 +106,7 @@ pub(crate) fn parse_change_classify_options(
 				options.format = match value.as_str() {
 					"markdown" | "md" => OutputFormat::Markdown,
 					"json" => OutputFormat::Json,
+					"json-min" => OutputFormat::JsonMin,
 					"text" => OutputFormat::Text,
 					other => {
 						return Err(MonochangeError::Config(format!(
@@ -192,6 +193,7 @@ fn parse_api_options(
 				options.format = match value.as_str() {
 					"markdown" | "md" => OutputFormat::Markdown,
 					"json" => OutputFormat::Json,
+					"json-min" => OutputFormat::JsonMin,
 					"text" => OutputFormat::Text,
 					other => {
 						return Err(MonochangeError::Config(format!(
@@ -256,6 +258,7 @@ pub(crate) fn parse_changeset_validate_api_options(
 				options.format = match value.as_str() {
 					"markdown" | "md" => OutputFormat::Markdown,
 					"json" => OutputFormat::Json,
+					"json-min" => OutputFormat::JsonMin,
 					"text" => OutputFormat::Text,
 					other => {
 						return Err(MonochangeError::Config(format!(
@@ -290,7 +293,7 @@ pub(crate) fn render_changeset_api_validation(
 	options: &ClassifyOptions,
 ) -> MonochangeResult<String> {
 	let output = render_change_classification(root, options)?;
-	if matches!(options.format, OutputFormat::Json) {
+	if options.format.is_json() {
 		return Ok(output);
 	}
 
@@ -311,7 +314,11 @@ pub(crate) fn render_change_classification(
 	let analysis = monochange_analysis::analyze_changes(root, &frame, &AnalysisConfig::default())?;
 	let report = classification_report(&analysis, options.dependency_propagation);
 	let output = match options.format {
-		OutputFormat::Json => serde_json::to_string_pretty(&report).unwrap_or_default(),
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			options
+				.format
+				.render_json_value(&report, "change classification")?
+		}
 		OutputFormat::Markdown | OutputFormat::Text => render_markdown_report(&report),
 	};
 

@@ -215,11 +215,12 @@ pub(crate) fn run_check_command(
 	}
 
 	match format {
-		OutputFormat::Json => {
+		OutputFormat::Json | OutputFormat::JsonMin => {
 			if validation_has_errors {
 				return Err(MonochangeError::Config(format!("check failed:\n{output}")));
 			}
-			Ok(serde_json::to_string_pretty(&report)
+			Ok(format
+				.render_json_value(&report, "lint report")
 				.unwrap_or_else(|error| panic!("serializing lint reports should succeed: {error}")))
 		}
 		OutputFormat::Text | OutputFormat::Markdown => {
@@ -281,12 +282,16 @@ pub(crate) fn render_lint_catalog(format: OutputFormat) -> MonochangeResult<Stri
 	let rules = available_lint_rules();
 	let presets = available_lint_presets();
 	match format {
-		OutputFormat::Json => {
-			Ok(serde_json::to_string_pretty(&serde_json::json!({
-				"rules": rules,
-				"presets": presets,
-			}))
-			.unwrap_or_else(|error| panic!("serializing lint catalog should succeed: {error}")))
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			Ok(format
+				.render_json_value(
+					&serde_json::json!({
+						"rules": rules,
+						"presets": presets,
+					}),
+					"lint catalog",
+				)
+				.unwrap_or_else(|error| panic!("serializing lint catalog should succeed: {error}")))
 		}
 		OutputFormat::Text | OutputFormat::Markdown => {
 			let mut output = String::new();
@@ -315,10 +320,8 @@ pub(crate) fn render_lint_catalog(format: OutputFormat) -> MonochangeResult<Stri
 pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> MonochangeResult<String> {
 	if let Some(rule) = explain_lint_rule(id) {
 		return match format {
-			OutputFormat::Json => {
-				Ok(serde_json::to_string_pretty(&rule).unwrap_or_else(|error| {
-					panic!("serializing lint rule explanations should succeed: {error}")
-				}))
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				format.render_json_value(&rule, "lint rule explanation")
 			}
 			OutputFormat::Text | OutputFormat::Markdown => {
 				let mut output = String::new();
@@ -342,12 +345,12 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 
 	if let Some(preset) = explain_lint_preset(id) {
 		return match format {
-			OutputFormat::Json => {
-				Ok(
-					serde_json::to_string_pretty(&preset).unwrap_or_else(|error| {
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				Ok(format
+					.render_json_value(&preset, "lint preset explanation")
+					.unwrap_or_else(|error| {
 						panic!("serializing lint preset explanations should succeed: {error}")
-					}),
-				)
+					}))
 			}
 			OutputFormat::Text | OutputFormat::Markdown => {
 				let mut output = String::new();

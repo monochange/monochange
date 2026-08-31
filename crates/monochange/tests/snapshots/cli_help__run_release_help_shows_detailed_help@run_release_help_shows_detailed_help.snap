@@ -26,7 +26,7 @@ Release Options:
       --prepared-release <PATH>  Read or write the prepared release artifact at a specific path
 
 Options:
-      --format <FORMAT>             [default: markdown] [possible values: text, json, markdown]
+      --format <FORMAT>             [default: markdown] [possible values: text, json, json-min, markdown]
       --no-verify[=<NO_VERIFY>]     [default: true] [possible values: true, false]
       --commit                      Whether to commit the changes
       --create-pr                   Whether to create the PR after the commit

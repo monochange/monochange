@@ -3515,13 +3515,13 @@ impl CliStepDefinition {
 			| Self::PlaceholderPublish { .. }
 			| Self::PublishPackages { .. } => {
 				match name {
-					"format" => Some(&["text", "json", "md"]),
+					"format" => Some(&["text", "json", "json-min", "md"]),
 					_ => None,
 				}
 			}
 			Self::PlanPublishRateLimits { .. } => {
 				match name {
-					"format" => Some(&["text", "json", "md"]),
+					"format" => Some(&["text", "json", "json-min", "md"]),
 					"mode" => Some(&["publish", "placeholder"]),
 					"ci" => Some(&["github-actions", "gitlab-ci"]),
 					_ => None,

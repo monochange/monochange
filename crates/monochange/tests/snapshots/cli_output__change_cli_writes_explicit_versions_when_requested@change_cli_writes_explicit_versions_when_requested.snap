@@ -3,6 +3,7 @@ source: crates/monochange/tests/cli_output.rs
 info:
   program: monochange
   args:
+    - run
     - change
     - "--package"
     - core
@@ -13,8 +14,9 @@ info:
     - "--reason"
     - promote to stable
     - "--output"
-    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpXD2ZvE/versioned.md
+    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpWthcH4/versioned.md
   env:
+    MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---

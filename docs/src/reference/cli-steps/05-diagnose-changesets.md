@@ -78,7 +78,7 @@ help_text = "Inspect changeset context and provenance"
 [[cli.diagnostics.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.diagnostics.inputs]]

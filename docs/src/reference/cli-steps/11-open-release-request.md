@@ -82,7 +82,7 @@ help_text = "Prepare a release and open or update a release request"
 [[cli.release-pr.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.release-pr.steps]]

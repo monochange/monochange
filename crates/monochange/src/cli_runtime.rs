@@ -331,7 +331,7 @@ pub(crate) async fn write_release_manifest_file(
 ) -> MonochangeResult<PathBuf> {
 	let resolved_path = resolve_config_path(root, path);
 	ensure_monochange_artifact_ignored(root, &resolved_path).await?;
-	let rendered = render_release_manifest_json(manifest)?;
+	let rendered = render_release_manifest_json(OutputFormat::Json, manifest)?;
 	let update = FileUpdate {
 		path: resolved_path.clone(),
 		content: rendered.into_bytes(),
@@ -751,7 +751,11 @@ pub(crate) async fn execute_cli_command_with_options(
 			match step {
 				CliStepDefinition::Config { .. } => {
 					output = if matches!(cli_command.name.as_str(), "config" | "step config") {
-						Some(render_config_step_json(root, configuration))
+						Some(render_config_step_json(
+							root,
+							configuration,
+							cli_command_output_format(&step_inputs)?,
+						)?)
 					} else {
 						None
 					};
@@ -2668,21 +2672,13 @@ fn build_package_publish_template_value(
 	value
 }
 
-fn render_json_output<T>(value: &T, context: &str) -> MonochangeResult<String>
-where
-	T: Serialize,
-{
-	serde_json::to_string_pretty(value).map_err(|error| {
-		MonochangeError::Config(format!("failed to render {context} as json: {error}"))
-	})
-}
-
 fn render_publish_command_json(
+	format: OutputFormat,
 	package_publish: Option<&package_publish::PackagePublishReport>,
 	details: Option<&package_publish::PackagePublishReport>,
 	rate_limit_report: Option<&monochange_core::PublishRateLimitReport>,
 ) -> MonochangeResult<String> {
-	render_json_output(
+	format.render_json_value(
 		&serde_json::json!({
 			"package_publish": package_publish.map(|report| {
 				let details = details.unwrap_or(report);
@@ -3805,8 +3801,11 @@ fn render_display_versions_output(
 	inputs: &BTreeMap<String, Vec<String>>,
 ) -> MonochangeResult<String> {
 	let summary = build_release_version_summary(prepared_release);
-	match cli_command_output_format(inputs)? {
-		OutputFormat::Json => render_json_output(&summary, "display versions"),
+	let format = cli_command_output_format(inputs)?;
+	match format {
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format.render_json_value(&summary, "display versions")
+		}
 		OutputFormat::Markdown => Ok(render_release_version_summary_markdown(&summary)),
 		OutputFormat::Text => Ok(render_release_version_summary_text(&summary)),
 	}
@@ -4116,6 +4115,7 @@ pub(crate) fn parse_output_format(value: &str) -> MonochangeResult<OutputFormat>
 		"text" => Ok(OutputFormat::Text),
 		"markdown" | "md" => Ok(OutputFormat::Markdown),
 		"json" => Ok(OutputFormat::Json),
+		"json-min" => Ok(OutputFormat::JsonMin),
 		other => {
 			Err(MonochangeError::Config(format!(
 				"unsupported output format `{other}`"
@@ -4364,10 +4364,11 @@ fn resolve_command_output(
 	if let Some(prepared_release) = &context.prepared_release {
 		let format = cli_command_output_format(&context.last_step_inputs)?;
 		return match format {
-			OutputFormat::Json => {
+			OutputFormat::Json | OutputFormat::JsonMin => {
 				let manifest =
 					build_release_manifest(cli_command, prepared_release, &context.command_logs);
 				render_release_cli_command_json(
+					format,
 					&manifest,
 					&ReleaseCliJsonSections {
 						releases: &context.release_requests,
@@ -4391,7 +4392,9 @@ fn resolve_command_output(
 	if let Some(evaluation) = &context.changeset_policy_evaluation {
 		let format = cli_command_output_format(&context.last_step_inputs)?;
 		let rendered = match format {
-			OutputFormat::Json => render_json_output(evaluation, "changeset policy evaluation")?,
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				format.render_json_value(evaluation, "changeset policy evaluation")?
+			}
 			OutputFormat::Markdown | OutputFormat::Text => {
 				render_cli_command_result(cli_command, context)
 			}
@@ -4408,7 +4411,9 @@ fn resolve_command_output(
 				parse_output_format(value)
 			})?;
 		let rendered = match format {
-			OutputFormat::Json => render_json_output(report, "changeset diagnostics")?,
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				format.render_json_value(report, "changeset diagnostics")?
+			}
 			OutputFormat::Markdown | OutputFormat::Text => render_changeset_diagnostics(report),
 		};
 		return Ok(rendered);
@@ -4416,9 +4421,8 @@ fn resolve_command_output(
 	if let Some(report) = &context.retarget_report {
 		let format = cli_command_output_format(&context.last_step_inputs)?;
 		let rendered = match format {
-			OutputFormat::Json => {
-				serde_json::to_string_pretty(report)
-					.unwrap_or_else(|error| panic!("retarget report serialization bug: {error}"))
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				format.render_json_value(report, "retarget report")?
 			}
 			OutputFormat::Markdown | OutputFormat::Text => render_retarget_release_report(report),
 		};
@@ -4427,12 +4431,13 @@ fn resolve_command_output(
 	if let Some(report) = &context.package_publish_report {
 		let format = cli_command_output_format(&context.last_step_inputs)?;
 		let rendered = match format {
-			OutputFormat::Json => {
+			OutputFormat::Json | OutputFormat::JsonMin => {
 				let details = filter_placeholder_publish_report(
 					report.clone(),
 					boolean_step_input(&context.last_step_inputs, "show-all"),
 				);
 				render_publish_command_json(
+					format,
 					Some(report),
 					Some(&details),
 					context.rate_limit_report.as_ref(),
@@ -4449,7 +4454,9 @@ fn resolve_command_output(
 		}
 		let format = cli_command_output_format(&context.last_step_inputs)?;
 		let rendered = match format {
-			OutputFormat::Json => render_publish_command_json(None, None, Some(report))?,
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				render_publish_command_json(format, None, None, Some(report))?
+			}
 			OutputFormat::Markdown | OutputFormat::Text => {
 				render_cli_command_result(cli_command, context)
 			}

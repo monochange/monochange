@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/json_plain_output.rs
+expression: json_discovery_summary(&json)
+---
+{
+  "package_ids": [
+    "cargo:crates/core/Cargo.toml"
+  ],
+  "warnings": []
+}

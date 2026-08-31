@@ -62,7 +62,7 @@ help_text = "Discover packages across supported ecosystems"
 [[cli.discover.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.discover.steps]]

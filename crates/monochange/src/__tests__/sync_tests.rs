@@ -13,6 +13,7 @@ use monochange_core::VersionGroup;
 use monochange_core::VersionStrategy;
 use semver::Version;
 
+use crate::OutputFormat;
 use crate::cli;
 use crate::sync;
 
@@ -121,12 +122,19 @@ fn format_version_inventory_supports_text_and_json() {
 	]);
 
 	assert_eq!(
-		sync::format_version_inventory_for_cli(&inventory, sync::VersionsOutputFormat::Text),
+		sync::format_version_inventory_for_cli(&inventory, OutputFormat::Text)
+			.unwrap_or_else(|error| panic!("render inventory text: {error}")),
 		"core: 1.2.3\nsdk: 1.2.3"
 	);
 	assert_eq!(
-		sync::format_version_inventory_for_cli(&inventory, sync::VersionsOutputFormat::Json),
+		sync::format_version_inventory_for_cli(&inventory, OutputFormat::Json)
+			.unwrap_or_else(|error| panic!("render inventory json: {error}")),
 		"{\n  \"core\": \"1.2.3\",\n  \"sdk\": \"1.2.3\"\n}"
+	);
+	assert_eq!(
+		sync::format_version_inventory_for_cli(&inventory, OutputFormat::JsonMin)
+			.unwrap_or_else(|error| panic!("render inventory json-min: {error}")),
+		"{\"core\":\"1.2.3\",\"sdk\":\"1.2.3\"}"
 	);
 }
 
@@ -463,27 +471,37 @@ fn format_sync_result_for_cli_supports_text_and_json() {
 		}],
 	};
 
-	let text =
-		sync::format_sync_result_for_cli(&result, true, true, sync::VersionsOutputFormat::Text);
-	let json =
-		sync::format_sync_result_for_cli(&result, true, true, sync::VersionsOutputFormat::Json);
+	let text = sync::format_sync_result_for_cli(&result, true, true, OutputFormat::Text);
+	let json = sync::format_sync_result_for_cli(&result, true, true, OutputFormat::Json);
+	let json_min = sync::format_sync_result_for_cli(&result, true, true, OutputFormat::JsonMin);
 	assert!(text.contains("Skipped unsupported ecosystems:"));
 	assert!(json.contains(r#""package_name": "go-lib""#));
+	assert!(json_min.contains(r#""package_name":"go-lib""#));
+	assert!(json_min.contains('\n'));
 }
 
 #[test]
-fn parse_versions_output_format_defaults_to_text() {
+fn parse_versions_output_format_parses_json_and_json_min() {
 	assert_eq!(
-		sync::parse_versions_output_format("json"),
-		sync::VersionsOutputFormat::Json
+		sync::parse_versions_output_format("json")
+			.unwrap_or_else(|error| panic!("parse json: {error}")),
+		OutputFormat::Json
 	);
 	assert_eq!(
-		sync::parse_versions_output_format("text"),
-		sync::VersionsOutputFormat::Text
+		sync::parse_versions_output_format("json-min")
+			.unwrap_or_else(|error| panic!("parse json-min: {error}")),
+		OutputFormat::JsonMin
 	);
 	assert_eq!(
-		sync::parse_versions_output_format("unknown"),
-		sync::VersionsOutputFormat::Text
+		sync::parse_versions_output_format("text")
+			.unwrap_or_else(|error| panic!("parse text: {error}")),
+		OutputFormat::Text
+	);
+	let error = sync::parse_versions_output_format("unknown").unwrap_err();
+	assert!(
+		error
+			.to_string()
+			.contains("unsupported output format `unknown`")
 	);
 }
 
@@ -959,8 +977,8 @@ enabled = true
 	.unwrap_or_else(|error| panic!("versions list: {error}"));
 	let inventory = sync::list_workspace_versions(root)
 		.unwrap_or_else(|error| panic!("list workspace versions: {error}"));
-	let expected_output =
-		sync::format_version_inventory_for_cli(&inventory, sync::VersionsOutputFormat::Json);
+	let expected_output = sync::format_version_inventory_for_cli(&inventory, OutputFormat::Json)
+		.unwrap_or_else(|error| panic!("render inventory json: {error}"));
 	assert_eq!(list_output, expected_output);
 }
 

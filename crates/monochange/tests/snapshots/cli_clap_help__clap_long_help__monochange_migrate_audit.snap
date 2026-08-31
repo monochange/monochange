@@ -1,6 +1,6 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-expression: "render_help_snapshot(&path, version)"
+expression: render_help_snapshot(&path)
 ---
 Version: [current]
 Command: monochange migrate audit
@@ -14,7 +14,7 @@ Report existing release tools, changelog providers, and CI migration work
           Output format
           
           [default: text]
-          [possible values: text, json, markdown, md]
+          [possible values: text, json, json-min, markdown, md]
 
   [93m-h[0m, [93m--help[0m
           Print help

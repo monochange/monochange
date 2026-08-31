@@ -75,13 +75,8 @@ pub(crate) async fn render_analyze_report(
 	let report = build_report(root, package_reference, refs, detection_level).await?;
 
 	match format {
-		OutputFormat::Json => {
-			let rendered = serde_json::to_string_pretty(&report);
-			debug_assert!(
-				rendered.is_ok(),
-				"analyze report serialization should succeed"
-			);
-			Ok(rendered.unwrap_or_default())
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format.render_json_value(&report, "analyze report")
 		}
 		OutputFormat::Markdown | OutputFormat::Text => Ok(render_text_report(&report)),
 	}

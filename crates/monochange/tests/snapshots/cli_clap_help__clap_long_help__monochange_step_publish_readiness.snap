@@ -1,6 +1,6 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-expression: "render_help_snapshot(&path, version)"
+expression: render_help_snapshot(&path)
 ---
 Version: [current]
 Command: monochange step publish-readiness
@@ -22,7 +22,7 @@ Check package registry publishing readiness without publishing packages
           
 
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          [possible values: text, json, md]
+          [possible values: text, json, json-min, md]
 
       [93m--package[0m[95m [0m[95m<PACKAGE>[0m
           

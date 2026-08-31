@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/src/__tests__/mcp_tests.rs
-assertion_line: 773
 expression: redacted
 ---
 {

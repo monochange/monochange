@@ -1,5 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/group_release_note_fallback.rs
-expression: contents
+expression: normalize_commit_links(&contents)
 ---
 # Changelog

@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/release_output_format.rs
-assertion_line: 70
 expression: stdout
 ---
 # `release` (dry-run)

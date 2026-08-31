@@ -836,9 +836,8 @@ pub(crate) fn render_discovery_report(
 	format: OutputFormat,
 ) -> MonochangeResult<String> {
 	match format {
-		OutputFormat::Json => {
-			serde_json::to_string_pretty(&json_discovery_report(report))
-				.map_err(|error| MonochangeError::Discovery(error.to_string()))
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format.render_json_value(&json_discovery_report(report), "discovery report")
 		}
 		OutputFormat::Markdown | OutputFormat::Text => Ok(text_discovery_report(report)),
 	}
@@ -1124,9 +1123,11 @@ pub(crate) fn render_release_commit_body(
 }
 
 #[must_use = "the manifest render result must be checked"]
-pub(crate) fn render_release_manifest_json(manifest: &ReleaseManifest) -> MonochangeResult<String> {
-	serde_json::to_string_pretty(manifest)
-		.map_err(|error| MonochangeError::Discovery(error.to_string()))
+pub(crate) fn render_release_manifest_json(
+	format: OutputFormat,
+	manifest: &ReleaseManifest,
+) -> MonochangeResult<String> {
+	format.render_json_value(manifest, "release manifest")
 }
 
 pub(crate) fn build_source_release_requests(
@@ -1268,6 +1269,7 @@ pub(crate) struct ReleaseCliJsonSections<'a> {
 }
 
 pub(crate) fn render_release_cli_command_json(
+	format: OutputFormat,
 	manifest: &ReleaseManifest,
 	sections: &ReleaseCliJsonSections,
 ) -> MonochangeResult<String> {
@@ -1279,7 +1281,7 @@ pub(crate) fn render_release_cli_command_json(
 		&& sections.publish_rate_limits.is_none()
 		&& sections.file_diffs.is_empty()
 	{
-		return render_release_manifest_json(manifest);
+		return render_release_manifest_json(format, manifest);
 	}
 	let mut value = json!({
 		"manifest": manifest,
@@ -1299,8 +1301,7 @@ pub(crate) fn render_release_cli_command_json(
 				serde_json::to_value(sections.file_diffs).unwrap_or_default(),
 			);
 	}
-	serde_json::to_string_pretty(&value)
-		.map_err(|error| MonochangeError::Discovery(error.to_string()))
+	format.render_json_value(&value, "release command output")
 }
 
 pub(crate) fn write_release_record_file(
