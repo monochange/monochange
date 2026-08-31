@@ -1,5 +1,9 @@
 #![allow(clippy::disallowed_methods)]
 
+use std::io::Write as _;
+use std::sync::Arc;
+use std::sync::Mutex;
+
 use monochange_core::ChangelogSettings;
 use monochange_core::ChangesetSettings;
 use monochange_core::DependencyKind;
@@ -602,7 +606,7 @@ fn child_output_helpers_cover_success_and_error_paths() {
 
 #[derive(Default)]
 struct RecordingPublishProgressReporter {
-	events: std::sync::Mutex<Vec<PublishProgressEvent>>,
+	events: Mutex<Vec<PublishProgressEvent>>,
 }
 
 impl PublishProgressReporter for RecordingPublishProgressReporter {
@@ -2970,4 +2974,436 @@ async fn dart_protected_publishing_warning_emitted_for_workflow_dispatch_publish
 	assert_eq!(report.packages.len(), 1);
 	assert_eq!(executor.commands.len(), 1);
 	assert!(executor.commands[0].program.contains("dart"));
+}
+
+fn trusted_pub_dev_publish_request(package: &str) -> PublishRequest {
+	let mut request = pub_dev_publish_request(package);
+	request.trusted_publishing = TrustedPublishingSettings {
+		enabled: true,
+		..TrustedPublishingSettings::default()
+	};
+	request
+}
+
+/// Serve `request_count` HTTP responses and capture the raw requests.
+fn spawn_http_capture_server(
+	request_count: usize,
+	response: Vec<u8>,
+) -> (String, Arc<Mutex<Vec<String>>>, std::thread::JoinHandle<()>) {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind http capture server: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("http capture server address: {error}"));
+	let captured = Arc::new(Mutex::new(Vec::new()));
+	let captured_clone = Arc::clone(&captured);
+	let handle = std::thread::spawn(move || {
+		for _ in 0..request_count {
+			let Ok((mut stream, _)) = listener.accept() else {
+				break;
+			};
+			let mut request = Vec::new();
+			let mut buffer = [0_u8; 2048];
+			while let Ok(read) = std::io::Read::read(&mut stream, &mut buffer) {
+				if read == 0 {
+					break;
+				}
+				request.extend_from_slice(&buffer[..read]);
+				if request.windows(4).any(|window| window == b"\r\n\r\n") {
+					break;
+				}
+			}
+			captured_clone
+				.lock()
+				.unwrap()
+				.push(String::from_utf8_lossy(&request).into_owned());
+			let _ = stream.write_all(&response);
+		}
+	});
+	(format!("http://{address}"), captured, handle)
+}
+
+fn http_json_response(body: &str) -> Vec<u8> {
+	format!(
+		"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+		body.len()
+	)
+	.into_bytes()
+}
+
+fn http_server_error_response() -> Vec<u8> {
+	b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec()
+}
+
+fn unreachable_local_url() -> String {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind probe listener: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("probe address: {error}"));
+	drop(listener);
+	format!("http://{address}")
+}
+
+fn pub_dev_not_found_endpoints(
+	request_count: usize,
+) -> (
+	RegistryEndpoints,
+	std::thread::JoinHandle<()>,
+	Arc<Mutex<Vec<String>>>,
+) {
+	let (base_url, captured, server) = spawn_http_capture_server(
+		request_count,
+		b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec(),
+	);
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.pub_dev_api = base_url;
+	(endpoints, server, captured)
+}
+
+fn actions_oidc_env_map(base_url: &str, request_token: &str) -> BTreeMap<String, String> {
+	BTreeMap::from([
+		(
+			ACTIONS_ID_TOKEN_REQUEST_URL_ENV.to_string(),
+			format!("{base_url}/token"),
+		),
+		(
+			ACTIONS_ID_TOKEN_REQUEST_TOKEN_ENV.to_string(),
+			request_token.to_string(),
+		),
+	])
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dart_trusted_publish_mints_a_fresh_oidc_token_before_publishing() {
+	let request = trusted_pub_dev_publish_request("pkg");
+	let oidc_body = r#"{"count":1,"value":"fresh-actions-jwt"}"#;
+	let (oidc_base_url, oidc_requests, oidc_server) =
+		spawn_http_capture_server(1, http_json_response(oidc_body));
+	let (endpoints, pub_dev_server, _pub_dev_requests) = pub_dev_not_found_endpoints(1);
+	let env_map = actions_oidc_env_map(&oidc_base_url, "runner-secret");
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let command_builder = build_publish_command_builder();
+	let manifest_writers = PlaceholderManifestWriterRegistry::default();
+	let readiness = PublishReadinessRegistry::default();
+	let trust_handler = TestTrustHandler;
+	let mut executor = RecordingExecutor::default();
+
+	let report = execute_publish_requests(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		std::slice::from_ref(&request),
+		&client,
+		&endpoints,
+		&env_map,
+		&mut executor,
+		&command_builder,
+		&manifest_writers,
+		&readiness,
+		&trust_handler,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute trusted dart publish: {error}"));
+
+	assert_eq!(executor.commands.len(), 2);
+
+	let token_add = &executor.commands[0];
+	assert_eq!(token_add.program, "dart");
+	assert_eq!(
+		token_add.args,
+		vec![
+			"pub".to_string(),
+			"token".to_string(),
+			"add".to_string(),
+			"https://pub.dev".to_string(),
+			"--env-var".to_string(),
+			"PUB_TOKEN".to_string(),
+		]
+	);
+	assert_eq!(token_add.cwd, PathBuf::from("."));
+	assert_eq!(
+		token_add.env.get(PUB_TOKEN_ENV_VAR),
+		Some(&"fresh-actions-jwt".to_string())
+	);
+
+	let publish = &executor.commands[1];
+	assert_eq!(publish.program, "dart");
+	assert_eq!(
+		publish.args,
+		vec![
+			"pub".to_string(),
+			"publish".to_string(),
+			"--force".to_string()
+		]
+	);
+	assert_eq!(
+		publish.env.get(PUB_TOKEN_ENV_VAR),
+		Some(&"fresh-actions-jwt".to_string())
+	);
+
+	let outcome = report
+		.packages
+		.first()
+		.unwrap_or_else(|| panic!("expected publish outcome"));
+	assert_eq!(outcome.status, PackagePublishStatus::Published);
+
+	assert_eq!(oidc_requests.lock().unwrap().len(), 1);
+	assert!(
+		oidc_requests.lock().unwrap()[0]
+			.contains("GET /token&audience=https%3A%2F%2Fpub.dev HTTP/1.1")
+	);
+
+	oidc_server
+		.join()
+		.unwrap_or_else(|_| panic!("oidc server thread"));
+	pub_dev_server
+		.join()
+		.unwrap_or_else(|_| panic!("pub.dev server thread"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dart_publish_without_oidc_context_publishes_without_token_injection() {
+	let request = trusted_pub_dev_publish_request("pkg");
+	let (endpoints, pub_dev_server, _captured) = pub_dev_not_found_endpoints(1);
+	let empty_env = BTreeMap::new();
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let command_builder = build_publish_command_builder();
+	let manifest_writers = PlaceholderManifestWriterRegistry::default();
+	let readiness = PublishReadinessRegistry::default();
+	let trust_handler = TestTrustHandler;
+	let mut executor = RecordingExecutor::default();
+
+	let report = execute_publish_requests(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		std::slice::from_ref(&request),
+		&client,
+		&endpoints,
+		&empty_env,
+		&mut executor,
+		&command_builder,
+		&manifest_writers,
+		&readiness,
+		&trust_handler,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute dart publish: {error}"));
+
+	assert_eq!(executor.commands.len(), 1);
+	assert_eq!(
+		executor.commands[0].args,
+		vec![
+			"pub".to_string(),
+			"publish".to_string(),
+			"--force".to_string()
+		]
+	);
+	assert!(!executor.commands[0].env.contains_key(PUB_TOKEN_ENV_VAR));
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Published);
+	pub_dev_server
+		.join()
+		.unwrap_or_else(|_| panic!("pub.dev server thread"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn disabled_dart_trusted_publishing_does_not_mint_oidc_tokens() {
+	let mut request = pub_dev_publish_request("pkg");
+	request.trusted_publishing = TrustedPublishingSettings {
+		enabled: false,
+		..TrustedPublishingSettings::default()
+	};
+	let unreachable_url = unreachable_local_url();
+	let env_map = actions_oidc_env_map(&unreachable_url, "runner-secret");
+	let (endpoints, pub_dev_server, _captured) = pub_dev_not_found_endpoints(1);
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let command_builder = build_publish_command_builder();
+	let manifest_writers = PlaceholderManifestWriterRegistry::default();
+	let readiness = PublishReadinessRegistry::default();
+	let trust_handler = TestTrustHandler;
+	let mut executor = RecordingExecutor::default();
+
+	let report = execute_publish_requests(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		std::slice::from_ref(&request),
+		&client,
+		&endpoints,
+		&env_map,
+		&mut executor,
+		&command_builder,
+		&manifest_writers,
+		&readiness,
+		&trust_handler,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute dart publish: {error}"));
+
+	assert_eq!(executor.commands.len(), 1);
+	assert!(executor.commands[0].args.contains(&"publish".to_string()));
+	assert!(!executor.commands[0].env.contains_key(PUB_TOKEN_ENV_VAR));
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Published);
+	pub_dev_server
+		.join()
+		.unwrap_or_else(|_| panic!("pub.dev server thread"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dart_trusted_publish_dry_runs_without_minting_oidc_tokens() {
+	let request = trusted_pub_dev_publish_request("pkg");
+	let unreachable_url = unreachable_local_url();
+	let env_map = actions_oidc_env_map(&unreachable_url, "runner-secret");
+	let (endpoints, pub_dev_server, _captured) = pub_dev_not_found_endpoints(1);
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let command_builder = build_publish_command_builder();
+	let manifest_writers = PlaceholderManifestWriterRegistry::default();
+	let readiness = PublishReadinessRegistry::default();
+	let trust_handler = TestTrustHandler;
+	let mut executor = RecordingExecutor::default();
+
+	let report = execute_publish_requests(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		true,
+		std::slice::from_ref(&request),
+		&client,
+		&endpoints,
+		&env_map,
+		&mut executor,
+		&command_builder,
+		&manifest_writers,
+		&readiness,
+		&trust_handler,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute dart publish dry run: {error}"));
+
+	assert_eq!(executor.commands.len(), 1);
+	assert!(
+		executor.commands[0]
+			.args
+			.iter()
+			.any(|arg| arg == "--dry-run")
+	);
+	assert!(!executor.commands[0].env.contains_key(PUB_TOKEN_ENV_VAR));
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Planned);
+	pub_dev_server
+		.join()
+		.unwrap_or_else(|_| panic!("pub.dev server thread"));
+}
+
+struct FailingTokenAddExecutor;
+
+impl CommandExecutor for FailingTokenAddExecutor {
+	fn run(&mut self, _spec: &CommandSpec) -> MonochangeResult<CommandOutput> {
+		Ok(command_output(
+			false,
+			"token store is not writable",
+			"permission denied",
+		))
+	}
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn trusted_pub_dev_token_refresh_fails_when_the_pub_token_store_cannot_be_registered() {
+	let (oidc_base_url, oidc_requests, oidc_server) = spawn_http_capture_server(
+		1,
+		http_json_response(r#"{"count":1,"value":"fresh-actions-jwt"}"#),
+	);
+	let env_map = actions_oidc_env_map(&oidc_base_url, "runner-secret");
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let request = trusted_pub_dev_publish_request("pkg");
+	let mut executor = FailingTokenAddExecutor;
+	let mut publish_command =
+		build_publish_command(&request, PackagePublishRunMode::Release, None, false);
+
+	let error = refresh_pub_dev_trusted_publishing_token(
+		&client,
+		&env_map,
+		&mut executor,
+		&request,
+		&mut publish_command,
+	)
+	.await
+	.expect_err("a failed pub token registration must surface as an error");
+
+	assert!(
+		error
+			.render()
+			.contains("`dart pub token add https://pub.dev --env-var PUB_TOKEN` in . failed"),
+		"unexpected error: {error}"
+	);
+	assert!(
+		error
+			.render()
+			.contains("the pub token store must be writable"),
+		"unexpected error: {error}"
+	);
+	assert_eq!(
+		publish_command.env.get(PUB_TOKEN_ENV_VAR),
+		Some(&"fresh-actions-jwt".to_string())
+	);
+	assert_eq!(oidc_requests.lock().unwrap().len(), 1);
+	oidc_server
+		.join()
+		.unwrap_or_else(|_| panic!("oidc server thread"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dart_trusted_publish_fails_when_the_oidc_token_cannot_be_minted() {
+	let requests = vec![
+		trusted_pub_dev_publish_request("pkg"),
+		trusted_pub_dev_publish_request("other"),
+	];
+	let (oidc_base_url, oidc_requests, oidc_server) =
+		spawn_http_capture_server(1, http_server_error_response());
+	let env_map = actions_oidc_env_map(&oidc_base_url, "runner-secret");
+	let (endpoints, pub_dev_server, _captured) = pub_dev_not_found_endpoints(1);
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let command_builder = build_publish_command_builder();
+	let manifest_writers = PlaceholderManifestWriterRegistry::default();
+	let readiness = PublishReadinessRegistry::default();
+	let trust_handler = TestTrustHandler;
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor = PanickingCommandExecutor;
+
+	let failure = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&client,
+		&endpoints,
+		&env_map,
+		&mut executor,
+		&command_builder,
+		&manifest_writers,
+		&readiness,
+		&trust_handler,
+		&progress,
+	)
+	.await
+	.expect_err("a failed OIDC mint must fail the publish run");
+
+	assert_complete_failed_publish_run(
+		failure.report(),
+		&requests,
+		&progress,
+		"refreshing the pub.dev trusted publishing token",
+		false,
+	);
+	assert_eq!(oidc_requests.lock().unwrap().len(), 1);
+	oidc_server
+		.join()
+		.unwrap_or_else(|_| panic!("oidc server thread"));
+	pub_dev_server
+		.join()
+		.unwrap_or_else(|_| panic!("pub.dev server thread"));
 }
