@@ -1,0 +1,6 @@
+---
+source: crates/monochange_integration_tests/tests/dart_trusted_publishing.rs
+assertion_line: 382
+expression: "String::from_utf8_lossy(&output.stderr).replace(&server.base_url,\n\"[mock-endpoints]\")"
+---
+discovery error: package publishing did not complete: expected 1, succeeded 0, failed 1, skipped 0; failed package dart_pkg 0.0.0: io error: refreshing the pub.dev trusted publishing token for package `dart_pkg` failed: io error: GitHub Actions OIDC token request for [mock-endpoints]/token&audience=https%3A%2F%2Fpub.dev failed with HTTP 500 Internal Server Error: the workflow job must grant `permissions: id-token: write`
