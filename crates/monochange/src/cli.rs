@@ -464,7 +464,7 @@ Use `--no-mcp` to skip MCP config files for targets that support repo-local MCP 
 				.long("format")
 				.help("Output format for the generated subagent plan")
 				.default_value("markdown")
-				.value_parser(["text", "json", "markdown", "md"]),
+				.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		.arg(
 			Arg::new("sha")
@@ -531,7 +531,7 @@ Analysis notes:
 			Arg::new("format")
 				.long("format")
 				.default_value("markdown")
-				.value_parser(["text", "json", "markdown", "md"])
+				.value_parser(["text", "json", "json-min", "markdown", "md"])
 				.help("Output format"),
 		)
 }
@@ -559,7 +559,7 @@ Audit notes:
 						.long("format")
 						.help("Output format")
 						.default_value("text")
-						.value_parser(["text", "json", "markdown", "md"]),
+						.value_parser(["text", "json", "json-min", "markdown", "md"]),
 				),
 		)
 		.subcommand(
@@ -587,7 +587,7 @@ Migration notes:
 						.long("format")
 						.help("Output format")
 						.default_value("text")
-						.value_parser(["text", "json", "markdown", "md"]),
+						.value_parser(["text", "json", "json-min", "markdown", "md"]),
 				),
 		)
 }
@@ -628,7 +628,7 @@ pub(crate) fn build_check_subcommand() -> Command {
 				.long("format")
 				.help("Output format")
 				.default_value("markdown")
-				.value_parser(["text", "json", "markdown", "md"]),
+				.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		.arg(
 			Arg::new("verbose")
@@ -658,7 +658,7 @@ pub(crate) fn build_lint_subcommand() -> Command {
 						.long("format")
 						.help("Output format")
 						.default_value("markdown")
-						.value_parser(["text", "json", "markdown", "md"]),
+						.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		.arg(
 			Arg::new("sha")
@@ -680,7 +680,7 @@ pub(crate) fn build_lint_subcommand() -> Command {
 						.long("format")
 						.help("Output format")
 						.default_value("markdown")
-						.value_parser(["text", "json", "markdown", "md"]),
+						.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		.arg(
 			Arg::new("sha")
@@ -1228,7 +1228,7 @@ monochange package or group id.",
 						.long("format")
 						.help("Output format")
 						.default_value("text")
-						.value_parser(["text", "json"]),
+						.value_parser(["text", "json", "json-min"]),
 				),
 		)
 		.subcommand(
@@ -1258,7 +1258,7 @@ fn versions_sync_args() -> Vec<Arg> {
 			.long("format")
 			.help("Output format")
 			.default_value("text")
-			.value_parser(["text", "json"]),
+			.value_parser(["text", "json", "json-min"]),
 		Arg::new("strategy")
 			.long("strategy")
 			.help("Override version constraint strategy: default, exact, caret, compatible")

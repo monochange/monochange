@@ -103,10 +103,12 @@ fn audit_migration_detects_legacy_release_tooling() {
 	assert!(recommendation_ids.contains(&"trusted-publishing-checklist"));
 	assert_eq!(report.next_steps.len(), 3);
 
-	let text = render_migration_audit_report(&report, OutputFormat::Text);
+	let text = render_migration_audit_report(&report, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("render migration audit text: {error}"));
 	assert!(text.contains("migration audit: migration-needed"));
 	assert!(text.contains("GitHub Actions workflow references cargo-release"));
-	let json = render_migration_audit_report(&report, OutputFormat::Json);
+	let json = render_migration_audit_report(&report, OutputFormat::Json)
+		.unwrap_or_else(|error| panic!("render migration audit json: {error}"));
 	assert!(json.contains("\"status\": \"migration-needed\""));
 }
 
@@ -130,7 +132,8 @@ fn audit_migration_reports_ready_for_empty_workspace() {
 			.any(|recommendation| { recommendation.id == "trusted-publishing-checklist" })
 	);
 
-	let text = render_migration_audit_report(&report, OutputFormat::Markdown);
+	let text = render_migration_audit_report(&report, OutputFormat::Markdown)
+		.unwrap_or_else(|error| panic!("render migration audit markdown: {error}"));
 	assert!(text.contains("migration audit: ready"));
 	assert!(text.contains("- none detected"));
 	assert!(text.contains("Generate monochange configuration"));

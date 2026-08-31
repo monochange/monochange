@@ -202,14 +202,14 @@ fn format_versioned_file_adds_missing_fields_when_configured() {
 	)
 	.unwrap_or_else(|error| panic!("add missing json field: {error}"));
 
-	insta::assert_snapshot!(json, @r###"
+	insta::assert_snapshot!(json, @r#"
 	{
 	  "versions": {
 	    "app": "1.0.0",
 	    "utils": "1.2.3"
 	  }
 	}
-	"###);
+	"#);
 
 	let toml = update_format_versioned_file_text(
 		"[versions]\napp = \"1.0.0\"\n",
@@ -220,11 +220,11 @@ fn format_versioned_file_adds_missing_fields_when_configured() {
 		monochange_core::MissingFieldBehavior::Add,
 	)
 	.unwrap_or_else(|error| panic!("add missing toml field: {error}"));
-	insta::assert_snapshot!(toml, @r###"
+	insta::assert_snapshot!(toml, @r#"
 	[versions]
 	app = "1.0.0"
 	utils = "1.2.3"
-	"###);
+	"#);
 
 	let yaml = update_format_versioned_file_text(
 		"versions:\n  app: 1.0.0\n",
@@ -235,11 +235,11 @@ fn format_versioned_file_adds_missing_fields_when_configured() {
 		monochange_core::MissingFieldBehavior::Add,
 	)
 	.unwrap_or_else(|error| panic!("add missing yaml field: {error}"));
-	insta::assert_snapshot!(yaml, @r###"
+	insta::assert_snapshot!(yaml, @"
 	versions:
 	  app: 1.0.0
 	  utils: 1.2.3
-	"###);
+	");
 
 	let env = update_format_versioned_file_text(
 		"APP=demo\n",
@@ -272,7 +272,7 @@ fn format_versioned_file_adds_missing_fields_when_configured() {
 		monochange_core::MissingFieldBehavior::Add,
 	)
 	.unwrap_or_else(|error| panic!("add missing nested json field: {error}"));
-	insta::assert_snapshot!(json_with_nested_parent, @r###"
+	insta::assert_snapshot!(json_with_nested_parent, @r#"
 	{
 	  "versions": {
 	    "packages": {
@@ -280,7 +280,7 @@ fn format_versioned_file_adds_missing_fields_when_configured() {
 	    }
 	  }
 	}
-	"###);
+	"#);
 
 	let toml_with_nested_parent = update_format_versioned_file_text(
 		"",
@@ -291,12 +291,12 @@ fn format_versioned_file_adds_missing_fields_when_configured() {
 		monochange_core::MissingFieldBehavior::Add,
 	)
 	.unwrap_or_else(|error| panic!("add missing nested toml field: {error}"));
-	insta::assert_snapshot!(toml_with_nested_parent, @r###"
+	insta::assert_snapshot!(toml_with_nested_parent, @r#"
 	[versions]
 
 	[versions.packages]
 	utils = "1.2.3"
-	"###);
+	"#);
 
 	let yaml_with_nested_parent = update_format_versioned_file_text(
 		"{}\n",
@@ -307,11 +307,11 @@ fn format_versioned_file_adds_missing_fields_when_configured() {
 		monochange_core::MissingFieldBehavior::Add,
 	)
 	.unwrap_or_else(|error| panic!("add missing nested yaml field: {error}"));
-	insta::assert_snapshot!(yaml_with_nested_parent, @r###"
+	insta::assert_snapshot!(yaml_with_nested_parent, @"
 	versions:
 	  packages:
 	    utils: 1.2.3
-	"###);
+	");
 }
 
 #[test]

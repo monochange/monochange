@@ -783,7 +783,7 @@ steps = [
 [cli.release]
 help_text = "Prepare a pull request release from discovered change files. It should only be run in a github action."
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json", "markdown"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
 	{ name = "no_verify", type = "boolean", default = true },
 	{ name = "commit", help_text = "Whether to commit the changes", type = "boolean", default = false },
 	{ name = "create_pr", help_text = "Whether to create the PR after the commit", type = "boolean", default = false },

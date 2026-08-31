@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/src/__tests__/versioned_files_tests.rs
-assertion_line: 560
 expression: "snapshot_file_updates(&root, updates)"
 ---
 ## packages/app/package.json

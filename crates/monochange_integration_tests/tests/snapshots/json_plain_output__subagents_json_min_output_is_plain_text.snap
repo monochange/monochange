@@ -1,0 +1,11 @@
+---
+source: crates/monochange_integration_tests/tests/json_plain_output.rs
+expression: json_subagents_summary(&json)
+---
+{
+  "dry_run": true,
+  "file_count": 1,
+  "targets": [
+    "codex"
+  ]
+}

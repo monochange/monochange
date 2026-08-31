@@ -3,11 +3,13 @@ source: crates/monochange/tests/cli_output.rs
 info:
   program: monochange
   args:
+    - run
     - release
     - "--dry-run"
     - "--format"
     - text
   env:
+    MONOCHANGE_NO_PROGRESS: "1"
     MONOCHANGE_RELEASE_DATE: 2026-04-06
     NO_COLOR: "1"
     RUST_LOG: ""

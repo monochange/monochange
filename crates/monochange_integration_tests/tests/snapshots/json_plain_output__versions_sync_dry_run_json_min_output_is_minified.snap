@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/json_plain_output.rs
+expression: json
+---
+{
+  "applied": false,
+  "changes": [],
+  "skipped": [],
+  "strategy": "Default"
+}

@@ -37,9 +37,8 @@ pub(crate) async fn render_release_record_discovery(
 ) -> MonochangeResult<String> {
 	let discovery = discover_release_record(root, from).await?;
 	match format {
-		OutputFormat::Json => {
-			serde_json::to_string_pretty(&discovery)
-				.map_err(|error| MonochangeError::Discovery(error.to_string()))
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format.render_json_value(&discovery, "release record discovery")
 		}
 		OutputFormat::Markdown | OutputFormat::Text => {
 			Ok(text_release_record_discovery(&discovery))
@@ -353,9 +352,8 @@ pub(crate) async fn render_release_tag_report(
 	let report = create_release_tags(root, &discovery, push, dry_run).await?;
 
 	match format {
-		OutputFormat::Json => {
-			serde_json::to_string_pretty(&report)
-				.map_err(|error| MonochangeError::Discovery(error.to_string()))
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format.render_json_value(&report, "release tag report")
 		}
 		OutputFormat::Markdown | OutputFormat::Text => Ok(text_release_tag_report(&report)),
 	}

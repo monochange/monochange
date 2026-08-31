@@ -905,7 +905,8 @@ impl Serialize for BrokenSerialize {
 
 #[test]
 fn render_json_output_reports_context_on_serialization_failure() {
-	let error = render_json_output(&BrokenSerialize, "changeset diagnostics")
+	let error = OutputFormat::Json
+		.render_json_value(&BrokenSerialize, "changeset diagnostics")
 		.unwrap_err()
 		.to_string();
 	assert!(error.contains("failed to render changeset diagnostics as json"));

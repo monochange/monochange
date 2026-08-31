@@ -1,6 +1,6 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-expression: "render_help_snapshot(&path, version)"
+expression: render_help_snapshot(&path)
 ---
 Version: [current]
 Command: monochange step verify-release-branch

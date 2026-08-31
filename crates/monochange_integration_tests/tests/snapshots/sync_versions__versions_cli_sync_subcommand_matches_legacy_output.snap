@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/sync_versions.rs
-assertion_line: 270
 expression: sync_output
 ---
 would update ^1.1.0 → ^1.2.3 in core ([workspace]/packages/version_mismatch/pubspec.yaml)

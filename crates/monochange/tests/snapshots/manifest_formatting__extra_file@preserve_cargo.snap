@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/manifest_formatting.rs
-assertion_line: 48
 expression: extra_file
 ---
 [package]

@@ -7,6 +7,7 @@ info:
     - "--package"
     - core
   env:
+    MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---

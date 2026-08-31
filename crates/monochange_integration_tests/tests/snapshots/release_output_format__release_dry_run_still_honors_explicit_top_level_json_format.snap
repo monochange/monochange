@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/release_output_format.rs
-assertion_line: 81
 expression: json_release_summary(&json)
 ---
 {

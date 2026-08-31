@@ -39,7 +39,7 @@ Options:
           Output format
           
           [default: markdown]
-          [possible values: text, json, markdown, md]
+          [possible values: text, json, json-min, markdown, md]
 
   -h, --help
           Print help

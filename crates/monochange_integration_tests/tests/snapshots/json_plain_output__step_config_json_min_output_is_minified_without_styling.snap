@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/json_plain_output.rs
+expression: config_paths
+---
+{
+  "config_path": "[ROOT]/monochange.toml",
+  "project_root": "[ROOT]"
+}

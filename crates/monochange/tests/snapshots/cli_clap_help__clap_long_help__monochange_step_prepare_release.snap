@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-assertion_line: 142
 expression: render_help_snapshot(&path)
 ---
 Version: [current]
@@ -26,7 +25,7 @@ Plan version bumps, changelogs, and release artifacts
 
 [1m[96mOptions:[0m
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          [possible values: text, json, md]
+          [possible values: text, json, json-min, md]
 
       [93m--write-empty-release-record[0m
           

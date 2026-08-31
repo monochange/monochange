@@ -25,16 +25,8 @@ use toml_edit::DocumentMut;
 use toml_edit::Item;
 use toml_edit::Value as TomlValue;
 
+use crate::OutputFormat;
 use crate::discover_workspace;
-
-/// Output format for the `monochange versions` command.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum VersionsOutputFormat {
-	/// Human-readable command output.
-	Text,
-	/// Machine-readable JSON output.
-	Json,
-}
 
 /// Flat package and group version inventory for a workspace.
 pub type VersionInventory = BTreeMap<String, String>;
@@ -768,8 +760,9 @@ pub(crate) fn format_sync_result(result: &SyncResult, dry_run: bool, _quiet: boo
 	output
 }
 
-pub(crate) fn format_sync_result_json(result: &SyncResult) -> String {
-	let mut output = serde_json::to_string_pretty(result)
+pub(crate) fn format_sync_result_json(result: &SyncResult, format: OutputFormat) -> String {
+	let mut output = format
+		.render_json_value(result, "versions sync result")
 		.unwrap_or_else(|error| panic!("serialize versions result: {error}"));
 	output.push('\n');
 	output
@@ -779,11 +772,11 @@ pub(crate) fn format_sync_result_for_cli(
 	result: &SyncResult,
 	dry_run: bool,
 	quiet: bool,
-	format: VersionsOutputFormat,
+	format: OutputFormat,
 ) -> String {
 	match format {
-		VersionsOutputFormat::Text => format_sync_result(result, dry_run, quiet),
-		VersionsOutputFormat::Json => format_sync_result_json(result),
+		OutputFormat::Text | OutputFormat::Markdown => format_sync_result(result, dry_run, quiet),
+		OutputFormat::Json | OutputFormat::JsonMin => format_sync_result_json(result, format),
 	}
 }
 
@@ -843,19 +836,18 @@ fn group_current_version<'a>(
 
 pub(crate) fn format_version_inventory_for_cli(
 	inventory: &VersionInventory,
-	format: VersionsOutputFormat,
-) -> String {
+	format: OutputFormat,
+) -> MonochangeResult<String> {
 	match format {
-		VersionsOutputFormat::Json => {
-			serde_json::to_string_pretty(inventory)
-				.unwrap_or_else(|error| panic!("serialize version inventory: {error}"))
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format.render_json_value(inventory, "version inventory")
 		}
-		VersionsOutputFormat::Text => {
-			inventory
+		OutputFormat::Text | OutputFormat::Markdown => {
+			Ok(inventory
 				.iter()
 				.map(|(id, version)| format!("{id}: {version}"))
 				.collect::<Vec<_>>()
-				.join("\n")
+				.join("\n"))
 		}
 	}
 }
@@ -869,10 +861,16 @@ pub(crate) fn parse_strategy(strategy_str: &str) -> VersionStrategy {
 	}
 }
 
-pub(crate) fn parse_versions_output_format(format_str: &str) -> VersionsOutputFormat {
+pub(crate) fn parse_versions_output_format(format_str: &str) -> MonochangeResult<OutputFormat> {
 	match format_str {
-		"json" => VersionsOutputFormat::Json,
-		_ => VersionsOutputFormat::Text,
+		"json" => Ok(OutputFormat::Json),
+		"json-min" => Ok(OutputFormat::JsonMin),
+		"text" => Ok(OutputFormat::Text),
+		other => {
+			Err(MonochangeError::Config(format!(
+				"unsupported output format `{other}`"
+			)))
+		}
 	}
 }
 

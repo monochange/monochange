@@ -26,7 +26,7 @@ Prepare a pull request release from discovered change files. It should only be r
 [1m[96mOptions:[0m
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
           [default: markdown]
-          [possible values: text, json, markdown]
+          [possible values: text, json, json-min, markdown]
 
       [93m--no-verify[0m[95m[=[0m[95m<NO_VERIFY>[0m[95m][0m
           [default: true]

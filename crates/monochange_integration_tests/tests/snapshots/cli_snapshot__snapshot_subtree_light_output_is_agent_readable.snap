@@ -33,6 +33,7 @@ expression: value
             "enum_values": [
               "text",
               "json",
+              "json-min",
               "md"
             ],
             "kind": "enum",

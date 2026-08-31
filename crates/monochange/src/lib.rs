@@ -204,7 +204,8 @@ pub(crate) use workspace_ops::push_change_target_markdown;
 pub(crate) fn render_config_step_json(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
-) -> String {
+	format: OutputFormat,
+) -> MonochangeResult<String> {
 	let project_root = root
 		.canonicalize()
 		.unwrap_or_else(|_| root.to_path_buf())
@@ -217,8 +218,7 @@ pub(crate) fn render_config_step_json(
 		"config": configuration,
 	});
 
-	serde_json::to_string_pretty(&output)
-		.unwrap_or_else(|error| panic!("serializing a serde_json::Value failed: {error}"))
+	format.render_json_value(&output, "config step")
 }
 
 pub(crate) fn synthetic_step_command_definition(
@@ -286,7 +286,41 @@ pub(crate) use prepared_release_cache::save_prepared_release_execution;
 pub enum OutputFormat {
 	Text,
 	Markdown,
+	/// Pretty-printed JSON with no terminal styling.
 	Json,
+	/// Minified JSON with no whitespace and no terminal styling.
+	JsonMin,
+}
+
+impl OutputFormat {
+	/// Whether this format renders machine-readable JSON.
+	#[must_use]
+	pub(crate) fn is_json(self) -> bool {
+		matches!(self, Self::Json | Self::JsonMin)
+	}
+
+	/// Serialize a value as plain-text JSON for this output format.
+	///
+	/// [`OutputFormat::Json`] renders pretty-printed JSON while
+	/// [`OutputFormat::JsonMin`] renders the same value minified with no
+	/// whitespace. Neither variant injects colors or other terminal styling.
+	///
+	/// # Errors
+	///
+	/// Returns an error when the value cannot be serialized to JSON.
+	#[must_use = "the rendered json result must be checked"]
+	pub(crate) fn render_json_value<T>(self, value: &T, context: &str) -> MonochangeResult<String>
+	where
+		T: Serialize,
+	{
+		match self {
+			Self::JsonMin => serde_json::to_string(value),
+			_ => serde_json::to_string_pretty(value),
+		}
+		.map_err(|error| {
+			MonochangeError::Config(format!("failed to render {context} as json: {error}"))
+		})
+	}
 }
 
 /// Semver bump accepted by `monochange change` and related APIs.
@@ -352,11 +386,14 @@ pub enum SubagentOutputFormat {
 	Markdown,
 	Text,
 	Json,
+	/// Minified JSON with no whitespace and no terminal styling.
+	JsonMin,
 }
 
 fn parse_subagent_output_format_or_default(value: Option<&String>) -> SubagentOutputFormat {
 	match value.map_or("markdown", String::as_str) {
 		"json" => SubagentOutputFormat::Json,
+		"json-min" => SubagentOutputFormat::JsonMin,
 		"text" => SubagentOutputFormat::Text,
 		_ => SubagentOutputFormat::Markdown,
 	}
@@ -816,12 +853,8 @@ fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Opt
 	let after = read_cli_snapshot(&after)?;
 	let report = monochange_snapshot::diff_command_snapshots(&before, &after);
 	let output = match format {
-		OutputFormat::Json => {
-			// patch-coverage:ignore-start -- SnapshotDiffReport contains only serializable values.
-			let mut output = serde_json::to_string_pretty(&report).unwrap_or_else(|error| {
-				panic!("CLI snapshot classification reports serialize to JSON: {error}")
-			});
-			// patch-coverage:ignore-end
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			let mut output = format.render_json_value(&report, "CLI snapshot classification")?;
 			output.push('\n');
 			output
 		}
@@ -854,7 +887,7 @@ fn run_versions_sync(
 	let format_str = matches
 		.get_one::<String>("format")
 		.map_or("text", String::as_str);
-	let format = sync::parse_versions_output_format(format_str);
+	let format = sync::parse_versions_output_format(format_str)?;
 	let result = sync_workspace_versions(root, strategy, dry_run)?;
 
 	Ok(sync::format_sync_result_for_cli(
@@ -1367,10 +1400,10 @@ where
 					let format_str = list_matches
 						.get_one::<String>("format")
 						.map_or("text", String::as_str);
-					let format = sync::parse_versions_output_format(format_str);
+					let format = sync::parse_versions_output_format(format_str)?;
 					let inventory = sync::list_workspace_versions(root)?;
 
-					Ok(sync::format_version_inventory_for_cli(&inventory, format))
+					Ok(sync::format_version_inventory_for_cli(&inventory, format)?)
 				}
 				Some(("sync", sync_matches)) => run_versions_sync(root, sync_matches, quiet),
 				Some((name, _)) => {

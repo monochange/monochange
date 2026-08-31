@@ -70,7 +70,7 @@ help_text = "Evaluate pull-request changeset policy"
 [[cli.affected.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.affected.inputs]]

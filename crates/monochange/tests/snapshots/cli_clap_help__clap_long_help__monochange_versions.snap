@@ -1,6 +1,6 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-expression: "render_help_snapshot(&path, version)"
+expression: render_help_snapshot(&path)
 ---
 Version: [current]
 Command: monochange versions
@@ -21,7 +21,7 @@ List current package and version-group versions, or update internal workspace de
           Output format
           
           [default: text]
-          [possible values: text, json]
+          [possible values: text, json, json-min]
 
       [93m--strategy[0m[95m [0m[95m<strategy>[0m
           Override the version constraint strategy. With `default`, monochange uses package config first, then ecosystem config, then the ecosystem default. Use `exact`, `caret`, or `compatible` to force one style for this run.

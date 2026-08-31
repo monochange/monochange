@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-assertion_line: 142
 expression: render_help_snapshot(&path)
 ---
 Version: [current]
@@ -20,7 +19,7 @@ Render resolved monochange configuration and workspace metadata
 
 [1m[96mOptions:[0m
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          [possible values: text, json, md]
+          [possible values: text, json, json-min, md]
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m

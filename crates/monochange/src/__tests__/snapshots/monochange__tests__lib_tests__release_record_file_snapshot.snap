@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/src/__tests__/lib_tests.rs
-assertion_line: 14798
 expression: value
 ---
 {

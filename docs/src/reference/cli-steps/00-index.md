@@ -43,7 +43,7 @@ Use the array shorthand when a step should inherit command inputs unchanged:
 ```toml
 [cli.discover]
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json"], default = "text" },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min"], default = "text" },
 ]
 steps = [
 	{ type = "Discover", inputs = ["format"] },
@@ -55,7 +55,7 @@ Use the map form when a step needs fixed values, renamed values, templates, or a
 ```toml
 [cli.release-pr]
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json", "markdown"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
 	{ name = "open_as_draft", type = "boolean", default = false },
 ]
 steps = [

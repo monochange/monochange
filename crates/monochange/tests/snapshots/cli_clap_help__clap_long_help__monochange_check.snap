@@ -1,6 +1,6 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-expression: "render_help_snapshot(&path, version)"
+expression: render_help_snapshot(&path)
 ---
 Version: [current]
 Command: monochange check
@@ -23,7 +23,7 @@ Validate configuration, changesets, and run manifest lint rules
           Output format
           
           [default: markdown]
-          [possible values: text, json, markdown, md]
+          [possible values: text, json, json-min, markdown, md]
 
   [93m-v[0m, [93m--verbose[0m
           Show extra lint diagnostic details

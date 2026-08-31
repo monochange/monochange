@@ -98,7 +98,7 @@ help_text = "Prepare a release and create a local release commit"
 [[cli.commit-release.inputs]]
 name = "format"
 type = "choice"
-choices = ["text", "json"]
+choices = ["text", "json", "json-min"]
 default = "text"
 
 [[cli.commit-release.steps]]

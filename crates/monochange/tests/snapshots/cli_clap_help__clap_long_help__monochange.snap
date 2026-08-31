@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-assertion_line: 142
 expression: render_help_snapshot(&path)
 ---
 Version: [current]

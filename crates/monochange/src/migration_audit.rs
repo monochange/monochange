@@ -90,7 +90,7 @@ pub(crate) fn run_migration_command(
 				.get_one::<String>("format")
 				.map_or(Ok(OutputFormat::Text), |value| parse_output_format(value))?;
 			let report = migrate_release_records(root, record_matches.get_flag("dry-run"))?;
-			Ok(render_release_record_migration_report(&report, format))
+			Ok(render_release_record_migration_report(&report, format)?)
 		}
 		Some(("audit", audit_matches)) => {
 			let format = audit_matches
@@ -104,7 +104,7 @@ pub(crate) fn run_migration_command(
 
 pub(crate) fn run_migration_audit(root: &Path, format: OutputFormat) -> MonochangeResult<String> {
 	let report = audit_migration(root)?;
-	Ok(render_migration_audit_report(&report, format))
+	render_migration_audit_report(&report, format)
 }
 
 pub(crate) fn migrate_release_records(
@@ -253,10 +253,14 @@ fn root_relative_string(root: &Path, path: &Path) -> String {
 fn render_release_record_migration_report(
 	report: &ReleaseRecordMigrationReport,
 	format: OutputFormat,
-) -> String {
+) -> MonochangeResult<String> {
 	match format {
-		OutputFormat::Json => serde_json::to_string_pretty(report).unwrap_or_default(),
-		OutputFormat::Markdown | OutputFormat::Text => text_release_record_migration_report(report),
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format.render_json_value(report, "release record migration report")
+		}
+		OutputFormat::Markdown | OutputFormat::Text => {
+			Ok(text_release_record_migration_report(report))
+		}
 	}
 }
 
@@ -632,10 +636,15 @@ fn next_steps() -> Vec<String> {
 	]
 }
 
-fn render_migration_audit_report(report: &MigrationAuditReport, format: OutputFormat) -> String {
+fn render_migration_audit_report(
+	report: &MigrationAuditReport,
+	format: OutputFormat,
+) -> MonochangeResult<String> {
 	match format {
-		OutputFormat::Json => serde_json::to_string_pretty(report).unwrap_or_default(),
-		OutputFormat::Markdown | OutputFormat::Text => render_text_report(report),
+		OutputFormat::Json | OutputFormat::JsonMin => {
+			format.render_json_value(report, "migration audit report")
+		}
+		OutputFormat::Markdown | OutputFormat::Text => Ok(render_text_report(report)),
 	}
 }
 
