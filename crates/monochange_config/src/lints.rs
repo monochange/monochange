@@ -58,13 +58,23 @@ pub struct TargetChangeTypes {
 
 /// Changeset lint suite implementation.
 #[derive(Debug, Clone, Default)]
-pub struct ChangesetLintSuite;
+pub struct ChangesetLintSuite {
+	change_types: BTreeSet<String>,
+}
 
 impl ChangesetLintSuite {
 	/// Create a new changeset lint suite.
 	#[must_use]
 	pub fn new() -> Self {
-		Self
+		Self::default()
+	}
+
+	/// Create a changeset lint suite with runners for configured change types.
+	#[must_use]
+	pub fn with_change_types(change_types: impl IntoIterator<Item = String>) -> Self {
+		Self {
+			change_types: change_types.into_iter().collect(),
+		}
 	}
 }
 
@@ -74,7 +84,7 @@ impl LintSuite for ChangesetLintSuite {
 	}
 
 	fn rules(&self) -> Vec<Box<dyn LintRuleRunner>> {
-		vec![
+		let mut rules: Vec<Box<dyn LintRuleRunner>> = vec![
 			Box::new(SummaryRule::new()),
 			Box::new(NoSectionHeadingsRule::new()),
 			Box::new(PreferInlineRule::new()),
@@ -82,7 +92,12 @@ impl LintSuite for ChangesetLintSuite {
 			Box::new(BumpScopeRule::new(BumpSeverity::Patch)),
 			Box::new(BumpScopeRule::new(BumpSeverity::Minor)),
 			Box::new(BumpScopeRule::new(BumpSeverity::Major)),
-		]
+		];
+		rules.extend(self.change_types.iter().map(|change_type| {
+			Box::new(TypeScopeRule::new(change_type)) as Box<dyn LintRuleRunner>
+		}));
+
+		rules
 	}
 
 	fn presets(&self) -> Vec<LintPreset> {
@@ -575,118 +590,165 @@ impl LintRuleRunner for BumpScopeRule {
 	}
 
 	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
-		let severity = config.severity();
-		if !severity.is_enabled() {
-			return Vec::new();
-		}
-
-		let Some(file) = changeset_file(ctx) else {
-			return Vec::new();
-		};
-
-		use crate::markdown_has_code_block;
-		use crate::markdown_has_heading;
-
-		let required_bump = config
-			.option("required_bump")
-			.and_then(|v| v.as_str())
-			.and_then(parse_bump_severity);
-		let required_sections = config
-			.string_list_option("required_sections")
-			.unwrap_or_default();
-		let forbidden_headings = config
-			.string_list_option("forbidden_headings")
-			.unwrap_or_default();
-		let min_body_chars = config
-			.option("min_body_chars")
-			.and_then(serde_json::Value::as_u64)
-			.map(|v| v as usize);
-		let max_body_chars = config
-			.option("max_body_chars")
-			.and_then(serde_json::Value::as_u64)
-			.map(|v| v as usize);
-		let require_code_block = config.bool_option("require_code_block", false);
-
-		let mut results = Vec::new();
-
-		for change in &file.changes {
-			if change.bump != Some(self.bump) {
-				continue;
-			}
-
-			if let Some(required) = required_bump
-				&& change.bump != Some(required)
-			{
-				let actual = change
-					.bump
-					.map_or_else(|| "auto".to_string(), |b| b.to_string());
-				results.push(LintResult::new(
-					self.rule.id.clone(),
-					LintLocation::new(ctx.manifest_path, 1, 1),
-					format!(
-						"changeset type `{}` requires bump `{required}`, found `{actual}`",
-						change.change_type.as_deref().unwrap_or("<unknown>")
-					),
-					severity,
-				));
-			}
-
-			for section in &required_sections {
-				if !markdown_has_heading(&file.body, section) {
-					results.push(LintResult::new(
-						self.rule.id.clone(),
-						LintLocation::new(ctx.manifest_path, 1, 1),
-						format!("changeset must include a `{section}` section"),
-						severity,
-					));
-				}
-			}
-
-			for heading in &forbidden_headings {
-				if markdown_has_heading(&file.body, heading) {
-					results.push(LintResult::new(
-						self.rule.id.clone(),
-						LintLocation::new(ctx.manifest_path, 1, 1),
-						format!("changeset must not use `{heading}` as a heading"),
-						severity,
-					));
-				}
-			}
-
-			if let Some(min_chars) = min_body_chars
-				&& file.body.trim().chars().count() < min_chars
-			{
-				results.push(LintResult::new(
-					self.rule.id.clone(),
-					LintLocation::new(ctx.manifest_path, 1, 1),
-					format!("changeset body must be at least {min_chars} characters"),
-					severity,
-				));
-			}
-
-			if let Some(max_chars) = max_body_chars
-				&& file.body.trim().chars().count() > max_chars
-			{
-				results.push(LintResult::new(
-					self.rule.id.clone(),
-					LintLocation::new(ctx.manifest_path, 1, 1),
-					format!("changeset body must be at most {max_chars} characters"),
-					severity,
-				));
-			}
-
-			if require_code_block && !markdown_has_code_block(&file.body) {
-				results.push(LintResult::new(
-					self.rule.id.clone(),
-					LintLocation::new(ctx.manifest_path, 1, 1),
-					"changeset must include a fenced code block",
-					severity,
-				));
-			}
-		}
-
-		results
+		run_scoped_rule(&self.rule, ctx, config, |change| {
+			change.bump == Some(self.bump)
+		})
 	}
+}
+
+// ── Type scope rule ────────────────────────────────────────────────────────
+
+#[derive(Debug)]
+struct TypeScopeRule {
+	rule: LintRule,
+	change_type: String,
+}
+
+impl TypeScopeRule {
+	fn new(change_type: &str) -> Self {
+		Self {
+			rule: LintRule::new(
+				format!("changesets/types/{change_type}"),
+				format!("Changeset {change_type} type scope"),
+				format!("Requires changesets with type `{change_type}` to satisfy scope rules"),
+				LintCategory::Correctness,
+				LintMaturity::Stable,
+				false,
+			),
+			change_type: change_type.to_string(),
+		}
+	}
+}
+
+impl LintRuleRunner for TypeScopeRule {
+	fn rule(&self) -> &LintRule {
+		&self.rule
+	}
+
+	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
+		run_scoped_rule(&self.rule, ctx, config, |change| {
+			change.change_type.as_deref() == Some(self.change_type.as_str())
+		})
+	}
+}
+
+fn run_scoped_rule(
+	rule: &LintRule,
+	ctx: &LintContext<'_>,
+	config: &LintRuleConfig,
+	matches: impl Fn(&RawChangeEntry) -> bool,
+) -> Vec<LintResult> {
+	let severity = config.severity();
+	if !severity.is_enabled() {
+		return Vec::new();
+	}
+
+	let Some(file) = changeset_file(ctx) else {
+		return Vec::new();
+	};
+
+	use crate::markdown_has_code_block;
+	use crate::markdown_has_heading;
+
+	let required_bump = config
+		.option("required_bump")
+		.and_then(|value| value.as_str())
+		.and_then(parse_bump_severity);
+	let required_sections = config
+		.string_list_option("required_sections")
+		.unwrap_or_default();
+	let forbidden_headings = config
+		.string_list_option("forbidden_headings")
+		.unwrap_or_default();
+	let min_body_chars = config
+		.option("min_body_chars")
+		.and_then(serde_json::Value::as_u64)
+		.map(|value| value as usize);
+	let max_body_chars = config
+		.option("max_body_chars")
+		.and_then(serde_json::Value::as_u64)
+		.map(|value| value as usize);
+	let require_code_block = config.bool_option("require_code_block", false);
+
+	let mut results = Vec::new();
+
+	for change in &file.changes {
+		if !matches(change) {
+			continue;
+		}
+
+		if let Some(required) = required_bump
+			&& change.bump != Some(required)
+		{
+			let actual = change
+				.bump
+				.map_or_else(|| "auto".to_string(), |bump| bump.to_string());
+			results.push(LintResult::new(
+				rule.id.clone(),
+				LintLocation::new(ctx.manifest_path, 1, 1),
+				format!(
+					"changeset type `{}` requires bump `{required}`, found `{actual}`",
+					change.change_type.as_deref().unwrap_or("<unknown>")
+				),
+				severity,
+			));
+		}
+
+		for section in &required_sections {
+			if !markdown_has_heading(&file.body, section) {
+				results.push(LintResult::new(
+					rule.id.clone(),
+					LintLocation::new(ctx.manifest_path, 1, 1),
+					format!("changeset must include a `{section}` section"),
+					severity,
+				));
+			}
+		}
+
+		for heading in &forbidden_headings {
+			if markdown_has_heading(&file.body, heading) {
+				results.push(LintResult::new(
+					rule.id.clone(),
+					LintLocation::new(ctx.manifest_path, 1, 1),
+					format!("changeset must not use `{heading}` as a heading"),
+					severity,
+				));
+			}
+		}
+
+		if let Some(min_chars) = min_body_chars
+			&& file.body.trim().chars().count() < min_chars
+		{
+			results.push(LintResult::new(
+				rule.id.clone(),
+				LintLocation::new(ctx.manifest_path, 1, 1),
+				format!("changeset body must be at least {min_chars} characters"),
+				severity,
+			));
+		}
+
+		if let Some(max_chars) = max_body_chars
+			&& file.body.trim().chars().count() > max_chars
+		{
+			results.push(LintResult::new(
+				rule.id.clone(),
+				LintLocation::new(ctx.manifest_path, 1, 1),
+				format!("changeset body must be at most {max_chars} characters"),
+				severity,
+			));
+		}
+
+		if require_code_block && !markdown_has_code_block(&file.body) {
+			results.push(LintResult::new(
+				rule.id.clone(),
+				LintLocation::new(ctx.manifest_path, 1, 1),
+				"changeset must include a fenced code block",
+				severity,
+			));
+		}
+	}
+
+	results
 }
 
 // ── Prefer inline rule ────────────────────────────────────────────────────

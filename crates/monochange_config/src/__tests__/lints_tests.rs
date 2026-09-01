@@ -196,6 +196,22 @@ fn lint_suite_exposes_changeset_rules_and_presets() {
 			&& preset.rules.contains_key("changesets/summary")
 			&& preset.rules.contains_key("changesets/prefer-inline")
 	}));
+
+	let typed_suite = ChangesetLintSuite::with_change_types(vec![
+		"native".to_string(),
+		"app_feature".to_string(),
+	]);
+	let typed_ids = typed_suite
+		.rules()
+		.into_iter()
+		.map(|rule| rule.rule().id.clone())
+		.collect::<Vec<_>>();
+	assert!(
+		typed_ids
+			.iter()
+			.any(|id| id == "changesets/types/app_feature")
+	);
+	assert!(typed_ids.iter().any(|id| id == "changesets/types/native"));
 }
 
 #[test]
@@ -649,6 +665,92 @@ fn bump_scope_rule_ignores_non_matching_changes_and_accepts_valid_body() {
 	options.insert("require_code_block".to_string(), json!(true));
 	assert!(run_rule(&rule, &file, &detailed(options)).is_empty());
 	assert!(run_rule(&rule, &file, &severity(LintSeverity::Off)).is_empty());
+	assert!(run_rule_with_wrong_parsed(&rule, &severity(LintSeverity::Error)).is_empty());
+}
+
+#[test]
+fn type_scope_rule_reports_all_constraints_for_matching_changes() {
+	let rule = TypeScopeRule::new("app_feature");
+	let file = lint_file(
+		"# Summary\n\n## Forbidden\n\nA body without the requested section.",
+		vec![
+			change("core", Some(BumpSeverity::Patch), Some("app_feature")),
+			change("cli", Some(BumpSeverity::Patch), Some("fix")),
+		],
+	);
+	let mut options = BTreeMap::new();
+	options.insert("required_bump".to_string(), json!("minor"));
+	options.insert("required_sections".to_string(), json!(["User impact", 7]));
+	options.insert("forbidden_headings".to_string(), json!(["Forbidden"]));
+	options.insert("min_body_chars".to_string(), json!(200));
+	options.insert("max_body_chars".to_string(), json!(10));
+	options.insert("require_code_block".to_string(), json!(true));
+
+	let results = run_rule(&rule, &file, &detailed(options));
+	assert!(
+		results
+			.iter()
+			.all(|result| { result.rule_id == "changesets/types/app_feature" })
+	);
+	assert!(results.iter().any(|result| {
+		result
+			.message
+			.contains("changeset type `app_feature` requires bump `minor`, found `patch`")
+	}));
+	assert!(
+		results
+			.iter()
+			.any(|result| { result.message == "changeset must include a `User impact` section" })
+	);
+	assert!(
+		results
+			.iter()
+			.any(|result| { result.message == "changeset must not use `Forbidden` as a heading" })
+	);
+	assert!(
+		results
+			.iter()
+			.any(|result| { result.message == "changeset body must be at least 200 characters" })
+	);
+	assert!(
+		results
+			.iter()
+			.any(|result| { result.message == "changeset body must be at most 10 characters" })
+	);
+	assert!(
+		results
+			.iter()
+			.any(|result| { result.message == "changeset must include a fenced code block" })
+	);
+}
+
+#[test]
+fn type_scope_rule_ignores_non_matching_changes_and_accepts_valid_body() {
+	let rule = TypeScopeRule::new("app_feature");
+	let valid_file = lint_file(
+		"# Summary\n\n## User impact\n\n```rust\nlet ok = true;\n```",
+		vec![change(
+			"core",
+			Some(BumpSeverity::Minor),
+			Some("app_feature"),
+		)],
+	);
+	let non_matching_file = lint_file(
+		"# Summary",
+		vec![change("core", Some(BumpSeverity::Patch), Some("fix"))],
+	);
+	let mut options = BTreeMap::new();
+	options.insert("required_bump".to_string(), json!("minor"));
+	options.insert("required_sections".to_string(), json!(["User impact"]));
+	options.insert("forbidden_headings".to_string(), json!(["Forbidden"]));
+	options.insert("min_body_chars".to_string(), json!(1));
+	options.insert("max_body_chars".to_string(), json!(200));
+	options.insert("require_code_block".to_string(), json!(true));
+	let config = detailed(options);
+
+	assert!(run_rule(&rule, &valid_file, &config).is_empty());
+	assert!(run_rule(&rule, &non_matching_file, &config).is_empty());
+	assert!(run_rule(&rule, &valid_file, &severity(LintSeverity::Off)).is_empty());
 	assert!(run_rule_with_wrong_parsed(&rule, &severity(LintSeverity::Error)).is_empty());
 }
 
