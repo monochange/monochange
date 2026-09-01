@@ -193,6 +193,7 @@ pub use workspace_ops::AddChangeFileRequest;
 use workspace_ops::PopulateWorkspaceResult;
 pub use workspace_ops::add_change_file;
 pub(crate) use workspace_ops::add_interactive_change_file;
+pub(crate) use workspace_ops::discover_release_workspace;
 pub use workspace_ops::discover_workspace;
 use workspace_ops::init_workspace;
 pub use workspace_ops::plan_release;

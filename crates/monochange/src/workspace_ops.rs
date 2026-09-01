@@ -1311,7 +1311,7 @@ pub fn discover_workspace(root: &Path) -> MonochangeResult<DiscoveryReport> {
 /// oriented commands while giving release planning a path that parses only the
 /// configured package manifests. The comment is intentionally explicit so future
 /// refactors do not “simplify” the code back to a full repo walk.
-fn discover_release_workspace(
+pub(crate) fn discover_release_workspace(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 ) -> MonochangeResult<DiscoveryReport> {

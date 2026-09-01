@@ -5397,3 +5397,303 @@ fn build_release_requests_carry_fail_on_duplicate_from_publications() {
 	.expect("requests");
 	assert!(!requests[0].fail_on_duplicate);
 }
+
+/// Shared fixture: a repository whose root Cargo workspace contains `alpha`
+/// while `beta` lives in a separate Cargo workspace under a path that the
+/// generic workspace walk does not traverse (here: a gitignored directory).
+fn setup_separate_workspace_repository(root: &Path) {
+	fs::write(
+		root.join("monochange.toml"),
+		r#"
+[package.alpha]
+path = "crates/alpha"
+type = "cargo"
+publish = { enabled = true }
+
+[package.beta]
+path = "other/beta"
+type = "cargo"
+publish = { enabled = true }
+"#,
+	)
+	.expect("write config");
+
+	fs::write(
+		root.join("Cargo.toml"),
+		"[workspace]\nmembers = [\"crates/*\"]\nresolver = \"2\"\n",
+	)
+	.expect("write root manifest");
+	fs::create_dir_all(root.join("crates/alpha/src")).expect("mkdir alpha");
+	fs::write(
+		root.join("crates/alpha/Cargo.toml"),
+		"[package]\nname = \"alpha\"\nversion = \"0.1.0\"\nedition = \"2021\"\ndescription = \"Alpha crate\"\nlicense = \"MIT\"\n",
+	)
+	.expect("write alpha manifest");
+	fs::write(root.join("crates/alpha/src/lib.rs"), "").expect("write alpha lib");
+
+	fs::create_dir_all(root.join("other/beta/src")).expect("mkdir beta");
+	fs::write(
+		root.join("other/Cargo.toml"),
+		"[workspace]\nmembers = [\"beta\"]\nresolver = \"2\"\n",
+	)
+	.expect("write separate workspace manifest");
+	fs::write(
+		root.join("other/beta/Cargo.toml"),
+		"[package]\nname = \"beta\"\nversion = \"0.1.0\"\nedition = \"2021\"\ndescription = \"Beta crate\"\nlicense = \"MIT\"\n",
+	)
+	.expect("write beta manifest");
+	fs::write(root.join("other/beta/src/lib.rs"), "").expect("write beta lib");
+
+	// The separate workspace lives outside the generic discovery tree.
+	fs::write(root.join(".gitignore"), "other/\n").expect("write gitignore");
+}
+
+fn separate_workspace_publication_target(package: &str, version: &str) -> PackagePublicationTarget {
+	PackagePublicationTarget {
+		package: package.to_string(),
+		ecosystem: Ecosystem::Cargo,
+		registry: None,
+		version: version.to_string(),
+		mode: PublishMode::Builtin,
+		trusted_publishing: TrustedPublishingSettings::default(),
+		attestations: PublishAttestationSettings::default(),
+		timeout: PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
+	}
+}
+
+fn mock_missing_crates_io(server: &MockServer) {
+	server.mock(|when, then| {
+		when.method(GET);
+		then.status(404);
+	});
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn run_publish_packages_with_publications_captures_packages_outside_discovery_tree() {
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let root = tempdir.path();
+	setup_separate_workspace_repository(root);
+	let configuration = crate::load_workspace_configuration(root).expect("configuration:");
+
+	let publications = vec![
+		separate_workspace_publication_target("alpha", "0.1.1"),
+		separate_workspace_publication_target("beta", "0.1.1"),
+	];
+
+	let report = run_publish_packages_with_publications(
+		root,
+		&configuration,
+		&publications,
+		&BTreeSet::new(),
+		true,
+		false,
+	)
+	.await
+	.expect("publish run should succeed in dry-run mode");
+
+	let published: BTreeSet<String> = report.packages.iter().map(|o| o.package.clone()).collect();
+	assert_eq!(
+		published,
+		BTreeSet::from(["alpha".to_string(), "beta".to_string()]),
+		"every configured publication should be captured regardless of workspace layout"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn run_publish_packages_all_captures_packages_outside_discovery_tree() {
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let root = tempdir.path();
+	setup_separate_workspace_repository(root);
+	let configuration = crate::load_workspace_configuration(root).expect("configuration:");
+
+	let report = try_run_publish_packages_with_resume(
+		root,
+		&configuration,
+		None,
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		&BTreeSet::new(),
+		PublishPackagesOptions {
+			publish_all_configured_packages: true,
+			dry_run: true,
+			..PublishPackagesOptions::default()
+		},
+	)
+	.await
+	.expect("publish-all run should succeed in dry-run mode");
+
+	let published: BTreeSet<String> = report.packages.iter().map(|o| o.package.clone()).collect();
+	assert_eq!(
+		published,
+		BTreeSet::from(["alpha".to_string(), "beta".to_string()]),
+		"`--all` should capture every configured publishable package"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn run_publish_packages_captures_release_record_publications_outside_discovery_tree() {
+	let server = MockServer::start();
+	mock_missing_crates_io(&server);
+
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let root = tempdir.path();
+	setup_separate_workspace_repository(root);
+
+	git(root, &["init"]);
+	git(root, &["config", "user.name", "monochange Tests"]);
+	git(root, &["config", "user.email", "monochange@example.com"]);
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "initial"]);
+
+	let configuration = crate::load_workspace_configuration(root).expect("configuration:");
+	commit_release_record(
+		root,
+		vec![
+			separate_workspace_publication_target("alpha", "0.1.1"),
+			separate_workspace_publication_target("beta", "0.1.1"),
+		],
+	);
+
+	with_locked_env_vars(|| {
+		with_vars(
+			vec![
+				(
+					"MONOCHANGE_CRATES_IO_API_URL",
+					Some(server.base_url().as_str()),
+				),
+				(
+					"MONOCHANGE_CRATES_IO_INDEX_URL",
+					Some(server.base_url().as_str()),
+				),
+			],
+			|| {
+				let report = crate::tests::block_on_in_context(run_publish_packages(
+					root,
+					&configuration,
+					None,
+					&BTreeSet::new(),
+					true,
+					false,
+				))
+				.expect("publish run should succeed in dry-run mode");
+				let published: BTreeSet<String> =
+					report.packages.iter().map(|o| o.package.clone()).collect();
+				assert_eq!(
+					published,
+					BTreeSet::from(["alpha".to_string(), "beta".to_string()]),
+					"release-record publications outside the discovery tree should still be published"
+				);
+			},
+		);
+	});
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn placeholder_publish_captures_packages_outside_discovery_tree() {
+	let server = MockServer::start();
+	mock_missing_crates_io(&server);
+
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let root = tempdir.path();
+	setup_separate_workspace_repository(root);
+	let configuration = crate::load_workspace_configuration(root).expect("configuration:");
+
+	with_locked_env_vars(|| {
+		with_vars(
+			vec![
+				(
+					"MONOCHANGE_CRATES_IO_API_URL",
+					Some(server.base_url().as_str()),
+				),
+				(
+					"MONOCHANGE_CRATES_IO_INDEX_URL",
+					Some(server.base_url().as_str()),
+				),
+			],
+			|| {
+				let result =
+					crate::tests::block_on_in_context(try_run_placeholder_publish_with_npm_otp(
+						root,
+						&configuration,
+						&BTreeSet::new(),
+						true,
+						None,
+						true,
+					))
+					.expect("placeholder publish run should succeed in dry-run mode");
+				let planned: BTreeSet<String> =
+					result.packages.iter().map(|o| o.package.clone()).collect();
+				assert_eq!(
+					planned,
+					BTreeSet::from(["alpha".to_string(), "beta".to_string()]),
+					"placeholder bootstrap should capture configured packages outside the discovery tree"
+				);
+			},
+		);
+	});
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn plan_publish_rate_limits_includes_packages_outside_discovery_tree() {
+	let server = MockServer::start();
+	mock_missing_crates_io(&server);
+
+	let tempdir = tempfile::tempdir().expect("tempdir:");
+	let root = tempdir.path();
+	setup_separate_workspace_repository(root);
+
+	git(root, &["init"]);
+	git(root, &["config", "user.name", "monochange Tests"]);
+	git(root, &["config", "user.email", "monochange@example.com"]);
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "initial"]);
+
+	let configuration = crate::load_workspace_configuration(root).expect("configuration:");
+	commit_release_record(
+		root,
+		vec![
+			separate_workspace_publication_target("alpha", "0.1.1"),
+			separate_workspace_publication_target("beta", "0.1.1"),
+		],
+	);
+
+	with_locked_env_vars(|| {
+		with_vars(
+			vec![
+				(
+					"MONOCHANGE_CRATES_IO_API_URL",
+					Some(server.base_url().as_str()),
+				),
+				(
+					"MONOCHANGE_CRATES_IO_INDEX_URL",
+					Some(server.base_url().as_str()),
+				),
+			],
+			|| {
+				let report = crate::tests::block_on_in_context(
+					crate::publish_rate_limits::plan_publish_rate_limits(
+						root,
+						&configuration,
+						None,
+						&BTreeSet::new(),
+						crate::publish_rate_limits::PublishRateLimitMode::Publish,
+						false,
+						true,
+					),
+				)
+				.expect("rate limit plan should succeed");
+				let planned: BTreeSet<String> = report
+					.batches
+					.iter()
+					.flat_map(|batch| batch.packages.iter().cloned())
+					.collect();
+				assert_eq!(
+					planned,
+					BTreeSet::from(["alpha".to_string(), "beta".to_string()]),
+					"rate limit planning should include configured packages outside the discovery tree"
+				);
+			},
+		);
+	});
+}

@@ -18,7 +18,7 @@ use monochange_publish::policies_for_rate_limit_operation;
 use monochange_publish::render_rate_limit_window;
 
 use crate::PreparedRelease;
-use crate::discover_workspace;
+use crate::discover_release_workspace;
 use crate::package_publish;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -54,7 +54,7 @@ pub(crate) async fn plan_publish_rate_limits(
 	publish_all_configured_packages: bool,
 	dry_run: bool,
 ) -> MonochangeResult<PublishRateLimitReport> {
-	let discovery = discover_workspace(root)?;
+	let discovery = discover_release_workspace(root, configuration)?;
 	let packages = &discovery.packages;
 	let requests = if mode == PublishRateLimitMode::Placeholder {
 		build_placeholder_plan_requests(root, configuration, packages, selected_packages).await?
