@@ -56,7 +56,7 @@ use monochange_python::write_python_placeholder_manifest;
 
 use crate::PreparedRelease;
 use crate::discover_release_record;
-use crate::discover_workspace;
+use crate::discover_release_workspace;
 use crate::publish_progress::StderrPublishProgressReporter;
 
 pub(crate) async fn try_run_placeholder_publish_with_npm_otp(
@@ -67,7 +67,7 @@ pub(crate) async fn try_run_placeholder_publish_with_npm_otp(
 	npm_otp: Option<&str>,
 	quiet: bool,
 ) -> PackagePublishExecutionResult {
-	let discovery = discover_workspace(root).map_err(|error| {
+	let discovery = discover_release_workspace(root, configuration).map_err(|error| {
 		monochange_publish::PackagePublishFailure::new(
 			error,
 			PackagePublishReport {
@@ -182,7 +182,7 @@ pub(crate) async fn try_run_publish_packages_with_resume(
 	options: PublishPackagesOptions<'_>,
 ) -> PackagePublishExecutionResult {
 	let publication_targets = if options.publish_all_configured_packages {
-		let discovery = discover_workspace(root).map_err(|error| {
+		let discovery = discover_release_workspace(root, configuration).map_err(|error| {
 			monochange_publish::PackagePublishFailure::new(
 				error,
 				PackagePublishReport {
@@ -275,7 +275,7 @@ async fn try_run_publish_packages_with_publications_and_resume(
 	selected_packages: &BTreeSet<String>,
 	options: PublishPackagesOptions<'_>,
 ) -> PackagePublishExecutionResult {
-	let discovery = discover_workspace(root).map_err(|error| {
+	let discovery = discover_release_workspace(root, configuration).map_err(|error| {
 		monochange_publish::PackagePublishFailure::new(
 			error,
 			PackagePublishReport {

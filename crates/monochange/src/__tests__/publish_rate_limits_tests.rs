@@ -7,6 +7,8 @@ use monochange_publish::RegistryEndpoints;
 use monochange_publish::filter_pending_publish_requests_with_transport;
 use monochange_test_helpers::install_rustls_ring_provider;
 
+use crate::discover_workspace;
+
 async fn build_placeholder_plan_requests_with_transport(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
