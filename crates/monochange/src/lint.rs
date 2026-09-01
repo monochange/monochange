@@ -23,7 +23,9 @@ use monochange_lint::Linter;
 use crate::OutputFormat;
 
 #[allow(clippy::vec_init_then_push)]
-fn lint_suites() -> Vec<Box<dyn LintSuite>> {
+fn lint_suites(
+	configuration: Option<&monochange_core::WorkspaceConfiguration>,
+) -> Vec<Box<dyn LintSuite>> {
 	let mut suites: Vec<Box<dyn LintSuite>> = Vec::new();
 	#[cfg(feature = "cargo")]
 	suites.push(Box::new(monochange_cargo::lints::lint_suite()));
@@ -31,7 +33,13 @@ fn lint_suites() -> Vec<Box<dyn LintSuite>> {
 	suites.push(Box::new(monochange_npm::lints::lint_suite()));
 	#[cfg(feature = "dart")]
 	suites.push(Box::new(monochange_dart::lints::lint_suite()));
-	suites.push(Box::new(monochange_config::lints::lint_suite()));
+	let changeset_suite =
+		configuration.map_or_else(monochange_config::lints::lint_suite, |config| {
+			monochange_config::lints::ChangesetLintSuite::with_change_types(
+				config.changelog.types.keys().cloned(),
+			)
+		});
+	suites.push(Box::new(changeset_suite));
 	suites
 }
 
@@ -39,7 +47,11 @@ fn build_linter(
 	configuration: &monochange_core::WorkspaceConfiguration,
 	selection: LintSelection,
 ) -> Linter {
-	Linter::new(lint_suites(), configuration.lints.clone()).with_selection(selection)
+	Linter::new(
+		lint_suites(Some(configuration)),
+		configuration.lints.clone(),
+	)
+	.with_selection(selection)
 }
 
 pub(crate) fn collect_workspace_validation_issues(
@@ -68,7 +80,7 @@ pub(crate) fn collect_workspace_validation_issues(
 
 pub(crate) fn available_lint_rules() -> Vec<LintRule> {
 	let mut rules = Linter::new(
-		lint_suites(),
+		lint_suites(None),
 		monochange_core::lint::WorkspaceLintSettings::default(),
 	)
 	.registry()
@@ -79,7 +91,7 @@ pub(crate) fn available_lint_rules() -> Vec<LintRule> {
 
 pub(crate) fn available_lint_presets() -> Vec<LintPreset> {
 	let mut presets = Linter::new(
-		lint_suites(),
+		lint_suites(None),
 		monochange_core::lint::WorkspaceLintSettings::default(),
 	)
 	.registry()
@@ -90,7 +102,7 @@ pub(crate) fn available_lint_presets() -> Vec<LintPreset> {
 
 pub(crate) fn explain_lint_rule(rule_id: &str) -> Option<LintRule> {
 	Linter::new(
-		lint_suites(),
+		lint_suites(None),
 		monochange_core::lint::WorkspaceLintSettings::default(),
 	)
 	.registry()
@@ -99,7 +111,7 @@ pub(crate) fn explain_lint_rule(rule_id: &str) -> Option<LintRule> {
 
 pub(crate) fn explain_lint_preset(preset_id: &str) -> Option<LintPreset> {
 	Linter::new(
-		lint_suites(),
+		lint_suites(None),
 		monochange_core::lint::WorkspaceLintSettings::default(),
 	)
 	.registry()

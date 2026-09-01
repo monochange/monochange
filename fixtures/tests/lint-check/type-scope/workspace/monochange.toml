@@ -1,0 +1,21 @@
+[defaults]
+package_type = "cargo"
+changelog = false
+
+[changelog.sections]
+app_features = { heading = "App features", priority = 10 }
+
+[changelog.types]
+app_feature = { bump = "minor", section = "app_features" }
+
+[package.example]
+path = "crates/example"
+
+[ecosystems.cargo]
+enabled = true
+
+[lints]
+include = [".changeset/**"]
+
+[lints.rules]
+"changesets/types/app_feature" = { level = "error", required_sections = ["User impact", "Developer notes"], required_bump = "minor" }

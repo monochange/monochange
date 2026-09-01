@@ -17,6 +17,10 @@ fn readonly_fix_workspace() -> tempfile::TempDir {
 	monochange_test_helpers::setup_scenario_workspace!("lint-check/read-only-fix")
 }
 
+fn type_scoped_changeset_workspace() -> tempfile::TempDir {
+	monochange_test_helpers::setup_scenario_workspace!("lint-check/type-scope")
+}
+
 #[test]
 fn test_format_check_report_empty() {
 	let report = LintReport::new();
@@ -139,6 +143,17 @@ fn run_check_command_supports_text_json_and_fix_error_paths() {
 	let error = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text, false)
 		.expect_err("expected fix write to fail for readonly manifest");
 	assert!(error.to_string().contains("Failed to write fixed content"));
+}
+
+#[test]
+fn run_check_command_enforces_type_scoped_changeset_rules() {
+	let workspace = type_scoped_changeset_workspace();
+	let error = run_check_command(workspace.path(), false, &[], &[], OutputFormat::Text, false)
+		.expect_err("expected the missing developer notes section to fail");
+	let message = error.to_string();
+
+	assert!(message.contains("changesets/types/app_feature"));
+	assert!(message.contains("changeset must include a `Developer notes` section"));
 }
 
 #[test]
