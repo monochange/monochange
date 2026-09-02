@@ -1,6 +1,6 @@
 <!-- {=projectCliAfterLongHelp} -->
 
-### Quick CLI workflow
+### Quick Start
 
 1. Create or update `monochange.toml` for your workspace:
 
