@@ -1,0 +1,13 @@
+---
+source: crates/monochange_core/src/__tests__/lib_tests.rs
+expression: text
+---
+1.2.3
+
+Grouped release for `sdk`.
+
+Changed
+
+add release automation
+
+faster releases

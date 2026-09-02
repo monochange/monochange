@@ -354,6 +354,8 @@ fn release_pull_request_body_ignores_changelogs_without_exact_owner_match() {
 		ReleaseManifestChangelog {
 			owner_id: "other".to_string(),
 			owner_kind: ReleaseOwnerKind::Package,
+			output: "default".to_string(),
+			stream: "default".to_string(),
 			path: PathBuf::from("other.md"),
 			format: monochange_core::ChangelogFormat::Monochange,
 			notes: ReleaseNotesDocument {
@@ -370,6 +372,8 @@ fn release_pull_request_body_ignores_changelogs_without_exact_owner_match() {
 		ReleaseManifestChangelog {
 			owner_id: "core".to_string(),
 			owner_kind: ReleaseOwnerKind::Group,
+			output: "default".to_string(),
+			stream: "default".to_string(),
 			path: PathBuf::from("group.md"),
 			format: monochange_core::ChangelogFormat::Monochange,
 			notes: ReleaseNotesDocument {
@@ -485,6 +489,8 @@ fn release_body_returns_rendered_changelog_for_monochange_source() {
 	manifest.changelogs = vec![ReleaseManifestChangelog {
 		owner_id: "core".to_string(),
 		owner_kind: ReleaseOwnerKind::Package,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		path: PathBuf::from("changelog.md"),
 		format: ChangelogFormat::Monochange,
 		notes: ReleaseNotesDocument {
@@ -562,6 +568,8 @@ fn release_body_falls_back_to_minimal_when_only_non_matching_changelog_exists() 
 		ReleaseManifestChangelog {
 			owner_id: "other".to_string(),
 			owner_kind: ReleaseOwnerKind::Package,
+			output: "default".to_string(),
+			stream: "default".to_string(),
 			path: PathBuf::from("other.md"),
 			format: monochange_core::ChangelogFormat::Monochange,
 			notes: ReleaseNotesDocument {
@@ -578,6 +586,8 @@ fn release_body_falls_back_to_minimal_when_only_non_matching_changelog_exists() 
 		ReleaseManifestChangelog {
 			owner_id: "core".to_string(),
 			owner_kind: ReleaseOwnerKind::Group,
+			output: "default".to_string(),
+			stream: "default".to_string(),
 			path: PathBuf::from("group.md"),
 			format: monochange_core::ChangelogFormat::Monochange,
 			notes: ReleaseNotesDocument {
@@ -628,6 +638,8 @@ fn release_changelog(
 	ReleaseManifestChangelog {
 		owner_id: owner_id.to_string(),
 		owner_kind,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		path: PathBuf::from(format!("{owner_id}.md")),
 		format: monochange_core::ChangelogFormat::Monochange,
 		notes: ReleaseNotesDocument {
@@ -697,6 +709,37 @@ fn release_body_uses_group_changelog_without_member_rollup_when_group_has_notes(
 	assert!(!body.contains("### `core`"), "body:\n{body}");
 	assert!(!body.contains("Core package summary"), "body:\n{body}");
 	assert!(!body.contains("- core feature"), "body:\n{body}");
+}
+
+#[test]
+fn release_body_selects_the_configured_changelog_output() {
+	let mut manifest = sample_manifest();
+	let mut source = monochange_release_source();
+	source.releases.changelog_output = "user".to_string();
+	let target = minimal_target("core");
+	let mut developer = release_changelog(
+		"core",
+		ReleaseOwnerKind::Package,
+		Vec::new(),
+		vec![release_section("Changed", vec!["developer details"])],
+		"developer details",
+	);
+	developer.output = "default".to_string();
+	let mut user = release_changelog(
+		"core",
+		ReleaseOwnerKind::Package,
+		Vec::new(),
+		vec![release_section("Improvements", vec!["faster previews"])],
+		"faster previews",
+	);
+	user.output = "user".to_string();
+	user.stream = "user".to_string();
+	manifest.changelogs = vec![developer, user];
+
+	assert_eq!(
+		release_body(&source, &manifest, &target).as_deref(),
+		Some("faster previews")
+	);
 }
 
 #[test]
@@ -1044,6 +1087,8 @@ fn release_pull_request_body_skips_empty_sections() {
 	manifest.changelogs = vec![ReleaseManifestChangelog {
 		owner_id: "sdk".to_string(),
 		owner_kind: ReleaseOwnerKind::Group,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		path: PathBuf::from("changelog.md"),
 		format: monochange_core::ChangelogFormat::Monochange,
 		notes: ReleaseNotesDocument {

@@ -925,12 +925,66 @@ lockfile_commands = [{ command = "go mod tidy" }]
 
 When `[defaults].package_type` is set, package entries may omit an explicit `type`.
 
-monochange supports two changelog formats:
+Existing package and group changelogs support two appendable Markdown formats:
 
 - `monochange` keeps the current heading-and-bullets layout
 - `keep_a_changelog` renders section headings such as `### Features`, `### Fixes`, and `### Breaking changes`
 
 Defaults can set a repository-wide changelog path pattern and format, while package and group changelog tables can override either field.
+
+### Release-note streams and outputs
+
+Streams separate the wording intended for different audiences without changing the changeset syntax. The built-in `default` stream always exists and preserves the current developer-oriented changelog behavior. A custom type opts into another stream with `stream`; types that omit it continue to use `default`.
+
+Each changeset file resolves to exactly one stream. If one implementation needs both developer-facing detail and user-facing wording, author two small changesets and choose a type from each stream. This keeps each entry understandable on its own and prevents internal details from leaking into product notes.
+
+```toml
+[changelog.streams.user]
+description = "Product release notes for app users"
+
+[changelog.sections.native]
+heading = "Native releases"
+priority = 5
+
+[changelog.sections.app_features]
+heading = "App features"
+priority = 10
+
+[changelog.types.native]
+bump = "major"
+section = "native"
+
+[changelog.types.app_feature]
+bump = "minor"
+section = "app_features"
+stream = "user"
+
+[changelog.outputs.user]
+stream = "user"
+format = "json"
+mode = "release"
+path = "{{ path }}/release-notes/{{ version }}.json"
+targets = ["app"]
+
+[source.releases]
+source = "monochange"
+changelog_output = "user"
+```
+
+This example makes `native` a major bump in the default stream and `app_feature` a minor bump in the user stream. A mobile app can use that distinction to require an app-store/native release for `native` changes while allowing an `app_feature` release through a patch system such as Shorebird.
+
+Named `[changelog.outputs.<id>]` tables support:
+
+| Field            | Meaning                                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| `stream`         | Stream to render; defaults to `default`                                                             |
+| `targets`        | One or more configured package or group ids                                                         |
+| `path`           | Destination template supporting `{{ path }}`, `{{ id }}`, and `{{ version }}`                       |
+| `format`         | `monochange`, `keep_a_changelog`, `json`, or `text`                                                 |
+| `mode`           | `append` for a cumulative Markdown changelog or `release` for a standalone current-release artifact |
+| `initial_header` | Optional header for append mode; invalid with release mode                                          |
+
+JSON and text outputs must use `mode = "release"`. The existing package/group changelog configuration is the implicit output named `default`; `[source.releases].changelog_output` selects which output becomes the hosted release body.
 
 Use `[changelog.style]` to tune rendered release-note shape. `metadata_style` accepts `inline` (the default), `blockquote`, `plain`, or `omit`. The inline style renders owner, review request, and issue metadata as one `·`-separated paragraph; when a PR/MR link is available, commit links are omitted because the review link already identifies the change.
 

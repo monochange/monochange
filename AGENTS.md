@@ -49,6 +49,15 @@ These operations are **strictly prohibited** for the agent and must only be perf
 
 The agent must only write code, open and update pull requests, review code, run tests, and perform other development tasks. Release and publish operations are the sole responsibility of the human maintainer.
 
+## Release-note streams and changeset writing
+
+- Treat every `.changeset/*.md` file as one audience-specific release-note entry. All targets in that file must resolve to the same changelog stream.
+- Types without an explicit `stream` belong to the built-in `default` stream, which is normally developer-facing. Custom streams such as `user` are declared in `monochange.toml` and reached through their configured types.
+- When one code change matters to developers and users, write two changesets: one with precise API, function, migration, or operational detail in the default stream, and one with product-language outcomes in the user stream. Do not duplicate the same prose.
+- Developer notes should name the affected API or behavior and include actionable migration/config examples. User notes should describe the visible outcome, who benefits, and any action the user must take; omit internal function names and implementation detail.
+- For mobile apps, use a configured `native` major type when native binaries or app-store distribution are required. Use a configured `app_feature` minor type for changes eligible for a Shorebird release. The configured type—not subjective wording—must drive this release decision.
+- Run `monochange step validate` to reject mixed-stream files, then inspect `monochange step prepare-release --dry-run --format json`. The manifest records `output` and `stream` for every rendered artifact, making the release decision auditable.
+
 ## Task-specific guidance
 
 - [Tooling and commands](docs/agents/tooling.md)

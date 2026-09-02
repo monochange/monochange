@@ -467,6 +467,8 @@ fn release_record_dedupes_overlapping_records_on_second_commit() {
 	second.changelogs = vec![monochange_core::ReleaseManifestChangelog {
 		owner_id: "sdk".to_string(),
 		owner_kind: ReleaseOwnerKind::Group,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		path: std::path::PathBuf::from("CHANGELOG.md"),
 		format: monochange_core::ChangelogFormat::Monochange,
 		notes: monochange_core::ReleaseNotesDocument {

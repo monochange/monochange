@@ -1,0 +1,19 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: user_group
+---
+{
+  "sections": [
+    {
+      "collapsed": false,
+      "entries": [
+        "[multiline text]"
+      ],
+      "title": "App features"
+    }
+  ],
+  "summary": [
+    "Grouped release for `sdk`."
+  ],
+  "title": "sdk 2.0.0 (2026-09-02)"
+}

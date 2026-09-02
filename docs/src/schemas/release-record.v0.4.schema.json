@@ -12,7 +12,9 @@
 		"ChangelogFormat": {
 			"enum": [
 				"monochange",
-				"keep_a_changelog"
+				"keep_a_changelog",
+				"json",
+				"text"
 			],
 			"type": "string"
 		},
@@ -608,6 +610,11 @@
 				"notes": {
 					"$ref": "#/$defs/ReleaseNotesDocument"
 				},
+				"output": {
+					"default": "default",
+					"description": "Stable destination name used by provider release-note selection.",
+					"type": "string"
+				},
 				"owner_id": {
 					"type": "string"
 				},
@@ -618,6 +625,11 @@
 					"type": "string"
 				},
 				"rendered": {
+					"type": "string"
+				},
+				"stream": {
+					"default": "default",
+					"description": "Audience stream rendered into this artifact.",
 					"type": "string"
 				}
 			},

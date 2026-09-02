@@ -7,4 +7,6 @@ expression: keep_a_changelog
 Grouped release for `sdk`.
 ### Changed
 
-- add release automation
+#### add release automation
+
+- faster releases

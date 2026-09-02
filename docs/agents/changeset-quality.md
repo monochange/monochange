@@ -12,6 +12,29 @@ Every changeset body must include:
 
 A one-liner that only restates the PR title is not acceptable. The body must be detailed enough that a user reading the release notes can act on the information without consulting the source diff.
 
+## Audience-specific streams
+
+Each changeset file targets exactly one configured changelog stream. A type without `stream` uses the built-in `default` stream. A custom type can route the file to a custom stream:
+
+```toml
+[changelog.streams.user]
+description = "Product release notes"
+
+[changelog.types.app_feature]
+bump = "minor"
+section = "features"
+stream = "user"
+```
+
+Keep the files separate when a change needs more than one audience:
+
+- The default/developer changeset explains the affected API, implementation contract, migration, configuration, or operational consequence.
+- The user changeset explains the visible outcome in product language, including who benefits and whether the user must do anything.
+
+Do not put both audiences in one body and do not copy identical prose into both streams. The separate files are intentional audit records: each can be reviewed, edited, and published independently, while its type deterministically records the release policy.
+
+For mobile app release policies, a repository may configure `native` as a major/default-stream type and `app_feature` as a minor/user-stream type. Use `native` whenever the diff changes native code or otherwise requires a new store binary; use `app_feature` only when the release is eligible for a patch system such as Shorebird.
+
 ## CLI changes
 
 For any change that adds, removes, or modifies a CLI command or flag:

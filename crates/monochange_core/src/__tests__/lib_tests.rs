@@ -56,6 +56,7 @@ use crate::RELEASE_RECORD_START_MARKER;
 use crate::RateLimitOperation;
 use crate::RegistryKind;
 use crate::ReleaseManifest;
+use crate::ReleaseManifestChangelog;
 use crate::ReleaseManifestPlan;
 use crate::ReleaseNotesDocument;
 use crate::ReleaseNotesSection;
@@ -2494,16 +2495,23 @@ fn source_provider_rejects_legacy_provider_aliases() {
 }
 
 #[test]
-fn render_release_notes_supports_monochange_and_keep_a_changelog_formats() {
+fn render_release_notes_supports_markdown_json_and_text_formats() {
 	let _snapshot = insta::Settings::clone_current().bind_to_scope();
 	let document = ReleaseNotesDocument {
 		title: "1.2.3".to_string(),
 		summary: vec!["Grouped release for `sdk`.".to_string()],
-		sections: vec![ReleaseNotesSection {
-			title: "Changed".to_string(),
-			collapsed: false,
-			entries: vec!["add release automation".to_string()],
-		}],
+		sections: vec![
+			ReleaseNotesSection {
+				title: "Changed".to_string(),
+				collapsed: false,
+				entries: vec!["#### add release automation\n\n- faster releases".to_string()],
+			},
+			ReleaseNotesSection {
+				title: "Empty".to_string(),
+				collapsed: false,
+				entries: Vec::new(),
+			},
+		],
 	};
 
 	let monochange = render_release_notes(
@@ -2516,6 +2524,8 @@ fn render_release_notes_supports_monochange_and_keep_a_changelog_formats() {
 		&document,
 		&ChangelogStyle::default(),
 	);
+	let json = render_release_notes(ChangelogFormat::Json, &document, &ChangelogStyle::default());
+	let text = render_release_notes(ChangelogFormat::Text, &document, &ChangelogStyle::default());
 
 	insta::assert_snapshot!(
 		"render_release_notes_supports_monochange_and_keep_a_changelog_formats__monochange",
@@ -2525,6 +2535,51 @@ fn render_release_notes_supports_monochange_and_keep_a_changelog_formats() {
 		"render_release_notes_supports_monochange_and_keep_a_changelog_formats__keep_a_changelog",
 		keep_a_changelog
 	);
+	let mut json_value = serde_json::from_str::<serde_json::Value>(&json)
+		.unwrap_or_else(|error| panic!("parse rendered JSON release notes: {error}"));
+	json_value["sections"][0]["entries"][0] = json!("[multiline text]");
+	insta::assert_json_snapshot!("render_release_notes_supports_formats__json", json_value);
+	insta::assert_snapshot!(
+		"render_release_notes_supports_formats__json_entry",
+		&document.sections[0].entries[0]
+	);
+	insta::assert_snapshot!("render_release_notes_supports_formats__text", text);
+}
+
+#[test]
+fn changelog_stream_and_output_defaults_preserve_legacy_release_data() {
+	let settings = ChangelogSettings::default();
+	assert!(
+		settings
+			.streams
+			.contains_key(crate::DEFAULT_CHANGELOG_STREAM)
+	);
+	assert_eq!(
+		settings.stream_for_type(None),
+		crate::DEFAULT_CHANGELOG_STREAM
+	);
+	assert_eq!(
+		settings.stream_for_type(Some("unknown")),
+		crate::DEFAULT_CHANGELOG_STREAM
+	);
+
+	let releases = ProviderReleaseSettings::default();
+	assert_eq!(releases.changelog_output, crate::DEFAULT_CHANGELOG_OUTPUT);
+	let changelog = serde_json::from_value::<ReleaseManifestChangelog>(json!({
+		"owner_id": "core",
+		"owner_kind": "package",
+		"path": "CHANGELOG.md",
+		"format": "monochange",
+		"notes": {
+			"title": "1.0.0",
+			"summary": [],
+			"sections": []
+		},
+		"rendered": "## 1.0.0"
+	}))
+	.unwrap_or_else(|error| panic!("legacy changelog: {error}"));
+	assert_eq!(changelog.output, crate::DEFAULT_CHANGELOG_OUTPUT);
+	assert_eq!(changelog.stream, crate::DEFAULT_CHANGELOG_STREAM);
 }
 
 #[test]

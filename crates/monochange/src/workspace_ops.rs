@@ -2166,6 +2166,8 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			PreparedChangelog {
 				owner_id: update.owner_id.clone(),
 				owner_kind: update.owner_kind,
+				output: update.output.clone(),
+				stream: update.stream.clone(),
 				path: root_relative(root, &update.file.path),
 				format: update.format,
 				notes: update.notes.clone(),

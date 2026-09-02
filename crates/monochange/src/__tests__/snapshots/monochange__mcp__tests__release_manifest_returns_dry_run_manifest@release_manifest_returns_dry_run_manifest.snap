@@ -33,10 +33,12 @@ expression: redacted
           ],
           "title": "1.1.0 ([DATE])"
         },
+        "output": "default",
         "owner_id": "sdk",
         "owner_kind": "group",
         "path": "changelog.md",
-        "rendered": "[multiline text]"
+        "rendered": "[multiline text]",
+        "stream": "default"
       },
       {
         "format": "monochange",
@@ -53,10 +55,12 @@ expression: redacted
           "summary": [],
           "title": "1.1.0 ([DATE])"
         },
+        "output": "default",
         "owner_id": "app",
         "owner_kind": "package",
         "path": "crates/app/changelog.md",
-        "rendered": "[multiline text]"
+        "rendered": "[multiline text]",
+        "stream": "default"
       },
       {
         "format": "monochange",
@@ -73,10 +77,12 @@ expression: redacted
           "summary": [],
           "title": "1.1.0 ([DATE])"
         },
+        "output": "default",
         "owner_id": "core",
         "owner_kind": "package",
         "path": "crates/core/changelog.md",
-        "rendered": "[multiline text]"
+        "rendered": "[multiline text]",
+        "stream": "default"
       }
     ],
     "changesets": [

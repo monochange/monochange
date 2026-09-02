@@ -2921,6 +2921,8 @@ fn github_release_changelog(
 	ReleaseManifestChangelog {
 		owner_id: owner_id.to_string(),
 		owner_kind,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		path: PathBuf::from(format!("{owner_id}.md")),
 		format: monochange_core::ChangelogFormat::Monochange,
 		notes: ReleaseNotesDocument {
@@ -2947,6 +2949,21 @@ fn github_group_release_target(
 		rendered_title: rendered_title.to_string(),
 		rendered_changelog_title: rendered_changelog_title.to_string(),
 		members: vec!["core".to_string(), "cli".to_string()],
+	}
+}
+
+fn github_package_release_target(id: &str) -> ReleaseManifestTarget {
+	ReleaseManifestTarget {
+		id: id.to_string(),
+		kind: ReleaseOwnerKind::Package,
+		version: "1.2.0".to_string(),
+		tag: true,
+		release: true,
+		version_format: VersionFormat::Primary,
+		tag_name: format!("{id}-v1.2.0"),
+		rendered_title: format!("{id} 1.2.0"),
+		rendered_changelog_title: format!("{id} 1.2.0"),
+		members: Vec::new(),
 	}
 }
 
@@ -2996,6 +3013,40 @@ fn release_body_uses_github_group_changelog_without_member_rollup_when_group_has
 	);
 	assert!(!body.contains("Core summary"), "body:\n{body}");
 	assert!(!body.contains("- core feature"), "body:\n{body}");
+}
+
+#[test]
+fn release_body_selects_the_configured_github_changelog_output() {
+	let mut source = github_release_source();
+	source.releases.changelog_output = "user".to_string();
+	let target = github_package_release_target("core");
+	let mut manifest = sample_manifest();
+	let mut developer = github_release_changelog(
+		"core",
+		ReleaseOwnerKind::Package,
+		Vec::new(),
+		vec![github_release_section("Changed", vec!["developer details"])],
+		"developer details",
+	);
+	developer.output = "default".to_string();
+	let mut user = github_release_changelog(
+		"core",
+		ReleaseOwnerKind::Package,
+		Vec::new(),
+		vec![github_release_section(
+			"Improvements",
+			vec!["faster previews"],
+		)],
+		"faster previews",
+	);
+	user.output = "user".to_string();
+	user.stream = "user".to_string();
+	manifest.changelogs = vec![developer, user];
+
+	assert_eq!(
+		release_body(&source, &manifest, &target).as_deref(),
+		Some("faster previews")
+	);
 }
 
 #[test]
@@ -3232,6 +3283,8 @@ fn sample_manifest() -> ReleaseManifest {
 		changelogs: vec![ReleaseManifestChangelog {
 			owner_id: "sdk".to_string(),
 			owner_kind: ReleaseOwnerKind::Group,
+			output: "default".to_string(),
+			stream: "default".to_string(),
 			path: PathBuf::from("changelog.md"),
 			format: monochange_core::ChangelogFormat::Monochange,
 			notes: ReleaseNotesDocument {

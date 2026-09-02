@@ -176,6 +176,37 @@ fix = { heading = "Fixed", priority = 30 }
 docs = { heading = "Documentation", priority = 40 }
 ```
 
+Use streams when one release needs different developer and user wording. The `default` stream always exists, so only custom audiences need declarations:
+
+```toml
+[changelog.streams.user]
+description = "Product release notes"
+
+[changelog.types.native]
+bump = "major"
+section = "breaking"
+
+[changelog.types.app_feature]
+bump = "minor"
+section = "feat"
+stream = "user"
+
+[changelog.outputs.user]
+stream = "user"
+format = "json"
+mode = "release"
+path = "{{ path }}/release-notes/{{ version }}.json"
+targets = ["app"]
+
+[source.releases]
+source = "monochange"
+changelog_output = "user"
+```
+
+`[changelog.outputs.<id>]` selects one stream and one or more package/group targets. Paths support `{{ path }}`, `{{ id }}`, and `{{ version }}`. Formats are `monochange`, `keep_a_changelog`, `json`, and `text`; JSON/text require `mode = "release"`, while append mode maintains cumulative Markdown files. The existing package/group changelog is the implicit `default` output.
+
+A mobile repository can use `native` major changes to require a new store binary and `app_feature` minor changes for a patch delivery workflow. Agents should always derive that decision from the configured type and verify the dry-run manifest instead of guessing from file names.
+
 ## Custom CLI workflows
 
 `[cli.<name>]` creates `monochange run <name>` in that repository. These workflows are the maintainable place to compose built-in steps with local shell commands, input defaults, dry-run behavior, and CI-specific guards.

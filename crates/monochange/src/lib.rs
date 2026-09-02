@@ -115,6 +115,8 @@ use monochange_core::ChangesetRevision;
 use monochange_core::CliCommandDefinition;
 use monochange_core::CliStepDefinition;
 use monochange_core::CommitMessage;
+use monochange_core::DEFAULT_CHANGELOG_OUTPUT;
+use monochange_core::DEFAULT_CHANGELOG_STREAM;
 use monochange_core::DEFAULT_CHANGELOG_VERSION_TITLE_NAMESPACED;
 use monochange_core::DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY;
 use monochange_core::DEFAULT_RELEASE_TITLE_NAMESPACED;
@@ -449,10 +451,24 @@ pub struct ReleaseTarget {
 pub struct PreparedChangelog {
 	pub owner_id: String,
 	pub owner_kind: ReleaseOwnerKind,
+	/// Stable name of the changelog destination that produced this artifact.
+	#[serde(default = "default_prepared_changelog_output")]
+	pub output: String,
+	/// Audience stream rendered into this artifact.
+	#[serde(default = "default_prepared_changelog_stream")]
+	pub stream: String,
 	pub path: PathBuf,
 	pub format: ChangelogFormat,
 	pub notes: ReleaseNotesDocument,
 	pub rendered: String,
+}
+
+fn default_prepared_changelog_output() -> String {
+	DEFAULT_CHANGELOG_OUTPUT.to_owned()
+}
+
+fn default_prepared_changelog_stream() -> String {
+	DEFAULT_CHANGELOG_STREAM.to_owned()
 }
 
 /// Structured result returned by release preparation APIs.

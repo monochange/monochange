@@ -880,6 +880,8 @@ pub(crate) fn build_release_manifest(
 				ReleaseManifestChangelog {
 					owner_id: changelog.owner_id.clone(),
 					owner_kind: changelog.owner_kind,
+					output: changelog.output.clone(),
+					stream: changelog.stream.clone(),
 					path: changelog.path.clone(),
 					format: changelog.format,
 					notes: changelog.notes.clone(),
@@ -975,6 +977,8 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 					ReleaseManifestChangelog {
 						owner_id: String::new(),
 						owner_kind: ReleaseOwnerKind::Group,
+						output: DEFAULT_CHANGELOG_OUTPUT.to_owned(),
+						stream: DEFAULT_CHANGELOG_STREAM.to_owned(),
 						path: path.clone(),
 						format: ChangelogFormat::default(),
 						notes: ReleaseNotesDocument {

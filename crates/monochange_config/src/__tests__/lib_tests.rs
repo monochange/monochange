@@ -2795,6 +2795,264 @@ fn load_change_signals_parses_markdown_change_types_and_details() {
 }
 
 #[test]
+fn changelog_streams_default_types_and_validate_one_stream_per_changeset() {
+	let root = fixture_path("config/changelog-streams");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let packages = vec![
+		PackageRecord::new(
+			Ecosystem::Cargo,
+			"app",
+			root.join("crates/app/Cargo.toml"),
+			root.clone(),
+			Some(Version::new(1, 0, 0)),
+			PublishState::Public,
+		),
+		PackageRecord::new(
+			Ecosystem::Cargo,
+			"core",
+			root.join("crates/core/Cargo.toml"),
+			root.clone(),
+			Some(Version::new(1, 0, 0)),
+			PublishState::Public,
+		),
+	];
+
+	assert!(configuration.changelog.streams.contains_key("default"));
+	assert!(configuration.changelog.streams.contains_key("user"));
+	let user_output = &configuration.changelog.outputs["user_json"];
+	assert_eq!(user_output.stream, "user");
+	assert_eq!(user_output.format, ChangelogFormat::Json);
+	assert_eq!(
+		user_output.mode,
+		monochange_core::ChangelogOutputMode::Release
+	);
+	assert_eq!(user_output.targets, vec!["app"]);
+	assert_eq!(
+		configuration.changelog.types["native"].bump,
+		BumpSeverity::Major
+	);
+	assert_eq!(
+		configuration.changelog.types["app_feature"].bump,
+		BumpSeverity::Minor
+	);
+	assert_eq!(
+		configuration.changelog.stream_for_type(Some("app_feature")),
+		"user"
+	);
+	assert_eq!(
+		configuration.changelog.stream_for_type(Some("native")),
+		"default"
+	);
+
+	let user = load_changeset_file(&root.join("user.md"), &configuration, &packages)
+		.unwrap_or_else(|error| panic!("user changeset: {error}"));
+	let default = load_changeset_file(&root.join("default.md"), &configuration, &packages)
+		.unwrap_or_else(|error| panic!("default changeset: {error}"));
+	assert_eq!(user.targets[0].change_type.as_deref(), Some("app_feature"));
+	assert_eq!(default.targets[0].change_type.as_deref(), Some("native"));
+
+	let error = load_changeset_file(&root.join("mixed.md"), &configuration, &packages)
+		.err()
+		.unwrap_or_else(|| panic!("expected mixed-stream validation error"));
+	assert_eq!(
+		error.to_string(),
+		"config error: changeset targets resolve to multiple changelog streams: default, user; split the changes into one file per stream"
+	);
+}
+
+#[test]
+fn changelog_stream_validation_rejects_ambiguous_or_invalid_outputs() {
+	let package = package_definition("app", "crates/app");
+	let mut settings = raw_changelog_settings();
+	settings.sections.insert(
+		"features".to_string(),
+		monochange_core::ChangelogSectionDef {
+			heading: "Features".to_string(),
+			description: None,
+			priority: 10,
+		},
+	);
+	settings.types.insert(
+		"app_feature".to_string(),
+		crate::RawChangelogType {
+			bump: BumpSeverity::Minor,
+			section: "features".to_string(),
+			description: None,
+			stream: "missing".to_string(),
+		},
+	);
+	expect_config_error(
+		crate::validate_changelog_configuration(
+			"[changelog.types.app_feature]\nbump = \"minor\"\n",
+			&settings,
+			std::slice::from_ref(&package),
+			&[],
+		),
+		"references stream `missing`",
+	);
+
+	let invalid_outputs = [
+		(
+			"default",
+			changelog_output("default", "notes.md", vec!["app"]),
+			"outputs.default is reserved",
+		),
+		(
+			"user",
+			changelog_output("missing", "notes.md", vec!["app"]),
+			"references stream `missing`",
+		),
+		(
+			"user",
+			changelog_output("default", " ", vec!["app"]),
+			"path must not be empty",
+		),
+		(
+			"user",
+			changelog_output("default", "{{ audience }}/notes.md", vec!["app"]),
+			"path uses unsupported variables: audience",
+		),
+		(
+			"user",
+			changelog_output("default", "notes.md", Vec::new()),
+			"targets must include at least one",
+		),
+		(
+			"user",
+			changelog_output("default", "notes.md", vec!["app", "app"]),
+			"contains duplicate target `app`",
+		),
+		(
+			"user",
+			changelog_output("default", "notes.md", vec!["missing"]),
+			"references unknown package or group `missing`",
+		),
+	];
+	for (output_id, output, expected) in invalid_outputs {
+		let mut settings = raw_changelog_settings();
+		settings.outputs.insert(output_id.to_string(), output);
+		expect_config_error(
+			crate::validate_changelog_configuration(
+				"",
+				&settings,
+				std::slice::from_ref(&package),
+				&[],
+			),
+			expected,
+		);
+	}
+
+	for format in [ChangelogFormat::Json, ChangelogFormat::Text] {
+		let mut settings = raw_changelog_settings();
+		let mut output = changelog_output("default", "notes", vec!["app"]);
+		output.format = format;
+		settings.outputs.insert("user".to_string(), output);
+		expect_config_error(
+			crate::validate_changelog_configuration(
+				"",
+				&settings,
+				std::slice::from_ref(&package),
+				&[],
+			),
+			"must use `mode = \"release\"`",
+		);
+	}
+
+	let mut settings = raw_changelog_settings();
+	let mut output = changelog_output("default", "notes.md", vec!["app"]);
+	output.mode = monochange_core::ChangelogOutputMode::Release;
+	output.initial_header = Some("# Notes".to_string());
+	settings.outputs.insert("user".to_string(), output);
+	expect_config_error(
+		crate::validate_changelog_configuration("", &settings, &[package], &[]),
+		"initial_header is only supported with `mode = \"append\"`",
+	);
+}
+
+#[test]
+fn changelog_output_and_provider_validation_accepts_only_compatible_destinations() {
+	assert!(crate::validate_append_changelog_format("disabled", None).is_ok());
+	let markdown = ChangelogTarget {
+		path: PathBuf::from("CHANGELOG.md"),
+		format: ChangelogFormat::Monochange,
+		initial_header: None,
+	};
+	assert!(crate::validate_append_changelog_format("package `app`", Some(&markdown)).is_ok());
+	for format in [ChangelogFormat::Json, ChangelogFormat::Text] {
+		let standalone = ChangelogTarget {
+			format,
+			..markdown.clone()
+		};
+		expect_config_error(
+			crate::validate_append_changelog_format("package `app`", Some(&standalone)),
+			"configure JSON or text under [changelog.outputs]",
+		);
+	}
+
+	let mut package = package_definition("app", "crates/app");
+	package.changelog = Some(ChangelogTarget {
+		format: ChangelogFormat::Json,
+		..markdown.clone()
+	});
+	let mut group = GroupDefinition {
+		id: "apps".to_string(),
+		packages: vec!["app".to_string()],
+		package_max_bumps: BTreeMap::new(),
+		bump_propagation: None,
+		changelog: Some(ChangelogTarget {
+			format: ChangelogFormat::Text,
+			..markdown.clone()
+		}),
+		changelog_include: GroupChangelogInclude::All,
+		excluded_changelog_types: Vec::new(),
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		tag: true,
+		release: true,
+		version_format: VersionFormat::Namespaced,
+	};
+	expect_config_error(
+		crate::validate_changelog_configuration(
+			"",
+			&raw_changelog_settings(),
+			std::slice::from_ref(&package),
+			std::slice::from_ref(&group),
+		),
+		"package `app` changelog uses standalone format `json`",
+	);
+	package.changelog = None;
+	expect_config_error(
+		crate::validate_changelog_configuration(
+			"",
+			&raw_changelog_settings(),
+			std::slice::from_ref(&package),
+			std::slice::from_ref(&group),
+		),
+		"group `apps` changelog uses standalone format `text`",
+	);
+	group.changelog = None;
+
+	let mut changelog = ChangelogSettings::default();
+	changelog.outputs.insert(
+		"user".to_string(),
+		changelog_output("default", "notes.md", vec!["app"]),
+	);
+	assert!(crate::validate_source_changelog_output(None, &changelog).is_ok());
+	let mut source = sample_source_configuration(SourceProvider::GitHub);
+	assert!(crate::validate_source_changelog_output(Some(&source), &changelog).is_ok());
+	source.releases.changelog_output = "user".to_string();
+	assert!(crate::validate_source_changelog_output(Some(&source), &changelog).is_ok());
+	source.releases.changelog_output = "missing".to_string();
+	expect_config_error(
+		crate::validate_source_changelog_output(Some(&source), &changelog),
+		"references unknown [changelog.outputs] entry `missing`",
+	);
+}
+
+#[test]
 fn load_change_signals_accept_group_scalar_type_shorthand_with_default_bump() {
 	let root = fixture_path("config/change-signals-group-type-shorthand");
 	let mut packages = vec![
@@ -3213,10 +3471,11 @@ fn validate_changelog_configuration_reports_invalid_toml_when_types_need_raw_fie
 	let mut types = BTreeMap::new();
 	types.insert(
 		"test".to_string(),
-		monochange_core::ChangelogType {
+		crate::RawChangelogType {
 			bump: BumpSeverity::Patch,
 			section: "testing".to_string(),
 			description: None,
+			stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
 		},
 	);
 
@@ -3227,6 +3486,8 @@ fn validate_changelog_configuration_reports_invalid_toml_when_types_need_raw_fie
 			sections,
 			section_thresholds: monochange_core::ChangelogSectionThresholds::default(),
 			types,
+			streams: BTreeMap::new(),
+			outputs: BTreeMap::new(),
 			style: monochange_core::ChangelogStyle::default(),
 			release_notes: monochange_core::ReleaseNotesStyleOverrides::default(),
 		},
@@ -5010,6 +5271,34 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 	}
 }
 
+fn raw_changelog_settings() -> crate::RawChangelogSettings {
+	crate::RawChangelogSettings {
+		templates: Vec::new(),
+		sections: BTreeMap::new(),
+		section_thresholds: monochange_core::ChangelogSectionThresholds::default(),
+		types: BTreeMap::new(),
+		streams: BTreeMap::new(),
+		outputs: BTreeMap::new(),
+		style: monochange_core::ChangelogStyle::default(),
+		release_notes: monochange_core::ReleaseNotesStyleOverrides::default(),
+	}
+}
+
+fn changelog_output(
+	stream: &str,
+	path: &str,
+	targets: Vec<&str>,
+) -> monochange_core::ChangelogOutputDefinition {
+	monochange_core::ChangelogOutputDefinition {
+		stream: stream.to_string(),
+		path: path.to_string(),
+		format: ChangelogFormat::Monochange,
+		mode: monochange_core::ChangelogOutputMode::Append,
+		targets: targets.into_iter().map(str::to_string).collect(),
+		initial_header: None,
+	}
+}
+
 fn cli_input(name: &str, kind: CliInputKind) -> CliInputDefinition {
 	CliInputDefinition {
 		name: name.to_string(),
@@ -6708,6 +6997,8 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			sections: BTreeMap::new(),
 			section_thresholds: monochange_core::ChangelogSectionThresholds::default(),
 			types: BTreeMap::new(),
+			streams: BTreeMap::new(),
+			outputs: BTreeMap::new(),
 			style: monochange_core::ChangelogStyle::default(),
 			release_notes: monochange_core::ReleaseNotesStyleOverrides::default(),
 		},
@@ -6737,6 +7028,8 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 				ignored: 50,
 			},
 			types: BTreeMap::new(),
+			streams: BTreeMap::new(),
+			outputs: BTreeMap::new(),
 			style: monochange_core::ChangelogStyle::default(),
 			release_notes: monochange_core::ReleaseNotesStyleOverrides::default(),
 		},

@@ -31,10 +31,12 @@ expression: redacted
           ],
           "title": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) ([DATE])"
         },
+        "output": "default",
         "owner_id": "sdk",
         "owner_kind": "group",
         "path": "changelog.md",
-        "rendered": "[multiline text]"
+        "rendered": "[multiline text]",
+        "stream": "default"
       },
       {
         "format": "monochange",
@@ -51,10 +53,12 @@ expression: redacted
           "summary": [],
           "title": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) ([DATE])"
         },
+        "output": "default",
         "owner_id": "core",
         "owner_kind": "package",
         "path": "crates/core/CHANGELOG.md",
-        "rendered": "[multiline text]"
+        "rendered": "[multiline text]",
+        "stream": "default"
       }
     ],
     "changesets": [

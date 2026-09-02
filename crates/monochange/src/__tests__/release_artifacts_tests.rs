@@ -131,6 +131,8 @@ fn sample_manifest() -> ReleaseManifest {
 		changelogs: vec![ReleaseManifestChangelog {
 			owner_id: "sdk".to_string(),
 			owner_kind: ReleaseOwnerKind::Group,
+			output: "default".to_string(),
+			stream: "default".to_string(),
 			path: PathBuf::from("CHANGELOG.md"),
 			format: ChangelogFormat::Monochange,
 			notes: ReleaseNotesDocument {

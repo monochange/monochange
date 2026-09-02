@@ -95,6 +95,36 @@ Multiple targets are allowed when one user-facing change spans packages:
 Both the API response and the UI retry flow now keep the same filter state.
 ```
 
+## Audience streams
+
+Every changeset file resolves to exactly one changelog stream. Types without an explicit stream use the built-in `default` stream. Repositories can route types such as `app_feature` to a custom `user` stream in `monochange.toml`.
+
+All targets in one file must resolve to the same stream. When the same implementation needs both developer and user notes, write two changesets with audience-appropriate wording:
+
+```md
+---
+core: fix
+---
+
+# Preserve decoded preview state in `PreviewController.retry`
+
+The controller now reuses the cached decode result when the request retry path rebuilds its provider state.
+```
+
+```md
+---
+app: app_feature
+---
+
+# Make preview retries faster
+
+Previews now recover without repeating completed work, so users return to their artwork sooner after a network interruption.
+```
+
+The first file belongs in the default/developer stream and names the affected implementation contract. The second belongs in the user stream and describes only the visible outcome. Do not combine the audiences in one body or duplicate the same prose across both files.
+
+Run `monochange step validate` after authoring. It rejects a file whose target types cross streams. Then run `monochange step prepare-release --dry-run --format json` and inspect each changelog object's `output`, `stream`, `owner_id`, and `path`; those fields are the audit trail for where each note will be published.
+
 Use explicit versions only when you need a specific version rather than semver bump calculation:
 
 ```md

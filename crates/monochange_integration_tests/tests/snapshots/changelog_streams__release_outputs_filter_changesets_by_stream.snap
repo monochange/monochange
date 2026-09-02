@@ -1,0 +1,48 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: changelog_identities
+---
+[
+  {
+    "format": "monochange",
+    "output": "default",
+    "owner": "app",
+    "path": "crates/app/CHANGELOG.md",
+    "stream": "default"
+  },
+  {
+    "format": "json",
+    "output": "user_json",
+    "owner": "app",
+    "path": "crates/app/release-notes/2.0.0.json",
+    "stream": "user"
+  },
+  {
+    "format": "text",
+    "output": "user_text",
+    "owner": "app",
+    "path": "crates/app/release-notes/2.0.0.txt",
+    "stream": "user"
+  },
+  {
+    "format": "monochange",
+    "output": "default",
+    "owner": "core",
+    "path": "crates/core/CHANGELOG.md",
+    "stream": "default"
+  },
+  {
+    "format": "monochange",
+    "output": "developer_append",
+    "owner": "core",
+    "path": "crates/core/INTERNAL.md",
+    "stream": "default"
+  },
+  {
+    "format": "json",
+    "output": "user_group",
+    "owner": "sdk",
+    "path": "release-notes/sdk/2.0.0.json",
+    "stream": "user"
+  }
+]

@@ -1,0 +1,19 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: developer_notes
+---
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+This changelog is managed by [monochange](https://github.com/monochange/monochange).
+
+## sdk 2.0.0 (2026-09-02)
+
+### Native releases
+
+#### update the native application shell
+
+The release changes native code and must ship through the app stores.
+
+_Owner:_ test · _Introduced in:_ `[COMMIT]`
