@@ -821,3 +821,24 @@ monochange step validate
 Update automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `["step", "validate"]`.
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)
+
+## monochange_schema [0.4.4](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.4.4) (2026-09-01)
+
+### 🚀 Feature
+
+#### add `publish.fail_on_duplicate` and keep already-published packages skipped by default
+
+`monochange step publish-packages` now documents its default behavior explicitly: when a version is already published on the target registry, the package is skipped (`skipped_existing`) instead of failing the step. Only packages that genuinely cannot publish fail the step, so re-running a partially published release stays green.
+
+A new per-package (and per-ecosystem) publish option opts into the strict behavior:
+
+```toml
+[package.pina_sdk_ids.publish]
+fail_on_duplicate = true
+```
+
+With `fail_on_duplicate` enabled, a package whose version already exists on the registry (release mode only, including dry runs) is reported as `failed` with the message `… already exists on … and`publish.fail_on_duplicate`rejects duplicate version publications`, remaining packages are marked as not attempted, and the step exits non-zero. Placeholder publishing keeps its idempotent skip behavior regardless of the setting. The option flows from `monochange.toml` into release-record publication targets and the built-in `PublishPackages` step, and is documented in the configuration guide and the regenerated JSON Schemas.
+
+The built-in `publish-packages` step also exposes the policy as a boolean CLI input: `monochange step publish-packages --fail-on-duplicate` forces the strict policy for that run and overrides per-package settings without editing configuration. Dry-run integration tests snapshot the skip, failure, and planned outcomes for both the configuration-driven and CLI-driven variants.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #645](https://github.com/monochange/monochange/pull/645)
