@@ -61,7 +61,7 @@ Global Options:
       --snapshot
           Print a normalized JSON snapshot for this command subtree
 
-Quick CLI workflow
+Quick Start
 
 1. Create or update monochange.toml for your workspace:
 

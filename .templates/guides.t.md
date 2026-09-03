@@ -1964,7 +1964,7 @@ devenv shell docs:check
 
 <!-- {@manifestRepositoryLintReadmeSummary} -->
 
-### Optional repository URL lint rules
+### Repository Lints
 
 monochange includes opt-in repository URL lint rules for Cargo, Dart, and npm-family manifests:
 

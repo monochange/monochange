@@ -1,4 +1,6 @@
-# monochange
+<div align="center">
+
+<h1>monochange</h1>
 
 > manage versions and releases for your multiplatform, multilanguage monorepo
 
@@ -7,13 +9,13 @@
   <img src="https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-280.png" alt="monochange logo" width="280">
 </picture>
 
-<br />
-
 <!-- {=crateReadmeBadgeRow:"monochange"} -->
 
 [![Crates.io](https://img.shields.io/badge/crates.io-monochange-orange?logo=rust)](https://crates.io/crates/monochange) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange-1f425f?logo=docs.rs)](https://docs.rs/monochange/) [![CI](https://github.com/monochange/monochange/actions/workflows/ci.yml/badge.svg)](https://github.com/monochange/monochange/actions/workflows/ci.yml) [![Coverage](https://codecov.io/gh/monochange/monochange/branch/main/graph/badge.svg?flag=monochange)](https://codecov.io/gh/monochange/monochange?flag=monochange) [![License](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://opensource.org/license/unlicense)
 
 <!-- {/crateReadmeBadgeRow} -->
+
+</div>
 
 <br />
 
@@ -31,9 +33,11 @@ Dependency-driven version bumps are declarative too. Packages and groups declare
 
 <!-- {/releaseBumpPropagationReadme} -->
 
+<br />
+
 <!-- {=projectCliAfterLongHelp} -->
 
-### Quick CLI workflow
+### Quick Start
 
 1. Create or update `monochange.toml` for your workspace:
 
@@ -66,13 +70,17 @@ Run `monochange help <command>` or `monochange help step <name>` for command-spe
 
 <!-- {/projectCliAfterLongHelp} -->
 
-## Who `monochange` is for
+<br />
+
+## Audience
 
 - maintainers of monorepos that span more than one package ecosystem
 - teams replacing ad hoc release scripts with explicit, reviewable change files
 - people who want one safe release-planning model before adding provider automation
 
-## First 10 minutes
+<br />
+
+## Getting Started
 
 Install the prebuilt CLI from npm:
 
@@ -149,7 +157,9 @@ When you are ready to prepare the release locally, run `monochange run release`.
 
 If you do not know which package id to target, rerun `monochange step discover --format json` and copy an id directly from the output.
 
-## Next steps
+<br />
+
+## Next Steps
 
 - [Start here](docs/src/guide/00-start-here.md): the shortest beginner path through installation, `monochange init`, and `--dry-run`
 - [Installation](docs/src/guide/01-installation.md): npm, Cargo, optional assistant tooling, and repository-development setup
@@ -161,9 +171,11 @@ If you do not know which package id to target, rerun `monochange step discover -
 - [Advanced: CI, package publishing, and release PR flows](docs/src/guide/13-ci-and-publishing.md): per-provider CI patterns, trusted publishing, and long-running release PR design notes
 - [Reference: Manifest linting with `monochange check`](docs/src/reference/linting.md): `[lints]` rules for Cargo and npm-family manifests
 
+<br />
+
 <!-- {=manifestRepositoryLintReadmeSummary} -->
 
-### Optional repository URL lint rules
+### Repository Lints
 
 monochange includes opt-in repository URL lint rules for Cargo, Dart, and npm-family manifests:
 
@@ -187,9 +199,11 @@ For full rule-by-rule behavior, see the manifest linting reference and `monochan
 
 <!-- {/manifestRepositoryLintReadmeSummary} -->
 
+<br />
+
 <!-- {=projectRecentPublishingImprovements} -->
 
-### Recent package publishing improvements
+### Publishing
 
 Recent `monochange` improvements made package publishing guidance and diagnostics much more actionable:
 
@@ -202,7 +216,9 @@ Recent `monochange` improvements made package publishing guidance and diagnostic
 
 <!-- {/projectRecentPublishingImprovements} -->
 
-## Command and automation matrix
+<br />
+
+## Commands
 
 <!-- {=projectCommandAutomationMatrix} -->
 
@@ -232,7 +248,9 @@ These are common commands for repositories using monochange. With the current CL
 
 `monochange step publish-readiness` performs non-mutating registry checks before `monochange step publish-packages`. For built-in Cargo publishes to crates.io it also verifies current manifest publishability: `publish = false` blocks publishing, `publish = [...]` must include `crates-io`, `description` must be set, and either `license` or `license-file` must be set. Workspace-inherited Cargo metadata is accepted, and already-published versions remain non-blocking in readiness reports. The artifact fingerprints `monochange.toml`, package manifests, lockfiles, and registry/tooling files, so rerun `monochange step publish-readiness` after those inputs change. `monochange step plan-publish-rate-limits --readiness <path>` validates the artifact for planning and limits rate-limit batches to package ids that are ready in both the artifact and the fresh local readiness check. `monochange step publish-packages` publishes directly from prepared release or `HEAD` release state and does not require the readiness artifact. If readiness shows missing first-time registry packages, run `monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json`, then rerun readiness before real publishing.
 
-## Capability matrix
+<br />
+
+## Capabilities
 
 <!-- {=projectCapabilityMatrix} -->
 
@@ -256,7 +274,9 @@ These are common commands for repositories using monochange. With the current CL
 
 <!-- {/projectCapabilityMatrix} -->
 
-## Why use `monochange`?
+<br />
+
+## Why Monochange
 
 <!-- {=projectWhyUse} -->
 
@@ -268,9 +288,13 @@ These are common commands for repositories using monochange. With the current CL
 
 <!-- {/projectWhyUse} -->
 
-## Advanced workflows
+<br />
 
-### GitHub automation
+## Advanced
+
+<br />
+
+### GitHub Automation
 
 <!-- {=projectGitHubAutomationOverview} -->
 
@@ -289,7 +313,9 @@ monochange can promote one prepared release into several source-provider automat
 
 <!-- {/projectGitHubAutomationOverview} -->
 
-#### Tag-release JSON for follow-up workflows
+<br />
+
+#### Release Tags
 
 <!-- {=projectTagReleaseJsonTagsMap} -->
 
@@ -328,7 +354,9 @@ Avoid indexing `tagResults[0]` for workflow control. `tagResults` remains the au
 
 <!-- {/projectTagReleaseJsonTagsMap} -->
 
-### Assistant setup and MCP
+<br />
+
+### Assistant Setup
 
 Assistant tooling is optional.
 
@@ -360,7 +388,9 @@ This layout keeps the top-level skill small while still making the richer guidan
 
 See [Advanced: Assistant setup and MCP](docs/src/guide/09-assistant-setup.md) for the full setup flow.
 
-## What monochange can do
+<br />
+
+## Features
 
 <!-- {=projectMilestoneCapabilities} -->
 
@@ -384,64 +414,45 @@ See [Advanced: Assistant setup and MCP](docs/src/guide/09-assistant-setup.md) fo
 
 <!-- {/projectMilestoneCapabilities} -->
 
-## Workspace crates
+<br />
+
+## Workspace Crates
 
 <!-- {=projectCrateCatalog} -->
 
-- `monochange`: end-user CLI and orchestration layer for discovery, planning, and CLI-defined release commands.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange-orange?logo=rust)](https://crates.io/crates/monochange) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange-1f425f?logo=docs.rs)](https://docs.rs/monochange/)
-- `monochange_core`: shared domain model for packages, dependency edges, groups, change signals, and release plans.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__core-orange?logo=rust)](https://crates.io/crates/monochange_core) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__core-1f425f?logo=docs.rs)](https://docs.rs/monochange_core/)
-- `monochange_config`: loads `monochange.toml`, parses `.changeset/*.md`, and validates CLI command inputs.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__config-orange?logo=rust)](https://crates.io/crates/monochange_config) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__config-1f425f?logo=docs.rs)](https://docs.rs/monochange_config/)
-- `monochange_graph`: propagates release impact through dependency edges and synchronized groups.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__graph-orange?logo=rust)](https://crates.io/crates/monochange_graph) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__graph-1f425f?logo=docs.rs)](https://docs.rs/monochange_graph/)
-- `monochange_github`: converts release manifests into GitHub release payloads and publishing operations.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__github-orange?logo=rust)](https://crates.io/crates/monochange_github) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__github-1f425f?logo=docs.rs)](https://docs.rs/monochange_github/)
-- `monochange_gitlab`: converts release manifests into GitLab release payloads and merge-request operations.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__gitlab-orange?logo=rust)](https://crates.io/crates/monochange_gitlab) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__gitlab-1f425f?logo=docs.rs)](https://docs.rs/monochange_gitlab/)
-- `monochange_gitea`: converts release manifests into Gitea release payloads and pull-request operations.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__gitea-orange?logo=rust)](https://crates.io/crates/monochange_gitea) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__gitea-1f425f?logo=docs.rs)](https://docs.rs/monochange_gitea/)
-- `monochange_forgejo`: converts release manifests into Forgejo automation requests.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__forgejo-orange?logo=rust)](https://crates.io/crates/monochange_forgejo) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__forgejo-1f425f?logo=docs.rs)](https://docs.rs/monochange_forgejo/)
-- `monochange_hosting`: shared release-request abstractions for GitHub, GitLab, Gitea, and Forgejo providers.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__hosting-orange?logo=rust)](https://crates.io/crates/monochange_hosting) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__hosting-1f425f?logo=docs.rs)](https://docs.rs/monochange_hosting/)
-- `monochange_publish`: publishing support and trusted-publishing capability helpers for package registries.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__publish-orange?logo=rust)](https://crates.io/crates/monochange_publish) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__publish-1f425f?logo=docs.rs)](https://docs.rs/monochange_publish/)
-- `monochange_ecmascript`: shared JavaScript/TypeScript ecosystem utilities for npm, Deno, and JSR discovery.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__ecmascript-orange?logo=rust)](https://crates.io/crates/monochange_ecmascript) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__ecmascript-1f425f?logo=docs.rs)](https://docs.rs/monochange_ecmascript/)
-- `monochange_semver`: merges requested bumps with compatibility-provider evidence.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__semver-orange?logo=rust)](https://crates.io/crates/monochange_semver) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__semver-1f425f?logo=docs.rs)](https://docs.rs/monochange_semver/)
-- `monochange_telemetry`: local-only telemetry event sink and privacy-preserving event schema helpers.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__telemetry-orange?logo=rust)](https://crates.io/crates/monochange_telemetry) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__telemetry-1f425f?logo=docs.rs)](https://docs.rs/monochange_telemetry/)
-- `monochange_cargo`: Cargo discovery plus Rust semver evidence integration.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__cargo-orange?logo=rust)](https://crates.io/crates/monochange_cargo) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__cargo-1f425f?logo=docs.rs)](https://docs.rs/monochange_cargo/)
-- `monochange_npm`: npm, pnpm, and Bun workspace discovery.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__npm-orange?logo=rust)](https://crates.io/crates/monochange_npm) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__npm-1f425f?logo=docs.rs)](https://docs.rs/monochange_npm/)
-- `monochange_deno`: Deno workspace and package discovery.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__deno-orange?logo=rust)](https://crates.io/crates/monochange_deno) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__deno-1f425f?logo=docs.rs)](https://docs.rs/monochange_deno/)
-- `monochange_dart`: Dart and Flutter workspace discovery.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__dart-orange?logo=rust)](https://crates.io/crates/monochange_dart) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__dart-1f425f?logo=docs.rs)](https://docs.rs/monochange_dart/)
-- `monochange_python`: Python uv workspace, Poetry, and pyproject.toml discovery.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__python-orange?logo=rust)](https://crates.io/crates/monochange_python) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__python-1f425f?logo=docs.rs)](https://docs.rs/monochange_python/)
-- `monochange_go`: Go module discovery, go.mod dependency rewrites, and tag-based release metadata.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__go-orange?logo=rust)](https://crates.io/crates/monochange_go) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__go-1f425f?logo=docs.rs)](https://docs.rs/monochange_go/)
-- `monochange_analysis`: semantic diff analysis for Cargo, npm, Deno, and Dart/Flutter packages.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__analysis-orange?logo=rust)](https://crates.io/crates/monochange_analysis) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__analysis-1f425f?logo=docs.rs)](https://docs.rs/monochange_analysis/)
-- `monochange_changelog`: changelog and release-note rendering.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__changelog-orange?logo=rust)](https://crates.io/crates/monochange_changelog) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__changelog-1f425f?logo=docs.rs)](https://docs.rs/monochange_changelog/)
-- `monochange_lint`: manifest lint rule definitions and presets.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__lint-orange?logo=rust)](https://crates.io/crates/monochange_lint) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__lint-1f425f?logo=docs.rs)](https://docs.rs/monochange_lint/)
-- `monochange_linting`: the `monochange check` lint engine and reporters.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__linting-orange?logo=rust)](https://crates.io/crates/monochange_linting) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__linting-1f425f?logo=docs.rs)](https://docs.rs/monochange_linting/)
-- `monochange_schema`: JSON Schema generation for `monochange.toml` editor support.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__schema-orange?logo=rust)](https://crates.io/crates/monochange_schema) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__schema-1f425f?logo=docs.rs)](https://docs.rs/monochange_schema/)
-- `monochange_snapshot`: deterministic snapshot-output helpers for CLI rendering.
-  - [![Crates.io](https://img.shields.io/badge/crates.io-monochange__snapshot-orange?logo=rust)](https://crates.io/crates/monochange_snapshot) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__snapshot-1f425f?logo=docs.rs)](https://docs.rs/monochange_snapshot/)
+| Crate                   | Badges                                                                                                                                                                                                                                                                               | Description                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `monochange`            | [![Crates.io](https://img.shields.io/badge/crates.io-monochange-orange?logo=rust)](https://crates.io/crates/monochange) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange-1f425f?logo=docs.rs)](https://docs.rs/monochange/)                                               | end-user CLI and orchestration layer for discovery, planning, and CLI-defined release commands. |
+| `monochange_core`       | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__core-orange?logo=rust)](https://crates.io/crates/monochange_core) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__core-1f425f?logo=docs.rs)](https://docs.rs/monochange_core/)                         | shared domain model for packages, dependency edges, groups, change signals, and release plans.  |
+| `monochange_config`     | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__config-orange?logo=rust)](https://crates.io/crates/monochange_config) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__config-1f425f?logo=docs.rs)](https://docs.rs/monochange_config/)                 | loads `monochange.toml`, parses `.changeset/*.md`, and validates CLI command inputs.            |
+| `monochange_graph`      | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__graph-orange?logo=rust)](https://crates.io/crates/monochange_graph) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__graph-1f425f?logo=docs.rs)](https://docs.rs/monochange_graph/)                     | propagates release impact through dependency edges and synchronized groups.                     |
+| `monochange_github`     | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__github-orange?logo=rust)](https://crates.io/crates/monochange_github) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__github-1f425f?logo=docs.rs)](https://docs.rs/monochange_github/)                 | converts release manifests into GitHub release payloads and publishing operations.              |
+| `monochange_gitlab`     | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__gitlab-orange?logo=rust)](https://crates.io/crates/monochange_gitlab) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__gitlab-1f425f?logo=docs.rs)](https://docs.rs/monochange_gitlab/)                 | converts release manifests into GitLab release payloads and merge-request operations.           |
+| `monochange_gitea`      | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__gitea-orange?logo=rust)](https://crates.io/crates/monochange_gitea) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__gitea-1f425f?logo=docs.rs)](https://docs.rs/monochange_gitea/)                     | converts release manifests into Gitea release payloads and pull-request operations.             |
+| `monochange_forgejo`    | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__forgejo-orange?logo=rust)](https://crates.io/crates/monochange_forgejo) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__forgejo-1f425f?logo=docs.rs)](https://docs.rs/monochange_forgejo/)             | converts release manifests into Forgejo automation requests.                                    |
+| `monochange_hosting`    | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__hosting-orange?logo=rust)](https://crates.io/crates/monochange_hosting) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__hosting-1f425f?logo=docs.rs)](https://docs.rs/monochange_hosting/)             | shared release-request abstractions for GitHub, GitLab, Gitea, and Forgejo providers.           |
+| `monochange_publish`    | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__publish-orange?logo=rust)](https://crates.io/crates/monochange_publish) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__publish-1f425f?logo=docs.rs)](https://docs.rs/monochange_publish/)             | publishing support and trusted-publishing capability helpers for package registries.            |
+| `monochange_ecmascript` | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__ecmascript-orange?logo=rust)](https://crates.io/crates/monochange_ecmascript) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__ecmascript-1f425f?logo=docs.rs)](https://docs.rs/monochange_ecmascript/) | shared JavaScript/TypeScript ecosystem utilities for npm, Deno, and JSR discovery.              |
+| `monochange_semver`     | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__semver-orange?logo=rust)](https://crates.io/crates/monochange_semver) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__semver-1f425f?logo=docs.rs)](https://docs.rs/monochange_semver/)                 | merges requested bumps with compatibility-provider evidence.                                    |
+| `monochange_telemetry`  | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__telemetry-orange?logo=rust)](https://crates.io/crates/monochange_telemetry) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__telemetry-1f425f?logo=docs.rs)](https://docs.rs/monochange_telemetry/)     | local-only telemetry event sink and privacy-preserving event schema helpers.                    |
+| `monochange_cargo`      | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__cargo-orange?logo=rust)](https://crates.io/crates/monochange_cargo) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__cargo-1f425f?logo=docs.rs)](https://docs.rs/monochange_cargo/)                     | Cargo discovery plus Rust semver evidence integration.                                          |
+| `monochange_npm`        | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__npm-orange?logo=rust)](https://crates.io/crates/monochange_npm) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__npm-1f425f?logo=docs.rs)](https://docs.rs/monochange_npm/)                             | npm, pnpm, and Bun workspace discovery.                                                         |
+| `monochange_deno`       | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__deno-orange?logo=rust)](https://crates.io/crates/monochange_deno) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__deno-1f425f?logo=docs.rs)](https://docs.rs/monochange_deno/)                         | Deno workspace and package discovery.                                                           |
+| `monochange_dart`       | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__dart-orange?logo=rust)](https://crates.io/crates/monochange_dart) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__dart-1f425f?logo=docs.rs)](https://docs.rs/monochange_dart/)                         | Dart and Flutter workspace discovery.                                                           |
+| `monochange_python`     | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__python-orange?logo=rust)](https://crates.io/crates/monochange_python) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__python-1f425f?logo=docs.rs)](https://docs.rs/monochange_python/)                 | Python uv workspace, Poetry, and pyproject.toml discovery.                                      |
+| `monochange_go`         | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__go-orange?logo=rust)](https://crates.io/crates/monochange_go) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__go-1f425f?logo=docs.rs)](https://docs.rs/monochange_go/)                                 | Go module discovery, go.mod dependency rewrites, and tag-based release metadata.                |
+| `monochange_analysis`   | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__analysis-orange?logo=rust)](https://crates.io/crates/monochange_analysis) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__analysis-1f425f?logo=docs.rs)](https://docs.rs/monochange_analysis/)         | semantic diff analysis for Cargo, npm, Deno, and Dart/Flutter packages.                         |
+| `monochange_changelog`  | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__changelog-orange?logo=rust)](https://crates.io/crates/monochange_changelog) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__changelog-1f425f?logo=docs.rs)](https://docs.rs/monochange_changelog/)     | changelog and release-note rendering.                                                           |
+| `monochange_lint`       | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__lint-orange?logo=rust)](https://crates.io/crates/monochange_lint) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__lint-1f425f?logo=docs.rs)](https://docs.rs/monochange_lint/)                         | manifest lint rule definitions and presets.                                                     |
+| `monochange_linting`    | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__linting-orange?logo=rust)](https://crates.io/crates/monochange_linting) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__linting-1f425f?logo=docs.rs)](https://docs.rs/monochange_linting/)             | the `monochange check` lint engine and reporters.                                               |
+| `monochange_schema`     | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__schema-orange?logo=rust)](https://crates.io/crates/monochange_schema) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__schema-1f425f?logo=docs.rs)](https://docs.rs/monochange_schema/)                 | JSON Schema generation for `monochange.toml` editor support.                                    |
+| `monochange_snapshot`   | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__snapshot-orange?logo=rust)](https://crates.io/crates/monochange_snapshot) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__snapshot-1f425f?logo=docs.rs)](https://docs.rs/monochange_snapshot/)         | deterministic snapshot-output helpers for CLI rendering.                                        |
 
 <!-- {/projectCrateCatalog} -->
 
-## Repository development
+<br />
+
+## Contributing
 
 Enter the reproducible development shell and install workspace tooling:
 
@@ -492,3 +503,5 @@ build:book
 <!-- {/repoCommonDevelopmentCommands} -->
 
 See `docs/` for user-facing guides and `CONTRIBUTING.md` for contribution expectations. This repository uses `mdt` to synchronize shared documentation blocks; run `docs:update` after changing any `.templates/*.t.md` file.
+
+<br />

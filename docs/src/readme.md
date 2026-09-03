@@ -103,7 +103,7 @@ If you want a slower, more guided walkthrough, continue with [Start here](./guid
 
 <!-- {=projectRecentPublishingImprovements} -->
 
-### Recent package publishing improvements
+### Publishing
 
 Recent `monochange` improvements made package publishing guidance and diagnostics much more actionable:
 
