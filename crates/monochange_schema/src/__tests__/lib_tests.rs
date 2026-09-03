@@ -237,20 +237,61 @@ fn release_record_rust_migration_edges_are_explicit_and_ordered() {
 			(SchemaVersion::new(0, 1), SchemaVersion::new(0, 2)),
 			(SchemaVersion::new(0, 2), SchemaVersion::new(0, 3)),
 			(SchemaVersion::new(0, 3), SchemaVersion::new(0, 4)),
+			(SchemaVersion::new(0, 4), SchemaVersion::new(0, 5)),
 		]
 	);
+}
+
+#[test]
+fn release_record_v0_4_migration_adds_default_output_identity() {
+	let migrated = release_record::migrate_value(json!({
+		"schema_version": "0.4",
+		"kind": release_record::KIND,
+		"changelogs": [
+			{
+				"owner_id": "app",
+				"owner_kind": "package",
+				"path": "CHANGELOG.md",
+				"format": "monochange",
+				"notes": { "title": "1.2.0", "sections": [] },
+				"rendered": "## 1.2.0"
+			},
+			{
+				"owner_id": "app",
+				"owner_kind": "package",
+				"output": "user",
+				"stream": "user",
+				"path": "release-notes.json",
+				"format": "json",
+				"notes": { "title": "1.2.0", "sections": [] },
+				"rendered": "{}"
+			},
+			"ignored malformed entry"
+		],
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": []
+	}))
+	.unwrap_or_else(|error| panic!("migrate v0.4 release record: {error}"));
+
+	assert_eq!(migrated["schema_version"], json!("0.5"));
+	assert_eq!(migrated["changelogs"][0]["output"], json!("default"));
+	assert_eq!(migrated["changelogs"][0]["stream"], json!("default"));
+	assert_eq!(migrated["changelogs"][1]["output"], json!("user"));
+	assert_eq!(migrated["changelogs"][1]["stream"], json!("user"));
+	assert_eq!(migrated["changelogs"][2], json!("ignored malformed entry"));
 }
 
 #[test]
 fn release_record_rust_migration_edges_reject_missing_paths() {
 	let mut value = json!({
 		"kind": release_record::KIND,
-		"schema_version": "0.4"
+		"schema_version": "0.5"
 	});
 	let error = migrations::apply_release_record_edges(
 		&mut value,
-		SchemaVersion::new(0, 4),
 		SchemaVersion::new(0, 5),
+		SchemaVersion::new(0, 6),
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected missing migration path error"));
@@ -259,8 +300,8 @@ fn release_record_rust_migration_edges_reject_missing_paths() {
 		error,
 		SchemaError::MissingMigrationPath {
 			artifact: release_record::KIND,
-			from: SchemaVersion { major: 0, minor: 4 },
-			to: SchemaVersion { major: 0, minor: 5 },
+			from: SchemaVersion { major: 0, minor: 5 },
+			to: SchemaVersion { major: 0, minor: 6 },
 		}
 	));
 }

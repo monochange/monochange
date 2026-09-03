@@ -1,0 +1,7 @@
+---
+source: crates/monochange_core/src/__tests__/lib_tests.rs
+expression: "&document.sections[0].entries[0]"
+---
+#### add release automation
+
+- faster releases

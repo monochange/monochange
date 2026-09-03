@@ -2122,16 +2122,27 @@ fn release_body(
 ) -> Option<String> {
 	match github.releases.source {
 		ProviderReleaseNotesSource::GitHubGenerated => None,
-		ProviderReleaseNotesSource::Monochange => Some(monochange_release_body(manifest, target)),
+		ProviderReleaseNotesSource::Monochange => {
+			Some(monochange_release_body(
+				manifest,
+				target,
+				&github.releases.changelog_output,
+			))
+		}
 	}
 }
 
-fn monochange_release_body(manifest: &ReleaseManifest, target: &ReleaseManifestTarget) -> String {
-	let target_changelog = manifest
-		.changelogs
-		.iter()
-		.find(|changelog| changelog.owner_id == target.id && changelog.owner_kind == target.kind);
-	let member_changelogs = uncovered_member_changelogs(manifest, target, target_changelog);
+fn monochange_release_body(
+	manifest: &ReleaseManifest,
+	target: &ReleaseManifestTarget,
+	output: &str,
+) -> String {
+	let target_changelog = manifest.changelogs.iter().find(|changelog| {
+		changelog.owner_id == target.id
+			&& changelog.owner_kind == target.kind
+			&& changelog.output == output
+	});
+	let member_changelogs = uncovered_member_changelogs(manifest, target, target_changelog, output);
 
 	match (target_changelog, member_changelogs.is_empty()) {
 		(Some(changelog), _) if changelog_has_release_notes(changelog) => {
@@ -2146,6 +2157,7 @@ fn uncovered_member_changelogs<'a>(
 	manifest: &'a ReleaseManifest,
 	target: &ReleaseManifestTarget,
 	target_changelog: Option<&ReleaseManifestChangelog>,
+	output: &str,
 ) -> Vec<&'a ReleaseManifestChangelog> {
 	if target.kind != ReleaseOwnerKind::Group {
 		return Vec::new();
@@ -2157,6 +2169,7 @@ fn uncovered_member_changelogs<'a>(
 		.filter(|changelog| {
 			changelog.owner_kind == ReleaseOwnerKind::Package
 				&& target.members.contains(&changelog.owner_id)
+				&& changelog.output == output
 				&& changelog_has_release_notes(changelog)
 				&& changelog_has_uncovered_notes(changelog, target_changelog)
 		})

@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: "normalize_head_commit(workspace.path(), group)"
+---
+## sdk 2.0.0 (2026-09-02)
+
+Grouped release for `sdk`.
+### App features
+
+#### preview collectible art before publishing
+_Packages:_ _app_
+
+Creators can review artwork and metadata before making a project live.
+
+_Owner:_ test · _Introduced in:_ `[COMMIT]`

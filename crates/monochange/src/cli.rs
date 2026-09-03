@@ -332,6 +332,7 @@ When provided, the generated config includes:\n\
 		.subcommand(build_skill_subcommand())
 		.subcommand(build_subagents_subcommand())
 		.subcommand(build_analyze_subcommand())
+		.subcommand(build_notes_subcommand())
 		.subcommand(build_migrate_subcommand())
 		.subcommand(build_lint_subcommand())
 		.subcommand(build_versions_subcommand())
@@ -357,6 +358,45 @@ When provided, the generated config includes:\n\
 		.subcommand(build_run_subcommand(cli));
 
 	command
+}
+
+pub(crate) fn build_notes_subcommand() -> Command {
+	Command::new("notes")
+		.about("Render one configured release-note output without modifying release files")
+		.after_help(
+			r"Examples:
+  monochange notes --output user_notes
+  monochange notes --output user_notes --target app
+  monochange notes --output user_notes --target app --file release-notes.md
+  monochange notes --output user_notes --target app --file -
+
+Selection rules:
+  - --output names `default` or a [changelog.outputs.<id>] entry.
+  - The selected output supplies the stream and format; this command does not override either.
+  - Use --target when an output produces notes for more than one package or group.
+  - stdout is the default destination. --file writes only that explicit path.
+  - Rendering is read-only: changesets, versions, and configured changelog paths are not modified.",
+		)
+		.arg(
+			Arg::new("output")
+				.long("output")
+				.required(true)
+				.value_name("OUTPUT")
+				.help("Configured changelog output to render"),
+		)
+		.arg(
+			Arg::new("target")
+				.long("target")
+				.value_name("TARGET")
+				.help("Package or group id to select from a multi-target output"),
+		)
+		.arg(
+			Arg::new("file")
+				.long("file")
+				.value_name("PATH")
+				.allow_hyphen_values(true)
+				.help("Write notes to this path instead of stdout; use - for stdout"),
+		)
 }
 
 pub(crate) fn build_command_wizard_subcommand() -> Command {

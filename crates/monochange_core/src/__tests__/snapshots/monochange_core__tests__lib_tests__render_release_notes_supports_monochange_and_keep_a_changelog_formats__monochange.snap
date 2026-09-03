@@ -7,4 +7,6 @@ expression: monochange
 Grouped release for `sdk`.
 ### Changed
 
-- add release automation
+#### add release automation
+
+- faster releases

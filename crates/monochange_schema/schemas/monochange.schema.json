@@ -42,9 +42,70 @@
 		"ChangelogFormat": {
 			"enum": [
 				"monochange",
-				"keep_a_changelog"
+				"keep_a_changelog",
+				"json",
+				"text"
 			],
 			"type": "string"
+		},
+		"ChangelogOutputDefinition": {
+			"additionalProperties": false,
+			"description": "One named destination that renders a configured changelog stream.",
+			"properties": {
+				"format": {
+					"$ref": "#/$defs/ChangelogFormat",
+					"default": "monochange",
+					"description": "Renderer used for the output artifact."
+				},
+				"initial_header": {
+					"description": "Optional initial header for append-mode Markdown changelogs.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"mode": {
+					"$ref": "#/$defs/ChangelogOutputMode",
+					"default": "append",
+					"description": "Whether releases are appended or written as standalone artifacts."
+				},
+				"path": {
+					"description": "Output path template. Supports `path`, `id`, and `version` variables.",
+					"type": "string"
+				},
+				"stream": {
+					"default": "default",
+					"description": "Stream selected for this output.",
+					"type": "string"
+				},
+				"targets": {
+					"description": "Configured package or group ids rendered by this output.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				}
+			},
+			"required": [
+				"path",
+				"targets"
+			],
+			"type": "object"
+		},
+		"ChangelogOutputMode": {
+			"description": "Controls whether a changelog output accumulates releases or represents only\nthe current release.",
+			"oneOf": [
+				{
+					"const": "append",
+					"description": "Insert each release at the top of an existing changelog.",
+					"type": "string"
+				},
+				{
+					"const": "release",
+					"description": "Replace the destination with only the current release notes.",
+					"type": "string"
+				}
+			]
 		},
 		"ChangelogSectionDef": {
 			"additionalProperties": false,
@@ -97,6 +158,20 @@
 			},
 			"type": "object"
 		},
+		"ChangelogStreamDefinition": {
+			"additionalProperties": false,
+			"description": "Describes one configured changelog stream.\n\nStreams partition release-note content without coupling it to a renderer or\ndestination.",
+			"properties": {
+				"description": {
+					"description": "Human-readable explanation of the stream's audience or scope.",
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"type": "object"
+		},
 		"ChangelogStyle": {
 			"additionalProperties": false,
 			"description": "Rendering style options for changelog output.\n\nControls visual formatting of changelogs: section separators, package labels,\nmetadata lines, and collapsed section rendering. These are purely presentation\nconcerns; data-level configuration (sections, types, thresholds) lives in\n`ChangelogSettings`.\n\nA `ChangelogStyle::rules()` method produces a human-readable description of\nthe active style, suitable for feeding to an AI agent when reformatting\nexisting changelogs.",
@@ -122,32 +197,6 @@
 					"default": "blank_line"
 				}
 			},
-			"type": "object"
-		},
-		"ChangelogType": {
-			"additionalProperties": false,
-			"properties": {
-				"bump": {
-					"$ref": "#/$defs/BumpSeverity",
-					"default": "none",
-					"description": "Semver bump severity implied by this changeset type."
-				},
-				"description": {
-					"default": null,
-					"description": "Human-readable description of when to use this type.",
-					"type": [
-						"string",
-						"null"
-					]
-				},
-				"section": {
-					"description": "Section key this type routes to (references a `[changelog.sections]` key).",
-					"type": "string"
-				}
-			},
-			"required": [
-				"section"
-			],
 			"type": "object"
 		},
 		"ChangesetAffectedSettings": {
@@ -1427,6 +1476,11 @@
 					},
 					"type": "array"
 				},
+				"changelog_output": {
+					"default": "default",
+					"description": "Named changelog output used as the hosted release body.",
+					"type": "string"
+				},
 				"changeset_context_timeout_seconds": {
 					"default": 120,
 					"format": "uint64",
@@ -1811,6 +1865,13 @@
 		"changelog_settings": {
 			"additionalProperties": false,
 			"properties": {
+				"outputs": {
+					"additionalProperties": {
+						"$ref": "#/$defs/ChangelogOutputDefinition"
+					},
+					"default": {},
+					"type": "object"
+				},
 				"release_notes": {
 					"$ref": "#/$defs/ReleaseNotesStyleOverrides",
 					"default": {
@@ -1835,6 +1896,13 @@
 					"default": {},
 					"type": "object"
 				},
+				"streams": {
+					"additionalProperties": {
+						"$ref": "#/$defs/ChangelogStreamDefinition"
+					},
+					"default": {},
+					"type": "object"
+				},
 				"style": {
 					"$ref": "#/$defs/ChangelogStyle",
 					"default": {
@@ -1854,9 +1922,8 @@
 				},
 				"types": {
 					"additionalProperties": {
-						"$ref": "#/$defs/ChangelogType"
+						"$ref": "#/$defs/changelog_type"
 					},
-					"default": {},
 					"type": "object"
 				}
 			},
@@ -1908,6 +1975,33 @@
 					]
 				}
 			},
+			"type": "object"
+		},
+		"changelog_type": {
+			"additionalProperties": false,
+			"properties": {
+				"bump": {
+					"$ref": "#/$defs/BumpSeverity",
+					"default": "patch"
+				},
+				"description": {
+					"default": null,
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"section": {
+					"type": "string"
+				},
+				"stream": {
+					"default": "default",
+					"type": "string"
+				}
+			},
+			"required": [
+				"section"
+			],
 			"type": "object"
 		},
 		"cli_command": {
@@ -2561,6 +2655,7 @@
 						"branches": [
 							"main"
 						],
+						"changelog_output": "default",
 						"changeset_context_timeout_seconds": 120,
 						"draft": false,
 						"enabled": true,

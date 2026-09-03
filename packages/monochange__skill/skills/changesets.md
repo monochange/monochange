@@ -95,6 +95,70 @@ Multiple targets are allowed when one user-facing change spans packages:
 Both the API response and the UI retry flow now keep the same filter state.
 ```
 
+## Audience streams
+
+Every changeset file resolves to exactly one changelog stream. Types without an explicit stream use the built-in `default` stream. Repositories can route types such as `app_feature` to a custom `user` stream in `monochange.toml`.
+
+All targets in one file must resolve to the same stream. When the same implementation needs both developer and user notes, write two changesets with audience-appropriate wording:
+
+```md
+---
+core: fix
+---
+
+# Preserve decoded preview state in `PreviewController.retry`
+
+The controller now reuses the cached decode result when the request retry path rebuilds its provider state.
+```
+
+```md
+---
+app: app_feature
+---
+
+# Make preview retries faster
+
+Previews now recover without repeating completed work, so users return to their artwork sooner after a network interruption.
+```
+
+The first file belongs in the default/developer stream and names the affected implementation contract. The second belongs in the user stream and describes only the visible outcome. Do not combine the audiences in one body or duplicate the same prose across both files.
+
+Run `monochange step validate` after authoring. It rejects a file whose target types cross streams. Then run `monochange step prepare-release --dry-run --format json` and inspect each changelog object's `output`, `stream`, `owner_id`, and `path`; those fields are the audit trail for where each note will be published.
+
+## Preparing and using stream-specific release notes
+
+Use this sequence whenever a repository has audience streams:
+
+1. Read `[changelog.types]`, `[changelog.streams]`, and `[changelog.outputs]` in `monochange.toml`. The type selects the stream; the output selects the renderer, target, and eventual destination.
+2. Choose the type from release policy, not from writing style. For example, a configured `native` type can require a major/native release while `app_feature` can identify a minor patch-deliverable feature.
+3. Write one changeset file per audience. Keep developer detail in the default stream and user-visible outcomes in the user stream. If both audiences need the change, create two files.
+4. Run `monochange step validate`, then preview the complete release with `monochange step prepare-release --dry-run --format json`.
+5. Render the exact artifact that reviewers or automation need with `monochange notes`.
+
+```bash
+# Print the configured user output.
+monochange notes --output user
+
+# Select one target when the output names several packages or groups.
+monochange notes --output user --target app
+
+# Write a review/deployment artifact without changing release state.
+monochange notes --output user --target app --file artifacts/app-release-notes.md
+
+# `-` explicitly selects stdout and is convenient in reusable scripts.
+monochange notes --output user --target app --file -
+```
+
+`--output` must name the implicit `default` output or a configured `[changelog.outputs.<id>]`. The output configuration owns the stream and format; the command deliberately has no flags that can reroute a changeset to another audience. If an output targets more than one release owner, pass `--target` so the result is one unambiguous artifact.
+
+The command is read-only. It calculates the same prospective versions and release-note content as release preparation, but it does not update manifests, consume changesets, or write configured changelog destinations. With no `--file`, stdout can be redirected normally:
+
+```bash
+monochange notes --output user --target app > artifacts/app-release-notes.md
+```
+
+Use the resulting artifact for human review, app-store or patch-release notes, CI attachments, or another publishing system. Use `[source.releases].changelog_output` when the same named output should become the hosted GitHub, GitLab, Gitea, or Forgejo release body. Keep `monochange step prepare-release --dry-run --format json` in the audit trail because it shows all output, stream, owner, path, and version identities together.
+
 Use explicit versions only when you need a specific version rather than semver bump calculation:
 
 ```md

@@ -99,7 +99,7 @@ warn_on_group_mismatch = true
 # for customization.
 # [changelog] - workspace-wide changelog configuration
 #
-# Controls templates, sections, and types for changelog rendering.
+# Controls templates, sections, types, audience streams, and named outputs.
 # When omitted, built-in defaults provide standard sections and types.
 #
 # [changelog]
@@ -115,8 +115,19 @@ warn_on_group_mismatch = true
 # or omit them entirely.
 #
 # types - Change type definitions mapping changeset types to section and bump severity.
-# Each type key references a section key and declares a default bump severity.
+# Each type key references a section key, declares a default bump severity, and
+# may route the whole changeset to one named stream. Types without `stream`
+# use the built-in `default` stream.
 # The built-in defaults provide standard types matching the commented example.
+#
+# streams - Named content partitions. The `default` stream always exists and
+# preserves the developer-oriented package/group changelogs used before streams.
+#
+# outputs - Named destinations for one stream. `targets` contains package or
+# group ids. `path` supports {{ path }}, {{ id }}, and {{ version }}. Formats
+# are `monochange`, `keep_a_changelog`, `json`, or `text`. `mode = "append"`
+# updates a cumulative Markdown changelog; `mode = "release"` writes only the
+# current release and is required for JSON and text.
 
 # [changelog.templates]
 # Add custom templates if the defaults don't match your style.
@@ -154,6 +165,30 @@ warn_on_group_mismatch = true
 # security = { section = "security" }
 # refactor = { section = "refactor", bump = "patch" }
 # perf = { heading = "perf" }
+
+# A changeset may only contain target types that resolve to one stream. Write a
+# second changeset when the same implementation needs both developer-facing and
+# user-facing wording.
+# [changelog.streams.user]
+# description = "Product release notes for app users"
+
+# [changelog.types.native]
+# bump = "major"
+# section = "breaking"
+
+# [changelog.types.app_feature]
+# bump = "minor"
+# section = "feat"
+# stream = "user"
+
+# [changelog.outputs.user]
+# stream = "user"
+# format = "json"
+# mode = "release"
+{% raw -%}
+# path = "{{ path }}/release-notes/{{ version }}.json"
+{% endraw -%}
+# targets = ["app"]
 
 
 # Default empty_update_message applied when a package is bumped but has no
@@ -646,6 +681,7 @@ repo = "{{ repo }}"
 [source.releases]
 enabled = true
 source = "monochange"
+changelog_output = "default"
 branches = ["main"]
 enforce_for_tags = true
 enforce_for_publish = true
@@ -685,6 +721,8 @@ auto_merge = false
 #   source              - release notes source: "monochange" (use monochange-rendered
 #                         notes) or "github_generated" (use provider-generated notes)
 #                         Default: "monochange"
+#   changelog_output    - named changelog output used as the provider release body
+#                         (default: "default")
 #   branches            - release branch names or globs, e.g. ["main", "release/*"]
 #   enforce_for_tags    - reject unsafe tag-release refs (default: true)
 #   enforce_for_publish - reject unsafe publish refs (default: true)
@@ -696,6 +734,7 @@ auto_merge = false
 # draft = false
 # prerelease = false
 # source = "monochange"
+# changelog_output = "default"
 # branches = ["main"]
 # enforce_for_tags = true
 # enforce_for_publish = true

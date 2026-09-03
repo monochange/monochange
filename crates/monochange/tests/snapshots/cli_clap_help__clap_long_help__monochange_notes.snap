@@ -1,0 +1,51 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange notes
+
+Render one configured release-note output without modifying release files
+
+[1m[97mUsage:[0m [93mmonochange notes[0m [95m[OPTIONS][0m [93m--output[0m[95m [0m[95m<OUTPUT>[0m
+
+[1m[96mOptions:[0m
+      [93m--output[0m[95m [0m[95m<OUTPUT>[0m
+          Configured changelog output to render
+
+      [93m--target[0m[95m [0m[95m<TARGET>[0m
+          Package or group id to select from a multi-target output
+
+      [93m--file[0m[95m [0m[95m<PATH>[0m
+          Write notes to this path instead of stdout; use - for stdout
+
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange notes --output user_notes
+  monochange notes --output user_notes --target app
+  monochange notes --output user_notes --target app --file release-notes.md
+  monochange notes --output user_notes --target app --file -
+
+Selection rules:
+  - --output names `default` or a [changelog.outputs.<id>] entry.
+  - The selected output supplies the stream and format; this command does not override either.
+  - Use --target when an output produces notes for more than one package or group.
+  - stdout is the default destination. --file writes only that explicit path.
+  - Rendering is read-only: changesets, versions, and configured changelog paths are not modified.

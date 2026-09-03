@@ -27,10 +27,12 @@ expression: redacted
           "summary": [],
           "title": "app [1.0.1](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.1) ([DATE])"
         },
+        "output": "default",
         "owner_id": "app",
         "owner_kind": "package",
         "path": "crates/app/CHANGELOG.md",
-        "rendered": "[multiline text]"
+        "rendered": "[multiline text]",
+        "stream": "default"
       },
       {
         "format": "monochange",
@@ -47,10 +49,12 @@ expression: redacted
           "summary": [],
           "title": "core [1.1.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.1.0) ([DATE])"
         },
+        "output": "default",
         "owner_id": "core",
         "owner_kind": "package",
         "path": "crates/core/CHANGELOG.md",
-        "rendered": "[multiline text]"
+        "rendered": "[multiline text]",
+        "stream": "default"
       }
     ],
     "changesets": [

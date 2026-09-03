@@ -23,6 +23,7 @@ Built-in Commands:
   skill      Install the monochange skill bundle into the current project with the skills CLI
   subagents  Generate repo-local monochange subagents and agent guidance files
   analyze    Analyze semantic changes for one package across main, head, and optional release baselines
+  notes      Render one configured release-note output without modifying release files
   migrate    Audit or migrate release metadata for monochange repositories
   lint       Inspect and scaffold manifest lint rules
   versions   List package and group versions or sync internal dependency constraints

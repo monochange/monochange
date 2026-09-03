@@ -77,3 +77,12 @@ fn help_analyze_shows_detailed_help() {
 
 	assert_cmd_snapshot!(mc_command().arg("help").arg("analyze"));
 }
+
+#[test]
+fn help_notes_shows_selection_and_destination_rules() {
+	let mut settings = snapshot_settings();
+	settings.set_snapshot_suffix(current_test_name());
+	let _guard = settings.bind_to_scope();
+
+	assert_cmd_snapshot!(mc_command().arg("help").arg("notes"));
+}

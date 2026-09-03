@@ -211,6 +211,7 @@ fn sample_change(package_id: &str, package_name: &str, source_path: &str) -> Rel
 		details: Some("Detailed explanation".to_string()),
 		bump: BumpSeverity::Minor,
 		change_type: Some("note".to_string()),
+		stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
 		context: Some("> _Owner:_ @octocat".to_string()),
 		changeset_path: Some(source_path.to_string()),
 		change_owner: Some("@octocat".to_string()),
@@ -439,6 +440,8 @@ fn changelog_file_helpers_append_and_deduplicate_updates() {
 		},
 		owner_id: "pkg-a".to_string(),
 		owner_kind: ReleaseOwnerKind::Package,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		format: ChangelogFormat::Monochange,
 		notes: ReleaseNotesDocument {
 			title: "0.9.0".to_string(),
@@ -454,6 +457,8 @@ fn changelog_file_helpers_append_and_deduplicate_updates() {
 		},
 		owner_id: "pkg-a".to_string(),
 		owner_kind: ReleaseOwnerKind::Package,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		format: ChangelogFormat::Monochange,
 		notes: ReleaseNotesDocument {
 			title: "1.0.0".to_string(),
@@ -470,6 +475,8 @@ fn changelog_file_helpers_append_and_deduplicate_updates() {
 		},
 		owner_id: "pkg-b".to_string(),
 		owner_kind: ReleaseOwnerKind::Package,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		format: ChangelogFormat::Monochange,
 		notes: ReleaseNotesDocument {
 			title: "1.0.0".to_string(),
@@ -478,6 +485,16 @@ fn changelog_file_helpers_append_and_deduplicate_updates() {
 		},
 		rendered: "other".to_string(),
 	};
+	let mut collision = latest.clone();
+	collision.output = "user".to_string();
+	let collision_error = validate_changelog_update_paths(&[latest.clone(), collision])
+		.err()
+		.unwrap_or_else(|| panic!("expected changelog output collision"));
+	assert!(
+		collision_error
+			.to_string()
+			.contains("changelog outputs `default` and `user` both render")
+	);
 
 	let deduped = dedup_changelog_updates(vec![earlier, latest.clone(), unique]);
 	assert_eq!(deduped.len(), 2);
@@ -485,6 +502,274 @@ fn changelog_file_helpers_append_and_deduplicate_updates() {
 	assert!(deduped.iter().any(|update| {
 		update.file.path == changelog_path && update.file.content == latest.file.content
 	}));
+}
+
+#[test]
+fn named_output_paths_render_supported_variables_and_reject_unknown_ones() {
+	let root = Path::new("/workspace");
+	let mut output = ChangelogOutputDefinition {
+		stream: "user".to_string(),
+		path: "{{path}}/{{id}}/{{version}}.json".to_string(),
+		format: ChangelogFormat::Json,
+		mode: ChangelogOutputMode::Release,
+		targets: vec!["app".to_string()],
+		initial_header: None,
+	};
+	let rendered =
+		render_named_output_path(root, &output, Path::new("apps/mobile"), "app", "2.0.0")
+			.unwrap_or_else(|error| panic!("render output path: {error}"));
+	assert_eq!(
+		rendered,
+		PathBuf::from("/workspace/apps/mobile/app/2.0.0.json")
+	);
+
+	output.path = "/release-notes/{{ id }}.json".to_string();
+	let absolute =
+		render_named_output_path(root, &output, Path::new("apps/mobile"), "app", "2.0.0")
+			.unwrap_or_else(|error| panic!("render absolute output path: {error}"));
+	assert_eq!(absolute, PathBuf::from("/release-notes/app.json"));
+
+	output.path = "{{ audience }}/notes.json".to_string();
+	let error = render_named_output_path(root, &output, Path::new("apps/mobile"), "app", "2.0.0")
+		.err()
+		.unwrap_or_else(|| panic!("expected unsupported variable error"));
+	assert!(error.to_string().contains("unsupported template variable"));
+}
+
+#[test]
+fn named_output_builders_skip_ineligible_targets_and_report_bad_paths() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let package = sample_package_record(root, "pkg-a", "pkg-a");
+	let package_id = package.id.clone();
+	let packages = vec![package];
+	let package_definition = sample_package_definition("pkg-a");
+	let group_definition = sample_group_definition(GroupChangelogInclude::All);
+	let mut configuration = empty_configuration(root);
+	configuration.packages = vec![package_definition.clone()];
+	configuration.groups = vec![group_definition.clone()];
+
+	let output = ChangelogOutputDefinition {
+		stream: "user".to_string(),
+		path: "{{ audience }}/notes.md".to_string(),
+		format: ChangelogFormat::Monochange,
+		mode: ChangelogOutputMode::Release,
+		targets: vec!["pkg-a".to_string()],
+		initial_header: None,
+	};
+	let empty_targets = (BTreeMap::new(), BTreeMap::new());
+	let empty_changes = BTreeMap::new();
+	let target_changes = BTreeMap::from([(
+		package_id.clone(),
+		vec![sample_change(&package_id, "pkg-a", ".changeset/user.md")],
+	)]);
+	let changeset_targets = BTreeMap::from([(
+		PathBuf::from(".changeset/user.md"),
+		vec![PreparedChangesetTarget {
+			id: "sdk".to_string(),
+			kind: ChangesetTargetKind::Group,
+			bump: Some(BumpSeverity::Minor),
+			origin: "manual".to_string(),
+			evidence_refs: Vec::new(),
+			change_type: Some("note".to_string()),
+			caused_by: Vec::new(),
+		}],
+	)]);
+
+	let empty_plan = ReleasePlan {
+		workspace_root: root.to_path_buf(),
+		decisions: Vec::new(),
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+	let context = ChangelogBuildContext {
+		root,
+		configuration: &configuration,
+		packages: &packages,
+		plan: &empty_plan,
+		change_signals: &[],
+		changesets: &[],
+		changelog_targets: &empty_targets,
+		release_targets: &[],
+	};
+	assert!(
+		build_named_package_changelog_update(
+			context,
+			"user",
+			&output,
+			&package_definition,
+			&target_changes,
+			&BTreeMap::new(),
+		)
+		.unwrap_or_else(|error| panic!("skip missing decision: {error}"))
+		.is_none()
+	);
+
+	let mut decision_without_version = sample_decision(&package_id, None);
+	decision_without_version.planned_version = None;
+	let plan_without_version = ReleasePlan {
+		decisions: vec![decision_without_version],
+		..empty_plan.clone()
+	};
+	let context_without_version = ChangelogBuildContext {
+		plan: &plan_without_version,
+		..context
+	};
+	assert!(
+		build_named_package_changelog_update(
+			context_without_version,
+			"user",
+			&output,
+			&package_definition,
+			&target_changes,
+			&BTreeMap::new(),
+		)
+		.unwrap_or_else(|error| panic!("skip missing version: {error}"))
+		.is_none()
+	);
+
+	let release_plan = ReleasePlan {
+		decisions: vec![sample_decision(&package_id, None)],
+		..empty_plan.clone()
+	};
+	let release_context = ChangelogBuildContext {
+		plan: &release_plan,
+		..context
+	};
+	assert!(
+		build_named_package_changelog_update(
+			release_context,
+			"user",
+			&output,
+			&package_definition,
+			&empty_changes,
+			&BTreeMap::new(),
+		)
+		.unwrap_or_else(|error| panic!("skip empty stream: {error}"))
+		.is_none()
+	);
+	let path_error = build_named_package_changelog_update(
+		release_context,
+		"user",
+		&output,
+		&package_definition,
+		&target_changes,
+		&BTreeMap::new(),
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected invalid package output path"));
+	assert!(
+		path_error
+			.to_string()
+			.contains("unsupported template variable")
+	);
+
+	let context_without_package = ChangelogBuildContext {
+		packages: &[],
+		..release_context
+	};
+	assert!(
+		build_named_package_changelog_update(
+			context_without_package,
+			"user",
+			&output,
+			&package_definition,
+			&target_changes,
+			&BTreeMap::new(),
+		)
+		.unwrap_or_else(|error| panic!("skip missing package: {error}"))
+		.is_none()
+	);
+
+	assert!(
+		build_named_group_changelog_update(
+			context,
+			"user",
+			&output,
+			&group_definition,
+			&target_changes,
+			&changeset_targets,
+		)
+		.unwrap_or_else(|error| panic!("skip missing group plan: {error}"))
+		.is_none()
+	);
+	let mut group_without_version = sample_group(vec![package_id.clone()]);
+	group_without_version.planned_version = None;
+	let plan_without_group_version = ReleasePlan {
+		groups: vec![group_without_version],
+		..empty_plan.clone()
+	};
+	let context_without_group_version = ChangelogBuildContext {
+		plan: &plan_without_group_version,
+		..context
+	};
+	assert!(
+		build_named_group_changelog_update(
+			context_without_group_version,
+			"user",
+			&output,
+			&group_definition,
+			&target_changes,
+			&changeset_targets,
+		)
+		.unwrap_or_else(|error| panic!("skip missing group version: {error}"))
+		.is_none()
+	);
+
+	let group_plan = ReleasePlan {
+		groups: vec![sample_group(vec![package_id])],
+		..empty_plan.clone()
+	};
+	let group_context = ChangelogBuildContext {
+		plan: &group_plan,
+		..context
+	};
+	assert!(
+		build_named_group_changelog_update(
+			group_context,
+			"user",
+			&output,
+			&group_definition,
+			&empty_changes,
+			&changeset_targets,
+		)
+		.unwrap_or_else(|error| panic!("skip empty group stream: {error}"))
+		.is_none()
+	);
+	let group_path_error = build_named_group_changelog_update(
+		group_context,
+		"user",
+		&output,
+		&group_definition,
+		&target_changes,
+		&changeset_targets,
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected invalid group output path"));
+	assert!(
+		group_path_error
+			.to_string()
+			.contains("unsupported template variable")
+	);
+
+	let mut unknown_configuration = configuration.clone();
+	unknown_configuration.changelog.outputs.insert(
+		"unknown".to_string(),
+		ChangelogOutputDefinition {
+			targets: vec!["missing".to_string()],
+			..output
+		},
+	);
+	let unknown_target_context = ChangelogBuildContext {
+		configuration: &unknown_configuration,
+		..group_context
+	};
+	let unknown_target_updates =
+		build_named_changelog_updates(unknown_target_context, &target_changes, &changeset_targets)
+			.unwrap_or_else(|error| panic!("skip unknown configured target: {error}"));
+	assert!(unknown_target_updates.is_empty());
 }
 
 #[test]
@@ -647,6 +932,7 @@ fn rendered_changeset_context_and_signal_mapping_cover_hosted_metadata() {
 		&signal,
 		std::slice::from_ref(&package),
 		tempdir.path(),
+		&ChangelogSettings::default(),
 		&BTreeMap::from([(source_path, rendered.clone())]),
 	)
 	.unwrap_or_else(|| panic!("expected mapped release note change"));
@@ -663,8 +949,14 @@ fn rendered_changeset_context_and_signal_mapping_cover_hosted_metadata() {
 		..signal
 	};
 	assert!(
-		build_release_note_change(&no_notes, &[package], tempdir.path(), &BTreeMap::new())
-			.is_none()
+		build_release_note_change(
+			&no_notes,
+			&[package],
+			tempdir.path(),
+			&ChangelogSettings::default(),
+			&BTreeMap::new(),
+		)
+		.is_none()
 	);
 }
 

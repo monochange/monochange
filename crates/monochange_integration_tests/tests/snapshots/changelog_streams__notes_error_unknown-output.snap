@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: "String::from_utf8_lossy(&output.stderr).trim()"
+---
+config error: unknown changelog output `missing`; available outputs: default, developer_app, developer_append, user_group, user_json, user_markdown, user_multi, user_text

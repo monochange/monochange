@@ -1606,6 +1606,61 @@ pub enum ChangelogFormat {
 	#[default]
 	Monochange,
 	KeepAChangelog,
+	Json,
+	Text,
+}
+
+/// Built-in changelog stream used by existing and untyped changesets.
+pub const DEFAULT_CHANGELOG_STREAM: &str = "default";
+/// Identity assigned to existing package and group changelog configuration.
+pub const DEFAULT_CHANGELOG_OUTPUT: &str = "default";
+
+/// Describes one configured changelog stream.
+///
+/// Streams partition release-note content without coupling it to a renderer or
+/// destination.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ChangelogStreamDefinition {
+	/// Human-readable explanation of the stream's audience or scope.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub description: Option<String>,
+}
+
+/// Controls whether a changelog output accumulates releases or represents only
+/// the current release.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ChangelogOutputMode {
+	/// Insert each release at the top of an existing changelog.
+	#[default]
+	Append,
+	/// Replace the destination with only the current release notes.
+	Release,
+}
+
+/// One named destination that renders a configured changelog stream.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ChangelogOutputDefinition {
+	/// Stream selected for this output.
+	#[serde(default = "default_changelog_stream_name")]
+	pub stream: String,
+	/// Output path template. Supports `path`, `id`, and `version` variables.
+	pub path: String,
+	/// Renderer used for the output artifact.
+	#[serde(default)]
+	pub format: ChangelogFormat,
+	/// Whether releases are appended or written as standalone artifacts.
+	#[serde(default)]
+	pub mode: ChangelogOutputMode,
+	/// Configured package or group ids rendered by this output.
+	pub targets: Vec<String>,
+	/// Optional initial header for append-mode Markdown changelogs.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub initial_header: Option<String>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1928,6 +1983,15 @@ pub struct ChangelogSettings {
 	pub section_thresholds: ChangelogSectionThresholds,
 	#[serde(default)]
 	pub types: BTreeMap<String, ChangelogType>,
+	/// Declared streams, including the built-in `default` stream.
+	#[serde(default = "default_changelog_streams")]
+	pub streams: BTreeMap<String, ChangelogStreamDefinition>,
+	/// Stream routing keyed by configured changelog type.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub type_streams: BTreeMap<String, String>,
+	/// Named stream render destinations.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub outputs: BTreeMap<String, ChangelogOutputDefinition>,
 	#[serde(default)]
 	pub style: ChangelogStyle,
 	#[serde(default)]
@@ -1941,6 +2005,17 @@ impl Default for ChangelogSettings {
 }
 
 impl ChangelogSettings {
+	/// Resolve a changeset type to its configured stream.
+	///
+	/// Untyped changes and types without an explicit route use `default`, which
+	/// preserves existing changelog behavior.
+	#[must_use]
+	pub fn stream_for_type(&self, change_type: Option<&str>) -> &str {
+		change_type
+			.and_then(|change_type| self.type_streams.get(change_type))
+			.map_or(DEFAULT_CHANGELOG_STREAM, String::as_str)
+	}
+
 	/// Return the built-in changelog configuration with default sections and types.
 	#[must_use]
 	pub fn defaults() -> Self {
@@ -2134,10 +2209,28 @@ impl ChangelogSettings {
 			sections,
 			section_thresholds: ChangelogSectionThresholds::default(),
 			types,
+			streams: default_changelog_streams(),
+			type_streams: BTreeMap::new(),
+			outputs: BTreeMap::new(),
 			style: ChangelogStyle::default(),
 			release_notes: ReleaseNotesStyleOverrides::default(),
 		}
 	}
+}
+
+fn default_changelog_streams() -> BTreeMap<String, ChangelogStreamDefinition> {
+	BTreeMap::from([(
+		DEFAULT_CHANGELOG_STREAM.to_string(),
+		ChangelogStreamDefinition::default(),
+	)])
+}
+
+fn default_changelog_stream_name() -> String {
+	DEFAULT_CHANGELOG_STREAM.to_string()
+}
+
+fn default_changelog_output_name() -> String {
+	DEFAULT_CHANGELOG_OUTPUT.to_string()
 }
 
 /// Whether monochange's built-in publisher handles release publishing for a package.
@@ -3765,7 +3858,47 @@ pub fn render_release_notes(
 	match format {
 		ChangelogFormat::Monochange => render_monochange_release_notes(document, style),
 		ChangelogFormat::KeepAChangelog => render_keep_a_changelog_release_notes(document, style),
+		ChangelogFormat::Json => {
+			serde_json::to_string_pretty(document).unwrap_or_else(|error| {
+				// patch-coverage:ignore-start -- ReleaseNotesDocument contains no fallible JSON values.
+				panic!("release-note documents contain only serializable values: {error}")
+				// patch-coverage:ignore-end
+			})
+		}
+		ChangelogFormat::Text => render_text_release_notes(document),
 	}
+}
+
+fn render_text_release_notes(document: &ReleaseNotesDocument) -> String {
+	let mut lines = vec![document.title.clone()];
+	for paragraph in &document.summary {
+		lines.push(String::new());
+		lines.push(plain_text_release_note_entry(paragraph));
+	}
+	for section in &document.sections {
+		if section.entries.is_empty() {
+			continue;
+		}
+
+		lines.push(String::new());
+		lines.push(section.title.clone());
+		for entry in &section.entries {
+			lines.push(String::new());
+			lines.push(plain_text_release_note_entry(entry));
+		}
+	}
+	lines.join("\n")
+}
+
+fn plain_text_release_note_entry(entry: &str) -> String {
+	entry
+		.lines()
+		.map(|line| {
+			let line = line.trim_start_matches('#').trim_start();
+			line.strip_prefix("- ").unwrap_or(line)
+		})
+		.collect::<Vec<_>>()
+		.join("\n")
 }
 
 fn render_monochange_release_notes(
@@ -3938,6 +4071,12 @@ pub struct ReleaseManifestTarget {
 pub struct ReleaseManifestChangelog {
 	pub owner_id: String,
 	pub owner_kind: ReleaseOwnerKind,
+	/// Stable destination name used by provider release-note selection.
+	#[serde(default = "default_changelog_output_name")]
+	pub output: String,
+	/// Audience stream rendered into this artifact.
+	#[serde(default = "default_changelog_stream_name")]
+	pub stream: String,
 	pub path: PathBuf,
 	pub format: ChangelogFormat,
 	pub notes: ReleaseNotesDocument,
@@ -4832,6 +4971,9 @@ pub struct ProviderReleaseSettings {
 	pub generate_notes: bool,
 	#[serde(default)]
 	pub source: ProviderReleaseNotesSource,
+	/// Named changelog output used as the hosted release body.
+	#[serde(default = "default_changelog_output_name")]
+	pub changelog_output: String,
 	#[serde(default = "default_release_branch_patterns")]
 	pub branches: Vec<String>,
 	#[serde(default = "default_true")]
@@ -4858,6 +5000,7 @@ impl Default for ProviderReleaseSettings {
 			prerelease: false,
 			generate_notes: false,
 			source: ProviderReleaseNotesSource::default(),
+			changelog_output: default_changelog_output_name(),
 			branches: default_release_branch_patterns(),
 			enforce_for_tags: true,
 			enforce_for_publish: true,

@@ -17,6 +17,7 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, and Dart/Flutter
   [93mskill[0m      Install the monochange skill bundle into the current project with the skills CLI
   [93msubagents[0m  Generate repo-local monochange subagents and agent guidance files
   [93manalyze[0m    Analyze semantic changes for one package across main, head, and optional release baselines
+  [93mnotes[0m      Render one configured release-note output without modifying release files
   [93mmigrate[0m    Audit or migrate release metadata for monochange repositories
   [93mlint[0m       Inspect and scaffold manifest lint rules
   [93mversions[0m   List package and group versions or sync internal dependency constraints

@@ -14,6 +14,8 @@ use minijinja::UndefinedBehavior;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::ChangelogFormat;
+use monochange_core::ChangelogOutputDefinition;
+use monochange_core::ChangelogOutputMode;
 use monochange_core::ChangelogSettings;
 use monochange_core::ChangelogTarget;
 use monochange_core::ChangesetTargetKind;
@@ -67,6 +69,10 @@ pub struct ChangelogUpdate {
 	pub file: FileUpdate,
 	pub owner_id: String,
 	pub owner_kind: ReleaseOwnerKind,
+	/// Stable destination name used by provider release-note selection.
+	pub output: String,
+	/// Audience stream rendered into the update.
+	pub stream: String,
 	pub format: ChangelogFormat,
 	pub notes: ReleaseNotesDocument,
 	pub rendered: String,
@@ -82,6 +88,7 @@ pub struct ReleaseNoteChange {
 	pub details: Option<String>,
 	pub bump: BumpSeverity,
 	pub change_type: Option<String>,
+	pub stream: String,
 	pub context: Option<String>,
 	pub changeset_path: Option<String>,
 	pub change_owner: Option<String>,
@@ -178,6 +185,7 @@ pub fn build_changelog_updates(
 				signal,
 				context.packages,
 				context.root,
+				&context.configuration.changelog,
 				&changeset_context_by_path,
 			)
 		})
@@ -190,6 +198,10 @@ pub fn build_changelog_updates(
 				acc
 			},
 		);
+	let default_release_note_changes = release_note_changes_for_stream(
+		&release_note_changes,
+		monochange_core::DEFAULT_CHANGELOG_STREAM,
+	);
 
 	let group_definitions_by_id = context
 		.configuration
@@ -246,12 +258,14 @@ pub fn build_changelog_updates(
 		// Changes from group-targeted changesets appear in the group changelog instead.
 		let package_changes = if group_definition.is_some() {
 			filter_direct_package_changes(
-				release_note_changes.get(&decision.package_id),
+				default_release_note_changes.get(&decision.package_id),
 				&package_id,
 				&changeset_targets_by_path,
 			)
 		} else {
-			release_note_changes.get(&decision.package_id).cloned()
+			default_release_note_changes
+				.get(&decision.package_id)
+				.cloned()
 		};
 		let changes = package_release_note_changes(
 			context.configuration,
@@ -307,6 +321,8 @@ pub fn build_changelog_updates(
 			},
 			owner_id: package_id,
 			owner_kind: ReleaseOwnerKind::Package,
+			output: monochange_core::DEFAULT_CHANGELOG_OUTPUT.to_string(),
+			stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
 			format: changelog_target.format,
 			notes: document,
 			rendered,
@@ -339,7 +355,7 @@ pub fn build_changelog_updates(
 			context.configuration,
 			group_definition,
 			planned_group,
-			&release_note_changes,
+			&default_release_note_changes,
 			&changeset_targets_by_path,
 			context.packages,
 			&planned_version.to_string(),
@@ -386,13 +402,345 @@ pub fn build_changelog_updates(
 			},
 			owner_id: planned_group.group_id.clone(),
 			owner_kind: ReleaseOwnerKind::Group,
+			output: monochange_core::DEFAULT_CHANGELOG_OUTPUT.to_string(),
+			stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
 			format: changelog_target.format,
 			notes: document,
 			rendered,
 		});
 	}
+	updates.extend(build_named_changelog_updates(
+		context,
+		&release_note_changes,
+		&changeset_targets_by_path,
+	)?); // patch-coverage:ignore-start patch-coverage:ignore-end -- `?` close is instrumented inconsistently; success and error paths are covered.
 
+	validate_changelog_update_paths(&updates)?;
 	Ok(dedup_changelog_updates(updates))
+}
+
+fn validate_changelog_update_paths(updates: &[ChangelogUpdate]) -> MonochangeResult<()> {
+	let mut owners_by_path = BTreeMap::new();
+	for update in updates {
+		let identity = (
+			update.output.as_str(),
+			update.owner_kind,
+			update.owner_id.as_str(),
+		);
+		if let Some(previous) = owners_by_path.insert(&update.file.path, identity)
+			&& previous != identity
+		{
+			return Err(MonochangeError::Config(format!(
+				"changelog outputs `{}` and `{}` both render to `{}`; configure unique output paths",
+				previous.0,
+				update.output,
+				update.file.path.display()
+			)));
+		}
+	}
+	Ok(())
+}
+
+fn build_named_changelog_updates(
+	context: ChangelogBuildContext<'_>,
+	release_note_changes: &BTreeMap<String, Vec<ReleaseNoteChange>>,
+	changeset_targets_by_path: &BTreeMap<PathBuf, Vec<PreparedChangesetTarget>>,
+) -> MonochangeResult<Vec<ChangelogUpdate>> {
+	let mut updates = Vec::new();
+
+	for (output_id, output) in &context.configuration.changelog.outputs {
+		let stream_changes = release_note_changes_for_stream(release_note_changes, &output.stream);
+
+		for target_id in &output.targets {
+			if let Some(package_definition) = context.configuration.package_by_id(target_id) {
+				if let Some(update) = build_named_package_changelog_update(
+					context,
+					output_id,
+					output,
+					package_definition,
+					&stream_changes,
+					changeset_targets_by_path,
+				)? {
+					updates.push(update);
+				}
+				continue;
+			}
+
+			if let Some(group_definition) = context.configuration.group_by_id(target_id)
+				&& let Some(update) = build_named_group_changelog_update(
+					context,
+					output_id,
+					output,
+					group_definition,
+					&stream_changes,
+					changeset_targets_by_path,
+				)? {
+				updates.push(update);
+			}
+		}
+	}
+
+	Ok(updates)
+}
+
+fn build_named_package_changelog_update(
+	context: ChangelogBuildContext<'_>,
+	output_id: &str,
+	output: &ChangelogOutputDefinition,
+	package_definition: &monochange_core::PackageDefinition,
+	stream_changes: &BTreeMap<String, Vec<ReleaseNoteChange>>,
+	changeset_targets_by_path: &BTreeMap<PathBuf, Vec<PreparedChangesetTarget>>,
+) -> MonochangeResult<Option<ChangelogUpdate>> {
+	let Some(package) = context.packages.iter().find(|package| {
+		package
+			.metadata
+			.get("config_id")
+			.is_some_and(|config_id| config_id == &package_definition.id)
+	}) else {
+		return Ok(None);
+	};
+	let Some(decision) = context.plan.decisions.iter().find(|decision| {
+		decision.package_id == package.id && decision.recommended_bump.is_release()
+	}) else {
+		return Ok(None);
+	};
+	let Some(planned_version) = decision.planned_version.as_ref() else {
+		return Ok(None);
+	};
+	let group_definition = decision
+		.group_id
+		.as_deref()
+		.and_then(|group_id| context.configuration.group_by_id(group_id));
+	let direct_changes = if group_definition.is_some() {
+		filter_direct_package_changes(
+			stream_changes.get(&decision.package_id),
+			&package_definition.id,
+			changeset_targets_by_path,
+		)
+	} else {
+		stream_changes.get(&decision.package_id).cloned()
+	};
+	if direct_changes.as_ref().is_none_or(Vec::is_empty) {
+		return Ok(None);
+	}
+	let changes = package_release_note_changes(
+		context.configuration,
+		Some(package_definition),
+		group_definition,
+		decision,
+		package,
+		direct_changes.as_ref(),
+		&planned_version.to_string(),
+	);
+	let title = release_target_changelog_title(
+		context.release_targets,
+		&package_definition.id,
+		ReleaseOwnerKind::Package,
+		planned_version.to_string(),
+	);
+	let document = build_release_notes_document(
+		&package_definition.id,
+		&title,
+		Vec::new(),
+		&context.configuration.changelog,
+		&changes,
+	);
+	let path = render_named_output_path(
+		context.root,
+		output,
+		&package_definition.path,
+		&package_definition.id,
+		&planned_version.to_string(),
+	)?;
+	let target = ChangelogTarget {
+		path,
+		format: output.format,
+		initial_header: output.initial_header.clone(),
+	};
+	let initial_header = render_package_initial_changelog_header(
+		context,
+		&target,
+		&package_definition.id,
+		package,
+		group_definition,
+		planned_version,
+	);
+
+	build_named_changelog_update(
+		context,
+		output_id,
+		output,
+		package_definition.id.clone(),
+		ReleaseOwnerKind::Package,
+		target,
+		document,
+		&initial_header,
+	)
+	.map(Some)
+}
+
+fn build_named_group_changelog_update(
+	context: ChangelogBuildContext<'_>,
+	output_id: &str,
+	output: &ChangelogOutputDefinition,
+	group_definition: &monochange_core::GroupDefinition,
+	stream_changes: &BTreeMap<String, Vec<ReleaseNoteChange>>,
+	changeset_targets_by_path: &BTreeMap<PathBuf, Vec<PreparedChangesetTarget>>,
+) -> MonochangeResult<Option<ChangelogUpdate>> {
+	let Some(planned_group) =
+		context.plan.groups.iter().find(|group| {
+			group.group_id == group_definition.id && group.recommended_bump.is_release()
+		})
+	else {
+		return Ok(None);
+	};
+	let Some(planned_version) = planned_group.planned_version.as_ref() else {
+		return Ok(None);
+	};
+	let changes = group_release_note_changes(
+		context.configuration,
+		Some(group_definition),
+		planned_group,
+		stream_changes,
+		changeset_targets_by_path,
+		context.packages,
+		&planned_version.to_string(),
+	);
+	if !changes.iter().any(|change| change.source_path.is_some()) {
+		return Ok(None);
+	}
+	let title = release_target_changelog_title(
+		context.release_targets,
+		&group_definition.id,
+		ReleaseOwnerKind::Group,
+		planned_version.to_string(),
+	);
+	let document = build_release_notes_document(
+		&group_definition.id,
+		&title,
+		group_release_summary(&group_definition.id),
+		&context.configuration.changelog,
+		&changes,
+	);
+	let path = render_named_output_path(
+		context.root,
+		output,
+		Path::new("."),
+		&group_definition.id,
+		&planned_version.to_string(),
+	)?;
+	let target = ChangelogTarget {
+		path,
+		format: output.format,
+		initial_header: output.initial_header.clone(),
+	};
+	let initial_header = render_group_initial_changelog_header(
+		context,
+		&target,
+		planned_group,
+		Some(group_definition),
+		planned_version,
+		&group_definition.packages,
+	);
+
+	build_named_changelog_update(
+		context,
+		output_id,
+		output,
+		group_definition.id.clone(),
+		ReleaseOwnerKind::Group,
+		target,
+		document,
+		&initial_header,
+	)
+	.map(Some)
+}
+
+fn release_target_changelog_title(
+	release_targets: &[ReleaseTarget],
+	owner_id: &str,
+	owner_kind: ReleaseOwnerKind,
+	fallback: String,
+) -> String {
+	release_targets
+		.iter()
+		.find(|target| {
+			(target.kind == owner_kind && target.id == owner_id)
+				|| (owner_kind == ReleaseOwnerKind::Package
+					&& target.kind == ReleaseOwnerKind::Group
+					&& target.members.iter().any(|member| member == owner_id))
+		})
+		.map_or(fallback, |target| target.rendered_changelog_title.clone())
+}
+
+fn render_named_output_path(
+	root: &Path,
+	output: &ChangelogOutputDefinition,
+	owner_path: &Path,
+	owner_id: &str,
+	version: &str,
+) -> MonochangeResult<PathBuf> {
+	let owner_path = owner_path.to_string_lossy();
+	let rendered = output
+		.path
+		.replace("{{ path }}", &owner_path)
+		.replace("{{path}}", &owner_path)
+		.replace("{{ id }}", owner_id)
+		.replace("{{id}}", owner_id)
+		.replace("{{ version }}", version)
+		.replace("{{version}}", version);
+	if rendered.contains("{{") || rendered.contains("}}") {
+		return Err(MonochangeError::Config(format!(
+			"changelog output path `{}` contains an unsupported template variable",
+			output.path
+		)));
+	}
+	let path = PathBuf::from(rendered);
+
+	Ok(if path.is_absolute() {
+		path
+	} else {
+		root.join(path)
+	})
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_named_changelog_update(
+	context: ChangelogBuildContext<'_>,
+	output_id: &str,
+	output: &ChangelogOutputDefinition,
+	owner_id: String,
+	owner_kind: ReleaseOwnerKind,
+	target: ChangelogTarget,
+	document: ReleaseNotesDocument,
+	initial_header: &str,
+) -> MonochangeResult<ChangelogUpdate> {
+	let style = context
+		.configuration
+		.changelog
+		.release_notes
+		.resolve(&context.configuration.changelog.style);
+	let rendered = render_release_notes(output.format, &document, &style);
+	let file_content = match output.mode {
+		ChangelogOutputMode::Append => {
+			append_changelog_section(&target.path, &rendered, Some(initial_header))?
+		}
+		_ => format!("{rendered}\n"),
+	};
+
+	Ok(ChangelogUpdate {
+		file: FileUpdate {
+			path: target.path,
+			content: file_content.into_bytes(),
+		},
+		owner_id,
+		owner_kind,
+		output: output_id.to_string(),
+		stream: output.stream.clone(),
+		format: output.format,
+		notes: document,
+		rendered,
+	})
 }
 
 fn default_initial_changelog_header(format: ChangelogFormat) -> &'static str {
@@ -592,6 +940,7 @@ fn build_release_note_change(
 	signal: &ChangeSignal,
 	packages: &[PackageRecord],
 	root: &Path,
+	changelog: &ChangelogSettings,
 	changeset_context_by_path: &BTreeMap<PathBuf, RenderedChangesetContext>,
 ) -> Option<ReleaseNoteChange> {
 	let summary = signal.notes.clone()?;
@@ -610,6 +959,9 @@ fn build_release_note_change(
 		details: signal.details.clone(),
 		bump: signal.requested_bump.unwrap_or(BumpSeverity::Patch),
 		change_type: signal.change_type.clone(),
+		stream: changelog
+			.stream_for_type(signal.change_type.as_deref())
+			.to_string(),
 		context: rendered_context.map(|context| context.context.clone()),
 		changeset_path: rendered_context.map(|context| context.changeset_path.clone()),
 		change_owner: rendered_context.and_then(|context| context.change_owner.clone()),
@@ -630,6 +982,23 @@ fn build_release_note_change(
 		closed_issues: rendered_context.and_then(|context| context.closed_issues.clone()),
 		closed_issue_links: rendered_context.and_then(|context| context.closed_issue_links.clone()),
 	})
+}
+
+fn release_note_changes_for_stream(
+	changes: &BTreeMap<String, Vec<ReleaseNoteChange>>,
+	stream: &str,
+) -> BTreeMap<String, Vec<ReleaseNoteChange>> {
+	changes
+		.iter()
+		.filter_map(|(package, changes)| {
+			let filtered = changes
+				.iter()
+				.filter(|change| change.stream == stream)
+				.cloned()
+				.collect::<Vec<_>>();
+			(!filtered.is_empty()).then_some((package.clone(), filtered))
+		})
+		.collect()
 }
 
 fn format_metadata_line(style: MetadataStyle, text: &str) -> String {
@@ -1025,6 +1394,7 @@ fn package_release_note_changes(
 			details: None,
 			bump: decision.recommended_bump,
 			change_type: None,
+			stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
 			context: None,
 			changeset_path: None,
 			change_owner: None,
@@ -1096,6 +1466,7 @@ fn group_release_note_changes(
 			details: None,
 			bump: planned_group.recommended_bump,
 			change_type: None,
+			stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
 			context: None,
 			changeset_path: None,
 			change_owner: None,

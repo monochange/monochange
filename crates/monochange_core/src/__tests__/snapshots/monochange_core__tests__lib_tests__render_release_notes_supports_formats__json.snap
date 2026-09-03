@@ -1,0 +1,24 @@
+---
+source: crates/monochange_core/src/__tests__/lib_tests.rs
+expression: json
+---
+{
+  "sections": [
+    {
+      "collapsed": false,
+      "entries": [
+        "[multiline text]"
+      ],
+      "title": "Changed"
+    },
+    {
+      "collapsed": false,
+      "entries": [],
+      "title": "Empty"
+    }
+  ],
+  "summary": [
+    "Grouped release for `sdk`."
+  ],
+  "title": "1.2.3"
+}

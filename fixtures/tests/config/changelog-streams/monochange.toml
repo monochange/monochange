@@ -1,0 +1,87 @@
+[defaults]
+package_type = "cargo"
+
+[defaults.changelog]
+path = "{{ path }}/CHANGELOG.md"
+
+[package.app]
+path = "crates/app"
+
+[package.core]
+path = "crates/core"
+
+[group.sdk]
+packages = ["app", "core"]
+
+[changelog.streams.user]
+description = "Release notes for product users"
+
+[changelog.outputs.user_json]
+stream = "user"
+format = "json"
+mode = "release"
+path = "{{ path }}/release-notes/{{ version }}.json"
+targets = ["app"]
+
+[changelog.outputs.user_text]
+stream = "user"
+format = "text"
+mode = "release"
+path = "{{ path }}/release-notes/{{ version }}.txt"
+targets = ["app"]
+
+[changelog.outputs.user_markdown]
+stream = "user"
+format = "monochange"
+mode = "release"
+path = "{{ path }}/release-notes/{{ version }}.md"
+targets = ["app"]
+
+[changelog.outputs.user_multi]
+stream = "user"
+format = "monochange"
+mode = "release"
+path = "release-notes/multi/{{ id }}-{{ version }}.md"
+targets = ["app", "sdk"]
+
+[changelog.outputs.user_group]
+stream = "user"
+format = "json"
+mode = "release"
+path = "release-notes/{{ id }}/{{ version }}.json"
+targets = ["sdk"]
+
+[changelog.outputs.developer_append]
+path = "{{ path }}/INTERNAL.md"
+targets = ["core"]
+initial_header = "# Internal changes"
+
+[changelog.outputs.developer_app]
+path = "{{ path }}/INTERNAL.md"
+mode = "release"
+targets = ["app"]
+
+[changelog.sections.app_features]
+heading = "App features"
+priority = 10
+
+[changelog.sections.fixes]
+heading = "Fixes"
+priority = 20
+
+[changelog.sections.native]
+heading = "Native releases"
+priority = 1
+
+[changelog.types.app_feature]
+bump = "minor"
+section = "app_features"
+stream = "user"
+
+[changelog.types.fix]
+bump = "patch"
+section = "fixes"
+
+[changelog.types.native]
+bump = "major"
+section = "native"

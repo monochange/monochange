@@ -695,7 +695,7 @@ fn snapshot_files_from_revision(
 	package_root: &Path,
 	revision: &str,
 ) -> MonochangeResult<Vec<PackageSnapshotFile>> {
-	let package_root_text = package_root.to_string_lossy().to_string();
+	let package_root_text = git_package_pathspec(package_root);
 	let args = [
 		"ls-tree",
 		"-r",
@@ -717,10 +717,18 @@ fn snapshot_files_from_index(
 	repo_root: &Path,
 	package_root: &Path,
 ) -> MonochangeResult<Vec<PackageSnapshotFile>> {
-	let package_root_text = package_root.to_string_lossy().to_string();
+	let package_root_text = git_package_pathspec(package_root);
 	let args = ["ls-files", "--cached", "--", package_root_text.as_str()];
 	let paths = git_list_files(repo_root, &args)?;
 	build_snapshot_files_from_paths(repo_root, package_root, &SnapshotTarget::GitIndex, &paths)
+}
+
+fn git_package_pathspec(package_root: &Path) -> String {
+	if package_root.as_os_str().is_empty() {
+		".".to_string()
+	} else {
+		package_root.to_string_lossy().into_owned()
+	}
 }
 
 fn build_snapshot_files_from_paths(

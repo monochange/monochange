@@ -605,11 +605,32 @@ pub(crate) struct RawChangelogSettings {
 	#[serde(default)]
 	pub section_thresholds: monochange_core::ChangelogSectionThresholds,
 	#[serde(default)]
-	pub types: BTreeMap<String, monochange_core::ChangelogType>,
+	pub types: BTreeMap<String, RawChangelogType>,
+	#[serde(default)]
+	pub streams: BTreeMap<String, monochange_core::ChangelogStreamDefinition>,
+	#[serde(default)]
+	pub outputs: BTreeMap<String, monochange_core::ChangelogOutputDefinition>,
 	#[serde(default)]
 	pub style: monochange_core::ChangelogStyle,
 	#[serde(default)]
 	pub release_notes: monochange_core::ReleaseNotesStyleOverrides,
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "changelog_type"))]
+pub(crate) struct RawChangelogType {
+	#[serde(default)]
+	pub bump: BumpSeverity,
+	pub section: String,
+	#[serde(default)]
+	pub description: Option<String>,
+	#[serde(default = "default_changelog_stream")]
+	pub stream: String,
+}
+
+fn default_changelog_stream() -> String {
+	monochange_core::DEFAULT_CHANGELOG_STREAM.to_string()
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -2063,6 +2084,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	let changeset_lints = changeset_lint_settings_from_rules(&lints.rules)?;
 	validate_changeset_lint_settings(&changeset_lints, &changelog)?;
 	validate_source_configuration(source.as_ref())?;
+	validate_source_changelog_output(source.as_ref(), &changelog)?;
 	let declared_packages = packages
 		.iter()
 		.map(|package| package.id.as_str())
@@ -2146,7 +2168,7 @@ struct ChangeTypeLookup {
 
 #[derive(Debug)]
 pub struct ChangesetLoadContext<'a> {
-	_configuration: &'a WorkspaceConfiguration,
+	configuration: &'a WorkspaceConfiguration,
 	package_ids: HashSet<&'a str>,
 	groups_by_id: HashMap<&'a str, &'a GroupDefinition>,
 	package_reference_matches: HashMap<String, Vec<&'a str>>,
@@ -2214,7 +2236,7 @@ pub fn build_changeset_load_context<'a>(
 		);
 	}
 	ChangesetLoadContext {
-		_configuration: configuration,
+		configuration,
 		package_ids,
 		groups_by_id,
 		package_reference_matches,
@@ -2529,7 +2551,21 @@ pub fn load_changeset_contents_with_context(
 			});
 		}
 	}
-
+	let streams = targets
+		.iter()
+		.map(|target| {
+			context
+				.configuration
+				.changelog
+				.stream_for_type(target.change_type.as_deref())
+		})
+		.collect::<BTreeSet<_>>();
+	if streams.len() > 1 {
+		return Err(MonochangeError::Config(format!(
+			"changeset targets resolve to multiple changelog streams: {}; split the changes into one file per stream",
+			streams.into_iter().collect::<Vec<_>>().join(", ")
+		)));
+	}
 	Ok(LoadedChangesetFile {
 		path: changes_path.to_path_buf(),
 		summary,
@@ -4333,20 +4369,59 @@ fn expected_manifest_name(package_type: PackageType) -> &'static str {
 }
 
 fn build_changelog_settings(raw: RawChangelogSettings) -> ChangelogSettings {
-	if raw.sections.is_empty() && raw.types.is_empty() && raw.templates.is_empty() {
+	let RawChangelogSettings {
+		templates,
+		sections,
+		section_thresholds,
+		types: raw_types,
+		mut streams,
+		outputs,
+		style,
+		release_notes,
+	} = raw;
+	let types = raw_types
+		.iter()
+		.map(|(name, typ)| {
+			(
+				name.clone(),
+				monochange_core::ChangelogType {
+					bump: typ.bump,
+					section: typ.section.clone(),
+					description: typ.description.clone(),
+				},
+			)
+		})
+		.collect::<BTreeMap<_, _>>();
+	let type_streams = raw_types
+		.into_iter()
+		.filter_map(|(name, typ)| {
+			(typ.stream != monochange_core::DEFAULT_CHANGELOG_STREAM).then_some((name, typ.stream))
+		})
+		.collect::<BTreeMap<_, _>>();
+	streams
+		.entry(monochange_core::DEFAULT_CHANGELOG_STREAM.to_string())
+		.or_default();
+
+	if sections.is_empty() && types.is_empty() && templates.is_empty() {
 		let mut defaults = ChangelogSettings::defaults();
-		defaults.section_thresholds = raw.section_thresholds;
-		defaults.style = raw.style;
-		defaults.release_notes = raw.release_notes;
+		defaults.section_thresholds = section_thresholds;
+		defaults.streams = streams;
+		defaults.type_streams = type_streams;
+		defaults.outputs = outputs;
+		defaults.style = style;
+		defaults.release_notes = release_notes;
 		defaults
 	} else {
 		ChangelogSettings {
-			templates: raw.templates,
-			sections: raw.sections,
-			section_thresholds: raw.section_thresholds,
-			types: raw.types,
-			style: raw.style,
-			release_notes: raw.release_notes,
+			templates,
+			sections,
+			section_thresholds,
+			types,
+			streams,
+			type_streams,
+			outputs,
+			style,
+			release_notes,
 		}
 	}
 }
@@ -4379,6 +4454,8 @@ fn validate_changelog_configuration(
 	}
 	validate_changelog_keys(contents, "section", &changelog.sections)?;
 	validate_changelog_keys(contents, "type", &changelog.types)?;
+	validate_changelog_keys(contents, "stream", &changelog.streams)?;
+	validate_changelog_keys(contents, "output", &changelog.outputs)?;
 	if changelog.section_thresholds.ignored < changelog.section_thresholds.collapse {
 		return Err(MonochangeError::Config(
 			"[changelog].section_thresholds.ignored must be greater than or equal to [changelog].section_thresholds.collapse".to_string(),
@@ -4407,9 +4484,94 @@ fn validate_changelog_configuration(
 				typ.section
 			)));
 		}
+		if typ.stream != monochange_core::DEFAULT_CHANGELOG_STREAM
+			&& !changelog.streams.contains_key(&typ.stream)
+		{
+			return Err(MonochangeError::Config(format!(
+				"[changelog].types.{type_key} references stream `{}` which does not exist in [changelog.streams]",
+				typ.stream
+			)));
+		}
+	}
+	let configured_targets = packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.chain(groups.iter().map(|group| group.id.as_str()))
+		.collect::<BTreeSet<_>>();
+	for (output_key, output) in &changelog.outputs {
+		if output_key == monochange_core::DEFAULT_CHANGELOG_OUTPUT {
+			return Err(MonochangeError::Config(
+				"[changelog].outputs.default is reserved for existing changelog configuration"
+					.to_string(),
+			));
+		}
+		if output.stream != monochange_core::DEFAULT_CHANGELOG_STREAM
+			&& !changelog.streams.contains_key(&output.stream)
+		{
+			return Err(MonochangeError::Config(format!(
+				"[changelog].outputs.{output_key} references stream `{}` which does not exist in [changelog.streams]",
+				output.stream
+			)));
+		}
+		if output.path.trim().is_empty() {
+			return Err(MonochangeError::Config(format!(
+				"[changelog].outputs.{output_key}.path must not be empty"
+			)));
+		}
+		let unsupported_variables = change_template_variables(&output.path)
+			.into_iter()
+			.filter(|variable| !matches!(variable.as_str(), "path" | "id" | "version"))
+			.collect::<Vec<_>>();
+		if !unsupported_variables.is_empty() {
+			return Err(MonochangeError::Config(format!(
+				"[changelog].outputs.{output_key}.path uses unsupported variables: {}",
+				unsupported_variables.join(", ")
+			)));
+		}
+		if output.targets.is_empty() {
+			return Err(MonochangeError::Config(format!(
+				"[changelog].outputs.{output_key}.targets must include at least one package or group id"
+			)));
+		}
+		let mut seen_targets = BTreeSet::new();
+		for target in &output.targets {
+			if !seen_targets.insert(target) {
+				return Err(MonochangeError::Config(format!(
+					"[changelog].outputs.{output_key}.targets contains duplicate target `{target}`"
+				)));
+			}
+			if !configured_targets.contains(target.as_str()) {
+				return Err(MonochangeError::Config(format!(
+					"[changelog].outputs.{output_key} references unknown package or group `{target}`"
+				)));
+			}
+		}
+		if output.mode == monochange_core::ChangelogOutputMode::Append
+			&& matches!(output.format, ChangelogFormat::Json | ChangelogFormat::Text)
+		{
+			let format = if output.format == ChangelogFormat::Json {
+				"json"
+			} else {
+				"text"
+			};
+			return Err(MonochangeError::Config(format!(
+				"[changelog].outputs.{output_key} must use `mode = \"release\"` with format `{format}`"
+			)));
+		}
+		if output.mode == monochange_core::ChangelogOutputMode::Release
+			&& output.initial_header.is_some()
+		{
+			return Err(MonochangeError::Config(format!(
+				"[changelog].outputs.{output_key}.initial_header is only supported with `mode = \"append\"`"
+			)));
+		}
 	}
 	// Validate excluded_changelog_types reference existing type keys
 	for package in packages {
+		validate_append_changelog_format(
+			&format!("package `{}`", package.id),
+			package.changelog.as_ref(),
+		)?;
 		for excluded in &package.excluded_changelog_types {
 			if !changelog.types.contains_key(excluded) {
 				return Err(MonochangeError::Config(format!(
@@ -4420,6 +4582,10 @@ fn validate_changelog_configuration(
 		}
 	}
 	for group in groups {
+		validate_append_changelog_format(
+			&format!("group `{}`", group.id),
+			group.changelog.as_ref(),
+		)?;
 		for excluded in &group.excluded_changelog_types {
 			if !changelog.types.contains_key(excluded) {
 				return Err(MonochangeError::Config(format!(
@@ -4430,6 +4596,29 @@ fn validate_changelog_configuration(
 		}
 	}
 	Ok(())
+}
+
+fn validate_append_changelog_format(
+	scope: &str,
+	changelog: Option<&ChangelogTarget>,
+) -> MonochangeResult<()> {
+	let Some(changelog) = changelog else {
+		return Ok(());
+	};
+	if !matches!(
+		changelog.format,
+		ChangelogFormat::Json | ChangelogFormat::Text
+	) {
+		return Ok(());
+	}
+	let format = if changelog.format == ChangelogFormat::Json {
+		"json"
+	} else {
+		"text"
+	};
+	Err(MonochangeError::Config(format!(
+		"{scope} changelog uses standalone format `{format}`; configure JSON or text under [changelog.outputs] with `mode = \"release\"`"
+	)))
 }
 
 fn raw_changelog_type_has_field(document: &toml::Value, type_key: &str, field: &str) -> bool {
@@ -4600,6 +4789,23 @@ fn validate_source_configuration(source: Option<&SourceConfiguration>) -> Monoch
 		validate_api_url_host(host, source.provider)?;
 	}
 	validate_source_provider_capabilities(source)
+}
+
+fn validate_source_changelog_output(
+	source: Option<&SourceConfiguration>,
+	changelog: &ChangelogSettings,
+) -> MonochangeResult<()> {
+	let Some(source) = source else {
+		return Ok(());
+	};
+	let output = source.releases.changelog_output.as_str();
+	if output == monochange_core::DEFAULT_CHANGELOG_OUTPUT || changelog.outputs.contains_key(output)
+	{
+		return Ok(());
+	}
+	Err(MonochangeError::Config(format!(
+		"[source.releases].changelog_output references unknown [changelog.outputs] entry `{output}`"
+	)))
 }
 
 fn validate_source_provider_capabilities(source: &SourceConfiguration) -> MonochangeResult<()> {

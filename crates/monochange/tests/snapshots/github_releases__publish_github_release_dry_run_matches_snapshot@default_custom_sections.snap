@@ -26,10 +26,12 @@ expression: redacted
           "summary": [],
           "title": "core [1.0.1](https://github.com/ifiokjr/monochange/releases/tag/core/v1.0.1) ([DATE])"
         },
+        "output": "default",
         "owner_id": "core",
         "owner_kind": "package",
         "path": "crates/core/CHANGELOG.md",
-        "rendered": "[multiline text]"
+        "rendered": "[multiline text]",
+        "stream": "default"
       }
     ],
     "changesets": [

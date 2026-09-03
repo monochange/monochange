@@ -5657,6 +5657,8 @@ fn sample_release_manifest_for_commit_message(
 			vec![monochange_core::ReleaseManifestChangelog {
 				owner_id: "sdk".to_string(),
 				owner_kind: monochange_core::ReleaseOwnerKind::Group,
+				output: "default".to_string(),
+				stream: "default".to_string(),
 				path: Path::new("crates/monochange/CHANGELOG.md").to_path_buf(),
 				format: monochange_core::ChangelogFormat::Monochange,
 				notes: monochange_core::ReleaseNotesDocument {
@@ -12600,6 +12602,7 @@ fn sample_release_note_change(source_path: Option<&str>) -> ReleaseNoteChange {
 		package_id: "core".to_string(),
 		package_name: "core".to_string(),
 		package_labels: Vec::new(),
+		stream: "default".to_string(),
 		source_path: source_path.map(str::to_string),
 		summary: "add grouped note".to_string(),
 		details: None,
@@ -15657,6 +15660,8 @@ fn build_release_manifest_from_record_populates_manifest_from_release_record() {
 			format: ChangelogFormat::Monochange,
 			owner_id: String::new(),
 			owner_kind: ReleaseOwnerKind::Group,
+			output: "default".to_string(),
+			stream: "default".to_string(),
 			notes: ReleaseNotesDocument {
 				title: String::new(),
 				summary: Vec::new(),
@@ -15681,6 +15686,8 @@ fn build_release_manifest_from_record_preserves_changelog_metadata() {
 	let changelog = ReleaseManifestChangelog {
 		owner_id: "main".to_string(),
 		owner_kind: ReleaseOwnerKind::Group,
+		output: "default".to_string(),
+		stream: "default".to_string(),
 		path: PathBuf::from("changelog.md"),
 		format: ChangelogFormat::Monochange,
 		notes: ReleaseNotesDocument {
@@ -15715,6 +15722,26 @@ fn build_release_manifest_from_record_preserves_changelog_metadata() {
 	let manifest = crate::release_artifacts::build_release_manifest_from_record(&record);
 
 	assert_eq!(manifest.changelogs, vec![changelog]);
+}
+
+#[test]
+fn prepared_changelog_deserializes_legacy_default_identity() {
+	let changelog = serde_json::from_value::<crate::PreparedChangelog>(serde_json::json!({
+		"owner_id": "core",
+		"owner_kind": "package",
+		"path": "CHANGELOG.md",
+		"format": "monochange",
+		"notes": {
+			"title": "1.0.0",
+			"summary": [],
+			"sections": []
+		},
+		"rendered": "## 1.0.0"
+	}))
+	.unwrap_or_else(|error| panic!("legacy prepared changelog: {error}"));
+
+	assert_eq!(changelog.output, monochange_core::DEFAULT_CHANGELOG_OUTPUT);
+	assert_eq!(changelog.stream, monochange_core::DEFAULT_CHANGELOG_STREAM);
 }
 
 #[test]

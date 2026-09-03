@@ -233,6 +233,33 @@ fn snapshot_helpers_cover_error_paths_and_filtered_content() {
 }
 
 #[test]
+fn snapshot_git_helpers_support_workspace_root_packages() {
+	let tempdir = setup_analysis_repo("analysis/cargo-public-api-diff/before");
+	let root = tempdir.path();
+	let root_file = root.join("ROOT.md");
+	fs::write(&root_file, "root package\n")
+		.unwrap_or_else(|error| panic!("write root package file: {error}"));
+	git(root, &["add", "ROOT.md"]);
+
+	let index_files = snapshot_files_from_index(root, Path::new(""))
+		.unwrap_or_else(|error| panic!("snapshot root package index: {error}"));
+	assert!(
+		index_files
+			.iter()
+			.any(|file| file.path == Path::new("ROOT.md"))
+	);
+
+	git(root, &["commit", "-m", "add root package file"]);
+	let revision_files = snapshot_files_from_revision(root, Path::new(""), "HEAD")
+		.unwrap_or_else(|error| panic!("snapshot root package revision: {error}"));
+	assert!(
+		revision_files
+			.iter()
+			.any(|file| file.path == Path::new("ROOT.md"))
+	);
+}
+
+#[test]
 fn snapshot_target_helpers_cover_branch_range_pr_and_index_paths() {
 	let tempdir = setup_analysis_repo("analysis/cargo-public-api-diff/before");
 	let root = tempdir.path().to_path_buf();
