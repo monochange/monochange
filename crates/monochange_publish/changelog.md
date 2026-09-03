@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
+
+### 🚀 Feature
+
+#### add `publish.fail_on_duplicate` and keep already-published packages skipped by default
+
+`monochange step publish-packages` now documents its default behavior explicitly: when a version is already published on the target registry, the package is skipped (`skipped_existing`) instead of failing the step. Only packages that genuinely cannot publish fail the step, so re-running a partially published release stays green.
+
+A new per-package (and per-ecosystem) publish option opts into the strict behavior:
+
+```toml
+[package.pina_sdk_ids.publish]
+fail_on_duplicate = true
+```
+
+With `fail_on_duplicate` enabled, a package whose version already exists on the registry (release mode only, including dry runs) is reported as `failed` with the message `… already exists on … and`publish.fail_on_duplicate`rejects duplicate version publications`, remaining packages are marked as not attempted, and the step exits non-zero. Placeholder publishing keeps its idempotent skip behavior regardless of the setting. The option flows from `monochange.toml` into release-record publication targets and the built-in `PublishPackages` step, and is documented in the configuration guide and the regenerated JSON Schemas.
+
+The built-in `publish-packages` step also exposes the policy as a boolean CLI input: `monochange step publish-packages --fail-on-duplicate` forces the strict policy for that run and overrides per-package settings without editing configuration. Dry-run integration tests snapshot the skip, failure, and planned outcomes for both the configuration-driven and CLI-driven variants.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #645](https://github.com/monochange/monochange/pull/645) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### mint a fresh pub.dev OIDC token immediately before every dart trusted publish
+
+`monochange step publish-packages` (and every workflow that publishes Dart packages through monochange) now mints a fresh GitHub Actions OIDC token right before each `dart pub publish` invocation when the package is opted into pub.dev trusted publishing. Runtime output for successful publishes is unchanged.
+
+GitHub OIDC tokens expire after five minutes ([actions/toolkit#2048](https://github.com/actions/toolkit/issues/2048)), but `dart-lang/setup-dart` mints the pub.dev token once, during workflow setup. Multi-ecosystem release runs that spend minutes on cargo/npm/deno work before reaching the dart publish step then present a token that pub.dev rejects with `Invalid JWT token: invalid timestamps` — and the pub client deletes the stored credential, so the next run cannot even find it. monochange now performs the same exchange setup-dart performs at setup time, but per publish and seconds before the upload:
+
+1. Detect the runner-provided OIDC endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL` plus `ACTIONS_ID_TOKEN_REQUEST_TOKEN`). When either is missing — local runs, or workflows without `permissions: id-token: write` — behavior is unchanged.
+2. Request an audience-`https://pub.dev` JWT from that endpoint and export it as `PUB_TOKEN` in the publish command's environment.
+3. Run `dart pub token add https://pub.dev --env-var PUB_TOKEN` so the pub client reads the fresh token from `PUB_TOKEN` at request time (re-registering is idempotent and self-heals credentials that a previous auth failure deleted).
+
+The publish job needs `id-token: write`:
+
+```yaml
+# .github/workflows/publish.yml
+permissions:
+  contents: write
+  id-token: write # required for pub.dev trusted publishing
+```
+
+If minting fails (for example, because `id-token: write` was not granted), the dart publish fails fast with that recovery hint instead of uploading with a stale credential: `refreshing the pub.dev trusted publishing token for package … failed: … the workflow job must grant permissions: id-token: write`. Packages that rely on stored long-lived credentials or publish outside GitHub Actions with trusted publishing disabled are unaffected.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #647](https://github.com/monochange/monochange/pull/647) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
 ## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
 
 <details>

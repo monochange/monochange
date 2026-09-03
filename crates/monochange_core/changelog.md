@@ -4,6 +4,145 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
+
+### 💥 Breaking Change
+
+#### add stream-aware release-note domain configuration
+
+> **Breaking change:** externally constructible configuration and release structs now carry changelog stream and output identity. Callers that use struct literals must initialize the new fields; serde callers remain compatible because omitted fields resolve to the built-in `default` stream and output.
+
+`ChangelogSettings` can now declare audience streams, route configured change types to one stream, and define named render outputs. `ReleaseManifestChangelog` records the selected stream/output, while `ProviderReleaseSettings` selects which output becomes a hosted release body.
+
+**Before:**
+
+```rust
+let settings = ChangelogSettings {
+    templates,
+    sections,
+    section_thresholds,
+    types,
+    style,
+    release_notes,
+};
+
+let changelog = ReleaseManifestChangelog {
+    owner_id,
+    owner_kind,
+    path,
+    format,
+    notes,
+    rendered,
+};
+```
+
+**After:**
+
+```rust
+let settings = ChangelogSettings {
+    templates,
+    sections,
+    section_thresholds,
+    types,
+    streams: BTreeMap::from([(
+        DEFAULT_CHANGELOG_STREAM.to_owned(),
+        ChangelogStreamDefinition::default(),
+    )]),
+    type_streams: BTreeMap::new(),
+    outputs: BTreeMap::new(),
+    style,
+    release_notes,
+};
+
+let changelog = ReleaseManifestChangelog {
+    owner_id,
+    owner_kind,
+    output: DEFAULT_CHANGELOG_OUTPUT.to_owned(),
+    stream: DEFAULT_CHANGELOG_STREAM.to_owned(),
+    path,
+    format,
+    notes,
+    rendered,
+};
+```
+
+Callers constructing `ProviderReleaseSettings` must also add `changelog_output`. Use `DEFAULT_CHANGELOG_OUTPUT.to_owned()` to preserve the previous hosted-release behavior. The new `ChangelogFormat::Json` and `ChangelogFormat::Text` variants, `ChangelogOutputDefinition`, and `ChangelogOutputMode` APIs provide structured and plain-text standalone release artifacts without changing SemVer planning.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+### 🚀 Feature
+
+#### add `--format json-min` and guarantee plain text JSON output
+
+Every command that accepts `--format json` (and every cli step `format` input) now guarantees plain-text JSON: no text colors, no background colors, and no other terminal styling leak into the output, even when color support would otherwise be detected. Machine consumers can pipe the output to a JSON parser without stripping escape sequences.
+
+A new `json-min` choice renders the exact same data minified, with no indentation and no whitespace between tokens, which is convenient for piping into `--jq` filters, CI annotations, or log systems that prefer compact payloads.
+
+```bash
+# before
+monochange run release --dry-run --format json
+# → pretty-printed JSON (multi-line, indented)
+
+# after — same data, one compact line
+monochange run release --dry-run --format json-min
+```
+
+```bash
+monochange versions list --format json-min
+# {"core":"0.1.0"}
+```
+
+`json-min` is accepted anywhere `json` was: `analyze`, `check`, `lint`, `migrate`, `subagents`, `versions list/sync`, and the built-in step inputs (`[cli.*]` command inputs with `type = "choice"`, `choices = ["text", "json", "md"]` now also accept `"json-min"`):
+
+```toml
+[cli.release]
+inputs = [
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+]
+```
+
+Rejecting a JSON format no longer depends on terminal color detection either: styling is applied exclusively in `text` and `markdown` modes, so `NO_COLOR`-style env vars are no longer needed to keep JSON output clean in CI.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #648](https://github.com/monochange/monochange/pull/648) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### add `publish.fail_on_duplicate` and keep already-published packages skipped by default
+
+`monochange step publish-packages` now documents its default behavior explicitly: when a version is already published on the target registry, the package is skipped (`skipped_existing`) instead of failing the step. Only packages that genuinely cannot publish fail the step, so re-running a partially published release stays green.
+
+A new per-package (and per-ecosystem) publish option opts into the strict behavior:
+
+```toml
+[package.pina_sdk_ids.publish]
+fail_on_duplicate = true
+```
+
+With `fail_on_duplicate` enabled, a package whose version already exists on the registry (release mode only, including dry runs) is reported as `failed` with the message `… already exists on … and`publish.fail_on_duplicate`rejects duplicate version publications`, remaining packages are marked as not attempted, and the step exits non-zero. Placeholder publishing keeps its idempotent skip behavior regardless of the setting. The option flows from `monochange.toml` into release-record publication targets and the built-in `PublishPackages` step, and is documented in the configuration guide and the regenerated JSON Schemas.
+
+The built-in `publish-packages` step also exposes the policy as a boolean CLI input: `monochange step publish-packages --fail-on-duplicate` forces the strict policy for that run and overrides per-package settings without editing configuration. Dry-run integration tests snapshot the skip, failure, and planned outcomes for both the configuration-driven and CLI-driven variants.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #645](https://github.com/monochange/monochange/pull/645) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+### 🐛 Fixed
+
+#### skip cross-repository issue references and tolerate missing issues in release comments
+
+`monochange step comment-released-issues` used to fail the whole release automation when a released changeset referenced an issue in another repository (GitHub `owner/repo#123` shorthand). The issue-reference extractor recognized the `owner/repo` prefix but discarded it, so a link such as `[actions/toolkit#2048](https://github.com/actions/toolkit/issues/2048)` was resolved as a monochange issue and the GitHub API returned 404 — which failed the `release-post-merge` workflow after the release had already published.
+
+Issue references are now scoped to the configured repository: only bare `#123` references and `owner/repo#123` references whose prefix matches the configured repository are attributed to the release; references for other repositories are ignored.
+
+```bash
+# before — failed the release post-merge workflow with
+# config error: GitHub API GET /repos/monochange/monochange/issues/2048/comments failed: status 404
+monochange step comment-released-issues --from-ref HEAD --auto-close-issues
+
+# after — cross-repository references are skipped and missing issues no longer fail the step
+monochange step comment-released-issues --from-ref HEAD --auto-close-issues
+```
+
+When a referenced issue cannot be resolved (deleted or made private after the release record was written), the step now reports it as `skipped_missing` in the step outcome instead of failing, so one stale reference can no longer block a release from being announced.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #653](https://github.com/monochange/monochange/pull/653) · _Related issues:_ [#123](https://github.com/monochange/monochange/issues/123), [#2048](https://github.com/monochange/monochange/issues/2048)
+
 ## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
 
 ### 🚀 Feature

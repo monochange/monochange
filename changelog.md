@@ -4,6 +4,530 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### preserve release-note output identity in prepared releases
+
+_Packages:_ _monochange_
+
+> **Breaking change:** `PreparedChangelog` adds public `output` and `stream` fields. Callers that construct it directly must initialize both fields. Existing serialized prepared releases remain readable because missing identities deserialize as `default`.
+
+Prepared releases and release records now retain the named destination and audience stream for every changelog artifact. That identity lets later commit and hosted-release steps select the intended notes deterministically instead of guessing from a path or taking the first changelog for a target.
+
+**Before:**
+
+```rust
+let changelog = PreparedChangelog {
+    owner_id,
+    owner_kind,
+    path,
+    format,
+    notes,
+    rendered,
+};
+```
+
+**After:**
+
+```rust
+let changelog = PreparedChangelog {
+    owner_id,
+    owner_kind,
+    output: "default".to_owned(),
+    stream: "default".to_owned(),
+    path,
+    format,
+    notes,
+    rendered,
+};
+```
+
+Use `default` for both new fields when migrating callers that want the existing single-changelog behavior. Release records written before this change are normalized to the same identities when they are loaded.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+#### render named changelog outputs from one audience stream
+
+_Packages:_ _monochange_changelog_
+
+> **Breaking change:** `ChangelogUpdate` and `ReleaseNoteChange` now include `output` and/or `stream` fields. External callers that construct either type with a struct literal must supply those identities.
+
+Changelog generation now partitions changes by their type's configured stream and renders each named output only from that stream. Existing package and group changelogs remain the implicit `default` output, while named outputs can append Markdown history or replace JSON, text, or Markdown files with the current release.
+
+**Before:**
+
+```rust
+let update = ChangelogUpdate {
+    file,
+    owner_id,
+    owner_kind,
+    format,
+    notes,
+    rendered,
+};
+```
+
+**After:**
+
+```rust
+let update = ChangelogUpdate {
+    file,
+    owner_id,
+    owner_kind,
+    output: "default".to_owned(),
+    stream: "default".to_owned(),
+    format,
+    notes,
+    rendered,
+};
+```
+
+Add `stream: "default".to_owned()` to existing `ReleaseNoteChange` literals to retain their prior routing. Generated updates reject path collisions between different output identities, preventing two audiences from silently overwriting the same artifact.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+#### configure simple audience-specific release-note streams
+
+_Packages:_ _monochange_config_
+
+> **Breaking change:** callers that construct the public raw changelog configuration structs with literals must initialize the new stream and output fields. TOML users remain backward compatible because omitted routes resolve to the built-in `default` stream. The durable schema advances from `0.4` to `0.5`; immutable `v0.4` assets remain unchanged, and release records migrate through an explicit `0.4 -> 0.5` edge that assigns existing changelogs to the `default` output and stream.
+
+Monochange configurations can now keep each changeset simple—package target, type, and Markdown body—while routing the whole file to exactly one audience stream. Types without a route continue to use the built-in `default` stream, so existing configurations and changesets keep their developer-facing behavior.
+
+**Before:** one set of types fed every changelog destination.
+
+```toml
+[changelog.types]
+feat = { bump = "minor", section = "features" }
+```
+
+**After:** custom types can select a stream, and named outputs render it for selected package or group targets.
+
+```toml
+[changelog.streams.user]
+description = "Product release notes"
+
+[changelog.types]
+feat = { bump = "minor", section = "features" }
+native = { bump = "major", section = "breaking" }
+app_feature = { bump = "minor", section = "features", stream = "user" }
+
+[changelog.outputs.user_json]
+stream = "user"
+path = "release-notes/{{ id }}/{{ version }}.json"
+format = "json"
+mode = "release"
+targets = ["app"]
+```
+
+Each changeset must resolve to one stream. A file that combines a default-stream `native` target and a user-stream `app_feature` target fails validation with a concrete split-the-file diagnostic, keeping the audience decision explicit and auditable. The generated configuration schema includes streams, outputs, output modes, JSON/text formats, target validation, and the type-level `stream` key.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+#### add stream-aware release-note domain configuration
+
+_Packages:_ _monochange_core_
+
+> **Breaking change:** externally constructible configuration and release structs now carry changelog stream and output identity. Callers that use struct literals must initialize the new fields; serde callers remain compatible because omitted fields resolve to the built-in `default` stream and output.
+
+`ChangelogSettings` can now declare audience streams, route configured change types to one stream, and define named render outputs. `ReleaseManifestChangelog` records the selected stream/output, while `ProviderReleaseSettings` selects which output becomes a hosted release body.
+
+**Before:**
+
+```rust
+let settings = ChangelogSettings {
+    templates,
+    sections,
+    section_thresholds,
+    types,
+    style,
+    release_notes,
+};
+
+let changelog = ReleaseManifestChangelog {
+    owner_id,
+    owner_kind,
+    path,
+    format,
+    notes,
+    rendered,
+};
+```
+
+**After:**
+
+```rust
+let settings = ChangelogSettings {
+    templates,
+    sections,
+    section_thresholds,
+    types,
+    streams: BTreeMap::from([(
+        DEFAULT_CHANGELOG_STREAM.to_owned(),
+        ChangelogStreamDefinition::default(),
+    )]),
+    type_streams: BTreeMap::new(),
+    outputs: BTreeMap::new(),
+    style,
+    release_notes,
+};
+
+let changelog = ReleaseManifestChangelog {
+    owner_id,
+    owner_kind,
+    output: DEFAULT_CHANGELOG_OUTPUT.to_owned(),
+    stream: DEFAULT_CHANGELOG_STREAM.to_owned(),
+    path,
+    format,
+    notes,
+    rendered,
+};
+```
+
+Callers constructing `ProviderReleaseSettings` must also add `changelog_output`. Use `DEFAULT_CHANGELOG_OUTPUT.to_owned()` to preserve the previous hosted-release behavior. The new `ChangelogFormat::Json` and `ChangelogFormat::Text` variants, `ChangelogOutputDefinition`, and `ChangelogOutputMode` APIs provide structured and plain-text standalone release artifacts without changing SemVer planning.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+### 🚀 Feature
+
+#### teach agents to write auditable audience-specific changesets
+
+_Packages:_ _@monochange/skill_
+
+The Monochange agent skill now explains how to separate developer and user release notes without adding audience metadata to changeset bodies. Agents select a configured type, keep one stream per file, and write prose for that stream's readers.
+
+```markdown
+---
+app: app_feature
+---
+
+# make project lists open faster
+
+Large project lists now appear sooner and remain responsive while more results load.
+```
+
+For mobile repositories, the guidance distinguishes a `native` major change that requires a new store binary from an `app_feature` minor change that may use a patch delivery system such as Shorebird. When one implementation matters to both developers and users, agents create two independently reviewable changesets with different types and audience-appropriate prose rather than combining both audiences in one file.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+#### extract one configured release-note output without preparing a release
+
+_Packages:_ _@monochange/skill_, _monochange_
+
+The new read-only `monochange notes` command renders the stream and format selected by a named changelog output. It prints one artifact to stdout by default, accepts `--target` when an output covers multiple packages or groups, and writes only an explicitly requested `--file` path.
+
+**Before:** automation had to parse the complete dry-run manifest or prepare configured changelog files to obtain one audience's notes.
+
+```bash
+monochange step prepare-release --dry-run --format json
+```
+
+**After:** select the configured artifact directly.
+
+```bash
+monochange notes --output user --target app
+monochange notes --output user --target app --file artifacts/app-release-notes.md
+```
+
+Rendering does not update manifests, consume changesets, or write the configured changelog destination. The bundled agent skill documents how to choose stream-specific types, author separate developer and user changesets, validate them, and use extracted notes in reviews, CI, hosted releases, app-store releases, or patch delivery.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+#### add `--format json-min` and guarantee plain text JSON output
+
+_Packages:_ _monochange_, _monochange_core_
+
+Every command that accepts `--format json` (and every cli step `format` input) now guarantees plain-text JSON: no text colors, no background colors, and no other terminal styling leak into the output, even when color support would otherwise be detected. Machine consumers can pipe the output to a JSON parser without stripping escape sequences.
+
+A new `json-min` choice renders the exact same data minified, with no indentation and no whitespace between tokens, which is convenient for piping into `--jq` filters, CI annotations, or log systems that prefer compact payloads.
+
+```bash
+# before
+monochange run release --dry-run --format json
+# → pretty-printed JSON (multi-line, indented)
+
+# after — same data, one compact line
+monochange run release --dry-run --format json-min
+```
+
+```bash
+monochange versions list --format json-min
+# {"core":"0.1.0"}
+```
+
+`json-min` is accepted anywhere `json` was: `analyze`, `check`, `lint`, `migrate`, `subagents`, `versions list/sync`, and the built-in step inputs (`[cli.*]` command inputs with `type = "choice"`, `choices = ["text", "json", "md"]` now also accept `"json-min"`):
+
+```toml
+[cli.release]
+inputs = [
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+]
+```
+
+Rejecting a JSON format no longer depends on terminal color detection either: styling is applied exclusively in `text` and `markdown` modes, so `NO_COLOR`-style env vars are no longer needed to keep JSON output clean in CI.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #648](https://github.com/monochange/monochange/pull/648) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### add `publish.fail_on_duplicate` and keep already-published packages skipped by default
+
+_Packages:_ _monochange_, _monochange_config_, _monochange_core_, _monochange_publish_
+
+`monochange step publish-packages` now documents its default behavior explicitly: when a version is already published on the target registry, the package is skipped (`skipped_existing`) instead of failing the step. Only packages that genuinely cannot publish fail the step, so re-running a partially published release stays green.
+
+A new per-package (and per-ecosystem) publish option opts into the strict behavior:
+
+```toml
+[package.pina_sdk_ids.publish]
+fail_on_duplicate = true
+```
+
+With `fail_on_duplicate` enabled, a package whose version already exists on the registry (release mode only, including dry runs) is reported as `failed` with the message `… already exists on … and`publish.fail_on_duplicate`rejects duplicate version publications`, remaining packages are marked as not attempted, and the step exits non-zero. Placeholder publishing keeps its idempotent skip behavior regardless of the setting. The option flows from `monochange.toml` into release-record publication targets and the built-in `PublishPackages` step, and is documented in the configuration guide and the regenerated JSON Schemas.
+
+The built-in `publish-packages` step also exposes the policy as a boolean CLI input: `monochange step publish-packages --fail-on-duplicate` forces the strict policy for that run and overrides per-package settings without editing configuration. Dry-run integration tests snapshot the skip, failure, and planned outcomes for both the configuration-driven and CLI-driven variants.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #645](https://github.com/monochange/monochange/pull/645) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### select the changelog output used for hosted releases
+
+_Packages:_ _monochange_github_, _monochange_hosting_
+
+Hosted release providers can now publish a configured changelog output instead of always using the implicit developer changelog. This lets a repository keep detailed package notes for maintainers while selecting concise user-facing notes for GitHub, GitLab, Gitea, or Forgejo releases.
+
+```toml
+[source.releases]
+changelog_output = "user_notes"
+
+[changelog.outputs.user_notes]
+stream = "user"
+path = "release-notes/{{ id }}/{{ version }}.md"
+format = "monochange"
+mode = "release"
+targets = ["app"]
+```
+
+The default remains `changelog_output = "default"`, preserving existing release bodies. Configuration validation rejects unknown output names, and provider rendering only falls back to an empty body when the selected stream genuinely has no notes—it never substitutes developer content from another stream.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+#### mint a fresh pub.dev OIDC token immediately before every dart trusted publish
+
+_Packages:_ _monochange_publish_
+
+`monochange step publish-packages` (and every workflow that publishes Dart packages through monochange) now mints a fresh GitHub Actions OIDC token right before each `dart pub publish` invocation when the package is opted into pub.dev trusted publishing. Runtime output for successful publishes is unchanged.
+
+GitHub OIDC tokens expire after five minutes ([actions/toolkit#2048](https://github.com/actions/toolkit/issues/2048)), but `dart-lang/setup-dart` mints the pub.dev token once, during workflow setup. Multi-ecosystem release runs that spend minutes on cargo/npm/deno work before reaching the dart publish step then present a token that pub.dev rejects with `Invalid JWT token: invalid timestamps` — and the pub client deletes the stored credential, so the next run cannot even find it. monochange now performs the same exchange setup-dart performs at setup time, but per publish and seconds before the upload:
+
+1. Detect the runner-provided OIDC endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL` plus `ACTIONS_ID_TOKEN_REQUEST_TOKEN`). When either is missing — local runs, or workflows without `permissions: id-token: write` — behavior is unchanged.
+2. Request an audience-`https://pub.dev` JWT from that endpoint and export it as `PUB_TOKEN` in the publish command's environment.
+3. Run `dart pub token add https://pub.dev --env-var PUB_TOKEN` so the pub client reads the fresh token from `PUB_TOKEN` at request time (re-registering is idempotent and self-heals credentials that a previous auth failure deleted).
+
+The publish job needs `id-token: write`:
+
+```yaml
+# .github/workflows/publish.yml
+permissions:
+  contents: write
+  id-token: write # required for pub.dev trusted publishing
+```
+
+If minting fails (for example, because `id-token: write` was not granted), the dart publish fails fast with that recovery hint instead of uploading with a stale credential: `refreshing the pub.dev trusted publishing token for package … failed: … the workflow job must grant permissions: id-token: write`. Packages that rely on stored long-lived credentials or publish outside GitHub Actions with trusted publishing disabled are unaffected.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #647](https://github.com/monochange/monochange/pull/647) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+### 🐛 Fixed
+
+#### polish the monochange readme layout and shorten headings
+
+_Packages:_ _@monochange/cli_, _@monochange/skill_, _monochange_
+
+The monochange readme now centers its title, logo, badges, and intro blockquote at the top of the page, uses `<br />` spacing before headings and after every section for more breathing room between sections, and shortens every section heading to one or two Title Case words.
+
+The workspace crate catalog is now a table with one row per crate: the crate name, its crates.io and docs.rs badge links, and a short description, replacing the nested bullet list.
+
+```markdown
+# before
+
+## Command and automation matrix
+
+- `monochange`: end-user CLI and orchestration layer for discovery, planning, and CLI-defined release commands.
+  - [![Crates.io](…)](…) [![Docs.rs](…)](…)
+
+# after
+
+## Commands
+
+| Crate        | Badges                                  | Description                                                                                     |
+| ------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `monochange` | [![Crates.io](…)](…) [![Docs.rs](…)](…) | end-user CLI and orchestration layer for discovery, planning, and CLI-defined release commands. |
+```
+
+The `Repository development` section is renamed to `Contributing`, and shared documentation blocks were renamed with it (`Quick CLI workflow` becomes `Quick Start`, which also shortens the `monochange --help` long help heading). The regenerated npm `@monochange/cli` README and `@monochange/skill` docs inherit the same table and heading updates through the shared `mdt` blocks.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #651](https://github.com/monochange/monochange/pull/651)
+
+#### add `--format json-min` and guarantee plain text JSON output
+
+_Packages:_ _@monochange/skill_
+
+Every command that accepts `--format json` (and every cli step `format` input) now guarantees plain-text JSON: no text colors, no background colors, and no other terminal styling leak into the output, even when color support would otherwise be detected. Machine consumers can pipe the output to a JSON parser without stripping escape sequences.
+
+A new `json-min` choice renders the exact same data minified, with no indentation and no whitespace between tokens, which is convenient for piping into `--jq` filters, CI annotations, or log systems that prefer compact payloads.
+
+```bash
+# before
+monochange run release --dry-run --format json
+# → pretty-printed JSON (multi-line, indented)
+
+# after — same data, one compact line
+monochange run release --dry-run --format json-min
+```
+
+```bash
+monochange versions list --format json-min
+# {"core":"0.1.0"}
+```
+
+`json-min` is accepted anywhere `json` was: `analyze`, `check`, `lint`, `migrate`, `subagents`, `versions list/sync`, and the built-in step inputs (`[cli.*]` command inputs with `type = "choice"`, `choices = ["text", "json", "md"]` now also accept `"json-min"`):
+
+```toml
+[cli.release]
+inputs = [
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+]
+```
+
+Rejecting a JSON format no longer depends on terminal color detection either: styling is applied exclusively in `text` and `markdown` modes, so `NO_COLOR`-style env vars are no longer needed to keep JSON output clean in CI.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #648](https://github.com/monochange/monochange/pull/648) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### ignore deleted release records when discovering the release commit
+
+_Packages:_ _monochange_
+
+Release-record discovery listed release-record paths through `git diff-tree` without excluding deletions, so a commit that _removed_ a release record — for example when reverting a release preparation — made `monochange step publish-packages`, `tag-release`, and `release-record` fail with:
+
+```
+discovery error: failed to read `.monochange/releases/<hash>/release.json` at commit `<sha>`: fatal: path … does not exist in '<sha>'
+```
+
+Discovery now excludes deleted paths (`--diff-filter=d`), so reverting a release preparation walks past the deleting commit to the release commit that actually added the record.
+
+```bash
+# before — failed on any commit that deleted a release record
+monochange step publish-packages --dry-run
+# discovery error: failed to read .monochange/releases/…/release.json at commit …
+
+# after — deleted records are skipped and discovery walks to the record commit
+monochange step publish-packages --dry-run
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #655](https://github.com/monochange/monochange/pull/655) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### enforce configured type-scoped changeset policies
+
+_Packages:_ _monochange_, _monochange_config_
+
+Custom changelog types can now enforce their configured changeset body policy during `monochange check`. This makes release-note contracts such as separate user impact, developer notes, and rollout sections auditable before a release is planned.
+
+For example, repositories can map an app-specific type into a custom release-note section and validate its content:
+
+```toml
+[changelog.sections]
+app_features = { heading = "App features", priority = 10 }
+
+[changelog.types]
+app_feature = { bump = "minor", section = "app_features" }
+
+[lints.rules]
+"changesets/types/app_feature" = {
+  level = "error",
+  required_bump = "minor",
+  required_sections = ["User impact", "Developer notes"],
+}
+```
+
+Previously, Monochange accepted and validated the `changesets/types/app_feature` configuration but did not register a matching lint runner. A changeset missing `Developer notes` therefore passed `monochange check`. The changeset lint suite now receives the configured type names and creates a scoped runner for each one, so the same changeset fails with the configured dynamic rule id and a concrete missing-section error.
+
+The static lint catalog and existing `changesets/bump/<severity>` policies are unchanged.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #650](https://github.com/monochange/monochange/pull/650) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### publish all configured packages regardless of workspace layout
+
+_Packages:_ _monochange_
+
+`monochange step publish-packages`, `monochange step placeholder-publish`, `monochange step publish-readiness`, and `monochange step plan-publish-rate-limits` no longer depend on the generic workspace walk when they resolve the packages selected by a release record. They now use the same configured-package discovery that release planning uses, so a package whose `monochange.toml` entry enables publishing is always captured — even when it lives in a separate Cargo/npm/Dart workspace that the repository-wide walk cannot see (for example a separate workspace under a gitignored directory, a nested git worktree, or an ignored directory name such as `target/` or `book/`).
+
+Previously, a release record could list two packages while the publish run silently published only the one inside the primary workspace tree. The other package disappeared from the publish report, readiness output, and rate-limit batches without any warning. Publishing now follows the configuration: if the configuration says a package will be published, it is published.
+
+Command:
+
+```bash
+monochange step publish-packages --dry-run --format json
+```
+
+**Before (output):** `beta` is configured with `publish = { enabled = true }` and listed in the release record, but lives in a separate workspace outside the discovery tree.
+
+```json
+{
+	"package_publish": {
+		"packages": [{ "package": "alpha", "status": "planned" }],
+		"summary": { "expected": 1 }
+	}
+}
+```
+
+**After (output):**
+
+```json
+{
+	"package_publish": {
+		"packages": [
+			{ "package": "alpha", "status": "planned" },
+			{ "package": "beta", "status": "planned" }
+		],
+		"summary": { "expected": 2 }
+	}
+}
+```
+
+Configured packages that can no longer be discovered on disk now fail the run with a clear discovery error instead of being dropped silently.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #649](https://github.com/monochange/monochange/pull/649) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### skip cross-repository issue references and tolerate missing issues in release comments
+
+_Packages:_ _monochange_, _monochange_core_, _monochange_github_
+
+`monochange step comment-released-issues` used to fail the whole release automation when a released changeset referenced an issue in another repository (GitHub `owner/repo#123` shorthand). The issue-reference extractor recognized the `owner/repo` prefix but discarded it, so a link such as `[actions/toolkit#2048](https://github.com/actions/toolkit/issues/2048)` was resolved as a monochange issue and the GitHub API returned 404 — which failed the `release-post-merge` workflow after the release had already published.
+
+Issue references are now scoped to the configured repository: only bare `#123` references and `owner/repo#123` references whose prefix matches the configured repository are attributed to the release; references for other repositories are ignored.
+
+```bash
+# before — failed the release post-merge workflow with
+# config error: GitHub API GET /repos/monochange/monochange/issues/2048/comments failed: status 404
+monochange step comment-released-issues --from-ref HEAD --auto-close-issues
+
+# after — cross-repository references are skipped and missing issues no longer fail the step
+monochange step comment-released-issues --from-ref HEAD --auto-close-issues
+```
+
+When a referenced issue cannot be resolved (deleted or made private after the release record was written), the step now reports it as `skipped_missing` in the step outcome instead of failing, so one stale reference can no longer block a release from being announced.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #653](https://github.com/monochange/monochange/pull/653) · _Related issues:_ [#123](https://github.com/monochange/monochange/issues/123), [#2048](https://github.com/monochange/monochange/issues/2048)
+
+#### Support API snapshots for workspace-root packages
+
+_Packages:_ _monochange_analysis_
+
+Use `.` as the Git pathspec when a package manifest lives at the workspace root, allowing affected-package and semantic API checks to compare those packages against a Git revision.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
 ## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
 
 Grouped release for `main`.

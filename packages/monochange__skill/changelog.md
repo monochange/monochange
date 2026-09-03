@@ -8,6 +8,111 @@
 - Documented verified built-in commands, step commands, MCP tools, user-defined command behavior, and all current CLI step types.
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 
+## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
+
+### 🚀 Feature
+
+#### teach agents to write auditable audience-specific changesets
+
+The Monochange agent skill now explains how to separate developer and user release notes without adding audience metadata to changeset bodies. Agents select a configured type, keep one stream per file, and write prose for that stream's readers.
+
+```markdown
+---
+app: app_feature
+---
+
+# make project lists open faster
+
+Large project lists now appear sooner and remain responsive while more results load.
+```
+
+For mobile repositories, the guidance distinguishes a `native` major change that requires a new store binary from an `app_feature` minor change that may use a patch delivery system such as Shorebird. When one implementation matters to both developers and users, agents create two independently reviewable changesets with different types and audience-appropriate prose rather than combining both audiences in one file.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+#### extract one configured release-note output without preparing a release
+
+The new read-only `monochange notes` command renders the stream and format selected by a named changelog output. It prints one artifact to stdout by default, accepts `--target` when an output covers multiple packages or groups, and writes only an explicitly requested `--file` path.
+
+**Before:** automation had to parse the complete dry-run manifest or prepare configured changelog files to obtain one audience's notes.
+
+```bash
+monochange step prepare-release --dry-run --format json
+```
+
+**After:** select the configured artifact directly.
+
+```bash
+monochange notes --output user --target app
+monochange notes --output user --target app --file artifacts/app-release-notes.md
+```
+
+Rendering does not update manifests, consume changesets, or write the configured changelog destination. The bundled agent skill documents how to choose stream-specific types, author separate developer and user changesets, validate them, and use extracted notes in reviews, CI, hosted releases, app-store releases, or patch delivery.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+### 🐛 Fixed
+
+#### add `--format json-min` and guarantee plain text JSON output
+
+Every command that accepts `--format json` (and every cli step `format` input) now guarantees plain-text JSON: no text colors, no background colors, and no other terminal styling leak into the output, even when color support would otherwise be detected. Machine consumers can pipe the output to a JSON parser without stripping escape sequences.
+
+A new `json-min` choice renders the exact same data minified, with no indentation and no whitespace between tokens, which is convenient for piping into `--jq` filters, CI annotations, or log systems that prefer compact payloads.
+
+```bash
+# before
+monochange run release --dry-run --format json
+# → pretty-printed JSON (multi-line, indented)
+
+# after — same data, one compact line
+monochange run release --dry-run --format json-min
+```
+
+```bash
+monochange versions list --format json-min
+# {"core":"0.1.0"}
+```
+
+`json-min` is accepted anywhere `json` was: `analyze`, `check`, `lint`, `migrate`, `subagents`, `versions list/sync`, and the built-in step inputs (`[cli.*]` command inputs with `type = "choice"`, `choices = ["text", "json", "md"]` now also accept `"json-min"`):
+
+```toml
+[cli.release]
+inputs = [
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+]
+```
+
+Rejecting a JSON format no longer depends on terminal color detection either: styling is applied exclusively in `text` and `markdown` modes, so `NO_COLOR`-style env vars are no longer needed to keep JSON output clean in CI.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #648](https://github.com/monochange/monochange/pull/648) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### polish the monochange readme layout and shorten headings
+
+The monochange readme now centers its title, logo, badges, and intro blockquote at the top of the page, uses `<br />` spacing before headings and after every section for more breathing room between sections, and shortens every section heading to one or two Title Case words.
+
+The workspace crate catalog is now a table with one row per crate: the crate name, its crates.io and docs.rs badge links, and a short description, replacing the nested bullet list.
+
+```markdown
+# before
+
+## Command and automation matrix
+
+- `monochange`: end-user CLI and orchestration layer for discovery, planning, and CLI-defined release commands.
+  - [![Crates.io](…)](…) [![Docs.rs](…)](…)
+
+# after
+
+## Commands
+
+| Crate        | Badges                                  | Description                                                                                     |
+| ------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `monochange` | [![Crates.io](…)](…) [![Docs.rs](…)](…) | end-user CLI and orchestration layer for discovery, planning, and CLI-defined release commands. |
+```
+
+The `Repository development` section is renamed to `Contributing`, and shared documentation blocks were renamed with it (`Quick CLI workflow` becomes `Quick Start`, which also shortens the `monochange --help` long help heading). The regenerated npm `@monochange/cli` README and `@monochange/skill` docs inherit the same table and heading updates through the shared `mdt` blocks.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #651](https://github.com/monochange/monochange/pull/651)
+
 ## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
 
 <details>

@@ -4,6 +4,51 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
+
+### 🚀 Feature
+
+#### select the changelog output used for hosted releases
+
+Hosted release providers can now publish a configured changelog output instead of always using the implicit developer changelog. This lets a repository keep detailed package notes for maintainers while selecting concise user-facing notes for GitHub, GitLab, Gitea, or Forgejo releases.
+
+```toml
+[source.releases]
+changelog_output = "user_notes"
+
+[changelog.outputs.user_notes]
+stream = "user"
+path = "release-notes/{{ id }}/{{ version }}.md"
+format = "monochange"
+mode = "release"
+targets = ["app"]
+```
+
+The default remains `changelog_output = "default"`, preserving existing release bodies. Configuration validation rejects unknown output names, and provider rendering only falls back to an empty body when the selected stream genuinely has no notes—it never substitutes developer content from another stream.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+### 🐛 Fixed
+
+#### skip cross-repository issue references and tolerate missing issues in release comments
+
+`monochange step comment-released-issues` used to fail the whole release automation when a released changeset referenced an issue in another repository (GitHub `owner/repo#123` shorthand). The issue-reference extractor recognized the `owner/repo` prefix but discarded it, so a link such as `[actions/toolkit#2048](https://github.com/actions/toolkit/issues/2048)` was resolved as a monochange issue and the GitHub API returned 404 — which failed the `release-post-merge` workflow after the release had already published.
+
+Issue references are now scoped to the configured repository: only bare `#123` references and `owner/repo#123` references whose prefix matches the configured repository are attributed to the release; references for other repositories are ignored.
+
+```bash
+# before — failed the release post-merge workflow with
+# config error: GitHub API GET /repos/monochange/monochange/issues/2048/comments failed: status 404
+monochange step comment-released-issues --from-ref HEAD --auto-close-issues
+
+# after — cross-repository references are skipped and missing issues no longer fail the step
+monochange step comment-released-issues --from-ref HEAD --auto-close-issues
+```
+
+When a referenced issue cannot be resolved (deleted or made private after the release record was written), the step now reports it as `skipped_missing` in the step outcome instead of failing, so one stale reference can no longer block a release from being announced.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #653](https://github.com/monochange/monochange/pull/653) · _Related issues:_ [#123](https://github.com/monochange/monochange/issues/123), [#2048](https://github.com/monochange/monochange/issues/2048)
+
 ## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
 
 <details>

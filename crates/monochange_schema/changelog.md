@@ -821,3 +821,62 @@ monochange step validate
 Update automation and argument arrays at the same boundary. For example, replace a single generated-step argument with two arguments: `["step", "validate"]`.
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #625](https://github.com/monochange/monochange/pull/625)
+
+## monochange_schema [0.5.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.5.0) (2026-09-03)
+
+### 💥 Breaking Change
+
+#### configure simple audience-specific release-note streams
+
+> **Breaking change:** callers that construct the public raw changelog configuration structs with literals must initialize the new stream and output fields. TOML users remain backward compatible because omitted routes resolve to the built-in `default` stream. The durable schema advances from `0.4` to `0.5`; immutable `v0.4` assets remain unchanged, and release records migrate through an explicit `0.4 -> 0.5` edge that assigns existing changelogs to the `default` output and stream.
+
+Monochange configurations can now keep each changeset simple—package target, type, and Markdown body—while routing the whole file to exactly one audience stream. Types without a route continue to use the built-in `default` stream, so existing configurations and changesets keep their developer-facing behavior.
+
+**Before:** one set of types fed every changelog destination.
+
+```toml
+[changelog.types]
+feat = { bump = "minor", section = "features" }
+```
+
+**After:** custom types can select a stream, and named outputs render it for selected package or group targets.
+
+```toml
+[changelog.streams.user]
+description = "Product release notes"
+
+[changelog.types]
+feat = { bump = "minor", section = "features" }
+native = { bump = "major", section = "breaking" }
+app_feature = { bump = "minor", section = "features", stream = "user" }
+
+[changelog.outputs.user_json]
+stream = "user"
+path = "release-notes/{{ id }}/{{ version }}.json"
+format = "json"
+mode = "release"
+targets = ["app"]
+```
+
+Each changeset must resolve to one stream. A file that combines a default-stream `native` target and a user-stream `app_feature` target fails validation with a concrete split-the-file diagnostic, keeping the audience decision explicit and auditable. The generated configuration schema includes streams, outputs, output modes, JSON/text formats, target validation, and the type-level `stream` key.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+### 🚀 Feature
+
+#### add `publish.fail_on_duplicate` and keep already-published packages skipped by default
+
+`monochange step publish-packages` now documents its default behavior explicitly: when a version is already published on the target registry, the package is skipped (`skipped_existing`) instead of failing the step. Only packages that genuinely cannot publish fail the step, so re-running a partially published release stays green.
+
+A new per-package (and per-ecosystem) publish option opts into the strict behavior:
+
+```toml
+[package.pina_sdk_ids.publish]
+fail_on_duplicate = true
+```
+
+With `fail_on_duplicate` enabled, a package whose version already exists on the registry (release mode only, including dry runs) is reported as `failed` with the message `… already exists on … and`publish.fail_on_duplicate`rejects duplicate version publications`, remaining packages are marked as not attempted, and the step exits non-zero. Placeholder publishing keeps its idempotent skip behavior regardless of the setting. The option flows from `monochange.toml` into release-record publication targets and the built-in `PublishPackages` step, and is documented in the configuration guide and the regenerated JSON Schemas.
+
+The built-in `publish-packages` step also exposes the policy as a boolean CLI input: `monochange step publish-packages --fail-on-duplicate` forces the strict policy for that run and overrides per-package settings without editing configuration. Dry-run integration tests snapshot the skip, failure, and planned outcomes for both the configuration-driven and CLI-driven variants.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #645](https://github.com/monochange/monochange/pull/645) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
