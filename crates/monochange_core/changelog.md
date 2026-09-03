@@ -4,60 +4,6 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
-## [0.9.3](https://github.com/monochange/monochange/releases/tag/v0.9.3) (2026-09-01)
-
-### 🚀 Feature
-
-#### add `--format json-min` and guarantee plain text JSON output
-
-Every command that accepts `--format json` (and every cli step `format` input) now guarantees plain-text JSON: no text colors, no background colors, and no other terminal styling leak into the output, even when color support would otherwise be detected. Machine consumers can pipe the output to a JSON parser without stripping escape sequences.
-
-A new `json-min` choice renders the exact same data minified, with no indentation and no whitespace between tokens, which is convenient for piping into `--jq` filters, CI annotations, or log systems that prefer compact payloads.
-
-```bash
-# before
-monochange run release --dry-run --format json
-# → pretty-printed JSON (multi-line, indented)
-
-# after — same data, one compact line
-monochange run release --dry-run --format json-min
-```
-
-```bash
-monochange versions list --format json-min
-# {"core":"0.1.0"}
-```
-
-`json-min` is accepted anywhere `json` was: `analyze`, `check`, `lint`, `migrate`, `subagents`, `versions list/sync`, and the built-in step inputs (`[cli.*]` command inputs with `type = "choice"`, `choices = ["text", "json", "md"]` now also accept `"json-min"`):
-
-```toml
-[cli.release]
-inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
-]
-```
-
-Rejecting a JSON format no longer depends on terminal color detection either: styling is applied exclusively in `text` and `markdown` modes, so `NO_COLOR`-style env vars are no longer needed to keep JSON output clean in CI.
-
-_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #648](https://github.com/monochange/monochange/pull/648)
-
-#### add `publish.fail_on_duplicate` and keep already-published packages skipped by default
-
-`monochange step publish-packages` now documents its default behavior explicitly: when a version is already published on the target registry, the package is skipped (`skipped_existing`) instead of failing the step. Only packages that genuinely cannot publish fail the step, so re-running a partially published release stays green.
-
-A new per-package (and per-ecosystem) publish option opts into the strict behavior:
-
-```toml
-[package.pina_sdk_ids.publish]
-fail_on_duplicate = true
-```
-
-With `fail_on_duplicate` enabled, a package whose version already exists on the registry (release mode only, including dry runs) is reported as `failed` with the message `… already exists on … and`publish.fail_on_duplicate`rejects duplicate version publications`, remaining packages are marked as not attempted, and the step exits non-zero. Placeholder publishing keeps its idempotent skip behavior regardless of the setting. The option flows from `monochange.toml` into release-record publication targets and the built-in `PublishPackages` step, and is documented in the configuration guide and the regenerated JSON Schemas.
-
-The built-in `publish-packages` step also exposes the policy as a boolean CLI input: `monochange step publish-packages --fail-on-duplicate` forces the strict policy for that run and overrides per-package settings without editing configuration. Dry-run integration tests snapshot the skip, failure, and planned outcomes for both the configuration-driven and CLI-driven variants.
-
-_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #645](https://github.com/monochange/monochange/pull/645)
-
 ## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
 
 ### 🚀 Feature

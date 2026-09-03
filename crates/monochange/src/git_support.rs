@@ -193,12 +193,16 @@ pub(crate) async fn find_release_record_files_at_commit(
 	};
 
 	if has_available_parent && !is_shallow_boundary {
+		// Exclude deleted paths: a commit that removes a release record (for
+		// example when reverting a release preparation) must not make the
+		// discovery walk treat the deleted record as present at that commit.
 		let args = [
 			"diff-tree",
 			"-m",
 			"--no-commit-id",
 			"--name-only",
 			"-r",
+			"--diff-filter=d",
 			commit,
 		];
 		let output = run_git_capture(root, &args, "failed to list files at commit").await?;

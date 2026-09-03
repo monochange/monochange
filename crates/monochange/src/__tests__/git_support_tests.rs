@@ -350,3 +350,46 @@ async fn run_git_process_with_stdin_reports_nonzero_exit_status_details() {
 			.contains("definitely-not-a-real-git-command")
 	);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn find_release_record_files_at_commit_excludes_deleted_records() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	init_git_repo(root);
+
+	let record_dir = root.join(".monochange/releases/62bde665dd709751");
+	fs::create_dir_all(&record_dir).unwrap_or_else(|error| panic!("create record dir: {error}"));
+	fs::write(
+		record_dir.join("release.json"),
+		r#"{"schema_version":"1.0"}"#,
+	)
+	.unwrap_or_else(|error| panic!("write record: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-q", "-m", "release prep"]);
+	let record_commit = git_output(root, &["rev-parse", "HEAD"]);
+
+	// A later commit deletes the release record (as reverting a release does).
+	fs::remove_file(record_dir.join("release.json"))
+		.unwrap_or_else(|error| panic!("delete record: {error}"));
+	git(root, &["add", "-A"]);
+	git(root, &["commit", "-q", "-m", "revert release prep"]);
+	let delete_commit = git_output(root, &["rev-parse", "HEAD"]);
+
+	// The deleting commit must not report the deleted record as present.
+	let files_at_delete_commit = find_release_record_files_at_commit(root, &delete_commit)
+		.await
+		.unwrap_or_else(|error| panic!("scan deleting commit: {error}"));
+	assert!(
+		files_at_delete_commit.is_empty(),
+		"deleted record must be excluded, got: {files_at_delete_commit:?}"
+	);
+
+	// The commit that added the record still reports it.
+	let files_at_record_commit = find_release_record_files_at_commit(root, &record_commit)
+		.await
+		.unwrap_or_else(|error| panic!("scan record commit: {error}"));
+	assert_eq!(
+		files_at_record_commit,
+		vec![".monochange/releases/62bde665dd709751/release.json".to_string()]
+	);
+}
