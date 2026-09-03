@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: "normalize_head_commit(workspace.path(),\njson[\"sections\"][0][\"entries\"][0].as_str().unwrap_or_else(||\npanic!(\"user JSON entry\")).to_string(),)"
+---
+#### preview collectible art before publishing
+
+Creators can review artwork and metadata before making a project live.
+
+_Owner:_ test · _Introduced in:_ `[COMMIT]`

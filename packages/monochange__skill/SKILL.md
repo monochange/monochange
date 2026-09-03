@@ -28,8 +28,9 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 3. Classify API impact before writing release intent: run `monochange change classify --base origin/main --format markdown --dependency-propagation public` (or use the `monochange_classify_changes` MCP tool) and use the recommended bumps as the starting point for changesets. Omit `--dependency-propagation public` when you only want packages with direct source changes.
 4. Create release intent: use a configured workflow command (often `monochange run change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
 5. Preview versioned files: use the configured workflow command (often `monochange run release --dry-run --format json` or `--diff`) or `monochange step prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
-6. Run validation and linting: `monochange check`, `monochange step validate`, and `monochange changeset validate --api --base origin/main`. `validate` catches monochange configuration and target issues; `check` also runs manifest lint rules.
-7. Only after review, run configured commit/release/publish workflows. Keep release-record, readiness, bootstrap, plan, and publish artifacts when the workflow emits them.
+6. Extract a named release-note artifact when it needs separate review or delivery: `monochange notes --output <id> [--target <id>]`. It prints to stdout by default; use `--file <path>` for a CI artifact. This is read-only and does not prepare a release.
+7. Run validation and linting: `monochange check`, `monochange step validate`, and `monochange changeset validate --api --base origin/main`. `validate` catches monochange configuration and target issues; `check` also runs manifest lint rules.
+8. Only after review, run configured commit/release/publish workflows. Keep release-record, readiness, bootstrap, plan, and publish artifacts when the workflow emits them.
 
 ## What to open next
 
@@ -54,6 +55,7 @@ Built-in commands in the current CLI:
 - `monochange skill`: install or update the monochange skill bundle.
 - `monochange subagents`: generate repository-local agent/subagent guidance for monochange work.
 - `monochange analyze`: inspect semantic changes for a package.
+- `monochange notes --output <id>`: render one configured release-note output to stdout or an explicit file without modifying release state.
 - `monochange change classify --base origin/main --format markdown --dependency-propagation public`: classify API-impacting semantic changes, including direct public dependents, and recommend package bumps.
 - `monochange api diff --base origin/main --format json`: inspect API diff classification as structured data.
 - `monochange api snapshot --head HEAD --format json`: inspect the current monochange API snapshot report shape.

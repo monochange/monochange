@@ -264,6 +264,7 @@ mod lint_check_reporter;
 #[cfg(feature = "mcp")]
 mod mcp;
 mod migration_audit;
+mod notes;
 mod package_publish;
 mod prepared_release_cache;
 mod publish_progress;
@@ -1378,6 +1379,23 @@ where
 				format,
 			)
 			.await
+		}
+		Some(("notes", notes_matches)) => {
+			let configuration = configuration?;
+			let output = notes_matches
+				.get_one::<String>("output")
+				.expect("the required notes output is present")
+				.as_str();
+			let target = notes_matches
+				.get_one::<String>("target")
+				.map(String::as_str);
+			let file = notes_matches.get_one::<String>("file").map(Path::new);
+			let rendered = notes::render_notes(root, &configuration, output, target, file).await?;
+			if quiet {
+				Ok(String::new())
+			} else {
+				Ok(rendered)
+			}
 		}
 		Some(("migrate", migrate_matches)) => run_migration_command(root, quiet, migrate_matches),
 		#[cfg(feature = "mcp")]

@@ -1,0 +1,17 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: json
+---
+{
+  "sections": [
+    {
+      "collapsed": false,
+      "entries": [
+        "[multiline text]"
+      ],
+      "title": "App features"
+    }
+  ],
+  "summary": [],
+  "title": "sdk 2.0.0 (2026-09-02)"
+}

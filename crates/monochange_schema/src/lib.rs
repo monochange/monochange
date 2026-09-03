@@ -358,7 +358,7 @@ pub mod release_record {
 	pub fn render_current_value(mut value: Value) -> Result<Value, SchemaError> {
 		let object = object_mut(&mut value)?;
 		validate_kind(object, KIND)?;
-		migrations::normalize_release_record_keys(&mut value)?;
+		migrations::normalize_release_record_shape(&mut value)?;
 		migrations::remove_top_level_field(&mut value, LEGACY_SCHEMA_VERSION_FIELD)?;
 		migrations::remove_top_level_field(&mut value, LEGACY_VERSION_FIELD)?;
 		let object = object_mut(&mut value)?;
@@ -394,7 +394,7 @@ pub mod release_record {
 			});
 		}
 		migrations::apply_release_record_edges(&mut value, version, current)?;
-		migrations::normalize_release_record_keys(&mut value)?;
+		migrations::normalize_release_record_shape(&mut value)?;
 
 		migrations::remove_top_level_field(&mut value, LEGACY_SCHEMA_VERSION_FIELD)?;
 		migrations::remove_top_level_field(&mut value, LEGACY_VERSION_FIELD)?;

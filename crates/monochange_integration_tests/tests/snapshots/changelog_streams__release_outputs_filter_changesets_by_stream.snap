@@ -18,6 +18,13 @@ expression: changelog_identities
     "stream": "user"
   },
   {
+    "format": "monochange",
+    "output": "user_markdown",
+    "owner": "app",
+    "path": "crates/app/release-notes/2.0.0.md",
+    "stream": "user"
+  },
+  {
     "format": "text",
     "output": "user_text",
     "owner": "app",
@@ -37,6 +44,20 @@ expression: changelog_identities
     "owner": "core",
     "path": "crates/core/INTERNAL.md",
     "stream": "default"
+  },
+  {
+    "format": "monochange",
+    "output": "user_multi",
+    "owner": "app",
+    "path": "release-notes/multi/app-2.0.0.md",
+    "stream": "user"
+  },
+  {
+    "format": "monochange",
+    "output": "user_multi",
+    "owner": "sdk",
+    "path": "release-notes/multi/sdk-2.0.0.md",
+    "stream": "user"
   },
   {
     "format": "json",

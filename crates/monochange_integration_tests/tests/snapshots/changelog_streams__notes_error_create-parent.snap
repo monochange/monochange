@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: "normalize_io_error(String::from_utf8_lossy(&output.stderr).trim())"
+---
+io error: failed to create release-notes directory [PATH]: [OS ERROR]

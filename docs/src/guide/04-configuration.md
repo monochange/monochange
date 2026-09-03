@@ -986,6 +986,18 @@ Named `[changelog.outputs.<id>]` tables support:
 
 JSON and text outputs must use `mode = "release"`. The existing package/group changelog configuration is the implicit output named `default`; `[source.releases].changelog_output` selects which output becomes the hosted release body.
 
+Preview or export one configured artifact without preparing the release:
+
+```bash
+# stdout
+monochange notes --output user --target app
+
+# explicit file (relative paths resolve from the workspace root)
+monochange notes --output user --target app --file artifacts/app-release-notes.json
+```
+
+`--output` selects the configured stream and format. It is required so automation cannot accidentally publish the wrong audience. Use `--target` when an output has more than one target. The command is read-only: it does not update versions, consume changesets, or write the output's configured `path`. Omitting `--file` (or passing `--file -`) writes to stdout, so ordinary shell redirection also works.
+
 Use `[changelog.style]` to tune rendered release-note shape. `metadata_style` accepts `inline` (the default), `blockquote`, `plain`, or `omit`. The inline style renders owner, review request, and issue metadata as one `·`-separated paragraph; when a PR/MR link is available, commit links are omitted because the review link already identifies the change.
 
 ```toml

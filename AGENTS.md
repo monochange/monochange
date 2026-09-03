@@ -57,6 +57,7 @@ The agent must only write code, open and update pull requests, review code, run 
 - Developer notes should name the affected API or behavior and include actionable migration/config examples. User notes should describe the visible outcome, who benefits, and any action the user must take; omit internal function names and implementation detail.
 - For mobile apps, use a configured `native` major type when native binaries or app-store distribution are required. Use a configured `app_feature` minor type for changes eligible for a Shorebird release. The configured type—not subjective wording—must drive this release decision.
 - Run `monochange step validate` to reject mixed-stream files, then inspect `monochange step prepare-release --dry-run --format json`. The manifest records `output` and `stream` for every rendered artifact, making the release decision auditable.
+- Use `monochange notes --output <id> [--target <package-or-group>]` to inspect one configured artifact without changing versions, changesets, or configured changelog files. Redirect stdout or pass `--file <path>` when CI needs a durable artifact; never scrape a prepared changelog file as a substitute for selecting its named output.
 
 ## Task-specific guidance
 

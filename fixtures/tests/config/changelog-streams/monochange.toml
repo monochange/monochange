@@ -30,6 +30,20 @@ mode = "release"
 path = "{{ path }}/release-notes/{{ version }}.txt"
 targets = ["app"]
 
+[changelog.outputs.user_markdown]
+stream = "user"
+format = "monochange"
+mode = "release"
+path = "{{ path }}/release-notes/{{ version }}.md"
+targets = ["app"]
+
+[changelog.outputs.user_multi]
+stream = "user"
+format = "monochange"
+mode = "release"
+path = "release-notes/multi/{{ id }}-{{ version }}.md"
+targets = ["app", "sdk"]
+
 [changelog.outputs.user_group]
 stream = "user"
 format = "json"
@@ -41,6 +55,11 @@ targets = ["sdk"]
 path = "{{ path }}/INTERNAL.md"
 targets = ["core"]
 initial_header = "# Internal changes"
+
+[changelog.outputs.developer_app]
+path = "{{ path }}/INTERNAL.md"
+mode = "release"
+targets = ["app"]
 
 [changelog.sections.app_features]
 heading = "App features"

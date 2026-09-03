@@ -724,6 +724,8 @@ fn release_record_artifact_fixture(
 		let mut changelog = Map::new();
 		changelog.insert("owner_id".to_string(), json!("main"));
 		changelog.insert("owner_kind".to_string(), json!("group"));
+		changelog.insert("output".to_string(), json!("default"));
+		changelog.insert("stream".to_string(), json!("default"));
 		changelog.insert(
 			"path".to_string(),
 			json!(format!("fixtures/changelog-{fixture_index}.md")),

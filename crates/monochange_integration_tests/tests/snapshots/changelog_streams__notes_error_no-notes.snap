@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: "String::from_utf8_lossy(&output.stderr).trim()"
+---
+config error: changelog output `developer_app` produced no release notes for target `app`

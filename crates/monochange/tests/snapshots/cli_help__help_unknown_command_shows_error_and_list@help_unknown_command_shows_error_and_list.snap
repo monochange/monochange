@@ -32,6 +32,7 @@ Visible top-level commands:
   lint
   mcp
   migrate
+  notes
   populate
   prepare
   preview

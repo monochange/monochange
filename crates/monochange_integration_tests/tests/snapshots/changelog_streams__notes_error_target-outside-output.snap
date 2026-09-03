@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: "String::from_utf8_lossy(&output.stderr).trim()"
+---
+config error: changelog output `user_markdown` does not target `core`; configured targets: app
