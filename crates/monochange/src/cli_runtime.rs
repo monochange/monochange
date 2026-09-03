@@ -532,6 +532,9 @@ pub(crate) fn build_issue_comment_results(
 						monochange_core::HostedIssueCommentOperation::SkippedExisting => {
 							"skipped_existing"
 						}
+						monochange_core::HostedIssueCommentOperation::SkippedMissing => {
+							"skipped_missing"
+						}
 						monochange_core::HostedIssueCommentOperation::Closed => "closed",
 					}
 				)
@@ -565,6 +568,8 @@ async fn build_issue_comment_results_for_source(
 					monochange_core::HostedIssueCommentOperation::Created => "created",
 					monochange_core::HostedIssueCommentOperation::SkippedExisting =>
 						"skipped_existing",
+					monochange_core::HostedIssueCommentOperation::SkippedMissing =>
+						"skipped_missing",
 					monochange_core::HostedIssueCommentOperation::Closed => "closed",
 				}
 			)

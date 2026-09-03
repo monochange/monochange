@@ -942,10 +942,11 @@ fn parse_review_request_from_graphql(
 			.or_else(|| Some(github_pull_request_url(source, number))),
 		author,
 	};
+	let repository = format!("{}/{}", source.owner, source.repo);
 	let mut issues_by_id = BTreeMap::<String, HostedIssueRef>::new();
 	for issue_number in body
 		.as_deref()
-		.map(extract_closing_issue_numbers)
+		.map(|text| extract_closing_issue_numbers(text, Some(&repository)))
 		.unwrap_or_default()
 	{
 		issues_by_id.insert(
@@ -962,7 +963,7 @@ fn parse_review_request_from_graphql(
 	}
 	for issue_number in body
 		.as_deref()
-		.map(extract_issue_numbers)
+		.map(|text| extract_issue_numbers(text, Some(&repository)))
 		.unwrap_or_default()
 	{
 		issues_by_id
@@ -987,7 +988,7 @@ fn parse_review_request_from_graphql(
 fn issue_reference_regex() -> &'static Regex {
 	static ISSUE_REFERENCE_RE: OnceLock<Regex> = OnceLock::new();
 	ISSUE_REFERENCE_RE.get_or_init(|| {
-		Regex::new(r"(?:[\w.-]+/[\w.-]+)?#(?P<number>\d+)")
+		Regex::new(r"(?P<repo>[\w.-]+/[\w.-]+)?#(?P<number>\d+)")
 			.unwrap_or_else(|error| panic!("issue reference regex should compile: {error}"))
 	})
 }
@@ -1000,20 +1001,34 @@ fn closing_issue_reference_regex() -> &'static Regex {
 	})
 }
 
-fn extract_closing_issue_numbers(text: &str) -> std::collections::BTreeSet<u64> {
+fn extract_closing_issue_numbers(
+	text: &str,
+	repository: Option<&str>,
+) -> std::collections::BTreeSet<u64> {
 	let mut issue_numbers = std::collections::BTreeSet::new();
 	for captures in closing_issue_reference_regex().captures_iter(text) {
 		let Some(references) = captures.name("refs") else {
 			continue;
 		};
-		issue_numbers.extend(extract_issue_numbers(references.as_str()));
+		issue_numbers.extend(extract_issue_numbers(references.as_str(), repository));
 	}
 	issue_numbers
 }
 
-fn extract_issue_numbers(text: &str) -> std::collections::BTreeSet<u64> {
+/// Extract issue numbers from text, skipping cross-repository references.
+///
+/// GitHub supports `owner/repo#123` shorthand for issues in other repositories.
+/// Only references without a repository prefix — or with a prefix that matches
+/// the configured repository — belong to the release repository, so prefixed
+/// references for other repositories are ignored.
+fn extract_issue_numbers(text: &str, repository: Option<&str>) -> std::collections::BTreeSet<u64> {
 	issue_reference_regex()
 		.captures_iter(text)
+		.filter(|captures| {
+			captures
+				.name("repo")
+				.is_none_or(|repo| Some(repo.as_str()) == repository)
+		})
 		.filter_map(|captures| captures.name("number"))
 		.filter_map(|number| number.as_str().parse::<u64>().ok())
 		.collect()
@@ -1093,7 +1108,19 @@ async fn comment_released_issues_with_client(
 			"/repos/{}/{}/issues/{}/comments",
 			source.owner, source.repo, issue_number
 		);
-		let existing_comments = get_json::<Vec<GitHubIssueCommentResponse>>(client, &path).await?;
+		let Some(existing_comments) =
+			get_optional_json::<Vec<GitHubIssueCommentResponse>>(client, &path).await?
+		else {
+			// The issue does not exist (deleted or private). Skip it instead of
+			// failing the release automation for an unresolvable reference.
+			outcomes.push(GitHubIssueCommentOutcome {
+				repository: plan.repository.clone(),
+				issue_id: plan.issue_id.clone(),
+				operation: GitHubIssueCommentOperation::SkippedMissing,
+				url: plan.issue_url.clone(),
+			});
+			continue;
+		};
 		if existing_comments.iter().any(|comment| {
 			comment
 				.body

@@ -2723,17 +2723,13 @@ fn batch_review_request_lookup_reports_missing_repository_payload_and_parses_bod
 				.and_then(|value| value.as_ref())
 				.map(|related| related.issues.clone())
 				.unwrap_or_default();
-			assert_eq!(issues.len(), 4);
+			assert_eq!(issues.len(), 3);
 			assert!(issues.iter().any(|issue| {
 				issue.id == "#7"
 					&& issue.relationship == HostedIssueRelationshipKind::ClosedByReviewRequest
 			}));
 			assert!(issues.iter().any(|issue| {
 				issue.id == "#9"
-					&& issue.relationship == HostedIssueRelationshipKind::ClosedByReviewRequest
-			}));
-			assert!(issues.iter().any(|issue| {
-				issue.id == "#11"
 					&& issue.relationship == HostedIssueRelationshipKind::ClosedByReviewRequest
 			}));
 			assert!(issues.iter().any(|issue| {
@@ -2746,17 +2742,52 @@ fn batch_review_request_lookup_reports_missing_repository_payload_and_parses_bod
 
 #[test]
 fn extract_closing_issue_numbers_only_marks_closing_keywords() {
-	let body = "Closes #7, #9 and owner/repo#11\nRefs #8\nFixed #10 and refs #12";
+	let body = "Closes #7, #9 and ifiokjr/monochange#11\nRefs #8\nFixed #10 and refs #12";
 
 	assert_eq!(
-		extract_issue_numbers(body).into_iter().collect::<Vec<_>>(),
+		extract_issue_numbers(body, Some("ifiokjr/monochange"))
+			.into_iter()
+			.collect::<Vec<_>>(),
 		vec![7, 8, 9, 10, 11, 12]
 	);
 	assert_eq!(
-		extract_closing_issue_numbers(body)
+		extract_closing_issue_numbers(body, Some("ifiokjr/monochange"))
 			.into_iter()
 			.collect::<Vec<_>>(),
 		vec![7, 9, 10, 11]
+	);
+}
+
+#[test]
+fn extract_issue_numbers_skip_cross_repository_references() {
+	let body = "Closes #7, #9 and actions/toolkit#2048\nRefs #8";
+
+	// cross-repository references do not belong to the release repository
+	assert_eq!(
+		extract_issue_numbers(body, Some("ifiokjr/monochange"))
+			.into_iter()
+			.collect::<Vec<_>>(),
+		vec![7, 8, 9]
+	);
+	// references are resolved against the prefix when it matches the repository
+	assert_eq!(
+		extract_issue_numbers(body, Some("actions/toolkit"))
+			.into_iter()
+			.collect::<Vec<_>>(),
+		vec![7, 8, 9, 2048]
+	);
+	// without a configured repository only bare references resolve
+	assert_eq!(
+		extract_issue_numbers(body, None)
+			.into_iter()
+			.collect::<Vec<_>>(),
+		vec![7, 8, 9]
+	);
+	assert_eq!(
+		extract_closing_issue_numbers(body, Some("ifiokjr/monochange"))
+			.into_iter()
+			.collect::<Vec<_>>(),
+		vec![7, 9]
 	);
 }
 
@@ -2856,6 +2887,64 @@ fn comment_released_issues_skips_existing_markers_and_posts_missing_comments() {
 		outcome.issue_id == "#8"
 			&& outcome.operation == GitHubIssueCommentOperation::SkippedExisting
 	}));
+}
+
+#[test]
+fn comment_released_issues_skips_missing_issues_instead_of_failing() {
+	let server = MockServer::start();
+	// The issue does not exist (deleted or private): the comment listing 404s.
+	let list_issue_seven_comments = server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/issues/7/comments");
+		then.status(404)
+			.header("content-type", "application/json")
+			.body(r#"{"message":"Not Found"}"#);
+	});
+	let create_issue_seven_comment = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/ifiokjr/monochange/issues/7/comments");
+		then.status(201)
+			.header("content-type", "application/json")
+			.body("{\"html_url\":\"https://example.com/issues/7#comment-1\"}");
+	});
+	let github = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		host: None,
+		api_url: Some(server.base_url()),
+		owner: "ifiokjr".to_string(),
+		repo: "monochange".to_string(),
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	};
+	let plans = vec![GitHubIssueCommentPlan {
+		repository: "ifiokjr/monochange".to_string(),
+		issue_id: "#7".to_string(),
+		issue_url: Some("https://example.com/issues/7".to_string()),
+		body: "Released in v1.2.0.".to_string(),
+		close: true,
+	}];
+	let outcomes = temp_env::with_var("GITHUB_SERVER_URL", Some("https://example.com"), || {
+		github_runtime()
+			.unwrap_or_else(|error| panic!("runtime: {error}"))
+			.block_on(async {
+				let client = build_test_client(&server);
+				comment_released_issues_with_client(&client, &github, &plans).await
+			})
+			.unwrap_or_else(|error| panic!("comment released issues: {error}"))
+	});
+
+	list_issue_seven_comments.assert();
+	// No comment must be posted and no close attempted for a missing issue.
+	assert!(!create_issue_seven_comment.calls() > 0);
+	assert_eq!(outcomes.len(), 1);
+	assert_eq!(
+		outcomes[0].issue_id, "#7",
+		"expected the missing issue to be reported"
+	);
+	assert_eq!(
+		outcomes[0].operation,
+		GitHubIssueCommentOperation::SkippedMissing
+	);
 }
 
 fn sample_release_request() -> GitHubReleaseRequest {
