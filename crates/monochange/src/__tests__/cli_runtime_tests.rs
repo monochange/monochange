@@ -3581,3 +3581,28 @@ async fn block_on_in_context_inside_multi_thread_runtime() {
 	let result = block_on_in_context(async { 77 });
 	assert_eq!(result, 77);
 }
+
+#[test]
+fn build_issue_comment_results_formats_skipped_missing_outcomes() {
+	let plans = vec![monochange_core::HostedIssueCommentPlan {
+		repository: "ifiokjr/monochange".to_string(),
+		issue_id: "#7".to_string(),
+		issue_url: None,
+		body: "Released in v1.2.0.".to_string(),
+		close: true,
+	}];
+	let results = build_issue_comment_results(false, &plans, || {
+		Ok(vec![monochange_core::HostedIssueCommentOutcome {
+			repository: "ifiokjr/monochange".to_string(),
+			issue_id: "#7".to_string(),
+			operation: monochange_core::HostedIssueCommentOperation::SkippedMissing,
+			url: None,
+		}])
+	})
+	.unwrap_or_else(|error| panic!("render issue comment results: {error}"));
+
+	assert_eq!(
+		results,
+		vec!["ifiokjr/monochange #7 (skipped_missing)".to_string()]
+	);
+}

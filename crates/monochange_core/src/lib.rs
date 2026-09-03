@@ -5137,6 +5137,9 @@ pub struct HostedIssueCommentPlan {
 pub enum HostedIssueCommentOperation {
 	Created,
 	SkippedExisting,
+	/// The referenced issue no longer exists (deleted or private), so no
+	/// comment was posted and no close was attempted.
+	SkippedMissing,
 	Closed,
 }
 
