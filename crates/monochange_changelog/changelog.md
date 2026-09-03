@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
+
+### 💥 Breaking Change
+
+#### render named changelog outputs from one audience stream
+
+> **Breaking change:** `ChangelogUpdate` and `ReleaseNoteChange` now include `output` and/or `stream` fields. External callers that construct either type with a struct literal must supply those identities.
+
+Changelog generation now partitions changes by their type's configured stream and renders each named output only from that stream. Existing package and group changelogs remain the implicit `default` output, while named outputs can append Markdown history or replace JSON, text, or Markdown files with the current release.
+
+**Before:**
+
+```rust
+let update = ChangelogUpdate {
+    file,
+    owner_id,
+    owner_kind,
+    format,
+    notes,
+    rendered,
+};
+```
+
+**After:**
+
+```rust
+let update = ChangelogUpdate {
+    file,
+    owner_id,
+    owner_kind,
+    output: "default".to_owned(),
+    stream: "default".to_owned(),
+    format,
+    notes,
+    rendered,
+};
+```
+
+Add `stream: "default".to_owned()` to existing `ReleaseNoteChange` literals to retain their prior routing. Generated updates reject path collisions between different output identities, preventing two audiences from silently overwriting the same artifact.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
 ## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
 
 <details>
