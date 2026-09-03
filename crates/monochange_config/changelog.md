@@ -4,56 +4,6 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
-## [0.9.3](https://github.com/monochange/monochange/releases/tag/v0.9.3) (2026-09-01)
-
-### 🚀 Feature
-
-#### add `publish.fail_on_duplicate` and keep already-published packages skipped by default
-
-`monochange step publish-packages` now documents its default behavior explicitly: when a version is already published on the target registry, the package is skipped (`skipped_existing`) instead of failing the step. Only packages that genuinely cannot publish fail the step, so re-running a partially published release stays green.
-
-A new per-package (and per-ecosystem) publish option opts into the strict behavior:
-
-```toml
-[package.pina_sdk_ids.publish]
-fail_on_duplicate = true
-```
-
-With `fail_on_duplicate` enabled, a package whose version already exists on the registry (release mode only, including dry runs) is reported as `failed` with the message `… already exists on … and`publish.fail_on_duplicate`rejects duplicate version publications`, remaining packages are marked as not attempted, and the step exits non-zero. Placeholder publishing keeps its idempotent skip behavior regardless of the setting. The option flows from `monochange.toml` into release-record publication targets and the built-in `PublishPackages` step, and is documented in the configuration guide and the regenerated JSON Schemas.
-
-The built-in `publish-packages` step also exposes the policy as a boolean CLI input: `monochange step publish-packages --fail-on-duplicate` forces the strict policy for that run and overrides per-package settings without editing configuration. Dry-run integration tests snapshot the skip, failure, and planned outcomes for both the configuration-driven and CLI-driven variants.
-
-_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #645](https://github.com/monochange/monochange/pull/645)
-
-### 🐛 Fixed
-
-#### enforce configured type-scoped changeset policies
-
-Custom changelog types can now enforce their configured changeset body policy during `monochange check`. This makes release-note contracts such as separate user impact, developer notes, and rollout sections auditable before a release is planned.
-
-For example, repositories can map an app-specific type into a custom release-note section and validate its content:
-
-```toml
-[changelog.sections]
-app_features = { heading = "App features", priority = 10 }
-
-[changelog.types]
-app_feature = { bump = "minor", section = "app_features" }
-
-[lints.rules]
-"changesets/types/app_feature" = {
-  level = "error",
-  required_bump = "minor",
-  required_sections = ["User impact", "Developer notes"],
-}
-```
-
-Previously, Monochange accepted and validated the `changesets/types/app_feature` configuration but did not register a matching lint runner. A changeset missing `Developer notes` therefore passed `monochange check`. The changeset lint suite now receives the configured type names and creates a scoped runner for each one, so the same changeset fails with the configured dynamic rule id and a concrete missing-section error.
-
-The static lint catalog and existing `changesets/bump/<severity>` policies are unchanged.
-
-_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #650](https://github.com/monochange/monochange/pull/650)
-
 ## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
 
 ### 🚀 Feature
