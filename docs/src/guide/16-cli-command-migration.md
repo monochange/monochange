@@ -10,12 +10,12 @@ The migration has three breaking command-path changes:
 
 ## Quick replacement table
 
-| Old command                         | New command                           |
-| ----------------------------------- | ------------------------------------- |
-| `mc check`                          | `monochange check`                    |
-| `mc versions --format json`         | `monochange versions --format json`   |
-| Colon-delimited built-in step token | `monochange step <name>`              |
-| `monochange <configured-command>`   | `monochange run <configured-command>` |
+| Old command                         | New command                              |
+| ----------------------------------- | ---------------------------------------- |
+| `mc check`                          | `monochange check`                       |
+| `mc versions list --format json`    | `monochange versions list --format json` |
+| Colon-delimited built-in step token | `monochange step <name>`                 |
+| `monochange <configured-command>`   | `monochange run <configured-command>`    |
 
 ## 1. Replace the `mc` binary alias
 
@@ -25,14 +25,14 @@ Before:
 
 ```sh
 mc check
-mc versions --format json
+mc versions list --format json
 ```
 
 After:
 
 ```sh
 monochange check
-monochange versions --format json
+monochange versions list --format json
 monochange step validate
 ```
 
@@ -87,7 +87,7 @@ Only add `run` for commands that come from `[cli.<name>]`. Built-in commands rem
 ```sh
 monochange check
 monochange run change
-monochange versions --format json
+monochange versions list --format json
 monochange step validate
 ```
 
@@ -110,7 +110,7 @@ Apply these rules in order:
 2. Replace each colon-delimited built-in step token with the nested `monochange step <name>` path.
 3. For each command name defined in `monochange.toml` under `[cli.<name>]`, replace `monochange <name>` with `monochange run <name>`.
 4. Do not rewrite built-ins such as `monochange check`, `monochange run change`, `monochange init`, `monochange mcp`, `monochange run release`, or `monochange versions` into `monochange run ...` unless that exact name is intentionally a configured command in the repository.
-5. Prefer `monochange versions --format json` for machine-readable version output.
+5. Prefer `monochange versions list --format json` for machine-readable version output.
 
 ## Validation
 
@@ -119,5 +119,5 @@ After updating automation, run the commands that the repository expects agents o
 ```sh
 monochange check
 monochange step validate
-monochange versions --format json
+monochange versions list --format json
 ```

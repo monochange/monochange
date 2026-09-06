@@ -8,7 +8,7 @@ Treat publishing as a separate phase from release preparation. Release preparati
 
 1. Prepare and commit a release so a release record exists.
 2. Run `monochange step publish-readiness --from HEAD --output readiness.json`.
-3. Run any first-time bootstrap flow with `monochange step placeholder-publish --from HEAD --output bootstrap.json` when packages are missing from registries.
+3. Run any first-time bootstrap flow with `monochange step placeholder-publish` when packages are missing from registries.
 4. Run configured publish planning and publish workflows if the repo defines them.
 5. Store output artifacts so failed publishes can be resumed.
 

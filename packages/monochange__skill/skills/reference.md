@@ -58,7 +58,7 @@ Current built-in package publishing is release-record oriented:
 
 ```bash
 monochange step publish-readiness --from HEAD --output readiness.json
-monochange step placeholder-publish --from HEAD --output bootstrap.json
+monochange step placeholder-publish
 monochange step plan-publish-rate-limits --readiness readiness.json --format json
 monochange step publish-packages --output publish-result.json
 ```

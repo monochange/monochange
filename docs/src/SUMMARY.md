@@ -26,7 +26,7 @@
 # Reference
 
 - [Manifest linting with `monochange check`](reference/linting.md)
-- [Internal dependency versions with `monochange versions`](reference/versions.md)
+- [Internal dependency versions with `monochange versions sync`](reference/versions.md)
 - [Progress output](reference/progress-output.md)
 - [Telemetry](reference/telemetry.md)
 - [Hosted release benchmarks](reference/hosted-release-benchmarks.md)

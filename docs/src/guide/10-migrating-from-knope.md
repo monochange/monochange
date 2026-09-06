@@ -40,10 +40,9 @@ versioned_files = [
 ]
 changelog = "changelog.md"
 scopes = ["core", "cli"]
-extra_changelog_sections = [
-	{ name = "Notes", types = ["note"] },
-	{ name = "Documentation", types = ["docs"] },
-]
+[package.my-crate.changelog.types]
+note = { bump = "none", section = "Notes" }
+docs = { bump = "none", section = "Documentation" }
 ```
 
 In monochange, every package gets a named `[package.<id>]` entry. Use `[defaults]` to reduce boilerplate and `[group.<id>]` when all packages should share one version:
@@ -60,10 +59,9 @@ format = "keep_a_changelog"
 [package.my-crate]
 path = "."
 versioned_files = [{ path = "Cargo.lock", type = "cargo" }]
-extra_changelog_sections = [
-	{ name = "Notes", types = ["note"] },
-	{ name = "Documentation", types = ["docs"] },
-]
+[package.my-crate.changelog.types]
+note = { bump = "none", section = "Notes" }
+docs = { bump = "none", section = "Documentation" }
 ```
 
 > **Note:** knope's `scopes` filter conventional commits to specific packages. monochange does not use conventional commits. Use changeset frontmatter keys instead.
@@ -77,15 +75,12 @@ knope uses `[packages.<name>]` for multi-package repos:
 [packages.sdk_core]
 versioned_files = [
 	"crates/sdk_core/Cargo.toml",
-	{ path = "Cargo.lock", dependency = "sdk_core" },
-	{ path = "Cargo.toml", dependency = "sdk_core" },
 ]
 changelog = "crates/sdk_core/changelog.md"
 
 [packages.sdk_cli]
 versioned_files = [
 	"crates/sdk_cli/Cargo.toml",
-	{ path = "Cargo.lock", dependency = "sdk_cli" },
 ]
 changelog = "crates/sdk_cli/changelog.md"
 ```
@@ -102,10 +97,6 @@ path = "{{ path }}/changelog.md"
 
 [package.sdk_core]
 path = "crates/sdk_core"
-versioned_files = [
-	"Cargo.lock",
-	{ path = "Cargo.toml", dependency = "sdk_core" },
-]
 
 [package.sdk_cli]
 path = "crates/sdk_cli"
@@ -475,10 +466,9 @@ versioned_files = [
 ]
 changelog = "changelog.md"
 scopes = ["core", "cli"]
-extra_changelog_sections = [
-	{ name = "Notes", types = ["note"] },
-	{ name = "Documentation", types = ["docs"] },
-]
+[package.my-crate.changelog.types]
+note = { bump = "none", section = "Notes" }
+docs = { bump = "none", section = "Documentation" }
 
 [changes]
 ignore_conventional_commits = true
@@ -535,17 +525,15 @@ format = "keep_a_changelog"
 
 [package.my_core]
 path = "crates/my_core"
-extra_changelog_sections = [
-	{ name = "Notes", types = ["note"] },
-	{ name = "Documentation", types = ["docs"] },
-]
+[package.my-crate.changelog.types]
+note = { bump = "none", section = "Notes" }
+docs = { bump = "none", section = "Documentation" }
 
 [package.my_cli]
 path = "crates/my_cli"
-extra_changelog_sections = [
-	{ name = "Notes", types = ["note"] },
-	{ name = "Documentation", types = ["docs"] },
-]
+[package.my-crate.changelog.types]
+note = { bump = "none", section = "Notes" }
+docs = { bump = "none", section = "Documentation" }
 
 [group.main]
 packages = ["my_core", "my_cli"]

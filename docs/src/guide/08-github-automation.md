@@ -143,8 +143,8 @@ For full GitHub and GitLab CI examples by ecosystem, including npm, Cargo, Deno/
 path = "{{ path }}/changelog.md"
 format = "keep_a_changelog"
 
-[release_notes]
-change_templates = [
+[changelog]
+templates = [
 	"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ details }}",

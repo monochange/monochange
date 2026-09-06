@@ -20,9 +20,6 @@ Explain a lint rule or preset
           [default: markdown]
           [possible values: text, json, json-min, markdown, md]
 
-      [93m--sha[0m
-          Output only the commit SHA of the discovered release record
-
   [93m-h[0m, [93m--help[0m
           Print help
 

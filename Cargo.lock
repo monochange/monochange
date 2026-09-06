@@ -2500,6 +2500,7 @@ dependencies = [
  "monochange_github",
  "monochange_schema",
  "monochange_test_helpers",
+ "regex",
  "serde_json",
  "tempfile",
  "tokio",

@@ -210,8 +210,8 @@ package_type = "cargo"
 path = "{{ path }}/changelog.md"
 format = "keep_a_changelog"
 
-[release_notes]
-change_templates = [
+[changelog]
+templates = [
 	"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ details }}",
@@ -220,9 +220,8 @@ change_templates = [
 
 [package.sdk-core]
 path = "crates/sdk_core"
-extra_changelog_sections = [
-	{ name = "Security", types = ["security"], default_bump = "patch" },
-]
+[package.sdk-core.changelog.types]
+security = { bump = "patch", section = "Security" }
 
 [package.web-sdk]
 path = "packages/web-sdk"

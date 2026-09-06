@@ -507,12 +507,6 @@ Use `--no-mcp` to skip MCP config files for targets that support repo-local MCP 
 				.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		.arg(
-			Arg::new("sha")
-				.long("sha")
-				.help("Output only the commit SHA of the discovered release record")
-				.action(ArgAction::SetTrue),
-		)
-		.arg(
 			Arg::new("no-mcp")
 				.long("no-mcp")
 				.help("Skip repo-local MCP config files for supported targets")
@@ -677,12 +671,6 @@ pub(crate) fn build_check_subcommand() -> Command {
 				.help("Show extra lint diagnostic details")
 				.action(ArgAction::SetTrue),
 		)
-		.arg(
-			Arg::new("sha")
-				.long("sha")
-				.help("Output only the commit SHA of the discovered release record")
-				.action(ArgAction::SetTrue),
-		)
 }
 
 pub(crate) fn build_lint_subcommand() -> Command {
@@ -700,12 +688,6 @@ pub(crate) fn build_lint_subcommand() -> Command {
 						.default_value("markdown")
 						.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
-		.arg(
-			Arg::new("sha")
-				.long("sha")
-				.help("Output only the commit SHA of the discovered release record")
-				.action(ArgAction::SetTrue),
-				),
 		)
 		.subcommand(
 			Command::new("explain")
@@ -722,12 +704,6 @@ pub(crate) fn build_lint_subcommand() -> Command {
 						.default_value("markdown")
 						.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
-		.arg(
-			Arg::new("sha")
-				.long("sha")
-				.help("Output only the commit SHA of the discovered release record")
-				.action(ArgAction::SetTrue),
-				),
 		)
 		.subcommand(
 			Command::new("new")

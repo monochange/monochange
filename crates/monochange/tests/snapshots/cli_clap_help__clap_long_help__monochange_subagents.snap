@@ -31,9 +31,6 @@ Generate repo-local monochange subagents and agent guidance files
           [default: markdown]
           [possible values: text, json, json-min, markdown, md]
 
-      [93m--sha[0m
-          Output only the commit SHA of the discovered release record
-
       [93m--no-mcp[0m
           Skip repo-local MCP config files for supported targets
 

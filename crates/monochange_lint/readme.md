@@ -12,33 +12,26 @@
 
 <!-- {=monochangeLintCrateDocs} -->
 
-`monochange_lint` runs ecosystem-agnostic manifest lint suites for `monochange`.
+`monochange_lint` is the ecosystem-agnostic manifest lint engine for monochange.
 
-Reach for this crate when you want to validate workspace manifests against configurable rules, discover preset and custom lint suites, or apply autofixes across packages.
+Reach for this crate when you want to validate workspace manifests against registered lint suites, rules, and presets without coupling the engine to specific ecosystems.
 
 ## Why use it?
 
-- centralize lint suite registration and execution in one engine
-- merge workspace-scoped and package-scoped `[lints]` configuration
-- run all registered suites in one pass instead of wiring each crate separately
+- run one lint engine across every registered ecosystem suite
+- keep the engine unaware of which ecosystems exist; ecosystem crates contribute suites, rules, presets, and parsed lint targets
+- resolve rule and preset configuration through one registry
 
 ## Best for
 
 - enforcing manifest quality checks across multi-ecosystem monorepos
 - building custom lint suites that plug into the shared lint pipeline
-- applying autofixes for common manifest problems in CI
+- applying the shared lint pipeline from CLI, CI, and automation surfaces
 
 ## Public entry points
 
-- `lint_workspace(root, config)` runs all registered lint suites against the workspace
-- `discover_lint_suites()` lists available preset and custom suites
-- `apply_autofixes(root, diagnostics)` applies suggested fixes for reported diagnostics
-
-## Scope
-
-- lint suite registration and discovery
-- workspace-wide and scoped configuration merging
-- autofix application
-- ecosystem-agnostic rule dispatch
+- `Linter` drives lint execution over registered suites
+- `lint_workspace(workspace_root, configuration, reporter)` lints all suite targets in the workspace
+- `LintSelection` narrows suites and rules; `LintRegistry` resolves rules and presets
 
 <!-- {/monochangeLintCrateDocs} -->

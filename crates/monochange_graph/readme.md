@@ -31,7 +31,7 @@ Reach for this crate when you already have discovered packages, dependency edges
 ## Public entry points
 
 - `NormalizedGraph` builds adjacency and reverse-dependency views over package data
-- `build_release_plan(workspace_root, packages, dependency_edges, defaults, version_groups, change_signals, providers)` computes the release plan
+- `build_release_plan(workspace_root, packages, dependency_edges, defaults, version_groups, change_signals, compatibility_evidence, default_parent_bump, bump_propagations, strict_version_conflicts)` computes the release plan, honoring per-package and per-group `bump_propagation` declarations (most-specific-first: package beats group beats defaults)
 
 ## Responsibilities
 
