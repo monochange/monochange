@@ -1,17 +1,24 @@
 # Internal dependency versions
 
-Use `monochange versions` to keep internal workspace dependency constraints aligned with each package's canonical version. It is useful when migrating an existing monorepo to monochange and when package versions change during normal release work.
+Use `monochange versions sync` to keep internal workspace dependency constraints aligned with each package's canonical version. It is useful when migrating an existing monorepo to monochange and when package versions change during normal release work.
 
 ```sh
-monochange versions --dry-run
-monochange versions
+monochange versions sync --dry-run
+monochange versions sync
+```
+
+The `monochange versions list` subcommand prints the discovered package and group version inventory without touching files:
+
+```sh
+monochange versions list
+monochange versions list --format json-min
 ```
 
 The command scans discovered workspace packages, builds a package-name to version map, and updates supported manifest files where one workspace package depends on another. It only syncs internal workspace dependencies; it does not change external dependency constraints.
 
 ## Output
 
-By default, `monochange versions --dry-run` prints the file and dependency updates it would make:
+By default, `monochange versions sync --dry-run` prints the file and dependency updates it would make:
 
 ```text
 would update ^1.1.0 → ^1.2.3 in core (packages/app/pubspec.yaml)
@@ -24,7 +31,7 @@ Strategy: default (package config → ecosystem config → ecosystem default; --
 Use JSON output for scripts and CI checks:
 
 ```sh
-monochange versions --dry-run --format json
+monochange versions sync --dry-run --format json
 ```
 
 The JSON result includes whether changes were applied, the selected strategy, changed files, dependency updates, and any packages skipped during planning.

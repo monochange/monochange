@@ -28,9 +28,6 @@ Validate configuration, changesets, and run manifest lint rules
   [93m-v[0m, [93m--verbose[0m
           Show extra lint diagnostic details
 
-      [93m--sha[0m
-          Output only the commit SHA of the discovered release record
-
   [93m-h[0m, [93m--help[0m
           Print help
 

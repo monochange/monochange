@@ -109,7 +109,7 @@ For automated CI setup, include the `--provider` flag:
 monochange init --provider github
 ```
 
-This configures the `[source]` section, generates CLI commands for `commit-release` and `release-pr`, and creates GitHub Actions workflows.
+This configures the `[source]` section and creates GitHub Actions workflows for changeset policy and release automation. It intentionally does not add `[cli.*]` workflow commands.
 
 Validate the workspace:
 
@@ -239,14 +239,14 @@ These are common commands for repositories using monochange. With the current CL
 | Dry-run configured publishing    | `monochange run publish-check`                                                           | This repository, or another repo with a similar `[cli.publish-check]`, should exercise publishing in CI without registry mutations |
 | Plan ready package publishing    | `monochange step plan-publish-rate-limits --readiness <path>`                            | You want rate-limit batches that exclude non-ready package work                                                                    |
 | Publish packages to registries   | `monochange step publish-packages --output <path>`                                       | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication                           |
-| Bootstrap release packages       | `monochange step placeholder-publish --from HEAD --output <path>`                        | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
+| Bootstrap release packages       | `monochange step placeholder-publish`                                                    | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
 | Create post-merge release tags   | `monochange step tag-release --from HEAD`                                                | You merged a monochange release commit and now need to create and push its declared tag set                                        |
 | Repair a recent release          | `monochange step retarget-release --from <tag> --target <commit>`                        | You need to retarget a just-created release to a later commit                                                                      |
 | Publish hosted/provider releases | `monochange step publish-release`                                                        | You want GitHub/GitLab/Gitea release objects from prepared release state                                                           |
 
 <!-- {/projectCommandAutomationMatrix} -->
 
-`monochange step publish-readiness` performs non-mutating registry checks before `monochange step publish-packages`. For built-in Cargo publishes to crates.io it also verifies current manifest publishability: `publish = false` blocks publishing, `publish = [...]` must include `crates-io`, `description` must be set, and either `license` or `license-file` must be set. Workspace-inherited Cargo metadata is accepted, and already-published versions remain non-blocking in readiness reports. The artifact fingerprints `monochange.toml`, package manifests, lockfiles, and registry/tooling files, so rerun `monochange step publish-readiness` after those inputs change. `monochange step plan-publish-rate-limits --readiness <path>` validates the artifact for planning and limits rate-limit batches to package ids that are ready in both the artifact and the fresh local readiness check. `monochange step publish-packages` publishes directly from prepared release or `HEAD` release state and does not require the readiness artifact. If readiness shows missing first-time registry packages, run `monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json`, then rerun readiness before real publishing.
+`monochange step publish-readiness` performs non-mutating registry checks before `monochange step publish-packages`. For built-in Cargo publishes to crates.io it also verifies current manifest publishability: `publish = false` blocks publishing, `publish = [...]` must include `crates-io`, `description` must be set, and either `license` or `license-file` must be set. Workspace-inherited Cargo metadata is accepted, and already-published versions remain non-blocking in readiness reports. The artifact fingerprints `monochange.toml`, package manifests, lockfiles, and registry/tooling files, so rerun `monochange step publish-readiness` after those inputs change. `monochange step plan-publish-rate-limits --readiness <path>` validates the artifact for planning and limits rate-limit batches to package ids that are ready in both the artifact and the fresh local readiness check. `monochange step publish-packages` publishes directly from prepared release or `HEAD` release state and does not require the readiness artifact. If readiness shows missing first-time registry packages, run `monochange step placeholder-publish`, then rerun readiness before real publishing.
 
 <br />
 
@@ -471,7 +471,7 @@ monochange step open-release-request --dry-run --format json
 monochange step release-record --from v1.2.3
 monochange step tag-release --from HEAD --dry-run --format json
 monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
+monochange step placeholder-publish
 monochange step publish-readiness --from HEAD --output .monochange/readiness.json
 monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
 monochange step publish-packages --output .monochange/publish-result.json

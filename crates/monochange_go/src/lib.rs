@@ -4,35 +4,7 @@
 )]
 #![deny(clippy::all)]
 #![forbid(clippy::indexing_slicing)]
-
-//! # `monochange_go`
-//!
-//! `monochange_go` discovers Go modules from `go.mod` files and resolves
-//! versions from git tags.
-//!
-//! ## Why use it?
-//!
-//! - discover Go modules in single-module and multi-module repositories
-//! - normalize Go module dependency edges for the shared planner
-//! - infer `go mod tidy` as the default lockfile refresh command
-//!
-//! ## Best for
-//!
-//! - building Go-aware discovery flows without the full CLI
-//! - converting Go module structure into shared `monochange_core` records
-//! - managing multi-module monorepo releases with path-prefixed git tags
-//!
-//! ## Public entry points
-//!
-//! - `discover_go_modules(root)` discovers Go modules
-//! - `GoAdapter` exposes the shared adapter interface
-//!
-//! ## Scope
-//!
-//! - `go.mod` parsing for module path, go version, and require directives
-//! - multi-module repository detection
-//! - `go mod tidy` lockfile command inference
-//! - `go.sum` lockfile discovery
+#![doc = include_str!("crate_docs.md")]
 
 use std::fs;
 use std::path::Path;

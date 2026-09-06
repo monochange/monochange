@@ -243,8 +243,8 @@ Current `PrepareRelease` behavior:
 - computes one synchronized release plan from discovered change files
 - updates native manifests plus configured changelogs and versioned files
 - renders changelog files through structured release notes using the configured `monochange` or `keep_a_changelog` format
-- groups release notes into default `Breaking changes`, `Features`, `Fixes`, and `Notes` sections, with package/group overrides available through `extra_changelog_sections`
-- applies workspace-wide release-note templates from `[release_notes].change_templates`
+- groups release notes into default `Breaking changes`, `Features`, `Fixes`, and `Notes` sections, with package/group overrides available through changelog `types` and `sections`
+- applies workspace-wide release-note templates from `[changelog].templates`
 - refreshes the cached `.monochange/release-manifest.json` artifact during `PrepareRelease` for downstream automation
 - can preview or publish provider releases via `PublishRelease`
 - can preview or open/update release requests via `OpenReleaseRequest`

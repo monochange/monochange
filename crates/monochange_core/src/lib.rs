@@ -3,33 +3,7 @@
 	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
 )]
 #![forbid(clippy::indexing_slicing)]
-
-//! # `monochange_core`
-//!
-//! `monochange_core` is the shared vocabulary for the `monochange` workspace.
-//!
-//! Reach for this crate when you are building ecosystem adapters, release planners, or custom automation and need one set of types for packages, dependency edges, version groups, change signals, and release plans.
-//!
-//! ## Why use it?
-//!
-//! - avoid redefining package and release domain models in each crate
-//! - share one error and result surface across discovery, planning, and command layers
-//! - pass normalized workspace data between adapters and planners without extra translation
-//!
-//! ## Best for
-//!
-//! - implementing new ecosystem adapters against the shared `EcosystemAdapter` contract
-//! - moving normalized package or release data between crates without custom conversion code
-//! - depending on the workspace domain model without pulling in discovery or planning behavior
-//!
-//! ## What it provides
-//!
-//! - normalized package and dependency records
-//! - version-group definitions and planned group outcomes
-//! - change signals and compatibility assessments
-//! - changelog formats, changelog targets, structured release-note types, release-manifest types, source-automation config types, and changeset-policy evaluation types
-//! - shared error and result types
-//!
+#![doc = include_str!("crate_docs.md")]
 //! ## Example
 //!
 //! ```rust
@@ -59,6 +33,12 @@
 //! assert!(rendered.contains("### Features"));
 //! assert!(rendered.contains("- add keep-a-changelog output"));
 //! ```
+//!  );
+//!  assert!(rendered.contains("## 1.2.3"));
+//!  assert!(rendered.contains("### Features"));
+//!  assert!(rendered.contains("- add keep-a-changelog output"));
+//!  ```
+
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::env;
@@ -169,6 +149,13 @@ pub enum BumpSeverity {
 
 impl BumpSeverity {
 	/// Return `true` when this severity produces a release.
+	///
+	/// ```rust
+	/// use monochange_core::BumpSeverity;
+	///
+	/// assert!(BumpSeverity::Minor.is_release());
+	/// assert!(!BumpSeverity::None.is_release());
+	/// ```
 	#[must_use]
 	pub fn is_release(self) -> bool {
 		self != Self::None
@@ -5916,6 +5903,14 @@ pub struct EcosystemRegistry {
 ///
 /// Controls how version constraints are formatted when `monochange versions` updates
 /// internal dependency references to match canonical package versions.
+///
+/// ```rust
+/// use monochange_core::VersionStrategy;
+///
+/// // The default strategy follows each ecosystem's own constraint style:
+/// // caret for npm/dart, exact for cargo, compatible for python.
+/// assert_eq!(VersionStrategy::default(), VersionStrategy::Default);
+/// ```
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum VersionStrategy {
 	/// Use each ecosystem's configured or built-in default constraint format.

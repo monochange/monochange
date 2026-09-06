@@ -3,13 +3,7 @@
 	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
 )]
 #![forbid(clippy::indexing_slicing)]
-
-//! # `monochange_lint`
-//!
-//! Ecosystem-agnostic manifest lint engine for monochange.
-//!
-//! Ecosystem crates contribute lint suites, rules, presets, and parsed lint
-//! targets. This crate is intentionally unaware of which ecosystems exist.
+#![doc = include_str!("crate_docs.md")]
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;

@@ -12,7 +12,7 @@
 
 <!-- {=monochangePythonCrateDocs} -->
 
-`monochange_python` discovers Python packages for the shared planner.
+`monochange_python` discovers Python packages from uv workspaces, Poetry projects, and standalone `pyproject.toml` files for the shared planner.
 
 Reach for this crate when you need to scan uv workspaces, Poetry projects, and standalone `pyproject.toml` packages, then normalize package metadata and dependency edges into `monochange_core` records.
 

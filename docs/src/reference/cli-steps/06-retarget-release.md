@@ -27,7 +27,6 @@ Typical use cases include:
 - `target`: commit-ish to move the release to; defaults to `HEAD`
 - `force`: allow non-descendant retargets
 - `sync_provider`: whether hosted provider state should be synchronized
-- `format`: `text` or `json`
 
 ## Step-level `when` condition
 
@@ -119,12 +118,6 @@ default = "false"
 name = "sync_provider"
 type = "boolean"
 default = "true"
-
-[[cli.repair-release.inputs]]
-name = "format"
-type = "choice"
-choices = ["text", "json", "json-min"]
-default = "text"
 
 [[cli.repair-release.steps]]
 type = "RetargetRelease"

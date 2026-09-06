@@ -18,6 +18,7 @@ monochange_forgejo = { workspace = true }
 monochange_github = { workspace = true }
 monochange_schema = { workspace = true }
 monochange_test_helpers = { workspace = true }
+regex = { workspace = true, default-features = true }
 serde_json = { workspace = true, default-features = true }
 tempfile = { workspace = true, default-features = true }
 tokio = { workspace = true }

@@ -187,7 +187,7 @@ This changelog is managed by [monochange](https://github.com/monochange/monochan
 - `[package.<id>]`
 - `[group.<id>]`
 
-`extra_changelog_sections` can also be set on:
+Per-package changelog overrides (`[package.<id>.changelog]`) can also customize sections:
 
 - `[defaults]`
 - `[package.<id>]`
@@ -685,8 +685,8 @@ Built-in `monochange step <name>` commands are different: they are generated dir
 <!-- {=configurationWorkflowsSnippet} -->
 
 ```toml
-[release_notes]
-change_templates = [
+[changelog]
+templates = [
 	"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ details }}",
@@ -695,9 +695,8 @@ change_templates = [
 
 [package.core]
 path = "crates/core"
-extra_changelog_sections = [
-	{ name = "Security", types = ["security"], default_bump = "patch" },
-]
+[package.sdk-core.changelog.types]
+security = { bump = "patch", section = "Security" }
 
 [cli.discover]
 help_text = "Discover packages across supported ecosystems"
@@ -1005,7 +1004,7 @@ Use `[changelog.style]` to tune rendered release-note shape. `metadata_style` ac
 metadata_style = "inline"
 ```
 
-You can also customize release-note rendering with a workspace-wide `[release_notes]` table plus per-package or per-group `extra_changelog_sections` definitions.
+You can also customize release-note rendering with a workspace-wide `[changelog]` table plus per-package or per-group changelog overrides.
 
 Supported template variables include:
 

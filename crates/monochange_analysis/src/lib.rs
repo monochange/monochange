@@ -3,24 +3,7 @@
 	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
 )]
 #![forbid(clippy::indexing_slicing)]
-
-//! # `monochange_analysis`
-//!
-//! `monochange_analysis` orchestrates ecosystem-specific semantic analyzers over a
-//! git change frame.
-//!
-//! Core contracts and semantic diff types live in `monochange_core`. Ecosystem
-//! crates implement analyzers. Cargo, npm, Deno, and Dart/Flutter analyzers all
-//! plug into the same contract without moving ecosystem logic back into this
-//! crate.
-//!
-//! This crate is responsible for:
-//!
-//! - selecting the change frame to inspect
-//! - discovering affected packages
-//! - loading before/after package snapshots
-//! - dispatching to the right ecosystem analyzer
-//! - returning structured semantic diffs for MCP and other automation
+#![doc = include_str!("crate_docs.md")]
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;

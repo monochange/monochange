@@ -109,34 +109,28 @@ assert!(rendered.contains("- add keep-a-changelog output"));
 
 <!-- {@monochangeAnalysisCrateDocs} -->
 
-`monochange_analysis` turns git diff context into artifact-aware changeset suggestions.
+`monochange_analysis` orchestrates ecosystem-specific semantic analyzers over a git change frame.
 
-Reach for this crate when you want to classify changed packages as libraries, applications, CLI tools, or mixed artifacts and then extract the most user-facing parts of the diff.
+Reach for this crate when you want to turn a git diff frame into package-scoped semantic analyses and suggested changesets without moving ecosystem logic into one place.
 
 ## Why use it?
 
-- convert raw changed files into package-centric semantic summaries
-- use different heuristics for libraries, applications, and CLI tools
-- reuse one analysis pipeline across CLI, MCP, and CI automation
+- select the change frame to inspect with git-aware detection
+- discover affected packages and load before/after package snapshots
+- dispatch to the right ecosystem analyzer and return structured semantic diffs for CLI, MCP, and CI automation
 
 ## Best for
 
-- suggesting changeset boundaries before writing `.changeset/*.md` files
-- analyzing pull-request or branch diffs in assistant workflows
-- experimenting with artifact-aware release note generation
+- suggesting changeset boundaries from pull-request or branch diffs
+- feeding assistant workflows with structured semantic analyses
+- sharing one analysis pipeline across every supported ecosystem
 
 ## Public entry points
 
 - `ChangeFrame::detect(root)` selects the git frame to analyze
-- `detect_artifact_type(package_path)` classifies a package as a library, application, CLI tool, or mixed artifact
 - `analyze_changes(root, frame, config)` returns package analyses and suggested changesets
 
-## Scope
-
-- git-aware frame detection
-- artifact classification
-- semantic diff extraction
-- adaptive suggestion grouping
+Core contracts and semantic diff types live in `monochange_core`; ecosystem crates implement the analyzers.
 
 <!-- {/monochangeAnalysisCrateDocs} -->
 
@@ -268,7 +262,7 @@ Reach for this crate when you already have discovered packages, dependency edges
 ## Public entry points
 
 - `NormalizedGraph` builds adjacency and reverse-dependency views over package data
-- `build_release_plan(workspace_root, packages, dependency_edges, defaults, version_groups, change_signals, providers)` computes the release plan
+- `build_release_plan(workspace_root, packages, dependency_edges, defaults, version_groups, change_signals, compatibility_evidence, default_parent_bump, bump_propagations, strict_version_conflicts)` computes the release plan, honoring per-package and per-group `bump_propagation` declarations (most-specific-first: package beats group beats defaults)
 
 ## Responsibilities
 
@@ -548,7 +542,7 @@ Reach for this crate when you need to scan `pubspec.yaml` files, expand Dart or 
 
 <!-- {@monochangePythonCrateDocs} -->
 
-`monochange_python` discovers Python packages for the shared planner.
+`monochange_python` discovers Python packages from uv workspaces, Poetry projects, and standalone `pyproject.toml` files for the shared planner.
 
 Reach for this crate when you need to scan uv workspaces, Poetry projects, and standalone `pyproject.toml` packages, then normalize package metadata and dependency edges into `monochange_core` records.
 
@@ -584,7 +578,7 @@ Reach for this crate when you need to scan uv workspaces, Poetry projects, and s
 
 <!-- {@monochangeGoCrateDocs} -->
 
-`monochange_go` discovers Go modules for the shared planner.
+`monochange_go` discovers Go modules from `go.mod` files for the shared planner.
 
 Reach for this crate when you need to scan standalone `go.mod` files, parse module metadata and `require` dependencies, infer `go mod tidy`, and preserve Go's tag-based versioning model in mixed-language release plans.
 
@@ -769,34 +763,27 @@ Reach for this crate when you want to preview or publish Forgejo releases and re
 
 <!-- {@monochangeLintCrateDocs} -->
 
-`monochange_lint` runs ecosystem-agnostic manifest lint suites for `monochange`.
+`monochange_lint` is the ecosystem-agnostic manifest lint engine for monochange.
 
-Reach for this crate when you want to validate workspace manifests against configurable rules, discover preset and custom lint suites, or apply autofixes across packages.
+Reach for this crate when you want to validate workspace manifests against registered lint suites, rules, and presets without coupling the engine to specific ecosystems.
 
 ## Why use it?
 
-- centralize lint suite registration and execution in one engine
-- merge workspace-scoped and package-scoped `[lints]` configuration
-- run all registered suites in one pass instead of wiring each crate separately
+- run one lint engine across every registered ecosystem suite
+- keep the engine unaware of which ecosystems exist; ecosystem crates contribute suites, rules, presets, and parsed lint targets
+- resolve rule and preset configuration through one registry
 
 ## Best for
 
 - enforcing manifest quality checks across multi-ecosystem monorepos
 - building custom lint suites that plug into the shared lint pipeline
-- applying autofixes for common manifest problems in CI
+- applying the shared lint pipeline from CLI, CI, and automation surfaces
 
 ## Public entry points
 
-- `lint_workspace(root, config)` runs all registered lint suites against the workspace
-- `discover_lint_suites()` lists available preset and custom suites
-- `apply_autofixes(root, diagnostics)` applies suggested fixes for reported diagnostics
-
-## Scope
-
-- lint suite registration and discovery
-- workspace-wide and scoped configuration merging
-- autofix application
-- ecosystem-agnostic rule dispatch
+- `Linter` drives lint execution over registered suites
+- `lint_workspace(workspace_root, configuration, reporter)` lints all suite targets in the workspace
+- `LintSelection` narrows suites and rules; `LintRegistry` resolves rules and presets
 
 <!-- {/monochangeLintCrateDocs} -->
 

@@ -4,7 +4,7 @@ Built-in readiness and bootstrap commands:
 
 ```bash
 monochange step publish-readiness --from HEAD --output readiness.json
-monochange step placeholder-publish --from HEAD --output bootstrap.json
+monochange step placeholder-publish
 ```
 
 Repository-specific workflow commands can wrap publish planning and publishing:

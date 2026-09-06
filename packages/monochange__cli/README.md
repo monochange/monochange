@@ -57,7 +57,7 @@ For automated CI setup, include the `--provider` flag:
 monochange init --provider github
 ```
 
-This configures the `[source]` section, generates CLI commands for `commit-release` and `release-pr`, and creates GitHub Actions workflows.
+This configures the `[source]` section and creates GitHub Actions workflows for changeset policy and release automation. It intentionally does not add `[cli.*]` workflow commands.
 
 Validate the workspace:
 
@@ -279,7 +279,7 @@ monochange step open-release-request --dry-run --format json
 monochange step release-record --from v1.2.3
 monochange step tag-release --from HEAD --dry-run --format json
 monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
+monochange step placeholder-publish
 monochange step publish-readiness --from HEAD --output .monochange/readiness.json
 monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
 monochange step publish-packages --output .monochange/publish-result.json

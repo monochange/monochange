@@ -3,36 +3,7 @@
 	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
 )]
 #![forbid(clippy::indexing_slicing)]
-
-//! # `monochange_dart`
-//!
-//! `monochange_dart` discovers Dart and Flutter packages for the shared planner.
-//!
-//! Reach for this crate when you need to scan `pubspec.yaml` files, expand Dart or Flutter workspaces, and normalize package metadata into `monochange_core` records.
-//!
-//! ## Why use it?
-//!
-//! - cover both pure Dart and Flutter package layouts with one adapter
-//! - normalize pubspec metadata and dependency edges for shared release planning
-//! - detect Flutter packages without maintaining a separate discovery path
-//!
-//! ## Best for
-//!
-//! - scanning Dart or Flutter monorepos into normalized workspace records
-//! - reusing the same planning pipeline for mobile and non-mobile packages
-//! - discovering Flutter packages without a dedicated Flutter-only adapter layer
-//!
-//! ## Public entry points
-//!
-//! - `discover_dart_packages(root)` discovers Dart and Flutter workspaces plus standalone packages
-//! - `DartAdapter` exposes the shared adapter interface
-//!
-//! ## Scope
-//!
-//! - `pubspec.yaml` workspace expansion
-//! - Dart package parsing
-//! - Flutter package detection
-//! - normalized dependency extraction
+#![doc = include_str!("crate_docs.md")]
 pub mod analysis;
 
 use std::collections::BTreeMap;

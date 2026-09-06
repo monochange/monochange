@@ -66,4 +66,15 @@ Rules accept either a simple severity (`"error"`, `"warning"`, `"off"`) or a tab
 
 Use presets for the baseline policy and then layer explicit rules or scopes for exceptions. Scopes are useful when published packages need stricter metadata than fixtures, examples, private tools, or generated manifests.
 
+### Type-scoped changeset rules
+
+Changelog types can carry their own body policy through `changesets/types/<type>` rules. The `<type>` segment must match a configured changelog type (for example a `breaking` type can require migration notes even when the repo has multiple bump severities):
+
+```toml
+[lints.rules]
+"changesets/types/breaking" = { level = "error", min_body_chars = 60, require_code_block = true }
+```
+
+Scoped options mirror `changesets/bump/<severity>`: `min_body_chars`, `max_body_chars`, `require_code_block`, and `required_bump`.
+
 Run `monochange check` before release previews and before merging configuration changes.

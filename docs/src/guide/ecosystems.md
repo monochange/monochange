@@ -38,11 +38,11 @@ All supported ecosystems feed the same planner. After discovery, monochange can:
 
 ## Syncing internal dependency versions
 
-`monochange versions` updates existing internal dependency references outside a release. It discovers workspace package versions, finds supported manifests that reference another workspace package, and rewrites those references to the canonical package version. Use `--dry-run` first to print the planned edits without writing files.
+`monochange versions sync` updates existing internal dependency references outside a release. (The bare `monochange versions` alias is deprecated.) It discovers workspace package versions, finds supported manifests that reference another workspace package, and rewrites those references to the canonical package version. Use `--dry-run` first to print the planned edits without writing files.
 
 ```nu
-monochange versions --dry-run
-monochange versions --strategy exact
+monochange versions sync --dry-run
+monochange versions sync --strategy exact
 ```
 
 The `--strategy` flag accepts `default`, `exact`, `caret`, or `compatible`. `default` uses each supported ecosystem's normal constraint style; for `monochange versions` that means each ecosystem's configured or default constraint style. Dart version sync scans `dependencies`, `dev_dependencies`, and `dependency_overrides`; when a pubspec uses `resolution: workspace`, path references to internal packages are converted to version constraints. npm version sync scans package dependency sections and leaves `workspace:*` protocol references alone. Cargo, Deno, Go, and Python manifests are also rewritten when they reference another workspace package.
@@ -84,7 +84,7 @@ npm-family behavior:
 - package ids come from `package.json` names
 - internal dependency ranges default to the `^` prefix
 - `dependencies`, `devDependencies`, and `peerDependencies` participate in dependency updates
-- `monochange versions` can repair npm internal dependency ranges outside a release while preserving `workspace:*` protocol references
+- `monochange versions sync` can repair npm internal dependency ranges outside a release while preserving `workspace:*` protocol references
 - direct lockfile support covers `package-lock.json`, `pnpm-lock.yaml`, `bun.lock`, and `bun.lockb`
 - built-in publishing targets the public `npm` registry
 - GitHub npm trusted-publishing diagnostics are built in; registry-side enrollment stays manual or external, and trusted npm publishes use the `npm` CLI directly
@@ -124,7 +124,7 @@ Dart / Flutter behavior:
 - package type is canonically `dart` for both pure Dart and Flutter packages; Flutter packages are detected from `pubspec.yaml` metadata and published with `flutter pub publish` when appropriate
 - internal dependency ranges default to `^`
 - `dependencies` and `dev_dependencies` participate in dependency updates
-- `monochange versions` can repair Dart internal dependency ranges outside a release, including converting internal `path:` references to version constraints when `resolution: workspace` is enabled
+- `monochange versions sync` can repair Dart internal dependency ranges outside a release, including converting internal `path:` references to version constraints when `resolution: workspace` is enabled
 - `pubspec.lock` can be rewritten directly by default
 - configure `dart pub get` or `flutter pub get` as lockfile commands when you need the Pub solver to refresh files instead of the direct updater
 - built-in publishing targets `pub.dev`

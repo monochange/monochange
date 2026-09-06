@@ -3,13 +3,7 @@
 	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
 )]
 #![forbid(clippy::indexing_slicing)]
-
-//! Authoring helpers and macros for monochange lint suites.
-//!
-//! Use [`declare_lint_rule`] for straightforward rules whose customization mostly
-//! lives in `run(...)`. The Cargo suite uses the macro in real lint
-//! implementations, while rules that need additional constructor state can still
-//! use an explicit `struct` plus [`LintRule::new`].
+#![doc = include_str!("crate_docs.md")]
 
 pub use monochange_core::lint::LintCategory;
 pub use monochange_core::lint::LintMaturity;

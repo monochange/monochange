@@ -815,7 +815,7 @@ ignored_paths = []
 #
 # Add [cli.<name>] tables only for project-specific workflows that combine
 # multiple steps, add custom shell commands, or provide organization-specific
-# command names. Each table becomes a top-level `monochange <name>` command.
+# command names. Each table becomes a `monochange run <name>` workflow command.
 #
 # See the configuration guide for the full [cli.*] schema, input types, and
 # step definition examples.

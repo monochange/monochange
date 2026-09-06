@@ -276,7 +276,7 @@ Use `[changelog.style]` to tune rendered release-note shape. `metadata_style` ac
 metadata_style = "inline"
 ```
 
-You can also customize release-note rendering with a workspace-wide `[release_notes]` table plus per-package or per-group `extra_changelog_sections` definitions.
+You can also customize release-note rendering with a workspace-wide `[changelog]` table plus per-package or per-group changelog overrides.
 
 Supported template variables include:
 
@@ -352,8 +352,8 @@ Dependency-driven version bumps are declarative too. Packages and groups declare
 <!-- {@configurationWorkflowsSnippet} -->
 
 ```toml
-[release_notes]
-change_templates = [
+[changelog]
+templates = [
 	"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ details }}",
@@ -362,9 +362,8 @@ change_templates = [
 
 [package.core]
 path = "crates/core"
-extra_changelog_sections = [
-	{ name = "Security", types = ["security"], default_bump = "patch" },
-]
+[package.sdk-core.changelog.types]
+security = { bump = "patch", section = "Security" }
 
 [cli.discover]
 help_text = "Discover packages across supported ecosystems"
@@ -727,8 +726,8 @@ Current `PrepareRelease` behavior:
 - computes one synchronized release plan from discovered change files
 - updates native manifests plus configured changelogs and versioned files
 - renders changelog files through structured release notes using the configured `monochange` or `keep_a_changelog` format
-- groups release notes into default `Breaking changes`, `Features`, `Fixes`, and `Notes` sections, with package/group overrides available through `extra_changelog_sections`
-- applies workspace-wide release-note templates from `[release_notes].change_templates`
+- groups release notes into default `Breaking changes`, `Features`, `Fixes`, and `Notes` sections, with package/group overrides available through changelog `types` and `sections`
+- applies workspace-wide release-note templates from `[changelog].templates`
 - refreshes the cached `.monochange/release-manifest.json` artifact during `PrepareRelease` for downstream automation
 - can preview or publish provider releases via `PublishRelease`
 - can preview or open/update release requests via `OpenReleaseRequest`
@@ -837,8 +836,8 @@ monochange step affected-packages --format json --verify --changed-paths crates/
 path = "{{ path }}/changelog.md"
 format = "keep_a_changelog"
 
-[release_notes]
-change_templates = [
+[changelog]
+templates = [
 	"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ details }}",

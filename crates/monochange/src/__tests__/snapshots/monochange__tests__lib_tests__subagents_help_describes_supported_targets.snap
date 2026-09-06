@@ -14,7 +14,6 @@ Options:
       --force            Overwrite generated files that already exist with different contents
       --dry-run          Preview the generated files without writing them
       --format <format>  Output format for the generated subagent plan [default: markdown] [possible values: text, json, json-min, markdown, md]
-      --sha              Output only the commit SHA of the discovered release record
       --no-mcp           Skip repo-local MCP config files for supported targets
   -h, --help             Print help
 

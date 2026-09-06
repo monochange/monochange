@@ -12,7 +12,7 @@
 
 <!-- {=monochangeGoCrateDocs} -->
 
-`monochange_go` discovers Go modules for the shared planner.
+`monochange_go` discovers Go modules from `go.mod` files for the shared planner.
 
 Reach for this crate when you need to scan standalone `go.mod` files, parse module metadata and `require` dependencies, infer `go mod tidy`, and preserve Go's tag-based versioning model in mixed-language release plans.
 

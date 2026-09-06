@@ -107,7 +107,7 @@ monochange step open-release-request --dry-run --format json
 monochange step release-record --from v1.2.3
 monochange step tag-release --from HEAD --dry-run --format json
 monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-monochange step placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
+monochange step placeholder-publish
 monochange step publish-readiness --from HEAD --output .monochange/readiness.json
 monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
 monochange step publish-packages --output .monochange/publish-result.json

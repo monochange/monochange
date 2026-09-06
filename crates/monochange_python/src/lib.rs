@@ -4,30 +4,7 @@
 )]
 #![deny(clippy::all)]
 #![forbid(clippy::indexing_slicing)]
-
-//! # `monochange_python`
-//!
-//! `monochange_python` discovers Python packages from uv workspaces, Poetry
-//! projects, and standalone `pyproject.toml` files.
-//!
-//! ## Why use it?
-//!
-//! - discover uv workspaces and standalone Python packages with one adapter
-//! - normalize Python package manifests and dependency edges for the shared
-//!   planner
-//! - infer lockfile refresh commands for uv and Poetry
-//!
-//! ## Public entry points
-//!
-//! - `discover_python_packages(root)` discovers Python packages
-//! - `PythonAdapter` exposes the shared adapter interface
-//!
-//! ## Scope
-//!
-//! - uv workspace member expansion
-//! - `pyproject.toml` parsing (`[project]` and `[tool.poetry]`)
-//! - normalized dependency extraction from PEP 621 metadata
-//! - lockfile command inference for uv and Poetry
+#![doc = include_str!("crate_docs.md")]
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
