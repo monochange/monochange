@@ -1,0 +1,1713 @@
+{
+	"schema_version": "0.5",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-09-06T22:43:25Z",
+	"command": "release",
+	"version": "0.10.1",
+	"versions": {
+		"main": "0.10.1"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.10.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.10.1",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/docs-refresh-and-sample-tests.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/docs-refresh-and-sample-tests.md",
+			"summary": "refresh docs and validate doc samples in tests",
+			"details": "Every crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.",
+			"targets": [
+				{
+					"id": "@monochange/cli",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_analysis",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_dart",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_deno",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_forgejo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_gitea",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_gitlab",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_go",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_graph",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_hosting",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_lint",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_linting",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_python",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_semver",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_telemetry",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_test_helpers",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3e4725fc41a731619fb50ef8dcaf9da98ecc454f",
+						"short_sha": "3e4725f",
+						"url": "https://github.com/monochange/monochange/commit/3e4725fc41a731619fb50ef8dcaf9da98ecc454f",
+						"authored_at": "2026-09-06T23:34:11+01:00",
+						"committed_at": "2026-09-06T23:34:11+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#656",
+						"title": "docs: refresh stale docs, unify crate docs via mdt, validate samples in tests",
+						"url": "https://github.com/monochange/monochange/pull/656",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3e4725fc41a731619fb50ef8dcaf9da98ecc454f",
+						"short_sha": "3e4725f",
+						"url": "https://github.com/monochange/monochange/commit/3e4725fc41a731619fb50ef8dcaf9da98ecc454f",
+						"authored_at": "2026-09-06T23:34:11+01:00",
+						"committed_at": "2026-09-06T23:34:11+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#656",
+						"title": "docs: refresh stale docs, unify crate docs via mdt, validate samples in tests",
+						"url": "https://github.com/monochange/monochange/pull/656",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n_Packages:_ _@monochange/cli_, _@monochange/skill_, _monochange_, _monochange_analysis_, _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_dart_, _monochange_deno_, _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_, _monochange_go_, _monochange_graph_, _monochange_hosting_, _monochange_lint_, _monochange_linting_, _monochange_npm_, _monochange_python_, _monochange_semver_, _monochange_telemetry_, _monochange_test_helpers_\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\nGrouped release for `main`.\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n_Packages:_ _@monochange/cli_, _@monochange/skill_, _monochange_, _monochange_analysis_, _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_dart_, _monochange_deno_, _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_, _monochange_go_, _monochange_graph_, _monochange_hosting_, _monochange_lint_, _monochange_linting_, _monochange_npm_, _monochange_python_, _monochange_semver_, _monochange_telemetry_, _monochange_test_helpers_\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_changelog` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_changelog` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `monochange_publish` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `monochange_publish` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.10.1 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### Changed\n\n- No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.10.1 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.10.1](https://github.com/monochange/monochange/releases/tag/v0.10.1) (2026-09-06)\n\n### 🐛 Fixed\n\n#### refresh docs and validate doc samples in tests\n\nEvery crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.\n\nDocumentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.\n\nCommand references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.\n\nNew doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
