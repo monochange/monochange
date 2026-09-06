@@ -24,7 +24,7 @@ monochange_telemetry: patch
 monochange_test_helpers: patch
 ---
 
-# refresh documentation, unify crate docs through shared blocks, and validate doc samples in tests
+# refresh docs and validate doc samples in tests
 
 Every crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.
 
