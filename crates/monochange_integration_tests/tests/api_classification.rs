@@ -36,6 +36,36 @@ fn setup_api_fixture(name: &str) -> TempDir {
 	tempdir
 }
 
+fn setup_deleted_package_fixture() -> TempDir {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/api-classification/deleted-package");
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
+	copy_directory(&fixture_root.join("before"), tempdir.path());
+	git(tempdir.path(), &["init"]);
+	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
+	git(
+		tempdir.path(),
+		&["config", "user.email", "monochange-tests@example.com"],
+	);
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "base"]);
+	git(tempdir.path(), &["tag", "retired/v1.0.0"]);
+	git(tempdir.path(), &["tag", "retired_js/v2.0.0"]);
+
+	std::fs::remove_dir_all(tempdir.path().join("crates/retired"))
+		.unwrap_or_else(|error| panic!("remove retired package: {error}"));
+	std::fs::remove_dir_all(tempdir.path().join("packages/retired-js"))
+		.unwrap_or_else(|error| panic!("remove retired JavaScript package: {error}"));
+	std::fs::remove_file(tempdir.path().join("monochange.toml"))
+		.unwrap_or_else(|error| panic!("remove monochange config: {error}"));
+	copy_directory(&fixture_root.join("after"), tempdir.path());
+	git(tempdir.path(), &["add", "--all"]);
+	git(tempdir.path(), &["commit", "-m", "delete package"]);
+
+	tempdir
+}
+
 fn run_mc(root: &Path, args: &[&str]) -> String {
 	let mut cli_args = vec![OsString::from("monochange")];
 	cli_args.extend(args.iter().map(OsString::from));
@@ -101,6 +131,64 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 		comparisons
 			.iter()
 			.any(|comparison| comparison["kind"] == "pullRequest")
+	}));
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(report);
+	});
+}
+
+#[test]
+fn change_classify_detects_a_package_deleted_from_the_candidate() {
+	let fixture = setup_deleted_package_fixture();
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	assert_eq!(report["recommendation"], "major");
+	assert_package_recommendation(&report, "retired", "major");
+	assert_package_recommendation(&report, "retired_js", "major");
+	let retired = package(&report, "retired");
+	assert_eq!(retired["releaseOwner"]["id"], "retired");
+	assert_eq!(retired["releaseOwner"]["latestRelease"], "retired/v1.0.0");
+	assert!(retired["findings"].as_array().is_some_and(|findings| {
+		let removed_public_api = findings.iter().any(|finding| {
+			finding["change"] == "removed"
+				&& finding["impact"] == "breaking"
+				&& finding["surface"] == "public_api"
+				&& finding["location"] == "src/lib.rs"
+		});
+		let removed_package = findings.iter().any(|finding| {
+			finding["ruleId"] == "monochange/package-lifecycle/package/removed/package"
+				&& finding["confidence"] == "high"
+				&& finding["coverage"]["completeness"] == "complete"
+				&& finding["location"] == "Cargo.toml"
+		});
+		removed_public_api && removed_package
+	}));
+	let retired_js = package(&report, "retired_js");
+	assert_eq!(retired_js["releaseOwner"]["id"], "retired_js");
+	assert_eq!(
+		retired_js["releaseOwner"]["latestRelease"],
+		"retired_js/v2.0.0"
+	);
+	assert!(retired_js["findings"].as_array().is_some_and(|findings| {
+		let removed_export = findings.iter().any(|finding| {
+			finding["change"] == "removed"
+				&& finding["impact"] == "breaking"
+				&& finding["location"] == "src/index.ts"
+		});
+		let removed_package = findings.iter().any(|finding| {
+			finding["ruleId"] == "monochange/package-lifecycle/package/removed/package"
+				&& finding["confidence"] == "high"
+				&& finding["coverage"]["completeness"] == "complete"
+				&& finding["location"] == "package.json"
+		});
+		removed_export && removed_package
 	}));
 
 	snapshot_settings().bind(|| {

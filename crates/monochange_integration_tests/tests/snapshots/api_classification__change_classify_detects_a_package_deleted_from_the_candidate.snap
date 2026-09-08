@@ -1,0 +1,342 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+expression: report
+---
+{
+  "candidate": "merge-tree:[SHA]",
+  "comparisons": [
+    {
+      "base": "HEAD~1",
+      "head": "merge-tree:[SHA]",
+      "kind": "pullRequest",
+      "note": null,
+      "status": "analyzed"
+    },
+    {
+      "base": "[SHA]",
+      "head": "HEAD",
+      "kind": "sourceDelta",
+      "note": null,
+      "status": "analyzed"
+    }
+  ],
+  "defaultBranch": "HEAD~1",
+  "packages": [
+    {
+      "action": "create",
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pullRequest",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "sourceDelta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "retired/v1.0.0",
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "retired/v1.0.0",
+          "head": "HEAD~1",
+          "kind": "releaseToDefault",
+          "note": null,
+          "status": "analyzed"
+        }
+      ],
+      "decision": {
+        "compatibilityImpact": "breaking",
+        "completeness": "complete",
+        "confidence": "high",
+        "enforceableMinimum": "major",
+        "findingIds": [
+          "cargo/public-api/public_api/removed/function/public_api",
+          "monochange/package-lifecycle/package/removed/package/retired"
+        ],
+        "proposedChangesetBump": "major",
+        "releaseFloor": "major",
+        "reviewRequired": false
+      },
+      "ecosystem": "cargo",
+      "existingChangesets": [],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "2024",
+          "bump": "patch",
+          "change": "removed",
+          "comparisons": [
+            "pullRequest",
+            "release",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/metadata/removed/manifest_field/package.edition",
+          "impact": "compatible",
+          "location": "Cargo.toml",
+          "ruleId": "cargo/public-api/metadata/removed/manifest_field",
+          "summary": "manifest_field `package.edition` removed",
+          "surface": "metadata"
+        },
+        {
+          "after": null,
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "fn public_api () -> & 'static str",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pullRequest",
+            "release",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/removed/function/public_api",
+          "impact": "breaking",
+          "location": "src/lib.rs",
+          "ruleId": "cargo/public-api/public_api/removed/function",
+          "summary": "function `public_api` removed",
+          "surface": "public_api"
+        },
+        {
+          "after": null,
+          "analyzer": {
+            "id": "monochange/package-lifecycle",
+            "version": "1"
+          },
+          "before": "cargo package `retired`",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pullRequest",
+            "release",
+            "sourceDelta"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "completeness": "complete",
+            "detectionLevel": "signature",
+            "note": "package manifest presence was compared at both endpoints"
+          },
+          "id": "monochange/package-lifecycle/package/removed/package/retired",
+          "impact": "breaking",
+          "location": "Cargo.toml",
+          "ruleId": "monochange/package-lifecycle/package/removed/package",
+          "summary": "removed cargo package `retired`",
+          "surface": "package"
+        }
+      ],
+      "packageId": "retired",
+      "packageName": "retired",
+      "recommendation": "major",
+      "releaseOwner": {
+        "id": "retired",
+        "kind": "package",
+        "latestRelease": "retired/v1.0.0"
+      },
+      "summary": "2 breaking finding(s) propose a major changeset",
+      "warnings": []
+    },
+    {
+      "action": "create",
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pullRequest",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "sourceDelta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "retired_js/v2.0.0",
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "retired_js/v2.0.0",
+          "head": "HEAD~1",
+          "kind": "releaseToDefault",
+          "note": null,
+          "status": "analyzed"
+        }
+      ],
+      "decision": {
+        "compatibilityImpact": "breaking",
+        "completeness": "complete",
+        "confidence": "high",
+        "enforceableMinimum": "major",
+        "findingIds": [
+          "monochange/package-lifecycle/package/removed/package/retired-js",
+          "npm/package-json/export/removed/export/.",
+          "npm/package-json/public_api/removed/function/publicApi"
+        ],
+        "proposedChangesetBump": "major",
+        "releaseFloor": "major",
+        "reviewRequired": false
+      },
+      "ecosystem": "npm",
+      "existingChangesets": [],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "monochange/package-lifecycle",
+            "version": "1"
+          },
+          "before": "npm package `retired-js`",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pullRequest",
+            "release",
+            "sourceDelta"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "completeness": "complete",
+            "detectionLevel": "signature",
+            "note": "package manifest presence was compared at both endpoints"
+          },
+          "id": "monochange/package-lifecycle/package/removed/package/retired-js",
+          "impact": "breaking",
+          "location": "package.json",
+          "ruleId": "monochange/package-lifecycle/package/removed/package",
+          "summary": "removed npm package `retired-js`",
+          "surface": "package"
+        },
+        {
+          "after": null,
+          "analyzer": {
+            "id": "npm/package-json",
+            "version": "1"
+          },
+          "before": "./src/index.ts",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pullRequest",
+            "release",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "signature",
+            "note": "package metadata and export syntax; entrypoint reachability and TypeScript assignability are not complete"
+          },
+          "id": "npm/package-json/export/removed/export/.",
+          "impact": "breaking",
+          "location": "package.json",
+          "ruleId": "npm/package-json/export/removed/export",
+          "summary": "export `.` removed",
+          "surface": "export"
+        },
+        {
+          "after": null,
+          "analyzer": {
+            "id": "npm/package-json",
+            "version": "1"
+          },
+          "before": "module",
+          "bump": "patch",
+          "change": "removed",
+          "comparisons": [
+            "pullRequest",
+            "release",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "signature",
+            "note": "package metadata and export syntax; entrypoint reachability and TypeScript assignability are not complete"
+          },
+          "id": "npm/package-json/metadata/removed/manifest_field/type",
+          "impact": "compatible",
+          "location": "package.json",
+          "ruleId": "npm/package-json/metadata/removed/manifest_field",
+          "summary": "manifest_field `type` removed",
+          "surface": "metadata"
+        },
+        {
+          "after": null,
+          "analyzer": {
+            "id": "npm/package-json",
+            "version": "1"
+          },
+          "before": "export function publicApi(): string;",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pullRequest",
+            "release",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "signature",
+            "note": "package metadata and export syntax; entrypoint reachability and TypeScript assignability are not complete"
+          },
+          "id": "npm/package-json/public_api/removed/function/publicApi",
+          "impact": "breaking",
+          "location": "src/index.ts",
+          "ruleId": "npm/package-json/public_api/removed/function",
+          "summary": "function `publicApi` removed",
+          "surface": "public_api"
+        }
+      ],
+      "packageId": "retired_js",
+      "packageName": "retired-js",
+      "recommendation": "major",
+      "releaseOwner": {
+        "id": "retired_js",
+        "kind": "package",
+        "latestRelease": "retired_js/v2.0.0"
+      },
+      "summary": "3 breaking finding(s) propose a major changeset",
+      "warnings": []
+    }
+  ],
+  "recommendation": "major",
+  "schemaVersion": 1,
+  "warnings": [
+    "changed path `Cargo.toml` did not match any configured package",
+    "changed path `monochange.toml` did not match any configured package"
+  ]
+}

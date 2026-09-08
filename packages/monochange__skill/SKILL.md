@@ -116,11 +116,12 @@ Prefer MCP tools when the caller needs structured data and the shell when you ne
 Release planning treats built-in semantic analysis as advisory evidence. `monochange change classify` reports the current pull request separately from the full interval since the package's latest release. Compare this evidence with human-authored changesets:
 
 - removed or modified public API/export evidence implies at least `major`;
+- a removed `monochange/package-lifecycle` package implies at least `major` with high-confidence evidence;
 - added public API/export evidence implies at least `minor`;
 - dependency or metadata evidence is usually `patch` context;
 - warnings about semantic changes without matching changesets should be resolved before release.
 
-Built-in findings are partial and medium-confidence. Follow [skills/change-classification.md](skills/change-classification.md) to inspect coverage gaps and use cargo-semver-checks for a higher-assurance Rust decision.
+Package lifecycle findings are complete and high-confidence. Built-in ecosystem source findings remain partial and medium-confidence. Follow [skills/change-classification.md](skills/change-classification.md) to inspect coverage gaps and use cargo-semver-checks for a higher-assurance Rust decision.
 
 For comparing two refs, use `monochange analyze`:
 

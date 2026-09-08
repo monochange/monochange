@@ -35,13 +35,13 @@ Interpret the remaining fields together:
 - `reviewRequired: true` means the recommendation is advisory. Keep the proposed bump unless repository policy or stronger evidence justifies another choice.
 - `completeness: complete` with `proposedChangesetBump: none` supports no release intent. A warning, unavailable comparison, or partial result requires review.
 
+A `monochange/package-lifecycle` finding comes from manifest presence at both comparison endpoints. Treat a removed package as high-confidence breaking evidence and use a major changeset. This finding makes the bump decision complete because no higher bump exists. The finding remains available when the candidate also removes the package entry from `monochange.toml`. Use its preserved `releaseOwner.latestRelease` to inspect the release interval.
+
 `action` describes the pending changeset work: `create`, `update`, `keep`, `review`, or `no_changeset`. For `review`, determine whether the changeset intentionally describes a cross-package consumer effect; remove it only after confirming that the release intent is stale. Read `existingChangesets` before adding a file so you do not duplicate release intent.
 
 ## Check ecosystem coverage
 
-Built-in Cargo, npm, Deno, and Dart findings are medium-confidence and partial. They model syntax and package metadata, but they do not prove every source-compatible behavior.
-
-If the pull request deletes an entire package and its manifest, inspect that package directly at the base and release refs. Package discovery reads the candidate checkout, so the built-in report cannot reconstruct a fully removed package's identity by itself.
+Package lifecycle findings are high-confidence and complete. Built-in Cargo, npm, Deno, and Dart source findings are medium-confidence and partial. The source analyzers model syntax and package metadata, but they do not prove every source-compatible behavior.
 
 For a Rust breaking-change decision that needs stronger evidence, run cargo-semver-checks with the release tag from `releaseOwner.latestRelease`:
 

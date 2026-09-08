@@ -195,6 +195,7 @@ fn sample_package_analysis(
 		package_record_id: package_id.to_string(),
 		package_name: package_id.to_string(),
 		ecosystem: Ecosystem::Cargo,
+		release_identity: None,
 		analyzer_id: Some("test".to_string()),
 		changed_files: vec![PathBuf::from("src/lib.rs")],
 		semantic_changes,

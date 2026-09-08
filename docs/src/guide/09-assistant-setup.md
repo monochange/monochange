@@ -21,7 +21,7 @@ After writing or updating the changesets, validate high-confidence evidence:
 monochange changeset validate --api --format markdown
 ```
 
-The built-in analyzers currently report partial, medium-confidence evidence, so their recommendations remain advisory by default. Add `--strict` only when the repository wants every proposal to fail CI on a changeset mismatch.
+Package addition and removal findings use complete, high-confidence endpoint evidence. Ecosystem source analyzers report partial, medium-confidence evidence, so their recommendations remain advisory by default. Add `--strict` only when the repository wants every proposal to fail CI on a changeset mismatch.
 
 ## Install the CLI and skill
 

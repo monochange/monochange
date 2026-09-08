@@ -437,6 +437,7 @@ fn api_change_modified(before: &ApiItem, after: &ApiItem) -> ApiChange {
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum SemanticChangeCategory {
+	Package,
 	PublicApi,
 	Export,
 	Dependency,

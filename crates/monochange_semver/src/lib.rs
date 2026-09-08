@@ -134,7 +134,9 @@ pub fn semantic_change_severity(change: &SemanticChange) -> BumpSeverity {
 	if matches!(
 		(change.category, change.kind),
 		(
-			SemanticChangeCategory::PublicApi | SemanticChangeCategory::Export,
+			SemanticChangeCategory::Package
+				| SemanticChangeCategory::PublicApi
+				| SemanticChangeCategory::Export,
 			SemanticChangeKind::Removed | SemanticChangeKind::Modified
 		)
 	) {
@@ -144,7 +146,9 @@ pub fn semantic_change_severity(change: &SemanticChange) -> BumpSeverity {
 	if matches!(
 		(change.category, change.kind),
 		(
-			SemanticChangeCategory::PublicApi | SemanticChangeCategory::Export,
+			SemanticChangeCategory::Package
+				| SemanticChangeCategory::PublicApi
+				| SemanticChangeCategory::Export,
 			SemanticChangeKind::Added
 		)
 	) {
