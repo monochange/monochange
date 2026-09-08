@@ -77,11 +77,10 @@ pub(crate) async fn check_trusted_publishing_readiness(
 		// that was never published blocks in every environment.
 		ProjectSideOutcome::LocalRun => {
 			let probe = registry_probe(request, registry_transport).await;
-			return if probe.status == TrustedPublishingReadinessStatus::Blocked {
-				probe
-			} else {
-				local_unverified_readiness(request)
-			};
+			if probe.status == TrustedPublishingReadinessStatus::Blocked {
+				return probe;
+			}
+			return local_unverified_readiness(request);
 		}
 		ProjectSideOutcome::Verified => {}
 	}

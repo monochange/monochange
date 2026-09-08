@@ -488,6 +488,17 @@ fn render_report_supports_json_text_and_markdown() {
 	let blocked_text = render_report(&blocked_report, OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("blocked text report: {error}"));
 	assert!(blocked_text.contains("trusted publishing [blocked]"));
+
+	let disabled_report = sample_readiness_report(vec![PublishReadinessPackage {
+		trusted_publishing: Some(TrustedPublishingReadiness {
+			status: TrustedPublishingReadinessStatus::Disabled,
+			message: "trusted publishing is disabled".to_string(),
+		}),
+		..sample_readiness_package()
+	}]);
+	let disabled_text = render_report(&disabled_report, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("disabled text report: {error}"));
+	assert!(disabled_text.contains("trusted publishing [disabled]"));
 }
 
 #[test]
@@ -1274,4 +1285,60 @@ async fn build_report_blocks_packages_when_trusted_publishing_readiness_blocks()
 		trust.status,
 		crate::trusted_publishing_readiness::TrustedPublishingReadinessStatus::Blocked
 	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_publish_readiness_report_handles_empty_release_publications() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let git = |args: &[&str]| {
+		std::process::Command::new("git")
+			.current_dir(root)
+			.args(["-c", "commit.gpgsign=false"])
+			.args(args)
+			.output()
+			.unwrap_or_else(|error| panic!("git {args:?}: {error}"));
+	};
+	git(&["init"]);
+	git(&["config", "user.name", "monochange-tests"]);
+	git(&["config", "user.email", "monochange-tests@example.com"]);
+	fs::write(
+		root.join("monochange.toml"),
+		"[defaults]\npackage_type = \"cargo\"\n",
+	)
+	.unwrap();
+	let releases = root.join(".monochange/releases/abc123");
+	fs::create_dir_all(&releases).unwrap();
+	fs::write(
+		releases.join("release.json"),
+		r#"{
+	"schema_version": "0.4",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-04-07T00:00:00Z",
+	"command": "release",
+	"version": null,
+	"versions": {},
+	"release_targets": [],
+	"released_packages": [],
+	"changed_files": [],
+	"package_publications": [],
+	"updated_changelogs": [],
+	"deleted_changesets": [],
+	"changesets": [],
+	"changelogs": [],
+	"provider": null
+}"#,
+	)
+	.unwrap();
+	git(&["add", "."]);
+	git(&["commit", "-m", "release"]);
+
+	let report =
+		build_publish_readiness_report(root, &sample_configuration(root), "HEAD", &BTreeSet::new())
+			.await
+			.unwrap_or_else(|error| panic!("build readiness report: {error}"));
+
+	assert!(report.packages.is_empty());
+	assert!(report.publish_order.is_empty());
+	assert_eq!(report.status, PublishReadinessGlobalStatus::Ready);
 }
