@@ -126,7 +126,7 @@ async fn execute_publish_requests(
 		executor,
 		&build_publish_command_builder(),
 		&placeholder_manifest_writer_registry(),
-		&publish_readiness_registry(),
+		&publish_readiness_registry(None),
 		&CliPublishTrustHandler,
 	)
 	.await

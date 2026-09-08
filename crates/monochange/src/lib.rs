@@ -258,6 +258,7 @@ mod subagents;
 mod sync;
 pub use sync::sync_workspace_versions;
 mod tracing_setup;
+mod trusted_publishing_readiness;
 mod versioned_files;
 mod workspace_ops;
 

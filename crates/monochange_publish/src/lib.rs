@@ -32,7 +32,7 @@ use monochange_core::SourceConfiguration;
 use monochange_core::TrustedPublishingSettings;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::default_publish_order_dependency_fields;
-use reqwest::Client;
+pub use reqwest::Client;
 use reqwest::StatusCode;
 use rustls::crypto::ring::default_provider as ring_provider;
 use serde::Deserialize;
@@ -1032,6 +1032,34 @@ pub async fn try_execute_publish_requests_with_progress(
 	trust_handler: &dyn PublishTrustHandler,
 	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
+	// Fail fast before any registry mutation: run every per-package readiness
+	// checker up-front so a package that cannot publish aborts the run before
+	// an earlier package has already been published.
+	if mode == PackagePublishRunMode::Release && !dry_run {
+		for request in requests {
+			let blocked = readiness.blocked_message(root, request).map_err(|error| {
+				PackagePublishFailure::new(
+					error,
+					PackagePublishReport {
+						mode,
+						dry_run,
+						packages: Vec::new(),
+					},
+				)
+			})?;
+			if let Some(message) = blocked {
+				return Err(PackagePublishFailure::new(
+					MonochangeError::Config(message),
+					PackagePublishReport {
+						mode,
+						dry_run,
+						packages: Vec::new(),
+					},
+				));
+			}
+		}
+	}
+
 	let ecosystems = requests
 		.iter()
 		.map(|request| request.ecosystem)
@@ -3121,7 +3149,7 @@ fn circle_project_slug(env_map: &BTreeMap<String, String>) -> Option<String> {
 
 use monochange_core::materialize_dependency_edges;
 
-fn publish_order_dependency_edges(
+pub fn publish_order_dependency_edges(
 	configuration: &WorkspaceConfiguration,
 	packages: &[PackageRecord],
 ) -> Vec<DependencyEdge> {
@@ -3175,7 +3203,7 @@ fn publish_order_dependency_edges(
 	edges
 }
 
-fn publish_order_dependency_fields(
+pub fn publish_order_dependency_fields(
 	configuration: &WorkspaceConfiguration,
 	ecosystem: Ecosystem,
 ) -> BTreeSet<String> {
@@ -3595,6 +3623,107 @@ pub async fn filter_pending_publish_requests_with_transport(
 	}
 
 	Ok(pending_requests)
+}
+
+/// Probe whether a package exists on its registry at all (any version).
+///
+/// Returns `Ok(None)` for registries that monochange cannot probe without
+/// credentials. Trusted publishing requires an existing package on npm,
+/// crates.io, and pub.dev, so readiness uses this to catch packages that
+/// would fail midway through a publish run.
+pub async fn registry_package_exists(request: &PublishRequest) -> MonochangeResult<Option<bool>> {
+	let client = registry_client()?;
+	let endpoints = RegistryEndpoints::from_env();
+	registry_package_exists_with_transport(request, &client, &endpoints).await
+}
+
+pub async fn registry_package_exists_with_transport(
+	request: &PublishRequest,
+	client: &Client,
+	endpoints: &RegistryEndpoints,
+) -> MonochangeResult<Option<bool>> {
+	if request.registry == RegistryKind::Npm {
+		let url = format!(
+			"{}/{}",
+			endpoints.npm_registry.trim_end_matches('/'),
+			encode(&request.package_name)
+		);
+		let response = client
+			.get(url)
+			.send()
+			.await
+			.map_err(http_error("npm registry lookup"))?;
+		if response.status() == StatusCode::NOT_FOUND {
+			return Ok(Some(false));
+		}
+		let response = response
+			.error_for_status()
+			.map_err(http_error("npm registry lookup"))?;
+		let json = response
+			.json::<JsonValue>()
+			.await
+			.map_err(http_error("npm registry decode"))?;
+		let exists = json
+			.get("versions")
+			.and_then(JsonValue::as_object)
+			.is_some_and(|versions| !versions.is_empty());
+		return Ok(Some(exists));
+	}
+
+	if request.registry == RegistryKind::CratesIo {
+		let url = format!(
+			"{}/crates/{}",
+			endpoints.crates_io_api.trim_end_matches('/'),
+			encode(&request.package_name)
+		);
+		let response = client
+			.get(url)
+			.send()
+			.await
+			.map_err(http_error("crates.io lookup"))?;
+		if response.status() == StatusCode::NOT_FOUND {
+			return Ok(Some(false));
+		}
+		let response = response
+			.error_for_status()
+			.map_err(http_error("crates.io lookup"))?;
+		let json = response
+			.json::<JsonValue>()
+			.await
+			.map_err(http_error("crates.io decode"))?;
+		let exists = json.get("crate").is_some();
+		return Ok(Some(exists));
+	}
+
+	if request.registry == RegistryKind::PubDev {
+		let url = format!(
+			"{}/packages/{}",
+			endpoints.pub_dev_api.trim_end_matches('/'),
+			encode(&request.package_name)
+		);
+		let response = client
+			.get(url)
+			.send()
+			.await
+			.map_err(http_error("pub.dev lookup"))?;
+		if response.status() == StatusCode::NOT_FOUND {
+			return Ok(Some(false));
+		}
+		let response = response
+			.error_for_status()
+			.map_err(http_error("pub.dev lookup"))?;
+		let json = response
+			.json::<JsonValue>()
+			.await
+			.map_err(http_error("pub.dev decode"))?;
+		let exists = json
+			.get("versions")
+			.and_then(JsonValue::as_array)
+			.is_some_and(|versions| !versions.is_empty());
+		return Ok(Some(exists));
+	}
+
+	Ok(None)
 }
 pub async fn registry_version_exists(
 	client: &Client,

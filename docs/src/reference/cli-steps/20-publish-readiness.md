@@ -32,7 +32,22 @@ It is especially useful for:
 
 The step is read-only. It may contact registries for existence checks, but it does not publish package artifacts.
 
-When `output` is set, monochange writes a JSON readiness artifact that includes the release record commit, selected packages, package-set fingerprint, and publish input fingerprint. Re-run readiness if workspace configuration, manifests, lockfiles, or registry/tooling files change after the artifact was written.
+When `output` is set, monochange writes a JSON readiness artifact that includes the release record commit, selected packages, package-set fingerprint, publish input fingerprint, the dependency-corrected `publish_order`, per-package trusted-publishing findings, and order findings. Re-run readiness if workspace configuration, manifests, lockfiles, or registry/tooling files change after the artifact was written.
+
+## Trusted publishing checks
+
+For every package with `publish.trusted_publishing = true`, the step verifies the configuration before anything is published:
+
+- the GitHub trust context (repository, workflow, optional environment) resolves from `monochange.toml`, the source configuration, or the CI environment
+- the referenced workflow file exists under `.github/workflows/`
+- the current environment can verify the CI/OIDC identity when a supported CI provider is detected
+- the package exists on npm, crates.io, or pub.dev, because those registries only accept trusted publishing for existing packages; unpublished packages are blocked with guidance to run `monochange step placeholder-publish` first
+
+Findings are recorded per package as `disabled`, `verified`, `manual_verification_required`, or `blocked`. Registry-side trusted publisher entries cannot be read back without registry credentials, so existing packages surface as `manual_verification_required` with the registry setup URL instead of a hard block. Network lookup failures also stay non-blocking, keeping the step usable offline.
+
+## Publication order checks
+
+The step validates the planned publish order against the workspace dependency graph, including dev-dependencies, and records it as `publish_order` in the artifact. A package scheduled before one of its workspace dependencies is a blocking order finding. A release record whose recorded publication order differs from the corrected plan is a non-blocking note, because package publishing follows the dependency-corrected order.
 
 ## Example
 

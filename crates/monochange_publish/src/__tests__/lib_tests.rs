@@ -1444,9 +1444,11 @@ async fn registry_lookup_failure_records_failed_package_blocked_tail_and_finishe
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn readiness_checker_error_records_failed_package_blocked_tail_and_finished_total() {
+async fn readiness_checker_error_fails_the_run_before_any_mutation() {
 	let requests = [publish_request("failed"), publish_request("tail")];
-	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	// The preflight must abort before any registry lookup, so the mock
+	// registry never receives a request.
+	let (endpoints, registry_thread) = npm_not_found_endpoints(0);
 	let readiness = PublishReadinessRegistry::new().with_checker(
 		RegistryKind::Npm,
 		Box::new(|_, _| {
@@ -1459,7 +1461,7 @@ async fn readiness_checker_error_records_failed_package_blocked_tail_and_finishe
 	let mut executor =
 		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
 
-	let report = try_execute_publish_requests_with_progress(
+	let failure = try_execute_publish_requests_with_progress(
 		Path::new("."),
 		None,
 		PackagePublishRunMode::Release,
@@ -1476,26 +1478,22 @@ async fn readiness_checker_error_records_failed_package_blocked_tail_and_finishe
 		&progress,
 	)
 	.await
-	.expect_err("readiness checker failure should carry a report")
-	.into_report();
+	.expect_err("readiness checker failure should fail the run")
+	.into_parts();
 	registry_thread
 		.join()
 		.unwrap_or_else(|_| panic!("test registry thread panicked"));
 
+	assert!(failure.1.packages.is_empty());
 	assert!(executor.commands.is_empty());
-	assert_complete_failed_publish_run(
-		&report,
-		&requests,
-		&progress,
-		"readiness checker failed",
-		false,
-	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn real_run_readiness_block_records_failed_package_instead_of_returning_error() {
+async fn real_run_readiness_block_fails_the_run_before_any_mutation() {
 	let requests = [publish_request("failed"), publish_request("tail")];
-	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	// The preflight must abort before any registry lookup, so the mock
+	// registry never receives a request.
+	let (endpoints, registry_thread) = npm_not_found_endpoints(0);
 	let readiness = PublishReadinessRegistry::new().with_checker(
 		RegistryKind::Npm,
 		Box::new(|_, _| Ok(Some("release is not ready".to_string()))),
@@ -1504,7 +1502,7 @@ async fn real_run_readiness_block_records_failed_package_instead_of_returning_er
 	let mut executor =
 		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
 
-	let report = try_execute_publish_requests_with_progress(
+	let failure = try_execute_publish_requests_with_progress(
 		Path::new("."),
 		None,
 		PackagePublishRunMode::Release,
@@ -1521,20 +1519,14 @@ async fn real_run_readiness_block_records_failed_package_instead_of_returning_er
 		&progress,
 	)
 	.await
-	.expect_err("blocked readiness should carry a report")
-	.into_report();
+	.expect_err("blocked readiness should fail the run")
+	.into_parts();
 	registry_thread
 		.join()
 		.unwrap_or_else(|_| panic!("test registry thread panicked"));
 
+	assert!(failure.1.packages.is_empty());
 	assert!(executor.commands.is_empty());
-	assert_complete_failed_publish_run(
-		&report,
-		&requests,
-		&progress,
-		"release is not ready",
-		false,
-	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -3418,4 +3410,98 @@ async fn dart_trusted_publish_fails_when_the_oidc_token_cannot_be_minted() {
 	pub_dev_server
 		.join()
 		.unwrap_or_else(|_| panic!("pub.dev server thread"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_package_exists_probes_package_presence_per_registry() {
+	static LEAKED_EXISTING_BODY: &[u8] =
+		b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 25\r\nConnection: close\r\n\r\n{\"versions\":{\"1.0.0\":{}}}";
+	let (mut endpoints, server) = npm_registry_response_endpoints(1, LEAKED_EXISTING_BODY);
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+
+	let npm_existing = registry_package_exists_with_transport(
+		&sample_publish_request_for_registry(RegistryKind::Npm),
+		&client,
+		&endpoints,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("npm package lookup: {error}"));
+	assert_eq!(npm_existing, Some(true));
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("npm registry server thread"));
+
+	let (missing_endpoints, missing_server) = npm_not_found_endpoints(1);
+	endpoints.npm_registry = missing_endpoints.npm_registry;
+	let npm_missing = registry_package_exists_with_transport(
+		&sample_publish_request_for_registry(RegistryKind::Npm),
+		&client,
+		&endpoints,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("npm package lookup: {error}"));
+	assert_eq!(npm_missing, Some(false));
+	missing_server
+		.join()
+		.unwrap_or_else(|_| panic!("npm missing server thread"));
+
+	// Registries without a public package probe report None instead of a
+	// false negative.
+	let unsupported = registry_package_exists_with_transport(
+		&sample_publish_request_for_registry(RegistryKind::Jsr),
+		&client,
+		&endpoints,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("jsr package lookup: {error}"));
+	assert_eq!(unsupported, None);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_preflight_blocks_before_any_publish_mutation() {
+	let requests = [publish_request("first"), publish_request("blocked")];
+	let (endpoints, registry_thread) = npm_not_found_endpoints(0);
+	let progress = RecordingPublishProgressReporter::default();
+	let readiness = PublishReadinessRegistry::new().with_checker(
+		RegistryKind::Npm,
+		Box::new(|_root, request| {
+			if request.package_id == "blocked" {
+				Ok(Some("blocked package cannot publish".to_string()))
+			} else {
+				Ok(None)
+			}
+		}),
+	);
+
+	let failure = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut PanickingCommandExecutor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&readiness,
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.expect_err("preflight blockers must fail the run before mutation");
+	assert!(
+		failure
+			.error()
+			.render()
+			.contains("blocked package cannot publish")
+	);
+	assert!(
+		failure.report().packages.is_empty(),
+		"preflight must not record per-package outcomes"
+	);
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("registry server thread"));
 }
