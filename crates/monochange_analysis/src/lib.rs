@@ -9,7 +9,6 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::Read as _;
-use std::io::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -859,23 +858,12 @@ fn build_revision_snapshot_files(
 		let mut output = Vec::new();
 		stderr.read_to_end(&mut output).map(|_| output)
 	});
-	let write_error = {
-		let mut stdin = child
-			.stdin
-			.take()
-			.ok_or_else(|| MonochangeError::Io("failed to open git cat-file stdin".to_string()))?;
-		let mut write_error = None;
-		for path in paths {
-			if let Err(error) = writeln!(&mut stdin, "{revision}:{}", path.to_string_lossy()) {
-				// patch-coverage:ignore-start -- pipe closure timing is process-scheduler dependent; the error is retained and process status is tested.
-				write_error = Some(MonochangeError::Io(format!(
-					"failed to write git cat-file input: {error}"
-				)));
-				break;
-			} // patch-coverage:ignore-end
-		}
-		write_error
-	};
+	let mut stdin = child
+		.stdin
+		.take()
+		.ok_or_else(|| MonochangeError::Io("failed to open git cat-file stdin".to_string()))?;
+	let write_result = write_revision_snapshot_requests(&mut stdin, revision, paths);
+	drop(stdin);
 
 	// patch-coverage:ignore-start -- child wait and reader failures require invalidating handles owned exclusively by this function.
 	let status = child.wait().map_err(|error| {
@@ -900,13 +888,23 @@ fn build_revision_snapshot_files(
 			String::from_utf8_lossy(&stderr).trim()
 		)));
 	}
-	// patch-coverage:ignore-start -- a successful git process cannot also close its input pipe before consuming the complete request.
-	if let Some(error) = write_error {
-		return Err(error);
-	}
-	// patch-coverage:ignore-end
+	write_result?;
 
 	parse_revision_snapshot_batch(package_root, paths, &output)
+}
+
+fn write_revision_snapshot_requests(
+	writer: &mut dyn std::io::Write,
+	revision: &str,
+	paths: &[PathBuf],
+) -> MonochangeResult<()> {
+	for path in paths {
+		writeln!(writer, "{revision}:{}", path.to_string_lossy()).map_err(|error| {
+			MonochangeError::Io(format!("failed to write git cat-file input: {error}"))
+		})?;
+	}
+
+	Ok(())
 }
 
 fn parse_revision_snapshot_batch(
