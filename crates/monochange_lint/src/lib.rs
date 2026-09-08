@@ -295,10 +295,11 @@ impl Linter {
 					.and_then(|suite_id| self.registry.suites.get(suite_id))
 					.is_none_or(|suite| suite.validate_contents(&fixed_contents))
 			{
-				tracing::warn!(
+				let warning = format!(
 					"skipping autofix for {}: the rewritten manifest failed validation; keeping the original contents",
 					file_path.display()
 				);
+				tracing::warn!("{warning}");
 				continue;
 			}
 

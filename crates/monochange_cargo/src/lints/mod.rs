@@ -391,6 +391,24 @@ impl DependencyFieldOrderRule {
 		keys.into_iter().map(|(key, _)| key).collect()
 	}
 
+	/// Reorder `deps` inside `section` on a manifest copy.
+	///
+	/// Detection ran against the same document, so the section and dependency
+	/// tables are known to exist; anything else is an invariant violation.
+	fn reorder_section_dependencies(document: &mut DocumentMut, section: &str, deps: &[String]) {
+		let section_table = document
+			.get_mut(section)
+			.and_then(Item::as_table_mut)
+			.expect("detection verified the dependency section is a table");
+		for dep_name in deps {
+			let dep_table = section_table
+				.get_mut(dep_name)
+				.and_then(Item::as_table_mut)
+				.expect("detection verified the dependency entry is a table");
+			Self::reorder_fields(dep_table);
+		}
+	}
+
 	/// Rebuild `table` with keys in the preferred dependency order, keeping
 	/// each key's value (including its formatting and comments) intact.
 	fn reorder_fields(table: &mut toml_edit::Table) {
@@ -452,24 +470,17 @@ impl LintRuleRunner for DependencyFieldOrderRule {
 			// the whole document. A whole-file rewrite cannot lose unrelated
 			// content the way a mis-targeted span replacement would, and
 			// toml_edit keeps the surrounding formatting intact.
-			let shared_fix = config.bool_option("fix", true).then(|| {
+			let shared_fix = if config.bool_option("fix", true) {
 				let mut document = file.document.clone();
-				if let Some(section_table) = document.get_mut(section).and_then(Item::as_table_mut)
-				{
-					for dep_name in &offending_deps {
-						if let Some(dep_table) =
-							section_table.get_mut(dep_name).and_then(Item::as_table_mut)
-						{
-							Self::reorder_fields(dep_table);
-						}
-					}
-				}
-				LintFix::document(
+				Self::reorder_section_dependencies(&mut document, section, &offending_deps);
+				Some(LintFix::document(
 					"reorder dependency fields",
 					document.to_string(),
 					ctx.contents.len(),
-				)
-			});
+				))
+			} else {
+				None
+			};
 
 			for dep_name in offending_deps {
 				let location = location_from_span(ctx.manifest_path, ctx.contents, None);
@@ -514,6 +525,28 @@ monochange_linting::declare_lint_rule! {
 	],
 }
 
+impl InternalDependencyWorkspaceRule {
+	/// Rewrite `deps` inside `section` to `{ workspace = true }` on a
+	/// manifest copy.
+	///
+	/// Detection ran against the same document, so the section exists and
+	/// contains every dependency; anything else is an invariant violation.
+	fn rewrite_internal_dependencies(document: &mut DocumentMut, section: &str, deps: &[String]) {
+		let section_table = document
+			.get_mut(section)
+			.and_then(Item::as_table_mut)
+			.expect("detection verified the dependency section is a table");
+		for dep_name in deps {
+			let dep_item = section_table
+				.get_mut(dep_name)
+				.expect("detection verified the dependency entry exists");
+			let mut workspace_table = toml_edit::InlineTable::new();
+			workspace_table.insert("workspace", toml_edit::Value::from(true));
+			*dep_item = Item::Value(workspace_table.into());
+		}
+	}
+}
+
 impl LintRuleRunner for InternalDependencyWorkspaceRule {
 	fn rule(&self) -> &LintRule {
 		&self.rule
@@ -554,24 +587,17 @@ impl LintRuleRunner for InternalDependencyWorkspaceRule {
 			// Fix by mutating a copy of the parsed manifest and serializing
 			// the whole document so the rewrite can never drop unrelated
 			// content (see `LintFix::document`).
-			let shared_fix = config.bool_option("fix", true).then(|| {
+			let shared_fix = if config.bool_option("fix", true) {
 				let mut document = file.document.clone();
-				if let Some(section_table) = document.get_mut(section).and_then(Item::as_table_mut)
-				{
-					for dep_name in &offending_deps {
-						if let Some(dep_item) = section_table.get_mut(dep_name) {
-							let mut workspace_table = toml_edit::InlineTable::new();
-							workspace_table.insert("workspace", toml_edit::Value::from(true));
-							*dep_item = Item::Value(workspace_table.into());
-						}
-					}
-				}
-				LintFix::document(
+				Self::rewrite_internal_dependencies(&mut document, section, &offending_deps);
+				Some(LintFix::document(
 					"rewrite internal dependency to workspace = true",
 					document.to_string(),
 					ctx.contents.len(),
-				)
-			});
+				))
+			} else {
+				None
+			};
 
 			for dep_name in offending_deps {
 				let location = location_from_span(ctx.manifest_path, ctx.contents, None);
@@ -720,6 +746,30 @@ monochange_linting::declare_lint_rule! {
 	)],
 }
 
+impl SortedDependenciesRule {
+	/// Sort `section` alphabetically on a manifest copy.
+	///
+	/// Detection ran against the same document, so the section exists and is
+	/// a table; anything else is an invariant violation.
+	fn sort_section_dependencies(document: &mut DocumentMut, section: &str) {
+		let section_table = document
+			.get_mut(section)
+			.and_then(Item::as_table_mut)
+			.expect("detection verified the dependency section is a table");
+		let mut items: Vec<(String, Item)> = section_table
+			.iter()
+			.map(|(key, value)| (key.to_string(), value.clone()))
+			.collect();
+		for (key, _) in &items {
+			section_table.remove(key);
+		}
+		items.sort_by(|(left, _), (right, _)| left.cmp(right));
+		for (key, value) in items {
+			section_table.insert(&key, value);
+		}
+	}
+}
+
 impl LintRuleRunner for SortedDependenciesRule {
 	fn rule(&self) -> &LintRule {
 		&self.rule
@@ -749,28 +799,17 @@ impl LintRuleRunner for SortedDependenciesRule {
 			// Fix by mutating a copy of the parsed manifest and serializing
 			// the whole document so the rewrite can never drop unrelated
 			// content (see `LintFix::document`).
-			let shared_fix = config.bool_option("fix", true).then(|| {
+			let shared_fix = if config.bool_option("fix", true) {
 				let mut document = file.document.clone();
-				if let Some(section_table) = document.get_mut(section).and_then(Item::as_table_mut)
-				{
-					let mut items: Vec<(String, Item)> = section_table
-						.iter()
-						.map(|(key, value)| (key.to_string(), value.clone()))
-						.collect();
-					for (key, _) in &items {
-						section_table.remove(key);
-					}
-					items.sort_by(|(left, _), (right, _)| left.cmp(right));
-					for (key, value) in items {
-						section_table.insert(&key, value);
-					}
-				}
-				LintFix::document(
+				Self::sort_section_dependencies(&mut document, section);
+				Some(LintFix::document(
 					"sort dependency section alphabetically",
 					document.to_string(),
 					ctx.contents.len(),
-				)
-			});
+				))
+			} else {
+				None
+			};
 
 			let location = location_from_span(ctx.manifest_path, ctx.contents, None);
 			let mut result = LintResult::new(

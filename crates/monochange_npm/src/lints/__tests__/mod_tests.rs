@@ -514,3 +514,10 @@ fn manifest_repository_correct_value() {
 	let results = rule.run(&ctx, &config);
 	assert!(results.is_empty());
 }
+
+#[test]
+fn suite_validate_contents_accepts_only_json() {
+	assert!(NpmLintSuite.validate_contents("{\n  \"name\": \"example\"\n}\n"));
+	assert!(!NpmLintSuite.validate_contents("this is not json"));
+	assert!(!NpmLintSuite.validate_contents("[package]\nname = \"example\"\n"));
+}

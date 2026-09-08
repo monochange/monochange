@@ -1361,3 +1361,63 @@ version = "0.1.0"
 	);
 	assert_fix_preserves_document(utils_manifest, &fixed_utils);
 }
+
+#[test]
+fn cargo_rules_without_fix_option_emit_results_without_fixes() {
+	// `fix = false` must report the issues but never attach an autofix.
+	let no_fix_config = LintRuleConfig::Detailed {
+		level: LintSeverity::Error,
+		options: BTreeMap::from([("fix".to_string(), json!(false))]),
+	};
+
+	let field_order = run_rule_and_apply_fixes(
+		&DependencyFieldOrderRule::new(),
+		"[package]\nname = \"example\"\nversion = \"0.1.0\"\n\n[dependencies.serde]\nfeatures = [\"derive\"]\nworkspace = true\n",
+		&no_fix_config,
+		"",
+		None,
+		true,
+	);
+	assert!(!field_order.results.is_empty());
+	for result in &field_order.results {
+		assert!(
+			result.fix.is_none(),
+			"field-order emitted a fix with fix = false"
+		);
+	}
+	assert!(field_order.fixed.is_none());
+
+	let internal_dep = run_rule_and_apply_fixes(
+		&InternalDependencyWorkspaceRule::new(),
+		"[package]\nname = \"example\"\nversion = \"0.1.0\"\n\n[dependencies]\ninternal_dep = \"0.1.0\"\n",
+		&no_fix_config,
+		"",
+		None,
+		true,
+	);
+	assert!(!internal_dep.results.is_empty());
+	for result in &internal_dep.results {
+		assert!(
+			result.fix.is_none(),
+			"internal-dependency-workspace emitted a fix with fix = false"
+		);
+	}
+	assert!(internal_dep.fixed.is_none());
+
+	let sorted = run_rule_and_apply_fixes(
+		&SortedDependenciesRule::new(),
+		"[package]\nname = \"example\"\nversion = \"0.1.0\"\n\n[dependencies]\nserde = \"1.0\"\naiohttp = \"1.0\"\n",
+		&no_fix_config,
+		"",
+		None,
+		true,
+	);
+	assert!(!sorted.results.is_empty());
+	for result in &sorted.results {
+		assert!(
+			result.fix.is_none(),
+			"sorted-dependencies emitted a fix with fix = false"
+		);
+	}
+	assert!(sorted.fixed.is_none());
+}
