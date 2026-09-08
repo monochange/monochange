@@ -130,9 +130,10 @@ pub(crate) fn run_check_command(
 	let configuration = load_workspace_configuration(root)?;
 	let mut output = String::new();
 
-	let show_progress = matches!(format, OutputFormat::Text | OutputFormat::Markdown);
-	if show_progress {
-		eprintln!("\u{2139} Validating workspace…");
+	let human_output = matches!(format, OutputFormat::Text | OutputFormat::Markdown);
+	let reporter = human_output.then(crate::lint_check_reporter::HumanLintProgressReporter::new);
+	if let Some(reporter) = &reporter {
+		reporter.validation_started();
 	}
 
 	let (validation_warnings, validation_errors) =
@@ -153,13 +154,6 @@ pub(crate) fn run_check_command(
 		.with_suites(ecosystems.iter().cloned())
 		.with_rules(only_rules.iter().cloned());
 	let linter = build_linter(&configuration, selection);
-
-	let show_progress = matches!(format, OutputFormat::Text | OutputFormat::Markdown);
-	let reporter = if show_progress {
-		Some(crate::lint_check_reporter::HumanLintProgressReporter::new())
-	} else {
-		None
-	};
 
 	let mut report = if let Some(ref r) = reporter {
 		linter.lint_workspace(root, &configuration, r)
@@ -228,12 +222,36 @@ pub(crate) fn run_check_command(
 
 	match format {
 		OutputFormat::Json | OutputFormat::JsonMin => {
-			if validation_has_errors {
-				return Err(MonochangeError::Config(format!("check failed:\n{output}")));
-			}
-			Ok(format
+			let rendered = format
 				.render_json_value(&report, "lint report")
-				.unwrap_or_else(|error| panic!("serializing lint reports should succeed: {error}")))
+				.unwrap_or_else(|error| panic!("serializing lint reports should succeed: {error}"));
+
+			if validation_has_errors || lint_has_errors {
+				let mut diagnostic = format!(
+					"check failed: {} error{}, {} warning{}",
+					report.error_count + validation_errors.len(),
+					if report.error_count + validation_errors.len() == 1 {
+						""
+					} else {
+						"s"
+					},
+					report.warning_count + validation_warnings.len(),
+					if report.warning_count + validation_warnings.len() == 1 {
+						""
+					} else {
+						"s"
+					},
+				);
+				if validation_has_errors {
+					let _ = write!(diagnostic, "\n{output}");
+				}
+				return Err(MonochangeError::Reported {
+					output: rendered,
+					diagnostic,
+				});
+			}
+
+			Ok(rendered)
 		}
 		OutputFormat::Text | OutputFormat::Markdown => {
 			output.push_str(&format_check_report(&report, fixed_any_files, verbose));

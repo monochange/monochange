@@ -145,16 +145,27 @@ impl CliProgressReporter {
 		let no_progress = env::var_os("MONOCHANGE_NO_PROGRESS").is_some();
 		let ci = running_in_ci() && !running_under_test();
 		let (enabled, render_mode, symbols) = match format {
-			ProgressFormat::Auto => {
+			ProgressFormat::Auto | ProgressFormat::Unicode => {
 				(
 					!quiet && !no_progress,
 					ProgressRenderMode::Human,
 					UNICODE_SYMBOLS,
 				)
 			}
-			ProgressFormat::Unicode => (!quiet, ProgressRenderMode::Human, UNICODE_SYMBOLS),
-			ProgressFormat::Ascii => (!quiet, ProgressRenderMode::Human, ASCII_SYMBOLS),
-			ProgressFormat::Json => (!quiet, ProgressRenderMode::Json, ASCII_SYMBOLS),
+			ProgressFormat::Ascii => {
+				(
+					!quiet && !no_progress,
+					ProgressRenderMode::Human,
+					ASCII_SYMBOLS,
+				)
+			}
+			ProgressFormat::Json => {
+				(
+					!quiet && !no_progress,
+					ProgressRenderMode::Json,
+					ASCII_SYMBOLS,
+				)
+			}
 		};
 		let color =
 			enabled && render_mode == ProgressRenderMode::Human && !no_color && color_enabled;
@@ -199,7 +210,7 @@ impl CliProgressReporter {
 		}
 
 		let suffix = if self.dry_run { " (dry-run)" } else { "" };
-		Self::print_line(&format!(
+		self.print_line(&format!(
 			"{} {}{}",
 			self.paint("monochange", Style::Accent),
 			self.paint(&format!("running `{}`", self.command_name), Style::Header),
@@ -224,7 +235,7 @@ impl CliProgressReporter {
 			}));
 			return;
 		}
-		Self::print_line(&format!(
+		self.print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.command_success, Style::Success),
 			self.paint(&format!("`{}` finished", self.command_name), Style::Header),
@@ -250,7 +261,7 @@ impl CliProgressReporter {
 			}));
 			return;
 		}
-		Self::print_line(&format!(
+		self.print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.step_failure, Style::Error),
 			self.paint(&format!("`{}` failed", self.command_name), Style::Header),
@@ -271,7 +282,7 @@ impl CliProgressReporter {
 		if self.animate {
 			self.start_spinner(message);
 		} else {
-			Self::print_line(&format!(
+			self.print_line(&format!(
 				"{} {message}",
 				self.paint(self.symbols.step_start, Style::Accent)
 			));
@@ -312,7 +323,7 @@ impl CliProgressReporter {
 				self.paint(&format!("({detail})"), Style::Muted)
 			);
 		}
-		Self::print_line(&line);
+		self.print_line(&line);
 	}
 
 	pub(crate) fn step_status(
@@ -341,7 +352,7 @@ impl CliProgressReporter {
 		if self.animate {
 			self.start_spinner(message);
 		} else {
-			Self::print_line(&format!(
+			self.print_line(&format!(
 				"{} {message}",
 				self.paint(self.symbols.step_start, Style::Accent),
 			));
@@ -384,14 +395,14 @@ impl CliProgressReporter {
 			self.emit_step_event("step_finished", step_index, step, payload);
 			return;
 		}
-		Self::print_line(&format!(
+		self.print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.step_success, Style::Success),
 			self.step_message(step_index, step),
 			self.paint(&format_duration(duration), Style::Muted),
 		));
 		for phase in summarized_phase_timings(phase_timings) {
-			Self::print_line(&format!(
+			self.print_line(&format!(
 				"  {} {} {}\u{1b}[0m",
 				self.paint(self.symbols.bullet, Style::Muted),
 				self.paint(&phase.label, Style::Detail),
@@ -425,7 +436,7 @@ impl CliProgressReporter {
 			self.emit_step_event("step_failed", step_index, step, payload);
 			return;
 		}
-		Self::print_line(&format!(
+		self.print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.step_failure, Style::Error),
 			self.step_message(step_index, step),
@@ -437,7 +448,7 @@ impl CliProgressReporter {
 			} else {
 				self.symbols.log_pipe
 			};
-			Self::print_line(&format!(
+			self.print_line(&format!(
 				"  {} {}",
 				self.paint(branch, Style::Error),
 				self.paint(line, Style::Error),
@@ -478,7 +489,7 @@ impl CliProgressReporter {
 		};
 		let step_label = step.display_name();
 		for line in text.lines() {
-			Self::print_line(&format!(
+			self.print_line(&format!(
 				"  {} {} {}\u{1b}[0m",
 				self.paint(self.symbols.log_pipe, Style::Muted),
 				self.paint(&format!("{step_label} [{stream_label}]"), Style::Detail),
@@ -564,12 +575,16 @@ impl CliProgressReporter {
 		was_active
 	}
 
-	fn print_line(text: &str) {
+	fn print_line(&self, text: &str) {
 		with_stderr_lock(|lock| {
-			let _ = write!(lock, "\r\u{1b}[2K\u{1b}[0m");
+			if self.animate {
+				let _ = write!(lock, "\r\u{1b}[2K\u{1b}[0m");
+			}
 			let _ = writeln!(lock, "{text}");
 			let _ = lock.flush();
-			SPINNER_LINE_CLEARED.store(true, Ordering::Relaxed);
+			if self.animate {
+				SPINNER_LINE_CLEARED.store(true, Ordering::Relaxed);
+			}
 		});
 	}
 

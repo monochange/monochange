@@ -154,6 +154,14 @@ fn run_check_command_enforces_type_scoped_changeset_rules() {
 
 	assert!(message.contains("changesets/types/app_feature"));
 	assert!(message.contains("changeset must include a `Developer notes` section"));
+
+	let error = run_check_command(workspace.path(), false, &[], &[], OutputFormat::Json, false)
+		.expect_err("expected the JSON check to preserve the failure exit status");
+	assert!(
+		error
+			.to_string()
+			.contains("check failed: 1 error, 0 warnings")
+	);
 }
 
 #[test]

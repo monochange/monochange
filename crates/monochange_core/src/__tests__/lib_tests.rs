@@ -4105,6 +4105,17 @@ fn monochange_error_interactive_render_returns_message() {
 }
 
 #[test]
+fn monochange_reported_error_keeps_stdout_result_separate() {
+	let error = MonochangeError::Reported {
+		output: "{\"error_count\":1}".to_string(),
+		diagnostic: "check failed: 1 error".to_string(),
+	};
+
+	assert_eq!(error.render(), "check failed: 1 error");
+	assert_eq!(error.reported_output(), Some("{\"error_count\":1}"));
+}
+
+#[test]
 fn monochange_error_cancelled_render_returns_cancelled() {
 	let error = MonochangeError::Cancelled;
 	assert_eq!(error.render(), "cancelled");

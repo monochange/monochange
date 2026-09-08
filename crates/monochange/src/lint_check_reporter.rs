@@ -80,7 +80,9 @@ struct SpinnerState {
 /// A beautiful human-readable progress reporter for lint/check operations.
 /// Writes to stderr and respects `NO_COLOR` / `MONOCHANGE_NO_PROGRESS`.
 pub(crate) struct HumanLintProgressReporter {
+	enabled: bool,
 	color: bool,
+	interactive: bool,
 	active_spinner: Mutex<Option<SpinnerState>>,
 	fixed_files: Arc<Mutex<Vec<(PathBuf, String)>>>,
 }
@@ -88,9 +90,12 @@ pub(crate) struct HumanLintProgressReporter {
 impl HumanLintProgressReporter {
 	pub(crate) fn new() -> Self {
 		let no_progress = std::env::var_os("MONOCHANGE_NO_PROGRESS").is_some();
-		let enabled = !no_progress && stderr_is_terminal();
+		let enabled = !no_progress;
+		let interactive = enabled && stderr_is_terminal();
 		Self {
-			color: enabled && color_enabled(),
+			enabled,
+			color: interactive && color_enabled(),
+			interactive,
 			active_spinner: Mutex::new(None),
 			fixed_files: Arc::new(Mutex::new(Vec::new())),
 		}
@@ -100,7 +105,20 @@ impl HumanLintProgressReporter {
 		self.stop_spinner();
 	}
 
+	pub(crate) fn validation_started(&self) {
+		self.print_info("\u{2139} Validating workspace…");
+	}
+
 	fn start_spinner(&self, message: String) {
+		if !self.enabled {
+			return;
+		}
+
+		if !self.interactive {
+			self.print_line(&format!("> {message}"));
+			return;
+		}
+
 		self.stop_spinner();
 		let stop = Arc::new(AtomicBool::new(false));
 		let stop_flag = Arc::clone(&stop);
@@ -148,6 +166,10 @@ impl HumanLintProgressReporter {
 	}
 
 	fn print_line(&self, text: &str) {
+		if !self.enabled {
+			return;
+		}
+
 		self.stop_spinner();
 		with_stderr_lock(|| {
 			eprintln!("{text}");

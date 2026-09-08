@@ -8,6 +8,7 @@ use std::time::Duration;
 use monochange_core::CliCommandDefinition;
 use monochange_core::CliStepDefinition;
 use monochange_core::ShellConfig;
+use temp_env::with_var;
 
 use super::*;
 
@@ -123,6 +124,30 @@ fn progress_format_parsing_and_renderer_selection_cover_all_variants() {
 	assert!(json.enabled);
 	assert_eq!(json.render_mode, ProgressRenderMode::Json);
 	assert_eq!(json.symbols.command_success, ASCII_SYMBOLS.command_success);
+}
+
+#[test]
+fn every_progress_format_respects_the_progress_opt_out() {
+	let command = command_with_step(named_command_step("announce release"));
+
+	with_var("MONOCHANGE_NO_PROGRESS", Some("1"), || {
+		for format in [
+			ProgressFormat::Auto,
+			ProgressFormat::Unicode,
+			ProgressFormat::Ascii,
+			ProgressFormat::Json,
+		] {
+			let reporter = CliProgressReporter::new(&command, false, false, format);
+			assert!(!reporter.enabled);
+		}
+	});
+}
+
+#[test]
+fn ci_detection_recognizes_github_actions() {
+	with_var("GITHUB_ACTIONS", Some("true"), || {
+		assert!(running_in_ci());
+	});
 }
 
 #[test]
