@@ -409,3 +409,33 @@ async fn unprobeable_registries_report_manual_verification() {
 	);
 	assert!(readiness.message.contains("not probe-able"));
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn local_run_still_blocks_never_published_packages() {
+	let root = tempfile::tempdir().unwrap();
+	let request = sample_request(RegistryKind::Npm, &root);
+
+	// Outside CI the identity check degrades, but the registry bootstrap
+	// check still blocks packages that were never published.
+	let (base_url, server) = spawn_registry_mock(REGISTRY_NOT_FOUND);
+	let client = monochange_publish::registry_client().unwrap();
+	let endpoints = RegistryEndpoints {
+		npm_registry: base_url,
+		..RegistryEndpoints::from_env()
+	};
+
+	let readiness = check_trusted_publishing_readiness(
+		root.path(),
+		None,
+		&request,
+		&BTreeMap::new(),
+		Some((&client, &endpoints)),
+	)
+	.await;
+
+	assert_eq!(readiness.status, TrustedPublishingReadinessStatus::Blocked);
+	assert!(readiness.message.contains("placeholder-publish"));
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("registry mock thread"));
+}

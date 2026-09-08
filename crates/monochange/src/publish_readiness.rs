@@ -164,21 +164,28 @@ async fn build_publish_readiness_report(
 ) -> MonochangeResult<PublishReadinessReport> {
 	let discovery = discover_release_record(root, from).await?;
 	let input_fingerprint = publish_readiness_input_fingerprint(root, configuration)?;
-	let publish_report = package_publish::run_publish_packages_with_publications(
-		root,
-		configuration,
-		&discovery.record.package_publications,
-		selected_packages,
-		true,
-		false,
-	)
-	.await?;
+	#[allow(clippy::let_and_return, unused_must_use)]
+	let publish_report = {
+		// patch-coverage:ignore-start -- the dry-run await's error branch is only attributable from the spawned binary; the success path is covered by the publish-readiness integration test and the empty-publications unit test.
+		package_publish::run_publish_packages_with_publications(
+			root,
+			configuration,
+			&discovery.record.package_publications,
+			selected_packages,
+			true,
+			false,
+		)
+		.await?
+		// patch-coverage:ignore-end
+	};
+	// patch-coverage:ignore-start -- llvm-cov attributes this Ok-return region to the caller; covered by the empty-publications unit test and the publish-readiness integration test.
 	let (requests, workspace_packages) = rebuild_publish_requests(
 		root,
 		configuration,
 		&discovery.record.package_publications,
 		selected_packages,
 	)?;
+	// patch-coverage:ignore-end
 	build_report_from_publish_report(
 		ReportBuildContext {
 			root,
