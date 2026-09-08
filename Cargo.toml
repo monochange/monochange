@@ -26,15 +26,15 @@ httpmock = { version = "0.8.3", default-features = false }
 ignore = { version = "0.4", default-features = false }
 inquire = { version = "0.9", default-features = false }
 insta = { version = "1", default-features = false, features = ["filters", "json"] }
-insta-cmd = { version = "0.6", default-features = false }
-jsonschema = { version = "0.46.5", default-features = false }
+insta-cmd = { version = "0.7", default-features = false }
+jsonschema = { version = "0.55", default-features = false }
 miette = { version = "7", default-features = false }
 minijinja = { version = "2", default-features = false }
-octocrab = { version = "0.53.1", default-features = false, features = ["default-client", "follow-redirect", "jwt-rust-crypto", "retry", "rustls", "rustls-ring", "timeout", "tracing"] }
-oxc_allocator = { version = "0.131.0", default-features = false }
-oxc_ast = { version = "0.131.0", default-features = false }
-oxc_parser = { version = "0.131.0", default-features = false }
-oxc_span = { version = "0.131.0", default-features = false }
+octocrab = { version = "0.54.1", default-features = false, features = ["default-client", "follow-redirect", "jwt-rust-crypto", "retry", "rustls", "rustls-ring", "timeout", "tracing"] }
+oxc_allocator = { version = "0.149.0", default-features = false }
+oxc_ast = { version = "0.149.0", default-features = false }
+oxc_parser = { version = "0.149.0", default-features = false }
+oxc_span = { version = "0.149.0", default-features = false }
 portable-pty = { version = "0.9", default-features = false }
 proptest = { version = "1.6", default-features = false }
 quote = { version = "1", default-features = false }
@@ -43,24 +43,22 @@ regex = { version = "1", default-features = false, features = ["std", "unicode-p
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
 ring = { version = "0.17", default-features = false }
 rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
-rmcp = { version = "1", default-features = false }
-rstest = { version = "0.26.1", default-features = false }
+rmcp = { version = "3", default-features = false }
+rstest = { version = "0.27", default-features = false }
 schemars = { version = "1.2", default-features = false, features = ["derive", "std"] }
 semver = { version = "1", default-features = false, features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false }
 serde_yaml_ng = { version = "0.10", default-features = false }
-shlex = { version = "1", default-features = false }
+shlex = { version = "2", default-features = false }
 similar = { version = "3.0.0", default-features = false, features = ["inline", "text"] }
 similar-asserts = { version = "2.0.0", default-features = false }
-syn = { version = "2", default-features = false, features = ["full"] }
+syn = { version = "3", default-features = false, features = ["full"] }
 temp-env = { version = "0.3", default-features = false, features = ["async_closure"] }
 tempfile = { version = "3", default-features = false }
-termimad = { version = "0.34", default-features = false }
+termimad = { version = "0.35", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }
-# Pinned: time 0.3.48 exposes internal modifier types that trigger an octocrab
-# generic From impl coherence failure on the release-job nightly toolchain.
-time = { version = "=0.3.47", default-features = false }
+time = { version = "0.3.55", default-features = false }
 tokio = { version = "1", default-features = false, features = ["rt", "rt-multi-thread", "macros", "process", "fs", "time", "sync"] }
 toml = { version = "1.1.2", default-features = false }
 # Pinned: format-preserving edits in Cargo.toml files depend on this version's

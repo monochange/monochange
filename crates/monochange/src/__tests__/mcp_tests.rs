@@ -304,9 +304,9 @@ fn json_result_and_error_result_render_structured_content() {
 
 #[test]
 fn content_text_returns_empty_for_non_text_content() {
-	let result = rmcp::model::CallToolResult::success(vec![rmcp::model::Content::new(
-		rmcp::model::RawContent::image("aGVsbG8=", "image/png"),
-		None,
+	let result = rmcp::model::CallToolResult::success(vec![rmcp::model::ContentBlock::image(
+		"aGVsbG8=",
+		"image/png",
 	)]);
 	assert_eq!(content_text(&result), String::new());
 }

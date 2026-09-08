@@ -10,6 +10,7 @@ use rmcp::ServerHandler;
 use rmcp::ServiceExt;
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
+use rmcp::model::ContentBlock;
 use rmcp::model::*;
 use rmcp::schemars;
 use rmcp::tool;
@@ -388,7 +389,7 @@ fn resolve_root_with_current_dir(
 fn json_result(value: serde_json::Value) -> CallToolResult {
 	let text = serde_json::to_string_pretty(&value)
 		.unwrap_or_else(|_| "{\"ok\":false,\"summary\":\"failed to serialize\"}".to_string());
-	let mut result = CallToolResult::success(vec![Content::text(text)]);
+	let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
 	result.structured_content = Some(value);
 	result
 }
@@ -396,7 +397,7 @@ fn json_result(value: serde_json::Value) -> CallToolResult {
 fn json_error_result(value: serde_json::Value) -> CallToolResult {
 	let text = serde_json::to_string_pretty(&value)
 		.unwrap_or_else(|_| "{\"ok\":false,\"summary\":\"failed to serialize\"}".to_string());
-	let mut result = CallToolResult::error(vec![Content::text(text)]);
+	let mut result = CallToolResult::error(vec![ContentBlock::text(text)]);
 	result.structured_content = Some(value);
 	result
 }
