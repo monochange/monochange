@@ -532,7 +532,7 @@ type = "string_list"
 [[cli.placeholder-publish.inputs]]
 name = "show-all"
 type = "boolean"
-help_text = "Show already-published and skipped placeholder packages instead of only packages that need action"
+help_text = "Include unchanged and skipped package details"
 
 [[cli.placeholder-publish.steps]]
 name = "publish placeholder packages"
@@ -578,10 +578,15 @@ name = "output"
 type = "path"
 help_text = "Write the package publish result JSON artifact for retry/resume"
 
+[[cli.publish.inputs]]
+name = "show-all"
+type = "boolean"
+help_text = "Include unchanged and skipped package details"
+
 [[cli.publish.steps]]
 name = "publish packages"
 type = "PublishPackages"
-inputs = ["format", "package", "group", "ecosystem", "resume", "output"]
+inputs = ["format", "package", "group", "ecosystem", "resume", "output", "show-all"]
 ```
 
 <!-- {/cliStepPublishPackagesExample} -->

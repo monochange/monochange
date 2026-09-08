@@ -3561,6 +3561,7 @@ impl CliStepDefinition {
 					"ecosystem",
 					"resume",
 					"all",
+					"show-all",
 					"stream-output",
 					"fail-on-duplicate",
 				])
@@ -3701,7 +3702,9 @@ impl CliStepDefinition {
 					"format" => Some(CliInputKind::Choice),
 					"package" => Some(CliInputKind::StringList),
 					"output" | "resume" => Some(CliInputKind::Path),
-					"all" | "stream-output" | "fail-on-duplicate" => Some(CliInputKind::Boolean),
+					"all" | "show-all" | "stream-output" | "fail-on-duplicate" => {
+						Some(CliInputKind::Boolean)
+					}
 					_ => None,
 				}
 			}

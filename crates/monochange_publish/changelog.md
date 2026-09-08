@@ -119,10 +119,10 @@ let report: PackagePublishReport = execute_publish_requests(...).await?;
 // after
 let report: PackagePublishReport = execute_publish_requests(...).await?;
 let summary: PackagePublishSummary = report.summary();
-assert_eq!(summary.expected, 45);
-assert_eq!(summary.succeeded, 12);
+assert_eq!(summary.total(), 45);
+assert_eq!(summary.published, 12);
 assert_eq!(summary.failed, 1);
-assert_eq!(summary.skipped, 32);
+assert_eq!(summary.blocked, 32);
 ```
 
 Publish errors now include these aggregate counts and retain the failed package's command diagnostics. Command error rendering preserves stdout-only failures and clearly labels both streams when both are available.

@@ -8195,8 +8195,11 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 			)
 			.await
 			.unwrap_or_else(|error| panic!("placeholder publish: {error}"));
-			assert!(placeholder_output.contains("placeholder publishing:"));
-			assert!(placeholder_output.contains("would publish placeholder"));
+			assert!(placeholder_output.starts_with("Would publish 2 placeholder packages"));
+			assert!(
+				placeholder_output.contains("  core") && placeholder_output.contains("  app"),
+				"placeholder output:\n{placeholder_output}"
+			);
 			assert!(placeholder_output.contains("publish rate limits:"));
 
 			let publish_command = CliCommandDefinition {
@@ -8232,9 +8235,9 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 			)
 			.await
 			.unwrap_or_else(|error| panic!("publish packages: {error}"));
-			assert!(publish_output.contains("package publishing:"));
+			assert!(publish_output.starts_with("Would publish 1 package"));
 			assert!(
-				publish_output.contains("would publish workflow-core"),
+				publish_output.contains("  core"),
 				"publish output:\n{publish_output}"
 			);
 			assert!(publish_output.contains("publish rate limits:"));
@@ -8832,8 +8835,10 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 			)
 			.await
 			.unwrap_or_else(|error| panic!("non-dry-run placeholder publish: {error}"));
-			assert!(placeholder_output.contains("placeholder publishing:"));
-			assert!(placeholder_output.contains("no packages matched the publishing criteria"));
+			assert_eq!(
+				placeholder_output.lines().next(),
+				Some("No packages matched placeholder publishing criteria")
+			);
 			assert!(placeholder_output.contains("no publish operations matched the current plan"));
 
 			let publish_command = CliCommandDefinition {
@@ -8871,8 +8876,10 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 			.unwrap_or_else(|error| {
 				panic!("non-dry-run publish packages without readiness: {error}")
 			});
-			assert!(publish_output.contains("package publishing:"));
-			assert!(publish_output.contains("no packages matched the publishing criteria"));
+			assert_eq!(
+				publish_output.lines().next(),
+				Some("No packages matched publishing criteria")
+			);
 
 			let release_tempdir =
 				tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -8909,8 +8916,10 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 			)
 			.await
 			.unwrap_or_else(|error| panic!("publish packages without readiness: {error}"));
-			assert!(publish_output.contains("package publishing:"));
-			assert!(publish_output.contains("no packages matched the publishing criteria"));
+			assert_eq!(
+				publish_output.lines().next(),
+				Some("No packages matched publishing criteria")
+			);
 			let publish_result = fs::read_to_string(&publish_result_path)
 				.unwrap_or_else(|error| panic!("read publish result: {error}"));
 			assert!(publish_result.contains("\"mode\": \"release\""));

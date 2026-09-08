@@ -736,10 +736,12 @@ fn assert_complete_failed_publish_run(
 	assert_eq!(
 		report.summary(),
 		PackagePublishSummary {
-			expected: requests.len(),
-			succeeded: 0,
+			planned: 0,
+			published: 0,
+			already_exists: 0,
+			blocked: requests.len() - 1,
 			failed: 1,
-			skipped: requests.len() - 1,
+			not_attempted: 0,
 		}
 	);
 
@@ -1017,10 +1019,12 @@ async fn real_publish_failure_records_tail_outcomes_and_progress_summary() {
 	assert_eq!(
 		report.summary(),
 		PackagePublishSummary {
-			expected: 3,
-			succeeded: 1,
+			planned: 0,
+			published: 1,
+			already_exists: 0,
+			blocked: 1,
 			failed: 1,
-			skipped: 1,
+			not_attempted: 0,
 		}
 	);
 
@@ -1145,10 +1149,12 @@ async fn release_run_skips_already_published_version_by_default() {
 	assert_eq!(
 		report.summary(),
 		PackagePublishSummary {
-			expected: 1,
-			succeeded: 0,
+			planned: 0,
+			published: 0,
+			already_exists: 1,
+			blocked: 0,
 			failed: 0,
-			skipped: 1,
+			not_attempted: 0,
 		}
 	);
 	let events = progress.events.lock().unwrap();
@@ -1222,10 +1228,12 @@ async fn release_run_fails_duplicate_versions_when_fail_on_duplicate_is_enabled(
 	assert_eq!(
 		report.summary(),
 		PackagePublishSummary {
-			expected: 2,
-			succeeded: 0,
+			planned: 0,
+			published: 0,
+			already_exists: 0,
+			blocked: 1,
 			failed: 1,
-			skipped: 1,
+			not_attempted: 0,
 		}
 	);
 	assert!(
@@ -1386,10 +1394,12 @@ async fn real_publish_spawn_failure_records_every_unattempted_package() {
 	assert_eq!(
 		report.summary(),
 		PackagePublishSummary {
-			expected: 3,
-			succeeded: 0,
+			planned: 0,
+			published: 0,
+			already_exists: 0,
+			blocked: 2,
 			failed: 1,
-			skipped: 2,
+			not_attempted: 0,
 		}
 	);
 }
@@ -1798,7 +1808,9 @@ fn ensure_publish_report_succeeded_includes_summary_and_failed_package_detail() 
 	let error = ensure_publish_report_succeeded(&report)
 		.expect_err("failed report should produce an aggregate error")
 		.to_string();
-	assert!(error.contains("expected 2, succeeded 0, failed 1, skipped 1"));
+	assert!(error.contains(
+		"2 total, 0 published, 1 failed, 1 blocked, 0 already existed, 0 not attempted, 0 planned"
+	));
 	assert!(error.contains("failed package failed 2.0.0"));
 	assert!(error.contains("registry denied publication"));
 }
@@ -2694,9 +2706,9 @@ fn empty_publish_report_marks_every_request_as_blocked() {
 		outcome.status == PackagePublishStatus::Blocked
 			&& outcome.message.contains("could not start")
 	}));
-	assert_eq!(report.summary().expected, 2);
+	assert_eq!(report.summary().total(), 2);
 	assert_eq!(report.summary().failed, 0);
-	assert_eq!(report.summary().skipped, 2);
+	assert_eq!(report.summary().blocked, 2);
 }
 
 fn timeout_error() -> MonochangeError {
