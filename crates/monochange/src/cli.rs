@@ -79,12 +79,12 @@ pub(crate) fn cli_commands_from_config(
 
 	let mut cli = configuration.cli.clone();
 	apply_runtime_change_type_choices(&mut cli, configuration);
-	apply_runtime_prepare_release_markdown_defaults(&mut cli);
+	apply_runtime_prepare_release_output_formats(&mut cli);
 
 	cli
 }
 
-pub(crate) fn apply_runtime_prepare_release_markdown_defaults(cli: &mut [CliCommandDefinition]) {
+pub(crate) fn apply_runtime_prepare_release_output_formats(cli: &mut [CliCommandDefinition]) {
 	for cli_command in cli {
 		if !command_supports_release_diff_preview(cli_command) {
 			continue;
@@ -109,10 +109,6 @@ pub(crate) fn apply_runtime_prepare_release_markdown_defaults(cli: &mut [CliComm
 		let has_md = format_input.choices.iter().any(|choice| choice == "md");
 		if !has_md {
 			format_input.choices.push("md".to_string());
-		}
-
-		if format_input.default.as_deref() == Some("text") {
-			format_input.default = Some("markdown".to_string());
 		}
 	}
 }
@@ -251,7 +247,7 @@ pub(crate) fn build_command_with_cli(
 				.short('q')
 				.global(true)
 				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
-				.help("Suppress stdout/stderr output and run in dry-run mode when supported")
+				.help("Suppress result, progress, and diagnostic output without changing execution")
 				.action(ArgAction::SetTrue),
 		)
 		.arg(
@@ -268,7 +264,9 @@ pub(crate) fn build_command_with_cli(
 				.long("jq")
 				.global(true)
 				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
-				.help("Filter JSON output with a jq-style expression, such as `.assets[].name`")
+				.help(
+					"Filter explicit JSON output; requires `--format json` or `--format json-min`",
+				)
 				.value_name("EXPRESSION"),
 		)
 		.arg(
@@ -514,7 +512,7 @@ fn classification_format_arg() -> Arg {
 	Arg::new("format")
 		.long("format")
 		.value_name("FORMAT")
-		.default_value("markdown")
+		.default_value("text")
 		.value_parser(["markdown", "md", "json", "json-min", "text"])
 		.help("Report format")
 }
@@ -671,7 +669,7 @@ Use `--no-mcp` to skip MCP config files for targets that support repo-local MCP 
 			Arg::new("format")
 				.long("format")
 				.help("Output format for the generated subagent plan")
-				.default_value("markdown")
+				.default_value("text")
 				.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		.arg(
@@ -732,7 +730,7 @@ Analysis notes:
 		.arg(
 			Arg::new("format")
 				.long("format")
-				.default_value("markdown")
+				.default_value("text")
 				.value_parser(["text", "json", "json-min", "markdown", "md"])
 				.help("Output format"),
 		)
@@ -829,7 +827,7 @@ pub(crate) fn build_check_subcommand() -> Command {
 			Arg::new("format")
 				.long("format")
 				.help("Output format")
-				.default_value("markdown")
+				.default_value("text")
 				.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		.arg(
@@ -853,7 +851,7 @@ pub(crate) fn build_lint_subcommand() -> Command {
 					Arg::new("format")
 						.long("format")
 						.help("Output format")
-						.default_value("markdown")
+						.default_value("text")
 						.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		)
@@ -869,7 +867,7 @@ pub(crate) fn build_lint_subcommand() -> Command {
 					Arg::new("format")
 						.long("format")
 						.help("Output format")
-						.default_value("markdown")
+						.default_value("text")
 						.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 		)

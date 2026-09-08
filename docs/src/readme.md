@@ -83,7 +83,7 @@ When you are ready to prepare the release locally, run `monochange run release`.
 
 <!-- {/projectCoreWorkflow} -->
 
-For human-readable local output, `monochange run release --dry-run` defaults to terminal-friendly markdown. Use `--format json` for automation, `--format text` when you explicitly want the older plain-text rendering, and `--quiet` when you want dry-run behavior without stdout/stderr output. Use `monochange step display-versions` when you only need planned package and group versions; use `monochange versions --dry-run` when you want to preview internal dependency constraint updates before writing them.
+For human-readable local output, `monochange run release --dry-run` defaults to concise text. Use `--format markdown` for a raw Markdown artifact and `--format json` for automation. Add `--quiet` only to suppress output; combine it with `--dry-run` when you also need a non-mutating run. Use `monochange step display-versions` when you only need planned package and group versions; use `monochange versions --dry-run` when you want to preview internal dependency constraint updates before writing them.
 
 This book is maintained with `mdt` so shared content blocks stay synchronized across pages. See the [Configuration reference](guide/04-configuration.md#shared-documentation) for how template updates work.
 

@@ -117,6 +117,15 @@ fn render_long_help_for_path(path: &[String]) -> String {
 fn render_help_snapshot(path: &[String]) -> String {
 	let label = command_path_label(path);
 	let help = render_long_help_for_path(path);
+	let ends_with_newline = help.ends_with('\n');
+	let mut help = help
+		.lines()
+		.map(str::trim_end)
+		.collect::<Vec<_>>()
+		.join("\n");
+	if ends_with_newline {
+		help.push('\n');
+	}
 
 	format!("Version: [current]\nCommand: {label}\n\n{help}")
 }

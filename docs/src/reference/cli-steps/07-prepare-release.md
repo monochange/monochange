@@ -68,7 +68,7 @@ It can produce:
 - structured `release.*` template values for later `Command` steps
 - `manifest.path` for later `Command` steps that need the on-disk JSON artifact
 
-Built-in release-oriented commands default their human-readable `format` input to `markdown`. Use `text` when you explicitly want the older plain-text style, or `json` for automation.
+Built-in release-oriented commands default their human-readable `format` input to `text`. Use `markdown` for a raw Markdown artifact or `json` for automation.
 
 When you only need the resolved package and group versions, use the dedicated [`DisplayVersions`](14-display-versions.md) step or the built-in `monochange versions` command instead of overloading `PrepareRelease`.
 
@@ -187,4 +187,4 @@ If the artifact is stale, monochange falls back to a fresh `PrepareRelease` run 
 - putting `PublishRelease` or `OpenReleaseRequest` before `PrepareRelease`
 - assuming `PrepareRelease` is just a read-only planner in non-dry-run mode
 - forgetting that later `Command` steps can consume its structured output directly
-- forgetting that `--quiet` suppresses stdout/stderr and forces dry-run behavior when the command supports dry-run semantics
+- forgetting that `--quiet` suppresses output but does not replace `--dry-run`

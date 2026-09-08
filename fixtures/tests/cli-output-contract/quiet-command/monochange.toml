@@ -1,0 +1,8 @@
+[defaults]
+package_type = "cargo"
+
+[cli.mutate]
+help_text = "Write a marker file"
+steps = [
+	{ type = "Command", command = "printf ran > quiet-command-ran", shell = true },
+]

@@ -43,7 +43,7 @@ fn classify_options_defaults_are_safe_for_agent_use() {
 	assert_eq!(options.detection_level, DetectionLevel::Signature);
 	assert!(!options.include_unchanged);
 	assert!(!options.strict);
-	assert_eq!(options.format, OutputFormat::Markdown);
+	assert_eq!(options.format, OutputFormat::Text);
 	assert_eq!(options.output, None);
 	assert_eq!(options.dependency_propagation, DependencyPropagation::None);
 }
@@ -311,7 +311,7 @@ fn classify_options_from_matches_accepts_changeset_validation_shape() {
 
 	assert_eq!(options.base, Some("origin/main".to_string()));
 	assert_eq!(options.head, "HEAD");
-	assert_eq!(options.format, OutputFormat::Markdown);
+	assert_eq!(options.format, OutputFormat::Text);
 	assert!(options.strict);
 	assert_eq!(
 		options.dependency_propagation,
@@ -950,6 +950,38 @@ fn markdown_report_is_agent_readable() {
 	assert!(markdown.contains("Recommended bump: `minor`"));
 	assert!(markdown.contains("### `ui`"));
 	assert!(markdown.contains("Review required: `true`"));
+}
+
+#[test]
+fn text_report_contains_no_markdown_headings_or_code_spans() {
+	let analysis = ChangeAnalysis {
+		frame: ChangeFrame::CustomRange {
+			base: "origin/main".to_string(),
+			head: "HEAD".to_string(),
+		},
+		detection_level: monochange_analysis::DetectionLevel::Signature,
+		package_analyses: [(
+			"ui".to_string(),
+			package_with_changes("ui", vec![added_export_change()]),
+		)]
+		.into_iter()
+		.collect(),
+		warnings: Vec::new(),
+		packages: Vec::new(),
+	};
+	let mut report = classification_report(&analysis, DependencyPropagation::None);
+	report
+		.warnings
+		.push("Review the generated change.".to_string());
+
+	let text = render_text_report(&report);
+
+	assert!(text.starts_with("Change classification\n"));
+	assert!(text.contains("Recommended bump: minor"));
+	assert!(text.contains("\nui\n"));
+	assert!(text.contains("\nWarnings\n"));
+	assert!(!text.contains('#'));
+	assert!(!text.contains('`'));
 }
 
 fn assert_package_recommendation_in_report(

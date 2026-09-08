@@ -26,16 +26,16 @@ Release Options:
       --prepared-release <PATH>  Read or write the prepared release artifact at a specific path
 
 Options:
-      --format <FORMAT>             [default: markdown] [possible values: text, json, json-min, markdown]
+      --format <FORMAT>             [default: text] [possible values: text, json, json-min, markdown]
       --no-verify[=<NO_VERIFY>]     [default: true] [possible values: true, false]
       --commit                      Whether to commit the changes
       --create-pr                   Whether to create the PR after the commit
       --write-empty-release-record  Whether to write release records when no packages are released
 
 Global Options:
-  -q, --quiet                     Suppress stdout/stderr output and run in dry-run mode when supported
+  -q, --quiet                     Suppress result, progress, and diagnostic output without changing execution
       --progress-format <FORMAT>  Control progress output on stderr [possible values: auto, unicode, ascii, json]
-      --jq <EXPRESSION>           Filter JSON output with a jq-style expression, such as `.assets[].name`
+      --jq <EXPRESSION>           Filter explicit JSON output; requires `--format json` or `--format json-min`
       --snapshot                  Print a normalized JSON snapshot for this command subtree
 
 Examples:

@@ -171,7 +171,7 @@ monochange run release --dry-run --format json
 
 <!-- {/projectPlanCommand} -->
 
-For human-readable local output, `monochange run release --dry-run` defaults to terminal-friendly markdown. Use `--format text` when you want the older plain-text style, or keep `--format json` for automation.
+For human-readable local output, `monochange run release --dry-run` defaults to concise text. Use `--format markdown` for a raw Markdown artifact or `--format json` for automation.
 
 Preferred repository command flow:
 
@@ -219,7 +219,7 @@ Use the preview mode that matches the decision you are trying to make:
 | `monochange run release --dry-run --format json`        | Automation, scripts, MCP clients              |
 | `monochange run release --dry-run --format json --diff` | Automation that also needs file patch details |
 
-When you want command semantics without any command-line noise, add `--quiet`. Quiet mode suppresses stdout/stderr and uses dry-run behavior for release-oriented commands so the workspace stays unchanged.
+When you want command semantics without any command-line noise, add `--quiet`. Quiet mode does not change execution; add `--dry-run` separately when the workspace must stay unchanged.
 
 <!-- {=projectReleaseCommand} -->
 
@@ -361,7 +361,7 @@ These commands answer different questions:
 
 Use diagnostics **before** you release. Use release records **after** a release exists and you need to inspect it. Use `monochange step tag-release` in post-merge CI when the release commit has landed on the default branch and you want to create the declared tag set from that durable history record.
 
-Across release-oriented commands, global `--quiet` suppresses stdout/stderr and reuses dry-run behavior for commands that support it.
+Across release-oriented commands, global `--quiet` suppresses stdout/stderr without changing whether the command mutates the workspace.
 
 ## Concurrency
 

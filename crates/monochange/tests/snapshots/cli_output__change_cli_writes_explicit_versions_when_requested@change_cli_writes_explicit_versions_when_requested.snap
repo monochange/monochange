@@ -14,7 +14,7 @@ info:
     - "--reason"
     - promote to stable
     - "--output"
-    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpWthcH4/versioned.md
+    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpHehODR/versioned.md
   env:
     MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"

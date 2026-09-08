@@ -60,7 +60,7 @@ impl Default for ClassifyOptions {
 			detection_level: DetectionLevel::Signature,
 			include_unchanged: false,
 			strict: false,
-			format: OutputFormat::Markdown,
+			format: OutputFormat::Text,
 			output: None,
 			dependency_propagation: DependencyPropagation::None,
 		}
@@ -230,7 +230,7 @@ pub(crate) fn classify_options_from_matches(
 ) -> MonochangeResult<ClassifyOptions> {
 	let format = matches
 		.get_one::<String>("format")
-		.map_or("markdown", String::as_str);
+		.map_or("text", String::as_str);
 	let dependency_propagation = matches
 		.get_one::<String>("dependency-propagation")
 		.map_or("none", String::as_str);
@@ -298,14 +298,18 @@ pub(crate) fn render_changeset_api_validation(
 				.format
 				.render_json_value(&report, "changeset API validation")?
 		}
-		OutputFormat::Markdown | OutputFormat::Text => render_markdown_report(&report),
-	};
-	let output = if options.format.is_json() {
-		output
-	} else {
-		format!(
-			"# Changeset API validation\n\nPending changesets satisfy the enforceable minimum. Medium- and low-confidence findings remain advisory unless `--strict` is set.\n\n{output}"
-		)
+		OutputFormat::Markdown => {
+			format!(
+				"# Changeset API validation\n\nPending changesets satisfy the enforceable minimum. Medium- and low-confidence findings remain advisory unless `--strict` is set.\n\n{}",
+				render_markdown_report(&report)
+			)
+		}
+		OutputFormat::Text => {
+			format!(
+				"Changeset API validation\n\nPending changesets satisfy the enforceable minimum. Medium- and low-confidence findings remain advisory unless --strict is set.\n\n{}",
+				render_text_report(&report)
+			)
+		}
 	};
 	if let Some(path) = &options.output {
 		std::fs::write(path, &output).map_err(|error| {
@@ -362,7 +366,8 @@ pub(crate) fn render_change_classification(
 				.format
 				.render_json_value(&report, "change classification")?
 		}
-		OutputFormat::Markdown | OutputFormat::Text => render_markdown_report(&report),
+		OutputFormat::Markdown => render_markdown_report(&report),
+		OutputFormat::Text => render_text_report(&report),
 	};
 
 	if let Some(path) = &options.output {
@@ -1923,6 +1928,129 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 	}
 
 	lines.join("\n")
+}
+
+#[coverage(off)]
+fn render_text_report(report: &ChangeClassificationReport) -> String {
+	let mut lines = vec!["Change classification".to_string(), String::new()];
+	lines.push(format!("Schema version: {}", report.schema_version));
+	lines.push(format!("Default branch: {}", report.default_branch));
+	lines.push(format!("Candidate: {}", report.candidate));
+	lines.push(format!("Recommended bump: {}", report.recommendation));
+	lines.push(format!("Packages analyzed: {}", report.packages.len()));
+	lines.push(String::new());
+	lines.push("Comparisons".to_string());
+	for comparison in &report.comparisons {
+		let base = comparison.base.as_deref().unwrap_or("unavailable");
+		lines.push(format!(
+			"  {}: {base} to {} ({})",
+			comparison_kind_name(comparison.kind),
+			comparison.head,
+			comparison_status_name(comparison.status)
+		));
+	}
+
+	if report.packages.is_empty() {
+		lines.push(String::new());
+		lines.push("No package changes were detected for the pull request comparison.".to_string());
+	} else {
+		lines.push(String::new());
+		lines.push("Packages".to_string());
+		for package in &report.packages {
+			lines.push(String::new());
+			lines.push(package.package_id.clone());
+			lines.push(format!("  Ecosystem: {}", package.ecosystem));
+			lines.push(format!(
+				"  Proposed changeset bump: {}",
+				package.decision.proposed_changeset_bump
+			));
+			lines.push(format!(
+				"  Enforceable minimum: {}",
+				package.decision.enforceable_minimum
+			));
+			lines.push(format!(
+				"  Release floor: {}",
+				package.decision.release_floor
+			));
+			lines.push(format!(
+				"  Compatibility impact: {}",
+				compatibility_impact_name(package.decision.compatibility_impact)
+			));
+			lines.push(format!(
+				"  Confidence: {}",
+				classification_confidence_name(package.decision.confidence)
+			));
+			lines.push(
+				format!("  Completeness: {:?}", package.decision.completeness).to_lowercase(),
+			);
+			lines.push(format!(
+				"  Review required: {}",
+				package.decision.review_required
+			));
+			lines.push(format!("  Changeset action: {:?}", package.action).to_lowercase());
+			lines.push(format!(
+				"  Summary: {}",
+				plain_text_fragment(&package.summary)
+			));
+			if let Some(owner) = &package.release_owner {
+				lines.push(format!("  Release owner: {} {}", owner.kind, owner.id));
+				lines.push(format!(
+					"  Latest release: {}",
+					owner.latest_release.as_deref().unwrap_or("none")
+				));
+			}
+			if !package.existing_changesets.is_empty() {
+				lines.push("  Existing changesets:".to_string());
+				for changeset in &package.existing_changesets {
+					lines.push(format!(
+						"    {}: {}",
+						changeset.path.display(),
+						changeset
+							.bump
+							.map_or_else(|| "custom".to_string(), |bump| bump.to_string())
+					));
+				}
+			}
+			lines.push(format!("  Findings: {}", package.findings.len()));
+			for finding in package.findings.iter().take(10) {
+				let comparisons = finding
+					.comparisons
+					.iter()
+					.map(|comparison| comparison_kind_name(*comparison))
+					.collect::<Vec<_>>()
+					.join(", ");
+				lines.push(format!(
+					"  - {}: {} ({}, impact {}, bump {}, confidence {}, comparisons {comparisons})",
+					finding.id,
+					plain_text_fragment(&finding.summary),
+					finding.location.display(),
+					compatibility_impact_name(finding.impact),
+					finding.bump,
+					classification_confidence_name(finding.confidence)
+				));
+			}
+			if package.findings.len() > 10 {
+				lines.push(format!("  - {} more findings", package.findings.len() - 10));
+			}
+		}
+	}
+
+	if !report.warnings.is_empty() {
+		lines.push(String::new());
+		lines.push("Warnings".to_string());
+		lines.extend(
+			report
+				.warnings
+				.iter()
+				.map(|warning| format!("- {}", plain_text_fragment(warning))),
+		);
+	}
+
+	lines.join("\n")
+}
+
+fn plain_text_fragment(value: &str) -> String {
+	value.replace('`', "")
 }
 
 fn comparison_kind_name(kind: ComparisonKind) -> &'static str {

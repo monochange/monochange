@@ -223,7 +223,16 @@ fn append_config(root: &Path, config: &str) {
 }
 
 fn run_json_command(root: &Path, command: &str) -> Value {
-	let output = run_command(root, command);
+	let mut process = monochange_command(None);
+	let output = process
+		.current_dir(root)
+		.arg("run")
+		.arg(command)
+		.arg("--dry-run")
+		.arg("--format")
+		.arg("json")
+		.output()
+		.unwrap_or_else(|error| panic!("JSON command output: {error}"));
 	assert!(
 		output.status.success(),
 		"{}",

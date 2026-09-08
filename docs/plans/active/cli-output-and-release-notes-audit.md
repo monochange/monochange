@@ -5,7 +5,7 @@
 - Audit date: 2026-09-08
 - Scope: CLI results, progress, diagnostics, CI logs, changeset authoring, and changelog rendering
 - Outcome: output contract approved; implementation is in progress
-- Code changes: PR 1 process-contract work is complete on `fix/cli-output-contract`
+- Code changes: PR 1 process-contract and PR 2 human-default work are complete
 
 ## Assessment
 
@@ -425,13 +425,13 @@ Acceptance checks:
 
 ### PR 2: Make the default result human-readable
 
-- [ ] Change the default command result from Markdown to text.
-- [ ] Remove terminal transformation from explicit `--format markdown`.
-- [ ] Select result format once at the command boundary instead of reading `last_step_inputs`.
-- [ ] Add a human summary renderer for `step config`.
-- [ ] Make `--jq` require or imply JSON input with a clear help message.
-- [ ] Decouple `--quiet` from `dry_run` and add a changeset that calls out the behavior change.
-- [ ] Describe every built-in step input in `step_inputs_schema`.
+- [x] Change the default command result from Markdown to text.
+- [x] Remove terminal transformation from explicit `--format markdown`.
+- [x] Select result format once at the command boundary instead of reading `last_step_inputs`.
+- [x] Add a human summary renderer for `step config`.
+- [x] Make `--jq` require or imply JSON input with a clear help message.
+- [x] Decouple `--quiet` from `dry_run` and add a changeset that calls out the behavior change.
+- [x] Describe every built-in step input in `step_inputs_schema`.
 
 Acceptance checks:
 

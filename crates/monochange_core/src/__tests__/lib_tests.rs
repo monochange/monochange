@@ -82,6 +82,7 @@ use crate::VersionedFileDefinition;
 use crate::VersionedFileFormat;
 use crate::WorkspaceConfiguration;
 use crate::WorkspaceDefaults;
+use crate::all_step_variants;
 use crate::default_cli_commands;
 use crate::default_publish_order_dependency_fields;
 use crate::git::git_checkout_branch_command;
@@ -2106,6 +2107,31 @@ fn step_inputs_schema_assigns_short_flag_to_interactive_input() {
 	for input in schema.iter().filter(|input| input.name != "interactive") {
 		assert_eq!(input.short, None, "unexpected short flag on {}", input.name);
 	}
+}
+
+#[test]
+fn every_builtin_step_input_has_useful_help_text() {
+	for step in all_step_variants() {
+		for input in step.step_inputs_schema() {
+			let help = input.help_text.as_deref().unwrap_or_else(|| {
+				panic!("{} input `{}` has no help", step.kind_name(), input.name)
+			});
+			assert!(
+				help.split_whitespace().count() >= 4,
+				"{} input `{}` has unhelpful text: {help}",
+				step.kind_name(),
+				input.name,
+			);
+		}
+	}
+}
+
+#[test]
+fn unknown_builtin_step_inputs_receive_fallback_help_text() {
+	assert_eq!(
+		crate::step_input_help_text("future_input"),
+		"Configure this built-in step input"
+	);
 }
 
 #[test]

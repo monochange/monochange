@@ -37,6 +37,12 @@ type = "Validate"
 [cli.discover]
 help_text = "Discover packages"
 
+[[cli.discover.inputs]]
+name = "format"
+type = "choice"
+choices = ["text", "json"]
+default = "text"
+
 [[cli.discover.steps]]
 type = "Discover"
 inputs = { format = "json" }
@@ -53,6 +59,12 @@ inputs = { package = [
 [cli.release]
 help_text = "Prepare a release"
 
+[[cli.release.inputs]]
+name = "format"
+type = "choice"
+choices = ["text", "json"]
+default = "text"
+
 [[cli.release.steps]]
 type = "PrepareRelease"
 inputs = { format = "json" }
@@ -60,6 +72,12 @@ inputs = { format = "json" }
 
 [cli.affected]
 help_text = "Evaluate affected packages"
+
+[[cli.affected.inputs]]
+name = "format"
+type = "choice"
+choices = ["text", "json"]
+default = "text"
 
 [[cli.affected.steps]]
 type = "AffectedPackages"

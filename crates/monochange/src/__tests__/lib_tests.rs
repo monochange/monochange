@@ -48,7 +48,7 @@ use crate::add_change_file;
 use crate::add_interactive_change_file;
 use crate::affected_packages;
 use crate::cli::apply_runtime_change_type_choices;
-use crate::cli::apply_runtime_prepare_release_markdown_defaults;
+use crate::cli::apply_runtime_prepare_release_output_formats;
 use crate::cli::build_command_for_root;
 use crate::cli::build_skill_subcommand;
 use crate::cli::build_subagents_subcommand;
@@ -65,7 +65,6 @@ use crate::cli_runtime::parse_change_bump;
 use crate::cli_runtime::parse_direct_template_reference;
 use crate::cli_runtime::render_cli_command_markdown_result;
 use crate::cli_runtime::render_cli_command_result;
-use crate::cli_runtime::render_markdown_if_terminal;
 use crate::cli_runtime::render_retarget_release_report;
 use crate::cli_runtime::retarget_operation_label;
 use crate::cli_runtime::should_execute_cli_step;
@@ -1531,7 +1530,7 @@ fn mcp_and_root_command_support_quiet_and_missing_subcommands() {
 	.unwrap_or_else(|error| panic!("quiet mcp output: {error}"));
 	assert!(quiet_output.is_empty());
 
-	let quiet_command_output = run_cli(
+	let quiet_command_error = run_cli(
 		tempdir.path(),
 		[
 			OsString::from("monochange"),
@@ -1539,8 +1538,12 @@ fn mcp_and_root_command_support_quiet_and_missing_subcommands() {
 			OsString::from("--quiet"),
 		],
 	)
-	.unwrap_or_else(|error| panic!("quiet command output: {error}"));
-	assert!(quiet_command_output.is_empty());
+	.expect_err("quiet command should still run the interactive command wizard");
+	assert!(
+		quiet_command_error
+			.to_string()
+			.contains("The input device is not a TTY")
+	);
 
 	let no_subcommand = run_cli(tempdir.path(), [OsString::from("monochange")])
 		.unwrap_or_else(|error| panic!("missing subcommand help: {error}"));
@@ -3512,14 +3515,60 @@ fn command_config_reports_resolved_configuration_json() {
 }
 
 #[test]
-fn render_config_step_json_falls_back_to_uncanonicalized_root() {
+fn command_config_defaults_to_a_human_summary() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	seed_release_fixture(tempdir.path(), None, false);
+
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("step"),
+			OsString::from("config"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("config output: {error}"));
+
+	assert!(output.starts_with("Workspace configuration\n\n"));
+	assert!(output.contains("Path: monochange.toml"));
+	assert!(output.contains("Packages: 2 (2 cargo)"));
+	assert!(output.contains("Use `--format json`"));
+	assert!(!output.trim_start().starts_with('{'));
+}
+
+#[test]
+fn jq_requires_an_explicit_json_format_before_command_execution() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	seed_release_fixture(tempdir.path(), None, false);
+
+	let error = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("step"),
+			OsString::from("config"),
+			OsString::from("--jq"),
+			OsString::from(".config.packages[].id"),
+		],
+	)
+	.expect_err("text output must not be passed to --jq");
+
+	assert!(
+		error
+			.to_string()
+			.contains("--jq requires explicit JSON output")
+	);
+}
+
+#[test]
+fn render_config_step_falls_back_to_uncanonicalized_root_for_json() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	seed_release_fixture(tempdir.path(), None, false);
 	let configuration = load_workspace_configuration(tempdir.path())
 		.unwrap_or_else(|error| panic!("config: {error}"));
 	let missing_root = tempdir.path().join("missing-root");
 
-	let output = crate::render_config_step_json(&missing_root, &configuration, OutputFormat::Json)
+	let output = crate::render_config_step(&missing_root, &configuration, OutputFormat::Json)
 		.unwrap_or_else(|error| panic!("config json: {error}"));
 	let parsed: serde_json::Value =
 		serde_json::from_str(&output).unwrap_or_else(|error| panic!("config json: {error}"));
@@ -3532,6 +3581,19 @@ fn render_config_step_json_falls_back_to_uncanonicalized_root() {
 		parsed["config_path"],
 		serde_json::json!(missing_root.join("monochange.toml").display().to_string())
 	);
+}
+
+#[test]
+fn render_config_step_reports_zero_packages_for_an_empty_workspace() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	write_blank_monochange_config(tempdir.path());
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("config: {error}"));
+
+	let output = crate::render_config_step(tempdir.path(), &configuration, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("config text: {error}"));
+
+	assert!(output.contains("Packages: 0"));
 }
 
 #[test]
@@ -5186,6 +5248,7 @@ fn cli_context_for_when_evaluation_tests() -> CliContext {
 		dry_run: false,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
@@ -5804,8 +5867,8 @@ fn commit_release_command_creates_local_commit_with_release_record() {
 	let _commit_body = git_output_in_temp_repo(root, &["log", "-1", "--pretty=%B"]);
 	let status = git_output_in_temp_repo(root, &["status", "--short"]);
 
-	assert!(output.contains("## Release commit"));
-	assert!(output.contains("- **Status:** completed"));
+	assert!(output.contains("release commit:"));
+	assert!(output.contains("  status: completed"));
 	assert_eq!(commit_subject, "chore(release): prepare release");
 	assert!(
 		status.is_empty(),
@@ -5823,7 +5886,7 @@ fn commit_release_command_creates_local_commit_with_release_record() {
 }
 
 #[test]
-fn commit_release_command_reports_json_output() {
+fn commit_release_command_reports_markdown_output_when_requested() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	copy_fixture("prepared-release/source-github-follow-up/workspace", root);
@@ -5840,6 +5903,8 @@ fn commit_release_command_reports_json_output() {
 			OsString::from("monochange"),
 			OsString::from("commit-release"),
 			OsString::from("--dry-run"),
+			OsString::from("--format"),
+			OsString::from("markdown"),
 		],
 	)
 	.unwrap_or_else(|error| panic!("commit-release output: {error}"));
@@ -6760,6 +6825,7 @@ fn template_context_exposes_release_commit_namespace() {
 		dry_run: true,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
@@ -6804,6 +6870,7 @@ fn template_context_exposes_retarget_namespace() {
 		dry_run: true,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
@@ -6841,6 +6908,7 @@ fn template_context_exposes_publish_namespace() {
 		dry_run: true,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
@@ -6955,6 +7023,7 @@ fn template_context_exposes_manifest_affected_steps_and_custom_variables() {
 		dry_run: true,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
@@ -7083,6 +7152,7 @@ fn render_cli_command_result_prefers_retarget_report() {
 		dry_run: true,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
@@ -7122,6 +7192,7 @@ fn render_cli_command_result_renders_release_follow_up_sections() {
 		dry_run: true,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
@@ -7166,6 +7237,7 @@ fn render_cli_command_markdown_result_uses_markdown_sections_for_prepare_release
 		dry_run: true,
 		quiet: false,
 		show_diff: true,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
@@ -7214,6 +7286,7 @@ fn render_cli_command_markdown_result_renders_release_follow_up_sections() {
 		dry_run: false,
 		quiet: false,
 		show_diff: true,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
@@ -9037,7 +9110,7 @@ fn parse_boolean_step_input_rejects_invalid_values() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn run_mcp_command_with_skips_server_when_quiet() {
+async fn run_mcp_command_with_runs_server_when_quiet() {
 	let called = Cell::new(false);
 	let output = crate::run_mcp_command_with(true, || {
 		async {
@@ -9048,7 +9121,7 @@ async fn run_mcp_command_with_skips_server_when_quiet() {
 	.unwrap_or_else(|error| panic!("quiet mcp helper: {error}"));
 
 	assert!(output.is_empty());
-	assert!(!called.get());
+	assert!(called.get());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -9094,7 +9167,7 @@ fn quiet_builtin_commands_return_empty_output() {
 	.unwrap_or_else(|error| panic!("quiet populate output: {error}"));
 	assert!(populate_output.is_empty());
 
-	let analyze_output = run_cli(
+	let analyze_error = run_cli(
 		root,
 		[
 			OsString::from("monochange"),
@@ -9104,8 +9177,8 @@ fn quiet_builtin_commands_return_empty_output() {
 			OsString::from("core"),
 		],
 	)
-	.unwrap_or_else(|error| panic!("quiet analyze output: {error}"));
-	assert!(analyze_output.is_empty());
+	.expect_err("quiet analyze should still validate the requested package");
+	assert!(analyze_error.to_string().contains("core"));
 
 	let mcp_output = run_cli(
 		root,
@@ -12729,7 +12802,7 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 }
 
 #[test]
-fn apply_runtime_prepare_release_markdown_defaults_promotes_release_format_defaults() {
+fn apply_runtime_prepare_release_output_formats_preserves_text_defaults() {
 	let mut cli = vec![CliCommandDefinition {
 		name: "step prepare-release".to_string(),
 		help_text: None,
@@ -12759,7 +12832,7 @@ fn apply_runtime_prepare_release_markdown_defaults_promotes_release_format_defau
 	release.inputs[0].default = Some("text".to_string());
 	release.inputs[0].choices = vec!["text".to_string(), "json".to_string()];
 
-	apply_runtime_prepare_release_markdown_defaults(&mut cli);
+	apply_runtime_prepare_release_output_formats(&mut cli);
 
 	let release = cli
 		.iter()
@@ -12770,7 +12843,7 @@ fn apply_runtime_prepare_release_markdown_defaults_promotes_release_format_defau
 		.iter()
 		.find(|input| input.name == "format")
 		.unwrap_or_else(|| panic!("expected release format input"));
-	assert_eq!(format.default.as_deref(), Some("markdown"));
+	assert_eq!(format.default.as_deref(), Some("text"));
 	assert_eq!(format.choices.first().map(String::as_str), Some("markdown"));
 }
 
@@ -13286,7 +13359,7 @@ fn subagent_parsing_helpers_cover_defaults_deduplication_and_errors() {
 	);
 	assert_eq!(
 		crate::parse_subagent_output_format_or_default(None),
-		crate::SubagentOutputFormat::Markdown
+		crate::SubagentOutputFormat::Text
 	);
 
 	let claude = String::from("claude");
@@ -14003,14 +14076,6 @@ fn parse_output_format_accepts_markdown_text_json_and_json_min_and_rejects_inval
 }
 
 #[test]
-fn output_format_jjson_only_for_json_and_json_min() {
-	assert!(crate::OutputFormat::Json.is_json());
-	assert!(crate::OutputFormat::JsonMin.is_json());
-	assert!(!crate::OutputFormat::Markdown.is_json());
-	assert!(!crate::OutputFormat::Text.is_json());
-}
-
-#[test]
 fn render_json_value_json_min_is_minified_and_json_is_pretty() {
 	let value = serde_json::json!({"release_targets": [{"id": "core"}], "dry_run": true});
 
@@ -14063,90 +14128,10 @@ fn render_json_value_reports_context_on_serialization_failure() {
 }
 
 #[test]
-fn maybe_render_markdown_for_terminal_returns_original_when_not_tty() {
-	let markdown = "# Hello\n\n**bold** text";
-	let result = crate::maybe_render_markdown_for_terminal(markdown);
-	assert_eq!(result, markdown);
-}
-
-#[test]
-fn render_markdown_if_terminal_returns_styled_when_terminal() {
-	let markdown = "# Hello\n\n**bold** text";
-	let result = render_markdown_if_terminal(markdown, true);
-	// termimad produces ANSI-styled output when terminal is true
-	assert!(result.contains("Hello"));
-	assert_ne!(result, markdown);
-}
-
-#[test]
-fn render_markdown_if_terminal_returns_original_when_not_terminal() {
-	let markdown = "# Hello\n\n**bold** text";
-	let result = render_markdown_if_terminal(markdown, false);
-	assert_eq!(result, markdown);
-}
-
-#[test]
-fn detect_output_format_from_env_args_defaults_to_markdown() {
-	let args: Vec<String> = vec!["monochange".to_string()];
-	assert_eq!(
-		crate::detect_output_format_from_env_args(args.into_iter()),
-		crate::OutputFormat::Markdown
-	);
-}
-
-#[test]
-fn detect_output_format_from_env_args_parses_format_flag() {
-	let args: Vec<String> = vec![
-		"monochange".to_string(),
-		"--format".to_string(),
-		"json".to_string(),
-	];
-	assert_eq!(
-		crate::detect_output_format_from_env_args(args.into_iter()),
-		crate::OutputFormat::Json
-	);
-}
-
-#[test]
-fn detect_output_format_from_env_args_parses_format_equals() {
-	let args: Vec<String> = vec!["monochange".to_string(), "--format=md".to_string()];
-	assert_eq!(
-		crate::detect_output_format_from_env_args(args.into_iter()),
-		crate::OutputFormat::Markdown
-	);
-}
-
-#[test]
-fn detect_output_format_from_env_args_treats_config_step_as_json() {
-	let args: Vec<String> = vec![
-		"monochange".to_string(),
-		"step".to_string(),
-		"config".to_string(),
-	];
-	assert_eq!(
-		crate::detect_output_format_from_env_args(args.into_iter()),
-		crate::OutputFormat::Json
-	);
-}
-
-#[test]
-fn detect_output_format_from_env_args_falls_back_to_markdown_for_invalid() {
-	let args: Vec<String> = vec![
-		"monochange".to_string(),
-		"--format".to_string(),
-		"invalid".to_string(),
-	];
-	assert_eq!(
-		crate::detect_output_format_from_env_args(args.into_iter()),
-		crate::OutputFormat::Markdown
-	);
-}
-
-#[test]
-fn parse_subagent_output_format_or_default_prefers_markdown() {
+fn parse_subagent_output_format_or_default_prefers_text() {
 	assert_eq!(
 		crate::parse_subagent_output_format_or_default(None),
-		crate::SubagentOutputFormat::Markdown
+		crate::SubagentOutputFormat::Text
 	);
 	let json = String::from("json");
 	assert_eq!(
@@ -14436,6 +14421,7 @@ fn tracked_release_pull_request_paths_include_manifest_path_and_deduplicate() {
 		dry_run: true,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,

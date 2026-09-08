@@ -12,7 +12,7 @@ Generate repo-local monochange subagents and agent guidance files
 [1m[96mArguments:[0m
   [95m[TARGET]...[0m
           Subagent target(s) to generate
-          
+
           [possible values: claude, vscode, copilot, pi, codex, cursor]
 
 [1m[96mOptions:[0m
@@ -27,8 +27,8 @@ Generate repo-local monochange subagents and agent guidance files
 
       [93m--format[0m[95m [0m[95m<format>[0m
           Output format for the generated subagent plan
-          
-          [default: markdown]
+
+          [default: text]
           [possible values: text, json, json-min, markdown, md]
 
       [93m--no-mcp[0m
@@ -39,15 +39,15 @@ Generate repo-local monochange subagents and agent guidance files
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
-          Suppress stdout/stderr output and run in dry-run mode when supported
+          Suppress result, progress, and diagnostic output without changing execution
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
-          
+
           [possible values: auto, unicode, ascii, json]
 
       [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
-          Filter JSON output with a jq-style expression, such as `.assets[].name`
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree

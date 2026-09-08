@@ -48,8 +48,8 @@ use cli::cli_commands_from_config;
 use cli::current_dir_or_dot;
 pub(crate) use cli_runtime::collect_cli_command_inputs;
 pub(crate) use cli_runtime::execute_cli_command;
+use cli_runtime::execute_cli_command_quietly;
 use cli_runtime::execute_matches;
-pub(crate) use cli_runtime::maybe_render_markdown_for_terminal;
 pub(crate) use cli_runtime::parse_output_format;
 use command_wizard::run_command_wizard;
 use git_support::git_commit_paths;
@@ -159,11 +159,39 @@ pub use workspace_ops::prepare_release;
 pub(crate) use workspace_ops::prepare_release_execution_with_configuration;
 pub(crate) use workspace_ops::push_change_target_markdown;
 
-pub(crate) fn render_config_step_json(
+pub(crate) fn render_config_step(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 	format: OutputFormat,
 ) -> MonochangeResult<String> {
+	if matches!(format, OutputFormat::Text | OutputFormat::Markdown) {
+		let config_path = monochange_config::config_path(root);
+		let display_path = config_path.strip_prefix(root).unwrap_or(&config_path);
+		let mut package_counts = BTreeMap::<&str, usize>::new();
+		for package in &configuration.packages {
+			*package_counts
+				.entry(package.package_type.as_str())
+				.or_default() += 1;
+		}
+		let package_breakdown = package_counts
+			.into_iter()
+			.map(|(ecosystem, count)| format!("{count} {ecosystem}"))
+			.collect::<Vec<_>>()
+			.join(", ");
+		let packages = if package_breakdown.is_empty() {
+			"0".to_string()
+		} else {
+			format!("{} ({package_breakdown})", configuration.packages.len())
+		};
+		return Ok(format!(
+			"Workspace configuration\n\nPath: {}\nPackages: {packages}\nVersion groups: {}\nConfigured commands: {}\nChangelog streams: {}\n\nUse `--format json` to print the complete resolved configuration.",
+			display_path.display(),
+			configuration.groups.len(),
+			configuration.cli.len(),
+			configuration.changelog.streams.len(),
+		));
+	}
+
 	let project_root = root
 		.canonicalize()
 		.unwrap_or_else(|_| root.to_path_buf())
@@ -252,12 +280,6 @@ pub enum OutputFormat {
 }
 
 impl OutputFormat {
-	/// Whether this format renders machine-readable JSON.
-	#[must_use]
-	pub(crate) fn is_json(self) -> bool {
-		matches!(self, Self::Json | Self::JsonMin)
-	}
-
 	/// Serialize a value as plain-text JSON for this output format.
 	///
 	/// [`OutputFormat::Json`] renders pretty-printed JSON while
@@ -350,7 +372,7 @@ pub enum SubagentOutputFormat {
 }
 
 fn parse_subagent_output_format_or_default(value: Option<&String>) -> SubagentOutputFormat {
-	match value.map_or("markdown", String::as_str) {
+	match value.map_or("text", String::as_str) {
 		"json" => SubagentOutputFormat::Json,
 		"json-min" => SubagentOutputFormat::JsonMin,
 		"text" => SubagentOutputFormat::Text,
@@ -526,6 +548,7 @@ struct CliContext {
 	dry_run: bool,
 	quiet: bool,
 	show_diff: bool,
+	output_format: OutputFormat,
 	inputs: BTreeMap<String, Vec<String>>,
 	last_step_inputs: BTreeMap<String, Vec<String>>,
 	prepared_release: Option<PreparedRelease>,
@@ -570,12 +593,7 @@ pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
 	let args = std::env::args_os();
 	let output = run_with_args(bin_name, args).await?;
 	if !quiet && !output.is_empty() {
-		let format = detect_output_format_from_env_args(std::env::args());
-		if format == OutputFormat::Markdown {
-			println!("{}", maybe_render_markdown_for_terminal(&output));
-		} else {
-			println!("{output}");
-		}
+		println!("{output}");
 	}
 	Ok(())
 }
@@ -601,30 +619,6 @@ pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
 	}
 
 	ExitCode::FAILURE
-}
-
-pub(crate) fn detect_output_format_from_env_args(
-	args: impl Iterator<Item = String>,
-) -> OutputFormat {
-	let args: Vec<String> = args.collect();
-	for (i, arg) in args.iter().enumerate() {
-		if arg == "config"
-			&& args
-				.get(i.saturating_sub(1))
-				.is_some_and(|previous| previous == "step")
-		{
-			return OutputFormat::Json;
-		}
-		if arg == "--format"
-			&& let Some(value) = args.get(i + 1)
-		{
-			return parse_output_format(value).unwrap_or(OutputFormat::Markdown);
-		}
-		if let Some(value) = arg.strip_prefix("--format=") {
-			return parse_output_format(value).unwrap_or(OutputFormat::Markdown);
-		}
-	}
-	OutputFormat::Markdown
 }
 
 fn extract_log_level_from_args() -> Option<String> {
@@ -682,6 +676,16 @@ where
 	}
 
 	None
+}
+
+fn selected_cli_output_format(matches: &clap::ArgMatches) -> MonochangeResult<OutputFormat> {
+	if let Ok(Some(value)) = matches.try_get_one::<String>("format") {
+		return parse_output_format(value);
+	}
+	if let Some((_, subcommand)) = matches.subcommand() {
+		return selected_cli_output_format(subcommand);
+	}
+	Ok(OutputFormat::Text)
 }
 
 struct SnapshotRequest {
@@ -793,7 +797,7 @@ fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Opt
 
 	let mut before = None;
 	let mut after = None;
-	let mut format = OutputFormat::Markdown;
+	let mut format = OutputFormat::Text;
 	let mut index = 3;
 	while let Some(arg) = args.get(index).and_then(|value| value.to_str()) {
 		match arg {
@@ -1211,6 +1215,18 @@ where
 	}
 
 	let jq_expression = matches.get_one::<String>("jq").cloned();
+	if jq_expression.is_some()
+		&& !matches.get_flag("snapshot")
+		&& !matches!(matches.subcommand_name(), Some("snapshot"))
+		&& !matches!(
+			selected_cli_output_format(&matches)?,
+			OutputFormat::Json | OutputFormat::JsonMin
+		) {
+		return Err(MonochangeError::Config(
+			"--jq requires explicit JSON output; add `--format json` or `--format json-min`"
+				.to_string(),
+		));
+	}
 	let output = match matches.subcommand() {
 		Some(("snapshot", snapshot_matches)) => {
 			let view = snapshot_matches
@@ -1250,11 +1266,12 @@ where
 			}
 		}
 		Some(("populate", _)) => {
-			if quiet {
-				return Ok(String::new());
-			}
 			let result = populate_workspace(root)?;
-			Ok(format_populate_workspace_result(&result))
+			if quiet {
+				Ok(String::new())
+			} else {
+				Ok(format_populate_workspace_result(&result))
+			}
 		}
 		Some(("command", _)) => run_command_wizard_for_cli(root, quiet),
 		Some(("skill", skill_matches)) => {
@@ -1279,7 +1296,7 @@ where
 			let options = SubagentOptions {
 				targets,
 				force: subagent_matches.get_flag("force"),
-				dry_run: quiet || subagent_matches.get_flag("dry-run"),
+				dry_run: subagent_matches.get_flag("dry-run"),
 				format,
 				generate_mcp: !subagent_matches.get_flag("no-mcp"),
 			};
@@ -1317,9 +1334,6 @@ where
 			if quiet { Ok(String::new()) } else { Ok(output) }
 		}
 		Some(("analyze", analyze_matches)) => {
-			if quiet {
-				return Ok(String::new());
-			}
 			let package = analyze_matches
 				.get_one::<String>("package")
 				.map(String::as_str)
@@ -1338,9 +1352,7 @@ where
 				.map_or("signature", String::as_str);
 			let format = analyze_matches
 				.get_one::<String>("format")
-				.map_or(Ok(OutputFormat::Markdown), |value| {
-					parse_output_format(value)
-				})?;
+				.map_or(Ok(OutputFormat::Text), |value| parse_output_format(value))?;
 			render_analyze_report(
 				root,
 				package,
@@ -1374,16 +1386,11 @@ where
 		Some(("mcp", _)) => run_mcp_command_with(quiet, mcp::run_server).await,
 
 		Some(("check", check_matches)) => {
-			if quiet {
-				return Ok(String::new());
-			}
 			let fix = check_matches.get_flag("fix");
 			let verbose = check_matches.get_flag("verbose");
 			let format = check_matches
 				.get_one::<String>("format")
-				.map_or(Ok(OutputFormat::Markdown), |value| {
-					parse_output_format(value)
-				})?;
+				.map_or(Ok(OutputFormat::Text), |value| parse_output_format(value))?;
 			let ecosystems: Vec<String> = check_matches
 				.get_many::<String>("ecosystem")
 				.map(|values| values.map(String::as_str).map(String::from).collect())
@@ -1392,14 +1399,21 @@ where
 				.get_many::<String>("only")
 				.map(|values| values.map(String::as_str).map(String::from).collect())
 				.unwrap_or_default();
-			lint::run_check_command(root, fix, &ecosystems, &only_rules, format, verbose)
-		}
-		Some(("lint", lint_matches)) => {
 			if quiet {
-				return Ok(String::new());
+				lint::run_check_command_with_progress(
+					root,
+					fix,
+					&ecosystems,
+					&only_rules,
+					format,
+					verbose,
+					false,
+				)
+			} else {
+				lint::run_check_command(root, fix, &ecosystems, &only_rules, format, verbose)
 			}
-			lint::handle_lint_subcommand(root, lint_matches)
 		}
+		Some(("lint", lint_matches)) => lint::handle_lint_subcommand(root, lint_matches),
 
 		Some(("versions", versions_matches)) => {
 			match versions_matches.subcommand() {
@@ -1438,8 +1452,12 @@ where
 			let configuration = configuration?;
 			let synthetic = synthetic_step_command_definition(step_name)?;
 			let inputs = collect_cli_command_inputs(&synthetic, step_command_matches);
-			let dry_run = quiet || step_command_matches.get_flag("dry-run");
-			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+			let dry_run = step_command_matches.get_flag("dry-run");
+			if quiet {
+				execute_cli_command_quietly(root, &configuration, &synthetic, dry_run, inputs).await
+			} else {
+				execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+			}
 		}
 		Some((cli_command_name, cli_command_matches))
 			if cli::top_level_step_alias(cli_command_name).is_some() =>
@@ -1450,8 +1468,12 @@ where
 			let synthetic = cli::top_level_step_alias_command_definition(alias)
 				.expect("top-level step alias target exists");
 			let inputs = collect_cli_command_inputs(&synthetic, cli_command_matches);
-			let dry_run = quiet || alias.force_dry_run || cli_command_matches.get_flag("dry-run");
-			execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+			let dry_run = alias.force_dry_run || cli_command_matches.get_flag("dry-run");
+			if quiet {
+				execute_cli_command_quietly(root, &configuration, &synthetic, dry_run, inputs).await
+			} else {
+				execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
+			}
 		}
 		Some(("run", run_matches)) => {
 			let Some((cli_command_name, cli_command_matches)) = run_matches.subcommand() else {
@@ -1483,7 +1505,9 @@ where
 		None => Err(MonochangeError::Config("Usage: monochange".to_string())),
 	}?;
 
-	if let Some(expression) = jq_expression {
+	if quiet {
+		Ok(String::new())
+	} else if let Some(expression) = jq_expression {
 		jq_filter::apply_jq_filter(&output, &expression)
 	} else {
 		Ok(output)
@@ -1492,22 +1516,16 @@ where
 
 #[coverage(off)]
 fn run_command_wizard_for_cli(root: &Path, quiet: bool) -> MonochangeResult<String> {
-	if quiet {
-		return Ok(String::new());
-	}
-	run_command_wizard(root)
+	let output = run_command_wizard(root)?;
+	Ok(if quiet { String::new() } else { output })
 }
 
 #[cfg(feature = "mcp")]
-async fn run_mcp_command_with<F, Fut>(quiet: bool, run_server: F) -> MonochangeResult<String>
+async fn run_mcp_command_with<F, Fut>(_quiet: bool, run_server: F) -> MonochangeResult<String>
 where
 	F: FnOnce() -> Fut,
 	Fut: Future<Output = ()>,
 {
-	if quiet {
-		return Ok(String::new());
-	}
-
 	run_server().await;
 	Ok(String::new())
 }

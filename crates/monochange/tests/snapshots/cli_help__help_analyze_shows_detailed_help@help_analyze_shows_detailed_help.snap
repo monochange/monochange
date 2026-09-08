@@ -38,7 +38,7 @@ Options:
       --format <format>
           Output format
           
-          [default: markdown]
+          [default: text]
           [possible values: text, json, json-min, markdown, md]
 
   -h, --help
@@ -46,7 +46,7 @@ Options:
 
 Global Options:
   -q, --quiet
-          Suppress stdout/stderr output and run in dry-run mode when supported
+          Suppress result, progress, and diagnostic output without changing execution
 
       --progress-format <FORMAT>
           Control progress output on stderr
@@ -54,7 +54,7 @@ Global Options:
           [possible values: auto, unicode, ascii, json]
 
       --jq <EXPRESSION>
-          Filter JSON output with a jq-style expression, such as `.assets[].name`
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
 
       --snapshot
           Print a normalized JSON snapshot for this command subtree

@@ -230,7 +230,7 @@ steps = [
 [cli.release]
 help_text = "Prepare versioned package files"
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "markdown", "json"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "markdown", "json"], default = "text" },
 ]
 steps = [
 	{ name = "plan release", type = "PrepareRelease", inputs = ["format"] },

@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/dart_trusted_publishing.rs
-assertion_line: 335
 expression: "outcomes[0]"
 ---
 {
