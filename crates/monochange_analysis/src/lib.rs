@@ -859,19 +859,22 @@ fn build_revision_snapshot_files(
 		let mut output = Vec::new();
 		stderr.read_to_end(&mut output).map(|_| output)
 	});
-	{
+	let write_error = {
 		let mut stdin = child
 			.stdin
 			.take()
 			.ok_or_else(|| MonochangeError::Io("failed to open git cat-file stdin".to_string()))?;
+		let mut write_error = None;
 		for path in paths {
-			// patch-coverage:ignore-start -- pipe write/read/wait failures require invalidating handles owned exclusively by this function; successful concurrent draining and process-status failure are tested.
-			writeln!(&mut stdin, "{revision}:{}", path.to_string_lossy()).map_err(|error| {
-				MonochangeError::Io(format!("failed to write git cat-file input: {error}"))
-			})?;
-			// patch-coverage:ignore-end
+			if let Err(error) = writeln!(&mut stdin, "{revision}:{}", path.to_string_lossy()) {
+				write_error = Some(MonochangeError::Io(format!(
+					"failed to write git cat-file input: {error}"
+				)));
+				break;
+			}
 		}
-	}
+		write_error
+	};
 
 	// patch-coverage:ignore-start -- child wait and reader failures require invalidating handles owned exclusively by this function.
 	let status = child.wait().map_err(|error| {
@@ -896,6 +899,11 @@ fn build_revision_snapshot_files(
 			String::from_utf8_lossy(&stderr).trim()
 		)));
 	}
+	// patch-coverage:ignore-start -- a successful git process cannot also close its input pipe before consuming the complete request.
+	if let Some(error) = write_error {
+		return Err(error);
+	}
+	// patch-coverage:ignore-end
 
 	parse_revision_snapshot_batch(package_root, paths, &output)
 }
