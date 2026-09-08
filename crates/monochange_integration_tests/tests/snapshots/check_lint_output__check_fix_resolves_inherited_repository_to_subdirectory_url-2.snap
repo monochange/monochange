@@ -1,0 +1,14 @@
+---
+source: crates/monochange_integration_tests/tests/check_lint_output.rs
+expression: contents
+---
+[package]
+name = "example"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Example package"
+repository = "https://github.com/acme/widgets/tree/main/crates/example"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }

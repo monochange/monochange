@@ -1,0 +1,14 @@
+[workspace]
+members = ["crates/example"]
+
+[workspace.package]
+repository = "https://github.com/acme/widgets"
+license = "MIT"
+
+[package]
+name = "widgets"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Example widgets workspace"
+repository = "https://github.com/acme/widgets"

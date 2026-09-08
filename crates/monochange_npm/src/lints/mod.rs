@@ -57,6 +57,10 @@ impl LintSuite for NpmLintSuite {
 		"npm"
 	}
 
+	fn validate_contents(&self, contents: &str) -> bool {
+		serde_json::from_str::<Value>(contents).is_ok()
+	}
+
 	fn rules(&self) -> Vec<Box<dyn LintRuleRunner>> {
 		vec![
 			Box::new(WorkspaceProtocolRule::new()),
@@ -710,11 +714,11 @@ impl LintRuleRunner for RootNoProdDepsRule {
 					}
 				}
 			}
-			result = result.with_fix(LintFix::single(
+			result = result.with_fix(LintFix::document(
 				"move root dependencies to devDependencies",
-				(0, ctx.contents.len()),
 				serde_json::to_string_pretty(&rewritten)
 					.unwrap_or_else(|_| ctx.contents.to_string()),
+				ctx.contents.len(),
 			));
 		}
 		vec![result]
@@ -798,11 +802,11 @@ impl LintRuleRunner for NoDuplicateDependenciesRule {
 						}
 					}
 				}
-				result = result.with_fix(LintFix::single(
+				result = result.with_fix(LintFix::document(
 					"remove duplicate dependency entries from later sections",
-					(0, ctx.contents.len()),
 					serde_json::to_string_pretty(&rewritten)
 						.unwrap_or_else(|_| ctx.contents.to_string()),
+					ctx.contents.len(),
 				));
 			}
 			results.push(result);
@@ -859,11 +863,11 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 			if let Some(root) = manifest_object_mut(&mut rewritten) {
 				root.insert("private".to_string(), Value::Bool(true));
 			}
-			result = result.with_fix(LintFix::single(
+			result = result.with_fix(LintFix::document(
 				"insert private: true",
-				(0, ctx.contents.len()),
 				serde_json::to_string_pretty(&rewritten)
 					.unwrap_or_else(|_| ctx.contents.to_string()),
+				ctx.contents.len(),
 			));
 		}
 		vec![result]
@@ -937,10 +941,10 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					"manifest is missing the repository field".to_string(),
 					config.severity(),
 				)
-				.with_fix(LintFix::single(
+				.with_fix(LintFix::document(
 					"insert repository field",
-					(0, ctx.contents.len()),
 					fixed,
+					ctx.contents.len(),
 				));
 				vec![result]
 			}
@@ -962,10 +966,10 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					format!("repository field is \"{current}\" but should be \"{expected}\""),
 					config.severity(),
 				)
-				.with_fix(LintFix::single(
+				.with_fix(LintFix::document(
 					"fix repository field",
-					(0, ctx.contents.len()),
 					fixed,
+					ctx.contents.len(),
 				));
 				vec![result]
 			}

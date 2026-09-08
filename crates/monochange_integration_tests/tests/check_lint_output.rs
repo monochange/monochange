@@ -145,3 +145,92 @@ fn check_fix_converts_redundant_changeset_entries_to_inline() {
 	insta::assert_snapshot!(block_changeset);
 	insta::assert_snapshot!(flow_changeset);
 }
+
+/// Regression test for the `cargo/manifest-repository` autofix: enabling the
+/// rule with `allow_workspace_inheritance = true` must leave manifests that
+/// use `repository = { workspace = true }` completely untouched, and must
+/// never replace a manifest with a fragment of itself.
+#[test]
+fn check_fix_leaves_inherited_repositories_alone_when_opted_in() {
+	let fixture = setup_fixture("check-output", "cargo-manifest-repository");
+	let output = run_check(fixture.path(), &["--format", "text", "--fix"]);
+
+	let member_manifest = fixture.path().join("crates/example/Cargo.toml");
+	let contents = std::fs::read_to_string(&member_manifest)
+		.unwrap_or_else(|error| panic!("read member manifest: {error}"));
+	assert_eq!(
+		contents,
+		"[package]\nname = \"example\"\nversion = \"0.1.0\"\nedition = \"2021\"\nlicense = \"MIT\"\ndescription = \"Example package\"\nrepository = { workspace = true }\n\n[dependencies]\nserde = { version = \"1.0\", features = [\"derive\"] }\n",
+		"the manifest must remain byte-identical when workspace inheritance is allowed"
+	);
+	insta::assert_snapshot!(normalize_workspace_paths(fixture.path(), output));
+}
+
+/// The rule without the opt-out resolves the inherited value and rewrites the
+/// manifest to the canonical subdirectory URL while keeping every other field.
+#[test]
+fn check_fix_resolves_inherited_repository_to_subdirectory_url() {
+	let fixture = setup_fixture("check-output", "cargo-manifest-repository");
+	std::fs::write(
+		fixture.path().join("monochange.toml"),
+		r#"[defaults]
+package_type = "cargo"
+changelog = false
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "widgets"
+
+[lints.rules]
+"cargo/manifest-repository" = "error"
+
+[ecosystems.cargo]
+enabled = true
+
+[package.example]
+path = "crates/example"
+type = "cargo"
+version = "0.1.0"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let output = run_check(fixture.path(), &["--format", "text", "--fix"]);
+
+	let member_manifest = fixture.path().join("crates/example/Cargo.toml");
+	let contents = std::fs::read_to_string(&member_manifest)
+		.unwrap_or_else(|error| panic!("read member manifest: {error}"));
+	assert!(
+		contents
+			.contains("repository = \"https://github.com/acme/widgets/tree/main/crates/example\""),
+		"repository should be rewritten to the subdirectory URL:\n{contents}"
+	);
+	// The rewrite must keep all unrelated content intact.
+	assert!(
+		contents.contains("name = \"example\""),
+		"lost name:\n{contents}"
+	);
+	assert!(
+		contents.contains("version = \"0.1.0\""),
+		"lost version:\n{contents}"
+	);
+	assert!(
+		contents.contains("edition = \"2021\""),
+		"lost edition:\n{contents}"
+	);
+	assert!(
+		contents.contains("license = \"MIT\""),
+		"lost license:\n{contents}"
+	);
+	assert!(
+		contents.contains("description = \"Example package\""),
+		"lost description:\n{contents}"
+	);
+	assert!(
+		contents.contains("serde = { version = \"1.0\", features = [\"derive\"] }"),
+		"lost dependencies:\n{contents}"
+	);
+	insta::assert_snapshot!(normalize_workspace_paths(fixture.path(), output));
+	insta::assert_snapshot!(contents);
+}
