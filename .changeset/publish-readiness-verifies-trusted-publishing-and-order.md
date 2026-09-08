@@ -3,7 +3,7 @@ monochange: minor
 monochange_publish: minor
 ---
 
-# publish readiness verifies trusted publishing and dependency order before any publish mutation
+# publish readiness verifies trusted publishing and publish order
 
 `monochange step publish-readiness` now verifies trusted publishing for every selected package before any registry state is mutated, and validates the planned publication order against the workspace dependency graph.
 
