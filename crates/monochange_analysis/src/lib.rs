@@ -867,11 +867,12 @@ fn build_revision_snapshot_files(
 		let mut write_error = None;
 		for path in paths {
 			if let Err(error) = writeln!(&mut stdin, "{revision}:{}", path.to_string_lossy()) {
+				// patch-coverage:ignore-start -- pipe closure timing is process-scheduler dependent; the error is retained and process status is tested.
 				write_error = Some(MonochangeError::Io(format!(
 					"failed to write git cat-file input: {error}"
 				)));
 				break;
-			}
+			} // patch-coverage:ignore-end
 		}
 		write_error
 	};
