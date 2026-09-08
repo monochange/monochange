@@ -8,7 +8,9 @@ monochange_dart: patch
 monochange_npm: patch
 ---
 
-`monochange check --fix` no longer replaces whole manifests with a single line
+# `monochange check --fix` no longer replaces whole manifests with a single line
+
+Running `monochange check --fix` no longer replaces whole manifests with a single line
 
 Running `monochange check --fix` with manifest lint rules enabled could replace an entire `Cargo.toml` with a one-line fragment such as `repository = "..."`, deleting every other field, table, and comment in the file. The `cargo/manifest-repository` rule (with or without `allow_workspace_inheritance`) triggered this whenever it rewrote a repository value, and the `cargo/dependency-field-order`, `cargo/internal-dependency-workspace`, and `cargo/sorted-dependencies` fixes carried the same hazard.
 
