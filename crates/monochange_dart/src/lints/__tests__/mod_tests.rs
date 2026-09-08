@@ -741,3 +741,10 @@ fn manifest_repository_correct_value() {
 	let results = rule.run(&ctx, &config);
 	assert!(results.is_empty());
 }
+
+#[test]
+fn suite_validate_contents_accepts_only_yaml() {
+	assert!(DartLintSuite.validate_contents("name: example\n"));
+	assert!(!DartLintSuite.validate_contents("{ \"name\": [unbalanced"));
+	assert!(!DartLintSuite.validate_contents("name: [example\n  unmatched: ["));
+}

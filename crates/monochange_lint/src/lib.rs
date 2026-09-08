@@ -261,12 +261,16 @@ impl Linter {
 	#[must_use]
 	pub fn apply_fixes(&self, report: &LintReport) -> BTreeMap<PathBuf, String> {
 		let mut fixes_by_file: BTreeMap<PathBuf, Vec<LintFix>> = BTreeMap::new();
+		let mut suites_by_file: BTreeMap<PathBuf, String> = BTreeMap::new();
 		for result in report.autofixable() {
 			if let Some(fix) = &result.fix {
 				fixes_by_file
 					.entry(result.location.file_path.clone())
 					.or_default()
 					.push(fix.clone());
+				suites_by_file
+					.entry(result.location.file_path.clone())
+					.or_insert_with(|| result.rule_id.split('/').next().unwrap_or("").to_string());
 			}
 		}
 
@@ -275,7 +279,31 @@ impl Linter {
 			let Ok(contents) = std::fs::read_to_string(&file_path) else {
 				continue;
 			};
-			fixed_files.insert(file_path, apply_fixes_to_content(&contents, &fixes));
+			let fixed_contents = apply_fixes_to_content(&contents, &fixes);
+
+			// Safety net: a whole-file rewrite replaces every byte of the
+			// original manifest, so validate the result with the suite's own
+			// parser before returning it. A malformed rewrite is skipped (with
+			// a warning) rather than written, keeping the original file intact.
+			let has_document_rewrite = fixes
+				.iter()
+				.flat_map(|fix| fix.edits.iter())
+				.any(|edit| edit.span == (0, contents.len()));
+			if has_document_rewrite
+				&& !suites_by_file
+					.get(&file_path)
+					.and_then(|suite_id| self.registry.suites.get(suite_id))
+					.is_none_or(|suite| suite.validate_contents(&fixed_contents))
+			{
+				let warning = format!(
+					"skipping autofix for {}: the rewritten manifest failed validation; keeping the original contents",
+					file_path.display()
+				);
+				tracing::warn!("{warning}");
+				continue;
+			}
+
+			fixed_files.insert(file_path, fixed_contents);
 		}
 
 		fixed_files

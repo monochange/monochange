@@ -214,3 +214,48 @@ fn lint_registry_finds_applicable_rules() {
 			.is_empty()
 	);
 }
+
+#[test]
+fn lint_fix_document_spans_the_whole_file() {
+	let fix = LintFix::document("rewrite manifest", "[package]\n", 42);
+	assert_eq!(fix.description, "rewrite manifest");
+	assert_eq!(fix.edits.len(), 1);
+	assert_eq!(fix.edits[0].span, (0, 42));
+	assert_eq!(fix.edits[0].replacement, "[package]\n");
+}
+
+#[test]
+fn lint_fix_single_and_document_are_distinct_constructors() {
+	let targeted = LintFix::single("targeted", (4, 9), "value");
+	assert_eq!(targeted.edits[0].span, (4, 9));
+	let whole_file = LintFix::document("whole file", "replacement", 9);
+	assert_eq!(whole_file.edits[0].span, (0, 9));
+}
+
+#[test]
+fn lint_suite_validate_contents_defaults_to_permissive() {
+	#[derive(Debug, Default)]
+	struct PermissiveSuite;
+
+	impl LintSuite for PermissiveSuite {
+		fn suite_id(&self) -> &'static str {
+			"permissive"
+		}
+
+		fn rules(&self) -> Vec<Box<dyn LintRuleRunner>> {
+			Vec::new()
+		}
+
+		fn collect_targets(
+			&self,
+			_workspace_root: &Path,
+			_configuration: &crate::WorkspaceConfiguration,
+		) -> crate::MonochangeResult<Vec<LintTarget>> {
+			Ok(Vec::new())
+		}
+	}
+
+	let suite = PermissiveSuite;
+	assert!(suite.validate_contents("anything at all"));
+	assert!(suite.validate_contents(""));
+}

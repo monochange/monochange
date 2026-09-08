@@ -59,6 +59,10 @@ impl LintSuite for CargoLintSuite {
 		"cargo"
 	}
 
+	fn validate_contents(&self, contents: &str) -> bool {
+		contents.parse::<DocumentMut>().is_ok()
+	}
+
 	fn rules(&self) -> Vec<Box<dyn LintRuleRunner>> {
 		vec![
 			Box::new(DependencyFieldOrderRule::new()),
@@ -386,6 +390,46 @@ impl DependencyFieldOrderRule {
 		keys.sort_by_key(|(_, pos)| *pos);
 		keys.into_iter().map(|(key, _)| key).collect()
 	}
+
+	/// Reorder `deps` inside `section` on a manifest copy.
+	///
+	/// Detection ran against the same document, so the section and dependency
+	/// tables are known to exist; anything else is an invariant violation.
+	fn reorder_section_dependencies(document: &mut DocumentMut, section: &str, deps: &[String]) {
+		let section_table = document
+			.get_mut(section)
+			.and_then(Item::as_table_mut)
+			.expect("detection verified the dependency section is a table");
+		for dep_name in deps {
+			let dep_table = section_table
+				.get_mut(dep_name)
+				.and_then(Item::as_table_mut)
+				.expect("detection verified the dependency entry is a table");
+			Self::reorder_fields(dep_table);
+		}
+	}
+
+	/// Rebuild `table` with keys in the preferred dependency order, keeping
+	/// each key's value (including its formatting and comments) intact.
+	fn reorder_fields(table: &mut toml_edit::Table) {
+		let order = preferred_dependency_order();
+		let mut items: Vec<(String, Item)> = table
+			.iter()
+			.map(|(key, value)| (key.to_string(), value.clone()))
+			.collect();
+		for (key, _) in &items {
+			table.remove(key);
+		}
+		items.sort_by_key(|(key, _)| {
+			order
+				.iter()
+				.position(|preferred| preferred == key)
+				.unwrap_or(order.len())
+		});
+		for (key, value) in items {
+			table.insert(&key, value);
+		}
+	}
 }
 
 impl LintRuleRunner for DependencyFieldOrderRule {
@@ -407,18 +451,39 @@ impl LintRuleRunner for DependencyFieldOrderRule {
 				continue;
 			};
 
+			let mut offending_deps = Vec::new();
 			for (dep_name, value) in table {
 				let Some(dep_table) = value.as_table() else {
 					continue;
 				};
 				let actual = dep_table.iter().map(|(key, _)| key).collect::<Vec<_>>();
 				let expected = Self::ordered_fields(dep_table);
-				if actual == expected {
-					continue;
+				if actual != expected {
+					offending_deps.push(dep_name.to_string());
 				}
+			}
+			if offending_deps.is_empty() {
+				continue;
+			}
 
-				let span = value.span().map(|span| (span.start, span.end));
-				let location = location_from_span(ctx.manifest_path, ctx.contents, span);
+			// Fix by mutating a copy of the parsed manifest and serializing
+			// the whole document. A whole-file rewrite cannot lose unrelated
+			// content the way a mis-targeted span replacement would, and
+			// toml_edit keeps the surrounding formatting intact.
+			let shared_fix = if config.bool_option("fix", true) {
+				let mut document = file.document.clone();
+				Self::reorder_section_dependencies(&mut document, section, &offending_deps);
+				Some(LintFix::document(
+					"reorder dependency fields",
+					document.to_string(),
+					ctx.contents.len(),
+				))
+			} else {
+				None
+			};
+
+			for dep_name in offending_deps {
+				let location = location_from_span(ctx.manifest_path, ctx.contents, None);
 				let mut result = LintResult::new(
 					self.rule.id.clone(),
 					location,
@@ -427,27 +492,9 @@ impl LintRuleRunner for DependencyFieldOrderRule {
 					),
 					config.severity(),
 				);
-
-				if config.bool_option("fix", true) {
-					let mut reordered = toml_edit::Table::new();
-					for key in expected {
-						if let Some(value) = dep_table.get(key) {
-							reordered.insert(key, value.clone());
-						}
-					}
-					for (key, value) in dep_table {
-						if !reordered.contains_key(key) {
-							reordered.insert(key, value.clone());
-						}
-					}
-					let replacement = format!("{dep_name} = {}", reordered.to_string().trim());
-					result = result.with_fix(LintFix::single(
-						"reorder dependency fields",
-						span.unwrap_or((0, ctx.contents.len())),
-						replacement,
-					));
+				if let Some(fix) = &shared_fix {
+					result = result.with_fix(fix.clone());
 				}
-
 				results.push(result);
 			}
 		}
@@ -478,6 +525,28 @@ monochange_linting::declare_lint_rule! {
 	],
 }
 
+impl InternalDependencyWorkspaceRule {
+	/// Rewrite `deps` inside `section` to `{ workspace = true }` on a
+	/// manifest copy.
+	///
+	/// Detection ran against the same document, so the section exists and
+	/// contains every dependency; anything else is an invariant violation.
+	fn rewrite_internal_dependencies(document: &mut DocumentMut, section: &str, deps: &[String]) {
+		let section_table = document
+			.get_mut(section)
+			.and_then(Item::as_table_mut)
+			.expect("detection verified the dependency section is a table");
+		for dep_name in deps {
+			let dep_item = section_table
+				.get_mut(dep_name)
+				.expect("detection verified the dependency entry exists");
+			let mut workspace_table = toml_edit::InlineTable::new();
+			workspace_table.insert("workspace", toml_edit::Value::from(true));
+			*dep_item = Item::Value(workspace_table.into());
+		}
+	}
+}
+
 impl LintRuleRunner for InternalDependencyWorkspaceRule {
 	fn rule(&self) -> &LintRule {
 		&self.rule
@@ -501,34 +570,46 @@ impl LintRuleRunner for InternalDependencyWorkspaceRule {
 				continue;
 			};
 
+			let mut offending_deps = Vec::new();
 			for (dep_name, value) in table {
 				if !file.workspace_package_names.contains(dep_name) {
 					continue;
 				}
-
-				let has_workspace = value_has_workspace_enabled(value);
-				if has_workspace {
+				if value_has_workspace_enabled(value) {
 					continue;
 				}
+				offending_deps.push(dep_name.to_string());
+			}
+			if offending_deps.is_empty() {
+				continue;
+			}
 
-				let span = value.span().map(|span| (span.start, span.end));
-				let location = location_from_span(ctx.manifest_path, ctx.contents, span);
+			// Fix by mutating a copy of the parsed manifest and serializing
+			// the whole document so the rewrite can never drop unrelated
+			// content (see `LintFix::document`).
+			let shared_fix = if config.bool_option("fix", true) {
+				let mut document = file.document.clone();
+				Self::rewrite_internal_dependencies(&mut document, section, &offending_deps);
+				Some(LintFix::document(
+					"rewrite internal dependency to workspace = true",
+					document.to_string(),
+					ctx.contents.len(),
+				))
+			} else {
+				None
+			};
+
+			for dep_name in offending_deps {
+				let location = location_from_span(ctx.manifest_path, ctx.contents, None);
 				let mut result = LintResult::new(
 					self.rule.id.clone(),
 					location,
 					format!("internal dependency `{dep_name}` should use workspace = true"),
 					config.severity(),
 				);
-
-				if config.bool_option("fix", true) {
-					let replacement = format!("{dep_name} = {{ workspace = true }}");
-					result = result.with_fix(LintFix::single(
-						"rewrite internal dependency to workspace = true",
-						span.unwrap_or((0, ctx.contents.len())),
-						replacement,
-					));
+				if let Some(fix) = &shared_fix {
+					result = result.with_fix(fix.clone());
 				}
-
 				results.push(result);
 			}
 		}
@@ -665,6 +746,30 @@ monochange_linting::declare_lint_rule! {
 	)],
 }
 
+impl SortedDependenciesRule {
+	/// Sort `section` alphabetically on a manifest copy.
+	///
+	/// Detection ran against the same document, so the section exists and is
+	/// a table; anything else is an invariant violation.
+	fn sort_section_dependencies(document: &mut DocumentMut, section: &str) {
+		let section_table = document
+			.get_mut(section)
+			.and_then(Item::as_table_mut)
+			.expect("detection verified the dependency section is a table");
+		let mut items: Vec<(String, Item)> = section_table
+			.iter()
+			.map(|(key, value)| (key.to_string(), value.clone()))
+			.collect();
+		for (key, _) in &items {
+			section_table.remove(key);
+		}
+		items.sort_by(|(left, _), (right, _)| left.cmp(right));
+		for (key, value) in items {
+			section_table.insert(&key, value);
+		}
+	}
+}
+
 impl LintRuleRunner for SortedDependenciesRule {
 	fn rule(&self) -> &LintRule {
 		&self.rule
@@ -691,28 +796,30 @@ impl LintRuleRunner for SortedDependenciesRule {
 				continue;
 			}
 
-			let span = item.span().map(|span| (span.start, span.end));
-			let location = location_from_span(ctx.manifest_path, ctx.contents, span);
+			// Fix by mutating a copy of the parsed manifest and serializing
+			// the whole document so the rewrite can never drop unrelated
+			// content (see `LintFix::document`).
+			let shared_fix = if config.bool_option("fix", true) {
+				let mut document = file.document.clone();
+				Self::sort_section_dependencies(&mut document, section);
+				Some(LintFix::document(
+					"sort dependency section alphabetically",
+					document.to_string(),
+					ctx.contents.len(),
+				))
+			} else {
+				None
+			};
+
+			let location = location_from_span(ctx.manifest_path, ctx.contents, None);
 			let mut result = LintResult::new(
 				self.rule.id.clone(),
 				location,
 				format!("dependencies in `{section}` are not sorted alphabetically"),
 				config.severity(),
 			);
-
-			if config.bool_option("fix", true) {
-				let mut rewritten = toml_edit::Table::new();
-				for key in &sorted_keys {
-					if let Some(value) = table.get(key) {
-						rewritten.insert(key, value.clone());
-					}
-				}
-				let replacement = format!("[{section}]\n{}", rewritten.to_string().trim());
-				result = result.with_fix(LintFix::single(
-					"sort dependency section alphabetically",
-					span.unwrap_or((0, ctx.contents.len())),
-					replacement,
-				));
+			if let Some(fix) = &shared_fix {
+				result = result.with_fix(fix.clone());
 			}
 
 			results.push(result);
@@ -763,10 +870,10 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 			if let Some(package) = rewritten.get_mut("package").and_then(Item::as_table_mut) {
 				package.insert("publish", toml_value(false));
 			}
-			result = result.with_fix(LintFix::single(
+			result = result.with_fix(LintFix::document(
 				"insert publish = false",
-				(0, ctx.contents.len()),
 				rewritten.to_string(),
+				ctx.contents.len(),
 			));
 		}
 
@@ -865,7 +972,7 @@ impl LintRuleRunner for ManifestRepositoryRule {
 				// Repository field is missing
 				let location = LintLocation::new(ctx.manifest_path, 1, 1);
 				let mut doc = file.document.clone();
-				if let Some(pkg) = doc.get_mut("package").and_then(|p| p.as_table_mut()) {
+				if let Some(pkg) = doc.get_mut("package").and_then(Item::as_table_mut) {
 					pkg.insert("repository", toml_value(&expected));
 				}
 				let result = LintResult::new(
@@ -874,10 +981,10 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					"manifest is missing the repository field".to_string(),
 					config.severity(),
 				)
-				.with_fix(LintFix::single(
+				.with_fix(LintFix::document(
 					"insert repository field",
-					(0, ctx.contents.len()),
 					doc.to_string(),
+					ctx.contents.len(),
 				));
 				vec![result]
 			}
@@ -900,7 +1007,6 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					}
 					let span = item.span().map(|s| (s.start, s.end));
 					let location = location_from_span(ctx.manifest_path, ctx.contents, span);
-					let replacement = format!("repository = \"{expected}\"");
 					let result = LintResult::new(
 						self.rule.id.clone(),
 						location,
@@ -909,10 +1015,10 @@ impl LintRuleRunner for ManifestRepositoryRule {
 						),
 						config.severity(),
 					)
-					.with_fix(LintFix::single(
-						"replace workspace-inherited repository with explicit value",
-						span.unwrap_or((0, ctx.contents.len())),
-						replacement,
+					.with_fix(document_repository_fix(
+						&file.document,
+						&expected,
+						ctx.contents.len(),
 					));
 					return vec![result];
 				}
@@ -924,22 +1030,36 @@ impl LintRuleRunner for ManifestRepositoryRule {
 
 				let span = item.span().map(|s| (s.start, s.end));
 				let location = location_from_span(ctx.manifest_path, ctx.contents, span);
-				let replacement = format!("repository = \"{expected}\"");
 				let result = LintResult::new(
 					self.rule.id.clone(),
 					location,
 					format!("repository field is \"{current}\" but should be \"{expected}\""),
 					config.severity(),
 				)
-				.with_fix(LintFix::single(
-					"fix repository field",
-					span.unwrap_or((0, ctx.contents.len())),
-					replacement,
+				.with_fix(document_repository_fix(
+					&file.document,
+					&expected,
+					ctx.contents.len(),
 				));
 				vec![result]
 			}
 		}
 	}
+}
+
+/// Build a whole-file rewrite that sets `package.repository` to `expected`.
+///
+/// Mutating a copy of the parsed manifest and serializing the document keeps
+/// every unrelated field, table, and comment intact. This works regardless of
+/// how the repository value is written (plain string, inline table, or a
+/// `[package.repository]` section), unlike a span replacement, which cannot
+/// cover key/value pairs safely.
+fn document_repository_fix(document: &DocumentMut, expected: &str, contents_len: usize) -> LintFix {
+	let mut doc = document.clone();
+	if let Some(pkg) = doc.get_mut("package").and_then(Item::as_table_mut) {
+		pkg.insert("repository", toml_value(expected));
+	}
+	LintFix::document("fix repository field", doc.to_string(), contents_len)
 }
 
 #[cfg(test)]

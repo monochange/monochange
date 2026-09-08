@@ -1101,6 +1101,8 @@ monochange lint explain cargo/recommended
 
 Use `--fix` when you want monochange to apply auto-fixes where a rule supports them. Rules that are not autofixable still report diagnostics and suggested remediation.
 
+Autofixes never destroy surrounding content: rules that rewrite a whole manifest do so by serializing a mutated copy of the parsed document, and every whole-file rewrite is validated against the target ecosystem's manifest parser before it is written. If a rewrite would produce an unparseable manifest, the fix is skipped and the original file is kept.
+
 ## Where lint rules live
 
 Configure presets, global rules, and scoped overrides in the top-level `[lints]` section of `monochange.toml`:

@@ -1,0 +1,24 @@
+[defaults]
+package_type = "cargo"
+changelog = false
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "widgets"
+
+[lints.rules]
+"cargo/manifest-repository" = { level = "error", allow_workspace_inheritance = true }
+
+[ecosystems.cargo]
+enabled = true
+
+[package.widgets]
+path = "."
+type = "cargo"
+version = "0.1.0"
+
+[package.example]
+path = "crates/example"
+type = "cargo"
+version = "0.1.0"

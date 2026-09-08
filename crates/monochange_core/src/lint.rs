@@ -298,6 +298,23 @@ impl LintFix {
 			edits,
 		}
 	}
+
+	/// Create a lint fix that rewrites an entire file.
+	///
+	/// The edit span covers every byte of the original content, so the
+	/// `replacement` must be the complete serialized manifest for the target
+	/// file (for example `document.to_string()` after mutating a parsed copy).
+	/// Never pass a fragment here: a fragment replacement would delete all
+	/// unrelated content when the fix is applied. Use [`LintFix::single`] for
+	/// targeted edits that replace only the text covered by their span.
+	#[must_use]
+	pub fn document(
+		description: impl Into<String>,
+		replacement: impl Into<String>,
+		contents_len: usize,
+	) -> Self {
+		Self::single(description, (0, contents_len), replacement)
+	}
 }
 
 /// A single lint result.
@@ -809,6 +826,19 @@ pub trait LintSuite: Send + Sync {
 		workspace_root: &Path,
 		configuration: &crate::WorkspaceConfiguration,
 	) -> crate::MonochangeResult<Vec<LintTarget>>;
+
+	/// Check whether `contents` is a syntactically valid manifest for this suite.
+	///
+	/// This is a safety net for autofixes: before a whole-file rewrite is
+	/// written, the resulting content is validated with the suite's manifest
+	/// parser. A fix that would replace a valid manifest with unparseable
+	/// content is skipped instead of applied, so a malformed autofix can never
+	/// destroy a package manifest. Return `true` when the suite has no parser
+	/// available.
+	fn validate_contents(&self, contents: &str) -> bool {
+		let _ = contents;
+		true
+	}
 }
 
 /// A registry of lint rules.

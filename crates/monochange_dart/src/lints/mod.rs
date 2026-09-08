@@ -60,6 +60,10 @@ impl LintSuite for DartLintSuite {
 		"dart"
 	}
 
+	fn validate_contents(&self, contents: &str) -> bool {
+		serde_yaml_ng::from_str::<Value>(contents).is_ok()
+	}
+
 	fn rules(&self) -> Vec<Box<dyn LintRuleRunner>> {
 		vec![
 			Box::new(AssetsSortedRule::new()),
@@ -721,10 +725,10 @@ impl LintRuleRunner for AssetsSortedRule {
 		let fix = if config.bool_option("fix", true) {
 			let mut rewritten = file.manifest.clone();
 			sort_flutter_assets_and_fonts(&mut rewritten);
-			Some(LintFix::single(
+			Some(LintFix::document(
 				"sort Flutter assets and fonts alphabetically",
-				(0, ctx.contents.len()),
 				render_manifest(&rewritten, ctx.contents),
+				ctx.contents.len(),
 			))
 		} else {
 			None
@@ -816,10 +820,10 @@ impl LintRuleRunner for DependencySortedRule {
 				for sortable in dependency_sections() {
 					sort_manifest_section(&mut rewritten, sortable);
 				}
-				result = result.with_fix(LintFix::single(
+				result = result.with_fix(LintFix::document(
 					"sort dependency sections alphabetically",
-					(0, ctx.contents.len()),
 					render_manifest(&rewritten, ctx.contents),
+					ctx.contents.len(),
 				));
 			}
 
@@ -1341,10 +1345,10 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 			config.severity(),
 		);
 		if config.bool_option("fix", true) {
-			result = result.with_fix(LintFix::single(
+			result = result.with_fix(LintFix::document(
 				"insert publish_to: none",
-				(0, ctx.contents.len()),
 				insert_publish_to_none(ctx.contents),
+				ctx.contents.len(),
 			));
 		}
 
@@ -1484,10 +1488,10 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					"manifest is missing the repository field".to_string(),
 					config.severity(),
 				)
-				.with_fix(LintFix::single(
+				.with_fix(LintFix::document(
 					"insert repository field",
-					(0, ctx.contents.len()),
 					fixed,
+					ctx.contents.len(),
 				));
 				vec![result]
 			}
@@ -1506,10 +1510,10 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					format!("repository field is \"{current}\" but should be \"{expected}\""),
 					config.severity(),
 				)
-				.with_fix(LintFix::single(
+				.with_fix(LintFix::document(
 					"fix repository field",
-					(0, ctx.contents.len()),
 					fixed,
+					ctx.contents.len(),
 				));
 				vec![result]
 			}

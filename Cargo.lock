@@ -2215,6 +2215,7 @@ dependencies = [
  "insta",
  "monochange_config",
  "monochange_core",
+ "monochange_lint",
  "monochange_linting",
  "monochange_publish",
  "monochange_semver",

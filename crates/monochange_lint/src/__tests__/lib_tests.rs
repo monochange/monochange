@@ -471,6 +471,137 @@ fn apply_fixes_skips_overlapping_full_file_edits() {
 	assert_eq!(fixed.matches("}\n").count(), 1);
 }
 
+/// A suite whose manifest parser (mimicked by `validate_contents`) accepts
+/// only valid JSON documents.
+#[derive(Default)]
+struct JsonRewriteSuite;
+
+impl LintSuite for JsonRewriteSuite {
+	fn suite_id(&self) -> &'static str {
+		"json-rewrite"
+	}
+
+	fn rules(&self) -> Vec<Box<dyn LintRuleRunner>> {
+		Vec::new()
+	}
+
+	fn collect_targets(
+		&self,
+		_workspace_root: &Path,
+		_configuration: &WorkspaceConfiguration,
+	) -> MonochangeResult<Vec<LintTarget>> {
+		Ok(Vec::new())
+	}
+
+	fn validate_contents(&self, contents: &str) -> bool {
+		serde_json::from_str::<serde_json::Value>(contents).is_ok()
+	}
+}
+
+#[test]
+fn apply_fixes_refuses_whole_file_rewrites_that_do_not_parse() {
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let manifest = root.path().join("manifest.json");
+	std::fs::write(&manifest, "{\n  \"name\": \"example\"\n}\n")
+		.unwrap_or_else(|error| panic!("write manifest: {error}"));
+
+	let linter = Linter::new(
+		vec![Box::new(JsonRewriteSuite)],
+		WorkspaceLintSettings::default(),
+	);
+	let mut report = LintReport::new();
+	report.add(
+		LintResult::new(
+			"json-rewrite/rewrite",
+			LintLocation::new(&manifest, 1, 1),
+			"rewrite requested",
+			LintSeverity::Error,
+		)
+		.with_fix(LintFix::document(
+			"rewrite manifest",
+			"this is not json",
+			"{\n  \"name\": \"example\"\n}\n".len(),
+		)),
+	);
+
+	// The rewrite is a fragment that fails suite validation: it must be
+	// skipped so the original manifest stays intact.
+	assert!(linter.apply_fixes(&report).is_empty());
+	let contents =
+		std::fs::read_to_string(&manifest).unwrap_or_else(|error| panic!("read manifest: {error}"));
+	assert_eq!(contents, "{\n  \"name\": \"example\"\n}\n");
+}
+
+#[test]
+fn apply_fixes_writes_whole_file_rewrites_that_parse() {
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let manifest = root.path().join("manifest.json");
+	let original = "{\n  \"name\": \"example\"\n}\n";
+	std::fs::write(&manifest, original).unwrap_or_else(|error| panic!("write manifest: {error}"));
+
+	let linter = Linter::new(
+		vec![Box::new(JsonRewriteSuite)],
+		WorkspaceLintSettings::default(),
+	);
+	let mut report = LintReport::new();
+	report.add(
+		LintResult::new(
+			"json-rewrite/rewrite",
+			LintLocation::new(&manifest, 1, 1),
+			"rewrite requested",
+			LintSeverity::Error,
+		)
+		.with_fix(LintFix::document(
+			"rewrite manifest",
+			"{\n  \"name\": \"example\",\n  \"private\": true\n}\n",
+			original.len(),
+		)),
+	);
+
+	let fixed_files = linter.apply_fixes(&report);
+	assert_eq!(fixed_files.len(), 1);
+	assert_eq!(
+		fixed_files.get(&manifest).expect("fixed contents").as_str(),
+		"{\n  \"name\": \"example\",\n  \"private\": true\n}\n"
+	);
+	assert!(
+		serde_json::from_str::<serde_json::Value>(
+			fixed_files.get(&manifest).expect("fixed contents")
+		)
+		.is_ok()
+	);
+}
+
+#[test]
+fn apply_fixes_without_suite_validation_writes_whole_file_rewrites() {
+	// When the producing suite is not registered, the fix is written as-is.
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let manifest = root.path().join("manifest.json");
+	std::fs::write(&manifest, "{\n  \"name\": \"example\"\n}\n")
+		.unwrap_or_else(|error| panic!("write manifest: {error}"));
+
+	let linter = Linter::new(
+		vec![Box::new(ExampleSuite)],
+		WorkspaceLintSettings::default(),
+	);
+	let mut report = LintReport::new();
+	report.add(
+		LintResult::new(
+			"unregistered/rewrite",
+			LintLocation::new(&manifest, 1, 1),
+			"rewrite requested",
+			LintSeverity::Error,
+		)
+		.with_fix(LintFix::document(
+			"rewrite manifest",
+			"{\n  \"name\": \"other\"\n}\n",
+			"{\n  \"name\": \"example\"\n}\n".len(),
+		)),
+	);
+
+	assert_eq!(linter.apply_fixes(&report).len(), 1);
+}
+
 #[test]
 fn merge_config_and_selector_helpers_cover_edge_cases() {
 	assert!(merge_config(None, None).is_none());
