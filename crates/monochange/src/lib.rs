@@ -597,6 +597,9 @@ pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
 	};
 
 	if !quiet {
+		if let Some(output) = error.reported_output() {
+			println!("{output}");
+		}
 		eprintln!("{}", error.render());
 	}
 

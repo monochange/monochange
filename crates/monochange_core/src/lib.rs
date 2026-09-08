@@ -90,6 +90,13 @@ pub enum MonochangeError {
 	Discovery(String),
 	#[error("{0}")]
 	Diagnostic(String),
+	#[error("{diagnostic}")]
+	Reported {
+		/// The complete command result that callers can still consume on failure.
+		output: String,
+		/// The human-readable reason that the command failed.
+		diagnostic: String,
+	},
 	#[error("io error at {path:?}: {source}")]
 	IoSource {
 		path: PathBuf,
@@ -131,6 +138,15 @@ impl MonochangeError {
 			Self::Interactive { message } => message.clone(),
 			Self::Cancelled => "cancelled".to_string(),
 			_ => self.to_string(),
+		}
+	}
+
+	/// Return the command result that must be written to stdout before failure.
+	#[must_use]
+	pub fn reported_output(&self) -> Option<&str> {
+		match self {
+			Self::Reported { output, .. } => Some(output),
+			_ => None,
 		}
 	}
 }

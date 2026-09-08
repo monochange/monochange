@@ -11,13 +11,20 @@ use temp_env::with_vars;
 use super::*;
 
 fn reporter() -> HumanLintProgressReporter {
-	// When not attached to a terminal the reporter disables itself.
-	HumanLintProgressReporter::new()
+	HumanLintProgressReporter {
+		enabled: false,
+		color: false,
+		interactive: false,
+		active_spinner: Mutex::new(None),
+		fixed_files: Arc::new(Mutex::new(Vec::new())),
+	}
 }
 
 fn colored_reporter() -> HumanLintProgressReporter {
 	HumanLintProgressReporter {
+		enabled: true,
 		color: true,
+		interactive: true,
 		active_spinner: Mutex::new(None),
 		fixed_files: Arc::new(Mutex::new(Vec::new())),
 	}

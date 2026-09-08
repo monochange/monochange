@@ -294,7 +294,16 @@ fn json_subagents_summary(json: &Value) -> Value {
 #[test]
 fn check_json_output_has_no_ansi_styling_when_color_is_forced() {
 	let tempdir = setup_fixture();
-	let stdout = run_stdout(tempdir.path(), &["check", "--format", "json"]);
+	let output = mc(tempdir.path(), &["check", "--format", "json"])
+		.output()
+		.unwrap_or_else(|error| panic!("run monochange check: {error}"));
+	assert!(!output.status.success(), "lint errors must fail the check");
+	let stdout = String::from_utf8(output.stdout)
+		.unwrap_or_else(|error| panic!("check stdout utf8: {error}"));
+	assert!(
+		!stdout.contains('\u{1b}'),
+		"JSON output must not contain ANSI escape codes:\n{stdout}"
+	);
 
 	let json: Value = serde_json::from_str(&stdout)
 		.unwrap_or_else(|error| panic!("check json: {error}\n{stdout}"));
