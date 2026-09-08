@@ -109,6 +109,108 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 }
 
 #[test]
+fn change_classify_compares_an_explicit_release_with_the_candidate_and_default_branch() {
+	let fixture = setup_api_fixture("mixed-api");
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change",
+			"classify",
+			"--base",
+			"HEAD~1",
+			"--head",
+			"HEAD",
+			"--release",
+			"HEAD~1",
+			"--format",
+			"json",
+		],
+	);
+
+	for package_id in ["rust_core", "ts_client", "js_utils"] {
+		let comparisons = package(&report, package_id)["comparisons"]
+			.as_array()
+			.unwrap_or_else(|| panic!("package comparisons should be an array"));
+		assert!(comparisons.iter().any(|comparison| {
+			comparison["kind"] == "release"
+				&& comparison["base"] == "HEAD~1"
+				&& comparison["status"] == "analyzed"
+		}));
+		assert!(comparisons.iter().any(|comparison| {
+			comparison["kind"] == "releaseToDefault" && comparison["base"] == "HEAD~1"
+		}));
+	}
+}
+
+#[test]
+fn change_classify_discovers_the_default_branch_and_latest_release_tag() {
+	let fixture = setup_api_fixture("mixed-api");
+	git(fixture.path(), &["branch", "-M", "main"]);
+	git(fixture.path(), &["tag", "v0.1.0", "HEAD~1"]);
+	git(fixture.path(), &["tag", "rust_core/v0.1.0", "HEAD~1"]);
+
+	let report = run_json(
+		fixture.path(),
+		&["change", "classify", "--head", "HEAD", "--format", "json"],
+	);
+
+	assert_eq!(report["defaultBranch"], "main");
+	assert!(report["packages"].as_array().is_some_and(|packages| {
+		packages
+			.iter()
+			.all(|package| package["releaseOwner"]["latestRelease"].is_string())
+	}));
+}
+
+#[test]
+fn change_classify_limits_the_report_to_selected_packages() {
+	let fixture = setup_api_fixture("mixed-api");
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change",
+			"classify",
+			"--base",
+			"HEAD~1",
+			"--package",
+			"rust_core",
+			"--format",
+			"json",
+		],
+	);
+
+	assert_eq!(report["packages"].as_array().map(Vec::len), Some(1));
+	assert_eq!(report["packages"][0]["packageId"], "rust_core");
+}
+
+#[test]
+fn change_classify_warns_when_a_pending_changeset_cannot_be_inspected() {
+	let fixture = setup_api_fixture("stale-changeset");
+	std::fs::write(
+		fixture.path().join(".changeset/stale.md"),
+		"not frontmatter\n",
+	)
+	.unwrap_or_else(|error| panic!("replace pending changeset: {error}"));
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	assert!(report["warnings"].as_array().is_some_and(|warnings| {
+		warnings.iter().any(|warning| {
+			warning
+				.as_str()
+				.is_some_and(|warning| warning.contains("could not inspect pending changeset"))
+		})
+	}));
+}
+
+#[test]
 fn api_diff_uses_the_same_classifier_for_mixed_api_impacts() {
 	let fixture = setup_api_fixture("mixed-api");
 

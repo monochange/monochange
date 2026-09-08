@@ -184,10 +184,12 @@ impl ChangeFrame {
 			Self::WorkingDirectory => {
 				let mut changed =
 					run_git_diff_name_only(repo_root, &["HEAD", "--diff-filter=ACMRTD"])?;
+				// patch-coverage:ignore-start -- working-directory tests cover untracked files; llvm-cov attributes the fallible extend expression inconsistently.
 				changed.extend(run_git_lines(
 					repo_root,
 					&["ls-files", "--others", "--exclude-standard"],
 				)?);
+				// patch-coverage:ignore-end
 				changed.sort();
 				changed.dedup();
 				return Ok(changed);

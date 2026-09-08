@@ -35,7 +35,7 @@ The classifier must distinguish compatibility impact from release policy. It mus
 4. [x] Promote the command into the Clap tree and mirror the schema through MCP.
 5. [x] Validate pending changesets against the enforceable minimum bump.
 6. [x] Update reference docs, the packaged skill, and generated agent guidance.
-7. [ ] Run the full repository validation and patch-coverage gates.
+7. [x] Run the full repository validation and patch-coverage gates.
 8. [ ] Open the monochange PR and add it to the merge queue with merge commits.
 9. [ ] Add the reusable pull request comment integration to `monochange/actions`.
 10. [ ] Run the actions repository checks, open its PR, and add it to its merge queue.

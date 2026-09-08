@@ -379,6 +379,18 @@ fn revision_snapshot_batch_parser_preserves_paths_and_skips_missing_objects() {
 
 #[test]
 fn revision_snapshot_batch_parser_rejects_truncated_output() {
+	let header_error = parse_revision_snapshot_batch(
+		Path::new("crates/core"),
+		&[PathBuf::from("crates/core/src/lib.rs")],
+		b"012345 blob 3",
+	)
+	.expect_err("a header without a newline should fail");
+	assert!(
+		header_error
+			.render()
+			.contains("truncated git cat-file batch header")
+	);
+
 	let error = parse_revision_snapshot_batch(
 		Path::new("crates/core"),
 		&[PathBuf::from("crates/core/src/lib.rs")],
@@ -391,6 +403,61 @@ fn revision_snapshot_batch_parser_rejects_truncated_output() {
 			.render()
 			.contains("truncated git cat-file batch content")
 	);
+}
+
+#[test]
+fn revision_snapshot_batch_parser_rejects_invalid_and_overflowing_headers() {
+	let path = PathBuf::from("crates/core/src/lib.rs");
+	let invalid = parse_revision_snapshot_batch(
+		Path::new("crates/core"),
+		std::slice::from_ref(&path),
+		b"invalid\n",
+	)
+	.expect_err("invalid header should fail")
+	.render();
+	assert!(invalid.contains("invalid git cat-file batch header"));
+
+	let overflow = format!("object blob {}\n", usize::MAX);
+	let overflow =
+		parse_revision_snapshot_batch(Path::new("crates/core"), &[path], overflow.as_bytes())
+			.expect_err("overflowing size should fail")
+			.render();
+	assert!(overflow.contains("git cat-file batch size overflow"));
+}
+
+#[test]
+fn revision_snapshot_batch_parser_skips_outside_large_and_binary_files() {
+	let paths = vec![
+		PathBuf::from("outside.rs"),
+		PathBuf::from("crates/core/src/large.rs"),
+		PathBuf::from("crates/core/src/binary.rs"),
+	];
+	let large = vec![b'a'; 256 * 1024 + 1];
+	let mut output = b"object blob 1\nx\n".to_vec();
+	output.extend_from_slice(format!("object blob {}\n", large.len()).as_bytes());
+	output.extend_from_slice(&large);
+	output.push(b'\n');
+	output.extend_from_slice(b"object blob 1\n\xff\n");
+
+	let files = parse_revision_snapshot_batch(Path::new("crates/core"), &paths, &output)
+		.unwrap_or_else(|error| panic!("parse filtered batch: {error}"));
+
+	assert!(files.is_empty());
+}
+
+#[test]
+fn revision_snapshot_batch_reports_git_process_failures() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = build_revision_snapshot_files(
+		tempdir.path(),
+		Path::new("crates/core"),
+		"HEAD",
+		&[PathBuf::from("crates/core/src/lib.rs")],
+	)
+	.expect_err("cat-file outside a repository should fail")
+	.render();
+
+	assert!(error.contains("git cat-file failed"));
 }
 
 #[test]

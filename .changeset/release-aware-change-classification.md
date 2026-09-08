@@ -1,7 +1,7 @@
 ---
 "@monochange/cli": minor
 "@monochange/skill": minor
-monochange: minor
+monochange: major
 monochange_analysis: minor
 monochange_core: minor
 monochange_ecmascript: patch

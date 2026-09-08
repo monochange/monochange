@@ -1,3 +1,5 @@
+use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 
 use monochange_core::BumpSeverity;
@@ -9,8 +11,225 @@ use monochange_core::PublishState;
 use monochange_core::SemanticChange;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
+use monochange_test_helpers::git;
+use tempfile::tempdir;
 
 use super::*;
+
+fn init_classification_repo() -> tempfile::TempDir {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(tempdir.path().join("README.md"), "base\n")
+		.unwrap_or_else(|error| panic!("write base file: {error}"));
+	git(tempdir.path(), &["init"]);
+	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
+	git(
+		tempdir.path(),
+		&["config", "user.email", "monochange-tests@example.com"],
+	);
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "base"]);
+	git(tempdir.path(), &["branch", "-M", "main"]);
+	tempdir
+}
+
+#[test]
+fn classify_options_defaults_are_safe_for_agent_use() {
+	let options = ClassifyOptions::default();
+
+	assert_eq!(options.base, None);
+	assert_eq!(options.head, "HEAD");
+	assert_eq!(options.release, None);
+	assert!(options.packages.is_empty());
+	assert_eq!(options.detection_level, DetectionLevel::Signature);
+	assert!(!options.include_unchanged);
+	assert!(!options.strict);
+	assert_eq!(options.format, OutputFormat::Markdown);
+	assert_eq!(options.output, None);
+	assert_eq!(options.dependency_propagation, DependencyPropagation::None);
+}
+
+#[test]
+fn classify_options_cover_all_supported_formats_and_detection_levels() {
+	for (format, expected) in [
+		("markdown", OutputFormat::Markdown),
+		("md", OutputFormat::Markdown),
+		("json", OutputFormat::Json),
+		("json-min", OutputFormat::JsonMin),
+		("text", OutputFormat::Text),
+	] {
+		let matches = crate::cli::build_command_with_cli("monochange", &[])
+			.try_get_matches_from(["monochange", "change", "classify", "--format", format])
+			.unwrap_or_else(|error| panic!("parse {format}: {error}"));
+		let (_, change_matches) = matches.subcommand().unwrap();
+		let (_, classify_matches) = change_matches.subcommand().unwrap();
+		let options = classify_options_from_matches(classify_matches)
+			.unwrap_or_else(|error| panic!("extract {format}: {error}"));
+		assert_eq!(options.format, expected);
+	}
+
+	assert_eq!(
+		parse_detection_level("basic").unwrap(),
+		DetectionLevel::Basic
+	);
+	assert_eq!(
+		parse_detection_level("semantic").unwrap(),
+		DetectionLevel::Semantic
+	);
+	assert!(parse_detection_level("impossible").is_err());
+	assert_eq!(
+		parse_dependency_propagation("none").unwrap(),
+		DependencyPropagation::None
+	);
+	assert_eq!(
+		parse_dependency_propagation("public").unwrap(),
+		DependencyPropagation::Public
+	);
+	assert!(parse_dependency_propagation("transitive").is_err());
+}
+
+#[test]
+fn git_candidate_helpers_cover_default_conflict_and_error_paths() {
+	let tempdir = init_classification_repo();
+	let root = tempdir.path();
+	assert_eq!(resolve_default_branch_ref(root).unwrap(), "main");
+	assert!(git_revision_exists(root, "main"));
+	assert!(!git_revision_exists(root, "missing"));
+	assert!(run_git(root, &["rev-parse", "missing"]).is_err());
+
+	git(root, &["remote", "add", "origin", "."]);
+	git(root, &["fetch", "origin", "main"]);
+	git(root, &["remote", "set-head", "origin", "main"]);
+	assert_eq!(resolve_default_branch_ref(root).unwrap(), "origin/main");
+
+	let session = AnalysisSession::new(root, AnalysisConfig::default())
+		.unwrap_or_else(|error| panic!("create analysis session: {error}"));
+	assert!(
+		working_tree_analysis(root, "main", &session)
+			.unwrap_or_else(|error| panic!("skip working-tree analysis: {error}"))
+			.is_none()
+	);
+
+	git(root, &["checkout", "-b", "feature"]);
+	fs::write(root.join("README.md"), "feature\n")
+		.unwrap_or_else(|error| panic!("write feature: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "feature"]);
+	git(root, &["checkout", "main"]);
+	fs::write(root.join("README.md"), "main\n")
+		.unwrap_or_else(|error| panic!("write main: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "main"]);
+
+	let candidate = resolve_candidate(root, "main", "feature")
+		.unwrap_or_else(|error| panic!("resolve conflicted candidate: {error}"));
+	assert_eq!(candidate.status, ComparisonStatus::Conflicted);
+	assert_eq!(candidate.reference, "feature");
+	assert!(
+		candidate
+			.note
+			.is_some_and(|note| note.contains("falls back"))
+	);
+
+	let missing = root.join("missing");
+	assert!(resolve_default_branch_ref(&missing).is_err());
+	let index = root.join("test-index");
+	assert!(run_git_with_index(root, &index, &["rev-parse", "missing"]).is_err());
+}
+
+#[test]
+fn selection_release_and_render_helpers_cover_every_supported_variant() {
+	let root = Path::new("/repo");
+	let mut package = npm_package("@acme/core", "/repo/packages/core/package.json");
+	package
+		.metadata
+		.insert("config_id".to_string(), "core".to_string());
+	let analysis = ChangeAnalysis {
+		frame: ChangeFrame::CustomRange {
+			base: "main".to_string(),
+			head: "HEAD".to_string(),
+		},
+		detection_level: DetectionLevel::Signature,
+		package_analyses: [("core".to_string(), package_with_changes("core", Vec::new()))]
+			.into_iter()
+			.collect(),
+		warnings: Vec::new(),
+		packages: vec![package.clone()],
+	};
+	let explicit = ClassifyOptions {
+		packages: vec!["core".to_string()],
+		..ClassifyOptions::default()
+	};
+	assert_eq!(
+		selected_package_ids(root, &[package.clone()], &analysis, &explicit).unwrap(),
+		["core".to_string()].into_iter().collect()
+	);
+	let all = ClassifyOptions {
+		include_unchanged: true,
+		..ClassifyOptions::default()
+	};
+	assert_eq!(
+		selected_package_ids(root, &[package], &analysis, &all).unwrap(),
+		["core".to_string()].into_iter().collect()
+	);
+
+	assert_eq!(
+		comparison_kind_name(ComparisonKind::PullRequest),
+		"pullRequest"
+	);
+	assert_eq!(comparison_kind_name(ComparisonKind::Release), "release");
+	assert_eq!(
+		comparison_kind_name(ComparisonKind::ReleaseToDefault),
+		"releaseToDefault"
+	);
+	assert_eq!(
+		comparison_kind_name(ComparisonKind::SourceDelta),
+		"sourceDelta"
+	);
+	assert_eq!(
+		comparison_kind_name(ComparisonKind::WorkingTree),
+		"workingTree"
+	);
+	assert_eq!(
+		comparison_status_name(ComparisonStatus::Analyzed),
+		"analyzed"
+	);
+	assert_eq!(
+		comparison_status_name(ComparisonStatus::Unavailable),
+		"unavailable"
+	);
+	assert_eq!(
+		comparison_status_name(ComparisonStatus::Conflicted),
+		"conflicted"
+	);
+	assert_eq!(
+		compatibility_impact_name(CompatibilityImpact::Unknown),
+		"unknown"
+	);
+	assert_eq!(
+		compatibility_impact_name(CompatibilityImpact::Compatible),
+		"compatible"
+	);
+	assert_eq!(
+		compatibility_impact_name(CompatibilityImpact::Additive),
+		"additive"
+	);
+	assert_eq!(
+		compatibility_impact_name(CompatibilityImpact::Breaking),
+		"breaking"
+	);
+	assert_eq!(
+		classification_confidence_name(ClassificationConfidence::Low),
+		"low"
+	);
+	assert_eq!(
+		classification_confidence_name(ClassificationConfidence::Medium),
+		"medium"
+	);
+	assert_eq!(
+		classification_confidence_name(ClassificationConfidence::High),
+		"high"
+	);
+}
 
 #[test]
 fn classify_options_from_matches_accepts_agent_workflow_shape() {
@@ -141,6 +360,63 @@ fn release_tag_version_supports_primary_namespaced_and_custom_formats() {
 	);
 	assert!(
 		release_tag_version("other/v1.2.3", &VersionFormat::Namespaced, "core", "cargo").is_none()
+	);
+}
+
+#[test]
+fn latest_release_tag_uses_effective_release_identity() {
+	let tempdir = init_classification_repo();
+	let root = tempdir.path();
+	git(root, &["tag", "core/v1.0.0"]);
+	git(root, &["tag", "core/v2.0.0"]);
+	git(root, &["tag", "other/v3.0.0"]);
+
+	let enabled = EffectiveReleaseIdentity {
+		owner_id: "core".to_string(),
+		owner_kind: ReleaseOwnerKind::Package,
+		group_id: None,
+		tag: true,
+		release: true,
+		version_format: VersionFormat::Namespaced,
+		members: vec!["core".to_string()],
+	};
+	assert_eq!(
+		latest_release_tag(root, "main", None, "cargo").unwrap(),
+		None
+	);
+	assert_eq!(
+		latest_release_tag(root, "main", Some(&enabled), "cargo").unwrap(),
+		Some("core/v2.0.0".to_string())
+	);
+
+	let disabled = EffectiveReleaseIdentity {
+		tag: false,
+		..enabled
+	};
+	assert_eq!(
+		latest_release_tag(root, "main", Some(&disabled), "cargo").unwrap(),
+		None
+	);
+}
+
+#[test]
+fn changeset_signal_ids_normalize_to_report_package_ids() {
+	let mut package = npm_package("@acme/core", "/repo/packages/core/package.json");
+	package
+		.metadata
+		.insert("config_id".to_string(), "core".to_string());
+
+	assert_eq!(
+		report_package_id_for_signal(&[package.clone()], package.id.clone()),
+		"core"
+	);
+	assert_eq!(
+		report_package_id_for_signal(&[package], "core".to_string()),
+		"core"
+	);
+	assert_eq!(
+		report_package_id_for_signal(&[], "external".to_string()),
+		"external"
 	);
 }
 
@@ -320,6 +596,13 @@ fn public_dependency_propagation_recommends_dependent_patch_bump() {
 		None,
 		PublishState::Public,
 	);
+	app.declared_dependencies.push(PackageDependency {
+		name: "@acme/core".to_string(),
+		kind: DependencyKind::Runtime,
+		version_constraint: Some("workspace:*".to_string()),
+		optional: false,
+		source_field: Some("dependencies".to_string()),
+	});
 	app.declared_dependencies.push(PackageDependency {
 		name: "@acme/core".to_string(),
 		kind: DependencyKind::Runtime,
@@ -554,6 +837,92 @@ fn changeset_action_reviews_unmatched_intent_and_keeps_matching_intent() {
 	let mut patch = no_change;
 	patch.proposed_changeset_bump = BumpSeverity::Patch;
 	assert_eq!(changeset_action(&patch, &existing), ChangesetAction::Keep);
+	assert_eq!(changeset_action(&patch, &[]), ChangesetAction::Create);
+	let mut major = patch;
+	major.proposed_changeset_bump = BumpSeverity::Major;
+	assert_eq!(changeset_action(&major, &existing), ChangesetAction::Update);
+}
+
+#[test]
+fn fallback_findings_and_summaries_make_uncertainty_explicit() {
+	let mut findings = Vec::new();
+	ensure_unclassified_finding(
+		"core",
+		Ecosystem::Cargo,
+		DetectionLevel::Basic,
+		&[PathBuf::from("src/internal.rs")],
+		&mut findings,
+	);
+	assert_eq!(findings.len(), 1);
+	assert_eq!(findings[0].impact, CompatibilityImpact::Unknown);
+	assert_eq!(findings[0].bump, BumpSeverity::Patch);
+	assert_eq!(findings[0].confidence, ClassificationConfidence::Low);
+
+	ensure_unclassified_finding(
+		"core",
+		Ecosystem::Cargo,
+		DetectionLevel::Basic,
+		&[PathBuf::from("src/internal.rs")],
+		&mut findings,
+	);
+	assert_eq!(
+		findings.len(),
+		1,
+		"a pull-request finding suppresses fallback duplication"
+	);
+	assert_eq!(
+		highest_compatibility_impact(&[&findings[0]]),
+		CompatibilityImpact::Unknown
+	);
+
+	let patch = build_recommendation(&findings, true, false);
+	assert!(recommendation_summary(&patch, &findings).contains("unclassified"));
+	let mut compatible_findings = findings.clone();
+	compatible_findings[0].impact = CompatibilityImpact::Compatible;
+	let compatible_patch = build_recommendation(&compatible_findings, true, false);
+	assert!(recommendation_summary(&compatible_patch, &compatible_findings).contains("compatible"));
+
+	let no_change = no_change_recommendation();
+	assert_eq!(
+		recommendation_summary(&no_change, &[]),
+		"no package change requires a changeset"
+	);
+	let mut review = no_change;
+	review.review_required = true;
+	assert!(recommendation_summary(&review, &[]).contains("requires review"));
+
+	assert!(analyzer_coverage_note("npm/exports").contains("TypeScript assignability"));
+	assert!(analyzer_coverage_note("deno/exports").contains("TypeScript assignability"));
+	assert!(analyzer_coverage_note("dart/public-api").contains("Dart declaration"));
+	assert!(analyzer_coverage_note("custom/analyzer").contains("does not declare"));
+}
+
+#[test]
+fn release_owner_reports_package_and_group_identity() {
+	let package = EffectiveReleaseIdentity {
+		owner_id: "core".to_string(),
+		owner_kind: ReleaseOwnerKind::Package,
+		group_id: None,
+		tag: true,
+		release: true,
+		version_format: VersionFormat::Namespaced,
+		members: vec!["core".to_string()],
+	};
+	let group = EffectiveReleaseIdentity {
+		owner_id: "workspace".to_string(),
+		owner_kind: ReleaseOwnerKind::Group,
+		group_id: Some("workspace".to_string()),
+		..package.clone()
+	};
+
+	assert_eq!(release_owner(None, None), None);
+	assert_eq!(
+		release_owner(Some(&package), Some("core/v1.0.0".to_string()))
+			.unwrap()
+			.kind,
+		"package"
+	);
+	assert_eq!(release_owner(Some(&group), None).unwrap().kind, "group");
 }
 
 #[test]

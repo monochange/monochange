@@ -228,6 +228,41 @@ fn custom_range_compares_exact_refs_when_default_branch_advanced() {
 }
 
 #[test]
+fn pull_request_changed_files_use_the_merge_base_range() {
+	let tempdir = init_repo();
+	let root = tempdir.path();
+	git(root, &["checkout", "-b", "feature"]);
+	fs::write(root.join("feature.txt"), "feature\n")
+		.unwrap_or_else(|error| panic!("write feature file: {error}"));
+	git(root, &["add", "feature.txt"]);
+	git(root, &["commit", "-m", "feature"]);
+	git(root, &["checkout", "main"]);
+	fs::write(root.join("main.txt"), "main\n")
+		.unwrap_or_else(|error| panic!("write main file: {error}"));
+	git(root, &["add", "main.txt"]);
+	git(root, &["commit", "-m", "main"]);
+
+	let changed = ChangeFrame::PullRequest {
+		target: "main".to_string(),
+		pr_branch: "feature".to_string(),
+	}
+	.changed_files(root)
+	.unwrap_or_else(|error| panic!("pull request changed files: {error}"));
+
+	assert_eq!(changed, vec![std::path::PathBuf::from("feature.txt")]);
+}
+
+#[test]
+fn git_line_reader_reports_non_repository_errors() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = run_git_lines(tempdir.path(), &["ls-files"])
+		.unwrap_err()
+		.to_string();
+
+	assert!(error.contains("git [\"ls-files\"] failed"));
+}
+
+#[test]
 fn resolve_pr_source_branch_falls_back_to_head_for_detached_repos() {
 	let tempdir = init_repo();
 	let head = git_output_trimmed(tempdir.path(), &["rev-parse", "HEAD"]);
