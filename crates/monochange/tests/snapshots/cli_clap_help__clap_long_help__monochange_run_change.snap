@@ -19,44 +19,44 @@ Create a change file for one or more packages
 
 [1m[96mOptions:[0m
   [93m-i[0m, [93m--interactive[0m
-          
+
 
       [93m--package[0m[95m [0m[95m<PACKAGE>[0m
-          
+
 
       [93m--bump[0m[95m [0m[95m<BUMP>[0m
           [default: patch]
           [possible values: none, patch, minor, major]
 
       [93m--reason[0m[95m [0m[95m<REASON>[0m
-          
+
 
       [93m--version[0m[95m [0m[95m<VERSION>[0m
-          
+
 
       [93m--type[0m[95m [0m[95m<TYPE>[0m
-          
+
 
       [93m--caused-by[0m[95m [0m[95m<CAUSED_BY>[0m
-          
+
 
       [93m--details[0m[95m [0m[95m<DETAILS>[0m
-          
+
 
       [93m--output[0m[95m [0m[95m<PATH>[0m
-          
+
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
-          Suppress stdout/stderr output and run in dry-run mode when supported
+          Suppress result, progress, and diagnostic output without changing execution
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
-          
+
           [possible values: auto, unicode, ascii, json]
 
       [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
-          Filter JSON output with a jq-style expression, such as `.assets[].name`
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree

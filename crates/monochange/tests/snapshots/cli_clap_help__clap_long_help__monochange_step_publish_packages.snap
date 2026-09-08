@@ -19,43 +19,45 @@ Run the built-in publish-packages release workflow step
 
 [1m[96mOptions:[0m
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Result format: text, Markdown, pretty JSON, or compact JSON
+
           [possible values: text, json, json-min, md]
 
       [93m--output[0m[95m [0m[95m<PATH>[0m
-          
+          Write the complete result to this path
 
       [93m--package[0m[95m [0m[95m<PACKAGE>[0m
-          
+          Limit the operation to one or more package ids
 
       [93m--group[0m[95m [0m[95m<GROUP>[0m
-          
+          Limit the operation to one or more version-group ids
 
       [93m--ecosystem[0m[95m [0m[95m<ECOSYSTEM>[0m
-          
+          Limit the operation to one or more package ecosystems
 
       [93m--resume[0m[95m [0m[95m<PATH>[0m
-          
+          Resume publishing from a saved publish report
 
       [93m--all[0m
-          
+          Include every matching package instead of the default subset
 
       [93m--stream-output[0m
-          
+          Stream package-manager output while publishing
 
       [93m--fail-on-duplicate[0m
-          
+          Treat an already-published package version as a failure
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
-          Suppress stdout/stderr output and run in dry-run mode when supported
+          Suppress result, progress, and diagnostic output without changing execution
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
-          
+
           [possible values: auto, unicode, ascii, json]
 
       [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
-          Filter JSON output with a jq-style expression, such as `.assets[].name`
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree

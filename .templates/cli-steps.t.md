@@ -53,7 +53,7 @@ Use the map form when a step needs fixed values, renamed values, templates, or a
 ```toml
 [cli.release-pr]
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "text" },
 	{ name = "open_as_draft", type = "boolean", default = false },
 ]
 steps = [

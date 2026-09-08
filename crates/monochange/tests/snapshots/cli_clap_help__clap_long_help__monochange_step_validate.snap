@@ -19,15 +19,15 @@ Run the built-in validate release workflow step
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
-          Suppress stdout/stderr output and run in dry-run mode when supported
+          Suppress result, progress, and diagnostic output without changing execution
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
-          
+
           [possible values: auto, unicode, ascii, json]
 
       [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
-          Filter JSON output with a jq-style expression, such as `.assets[].name`
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree

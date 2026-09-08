@@ -114,7 +114,7 @@ monochange run change \
 monochange run release --dry-run
 ```
 
-By default this renders a markdown preview in the terminal. Use `--format json` when you want structured output for tooling, `--format text` when you explicitly want the older plain-text rendering, or `monochange step display-versions` when you only need the planned package and group versions. Use `monochange versions --dry-run` when you want to preview internal dependency constraint updates without modifying manifests.
+By default this renders concise text in the terminal. Use `--format markdown` when you want a raw Markdown artifact, `--format json` when you want structured output for tooling, or `monochange step display-versions` when you only need the planned package and group versions. Use `monochange versions --dry-run` when you want to preview internal dependency constraint updates without modifying manifests.
 
 When you want to see the exact file patch without mutating the workspace, add `--diff`:
 
@@ -141,7 +141,7 @@ A good first-time mental model is:
 
 That is why most beginner flows should start with package ids, not groups.
 
-If you need a silent safety check, run `monochange run release --quiet`. Quiet mode suppresses stdout/stderr and keeps release-oriented commands in dry-run behavior.
+If you need a silent safety check, run `monochange run release --dry-run --quiet`. Quiet mode only suppresses output; `--dry-run` is what prevents workspace changes.
 
 ## If you hit a problem
 

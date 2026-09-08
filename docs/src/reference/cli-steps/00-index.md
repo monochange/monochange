@@ -55,7 +55,7 @@ Use the map form when a step needs fixed values, renamed values, templates, or a
 ```toml
 [cli.release-pr]
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "text" },
 	{ name = "open_as_draft", type = "boolean", default = false },
 ]
 steps = [
@@ -145,7 +145,7 @@ That means composition is explicit:
 - a step can only consume state created by an earlier step in the same command
 - a later step never runs "in parallel" with an earlier one
 - `--dry-run` flows through the whole command and changes the behavior of steps that support previews
-- `--quiet` suppresses stdout/stderr and reuses dry-run behavior for commands that support it
+- `--quiet` suppresses stdout/stderr without changing execution; use `--dry-run` separately
 - a plain `Command` step can bridge monochange and external tools, but built-in steps are preferable when you want stable semantics, structured JSON, or provider-aware behavior
 
 In practice, most workflows fit one of four patterns:

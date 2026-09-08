@@ -4,7 +4,7 @@ info:
   program: monochange
   args:
     - run
-    - release-pr
+    - release
     - "--dry-run"
   env:
     MONOCHANGE_NO_PROGRESS: "1"
@@ -15,21 +15,15 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-command `release-pr` completed (dry-run)
-version: 1.1.0
+command `release` completed (dry-run)
 released packages: workflow-app, workflow-core
 release targets:
-- group sdk -> v1.1.0 (tag: true, release: true)
+- package app -> app/v1.0.1 (tag: false, release: false)
+- package core -> core/v1.1.0 (tag: false, release: false)
 release manifest: .monochange/local/release-manifest.json
-release request:
-- dry-run ifiokjr/monochange monochange/release/release-pr -> main via github
 changed files:
-- Cargo.toml
-- changelog.md
 - crates/app/Cargo.toml
-- crates/core/CHANGELOG.md
 - crates/core/Cargo.toml
-- group.toml
 commands:
 - skipped release record: dry-run preview (pass `--release-json` to write release.json)
 

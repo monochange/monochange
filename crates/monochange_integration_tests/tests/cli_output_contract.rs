@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Output;
 
+use monochange_test_helpers::copy_directory;
 use monochange_test_helpers::get_cargo_bin;
 
 fn fixture_path(relative: &str) -> PathBuf {
@@ -83,4 +84,78 @@ fn captured_workflow_progress_has_no_terminal_control_sequences() {
 	);
 	assert!(!stderr.contains('\r'), "{stderr:?}");
 	assert!(!stderr.contains('\u{1b}'), "{stderr:?}");
+}
+
+#[test]
+fn config_defaults_to_a_concise_human_summary() {
+	let root = fixture_path("json-plain-output/release-workspace");
+	let output = monochange(&root, &["step", "config"]);
+	assert!(
+		output.status.success(),
+		"config failed\nstdout:\n{}\nstderr:\n{}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr),
+	);
+	let stdout = String::from_utf8(output.stdout)
+		.unwrap_or_else(|error| panic!("config stdout must be UTF-8: {error}"));
+
+	assert!(
+		stdout.starts_with("Workspace configuration\n\n"),
+		"{stdout}"
+	);
+	assert!(stdout.contains("Packages:"), "{stdout}");
+	assert!(stdout.contains("Use `--format json`"), "{stdout}");
+	assert!(
+		stdout.len() < 1_000,
+		"default config output is too large: {} bytes",
+		stdout.len()
+	);
+	assert!(serde_json::from_str::<serde_json::Value>(&stdout).is_err());
+
+	let json = monochange(&root, &["step", "config", "--format", "json"]);
+	assert!(json.status.success(), "JSON config failed: {json:#?}");
+	serde_json::from_slice::<serde_json::Value>(&json.stdout)
+		.unwrap_or_else(|error| panic!("explicit config JSON must parse: {error}"));
+}
+
+#[test]
+fn quiet_suppresses_output_without_changing_execution() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_directory(
+		&fixture_path("cli-output-contract/quiet-command"),
+		tempdir.path(),
+	);
+
+	let output = monochange(tempdir.path(), &["run", "mutate", "--quiet"]);
+
+	assert!(output.status.success(), "quiet command failed: {output:#?}");
+	assert!(output.stdout.is_empty(), "stdout: {:?}", output.stdout);
+	assert!(output.stderr.is_empty(), "stderr: {:?}", output.stderr);
+	assert_eq!(
+		std::fs::read_to_string(tempdir.path().join("quiet-command-ran"))
+			.unwrap_or_else(|error| panic!("quiet marker: {error}")),
+		"ran",
+	);
+}
+
+#[test]
+fn jq_rejects_implicit_human_output() {
+	let root = fixture_path("json-plain-output/release-workspace");
+	let output = monochange(&root, &["step", "config", "--jq", ".config.packages"]);
+	let stderr = String::from_utf8_lossy(&output.stderr);
+
+	assert!(!output.status.success());
+	assert!(
+		stdout_is_empty_or_newline(&output.stdout),
+		"stdout: {:?}",
+		output.stdout
+	);
+	assert!(
+		stderr.contains("--jq requires explicit JSON output"),
+		"{stderr}"
+	);
+}
+
+fn stdout_is_empty_or_newline(stdout: &[u8]) -> bool {
+	stdout.is_empty() || stdout == b"\n"
 }

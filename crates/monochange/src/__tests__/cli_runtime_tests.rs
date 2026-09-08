@@ -42,6 +42,7 @@ fn cli_context() -> CliContext {
 		dry_run: false,
 		quiet: false,
 		show_diff: false,
+		output_format: OutputFormat::Text,
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
@@ -673,31 +674,30 @@ fn read_telemetry_events(path: &Path) -> Vec<serde_json::Value> {
 }
 
 #[test]
-fn resolve_command_output_uses_last_executed_step_format() {
+fn resolve_command_output_uses_the_command_boundary_format() {
 	let cli_command = release_cli_command();
 	let mut context = cli_context();
-	context.inputs = format_input("markdown");
+	context.output_format = OutputFormat::Markdown;
 	context.last_step_inputs = format_input("json");
-	context.prepared_release = Some(sample_prepared_release());
-
-	let output = resolve_command_output(&cli_command, &context, true, None)
-		.unwrap_or_else(|error| panic!("resolve json output: {error}"));
-
-	assert!(output.trim_start().starts_with('{'));
-	assert!(output.contains("\"command\": \"release\""));
-}
-
-#[test]
-fn resolve_command_output_defaults_to_markdown_without_step_format() {
-	let cli_command = release_cli_command();
-	let mut context = cli_context();
-	context.inputs = format_input("json");
 	context.prepared_release = Some(sample_prepared_release());
 
 	let output = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("resolve markdown output: {error}"));
 
 	assert!(output.starts_with("# `release`"));
+	assert!(!output.trim_start().starts_with('{'));
+}
+
+#[test]
+fn resolve_command_output_defaults_to_text_without_step_format() {
+	let cli_command = release_cli_command();
+	let mut context = cli_context();
+	context.prepared_release = Some(sample_prepared_release());
+
+	let output = resolve_command_output(&cli_command, &context, true, None)
+		.unwrap_or_else(|error| panic!("resolve text output: {error}"));
+
+	assert!(output.starts_with("command `release` completed"));
 	assert!(!output.trim_start().starts_with('{'));
 }
 
@@ -1160,25 +1160,16 @@ fn render_cli_command_results_include_release_details_policy_and_logs() {
 fn render_display_versions_output_supports_text_markdown_and_json() {
 	let prepared_release = sample_prepared_release_with_versions();
 
-	let text = render_display_versions_output(
-		&prepared_release,
-		&BTreeMap::from([("format".to_string(), vec!["text".to_string()])]),
-	)
-	.unwrap_or_else(|error| panic!("versions text output: {error}"));
+	let text = render_display_versions_output(&prepared_release, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("versions text output: {error}"));
 	insta::assert_snapshot!("display_versions_text", text);
 
-	let markdown = render_display_versions_output(
-		&prepared_release,
-		&BTreeMap::from([("format".to_string(), vec!["markdown".to_string()])]),
-	)
-	.unwrap_or_else(|error| panic!("versions markdown output: {error}"));
+	let markdown = render_display_versions_output(&prepared_release, OutputFormat::Markdown)
+		.unwrap_or_else(|error| panic!("versions markdown output: {error}"));
 	insta::assert_snapshot!("display_versions_markdown", markdown);
 
-	let json = render_display_versions_output(
-		&prepared_release,
-		&BTreeMap::from([("format".to_string(), vec!["json".to_string()])]),
-	)
-	.unwrap_or_else(|error| panic!("versions json output: {error}"));
+	let json = render_display_versions_output(&prepared_release, OutputFormat::Json)
+		.unwrap_or_else(|error| panic!("versions json output: {error}"));
 	let parsed: serde_json::Value = serde_json::from_str(&json)
 		.unwrap_or_else(|error| panic!("parse versions json output: {error}"));
 	insta::assert_json_snapshot!("display_versions_json", parsed);
@@ -1377,6 +1368,7 @@ fn placeholder_rendering_keeps_complete_summary_when_detail_rows_are_filtered() 
 #[test]
 fn placeholder_json_and_template_outputs_filter_package_rows_but_keep_complete_summary() {
 	let mut context = cli_context();
+	context.output_format = OutputFormat::Json;
 	context.last_step_inputs = BTreeMap::from([
 		("format".to_string(), vec!["json".to_string()]),
 		("show-all".to_string(), vec!["false".to_string()]),
@@ -1664,6 +1656,7 @@ fn resolve_command_output_supports_package_publish_json_without_release_state() 
 		dry_run: false,
 	};
 	let mut context = cli_context();
+	context.output_format = OutputFormat::Json;
 	context.last_step_inputs = BTreeMap::from([("format".to_string(), vec!["json".to_string()])]);
 	context.package_publish_report = Some(package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Placeholder,
@@ -1763,6 +1756,7 @@ fn resolve_command_output_supports_package_publish_text_and_markdown_without_rel
 	assert!(text.contains("no packages matched the publishing criteria"));
 
 	let mut markdown_context = cli_context();
+	markdown_context.output_format = OutputFormat::Markdown;
 	markdown_context.last_step_inputs =
 		BTreeMap::from([("format".to_string(), vec!["markdown".to_string()])]);
 	markdown_context.package_publish_report = Some(package_publish::PackagePublishReport {
@@ -1816,6 +1810,7 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 	assert!(text.contains("wait: 86400s before this batch"));
 
 	context.last_step_inputs = BTreeMap::from([("format".to_string(), vec!["json".to_string()])]);
+	context.output_format = OutputFormat::Json;
 	let json = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("rate limit json output: {error}"));
 	assert!(json.contains("batches_required"));
@@ -1823,6 +1818,7 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 
 	context.last_step_inputs =
 		BTreeMap::from([("ci".to_string(), vec!["github-actions".to_string()])]);
+	context.output_format = OutputFormat::Text;
 	let github = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("rate limit github snippet: {error}"));
 	assert!(github.contains("jobs:"));
@@ -1963,11 +1959,16 @@ fn map_process_spawn_result_reports_io_failures() {
 }
 
 #[test]
-fn render_display_versions_output_rejects_unknown_formats() {
-	let error = render_display_versions_output(
-		&sample_prepared_release_with_versions(),
-		&BTreeMap::from([("format".to_string(), vec!["yaml".to_string()])]),
-	)
+fn cli_command_output_format_defaults_to_text_and_rejects_unknown_formats() {
+	assert_eq!(
+		cli_command_output_format(&BTreeMap::new())
+			.unwrap_or_else(|error| panic!("default output format: {error}")),
+		OutputFormat::Text,
+	);
+	let error = cli_command_output_format(&BTreeMap::from([(
+		"format".to_string(),
+		vec!["yaml".to_string()],
+	)]))
 	.unwrap_err();
 	assert_eq!(
 		error.to_string(),
@@ -2018,6 +2019,51 @@ async fn execute_matches_uses_progress_format_from_environment_and_rejects_inval
 		);
 	})
 	.await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_matches_does_not_turn_quiet_commands_into_dry_runs() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let marker = tempdir.path().join("quiet-command-ran");
+	let command = CliCommandDefinition {
+		name: "mutate".to_string(),
+		help_text: Some("write a marker".to_string()),
+		inputs: Vec::new(),
+		steps: vec![CliStepDefinition::Command {
+			name: Some("write marker".to_string()),
+			when: None,
+			always_run: false,
+			command: format!("touch {}", marker.display()),
+			dry_run_command: None,
+			show_progress: None,
+			shell: ShellConfig::Default,
+			id: None,
+			variables: None,
+			inputs: BTreeMap::new(),
+		}],
+		dry_run: false,
+	};
+	let mut configuration = sample_configuration(tempdir.path());
+	configuration.cli = vec![command];
+	let matches = build_command_with_cli("monochange", &configuration.cli)
+		.try_get_matches_from(["monochange", "run", "mutate", "--quiet"])
+		.unwrap_or_else(|error| panic!("quiet command matches: {error}"));
+	let command_matches = matches
+		.subcommand_matches("run")
+		.and_then(|matches| matches.subcommand_matches("mutate"))
+		.unwrap_or_else(|| panic!("mutate subcommand matches"));
+
+	execute_matches(
+		tempdir.path(),
+		&configuration,
+		"mutate",
+		command_matches,
+		true,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("quiet command execution: {error}"));
+
+	assert!(marker.exists(), "quiet must not imply dry-run");
 }
 
 #[test]

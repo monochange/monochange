@@ -13,7 +13,7 @@ Repository-specific workflow commands can wrap publish planning and publishing:
 [cli.publish-plan]
 help_text = "Plan package publishing"
 inputs = [
-	{ name = "format", type = "choice", choices = ["markdown", "json"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "markdown", "json"], default = "text" },
 	{ name = "readiness", type = "path" },
 ]
 steps = [

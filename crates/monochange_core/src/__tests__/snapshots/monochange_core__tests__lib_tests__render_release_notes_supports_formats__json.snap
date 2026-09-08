@@ -1,6 +1,6 @@
 ---
 source: crates/monochange_core/src/__tests__/lib_tests.rs
-expression: json
+expression: json_value
 ---
 {
   "sections": [

@@ -56,7 +56,6 @@ similar-asserts = { version = "2.0.0", default-features = false }
 syn = { version = "3", default-features = false, features = ["full"] }
 temp-env = { version = "0.3", default-features = false, features = ["async_closure"] }
 tempfile = { version = "3", default-features = false }
-termimad = { version = "0.35", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }
 time = { version = "0.3.55", default-features = false }
 tokio = { version = "1", default-features = false, features = ["rt", "rt-multi-thread", "macros", "process", "fs", "time", "sync"] }

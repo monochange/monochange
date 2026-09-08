@@ -62,12 +62,9 @@ pub(crate) fn run_subagents(root: &Path, options: &SubagentOptions) -> Monochang
 		SubagentOutputFormat::Json | SubagentOutputFormat::JsonMin => {
 			render_subagent_plan_json(&plan, options.format)
 		}
-		SubagentOutputFormat::Markdown => {
-			Ok(crate::maybe_render_markdown_for_terminal(
-				&render_subagent_plan_text(&plan),
-			))
+		SubagentOutputFormat::Markdown | SubagentOutputFormat::Text => {
+			Ok(render_subagent_plan_text(&plan))
 		}
-		SubagentOutputFormat::Text => Ok(render_subagent_plan_text(&plan)),
 	}
 }
 

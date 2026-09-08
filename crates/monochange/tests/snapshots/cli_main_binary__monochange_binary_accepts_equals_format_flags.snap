@@ -8,6 +8,7 @@ info:
     - discover
     - "--format=json"
   env:
+    MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
 ---
 success: false

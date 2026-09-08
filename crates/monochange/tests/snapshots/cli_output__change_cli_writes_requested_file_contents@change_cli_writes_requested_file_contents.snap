@@ -12,7 +12,7 @@ info:
     - "--reason"
     - document cli snapshots
     - "--output"
-    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmp5zH9CW/feature.md
+    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpOhWOer/feature.md
   env:
     MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"

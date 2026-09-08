@@ -127,11 +127,24 @@ pub(crate) fn run_check_command(
 	format: OutputFormat,
 	verbose: bool,
 ) -> MonochangeResult<String> {
+	run_check_command_with_progress(root, fix, ecosystems, only_rules, format, verbose, true)
+}
+
+pub(crate) fn run_check_command_with_progress(
+	root: &Path,
+	fix: bool,
+	ecosystems: &[String],
+	only_rules: &[String],
+	format: OutputFormat,
+	verbose: bool,
+	progress_enabled: bool,
+) -> MonochangeResult<String> {
 	let configuration = load_workspace_configuration(root)?;
 	let mut output = String::new();
 
 	let human_output = matches!(format, OutputFormat::Text | OutputFormat::Markdown);
-	let reporter = human_output.then(crate::lint_check_reporter::HumanLintProgressReporter::new);
+	let reporter = (human_output && progress_enabled)
+		.then(crate::lint_check_reporter::HumanLintProgressReporter::new);
 	if let Some(reporter) = &reporter {
 		reporter.validation_started();
 	}
@@ -413,7 +426,7 @@ pub(crate) fn handle_lint_subcommand(
 	if subcommand == "list" {
 		let format = subcommand_matches
 			.get_one::<String>("format")
-			.map_or(Ok(OutputFormat::Markdown), |value| {
+			.map_or(Ok(OutputFormat::Text), |value| {
 				crate::parse_output_format(value)
 			})?;
 		return render_lint_catalog(format);
@@ -422,7 +435,7 @@ pub(crate) fn handle_lint_subcommand(
 	if subcommand == "explain" {
 		let format = subcommand_matches
 			.get_one::<String>("format")
-			.map_or(Ok(OutputFormat::Markdown), |value| {
+			.map_or(Ok(OutputFormat::Text), |value| {
 				crate::parse_output_format(value)
 			})?;
 		let id = subcommand_matches

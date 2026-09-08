@@ -298,7 +298,7 @@ Use the map form when a step needs fixed values, renamed values, templates, or a
 ```toml
 [cli.release-pr]
 inputs = [
-	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "text" },
 	{ name = "open_as_draft", type = "boolean", default = false },
 ]
 steps = [
@@ -365,7 +365,7 @@ steps = [
 help_text = "Preview versioned files without writing them"
 dry_run = true
 inputs = [
-	{ name = "format", type = "choice", choices = ["markdown", "json"], default = "markdown" },
+	{ name = "format", type = "choice", choices = ["text", "markdown", "json"], default = "text" },
 ]
 steps = [
 	{ name = "plan release", type = "PrepareRelease", inputs = ["format"] },

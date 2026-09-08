@@ -74,7 +74,7 @@ pub(crate) async fn execute_matches(
 	};
 
 	let inputs = collect_cli_command_inputs(&cli_command, cli_command_matches);
-	let dry_run = quiet || cli_command.dry_run || cli_command_matches.get_flag("dry-run");
+	let dry_run = cli_command.dry_run || cli_command_matches.get_flag("dry-run");
 	let show_diff =
 		command_supports_release_diff_preview(&cli_command) && cli_command_matches.get_flag("diff");
 	let progress_format = cli_command_matches
@@ -578,7 +578,6 @@ async fn build_issue_comment_results_for_source(
 }
 // patch-coverage:ignore-end
 
-#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) async fn execute_cli_command(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
@@ -593,6 +592,29 @@ pub(crate) async fn execute_cli_command(
 		ExecuteCliCommandOptions {
 			dry_run,
 			quiet: false,
+			show_diff: false,
+			inputs,
+			prepared_release_path: None,
+			progress_format: ProgressFormat::Auto,
+		},
+	)
+	.await
+}
+
+pub(crate) async fn execute_cli_command_quietly(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	cli_command: &CliCommandDefinition,
+	dry_run: bool,
+	inputs: BTreeMap<String, Vec<String>>,
+) -> MonochangeResult<String> {
+	execute_cli_command_with_options(
+		root,
+		configuration,
+		cli_command,
+		ExecuteCliCommandOptions {
+			dry_run,
+			quiet: true,
 			show_diff: false,
 			inputs,
 			prepared_release_path: None,
@@ -627,11 +649,13 @@ pub(crate) async fn execute_cli_command_with_options(
 		prepared_release_path,
 		progress_format,
 	} = options;
+	let output_format = cli_command_output_format(&inputs)?;
 	let mut context = CliContext {
 		root: root.to_path_buf(),
 		dry_run,
 		quiet,
 		show_diff,
+		output_format,
 		last_step_inputs: inputs.clone(),
 		inputs,
 		prepared_release: None,
@@ -756,10 +780,10 @@ pub(crate) async fn execute_cli_command_with_options(
 			match step {
 				CliStepDefinition::Config { .. } => {
 					output = if matches!(cli_command.name.as_str(), "config" | "step config") {
-						Some(render_config_step_json(
+						Some(render_config_step(
 							root,
 							configuration,
-							cli_command_output_format(&step_inputs)?,
+							context.output_format,
 						)?)
 					} else {
 						None
@@ -793,13 +817,10 @@ pub(crate) async fn execute_cli_command_with_options(
 					Ok(())
 				}
 				CliStepDefinition::Discover { .. } => {
-					let format = step_inputs
-						.get("format")
-						.and_then(|values| values.first())
-						.map_or(Ok(OutputFormat::Markdown), |value| {
-							parse_output_format(value)
-						})?;
-					output = Some(render_discovery_report(&discover_workspace(root)?, format)?);
+					output = Some(render_discovery_report(
+						&discover_workspace(root)?,
+						context.output_format,
+					)?);
 					Ok(())
 				}
 				CliStepDefinition::DisplayVersions { .. } => {
@@ -827,7 +848,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					step_phase_timings.clone_from(&prepared_execution.phase_timings);
 					let rendered_output = render_display_versions_output(
 						&prepared_execution.prepared_release,
-						&step_inputs,
+						context.output_format,
 					)?;
 					output = Some(rendered_output);
 					Ok(())
@@ -1307,8 +1328,10 @@ pub(crate) async fn execute_cli_command_with_options(
 						let discovery = discover_release_record(root, from).await?;
 						output = Some(discovery.record_commit);
 					} else {
-						let format = cli_command_output_format(&step_inputs)?;
-						output = Some(render_release_record_discovery(root, from, format).await?);
+						output = Some(
+							render_release_record_discovery(root, from, context.output_format)
+								.await?,
+						);
 					}
 					Ok(())
 				}
@@ -1321,13 +1344,12 @@ pub(crate) async fn execute_cli_command_with_options(
 							MonochangeError::Config("missing publish-readiness ref".to_string())
 						})?;
 					let selected_packages = selected_package_ids(&step_inputs);
-					let format = cli_command_output_format(&step_inputs)?;
 					let output_path =
 						optional_path_input(&step_inputs, "output", "PublishReadiness")?;
 					let options = publish_readiness::PublishReadinessOptions {
 						from,
 						selected_packages,
-						format,
+						format: context.output_format,
 						output: output_path,
 					};
 					output = Some(
@@ -1344,7 +1366,6 @@ pub(crate) async fn execute_cli_command_with_options(
 						.ok_or_else(|| {
 							MonochangeError::Config("missing tag-release ref".to_string())
 						})?;
-					let format = cli_command_output_format(&step_inputs)?;
 					let push = step_inputs
 						.get("push")
 						.and_then(|values| values.first())
@@ -1357,8 +1378,14 @@ pub(crate) async fn execute_cli_command_with_options(
 					)
 					.await?;
 					output = Some(
-						render_release_tag_report(root, from, format, push, context.dry_run)
-							.await?,
+						render_release_tag_report(
+							root,
+							from,
+							context.output_format,
+							push,
+							context.dry_run,
+						)
+						.await?,
 					);
 					Ok(())
 				}
@@ -3803,10 +3830,9 @@ fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) 
 
 fn render_display_versions_output(
 	prepared_release: &PreparedRelease,
-	inputs: &BTreeMap<String, Vec<String>>,
+	format: OutputFormat,
 ) -> MonochangeResult<String> {
 	let summary = build_release_version_summary(prepared_release);
-	let format = cli_command_output_format(inputs)?;
 	match format {
 		OutputFormat::Json | OutputFormat::JsonMin => {
 			format.render_json_value(&summary, "display versions")
@@ -4109,9 +4135,7 @@ fn cli_command_output_format(
 	inputs
 		.get("format")
 		.and_then(|values| values.first())
-		.map_or(Ok(OutputFormat::Markdown), |value| {
-			parse_output_format(value)
-		})
+		.map_or(Ok(OutputFormat::Text), |value| parse_output_format(value))
 }
 
 #[must_use = "the output format result must be checked"]
@@ -4127,23 +4151,6 @@ pub(crate) fn parse_output_format(value: &str) -> MonochangeResult<OutputFormat>
 			)))
 		}
 	}
-}
-
-/// Render raw markdown into terminal-styled text when stdout is a TTY.
-///
-/// When stdout is not an interactive terminal (e.g. piped to a file),
-/// the original markdown string is returned unchanged so that downstream
-/// consumers still receive valid markdown.
-pub(crate) fn render_markdown_if_terminal(markdown: &str, is_terminal: bool) -> String {
-	if is_terminal {
-		termimad::MadSkin::default().term_text(markdown).to_string()
-	} else {
-		markdown.to_string()
-	}
-}
-
-pub(crate) fn maybe_render_markdown_for_terminal(markdown: &str) -> String {
-	render_markdown_if_terminal(markdown, std::io::stdout().is_terminal())
 }
 
 #[must_use = "the change bump result must be checked"]
@@ -4367,7 +4374,7 @@ fn resolve_command_output(
 	output: Option<String>,
 ) -> MonochangeResult<String> {
 	if let Some(prepared_release) = &context.prepared_release {
-		let format = cli_command_output_format(&context.last_step_inputs)?;
+		let format = context.output_format;
 		return match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				let manifest =
@@ -4395,7 +4402,7 @@ fn resolve_command_output(
 		};
 	}
 	if let Some(evaluation) = &context.changeset_policy_evaluation {
-		let format = cli_command_output_format(&context.last_step_inputs)?;
+		let format = context.output_format;
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				format.render_json_value(evaluation, "changeset policy evaluation")?
@@ -4408,13 +4415,7 @@ fn resolve_command_output(
 		return maybe_fail_enforced_changeset_policy(evaluation, context.quiet, rendered);
 	}
 	if let Some(report) = &context.changeset_diagnostics {
-		let format = context
-			.inputs
-			.get("format")
-			.and_then(|values| values.first())
-			.map_or(Ok(OutputFormat::Markdown), |value| {
-				parse_output_format(value)
-			})?;
+		let format = context.output_format;
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				format.render_json_value(report, "changeset diagnostics")?
@@ -4424,7 +4425,7 @@ fn resolve_command_output(
 		return Ok(rendered);
 	}
 	if let Some(report) = &context.retarget_report {
-		let format = cli_command_output_format(&context.last_step_inputs)?;
+		let format = context.output_format;
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				format.render_json_value(report, "retarget report")?
@@ -4434,7 +4435,7 @@ fn resolve_command_output(
 		return Ok(rendered);
 	}
 	if let Some(report) = &context.package_publish_report {
-		let format = cli_command_output_format(&context.last_step_inputs)?;
+		let format = context.output_format;
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				let details = filter_placeholder_publish_report(
@@ -4457,7 +4458,7 @@ fn resolve_command_output(
 		if let Some(ci_renderer) = requested_ci_renderer(&context.last_step_inputs)? {
 			return render_publish_rate_limit_ci_snippet(report, ci_renderer);
 		}
-		let format = cli_command_output_format(&context.last_step_inputs)?;
+		let format = context.output_format;
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				render_publish_command_json(format, None, None, Some(report))?

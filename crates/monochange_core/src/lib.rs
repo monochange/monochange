@@ -3821,7 +3821,7 @@ impl CliStepDefinition {
 				CliInputDefinition {
 					name: name.to_string(),
 					kind,
-					help_text: None,
+					help_text: Some(step_input_help_text(name).to_string()),
 					required: false,
 					default,
 					choices,
@@ -3832,6 +3832,50 @@ impl CliStepDefinition {
 				}
 			})
 			.collect()
+	}
+}
+
+fn step_input_help_text(name: &str) -> &'static str {
+	match name {
+		"format" => "Result format: text, Markdown, pretty JSON, or compact JSON",
+		"no_verify" => "Skip Git commit hooks for this operation",
+		"update_release_json" => "Update the committed release record before committing",
+		"stage_all" => "Stage every workspace change instead of release files only",
+		"from" => "Git ref to use as the release, comparison, or verification source",
+		"write_empty_release_record" => "Write a release record even when no packages change",
+		"release_json" => "Write the prepared release record as JSON",
+		"from-ref" => "Git ref that contains the release record to publish",
+		"auto-close-issues" => "Close referenced issues after adding the release comment",
+		"draft" => "Create hosted releases as drafts",
+		"package" => "Limit the operation to one or more package ids",
+		"show-all" => "Include unchanged and skipped package details",
+		"otp" => "One-time password for registries that require two-factor authentication",
+		"output" => "Write the complete result to this path",
+		"group" => "Limit the operation to one or more version-group ids",
+		"ecosystem" => "Limit the operation to one or more package ecosystems",
+		"resume" => "Resume publishing from a saved publish report",
+		"all" => "Include every matching package instead of the default subset",
+		"stream-output" => "Stream package-manager output while publishing",
+		"fail-on-duplicate" => "Treat an already-published package version as a failure",
+		"mode" => "Plan limits for release or placeholder publishing",
+		"ci" => "Render a CI configuration snippet for the selected provider",
+		"readiness" => "Read package readiness decisions from this report",
+		"interactive" => "Collect changeset fields with an interactive prompt",
+		"bump" => "Semver bump to request for the selected packages",
+		"version" => "Explicit version associated with this changeset",
+		"reason" => "Short outcome-focused summary for the changeset",
+		"type" => "Configured changeset type, which selects bump and changelog stream",
+		"details" => "Additional changeset details or migration guidance",
+		"changed_paths" => "Changed workspace paths to evaluate",
+		"verify" => "Fail when affected packages are missing required changesets",
+		"label" => "Pull-request labels that affect changeset policy",
+		"changeset" => "Limit diagnostics to one or more changeset paths",
+		"sha" => "Print only the resolved release-record commit SHA",
+		"push" => "Push created release tags to the configured remote",
+		"target" => "Git ref to retarget releases to",
+		"force" => "Allow the operation when the normal safety check rejects it",
+		"sync_provider" => "Update hosted-provider releases as well as local Git state",
+		_ => "Configure this built-in step input",
 	}
 }
 
