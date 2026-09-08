@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 392
+expression: helper
+---
+name: helper
+version: 1.2.3
+repository: https://github.com/acme/lint-rules/tree/main/packages/helper

@@ -1,0 +1,18 @@
+[defaults]
+package_type = "npm"
+changelog = false
+
+[lints.rules]
+"changesets/no_section_headings" = "error"
+"changesets/prefer-inline" = "error"
+"changesets/summary" = { level = "error", required = true, heading_level = 2 }
+
+[package.app]
+path = "packages/app"
+type = "npm"
+version = "0.1.0"
+
+[package.shared]
+path = "packages/shared"
+type = "npm"
+version = "0.1.0"

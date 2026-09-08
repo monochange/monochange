@@ -1,0 +1,30 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 302
+expression: "normalize_workspace_paths(fixture.path(), output.clone())"
+---
+config error: check failed:
+workspace validation passed for [workspace]
+lint: 8 errors, 0 warnings
+
+[workspace]/packages/app/pubspec.yaml:
+  ✗ **dart/flutter-package-metadata-consistent** at 1:1
+     packages with a `flutter` section must declare `dependencies.flutter = { sdk: flutter }`
+  ✗ **dart/internal-path-dependency-policy** at 1:1
+     internal dependency `helper` in `dependencies` should use `path:` references
+  ✗ **dart/no-git-dependencies-in-published-packages** at 1:1
+     published Dart packages must not use `git:` for dependency `gitdep` in `dependencies`
+  ✗ **dart/no-unexpected-dependency-overrides** at 1:1
+     package `app` declares dependency_overrides without an allow-list entry
+  ✗ **dart/sdk-constraint-modern** at 1:1
+     environment.sdk `>=2.12.0 <4.0.0` is not modern enough: lower bound must be at least 3.0.0
+  ✗ **dart/workspace-internal-version-consistency** at 1:1
+     internal dependency `helper` in `dependencies` references `^1.0.0` but the workspace version is `1.2.3`
+
+[workspace]/packages/helper/pubspec.yaml:
+  ✗ **dart/required-package-fields** at 1:1
+     missing required pubspec.yaml field `description`
+  ✗ **dart/sdk-constraint-present** at 1:1
+     pubspec.yaml must declare environment.sdk explicitly
+
+Fixed all auto-fixable issues.

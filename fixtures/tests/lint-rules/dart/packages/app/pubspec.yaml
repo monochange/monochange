@@ -1,0 +1,26 @@
+name: app
+version: 0.1.0
+description: App fixture package
+environment:
+  sdk: ">=2.12.0 <4.0.0"
+flutter:
+  assets:
+    - assets/b.txt
+    - assets/a.txt
+  fonts:
+    - family: Zed
+      fonts:
+        - asset: fonts/zed.ttf
+    - family: Alpha
+      fonts:
+        - asset: fonts/alpha-b.ttf
+        - asset: fonts/alpha-a.ttf
+dependencies:
+  helper: ^1.0.0
+  http: ^1.0.0
+  gitdep:
+    git:
+      url: https://github.com/example/gitdep.git
+dependency_overrides:
+  http:
+    path: ../vendored-http

@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 433
+expression: clean
+---
+---
+shared: patch
+---
+
+## Keep this changeset clean
+
+Nothing here should trip any changeset lint rule.

@@ -1,0 +1,35 @@
+[defaults]
+package_type = "dart"
+changelog = false
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "lint-rules"
+
+[lints.rules]
+"dart/assets-sorted" = "error"
+"dart/dependency-sorted" = "error"
+"dart/flutter-package-metadata-consistent" = "error"
+"dart/internal-path-dependency-policy" = "error"
+"dart/manifest-repository" = "error"
+"dart/no-git-dependencies-in-published-packages" = "error"
+"dart/no-unexpected-dependency-overrides" = "error"
+"dart/required-package-fields" = "error"
+"dart/sdk-constraint-modern" = "error"
+"dart/sdk-constraint-present" = "error"
+"dart/unlisted-package-private" = { level = "error", fix = true }
+"dart/workspace-internal-version-consistency" = "error"
+
+[ecosystems.dart]
+enabled = true
+
+[package.app]
+path = "packages/app"
+type = "dart"
+version = "0.1.0"
+
+[package.helper]
+path = "packages/helper"
+type = "dart"
+version = "1.2.3"

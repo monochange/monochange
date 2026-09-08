@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 286
+expression: orphan
+---
+{
+  "name": "orphan",
+  "private": true,
+  "version": "0.1.0"
+}

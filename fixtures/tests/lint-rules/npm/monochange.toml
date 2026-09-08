@@ -1,0 +1,35 @@
+[defaults]
+package_type = "npm"
+changelog = false
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "lint-rules"
+
+[lints.rules]
+"npm/manifest-repository" = "error"
+"npm/no-duplicate-dependencies" = "error"
+"npm/required-package-fields" = "error"
+"npm/root-no-prod-deps" = "error"
+"npm/sorted-dependencies" = "error"
+"npm/unlisted-package-private" = { level = "error", fix = true }
+"npm/workspace-protocol" = "error"
+
+[ecosystems.npm]
+enabled = true
+
+[package.root]
+path = ""
+type = "npm"
+version = "0.1.0"
+
+[package.app]
+path = "packages/app"
+type = "npm"
+version = "0.1.0"
+
+[package.shared]
+path = "packages/shared"
+type = "npm"
+version = "0.1.0"

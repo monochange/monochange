@@ -1,0 +1,20 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 284
+expression: app
+---
+{
+  "dependencies": {
+    "shared": "workspace:*",
+    "zod": "3.0.0"
+  },
+  "description": "App fixture package",
+  "devDependencies": {
+    "chalk": "5.0.0",
+    "typescript": "5.0.0"
+  },
+  "license": "MIT",
+  "name": "app",
+  "repository": "https://github.com/acme/lint-rules/tree/main/packages/app",
+  "version": "0.1.0"
+}

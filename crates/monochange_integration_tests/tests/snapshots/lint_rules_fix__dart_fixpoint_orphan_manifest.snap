@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 393
+expression: orphan
+---
+name: orphan
+version: 0.2.0
+publish_to: none

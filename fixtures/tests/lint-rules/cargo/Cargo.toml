@@ -1,0 +1,5 @@
+[workspace]
+members = ["crates/*"]
+
+[workspace.package]
+repository = "https://github.com/acme/lint-rules"

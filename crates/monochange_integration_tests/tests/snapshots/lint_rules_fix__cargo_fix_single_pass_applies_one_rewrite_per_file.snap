@@ -1,0 +1,26 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 91
+expression: "normalize_workspace_paths(fixture.path(), output)"
+---
+config error: check failed:
+workspace validation passed for [workspace]
+lint: 7 errors, 0 warnings
+
+[workspace]/crates/core/Cargo.toml:
+  ✗ **cargo/internal-dependency-workspace** at 1:1 [fixable]
+     internal dependency `utils` should use workspace = true
+  ✗ **cargo/internal-dependency-workspace** at 1:1 [fixable]
+     internal dependency `private-dep` should use workspace = true
+  ✗ **cargo/publishable-dependencies** at 1:1
+     publishable Cargo package depends on unpublished workspace package `private-dep` in [dependencies]
+  ✗ **cargo/required-package-fields** at 1:1
+     missing required package field `license`
+  ✗ **cargo/sorted-dependencies** at 1:1 [fixable]
+     dependencies in `dependencies` are not sorted alphabetically
+  ✗ **cargo/sorted-dependencies** at 1:1 [fixable]
+     dependencies in `dev-dependencies` are not sorted alphabetically
+  ✗ **cargo/manifest-repository** at 1:1 [fixable]
+     repository field is "https://wrong.example.com/core" but should be "https://github.com/acme/lint-rules/tree/main/crates/core"
+
+Applied fixes; 5 issue(s) remain auto-fixable. Run with --fix again to apply.

@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 185
+expression: utils
+---
+[package]
+name = "utils"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Utils lint fixture package"
+repository = "https://github.com/acme/lint-rules/tree/main/crates/utils"

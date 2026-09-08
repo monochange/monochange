@@ -1,0 +1,18 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 401
+expression: "normalize_workspace_paths(fixture.path(), output.clone())"
+---
+config error: check failed:
+workspace validation passed for [workspace]
+lint: 2 errors, 0 warnings
+
+[workspace]/.changeset/missing-heading.md:
+  ✗ **changesets/summary** at 1:1
+     changeset body must start with a summary heading
+
+[workspace]/.changeset/section-headings.md:
+  ✗ **changesets/no_section_headings** at 1:1
+     changeset type `fix` must not also be used as a heading
+
+Fixed all auto-fixable issues.
