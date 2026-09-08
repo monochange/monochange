@@ -1,0 +1,24 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 394
+expression: "normalize_workspace_paths(fixture.path(), output)"
+---
+config error: check failed:
+workspace validation passed for [workspace]
+lint: 4 errors, 0 warnings
+
+[workspace]/.changeset/missing-heading.md:
+  ✗ **changesets/summary** at 1:1
+     changeset body must start with a summary heading
+
+[workspace]/.changeset/object-form.md:
+  ✗ **changesets/prefer-inline** at 2:5 [fixable]
+     changeset entry for `app` repeats a bump that type `feat` already implies; use the inline form `app: feat`
+
+[workspace]/.changeset/section-headings.md:
+  ✗ **changesets/no_section_headings** at 1:1
+     changeset type `fix` must not also be used as a heading
+  ✗ **changesets/prefer-inline** at 2:5 [fixable]
+     changeset entry for `app` repeats a bump that type `fix` already implies; use the inline form `app: fix`
+
+2 issue(s) can be auto-fixed. Run with --fix to apply.

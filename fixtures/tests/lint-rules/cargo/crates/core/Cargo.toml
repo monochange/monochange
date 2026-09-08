@@ -1,0 +1,21 @@
+[package]
+name = "core"
+version = "0.1.0"
+edition = "2021"
+description = "Core lint fixture package"
+repository = "https://wrong.example.com/core"
+
+[dependencies]
+serde = "1.0"
+
+[dev-dependencies]
+tempfile = "3.0"
+anyhow = "1.0"
+
+[dependencies.utils]
+path = "../utils"
+version = "0.1.0"
+
+[dependencies.private-dep]
+path = "../private-dep"
+version = "0.1.0"

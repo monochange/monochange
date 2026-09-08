@@ -1,0 +1,30 @@
+[defaults]
+package_type = "cargo"
+changelog = false
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "lint-rules"
+
+[lints.rules]
+"cargo/dependency-field-order" = "error"
+"cargo/internal-dependency-workspace" = "error"
+"cargo/manifest-repository" = "error"
+"cargo/publishable-dependencies" = "error"
+"cargo/required-package-fields" = "error"
+"cargo/sorted-dependencies" = "error"
+"cargo/unlisted-package-private" = { level = "error", fix = true }
+
+[ecosystems.cargo]
+enabled = true
+
+[package.core]
+path = "crates/core"
+type = "cargo"
+version = "0.1.0"
+
+[package.utils]
+path = "crates/utils"
+type = "cargo"
+version = "0.1.0"

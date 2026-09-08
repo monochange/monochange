@@ -1,0 +1,7 @@
+{
+  "name": "app",
+  "version": "0.1.0",
+  "description": "App fixture package",
+  "license": "MIT",
+  "repository": "https://github.com/acme/lint-rules"
+}

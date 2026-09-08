@@ -1,0 +1,16 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 112
+expression: "normalize_workspace_paths(fixture.path(), output.clone())"
+---
+config error: check failed:
+workspace validation passed for [workspace]
+lint: 2 errors, 0 warnings
+
+[workspace]/crates/core/Cargo.toml:
+  ✗ **cargo/publishable-dependencies** at 1:1
+     publishable Cargo package depends on unpublished workspace package `private-dep` in [dependencies]
+  ✗ **cargo/required-package-fields** at 1:1
+     missing required package field `license`
+
+Fixed all auto-fixable issues.

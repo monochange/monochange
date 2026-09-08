@@ -1,0 +1,38 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 84
+expression: "normalize_workspace_paths(fixture.path(), output)"
+---
+config error: check failed:
+workspace validation passed for [workspace]
+lint: 11 errors, 0 warnings
+
+[workspace]/crates/core/Cargo.toml:
+  ✗ **cargo/dependency-field-order** at 1:1 [fixable]
+     dependency `utils` has fields in the wrong order; put workspace/version first, then default-features, then features
+  ✗ **cargo/dependency-field-order** at 1:1 [fixable]
+     dependency `private-dep` has fields in the wrong order; put workspace/version first, then default-features, then features
+  ✗ **cargo/internal-dependency-workspace** at 1:1 [fixable]
+     internal dependency `utils` should use workspace = true
+  ✗ **cargo/internal-dependency-workspace** at 1:1 [fixable]
+     internal dependency `private-dep` should use workspace = true
+  ✗ **cargo/publishable-dependencies** at 1:1
+     publishable Cargo package depends on unpublished workspace package `private-dep` in [dependencies]
+  ✗ **cargo/required-package-fields** at 1:1
+     missing required package field `license`
+  ✗ **cargo/sorted-dependencies** at 1:1 [fixable]
+     dependencies in `dependencies` are not sorted alphabetically
+  ✗ **cargo/sorted-dependencies** at 1:1 [fixable]
+     dependencies in `dev-dependencies` are not sorted alphabetically
+  ✗ **cargo/manifest-repository** at 1:1 [fixable]
+     repository field is "https://wrong.example.com/core" but should be "https://github.com/acme/lint-rules/tree/main/crates/core"
+
+[workspace]/crates/orphan/Cargo.toml:
+  ✗ **cargo/unlisted-package-private** at 1:1 [fixable]
+     unmanaged Cargo packages must set publish = false or be declared in monochange.toml
+
+[workspace]/crates/utils/Cargo.toml:
+  ✗ **cargo/manifest-repository** at 1:1 [fixable]
+     workspace-inherited repository resolves to "https://github.com/acme/lint-rules" but should be "https://github.com/acme/lint-rules/tree/main/crates/utils"
+
+9 issue(s) can be auto-fixed. Run with --fix to apply.

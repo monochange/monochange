@@ -1,0 +1,26 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 97
+expression: core
+---
+[package]
+name = "core"
+version = "0.1.0"
+edition = "2021"
+description = "Core lint fixture package"
+repository = "https://wrong.example.com/core"
+
+[dependencies]
+serde = "1.0"
+
+[dev-dependencies]
+tempfile = "3.0"
+anyhow = "1.0"
+
+[dependencies.utils]
+version = "0.1.0"
+path = "../utils"
+
+[dependencies.private-dep]
+version = "0.1.0"
+path = "../private-dep"

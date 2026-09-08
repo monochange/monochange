@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 435
+expression: section_headings
+---
+---
+app: fix
+---
+
+## Fix
+
+Something changed but the body uses the change type as a section heading.

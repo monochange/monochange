@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 283
+expression: root
+---
+{
+  "description": "Root workspace fixture",
+  "devDependencies": {
+    "left-pad": "1.3.0"
+  },
+  "license": "MIT",
+  "name": "lint-rules-root",
+  "repository": "https://github.com/acme/lint-rules",
+  "version": "0.1.0"
+}

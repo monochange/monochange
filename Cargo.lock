@@ -2503,9 +2503,11 @@ dependencies = [
  "monochange_test_helpers",
  "regex",
  "serde_json",
+ "serde_yaml_ng",
  "tempfile",
  "tokio",
  "toml",
+ "toml_edit",
 ]
 
 [[package]]

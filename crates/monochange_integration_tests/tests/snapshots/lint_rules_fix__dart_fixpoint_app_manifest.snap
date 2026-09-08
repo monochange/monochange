@@ -1,0 +1,32 @@
+---
+source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
+assertion_line: 391
+expression: app
+---
+name: app
+version: 0.1.0
+description: App fixture package
+environment:
+  sdk: '>=2.12.0 <4.0.0'
+flutter:
+  assets:
+  - assets/a.txt
+  - assets/b.txt
+  fonts:
+  - family: Alpha
+    fonts:
+    - asset: fonts/alpha-a.ttf
+    - asset: fonts/alpha-b.ttf
+  - family: Zed
+    fonts:
+    - asset: fonts/zed.ttf
+dependencies:
+  gitdep:
+    git:
+      url: https://github.com/example/gitdep.git
+  helper: ^1.0.0
+  http: ^1.0.0
+dependency_overrides:
+  http:
+    path: ../vendored-http
+repository: https://github.com/acme/lint-rules/tree/main/packages/app
