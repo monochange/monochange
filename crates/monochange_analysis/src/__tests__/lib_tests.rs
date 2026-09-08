@@ -461,6 +461,38 @@ fn revision_snapshot_batch_reports_git_process_failures() {
 }
 
 #[test]
+fn revision_snapshot_request_writer_formats_requests_and_reports_failures() {
+	let paths = vec![
+		PathBuf::from("crates/core/src/lib.rs"),
+		PathBuf::from("crates/core/src/main.rs"),
+	];
+	let mut output = Vec::new();
+	write_revision_snapshot_requests(&mut output, "main", &paths)
+		.unwrap_or_else(|error| panic!("write requests: {error}"));
+	assert_eq!(
+		String::from_utf8(output).unwrap_or_else(|error| panic!("request text: {error}")),
+		"main:crates/core/src/lib.rs\nmain:crates/core/src/main.rs\n"
+	);
+
+	let error = write_revision_snapshot_requests(&mut FailingWriter, "main", &paths)
+		.expect_err("a failed pipe write should be reported")
+		.render();
+	assert!(error.contains("failed to write git cat-file input"));
+}
+
+struct FailingWriter;
+
+impl std::io::Write for FailingWriter {
+	fn write(&mut self, _buffer: &[u8]) -> std::io::Result<usize> {
+		Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe))
+	}
+
+	fn flush(&mut self) -> std::io::Result<()> {
+		Ok(())
+	}
+}
+
+#[test]
 fn snapshot_git_helpers_support_workspace_root_packages() {
 	let tempdir = setup_analysis_repo("analysis/cargo-public-api-diff/before");
 	let root = tempdir.path();
