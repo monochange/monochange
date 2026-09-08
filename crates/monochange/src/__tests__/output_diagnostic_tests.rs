@@ -142,6 +142,7 @@ fn diagnostics_cover_every_error_category_and_sanitize_terminal_controls() {
 #[cfg(feature = "github")]
 #[test]
 fn http_diagnostic_uses_the_generic_command_failure_category() {
+	monochange_test_helpers::install_rustls_ring_provider();
 	let source = reqwest::Client::new()
 		.get("http://[::1")
 		.build()
