@@ -1,6 +1,40 @@
 #![allow(clippy::disallowed_methods)]
 use super::*;
 
+fn trusted_registry_client() -> monochange_publish::Client {
+	monochange_publish::registry_client().unwrap_or_else(|error| panic!("registry client: {error}"))
+}
+
+fn trusted_registry_not_found() -> &'static [u8] {
+	b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+}
+
+fn trusted_registry_mock(
+	response: &'static [u8],
+) -> (
+	monochange_publish::RegistryEndpoints,
+	std::thread::JoinHandle<()>,
+) {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind registry mock: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("registry mock address: {error}"));
+	let thread = std::thread::spawn(move || {
+		let (mut stream, _) = listener
+			.accept()
+			.unwrap_or_else(|error| panic!("accept registry request: {error}"));
+		let mut request = [0_u8; 2048];
+		std::io::Read::read(&mut stream, &mut request)
+			.unwrap_or_else(|error| panic!("read registry request: {error}"));
+		std::io::Write::write_all(&mut stream, response)
+			.unwrap_or_else(|error| panic!("write registry response: {error}"));
+	});
+	let mut endpoints = monochange_publish::RegistryEndpoints::from_env();
+	endpoints.npm_registry = format!("http://{address}");
+	(endpoints, thread)
+}
+
 async fn validate_publish_readiness_artifact(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
@@ -85,7 +119,7 @@ fn sample_publish_outcome(
 	package_publish::PackagePublishOutcome {
 		package: "core".to_string(),
 		ecosystem: Ecosystem::Cargo,
-		registry: "crates.io".to_string(),
+		registry: "crates_io".to_string(),
 		version: "1.2.3".to_string(),
 		status,
 		message: "ready to publish core 1.2.3".to_string(),
@@ -136,6 +170,8 @@ fn sample_report_context(root: &Path) -> ReportBuildContext<'_> {
 		record_order: None,
 		requests: Vec::new(),
 		workspace_packages: Vec::new(),
+		env_map: BTreeMap::new(),
+		registry_transport: None,
 	}
 }
 
@@ -909,7 +945,7 @@ fn trust_request_for(
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
 	};
-	if registry != "crates.io" {
+	if registry != "crates_io" {
 		request.package_id = "web".to_string();
 		request.package_name = "web".to_string();
 		request.ecosystem = Ecosystem::Npm;
@@ -924,8 +960,8 @@ async fn build_report_attaches_trusted_publishing_findings_and_publish_order() {
 	let root = tempdir.path();
 	let mut context = sample_report_context(root);
 	context.requests = vec![
-		trust_request_for("crates.io", "1.2.3", false),
-		trust_request_for("npmjs", "4.5.6", false),
+		trust_request_for("crates_io", "1.2.3", false),
+		trust_request_for("npm", "4.5.6", false),
 	];
 	let report = package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Release,
@@ -1178,4 +1214,64 @@ async fn build_report_handles_empty_publish_sets_without_order_findings() {
 	assert!(readiness.order_findings.is_empty());
 	assert!(readiness.packages.is_empty());
 	assert_eq!(readiness.status, PublishReadinessGlobalStatus::Ready);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_report_blocks_packages_when_trusted_publishing_readiness_blocks() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let mut request = monochange_publish::PublishRequest {
+		registry: monochange_core::RegistryKind::Npm,
+		ecosystem: Ecosystem::Npm,
+		..trust_request_for("crates_io", "1.2.3", true)
+	};
+	request.trusted_publishing.repository = Some("acme/widgets".to_string());
+	request.trusted_publishing.workflow = Some("release.yml".to_string());
+	std::fs::create_dir_all(root.join(".github/workflows")).unwrap();
+	std::fs::write(root.join(".github/workflows/release.yml"), "jobs: {}").unwrap();
+
+	let mut context = sample_report_context(root);
+	context.requests = vec![request];
+	context.env_map = BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		("GITHUB_REPOSITORY".to_string(), "acme/widgets".to_string()),
+		(
+			"GITHUB_WORKFLOW_REF".to_string(),
+			"acme/widgets/.github/workflows/release.yml@refs/heads/main".to_string(),
+		),
+		("GITHUB_JOB".to_string(), "publish".to_string()),
+	]);
+	let client = trusted_registry_client();
+	let (endpoints, server) = trusted_registry_mock(trusted_registry_not_found());
+	context.registry_transport = Some((&client, &endpoints));
+
+	let mut outcome = sample_publish_outcome(package_publish::PackagePublishStatus::Planned);
+	outcome.registry = "npm".to_string();
+	let report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: vec![outcome],
+	};
+
+	let readiness = build_report_from_publish_report(
+		context,
+		sample_source(),
+		&report,
+		"fnv1a64:sample".to_string(),
+	)
+	.await
+	.unwrap();
+
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("registry mock thread"));
+	assert_eq!(readiness.status, PublishReadinessGlobalStatus::Blocked);
+	let package = &readiness.packages[0];
+	assert_eq!(package.status, PublishReadinessPackageStatus::Blocked);
+	assert!(package.message.contains("placeholder-publish"));
+	let trust = package.trusted_publishing.as_ref().unwrap();
+	assert_eq!(
+		trust.status,
+		crate::trusted_publishing_readiness::TrustedPublishingReadinessStatus::Blocked
+	);
 }

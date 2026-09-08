@@ -3505,3 +3505,81 @@ async fn registry_preflight_blocks_before_any_publish_mutation() {
 		.join()
 		.unwrap_or_else(|_| panic!("registry server thread"));
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_package_exists_probes_crates_io_and_pub_dev_packages() {
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+
+	let (base_url, _captured, server) = spawn_http_capture_server(
+		1,
+		http_json_response("{\"crate\":{\"id\":\"pkg\",\"max_version\":\"1.0.0\"}}"),
+	);
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.crates_io_api = base_url;
+	let crates_io_existing = registry_package_exists_with_transport(
+		&sample_publish_request_for_registry(RegistryKind::CratesIo),
+		&client,
+		&endpoints,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("crates.io package lookup: {error}"));
+	assert_eq!(crates_io_existing, Some(true));
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("crates.io server thread"));
+
+	let (pub_dev_url, _pub_dev_captured, pub_dev_server) = spawn_http_capture_server(
+		1,
+		http_json_response("{\"versions\":[{\"version\":\"1.0.0\"}]}"),
+	);
+	let mut pub_dev_endpoints = RegistryEndpoints::from_env();
+	pub_dev_endpoints.pub_dev_api = pub_dev_url;
+	let pub_dev_existing = registry_package_exists_with_transport(
+		&sample_publish_request_for_registry(RegistryKind::PubDev),
+		&client,
+		&pub_dev_endpoints,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("pub.dev package lookup: {error}"));
+	assert_eq!(pub_dev_existing, Some(true));
+	pub_dev_server
+		.join()
+		.unwrap_or_else(|_| panic!("pub.dev server thread"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_package_exists_reports_missing_crates_io_and_pub_dev_packages() {
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let not_found =
+		b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec();
+
+	let (crates_io_url, _captured, server) = spawn_http_capture_server(1, not_found.clone());
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.crates_io_api = crates_io_url;
+	let crates_io_missing = registry_package_exists_with_transport(
+		&sample_publish_request_for_registry(RegistryKind::CratesIo),
+		&client,
+		&endpoints,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("crates.io package lookup: {error}"));
+	assert_eq!(crates_io_missing, Some(false));
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("crates.io server thread"));
+
+	let (pub_dev_url, _captured, pub_dev_server) = spawn_http_capture_server(1, not_found);
+	let mut pub_dev_endpoints = RegistryEndpoints::from_env();
+	pub_dev_endpoints.pub_dev_api = pub_dev_url;
+	let pub_dev_missing = registry_package_exists_with_transport(
+		&sample_publish_request_for_registry(RegistryKind::PubDev),
+		&client,
+		&pub_dev_endpoints,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("pub.dev package lookup: {error}"));
+	assert_eq!(pub_dev_missing, Some(false));
+	pub_dev_server
+		.join()
+		.unwrap_or_else(|_| panic!("pub.dev server thread"));
+}

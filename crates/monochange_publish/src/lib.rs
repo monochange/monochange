@@ -3631,12 +3631,6 @@ pub async fn filter_pending_publish_requests_with_transport(
 /// credentials. Trusted publishing requires an existing package on npm,
 /// crates.io, and pub.dev, so readiness uses this to catch packages that
 /// would fail midway through a publish run.
-pub async fn registry_package_exists(request: &PublishRequest) -> MonochangeResult<Option<bool>> {
-	let client = registry_client()?;
-	let endpoints = RegistryEndpoints::from_env();
-	registry_package_exists_with_transport(request, &client, &endpoints).await
-}
-
 pub async fn registry_package_exists_with_transport(
 	request: &PublishRequest,
 	client: &Client,

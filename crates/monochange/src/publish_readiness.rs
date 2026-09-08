@@ -187,6 +187,8 @@ async fn build_publish_readiness_report(
 			record_order: Some(&discovery.record.package_publications),
 			requests,
 			workspace_packages,
+			env_map: monochange_publish::current_env_map(),
+			registry_transport: None,
 		},
 		source_from_discovery(&discovery),
 		&publish_report,
@@ -233,6 +235,8 @@ async fn build_publish_readiness_report_for_publish(
 				record_order: None,
 				requests,
 				workspace_packages,
+				env_map: monochange_publish::current_env_map(),
+				registry_transport: None,
 			},
 			source,
 			&publish_report,
@@ -294,6 +298,14 @@ struct ReportBuildContext<'a> {
 	/// (package id, registry, version) for trusted-publishing checks.
 	requests: Vec<monochange_publish::PublishRequest>,
 	workspace_packages: Vec<monochange_core::PackageRecord>,
+	/// Publish-time environment variables used for trusted-publishing checks.
+	env_map: BTreeMap<String, String>,
+	/// Registry transport override for trusted-publishing probes; `None` uses
+	/// the current environment's registry endpoints.
+	registry_transport: Option<(
+		&'a monochange_publish::Client,
+		&'a monochange_publish::RegistryEndpoints,
+	)>,
 }
 
 async fn build_report_from_publish_report(
@@ -302,7 +314,7 @@ async fn build_report_from_publish_report(
 	report: &package_publish::PackagePublishReport,
 	input_fingerprint: String,
 ) -> MonochangeResult<PublishReadinessReport> {
-	let env_map = monochange_publish::current_env_map();
+	let env_map = context.env_map.clone();
 	let mut request_by_key = BTreeMap::new();
 	for request in &context.requests {
 		request_by_key.insert(
@@ -329,6 +341,7 @@ async fn build_report_from_publish_report(
 					context.source,
 					request,
 					&env_map,
+					context.registry_transport,
 				)
 				.await
 			}
@@ -410,24 +423,20 @@ fn publication_order_findings(
 	let config_ids_by_record_id =
 		monochange_publish::config_ids_by_package_record_id(&context.workspace_packages);
 
-	for edge in edges {
-		let (Some(from_id), Some(to_id)) = (
-			config_ids_by_record_id.get(&edge.from_package_id),
-			config_ids_by_record_id.get(&edge.to_package_id),
-		) else {
-			continue;
-		};
-		let (Some(from_position), Some(to_position)) = (
-			positions.get(from_id.as_str()),
-			positions.get(to_id.as_str()),
-		) else {
-			continue;
-		};
-		if to_position <= from_position {
-			continue;
-		}
+	let mut order_violations = edges
+		.iter()
+		.filter_map(|edge| {
+			let from_id = config_ids_by_record_id.get(&edge.from_package_id)?;
+			let to_id = config_ids_by_record_id.get(&edge.to_package_id)?;
+			let from_position = positions.get(from_id.as_str()).copied()?;
+			let to_position = positions.get(to_id.as_str()).copied()?;
+			(to_position > from_position).then(|| (from_id.clone(), to_id.clone(), edge.clone()))
+		})
+		.collect::<Vec<_>>();
+	order_violations.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+	for (from_id, to_id, edge) in order_violations {
 		findings.push(PublishOrderFinding {
-			package: Some(from_id.clone()),
+			package: Some(from_id),
 			message: format!(
 				"publishes before its dependency `{to_id}` ({}, {}) even though the publish plan should order dependencies first",
 				edge.dependency_kind,
@@ -464,15 +473,12 @@ fn apply_order_findings(
 	findings: &[PublishOrderFinding],
 ) {
 	for finding in findings {
-		let Some(package_id) = &finding.package else {
+		let Some(package_id) = finding.package.as_deref().filter(|_| finding.blocking) else {
 			continue;
 		};
-		if !finding.blocking {
-			continue;
-		}
 		for package in packages
 			.iter_mut()
-			.filter(|package| &package.package == package_id)
+			.filter(|package| package.package == package_id)
 		{
 			package.status = PublishReadinessPackageStatus::Blocked;
 			package.message.clone_from(&finding.message);
@@ -979,7 +985,6 @@ fn readiness_package_status_label(status: PublishReadinessPackageStatus) -> &'st
 fn trust_readiness_status_label(status: TrustedPublishingReadinessStatus) -> &'static str {
 	match status {
 		TrustedPublishingReadinessStatus::Disabled => "disabled",
-		TrustedPublishingReadinessStatus::Verified => "verified",
 		TrustedPublishingReadinessStatus::ManualVerificationRequired => {
 			"manual_verification_required"
 		}

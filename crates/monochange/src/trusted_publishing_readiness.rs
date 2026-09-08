@@ -27,6 +27,7 @@ use monochange_publish::CiProviderKind;
 use monochange_publish::Client;
 use monochange_publish::PublishRequest;
 use monochange_publish::RegistryEndpoints;
+use monochange_publish::TrustedPublishingIdentity;
 use monochange_publish::detect_trusted_publishing_identity;
 use monochange_publish::manual_setup_url;
 use monochange_publish::provider_registry_trust_capability;
@@ -40,7 +41,6 @@ use serde::Serialize;
 #[serde(rename_all = "snake_case")]
 pub(crate) enum TrustedPublishingReadinessStatus {
 	Disabled,
-	Verified,
 	ManualVerificationRequired,
 	Blocked,
 }
@@ -52,11 +52,14 @@ pub(crate) struct TrustedPublishingReadiness {
 	pub message: String,
 }
 
+/// `registry_transport` injects the registry HTTP transport; `None` uses the
+/// current environment's registry endpoints (tests inject a local mock).
 pub(crate) async fn check_trusted_publishing_readiness(
 	root: &Path,
 	source: Option<&SourceConfiguration>,
 	request: &PublishRequest,
 	env_map: &BTreeMap<String, String>,
+	registry_transport: Option<(&Client, &RegistryEndpoints)>,
 ) -> TrustedPublishingReadiness {
 	if !request.trusted_publishing.enabled {
 		return TrustedPublishingReadiness {
@@ -66,10 +69,37 @@ pub(crate) async fn check_trusted_publishing_readiness(
 		};
 	}
 
-	if let Some(blocker) = project_side_blocker(root, source, request, env_map) {
-		return blocker;
+	let identity = detect_trusted_publishing_identity(env_map);
+	match project_side_outcome(root, source, request, env_map, &identity) {
+		ProjectSideOutcome::Blocked(blocker) => return blocker,
+		// Outside a supported CI provider the OIDC identity cannot be
+		// verified, but the registry bootstrap check still applies: a package
+		// that was never published blocks in every environment.
+		ProjectSideOutcome::LocalRun => {
+			let probe = registry_probe(request, registry_transport).await;
+			return if probe.status == TrustedPublishingReadinessStatus::Blocked {
+				probe
+			} else {
+				local_unverified_readiness(request)
+			};
+		}
+		ProjectSideOutcome::Verified => {}
 	}
 
+	registry_probe(request, registry_transport).await
+}
+
+/// Run the registry-side probe, degrading to a manual-verification finding
+/// when no transport is available.
+async fn registry_probe(
+	request: &PublishRequest,
+	registry_transport: Option<(&Client, &RegistryEndpoints)>,
+) -> TrustedPublishingReadiness {
+	if let Some((client, endpoints)) = registry_transport {
+		return registry_side_readiness(request, client, endpoints).await;
+	}
+
+	// patch-coverage:ignore-start -- registry client build failure requires a broken TLS/network environment.
 	let client = match registry_client() {
 		Ok(client) => client,
 		Err(error) => {
@@ -80,8 +110,19 @@ pub(crate) async fn check_trusted_publishing_readiness(
 			);
 		}
 	};
+	// patch-coverage:ignore-end
 	let endpoints = RegistryEndpoints::from_env();
 	registry_side_readiness(request, &client, &endpoints).await
+}
+
+fn local_unverified_readiness(request: &PublishRequest) -> TrustedPublishingReadiness {
+	TrustedPublishingReadiness {
+		status: TrustedPublishingReadinessStatus::ManualVerificationRequired,
+		message: format!(
+			"trusted publishing identity could not be verified in this environment; built-in release publishing must run from the configured CI workflow. Verify the registry-side trusted publishing setup at {}",
+			manual_setup_url(request)
+		),
+	}
 }
 
 /// Sync project-side trusted-publishing blocker used by the publish-run
@@ -97,37 +138,40 @@ pub(crate) fn trusted_publishing_project_blocker_message(
 	if !request.trusted_publishing.enabled {
 		return None;
 	}
-	project_side_blocker(root, source, request, env_map)
-		.filter(|readiness| readiness.status == TrustedPublishingReadinessStatus::Blocked)
-		.map(|readiness| readiness.message)
+	let identity = detect_trusted_publishing_identity(env_map);
+	match project_side_outcome(root, source, request, env_map, &identity) {
+		ProjectSideOutcome::Blocked(blocker) => Some(blocker.message),
+		ProjectSideOutcome::LocalRun | ProjectSideOutcome::Verified => None,
+	}
 }
 
-fn project_side_blocker(
+enum ProjectSideOutcome {
+	/// Local (non-CI) run: identity checks degrade to manual verification but
+	/// the registry bootstrap check still applies.
+	LocalRun,
+	/// Project-side trusted-publishing configuration is sound.
+	Verified,
+	/// The publish would fail; the readiness finding blocks the package.
+	Blocked(TrustedPublishingReadiness),
+}
+
+fn project_side_outcome(
 	root: &Path,
 	source: Option<&SourceConfiguration>,
 	request: &PublishRequest,
 	env_map: &BTreeMap<String, String>,
-) -> Option<TrustedPublishingReadiness> {
-	let registry = PublishRegistry::Builtin(request.registry);
-	let identity = detect_trusted_publishing_identity(env_map);
-	let capability = provider_registry_trust_capability(&registry, identity.provider());
-	let capability_message = trusted_publishing_capability_message(&registry, &identity);
-
+	identity: &TrustedPublishingIdentity,
+) -> ProjectSideOutcome {
 	if identity.provider() == CiProviderKind::Unknown {
-		// Outside a supported CI provider the publish-time enforcement would
-		// reject the publish, but locally this is expected: surface it as a
-		// manual verification requirement instead of a hard blocker so the
-		// readiness report stays useful during development.
-		return Some(TrustedPublishingReadiness {
-			status: TrustedPublishingReadinessStatus::ManualVerificationRequired,
-			message: format!(
-				"trusted publishing identity could not be verified in this environment; built-in release publishing must run from the configured CI workflow. {capability_message}"
-			),
-		});
+		return ProjectSideOutcome::LocalRun;
 	}
 
+	let registry = PublishRegistry::Builtin(request.registry);
+	let capability = provider_registry_trust_capability(&registry, identity.provider());
+	let capability_message = trusted_publishing_capability_message(&registry, identity);
+
 	if !capability.trusted_publishing || !capability.ci_identity_verifiable {
-		return Some(blocked_trust_readiness(
+		return ProjectSideOutcome::Blocked(blocked_trust_readiness(
 			request,
 			&format!(
 				"trusted publishing is not supported for {} from {}; set `publish.trusted_publishing = false` to opt out. {capability_message}",
@@ -139,9 +183,8 @@ fn project_side_blocker(
 
 	if !identity.is_verifiable_by_env() {
 		// Inside a supported CI provider a missing OIDC identity fails the
-		// publish outright, so block now; the local-run case is handled by the
-		// `CiProviderKind::Unknown` branch above.
-		return Some(blocked_trust_readiness(
+		// publish outright, so block now.
+		return ProjectSideOutcome::Blocked(blocked_trust_readiness(
 			request,
 			&format!(
 				"trusted publishing publish-time environment is incomplete; built-in release publishing would be rejected. {capability_message}"
@@ -156,7 +199,7 @@ fn project_side_blocker(
 				.join("workflows")
 				.join(&context.workflow);
 			if !workflow_path.is_file() {
-				return Some(blocked_trust_readiness(
+				return ProjectSideOutcome::Blocked(blocked_trust_readiness(
 					request,
 					&format!(
 						"trusted publishing workflow `{}` does not exist at {}; fix `publish.trusted_publishing.workflow`",
@@ -165,10 +208,10 @@ fn project_side_blocker(
 					),
 				));
 			}
-			None
+			ProjectSideOutcome::Verified
 		}
 		Err(error) => {
-			Some(blocked_trust_readiness(
+			ProjectSideOutcome::Blocked(blocked_trust_readiness(
 				request,
 				&format!("trusted publishing setup is incomplete: {error}. {capability_message}"),
 			))

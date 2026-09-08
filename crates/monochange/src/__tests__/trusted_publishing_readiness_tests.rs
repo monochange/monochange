@@ -69,6 +69,8 @@ fn spawn_registry_mock(response: &'static [u8]) -> (String, std::thread::JoinHan
 const NPM_PACKAGE_BODY: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 25\r\nConnection: close\r\n\r\n{\"versions\":{\"1.0.0\":{}}}";
 const REGISTRY_NOT_FOUND: &[u8] =
 	b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+const REGISTRY_SERVER_ERROR: &[u8] =
+	b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
 
 #[tokio::test]
 async fn disabled_trust_publishing_reports_disabled_status() {
@@ -77,7 +79,8 @@ async fn disabled_trust_publishing_reports_disabled_status() {
 	request.trusted_publishing.enabled = false;
 
 	let readiness =
-		check_trusted_publishing_readiness(root.path(), None, &request, &BTreeMap::new()).await;
+		check_trusted_publishing_readiness(root.path(), None, &request, &BTreeMap::new(), None)
+			.await;
 
 	assert_eq!(readiness.status, TrustedPublishingReadinessStatus::Disabled);
 }
@@ -88,7 +91,8 @@ async fn local_environment_degrades_to_manual_verification() {
 	let request = sample_request(RegistryKind::Npm, &root);
 
 	let readiness =
-		check_trusted_publishing_readiness(root.path(), None, &request, &BTreeMap::new()).await;
+		check_trusted_publishing_readiness(root.path(), None, &request, &BTreeMap::new(), None)
+			.await;
 
 	assert_eq!(
 		readiness.status,
@@ -105,7 +109,8 @@ async fn unsupported_provider_blocks_trusted_publishing() {
 	request.trusted_publishing.workflow = Some("release.yml".to_string());
 	let env_map = BTreeMap::from([("CIRCLECI".to_string(), "true".to_string())]);
 
-	let readiness = check_trusted_publishing_readiness(root.path(), None, &request, &env_map).await;
+	let readiness =
+		check_trusted_publishing_readiness(root.path(), None, &request, &env_map, None).await;
 
 	assert_eq!(readiness.status, TrustedPublishingReadinessStatus::Blocked);
 	assert!(readiness.message.contains("not supported"));
@@ -124,7 +129,8 @@ async fn missing_workflow_file_blocks_github_ci_context() {
 	request.trusted_publishing.workflow = Some("release.yml".to_string());
 
 	let readiness =
-		check_trusted_publishing_readiness(root.path(), None, &request, &github_ci_env()).await;
+		check_trusted_publishing_readiness(root.path(), None, &request, &github_ci_env(), None)
+			.await;
 
 	assert_eq!(readiness.status, TrustedPublishingReadinessStatus::Blocked);
 	assert!(readiness.message.contains("release.yml"));
@@ -146,7 +152,8 @@ async fn existing_workflow_file_passes_project_side_checks() {
 	// The project-side checks pass, so the remaining finding comes from the
 	// registry side (offline environment degrades to manual verification).
 	let readiness =
-		check_trusted_publishing_readiness(root.path(), None, &request, &github_ci_env()).await;
+		check_trusted_publishing_readiness(root.path(), None, &request, &github_ci_env(), None)
+			.await;
 
 	assert_eq!(
 		readiness.status,
@@ -188,7 +195,8 @@ async fn incomplete_ci_identity_blocks_in_ci() {
 		("GITHUB_REPOSITORY".to_string(), "acme/widgets".to_string()),
 	]);
 
-	let readiness = check_trusted_publishing_readiness(root.path(), None, &request, &env_map).await;
+	let readiness =
+		check_trusted_publishing_readiness(root.path(), None, &request, &env_map, None).await;
 
 	assert_eq!(readiness.status, TrustedPublishingReadinessStatus::Blocked);
 	assert!(readiness.message.contains("incomplete"));
@@ -216,16 +224,107 @@ async fn source_configuration_supplies_repository_context() {
 	};
 	let env_map = github_ci_env();
 
-	// Registry lookup fails offline; the finding must stay non-blocking and
-	// point at the npm trusted publishers documentation.
-	let readiness =
-		check_trusted_publishing_readiness(root.path(), Some(&source), &request, &env_map).await;
+	// The source configuration supplies the repository context, the workflow
+	// file exists, and the registry probe confirms the package exists; the
+	// finding stays non-blocking and points at the npm setup URL.
+	let (base_url, server) = spawn_registry_mock(NPM_PACKAGE_BODY);
+	let client = monochange_publish::registry_client().unwrap();
+	let endpoints = RegistryEndpoints {
+		npm_registry: base_url,
+		..RegistryEndpoints::from_env()
+	};
+
+	let readiness = check_trusted_publishing_readiness(
+		root.path(),
+		Some(&source),
+		&request,
+		&env_map,
+		Some((&client, &endpoints)),
+	)
+	.await;
 
 	assert_eq!(
 		readiness.status,
 		TrustedPublishingReadinessStatus::ManualVerificationRequired
 	);
 	assert!(readiness.message.contains("pkg"));
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("registry mock thread"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_lookup_failure_degrades_to_manual_verification() {
+	let root = tempfile::tempdir().unwrap();
+	let mut request = sample_request(RegistryKind::Npm, &root);
+	request.trusted_publishing.repository = Some("acme/widgets".to_string());
+	request.trusted_publishing.workflow = Some("release.yml".to_string());
+	std::fs::create_dir_all(root.path().join(".github/workflows")).unwrap();
+	std::fs::write(
+		root.path().join(".github/workflows/release.yml"),
+		"jobs: {}",
+	)
+	.unwrap();
+
+	let (base_url, server) = spawn_registry_mock(REGISTRY_SERVER_ERROR);
+	let client = monochange_publish::registry_client().unwrap();
+	let endpoints = RegistryEndpoints {
+		npm_registry: base_url,
+		..RegistryEndpoints::from_env()
+	};
+
+	let readiness = check_trusted_publishing_readiness(
+		root.path(),
+		None,
+		&request,
+		&github_ci_env(),
+		Some((&client, &endpoints)),
+	)
+	.await;
+
+	assert_eq!(
+		readiness.status,
+		TrustedPublishingReadinessStatus::ManualVerificationRequired
+	);
+	assert!(readiness.message.contains("lookup failed"));
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("registry mock thread"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn supported_gitlab_npm_identity_blocks_on_unresolvable_workflow() {
+	let root = tempfile::tempdir().unwrap();
+	let request = sample_request(RegistryKind::Npm, &root);
+	// GitLab CI is a supported npm trusted-publishing provider, but without
+	// a configured repository/workflow the GitHub trust context cannot
+	// resolve and the publish would fail.
+	let env_map = BTreeMap::from([
+		("GITLAB_CI".to_string(), "true".to_string()),
+		("CI_PROJECT_PATH".to_string(), "acme/widgets".to_string()),
+		("CI_JOB_ID".to_string(), "42".to_string()),
+	]);
+
+	// The trust context fails before the registry probe, so the mock server
+	// never receives a request; drop its join handle instead of joining.
+	let (base_url, _server) = spawn_registry_mock(NPM_PACKAGE_BODY);
+	let client = monochange_publish::registry_client().unwrap();
+	let endpoints = RegistryEndpoints {
+		npm_registry: base_url,
+		..RegistryEndpoints::from_env()
+	};
+
+	let readiness = check_trusted_publishing_readiness(
+		root.path(),
+		None,
+		&request,
+		&env_map,
+		Some((&client, &endpoints)),
+	)
+	.await;
+
+	assert_eq!(readiness.status, TrustedPublishingReadinessStatus::Blocked);
+	assert!(readiness.message.contains("repository"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
