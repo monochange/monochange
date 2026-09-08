@@ -183,12 +183,12 @@ fn publish_readiness_reports_trusted_publishing_and_publish_order() {
 		);
 	}
 
-	let order_findings = report["order_findings"]
-		.as_array()
-		.unwrap_or_else(|| panic!("expected order_findings array"));
+	// Empty findings are omitted from the artifact.
+	let order_findings = report["order_findings"].as_array();
 	assert!(
 		order_findings
-			.iter()
+			.into_iter()
+			.flatten()
 			.all(|finding| finding["blocking"] != Value::Bool(true)),
 		"dependency-corrected order must satisfy the workspace graph: {order_findings:?}"
 	);
