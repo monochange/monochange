@@ -1467,6 +1467,14 @@ fn package_publish_headlines_distinguish_every_outcome() {
 	);
 	assert_eq!(
 		headline(&report(
+			package_publish::PackagePublishRunMode::Release,
+			false,
+			&[package_publish::PackagePublishStatus::SkippedExisting],
+		)),
+		"No packages need publishing"
+	);
+	assert_eq!(
+		headline(&report(
 			package_publish::PackagePublishRunMode::Placeholder,
 			true,
 			&[package_publish::PackagePublishStatus::Planned],
@@ -1511,6 +1519,54 @@ fn package_publish_headlines_distinguish_every_outcome() {
 }
 
 #[test]
+fn package_publish_counts_explain_existing_and_failed_packages() {
+	let report = |mode, statuses: &[package_publish::PackagePublishStatus]| {
+		package_publish::PackagePublishReport {
+			mode,
+			dry_run: false,
+			packages: statuses
+				.iter()
+				.map(|status| {
+					sample_package_publish_outcome(
+						*status,
+						package_publish::TrustedPublishingStatus::Disabled,
+					)
+				})
+				.collect(),
+		}
+	};
+	let counts = |report: &package_publish::PackagePublishReport| {
+		package_publish_counts(report, report.summary())
+	};
+
+	assert_eq!(
+		counts(&report(
+			package_publish::PackagePublishRunMode::Placeholder,
+			&[package_publish::PackagePublishStatus::SkippedExisting],
+		)),
+		"Checked 1 package. All placeholder versions already exist."
+	);
+	assert_eq!(
+		counts(&report(
+			package_publish::PackagePublishRunMode::Release,
+			&[package_publish::PackagePublishStatus::SkippedExisting],
+		)),
+		"Checked 1 package. All selected versions already exist."
+	);
+	assert_eq!(
+		counts(&report(
+			package_publish::PackagePublishRunMode::Release,
+			&[
+				package_publish::PackagePublishStatus::SkippedExisting,
+				package_publish::PackagePublishStatus::SkippedExisting,
+				package_publish::PackagePublishStatus::Failed,
+			],
+		)),
+		"Checked 3 packages. 2 package versions already exist. 1 failed."
+	);
+}
+
+#[test]
 fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 	let empty_placeholder = package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Placeholder,
@@ -1546,6 +1602,24 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 	assert!(markdown.contains("**Workflow:** `publish.yml`"));
 	assert!(markdown.contains("**Environment:** `release`"));
 	assert!(markdown.contains("**Setup:** `https://docs.npmjs.com/cli/v11/commands/npm-trust`"));
+
+	let problem_report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: vec![
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::Failed,
+				package_publish::TrustedPublishingStatus::Disabled,
+			),
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::Blocked,
+				package_publish::TrustedPublishingStatus::Disabled,
+			),
+		],
+	};
+	let markdown = render_package_publish_report_markdown(&problem_report, false, false).join("\n");
+	assert!(markdown.contains("**Failed**\n- **`@scope/pkg`** `1.2.3` via `npm`"));
+	assert!(markdown.contains("**Blocked**\n- **`@scope/pkg`** `1.2.3` via `npm`"));
 }
 
 #[test]
