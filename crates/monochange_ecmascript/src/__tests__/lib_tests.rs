@@ -205,6 +205,42 @@ fn parser_backed_symbol_collection_handles_type_reexports_and_ts_declarations() 
 }
 
 #[test]
+fn parser_backed_symbol_collection_handles_specifier_exports_and_module_declarations() {
+	let file = PackageSnapshotFile {
+		path: PathBuf::from("src/index.ts"),
+		contents: concat!(
+			"export { alpha, beta };\n",
+			"export type { Gamma };\n",
+			"export declare module \"pub-api\" {}\n",
+		)
+		.to_string(),
+	};
+
+	let symbols = collect_public_symbols(&file, &NPM_CONFIG);
+
+	assert!(
+		symbols
+			.iter()
+			.any(|symbol| { symbol.item_kind == "reexport" && symbol.item_path == "alpha" })
+	);
+	assert!(
+		symbols
+			.iter()
+			.any(|symbol| { symbol.item_kind == "reexport" && symbol.item_path == "beta" })
+	);
+	assert!(
+		symbols
+			.iter()
+			.any(|symbol| { symbol.item_kind == "type_reexport" && symbol.item_path == "Gamma" })
+	);
+	assert!(
+		symbols
+			.iter()
+			.any(|symbol| { symbol.item_kind == "namespace" && symbol.item_path == "pub-api" })
+	);
+}
+
+#[test]
 fn parser_backed_symbol_collection_handles_named_default_exports() {
 	let default_function = PackageSnapshotFile {
 		path: PathBuf::from("src/index.ts"),
