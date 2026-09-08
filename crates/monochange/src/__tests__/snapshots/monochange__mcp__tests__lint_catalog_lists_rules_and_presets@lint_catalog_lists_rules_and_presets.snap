@@ -58,7 +58,12 @@ expression: content_text(&result)
       "name": "Changesets recommended",
       "rules": {
         "changesets/prefer-inline": "error",
-        "changesets/summary": "error"
+        "changesets/summary": {
+          "heading_level": 1,
+          "level": "error",
+          "required": true
+        },
+        "changesets/summary-description": "error"
       }
     },
     {
@@ -324,6 +329,15 @@ expression: content_text(&result)
       "id": "changesets/summary",
       "maturity": "stable",
       "name": "Changeset summary heading",
+      "options": []
+    },
+    {
+      "autofixable": false,
+      "category": "correctness",
+      "description": "Rejects a first description sentence that repeats the summary",
+      "id": "changesets/summary-description",
+      "maturity": "stable",
+      "name": "Changeset summary description",
       "options": []
     },
     {
@@ -597,5 +611,5 @@ expression: content_text(&result)
       ]
     }
   ],
-  "summary": "Loaded 33 lint rule(s) and 10 preset(s)."
+  "summary": "Loaded 34 lint rule(s) and 10 preset(s)."
 }

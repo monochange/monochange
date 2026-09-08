@@ -19,7 +19,7 @@ expression: redacted
             {
               "collapsed": false,
               "entries": [
-                "- No package-specific changes were recorded; `workflow-app` was updated to 1.0.1."
+                "- **No package-specific changes were recorded; `workflow-app` was updated to 1.0.1.**"
               ],
               "title": "Changed"
             }
@@ -41,9 +41,9 @@ expression: redacted
             {
               "collapsed": false,
               "entries": [
-                "#### add feature"
+                "- **add feature.**"
               ],
-              "title": "🚀 Feature"
+              "title": "Features"
             }
           ],
           "summary": [],

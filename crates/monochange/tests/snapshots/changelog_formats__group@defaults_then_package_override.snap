@@ -11,7 +11,7 @@ This changelog is managed by [monochange](https://github.com/monochange/monochan
 ## 1.1.0 ([DATE])
 
 Grouped release for `sdk`.
-### 🚀 Feature
 
-#### add keep a changelog support
-_Packages:_ _core_
+### Features
+
+- **core**: **add keep a changelog support.**

@@ -43,6 +43,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::env;
 use std::fmt;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -1678,19 +1679,117 @@ pub struct ChangelogTarget {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ReleaseNotesSection {
+pub struct ReleaseNotesSection<Entry = String> {
 	pub title: String,
 	#[serde(default)]
 	pub collapsed: bool,
-	pub entries: Vec<String>,
+	pub entries: Vec<Entry>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ReleaseNotesDocument {
+pub struct ReleaseNotesDocument<Entry = String> {
 	pub title: String,
 	pub summary: Vec<String>,
-	pub sections: Vec<ReleaseNotesSection>,
+	pub sections: Vec<ReleaseNotesSection<Entry>>,
+}
+
+/// A label with an optional destination used in release-note provenance.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ReleaseNoteReference {
+	pub label: String,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub url: Option<String>,
+}
+
+/// Structured source information for one release-note entry.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ReleaseNoteProvenance {
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub source_path: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub changeset_path: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub change_owner: Option<ReleaseNoteReference>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub review_request: Option<ReleaseNoteReference>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub introduced_commit: Option<ReleaseNoteReference>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub last_updated_commit: Option<ReleaseNoteReference>,
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub related_issues: Vec<ReleaseNoteReference>,
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub closed_issues: Vec<ReleaseNoteReference>,
+}
+
+/// Layout selected for one release-note entry.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ReleaseNoteEntryStyle {
+	/// Keep the outcome and a short explanation together in a list item.
+	#[default]
+	Compact,
+	/// Give migrations and complex changes their own heading and paragraphs.
+	Expanded,
+}
+
+/// One release-note entry kept as data until its destination format is known.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ReleaseNotesEntry {
+	pub summary: String,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub details_markdown: Option<String>,
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub packages: Vec<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub change_type: Option<String>,
+	pub bump: BumpSeverity,
+	pub stream: String,
+	#[serde(default)]
+	pub style: ReleaseNoteEntryStyle,
+	#[serde(default, skip_serializing_if = "ReleaseNoteProvenance::is_empty")]
+	pub provenance: ReleaseNoteProvenance,
+}
+
+impl ReleaseNoteProvenance {
+	#[must_use]
+	pub fn is_empty(&self) -> bool {
+		self == &Self::default()
+	}
+}
+
+impl ReleaseNotesDocument<ReleaseNotesEntry> {
+	/// Convert typed entries to the legacy Markdown-string document shape.
+	///
+	/// This supports adapters that have not migrated to structured entries yet.
+	#[must_use]
+	pub fn to_legacy_markdown(&self, style: &ChangelogStyle) -> ReleaseNotesDocument {
+		ReleaseNotesDocument {
+			title: self.title.clone(),
+			summary: self.summary.clone(),
+			sections: self
+				.sections
+				.iter()
+				.map(|section| {
+					ReleaseNotesSection {
+						title: section.title.clone(),
+						collapsed: section.collapsed,
+						entries: section
+							.entries
+							.iter()
+							.map(|entry| render_release_note_entry_markdown(entry, style))
+							.collect(),
+					}
+				})
+				.collect(),
+		}
+	}
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -2026,7 +2125,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"breaking".to_string(),
 			ChangelogSectionDef {
-				heading: "💥 Breaking Change".to_string(),
+				heading: "Breaking changes".to_string(),
 				description: Some("API changes requiring migration".to_string()),
 				priority: 10,
 			},
@@ -2034,7 +2133,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"feat".to_string(),
 			ChangelogSectionDef {
-				heading: "🚀 Feature".to_string(),
+				heading: "Features".to_string(),
 				description: Some("New features added".to_string()),
 				priority: 20,
 			},
@@ -2042,7 +2141,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"change".to_string(),
 			ChangelogSectionDef {
-				heading: "📝 Changed".to_string(),
+				heading: "Changed".to_string(),
 				description: Some("Changes to existing functionality".to_string()),
 				priority: 25,
 			},
@@ -2050,7 +2149,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"fix".to_string(),
 			ChangelogSectionDef {
-				heading: "🐛 Fixed".to_string(),
+				heading: "Fixes".to_string(),
 				description: Some("Bug fixes".to_string()),
 				priority: 30,
 			},
@@ -2058,7 +2157,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"test".to_string(),
 			ChangelogSectionDef {
-				heading: "🧪 Testing".to_string(),
+				heading: "Testing".to_string(),
 				description: Some("Changes that only modify tests".to_string()),
 				priority: 40,
 			},
@@ -2066,7 +2165,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"refactor".to_string(),
 			ChangelogSectionDef {
-				heading: "🔨 Refactor".to_string(),
+				heading: "Refactoring".to_string(),
 				description: Some("Code refactoring without functional changes".to_string()),
 				priority: 40,
 			},
@@ -2074,7 +2173,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"docs".to_string(),
 			ChangelogSectionDef {
-				heading: "📖 Documentation".to_string(),
+				heading: "Documentation".to_string(),
 				description: Some("Changes that only modify documentation".to_string()),
 				priority: 40,
 			},
@@ -2082,7 +2181,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"security".to_string(),
 			ChangelogSectionDef {
-				heading: "🔒 Security".to_string(),
+				heading: "Security".to_string(),
 				description: Some("Security-related changes".to_string()),
 				priority: 40,
 			},
@@ -2090,7 +2189,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"perf".to_string(),
 			ChangelogSectionDef {
-				heading: "⚡ Performance".to_string(),
+				heading: "Performance".to_string(),
 				description: Some("Performance improvements".to_string()),
 				priority: 40,
 			},
@@ -2098,7 +2197,7 @@ impl ChangelogSettings {
 		sections.insert(
 			"none".to_string(),
 			ChangelogSectionDef {
-				heading: "🔖 None".to_string(),
+				heading: "Other".to_string(),
 				description: Some("No version bump".to_string()),
 				priority: 50,
 			},
@@ -3919,6 +4018,443 @@ pub fn render_release_notes(
 	}
 }
 
+/// Render structured release notes in the selected changelog format.
+///
+/// Unlike [`render_release_notes`], JSON output exposes each entry's fields and
+/// text output is produced directly from those fields rather than by stripping
+/// a previously rendered Markdown document.
+#[must_use]
+pub fn render_structured_release_notes(
+	format: ChangelogFormat,
+	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
+	style: &ChangelogStyle,
+) -> String {
+	render_structured_release_notes_with(
+		format,
+		document,
+		style,
+		render_release_note_entry_markdown,
+	)
+}
+
+/// Render structured release notes while allowing a caller to provide the
+/// final Markdown layout for an entry.
+///
+/// The callback is used only for Markdown formats. Text and JSON always render
+/// from the structured fields so their output cannot inherit Markdown blobs.
+#[must_use]
+pub fn render_structured_release_notes_with(
+	format: ChangelogFormat,
+	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
+	style: &ChangelogStyle,
+	render_markdown_entry: impl Fn(&ReleaseNotesEntry, &ChangelogStyle) -> String,
+) -> String {
+	match format {
+		ChangelogFormat::Monochange | ChangelogFormat::KeepAChangelog => {
+			render_structured_markdown_release_notes(document, style, render_markdown_entry)
+		}
+		ChangelogFormat::Json => {
+			serde_json::to_string_pretty(document).unwrap_or_else(|error| {
+				// patch-coverage:ignore-start -- Structured release notes contain no fallible JSON values.
+				panic!("release-note documents contain only serializable values: {error}")
+				// patch-coverage:ignore-end
+			})
+		}
+		ChangelogFormat::Text => render_structured_text_release_notes(document),
+	}
+}
+
+fn render_structured_markdown_release_notes(
+	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
+	style: &ChangelogStyle,
+	render_entry: impl Fn(&ReleaseNotesEntry, &ChangelogStyle) -> String,
+) -> String {
+	let mut lines = vec![format!("## {}", document.title), String::new()];
+	for (index, paragraph) in document.summary.iter().enumerate() {
+		if index > 0 {
+			lines.push(String::new());
+		}
+		lines.push(paragraph.clone());
+	}
+	let mut first_non_empty = true;
+	for section in &document.sections {
+		if section.entries.is_empty() {
+			continue;
+		}
+		if first_non_empty {
+			first_non_empty = false;
+			if !document.summary.is_empty() {
+				lines.push(String::new());
+			}
+		} else {
+			push_release_note_section_separator(&mut lines, style.section_separator);
+		}
+		if section.collapsed && style.collapsed_section_style == CollapsedSectionStyle::Details {
+			lines.push("<details>".to_string());
+			lines.push(format!(
+				"<summary><strong>{}</strong></summary>",
+				section.title
+			));
+			lines.push(String::new());
+			push_structured_markdown_entries(&mut lines, &section.entries, style, &render_entry);
+			lines.push("</details>".to_string());
+			continue;
+		}
+		lines.push(format!("### {}", section.title));
+		lines.push(String::new());
+		push_structured_markdown_entries(&mut lines, &section.entries, style, &render_entry);
+	}
+	lines.join("\n")
+}
+
+fn push_release_note_section_separator(lines: &mut Vec<String>, separator: SectionSeparator) {
+	match separator {
+		SectionSeparator::BlankLine => lines.push(String::new()),
+		SectionSeparator::ThematicBreak => {
+			lines.push(String::new());
+			lines.push("---".to_string());
+			lines.push(String::new());
+		}
+		SectionSeparator::None => {}
+	}
+}
+
+fn push_structured_markdown_entries(
+	lines: &mut Vec<String>,
+	entries: &[ReleaseNotesEntry],
+	style: &ChangelogStyle,
+	render_entry: &impl Fn(&ReleaseNotesEntry, &ChangelogStyle) -> String,
+) {
+	for (index, entry) in entries.iter().enumerate() {
+		lines.extend(
+			render_entry(entry, style)
+				.trim()
+				.lines()
+				.map(ToString::to_string),
+		);
+		if entry.style == ReleaseNoteEntryStyle::Expanded && index + 1 < entries.len() {
+			lines.push(String::new());
+		}
+	}
+}
+
+fn render_structured_text_release_notes(
+	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
+) -> String {
+	let mut lines = vec![plain_markdown(&document.title)];
+	for paragraph in &document.summary {
+		lines.push(String::new());
+		lines.push(plain_markdown(paragraph));
+	}
+	for section in &document.sections {
+		if section.entries.is_empty() {
+			continue;
+		}
+		lines.push(String::new());
+		lines.push(plain_markdown(&section.title));
+		for entry in &section.entries {
+			lines.push(String::new());
+			lines.push(render_release_note_entry_text(entry));
+		}
+	}
+	lines.join("\n")
+}
+
+/// Render one structured entry as Markdown with the selected style.
+#[must_use]
+pub fn render_release_note_entry_markdown(
+	entry: &ReleaseNotesEntry,
+	style: &ChangelogStyle,
+) -> String {
+	let summary = sentence_case_release_note_summary(&entry.summary);
+	let details = entry
+		.details_markdown
+		.as_deref()
+		.map(str::trim)
+		.filter(|details| !details.is_empty());
+	let package_label = markdown_package_label(entry, style.package_label_style);
+	let metadata = markdown_release_note_metadata(&entry.provenance, style.metadata_style);
+
+	match entry.style {
+		ReleaseNoteEntryStyle::Compact => {
+			let mut rendered = String::from("- ");
+			if style.package_label_placement == PackageLabelPlacement::AfterHeading {
+				rendered.push_str(&package_label);
+			}
+			if !summary.is_empty() {
+				let _ = write!(rendered, "**{summary}**");
+			}
+			if let Some(details) = details {
+				rendered.push(' ');
+				rendered.push_str(details);
+			}
+			if style.package_label_placement == PackageLabelPlacement::AfterChange
+				&& !package_label.is_empty()
+			{
+				rendered.push_str("\n  ");
+				rendered.push_str(package_label.trim());
+			}
+			if !metadata.is_empty() {
+				rendered.push_str("\n  ");
+				rendered.push_str(&metadata.replace('\n', "\n  "));
+			}
+			rendered
+		}
+		ReleaseNoteEntryStyle::Expanded => {
+			let mut parts = vec![format!("#### {}", entry.summary.trim())];
+			if style.package_label_placement == PackageLabelPlacement::AfterHeading
+				&& !package_label.is_empty()
+			{
+				parts.push(package_label.trim().to_string());
+			}
+			if let Some(details) = details {
+				parts.push(details.to_string());
+			}
+			if style.package_label_placement == PackageLabelPlacement::AfterChange
+				&& !package_label.is_empty()
+			{
+				parts.push(package_label.trim().to_string());
+			}
+			if !metadata.is_empty() {
+				parts.push(metadata);
+			}
+			parts.join("\n\n")
+		}
+	}
+}
+
+fn render_release_note_entry_text(entry: &ReleaseNotesEntry) -> String {
+	let mut lines = vec![plain_markdown(&sentence_case_release_note_summary(
+		&entry.summary,
+	))];
+	if !entry.packages.is_empty() {
+		lines.push(format!("  Packages: {}", entry.packages.join(", ")));
+	}
+	if let Some(details) = entry
+		.details_markdown
+		.as_deref()
+		.map(str::trim)
+		.filter(|details| !details.is_empty())
+	{
+		lines.extend(
+			plain_markdown(details)
+				.lines()
+				.map(|line| format!("  {line}")),
+		);
+	}
+	for metadata in text_release_note_metadata(&entry.provenance) {
+		lines.push(format!("  {metadata}"));
+	}
+	lines.join("\n")
+}
+
+fn sentence_case_release_note_summary(summary: &str) -> String {
+	let summary = summary.trim();
+	if summary.is_empty() || summary.ends_with(['.', '!', '?']) {
+		summary.to_string()
+	} else {
+		format!("{summary}.")
+	}
+}
+
+fn markdown_package_label(entry: &ReleaseNotesEntry, style: PackageLabelStyle) -> String {
+	if entry.packages.is_empty() || style == PackageLabelStyle::Omit {
+		return String::new();
+	}
+	if entry.style == ReleaseNoteEntryStyle::Compact
+		&& let [package] = entry.packages.as_slice()
+	{
+		return format!("**{package}**: ");
+	}
+	let packages = entry
+		.packages
+		.iter()
+		.map(|package| {
+			match style {
+				PackageLabelStyle::Badge => format!("*{package}*"),
+				PackageLabelStyle::Inline | PackageLabelStyle::Omit => format!("_{package}_"),
+			}
+		})
+		.collect::<Vec<_>>()
+		.join(", ");
+	format!("_Packages:_ {packages}")
+}
+
+fn markdown_release_note_metadata(
+	provenance: &ReleaseNoteProvenance,
+	style: MetadataStyle,
+) -> String {
+	let mut items = Vec::new();
+	if let Some(owner) = &provenance.change_owner {
+		items.push(format!("_Owner:_ {}", markdown_reference(owner)));
+	}
+	if let Some(review) = &provenance.review_request {
+		items.push(format!("_Review:_ {}", markdown_reference(review)));
+	} else {
+		if let Some(commit) = &provenance.introduced_commit {
+			items.push(format!("_Introduced in:_ {}", markdown_reference(commit)));
+		}
+		if let Some(commit) = &provenance.last_updated_commit {
+			items.push(format!("_Last updated in:_ {}", markdown_reference(commit)));
+		}
+	}
+	if !provenance.closed_issues.is_empty() {
+		items.push(format!(
+			"_Closed issues:_ {}",
+			markdown_references(&provenance.closed_issues)
+		));
+	}
+	if !provenance.related_issues.is_empty() {
+		items.push(format!(
+			"_Related issues:_ {}",
+			markdown_references(&provenance.related_issues)
+		));
+	}
+	match style {
+		MetadataStyle::Inline => items.join(" · "),
+		MetadataStyle::Blockquote => {
+			items
+				.into_iter()
+				.map(|item| format!("> {item}"))
+				.collect::<Vec<_>>()
+				.join("\n")
+		}
+		MetadataStyle::Plain => items.join("\n"),
+		MetadataStyle::Omit => String::new(),
+	}
+}
+
+fn text_release_note_metadata(provenance: &ReleaseNoteProvenance) -> Vec<String> {
+	let mut items = Vec::new();
+	if let Some(owner) = &provenance.change_owner {
+		items.push(format!("Owner: {}", owner.label));
+	}
+	if let Some(review) = &provenance.review_request {
+		items.push(format!("Review: {}", review.label));
+	} else {
+		if let Some(commit) = &provenance.introduced_commit {
+			items.push(format!("Introduced in: {}", commit.label));
+		}
+		if let Some(commit) = &provenance.last_updated_commit {
+			items.push(format!("Last updated in: {}", commit.label));
+		}
+	}
+	if !provenance.closed_issues.is_empty() {
+		items.push(format!(
+			"Closed issues: {}",
+			plain_references(&provenance.closed_issues)
+		));
+	}
+	if !provenance.related_issues.is_empty() {
+		items.push(format!(
+			"Related issues: {}",
+			plain_references(&provenance.related_issues)
+		));
+	}
+	items
+}
+
+fn markdown_reference(reference: &ReleaseNoteReference) -> String {
+	reference.url.as_deref().map_or_else(
+		|| reference.label.clone(),
+		|url| format!("[{}]({url})", reference.label),
+	)
+}
+
+fn markdown_references(references: &[ReleaseNoteReference]) -> String {
+	references
+		.iter()
+		.map(markdown_reference)
+		.collect::<Vec<_>>()
+		.join(", ")
+}
+
+fn plain_references(references: &[ReleaseNoteReference]) -> String {
+	references
+		.iter()
+		.map(|reference| reference.label.as_str())
+		.collect::<Vec<_>>()
+		.join(", ")
+}
+
+fn plain_markdown(markdown: &str) -> String {
+	markdown
+		.lines()
+		.filter(|line| !line.trim_start().starts_with("```"))
+		.map(|line| {
+			let line = line.trim_start_matches(['#', '>', ' ']);
+			let line = line
+				.strip_prefix("- ")
+				.or_else(|| line.strip_prefix("* "))
+				.unwrap_or(line);
+			plain_markdown_inline(line)
+		})
+		.collect::<Vec<_>>()
+		.join("\n")
+}
+
+fn plain_markdown_inline(markdown: &str) -> String {
+	let mut plain = String::with_capacity(markdown.len());
+	let mut remaining = markdown;
+	while let Some(open) = remaining.find('[') {
+		plain.push_str(&remaining[..open]);
+		let after_open = &remaining[open + 1..];
+		let Some(close) = after_open.find("](") else {
+			plain.push_str(&remaining[open..]);
+			remaining = "";
+			break;
+		};
+		let after_url = &after_open[close + 2..];
+		let Some(end) = after_url.find(')') else {
+			plain.push_str(&remaining[open..]);
+			remaining = "";
+			break;
+		};
+		plain.push_str(&after_open[..close]);
+		remaining = &after_url[end + 1..];
+	}
+	plain.push_str(remaining);
+	let plain = plain.replace(['*', '`'], "");
+	strip_underscore_emphasis(&plain)
+}
+
+fn strip_underscore_emphasis(value: &str) -> String {
+	let mut rendered = String::with_capacity(value.len());
+	let mut characters = value.char_indices().peekable();
+	while let Some((index, character)) = characters.next() {
+		if character != '_'
+			|| index > 0
+				&& value
+					.get(..index)
+					.unwrap_or_default()
+					.chars()
+					.next_back()
+					.is_some_and(char::is_alphanumeric)
+		{
+			rendered.push(character);
+			continue;
+		}
+		let remainder = value
+			.get(index + character.len_utf8()..)
+			.unwrap_or_default();
+		let Some(relative_end) = remainder.find('_') else {
+			rendered.push(character);
+			continue;
+		};
+		let end = index + character.len_utf8() + relative_end;
+		let after_end = value.get(end + 1..).unwrap_or_default();
+		if after_end.chars().next().is_some_and(char::is_alphanumeric) {
+			rendered.push(character);
+			continue;
+		}
+		rendered.push_str(value.get(index + 1..end).unwrap_or_default());
+		while characters.peek().is_some_and(|(next, _)| *next <= end) {
+			let _ = characters.next();
+		}
+	}
+	rendered
+}
+
 fn render_text_release_notes(document: &ReleaseNotesDocument) -> String {
 	let mut lines = vec![document.title.clone()];
 	for paragraph in &document.summary {
@@ -3969,6 +4505,9 @@ fn render_monochange_release_notes(
 		}
 		if first_non_empty {
 			first_non_empty = false;
+			if !document.summary.is_empty() {
+				lines.push(String::new());
+			}
 		} else {
 			match style.section_separator {
 				SectionSeparator::BlankLine => lines.push(String::new()),
@@ -4009,6 +4548,9 @@ fn render_keep_a_changelog_release_notes(
 		}
 		if first_non_empty {
 			first_non_empty = false;
+			if !document.summary.is_empty() {
+				lines.push(String::new());
+			}
 		} else {
 			match style.section_separator {
 				SectionSeparator::BlankLine => lines.push(String::new()),

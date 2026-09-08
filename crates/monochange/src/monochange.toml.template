@@ -544,7 +544,7 @@ version_format = "primary"
 # Start with baseline presets so existing repositories can adopt `monochange check`
 # without turning formatting preferences into blocking errors. Upgrade to
 # `*/recommended` or `*/strict` when the workspace is ready to enforce policy.
-use = ["cargo/baseline", "npm/baseline", "dart/baseline"]
+use = ["cargo/baseline", "npm/baseline", "dart/baseline", "changesets/recommended"]
 # include = ["crates/**", "packages/**"]
 # exclude = ["examples/**"]
 # disable_gitignore = false
@@ -561,6 +561,8 @@ use = ["cargo/baseline", "npm/baseline", "dart/baseline"]
 #
 # [lints.rules]
 # "cargo/internal-dependency-workspace" = "error"
+# "changesets/summary" = { level = "error", required = true, heading_level = 1 }
+# "changesets/summary-description" = "error"
 # "npm/workspace-protocol" = "error"
 #
 # [[lints.scopes]]

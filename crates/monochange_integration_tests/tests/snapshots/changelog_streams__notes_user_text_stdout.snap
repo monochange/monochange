@@ -6,8 +6,7 @@ sdk 2.0.0 (2026-09-02)
 
 App features
 
-preview collectible art before publishing
-
-Creators can review artwork and metadata before making a project live.
-
-_Owner:_ test · _Introduced in:_ `[COMMIT]`
+Preview collectible art before publishing.
+  Creators can review artwork and metadata before making a project live.
+  Owner: test
+  Introduced in: [COMMIT]

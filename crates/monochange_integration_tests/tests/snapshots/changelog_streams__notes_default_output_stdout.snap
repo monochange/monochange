@@ -6,8 +6,8 @@ expression: "normalize_head_commit(workspace.path(), developer)"
 
 ### Native releases
 
-#### update the native application shell
+#### Update the native application shell
 
 The release changes native code and must ship through the app stores.
 
-_Owner:_ test · _Introduced in:_ `[COMMIT]`
+_Owner:_ test · _Introduced in:_ [COMMIT]

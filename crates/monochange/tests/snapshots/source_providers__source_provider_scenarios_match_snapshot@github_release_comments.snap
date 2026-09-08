@@ -16,9 +16,9 @@ expression: redacted
           {
             "collapsed": false,
             "entries": [
-              "#### add github fixture coverage"
+              "- **add github fixture coverage.**"
             ],
-            "title": "🚀 Feature"
+            "title": "Features"
           }
         ],
         "summary": [],

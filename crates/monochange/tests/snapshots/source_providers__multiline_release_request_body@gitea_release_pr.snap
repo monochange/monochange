@@ -11,9 +11,9 @@ expression: contents
 
 ### core 1.0.1
 
-### 🐛 Fixed
+### Fixes
 
-#### add gitea fixture coverage
+- **add gitea fixture coverage.**
 
 ## Changed files
 

@@ -67,4 +67,6 @@ assert!(rendered.contains("### Features"));
 assert!(rendered.contains("- add keep-a-changelog output"));
 ```
 
+`ReleaseNotesDocument` defaults to legacy string entries for source compatibility. New integrations can use `ReleaseNotesDocument<ReleaseNotesEntry>` with `render_structured_release_notes` to render Markdown, plain text, or JSON from structured data. Use `to_legacy_markdown` when migrating a caller that still accepts string entries.
+
 <!-- {/monochangeCoreCrateDocs} -->

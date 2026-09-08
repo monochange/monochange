@@ -1,13 +1,30 @@
 ---
 source: crates/monochange_integration_tests/tests/changelog_streams.rs
-expression: json
+expression: normalized_json
 ---
 {
   "sections": [
     {
       "collapsed": false,
       "entries": [
-        "[multiline text]"
+        {
+          "bump": "minor",
+          "change_type": "app_feature",
+          "details_markdown": "Creators can review artwork and metadata before making a project live.",
+          "provenance": {
+            "change_owner": {
+              "label": "test"
+            },
+            "changeset_path": ".changeset/user.md",
+            "introduced_commit": {
+              "label": "[COMMIT]"
+            },
+            "source_path": ".changeset/user.md"
+          },
+          "stream": "user",
+          "style": "compact",
+          "summary": "Preview collectible art before publishing"
+        }
       ],
       "title": "App features"
     }

@@ -534,6 +534,51 @@ fn summary_rule_reports_heading_level_and_length_issues_together() {
 }
 
 #[test]
+fn summary_description_rule_rejects_repeated_first_sentence() {
+	let rule = SummaryDescriptionRule::new();
+	let duplicate = run_rule(
+		&rule,
+		&lint_file(
+			"# Keep JSON failures non-zero\n\nKeep JSON failures non-zero. CI can now trust the exit status.",
+			Vec::new(),
+		),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(duplicate.len(), 1);
+	assert_eq!(
+		duplicate[0].message,
+		"changeset description must add information instead of repeating the summary"
+	);
+	let duplicate_before_another_section = run_rule(
+		&rule,
+		&lint_file(
+			"# Keep JSON failures non-zero\n\nKeep JSON failures non-zero.\n\n## Migration\n\nNo action is required.",
+			Vec::new(),
+		),
+		&severity(LintSeverity::Error),
+	);
+	assert_eq!(duplicate_before_another_section.len(), 1);
+
+	let useful = run_rule(
+		&rule,
+		&lint_file(
+			"# Keep JSON failures non-zero\n\nCI now receives status 1 when lint errors exist.",
+			Vec::new(),
+		),
+		&severity(LintSeverity::Error),
+	);
+	assert!(useful.is_empty());
+	assert!(
+		run_rule(
+			&rule,
+			&lint_file("# Summary", Vec::new()),
+			&severity(LintSeverity::Off)
+		)
+		.is_empty()
+	);
+}
+
+#[test]
 fn summary_rule_reports_missing_heading_and_length_issues_together() {
 	let rule = SummaryRule::new();
 	let mut options = BTreeMap::new();

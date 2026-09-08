@@ -1163,49 +1163,60 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 
 	let mut multi_label_change = sample_change("pkg-a", "pkg-a", ".changeset/a.md");
 	multi_label_change.package_labels = vec!["pkg-a".to_string(), "pkg-b".to_string()];
-	let block = format_group_labeled_entry(
-		&multi_label_change,
+	let multi_label_entry = release_notes_entry(&multi_label_change, "sdk");
+	let block = format_structured_labeled_entry(
+		&multi_label_entry,
 		"#### Summary\n\nMore",
-		PackageLabelStyle::Badge,
-		PackageLabelPlacement::AfterHeading,
+		&ChangelogStyle {
+			package_label_style: PackageLabelStyle::Badge,
+			package_label_placement: PackageLabelPlacement::AfterHeading,
+			..ChangelogStyle::default()
+		},
 	);
 	assert!(block.contains("_Packages:_ *pkg-a*, *pkg-b*"));
 	assert_eq!(
-		format_group_labeled_entry(
-			&multi_label_change,
+		format_structured_labeled_entry(
+			&multi_label_entry,
 			"#### Summary\n\nMore",
-			PackageLabelStyle::Badge,
-			PackageLabelPlacement::AfterChange
+			&ChangelogStyle {
+				package_label_style: PackageLabelStyle::Badge,
+				package_label_placement: PackageLabelPlacement::AfterChange,
+				..ChangelogStyle::default()
+			}
 		),
 		"#### Summary\n\nMore\n_Packages:_ *pkg-a*, *pkg-b*"
 	);
 
 	let mut single_label_change = sample_change("pkg-a", "pkg-a", ".changeset/a.md");
 	single_label_change.package_labels = vec!["pkg-a".to_string()];
+	let single_label_entry = release_notes_entry(&single_label_change, "sdk");
 	assert_eq!(
-		format_group_labeled_entry(
-			&single_label_change,
+		format_structured_labeled_entry(
+			&single_label_entry,
 			"- Added release note support",
-			PackageLabelStyle::Inline,
-			PackageLabelPlacement::AfterHeading
+			&ChangelogStyle::default()
 		),
 		"- **pkg-a**: Added release note support"
 	);
 	assert_eq!(
-		format_group_labeled_entry(
-			&single_label_change,
+		format_structured_labeled_entry(
+			&single_label_entry,
 			"- Added release note support",
-			PackageLabelStyle::Badge,
-			PackageLabelPlacement::AfterHeading
+			&ChangelogStyle {
+				package_label_style: PackageLabelStyle::Badge,
+				..ChangelogStyle::default()
+			}
 		),
 		"- **pkg-a**: Added release note support"
 	);
 	assert_eq!(
-		format_group_labeled_entry(
-			&single_label_change,
+		format_structured_labeled_entry(
+			&single_label_entry,
 			"- Added release note support",
-			PackageLabelStyle::Omit,
-			PackageLabelPlacement::AfterHeading
+			&ChangelogStyle {
+				package_label_style: PackageLabelStyle::Omit,
+				..ChangelogStyle::default()
+			}
 		),
 		"- Added release note support"
 	);
@@ -1237,21 +1248,46 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 	empty_summary_change.summary.clear();
 	empty_summary_change.details = None;
 	empty_summary_change.context = None;
+	let mut empty_summary_entry = release_notes_entry(&empty_summary_change, "pkg-a");
+	empty_summary_entry.provenance = ReleaseNoteProvenance::default();
 	assert_eq!(
-		render_change_entry(
-			&empty_summary_change,
+		render_configured_release_note_entry(
+			&empty_summary_entry,
+			&ChangelogStyle::default(),
+			&[],
 			"pkg-a",
 			"1.2.3",
-			&[],
-			PackageLabelStyle::Inline,
-			PackageLabelPlacement::AfterHeading
+		),
+		"- "
+	);
+	assert_eq!(
+		render_configured_release_note_entry(
+			&empty_summary_entry,
+			&ChangelogStyle::default(),
+			&["{{ missing }}".to_string()],
+			"pkg-a",
+			"1.2.3",
 		),
 		"- "
 	);
 
-	let rendered = apply_change_template(
+	let sample_entry =
+		release_notes_entry(&sample_change("pkg-a", "pkg-a", ".changeset/a.md"), "sdk");
+	assert_eq!(
+		render_release_note_context(&sample_entry, MetadataStyle::Omit),
+		""
+	);
+	assert!(
+		render_release_note_context(&sample_entry, MetadataStyle::Blockquote)
+			.starts_with("> _Owner:_")
+	);
+	assert!(
+		render_release_note_context(&sample_entry, MetadataStyle::Plain).contains("\n_Review:_")
+	);
+	let rendered = apply_release_note_entry_template(
 		"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}\n\n{{ change_owner_link }}\n\n{{ review_request_link }}\n\n{{ introduced_commit_link }}\n\n{{ last_updated_commit_link }}\n\n{{ related_issue_links }}\n\n{{ closed_issue_links }}",
-		&sample_change("pkg-a", "pkg-a", ".changeset/a.md"),
+		&sample_entry,
+		&ChangelogStyle::default(),
 		"sdk",
 		"1.2.3",
 	)
@@ -1262,18 +1298,20 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 	assert!(rendered.contains("[#10](https://example.com/issues/10)"));
 	assert!(rendered.contains("[#20](https://example.com/issues/20)"));
 	assert!(
-		apply_change_template(
+		apply_release_note_entry_template(
 			"{{ missing_value }}",
-			&sample_change("pkg-a", "pkg-a", ".changeset/a.md"),
+			&sample_entry,
+			&ChangelogStyle::default(),
 			"sdk",
 			"1.2.3"
 		)
 		.is_none()
 	);
 	assert!(
-		apply_change_template(
+		apply_release_note_entry_template(
 			"   ",
-			&sample_change("pkg-a", "pkg-a", ".changeset/a.md"),
+			&sample_entry,
+			&ChangelogStyle::default(),
 			"sdk",
 			"1.2.3"
 		)
@@ -1316,9 +1354,8 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 			description: None,
 		},
 	);
-	let sections = render_release_note_sections(
+	let sections = build_release_note_sections(
 		"sdk",
-		"1.2.3",
 		&extra_settings,
 		&[
 			ReleaseNoteChange {
@@ -1354,18 +1391,13 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 	assert_eq!(sections[0].title, "Highlights");
 	assert_eq!(sections[1].title, "Notes");
 	assert_eq!(sections[2].title, "Changed");
-	assert_eq!(
-		sections[0].entries,
-		vec!["- Added group support".to_string()]
-	);
-	assert_eq!(
-		sections[2].entries,
-		vec!["- Breaking API".to_string(), "- Bug fix".to_string()]
-	);
+	assert_eq!(sections[0].entries[0].summary, "Added group support");
+	assert_eq!(sections[2].entries[0].summary, "Breaking API");
+	assert_eq!(sections[2].entries[1].summary, "Bug fix");
 
-	let fallback = render_release_note_sections("sdk", "1.2.3", &ChangelogSettings::default(), &[]);
+	let fallback = build_release_note_sections("sdk", &ChangelogSettings::default(), &[]);
 	assert_eq!(fallback[0].title, "Changed");
-	assert_eq!(fallback[0].entries, vec!["- prepare release".to_string()]);
+	assert_eq!(fallback[0].entries[0].summary, "Prepare release");
 
 	let document = build_release_notes_document(
 		"sdk",
@@ -1722,7 +1754,7 @@ fn render_sections_groups_entries_by_type_section_key() {
 		},
 	];
 
-	let sections = render_release_note_sections("sdk", "1.0.0", &settings, &changes);
+	let sections = build_release_note_sections("sdk", &settings, &changes);
 
 	// Sections should be ordered by priority (lower = first)
 	assert_eq!(sections.len(), 3);
@@ -1731,12 +1763,9 @@ fn render_sections_groups_entries_by_type_section_key() {
 	assert_eq!(sections[2].title, "Bug Fixes");
 
 	// Entries should be under the correct section
-	assert_eq!(
-		sections[0].entries,
-		vec!["- remove deprecated API".to_string()]
-	);
-	assert_eq!(sections[1].entries, vec!["- add feature".to_string()]);
-	assert_eq!(sections[2].entries, vec!["- fix bug".to_string()]);
+	assert_eq!(sections[0].entries[0].summary, "remove deprecated API");
+	assert_eq!(sections[1].entries[0].summary, "add feature");
+	assert_eq!(sections[2].entries[0].summary, "fix bug");
 }
 
 #[test]
@@ -1785,18 +1814,13 @@ fn render_sections_with_multiple_types_routing_to_same_section() {
 		},
 	];
 
-	let sections = render_release_note_sections("sdk", "1.0.0", &settings, &changes);
+	let sections = build_release_note_sections("sdk", &settings, &changes);
 
 	// Both feat and minor should appear under the same "Features" section
 	assert_eq!(sections.len(), 1);
 	assert_eq!(sections[0].title, "Features");
-	assert_eq!(
-		sections[0].entries,
-		vec![
-			"- add feature".to_string(),
-			"- minor improvement".to_string()
-		]
-	);
+	assert_eq!(sections[0].entries[0].summary, "add feature");
+	assert_eq!(sections[0].entries[1].summary, "minor improvement");
 }
 
 #[test]
@@ -1813,12 +1837,12 @@ fn render_uncategorized_changes_fall_under_changed_heading() {
 		..sample_change("pkg-a", "pkg-a", ".changeset/a.md")
 	}];
 
-	let sections = render_release_note_sections("sdk", "1.0.0", &settings, &changes);
+	let sections = build_release_note_sections("sdk", &settings, &changes);
 
 	// Changes without a matching type should fall under "Changed"
 	assert_eq!(sections.len(), 1);
 	assert_eq!(sections[0].title, "Changed");
-	assert_eq!(sections[0].entries, vec!["- uncategorized fix".to_string()]);
+	assert_eq!(sections[0].entries[0].summary, "uncategorized fix");
 }
 
 #[test]
@@ -1828,12 +1852,12 @@ fn render_empty_changes_produces_prepare_release_placeholder() {
 		..ChangelogSettings::default()
 	};
 
-	let sections = render_release_note_sections("sdk", "1.0.0", &settings, &[]);
+	let sections = build_release_note_sections("sdk", &settings, &[]);
 
 	assert_eq!(sections.len(), 1);
 	assert_eq!(sections[0].title, "Changed");
 	assert!(!sections[0].collapsed);
-	assert_eq!(sections[0].entries, vec!["- prepare release".to_string()]);
+	assert_eq!(sections[0].entries[0].summary, "Prepare release");
 }
 
 #[test]
@@ -1893,9 +1917,8 @@ fn render_sections_collapse_and_ignore_by_priority_thresholds() {
 		},
 	);
 
-	let sections = render_release_note_sections(
+	let sections = build_release_note_sections(
 		"sdk",
-		"1.0.0",
 		&settings,
 		&[
 			ReleaseNoteChange {
@@ -1996,10 +2019,13 @@ fn render_release_notes_document_includes_section_headings_in_markdown() {
 	assert_eq!(document.sections[1].title, "Bug Fixes");
 
 	// Now render to markdown and verify headings appear
-	let markdown = render_release_notes(
+	let markdown = render_changelog_release_notes(
 		monochange_core::ChangelogFormat::Monochange,
 		&document,
 		&ChangelogStyle::default(),
+		&settings.templates,
+		"sdk",
+		"1.1.0",
 	);
 	assert!(
 		markdown.contains("### Features"),
@@ -2010,12 +2036,12 @@ fn render_release_notes_document_includes_section_headings_in_markdown() {
 		"rendered markdown should include ### Bug Fixes heading"
 	);
 	assert!(
-		markdown.contains("- add feature"),
-		"rendered markdown should include feat entry"
+		markdown.contains("- **pkg-a**: add feature"),
+		"rendered markdown should include labeled feat entry"
 	);
 	assert!(
-		markdown.contains("- fix bug"),
-		"rendered markdown should include fix entry"
+		markdown.contains("- **pkg-b**: fix bug"),
+		"rendered markdown should include labeled fix entry"
 	);
 
 	// Verify heading order in markdown matches priority
@@ -2060,10 +2086,13 @@ fn keep_a_changelog_format_always_includes_section_headings() {
 
 	let document = build_release_notes_document("sdk", "1.0.0", Vec::new(), &settings, &changes);
 
-	let markdown = render_release_notes(
+	let markdown = render_changelog_release_notes(
 		monochange_core::ChangelogFormat::KeepAChangelog,
 		&document,
 		&ChangelogStyle::default(),
+		&settings.templates,
+		"sdk",
+		"1.0.0",
 	);
 
 	// Keep-a-changelog always includes section headings, even for single section
@@ -2090,10 +2119,13 @@ fn monochange_format_includes_heading_for_single_changed_section() {
 
 	let document = build_release_notes_document("sdk", "1.0.0", Vec::new(), &settings, &changes);
 
-	let markdown = render_release_notes(
+	let markdown = render_changelog_release_notes(
 		monochange_core::ChangelogFormat::Monochange,
 		&document,
 		&ChangelogStyle::default(),
+		&settings.templates,
+		"sdk",
+		"1.0.0",
 	);
 
 	// Monochange format includes section headings even when the only section is
@@ -2103,7 +2135,7 @@ fn monochange_format_includes_heading_for_single_changed_section() {
 		"monochange format should include ### Changed heading for single default section"
 	);
 	assert!(
-		markdown.contains("- fix bug"),
+		markdown.contains("- **pkg-a**: fix bug"),
 		"entry should appear after heading"
 	);
 }
@@ -2140,10 +2172,13 @@ fn monochange_format_includes_heading_for_custom_single_section() {
 
 	let document = build_release_notes_document("sdk", "1.0.0", Vec::new(), &settings, &changes);
 
-	let markdown = render_release_notes(
+	let markdown = render_changelog_release_notes(
 		monochange_core::ChangelogFormat::Monochange,
 		&document,
 		&ChangelogStyle::default(),
+		&settings.templates,
+		"sdk",
+		"1.0.0",
 	);
 
 	// Single custom section with non-"Changed" title should include heading

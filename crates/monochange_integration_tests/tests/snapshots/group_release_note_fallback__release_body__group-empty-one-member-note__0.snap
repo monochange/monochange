@@ -10,10 +10,7 @@ Grouped release for `sdk`.
 
 ### `core`
 
-#### 🚀 Feature
+#### Features
 
-#### Add core feature
-
-Adds a visible core feature that should appear only in the member fallback.
-
-_Owner:_ test · _Introduced in:_ [`[commit]`](https://github.com/ifiokjr/monochange/commit/[commit])
+- **Add core feature.** Adds a visible core feature that should appear only in the member fallback.
+  _Owner:_ test · _Introduced in:_ [97e2abf](https://github.com/ifiokjr/monochange/commit/97e2abf3d32b8150f4ab1d6be807af05f4d9598a)

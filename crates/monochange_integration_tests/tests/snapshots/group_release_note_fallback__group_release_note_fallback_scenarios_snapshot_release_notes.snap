@@ -14,7 +14,7 @@ expression: "Value::Object(snapshots)"
           {
             "collapsed": false,
             "entries": [
-              "- No package-specific changes were recorded; group `sdk` was updated to 1.0.1."
+              "- **No package-specific changes were recorded; group `sdk` was updated to 1.0.1.**"
             ],
             "title": "Changed"
           }
@@ -29,7 +29,7 @@ expression: "Value::Object(snapshots)"
           {
             "collapsed": false,
             "entries": [
-              "- No package-specific changes were recorded; `workflow-app` was updated to 1.0.1 as part of group `sdk`."
+              "- **No package-specific changes were recorded; `workflow-app` was updated to 1.0.1 as part of group `sdk`.**"
             ],
             "title": "Changed"
           }
@@ -44,7 +44,7 @@ expression: "Value::Object(snapshots)"
           {
             "collapsed": false,
             "entries": [
-              "- No package-specific changes were recorded; `workflow-core` was updated to 1.0.1 as part of group `sdk`."
+              "- **No package-specific changes were recorded; `workflow-core` was updated to 1.0.1 as part of group `sdk`.**"
             ],
             "title": "Changed"
           }
@@ -89,7 +89,7 @@ expression: "Value::Object(snapshots)"
           {
             "collapsed": false,
             "entries": [
-              "- No group-facing notes were recorded for this release. Member packages were updated as part of the synchronized group `sdk` version, but their changes are not configured for inclusion in this changelog."
+              "- **No group-facing notes were recorded for this release. Member packages were updated as part of the synchronized group `sdk` version, but their changes are not configured for inclusion in this changelog.**"
             ],
             "title": "Changed"
           }
@@ -104,7 +104,7 @@ expression: "Value::Object(snapshots)"
           {
             "collapsed": false,
             "entries": [
-              "- No package-specific changes were recorded; `workflow-app` was updated to 1.1.0 as part of group `sdk`."
+              "- **No package-specific changes were recorded; `workflow-app` was updated to 1.1.0 as part of group `sdk`.**"
             ],
             "title": "Changed"
           }
@@ -121,7 +121,7 @@ expression: "Value::Object(snapshots)"
             "entries": [
               "[multiline text]"
             ],
-            "title": "🚀 Feature"
+            "title": "Features"
           }
         ]
       }
@@ -166,7 +166,7 @@ expression: "Value::Object(snapshots)"
             "entries": [
               "[multiline text]"
             ],
-            "title": "🚀 Feature"
+            "title": "Features"
           }
         ]
       },
@@ -179,7 +179,7 @@ expression: "Value::Object(snapshots)"
           {
             "collapsed": false,
             "entries": [
-              "- No package-specific changes were recorded; `workflow-app` was updated to 1.1.0 as part of group `sdk`."
+              "- **No package-specific changes were recorded; `workflow-app` was updated to 1.1.0 as part of group `sdk`.**"
             ],
             "title": "Changed"
           }
@@ -196,7 +196,7 @@ expression: "Value::Object(snapshots)"
             "entries": [
               "[multiline text]"
             ],
-            "title": "🚀 Feature"
+            "title": "Features"
           }
         ]
       }
@@ -239,7 +239,7 @@ expression: "Value::Object(snapshots)"
           {
             "collapsed": false,
             "entries": [
-              "- No package-specific changes were recorded; `workflow-app` was updated to 1.0.1."
+              "- **No package-specific changes were recorded; `workflow-app` was updated to 1.0.1.**"
             ],
             "title": "Changed"
           }

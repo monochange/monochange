@@ -8,6 +8,4 @@ expression: app_changelog
 
 ### Changed
 
-#### update dependency on core
-
-Bumps the app dependency to consume the latest core API.
+- **update dependency on core.** Bumps the app dependency to consume the latest core API.

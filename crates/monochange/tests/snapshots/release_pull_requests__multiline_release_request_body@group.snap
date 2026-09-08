@@ -13,10 +13,9 @@ expression: contents
 
 Grouped release for `sdk`.
 
-### 🚀 Feature
+### Features
 
-#### add feature
-_Packages:_ _core_
+- **core**: **add feature.**
 
 ## Changed files
 
