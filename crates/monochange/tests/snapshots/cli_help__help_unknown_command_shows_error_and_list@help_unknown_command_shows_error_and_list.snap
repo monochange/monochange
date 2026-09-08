@@ -7,7 +7,6 @@ info:
     - nonexistent
   env:
     NO_COLOR: "1"
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -21,6 +20,9 @@ Run one of these commands to inspect available help paths:
 Visible top-level commands:
   affected
   analyze
+  api
+  change
+  changeset
   check
   command
   config

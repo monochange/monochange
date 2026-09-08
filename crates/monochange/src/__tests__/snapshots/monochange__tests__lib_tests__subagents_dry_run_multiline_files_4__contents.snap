@@ -17,11 +17,13 @@ When working in this repository on release planning, versioning, changesets, cha
    - `monochange`
    - `npx -y @monochange/cli`
 4. Use JSON output when inspecting repository state:
-   - `<cli> validate`
-   - `<cli> discover --format json`
-   - `<cli> diagnostics --format json`
-   - `<cli> release --dry-run --format json`
-5. Prefer `monochange change` and `.changeset/*.md` files over ad hoc release notes.
-6. Run validation before and after release-affecting edits.
-7. Do not run mutating release or publish commands unless the user explicitly asks.
-8. If monochange MCP tools are configured, use them only as a secondary structured fallback.
+   - `<cli> step validate`
+   - `<cli> step discover --format json`
+   - `<cli> step diagnose-changesets --format json`
+   - `<cli> change classify --format json --dependency-propagation public`
+   - `<cli> step prepare-release --dry-run --format json`
+5. Use `decision.proposedChangesetBump` for the current change. Trace `findingIds` and review every package with `reviewRequired: true`.
+6. Read `existingChangesets` and follow each package's `action` before creating another `.changeset/*.md` file.
+7. Run `<cli> changeset validate --api` and `<cli> step validate` after editing release intent.
+8. Do not run mutating release or publish commands unless the user explicitly asks.
+9. If monochange MCP tools are configured, use `monochange_classify_changes` as a secondary structured fallback.

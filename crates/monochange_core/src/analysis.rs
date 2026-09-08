@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
+use glob::Pattern;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -9,6 +10,114 @@ use crate::BumpSeverity;
 use crate::Ecosystem;
 use crate::MonochangeResult;
 use crate::PackageRecord;
+
+/// How a repository-relative path relates to one configured package.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum PackagePathMatch {
+	/// The path affects the package.
+	Touched,
+	/// The path is inside the package but excluded by its ignored paths.
+	Ignored,
+	/// The path does not belong to the package.
+	Unmatched,
+}
+
+/// Compiled path policy for one configured package.
+#[derive(Debug, Clone)]
+pub struct PackagePathMatcher {
+	package_id: String,
+	package_root: String,
+	package_root_prefix: String,
+	additional_patterns: Vec<Pattern>,
+	ignored_patterns: Vec<Pattern>,
+}
+
+impl PackagePathMatcher {
+	/// Build a matcher from a package's configured path policy.
+	#[must_use]
+	pub fn new(
+		package_id: impl Into<String>,
+		package_root: &Path,
+		additional_paths: &[String],
+		ignored_paths: &[String],
+	) -> Self {
+		let package_root = normalize_repository_path(&package_root.to_string_lossy());
+		let package_root_prefix = format!("{package_root}/");
+
+		Self {
+			package_id: package_id.into(),
+			package_root,
+			package_root_prefix,
+			additional_patterns: compile_path_patterns(additional_paths),
+			ignored_patterns: compile_path_patterns(ignored_paths),
+		}
+	}
+
+	/// Return the configured package id represented by this matcher.
+	#[must_use]
+	pub fn package_id(&self) -> &str {
+		&self.package_id
+	}
+
+	/// Classify one repository-relative path.
+	#[must_use]
+	pub fn classify(&self, path: &Path) -> PackagePathMatch {
+		let path = normalize_repository_path(&path.to_string_lossy());
+		let relative_path =
+			package_relative_path(&path, &self.package_root, &self.package_root_prefix);
+
+		if matches_any_package_pattern(&path, relative_path, &self.additional_patterns) {
+			return PackagePathMatch::Touched;
+		}
+
+		if relative_path.is_none() {
+			return PackagePathMatch::Unmatched;
+		}
+
+		if matches_any_package_pattern(&path, relative_path, &self.ignored_patterns) {
+			return PackagePathMatch::Ignored;
+		}
+
+		PackagePathMatch::Touched
+	}
+}
+
+fn normalize_repository_path(path: &str) -> String {
+	let normalized = path.trim().replace('\\', "/");
+	let normalized = normalized.trim_start_matches("./");
+	normalized.trim_matches('/').to_string()
+}
+
+fn compile_path_patterns(patterns: &[String]) -> Vec<Pattern> {
+	patterns
+		.iter()
+		.filter_map(|pattern| Pattern::new(pattern).ok())
+		.collect()
+}
+
+fn package_relative_path<'path>(
+	path: &'path str,
+	package_root: &str,
+	package_root_prefix: &str,
+) -> Option<&'path str> {
+	if package_root.is_empty() {
+		return Some(path);
+	}
+	path.strip_prefix(package_root_prefix)
+		.or_else(|| (path == package_root).then_some(""))
+}
+
+fn matches_any_package_pattern(
+	path: &str,
+	relative_path: Option<&str>,
+	patterns: &[Pattern],
+) -> bool {
+	patterns.iter().any(|pattern| {
+		pattern.matches(path)
+			|| relative_path.is_some_and(|relative_path| pattern.matches(relative_path))
+	})
+}
 
 /// Level of detail requested from semantic analyzers.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]

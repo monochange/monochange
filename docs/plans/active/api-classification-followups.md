@@ -1,5 +1,7 @@
 # API classification followups
 
+Status: implemented. The remaining pull request and robustness work continues in [Release-aware change classification](release-aware-change-classification.md).
+
 ## Goal
 
 Work through the five immediate followups from the API snapshot classification MVP:
@@ -37,7 +39,7 @@ Work through the five immediate followups from the API snapshot classification M
 - [x] Extend integration tests/fixtures to cover Dart API classification and dependency propagation.
 - [x] Rebase on latest `main` and enforce affected-changeset bump alignment against API classification recommendations.
 - [x] Run formatting, focused tests, lint/clippy, docs checks, and patch coverage.
-- [ ] Open PR, monitor checks, fix failures, then merge when green.
+- [x] Carry the completed work into the release-aware classifier implementation and its pull request.
 
 ## Notes
 

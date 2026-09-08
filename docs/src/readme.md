@@ -99,6 +99,7 @@ If you want a slower, more guided walkthrough, continue with [Start here](./guid
 - [Advanced: GitHub automation](./guide/08-github-automation.md): provider publishing and release requests
 - [Advanced: CI, package publishing, and release PR flows](./guide/13-ci-and-publishing.md): per-provider CI patterns, trusted publishing, and long-running release PR design notes
 - [Advanced: Assistant setup and MCP](./guide/09-assistant-setup.md): optional AI-assisted workflows
+- [Change classification](./reference/change-classification.md): release-aware bump evidence, confidence, and validation
 - [Reference: Manifest linting with `monochange check`](./reference/linting.md): `[lints]` rules for Cargo and npm-family manifests
 
 <!-- {=projectRecentPublishingImprovements} -->

@@ -22,6 +22,7 @@ Reach for this crate when you want to turn a git diff frame into package-scoped 
 
 - `ChangeFrame::detect(root)` selects the git frame to analyze
 - `analyze_changes(root, frame, config)` returns package analyses and suggested changesets
+- `AnalysisSession::new(root, config)` discovers packages once and analyzes several comparison frames without repeating discovery
 
 Core contracts and semantic diff types live in `monochange_core`; ecosystem crates implement the analyzers.
 

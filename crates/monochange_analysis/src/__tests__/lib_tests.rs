@@ -108,7 +108,12 @@ fn packages_for_path_prefers_the_longest_matching_package_root() {
 		),
 	];
 
-	let matched = packages_for_path(&root, &packages, Path::new("packages/web/src/index.ts"));
+	let matched = packages_for_path(
+		&root,
+		&packages,
+		&BTreeMap::new(),
+		Path::new("packages/web/src/index.ts"),
+	);
 
 	assert_eq!(matched.len(), 1);
 	assert_eq!(
@@ -118,7 +123,98 @@ fn packages_for_path_prefers_the_longest_matching_package_root() {
 			.name,
 		"web"
 	);
-	assert!(packages_for_path(&root, &packages, Path::new("README.md")).is_empty());
+	assert!(
+		packages_for_path(&root, &packages, &BTreeMap::new(), Path::new("README.md")).is_empty()
+	);
+}
+
+#[test]
+fn packages_for_path_honors_configured_additional_and_ignored_paths() {
+	let root = PathBuf::from("/repo");
+	let package = PackageRecord::new(
+		Ecosystem::Npm,
+		"web",
+		root.join("packages/web/package.json"),
+		root.clone(),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	let matcher = PackagePathMatcher::new(
+		"web",
+		Path::new("packages/web"),
+		&["shared/schema/**".to_string()],
+		&["fixtures/**".to_string()],
+	);
+	let matchers = [(package.id.clone(), matcher)].into_iter().collect();
+	let packages = vec![package];
+
+	assert_eq!(
+		packages_for_path(
+			&root,
+			&packages,
+			&matchers,
+			Path::new("shared/schema/api.json"),
+		)
+		.len(),
+		1
+	);
+	assert!(
+		packages_for_path(
+			&root,
+			&packages,
+			&matchers,
+			Path::new("packages/web/fixtures/example.json"),
+		)
+		.is_empty()
+	);
+}
+
+#[test]
+fn filter_snapshot_files_applies_package_and_workspace_ignores() {
+	let package_matcher = PackagePathMatcher::new(
+		"core",
+		Path::new("crates/core"),
+		&[],
+		&["src/generated/**".to_string()],
+	);
+	let workspace_matcher = PackagePathMatcher::new(
+		"workspace",
+		Path::new(""),
+		&[],
+		&["**/fixtures/**".to_string()],
+	);
+	let mut snapshot = PackageSnapshot {
+		label: "HEAD".to_string(),
+		files: [
+			"src/lib.rs",
+			"src/generated/bindings.rs",
+			"fixtures/public-looking.rs",
+		]
+		.into_iter()
+		.map(|path| {
+			PackageSnapshotFile {
+				path: PathBuf::from(path),
+				contents: "pub struct Example;".to_string(),
+			}
+		})
+		.collect(),
+	};
+
+	filter_snapshot_files(
+		&mut snapshot,
+		Path::new("crates/core"),
+		&workspace_matcher,
+		Some(&package_matcher),
+	);
+
+	assert_eq!(
+		snapshot
+			.files
+			.iter()
+			.map(|file| file.path.as_path())
+			.collect::<Vec<_>>(),
+		vec![Path::new("src/lib.rs")]
+	);
 }
 
 #[test]
@@ -183,6 +279,39 @@ fn analyze_changes_reports_unmatched_paths_as_warnings() {
 }
 
 #[test]
+fn analysis_session_reuses_discovery_across_change_frames() {
+	let tempdir = setup_analysis_repo("analysis/cargo-public-api-diff/before");
+	let root = tempdir.path();
+	let session = AnalysisSession::new(root, AnalysisConfig::default())
+		.unwrap_or_else(|error| panic!("create analysis session: {error}"));
+
+	let unchanged = session
+		.analyze(&ChangeFrame::CustomRange {
+			base: "HEAD".to_string(),
+			head: "HEAD".to_string(),
+		})
+		.unwrap_or_else(|error| panic!("analyze unchanged range: {error}"));
+	assert!(unchanged.package_analyses.is_empty());
+
+	fs::write(
+		root.join("crates/core/src/lib.rs"),
+		"pub fn greet(name: &str) -> String {\n\tformat!(\"hello {name}\")\n}\n",
+	)
+	.unwrap_or_else(|error| panic!("write changed public API: {error}"));
+	let working = session
+		.analyze(&ChangeFrame::WorkingDirectory)
+		.unwrap_or_else(|error| panic!("analyze working directory: {error}"));
+
+	assert!(
+		working
+			.package_analyses
+			.values()
+			.flat_map(|package| &package.semantic_changes)
+			.any(|change| change.item_path == "greet")
+	);
+}
+
+#[test]
 fn snapshot_helpers_cover_error_paths_and_filtered_content() {
 	let tempdir = setup_analysis_repo("analysis/cargo-public-api-diff/before");
 	let root = tempdir.path().to_path_buf();
@@ -230,6 +359,105 @@ fn snapshot_helpers_cover_error_paths_and_filtered_content() {
 	assert!(git_list_error.contains("git"));
 	let missing_repo = root.join("missing-repo");
 	assert!(read_text_file_from_git_object(&missing_repo, "HEAD:file.rs").is_err());
+}
+
+#[test]
+fn revision_snapshot_batch_parser_preserves_paths_and_skips_missing_objects() {
+	let paths = vec![
+		PathBuf::from("crates/core/src/lib.rs"),
+		PathBuf::from("crates/core/src/missing.rs"),
+	];
+	let output = b"012345 blob 3\nabc\nHEAD:crates/core/src/missing.rs missing\n";
+
+	let files = parse_revision_snapshot_batch(Path::new("crates/core"), &paths, output)
+		.unwrap_or_else(|error| panic!("parse batch: {error}"));
+
+	assert_eq!(files.len(), 1);
+	assert_eq!(files[0].path, PathBuf::from("src/lib.rs"));
+	assert_eq!(files[0].contents, "abc");
+}
+
+#[test]
+fn revision_snapshot_batch_parser_rejects_truncated_output() {
+	let header_error = parse_revision_snapshot_batch(
+		Path::new("crates/core"),
+		&[PathBuf::from("crates/core/src/lib.rs")],
+		b"012345 blob 3",
+	)
+	.expect_err("a header without a newline should fail");
+	assert!(
+		header_error
+			.render()
+			.contains("truncated git cat-file batch header")
+	);
+
+	let error = parse_revision_snapshot_batch(
+		Path::new("crates/core"),
+		&[PathBuf::from("crates/core/src/lib.rs")],
+		b"012345 blob 3\nab",
+	)
+	.expect_err("truncated contents should fail");
+
+	assert!(
+		error
+			.render()
+			.contains("truncated git cat-file batch content")
+	);
+}
+
+#[test]
+fn revision_snapshot_batch_parser_rejects_invalid_and_overflowing_headers() {
+	let path = PathBuf::from("crates/core/src/lib.rs");
+	let invalid = parse_revision_snapshot_batch(
+		Path::new("crates/core"),
+		std::slice::from_ref(&path),
+		b"invalid\n",
+	)
+	.expect_err("invalid header should fail")
+	.render();
+	assert!(invalid.contains("invalid git cat-file batch header"));
+
+	let overflow = format!("object blob {}\n", usize::MAX);
+	let overflow =
+		parse_revision_snapshot_batch(Path::new("crates/core"), &[path], overflow.as_bytes())
+			.expect_err("overflowing size should fail")
+			.render();
+	assert!(overflow.contains("git cat-file batch size overflow"));
+}
+
+#[test]
+fn revision_snapshot_batch_parser_skips_outside_large_and_binary_files() {
+	let paths = vec![
+		PathBuf::from("outside.rs"),
+		PathBuf::from("crates/core/src/large.rs"),
+		PathBuf::from("crates/core/src/binary.rs"),
+	];
+	let large = vec![b'a'; 256 * 1024 + 1];
+	let mut output = b"object blob 1\nx\n".to_vec();
+	output.extend_from_slice(format!("object blob {}\n", large.len()).as_bytes());
+	output.extend_from_slice(&large);
+	output.push(b'\n');
+	output.extend_from_slice(b"object blob 1\n\xff\n");
+
+	let files = parse_revision_snapshot_batch(Path::new("crates/core"), &paths, &output)
+		.unwrap_or_else(|error| panic!("parse filtered batch: {error}"));
+
+	assert!(files.is_empty());
+}
+
+#[test]
+fn revision_snapshot_batch_reports_git_process_failures() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = build_revision_snapshot_files(
+		tempdir.path(),
+		Path::new("crates/core"),
+		"HEAD",
+		&[PathBuf::from("crates/core/src/lib.rs")],
+	)
+	.expect_err("cat-file outside a repository should fail")
+	.render();
+
+	assert!(error.contains("git cat-file failed"));
 }
 
 #[test]
@@ -400,15 +628,15 @@ fn analyze_release_trajectory_for_refs_uses_explicit_ranges_and_warns_when_head_
 
 	assert_eq!(
 		analysis.frames.release_to_main.frame.revision_range(),
-		"v1.0.0...main"
+		"v1.0.0..main"
 	);
 	assert_eq!(
 		analysis.frames.main_to_head.frame.revision_range(),
-		"main...main"
+		"main..main"
 	);
 	assert_eq!(
 		analysis.frames.release_to_head.frame.revision_range(),
-		"v1.0.0...main"
+		"v1.0.0..main"
 	);
 	assert_eq!(analysis.warnings.len(), 1);
 	assert!(

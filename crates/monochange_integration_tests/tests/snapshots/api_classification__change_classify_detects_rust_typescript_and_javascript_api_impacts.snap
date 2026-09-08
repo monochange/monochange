@@ -3,127 +3,282 @@ source: crates/monochange_integration_tests/tests/api_classification.rs
 expression: report
 ---
 {
-  "frame": "HEAD~1...HEAD",
+  "candidate": "merge-tree:[SHA]",
+  "comparisons": [
+    {
+      "base": "HEAD~1",
+      "head": "merge-tree:[SHA]",
+      "kind": "pullRequest",
+      "note": null,
+      "status": "analyzed"
+    },
+    {
+      "base": "[SHA]",
+      "head": "HEAD",
+      "kind": "sourceDelta",
+      "note": null,
+      "status": "analyzed"
+    }
+  ],
+  "defaultBranch": "HEAD~1",
   "packages": [
     {
-      "analyzerId": "npm/package-json",
-      "apiChanges": [
+      "action": "create",
+      "comparisons": [
         {
-          "after": {
-            "id": "script:script.build",
-            "kind": "script",
-            "path": "script.build",
-            "signature": "node scripts/build.js",
-            "sourcePath": "package.json"
-          },
-          "before": {
-            "id": "script:script.build",
-            "kind": "script",
-            "path": "script.build",
-            "signature": "node build.js",
-            "sourcePath": "package.json"
-          },
-          "confidence": "medium",
-          "kind": "modified",
-          "suggestedBump": "patch",
-          "summary": "script `script.build` modified"
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pullRequest",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "sourceDelta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "releaseToDefault",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
         }
       ],
-      "confidence": "medium",
+      "decision": {
+        "compatibilityImpact": "compatible",
+        "completeness": "partial",
+        "confidence": "medium",
+        "enforceableMinimum": "none",
+        "findingIds": [
+          "npm/package-json/metadata/modified/script/script.build"
+        ],
+        "proposedChangesetBump": "patch",
+        "releaseFloor": "patch",
+        "reviewRequired": true
+      },
       "ecosystem": "npm",
+      "existingChangesets": [],
+      "findings": [
+        {
+          "after": "node scripts/build.js",
+          "analyzer": {
+            "id": "npm/package-json",
+            "version": "1"
+          },
+          "before": "node build.js",
+          "bump": "patch",
+          "change": "modified",
+          "comparisons": [
+            "pullRequest",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "signature",
+            "note": "package metadata and export syntax; entrypoint reachability and TypeScript assignability are not complete"
+          },
+          "id": "npm/package-json/metadata/modified/script/script.build",
+          "impact": "compatible",
+          "location": "package.json",
+          "ruleId": "npm/package-json/metadata/modified/script",
+          "summary": "script `script.build` modified",
+          "surface": "metadata"
+        }
+      ],
       "packageId": "js_utils",
       "packageName": "@demo/js-utils",
       "recommendation": "patch",
-      "semanticChanges": [
-        {
-          "after_signature": "node scripts/build.js",
-          "before_signature": "node build.js",
-          "category": "metadata",
-          "file_path": "package.json",
-          "item_kind": "script",
-          "item_path": "script.build",
-          "kind": "modified",
-          "summary": "script `script.build` modified"
-        }
-      ],
-      "summary": "non-API or metadata impact inferred from 1 semantic change(s)",
+      "releaseOwner": {
+        "id": "js_utils",
+        "kind": "package",
+        "latestRelease": null
+      },
+      "summary": "1 compatible finding(s) propose a patch changeset",
       "warnings": []
     },
     {
-      "analyzerId": "cargo/public-api",
-      "apiChanges": [
+      "action": "create",
+      "comparisons": [
         {
-          "before": {
-            "id": "function:removed_greeting",
-            "kind": "function",
-            "path": "removed_greeting",
-            "signature": "fn removed_greeting () -> & 'static str",
-            "sourcePath": "src/lib.rs"
-          },
-          "confidence": "high",
-          "kind": "removed",
-          "suggestedBump": "major",
-          "summary": "function `removed_greeting` removed"
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pullRequest",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "sourceDelta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "releaseToDefault",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
         }
       ],
-      "confidence": "high",
+      "decision": {
+        "compatibilityImpact": "breaking",
+        "completeness": "partial",
+        "confidence": "medium",
+        "enforceableMinimum": "none",
+        "findingIds": [
+          "cargo/public-api/public_api/removed/function/removed_greeting"
+        ],
+        "proposedChangesetBump": "major",
+        "releaseFloor": "major",
+        "reviewRequired": true
+      },
       "ecosystem": "cargo",
+      "existingChangesets": [],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "fn removed_greeting () -> & 'static str",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pullRequest",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/removed/function/removed_greeting",
+          "impact": "breaking",
+          "location": "src/lib.rs",
+          "ruleId": "cargo/public-api/public_api/removed/function",
+          "summary": "function `removed_greeting` removed",
+          "surface": "public_api"
+        }
+      ],
       "packageId": "rust_core",
       "packageName": "rust-core",
       "recommendation": "major",
-      "semanticChanges": [
-        {
-          "after_signature": null,
-          "before_signature": "fn removed_greeting () -> & 'static str",
-          "category": "public_api",
-          "file_path": "src/lib.rs",
-          "item_kind": "function",
-          "item_path": "removed_greeting",
-          "kind": "removed",
-          "summary": "function `removed_greeting` removed"
-        }
-      ],
-      "summary": "breaking public API impact inferred from 1 semantic change(s)",
+      "releaseOwner": {
+        "id": "rust_core",
+        "kind": "package",
+        "latestRelease": null
+      },
+      "summary": "1 breaking finding(s) propose a major changeset",
       "warnings": []
     },
     {
-      "analyzerId": "npm/package-json",
-      "apiChanges": [
+      "action": "create",
+      "comparisons": [
         {
-          "after": {
-            "id": "interface:AdminUser",
-            "kind": "interface",
-            "path": "AdminUser",
-            "signature": "export interface AdminUser extends User { role: string; }",
-            "sourcePath": "src/index.ts"
-          },
-          "confidence": "high",
-          "kind": "added",
-          "suggestedBump": "minor",
-          "summary": "interface `AdminUser` added"
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pullRequest",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "sourceDelta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "releaseToDefault",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
         }
       ],
-      "confidence": "high",
+      "decision": {
+        "compatibilityImpact": "additive",
+        "completeness": "partial",
+        "confidence": "medium",
+        "enforceableMinimum": "none",
+        "findingIds": [
+          "npm/package-json/public_api/added/interface/AdminUser"
+        ],
+        "proposedChangesetBump": "minor",
+        "releaseFloor": "minor",
+        "reviewRequired": true
+      },
       "ecosystem": "npm",
+      "existingChangesets": [],
+      "findings": [
+        {
+          "after": "export interface AdminUser extends User { role: string; }",
+          "analyzer": {
+            "id": "npm/package-json",
+            "version": "1"
+          },
+          "before": null,
+          "bump": "minor",
+          "change": "added",
+          "comparisons": [
+            "pullRequest",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "signature",
+            "note": "package metadata and export syntax; entrypoint reachability and TypeScript assignability are not complete"
+          },
+          "id": "npm/package-json/public_api/added/interface/AdminUser",
+          "impact": "additive",
+          "location": "src/index.ts",
+          "ruleId": "npm/package-json/public_api/added/interface",
+          "summary": "interface `AdminUser` added",
+          "surface": "public_api"
+        }
+      ],
       "packageId": "ts_client",
       "packageName": "@demo/ts-client",
       "recommendation": "minor",
-      "semanticChanges": [
-        {
-          "after_signature": "export interface AdminUser extends User { role: string; }",
-          "before_signature": null,
-          "category": "public_api",
-          "file_path": "src/index.ts",
-          "item_kind": "interface",
-          "item_path": "AdminUser",
-          "kind": "added",
-          "summary": "interface `AdminUser` added"
-        }
-      ],
-      "summary": "additive public API impact inferred from 1 semantic change(s)",
+      "releaseOwner": {
+        "id": "ts_client",
+        "kind": "package",
+        "latestRelease": null
+      },
+      "summary": "1 additive finding(s) propose a minor changeset",
       "warnings": []
     }
   ],
   "recommendation": "major",
+  "schemaVersion": 1,
   "warnings": []
 }

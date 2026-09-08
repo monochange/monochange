@@ -1,0 +1,67 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange change classify
+
+Compare a merge candidate with the default branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.
+
+[1m[97mUsage:[0m [93mmonochange change classify[0m [95m[OPTIONS][0m
+
+[1m[96mOptions:[0m
+      [93m--base[0m[95m [0m[95m<REF>[0m
+          Override the automatically detected default branch ref
+
+      [93m--head[0m[95m [0m[95m<REF>[0m
+          Pull request head ref to classify
+          
+          [default: HEAD]
+
+      [93m--release[0m[95m [0m[95m<REF>[0m
+          Override the latest release ref for every selected package
+
+      [93m--package[0m[95m [0m[95m<PACKAGE>[0m
+          Limit classification to a package id or name; repeat to select several
+
+      [93m--detection-level[0m[95m [0m[95m<LEVEL>[0m
+          Choose analyzer depth
+          
+          [default: signature]
+          [possible values: basic, signature, semantic]
+
+      [93m--include-unchanged[0m
+          Include packages without findings
+
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Report format
+          
+          [default: markdown]
+          [possible values: markdown, md, json, json-min, text]
+
+      [93m--output[0m[95m [0m[95m<PATH>[0m
+          Also write the report to a file
+
+      [93m--dependency-propagation[0m[95m [0m[95m<MODE>[0m
+          Propose patch bumps for direct public runtime dependents
+          
+          [default: none]
+          [possible values: none, public]
+
+  [93m-h[0m, [93m--help[0m
+          Print help (see a summary with '-h')
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress stdout/stderr output and run in dry-run mode when supported
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter JSON output with a jq-style expression, such as `.assets[].name`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

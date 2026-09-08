@@ -33,6 +33,7 @@ Reach for this crate when you are building ecosystem adapters, release planners,
 - normalized package and dependency records
 - version-group definitions and planned group outcomes
 - change signals and compatibility assessments
+- `PackagePathMatcher` for applying configured package roots, additional paths, and ignored paths consistently
 - changelog formats, changelog targets, structured release-note types, release-manifest types, source-automation config types, and changeset-policy evaluation types
 - shared error and result types
 

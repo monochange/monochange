@@ -80,6 +80,105 @@ expression: value
       ]
     },
     {
+      "commands": [
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "change",
+            "classify"
+          ]
+        }
+      ],
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "change"
+      ]
+    },
+    {
+      "commands": [
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "api",
+            "diff"
+          ]
+        }
+      ],
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "api"
+      ]
+    },
+    {
+      "commands": [
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "changeset",
+            "validate"
+          ]
+        }
+      ],
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "changeset"
+      ]
+    },
+    {
       "hidden": false,
       "max_bump": "major",
       "parser": {

@@ -72,6 +72,7 @@ After copying the bundled skill, you get a small documentation set that is desig
 - `REFERENCE.md`: broader high-context reference with more examples
 - `skills/README.md`: index of focused deep dives
 - `skills/adoption.md`: setup-depth questions, migration guidance, and recommendation patterns
+- `skills/change-classification.md`: release-aware severity decisions, uncertainty, and ecosystem review
 - `skills/changesets.md`: changeset authoring and lifecycle guidance
 - `skills/commands.md`: built-in command catalog and workflow selection
 - `skills/configuration.md`: `monochange.toml` setup and editing guidance

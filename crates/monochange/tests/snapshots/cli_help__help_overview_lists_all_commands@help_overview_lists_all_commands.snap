@@ -6,7 +6,6 @@ info:
     - help
   env:
     NO_COLOR: "1"
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -22,6 +21,9 @@ Built-in Commands:
   command    Open an interactive dashboard for adding or editing config-defined CLI commands
   skill      Install the monochange skill bundle into the current project with the skills CLI
   subagents  Generate repo-local monochange subagents and agent guidance files
+  change     Determine the release severity of repository changes
+  api        Inspect lower-level API diffs
+  changeset  Inspect and validate pending changeset intent
   analyze    Analyze semantic changes for one package across main, head, and optional release baselines
   notes      Render one configured release-note output without modifying release files
   migrate    Audit or migrate release metadata for monochange repositories

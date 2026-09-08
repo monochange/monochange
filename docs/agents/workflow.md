@@ -4,7 +4,7 @@
 - Rebase onto `main` regularly while working so the branch does not fall behind and merge conflicts stay small.
 - Always check the PR for merge conflicts before merging.
 - Handle merge conflicts with a rebase onto `main` before merging, then rerun relevant validation.
-- Only use squash merging.
+- Add ready pull requests to the merge queue with merge commits. Do not use squash merging.
 - When creating or updating a PR, manage failing checks proactively and use the scheduler to keep monitoring follow-up CI work until it is green.
 - For complex or multi-step changes, start by creating or updating a plan under `docs/plans/active/` so the repo keeps a versioned execution record.
 - For non-trivial behavior changes, start with a failing test.

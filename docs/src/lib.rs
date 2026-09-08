@@ -39,5 +39,6 @@ doc_comment::doctest!("guide/10-migrating-from-knope.md");
 doc_comment::doctest!("guide/11-diagnostics.md");
 doc_comment::doctest!("guide/12-repairable-releases.md");
 doc_comment::doctest!("reference/progress-output.md");
+doc_comment::doctest!("reference/change-classification.md");
 doc_comment::doctest!("reference/hosted-release-benchmarks.md");
 doc_comment::doctest!("reference/cli-steps/00-index.md");

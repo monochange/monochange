@@ -5,22 +5,23 @@ monochange ships two assistant-facing surfaces:
 - `monochange subagents <target...>` generates repo-local agent, subagent, or rule files for supported harnesses
 - `monochange mcp` starts a stdio MCP server so assistants can call monochange tools directly
 
-## Advisory API classification in CI
+## Classify changes before writing changesets
 
-Start API changeset validation as advisory before making it a required gate. A CI job can run the markdown form and post the output to a pull request comment or step summary:
-
-```bash
-monochange changeset validate --api --base origin/main --format markdown
-```
-
-For package graphs where public packages re-export or wrap other workspace packages, include direct public dependent propagation:
+Run the JSON form when an agent needs to decide release intent:
 
 ```bash
-monochange change classify --base origin/main --format markdown --dependency-propagation public
-monochange api diff --base origin/main --format json --dependency-propagation public
+monochange change classify --format json --dependency-propagation public
 ```
 
-Treat `major` and `minor` recommendations as the default changeset intent, but keep the check non-blocking while teams calibrate false positives and ecosystem coverage.
+The report compares the pull request candidate with both the default branch and each package's latest release. It separates the current `proposedChangesetBump` from the accumulated `releaseFloor`, and every major or minor proposal links to specific findings. Read [Change classification](../reference/change-classification.md) for the full report contract and coverage limits.
+
+After writing or updating the changesets, validate high-confidence evidence:
+
+```bash
+monochange changeset validate --api --format markdown
+```
+
+The built-in analyzers currently report partial, medium-confidence evidence, so their recommendations remain advisory by default. Add `--strict` only when the repository wants every proposal to fail CI on a changeset mismatch.
 
 ## Install the CLI and skill
 
@@ -50,6 +51,7 @@ After copying the bundled skill, you get a small documentation set that is desig
 - `REFERENCE.md`: broader high-context reference with more examples
 - `skills/README.md`: index of focused deep dives
 - `skills/adoption.md`: setup-depth questions, migration guidance, and recommendation patterns
+- `skills/change-classification.md`: release-aware severity decisions, uncertainty, and ecosystem review
 - `skills/changesets.md`: changeset authoring and lifecycle guidance
 - `skills/commands.md`: built-in command catalog and workflow selection
 - `skills/configuration.md`: `monochange.toml` setup and editing guidance
@@ -124,6 +126,7 @@ Keep instructions like these close to your project guidance:
 - Run `monochange step validate` before and after release-affecting edits.
 - Use `monochange step discover --format json` to inspect package ids, group ownership, and dependency edges.
 - Use `monochange step diagnose-changesets --format json` or `monochange_diagnostics` for a structured view of all pending changesets with git and review context.
+- Run `monochange change classify --format json --dependency-propagation public` before writing release intent. Trace each proposed bump to its finding ids and review partial results.
 - Use `monochange_lint_catalog` and `monochange_lint_explain` when you need lint metadata without shelling out.
 - Prefer `monochange run change` plus `.changeset/*.md` files over ad hoc release notes.
 - Use `monochange step prepare-release --dry-run --format json` before mutating release state.
@@ -146,7 +149,7 @@ The MCP server is JSON-first and focuses on reviewable operations:
 - `monochange_lint_catalog`: list registered manifest lint rules and presets
 - `monochange_lint_explain`: explain one manifest lint rule or preset
 - `monochange_analyze_changes`: analyze git diff state and return ecosystem-specific semantic changes
-- `monochange_classify_changes`: classify API-impacting changes and recommend package bumps
+- `monochange_classify_changes`: compare the pull request and latest release, then return evidence-backed package bumps
 - `monochange_validate_changeset`: validate one changeset against the current semantic diff
 
 <!-- {/mcpToolsList} -->

@@ -625,12 +625,54 @@ fn function_declaration_signatures_ignore_body_only_changes() {
 		"export function greet(name: string): string;"
 	);
 	assert_eq!(
-		function_signature_without_body("export function alreadyDeclared(): void;"),
+		function_signature_without_body("export function alreadyDeclared(): void;", None),
 		"export function alreadyDeclared(): void;"
 	);
+	let body_signature = "export function withSemicolon(): void; { return; }";
 	assert_eq!(
-		function_signature_without_body("export function withSemicolon(): void; { return; }"),
+		function_signature_without_body(body_signature, body_signature.find("{ return"),),
 		"export function withSemicolon(): void;"
+	);
+}
+
+#[test]
+fn function_declaration_signatures_preserve_object_types() {
+	let before = PackageSnapshotFile {
+		path: PathBuf::from("src/index.ts"),
+		contents: "export function parse(options: { strict: boolean }): { ok: boolean } { return { ok: options.strict }; }\nexport declare function inspect(options: { depth: number }): { value: string };\n".to_string(),
+	};
+	let after = PackageSnapshotFile {
+		path: PathBuf::from("src/index.ts"),
+		contents: "export function parse(options: { strict: boolean; mode: string }): { ok: boolean } { return { ok: options.strict }; }\nexport declare function inspect(options: { depth: number }): { value: string };\n".to_string(),
+	};
+
+	let before_symbols = collect_public_symbols(&before, &NPM_CONFIG);
+	let after_symbols = collect_public_symbols(&after, &NPM_CONFIG);
+	let before_parse = before_symbols
+		.iter()
+		.find(|symbol| symbol.item_path == "parse")
+		.unwrap_or_else(|| panic!("expected parse before"));
+	let after_parse = after_symbols
+		.iter()
+		.find(|symbol| symbol.item_path == "parse")
+		.unwrap_or_else(|| panic!("expected parse after"));
+	let inspect = after_symbols
+		.iter()
+		.find(|symbol| symbol.item_path == "inspect")
+		.unwrap_or_else(|| panic!("expected inspect declaration"));
+
+	assert_ne!(before_parse.signature, after_parse.signature);
+	assert_eq!(
+		before_parse.signature,
+		"export function parse(options: { strict: boolean }): { ok: boolean };"
+	);
+	assert_eq!(
+		after_parse.signature,
+		"export function parse(options: { strict: boolean; mode: string }): { ok: boolean };"
+	);
+	assert_eq!(
+		inspect.signature,
+		"export declare function inspect(options: { depth: number }): { value: string };"
 	);
 }
 

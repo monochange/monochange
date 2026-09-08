@@ -14,6 +14,8 @@ use monochange_core::ChangesetPolicyEvaluation;
 use monochange_core::ChangesetPolicyStatus;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+use monochange_core::PackagePathMatch;
+use monochange_core::PackagePathMatcher;
 use monochange_core::PackageRecord;
 use monochange_core::PublishState;
 use monochange_core::SourceConfiguration;
@@ -89,7 +91,14 @@ pub async fn affected_packages(
 	let package_matchers = configuration
 		.packages
 		.iter()
-		.map(PackagePathMatcher::new)
+		.map(|package| {
+			PackagePathMatcher::new(
+				&package.id,
+				&package.path,
+				&package.additional_paths,
+				&package.ignored_paths,
+			)
+		})
 		.collect::<Vec<_>>();
 
 	let mut matched_paths = Vec::new();
@@ -123,15 +132,15 @@ pub async fn affected_packages(
 		let mut matched_any_package = false;
 		let mut ignored_by_package = false;
 		for matcher in &package_matchers {
-			match matcher.classify(path) {
+			match matcher.classify(Path::new(path)) {
 				PackagePathMatch::Touched => {
 					matched_any_package = true;
-					affected_package_ids.insert(matcher.package.id.clone());
+					affected_package_ids.insert(matcher.package_id().to_string());
 				}
 				PackagePathMatch::Ignored => {
 					ignored_by_package = true;
 				}
-				PackagePathMatch::Unmatched => {}
+				PackagePathMatch::Unmatched | _ => {}
 			}
 		}
 		if matched_any_package {
@@ -363,58 +372,6 @@ pub(crate) fn is_changeset_markdown_path(path: &str) -> bool {
 			.is_some_and(|extension| extension.eq_ignore_ascii_case("md"))
 }
 
-struct PackagePathMatcher<'a> {
-	package: &'a monochange_core::PackageDefinition,
-	package_root: String,
-	package_root_prefix: String,
-	additional_patterns: Vec<Pattern>,
-	ignored_patterns: Vec<Pattern>,
-}
-
-impl<'a> PackagePathMatcher<'a> {
-	fn new(package: &'a monochange_core::PackageDefinition) -> Self {
-		let package_root = normalize_changed_path(&package.path.to_string_lossy());
-		let package_root_prefix = format!("{package_root}/");
-
-		Self {
-			package,
-			package_root,
-			package_root_prefix,
-			additional_patterns: compile_patterns(&package.additional_paths),
-			ignored_patterns: compile_patterns(&package.ignored_paths),
-		}
-	}
-
-	fn classify(&self, path: &str) -> PackagePathMatch {
-		let relative_path =
-			package_relative_path(path, &self.package_root, &self.package_root_prefix);
-		if matches_any_compiled_package_pattern(path, relative_path, &self.additional_patterns) {
-			return PackagePathMatch::Touched;
-		}
-		if relative_path.is_none() {
-			return PackagePathMatch::Unmatched;
-		}
-		if self.is_ignored(path) {
-			return PackagePathMatch::Ignored;
-		}
-		PackagePathMatch::Touched
-	}
-
-	fn is_ignored(&self, path: &str) -> bool {
-		let relative_path =
-			package_relative_path(path, &self.package_root, &self.package_root_prefix);
-		relative_path.is_some()
-			&& matches_any_compiled_package_pattern(path, relative_path, &self.ignored_patterns)
-	}
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PackagePathMatch {
-	Touched,
-	Ignored,
-	Unmatched,
-}
-
 struct ChangesetCoverage {
 	covered_package_ids: BTreeSet<String>,
 	signals: Vec<ChangeSignal>,
@@ -611,26 +568,6 @@ fn configured_changelog_paths(
 				.map(|target| normalize_changed_path(&target.path.to_string_lossy())),
 		)
 		.collect()
-}
-
-fn package_relative_path<'path>(
-	path: &'path str,
-	package_root: &str,
-	package_root_prefix: &str,
-) -> Option<&'path str> {
-	path.strip_prefix(package_root_prefix)
-		.or_else(|| (path == package_root).then_some(""))
-}
-
-fn matches_any_compiled_package_pattern(
-	path: &str,
-	relative_path: Option<&str>,
-	patterns: &[Pattern],
-) -> bool {
-	patterns.iter().any(|pattern| {
-		pattern.matches(path)
-			|| relative_path.is_some_and(|relative_path| pattern.matches(relative_path))
-	})
 }
 
 fn clear_git_env(command: &mut ProcessCommand) {

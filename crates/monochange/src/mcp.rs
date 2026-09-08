@@ -88,10 +88,22 @@ pub struct AnalyzeChangesParam {
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct ClassifyChangesParam {
 	pub path: Option<String>,
-	/// Base git ref. Defaults to `origin/main`.
+	/// Base git ref. Defaults to the repository's remote default branch.
 	pub base: Option<String>,
 	/// Head git ref. Defaults to `HEAD`.
 	pub head: Option<String>,
+	/// Release git ref override. By default, each release owner uses its latest tag.
+	pub release: Option<String>,
+	/// Package ids or names to include. An empty list includes every affected package.
+	#[serde(default)]
+	pub packages: Vec<String>,
+	/// Detection level: `basic`, `signature`, or `semantic`.
+	pub detection_level: Option<String>,
+	/// Include packages with no findings in the report.
+	#[serde(default)]
+	pub include_unchanged: bool,
+	/// Dependency propagation mode: `none` or `public`.
+	pub dependency_propagation: Option<String>,
 }
 
 /// Input payload for the MCP validate-changeset tool.
@@ -361,9 +373,10 @@ impl ServerHandler for MonochangeMcpServer {
 		info.instructions = Some(
 			"monochange manages versions and releases across Cargo, npm, Deno, and Dart/Flutter \
 			 workspaces. Prefer validation and dry-run planning before mutating release state. \
-			 Read monochange.toml first, inspect the normalized model with discover, use change \
-			 to write explicit .changeset files, and use release preview or release manifest \
-			 tools before source-provider publishing."
+			 Read monochange.toml first, inspect the normalized model with discover, classify \
+			 the pull request and latest-release comparisons with classify_changes, use change \
+			 to write explicit .changeset files, validate the chosen severity, and use release \
+			 preview or release manifest tools before source-provider publishing."
 				.into(),
 		);
 		info.capabilities = ServerCapabilities::builder().enable_tools().build();
@@ -825,7 +838,7 @@ impl MonochangeMcpServer {
 
 	#[tool(
 		name = "monochange_classify_changes",
-		description = "Classify API-impacting changes and return package bump recommendations."
+		description = "Compare the pull-request candidate with the default branch and latest release, then return evidence-backed package bump recommendations."
 	)]
 	#[coverage(off)]
 	async fn classify_changes(
@@ -833,12 +846,46 @@ impl MonochangeMcpServer {
 		Parameters(params): Parameters<ClassifyChangesParam>,
 	) -> Result<CallToolResult, McpError> {
 		let root = resolve_root(params.path.as_deref());
+		let detection_level = match params.detection_level.as_deref() {
+			None | Some("signature") => monochange_core::DetectionLevel::Signature,
+			Some("basic") => monochange_core::DetectionLevel::Basic,
+			Some("semantic") => monochange_core::DetectionLevel::Semantic,
+			Some(other) => {
+				return Ok(json_error_result(json!({
+					"ok": false,
+					"action": "classify_changes",
+					"root": root,
+					"summary": format!(
+						"Unsupported detection level `{other}`; expected basic, signature, or semantic"
+					),
+				})));
+			}
+		};
+		let dependency_propagation = match params.dependency_propagation.as_deref() {
+			None | Some("none") => crate::change_classify::DependencyPropagation::None,
+			Some("public") => crate::change_classify::DependencyPropagation::Public,
+			Some(other) => {
+				return Ok(json_error_result(json!({
+					"ok": false,
+					"action": "classify_changes",
+					"root": root,
+					"summary": format!(
+						"Unsupported dependency propagation `{other}`; expected none or public"
+					),
+				})));
+			}
+		};
 		let options = crate::change_classify::ClassifyOptions {
-			base: params.base.unwrap_or_else(|| "origin/main".to_string()),
+			base: params.base,
 			head: params.head.unwrap_or_else(|| "HEAD".to_string()),
+			release: params.release,
+			packages: params.packages,
+			detection_level,
+			include_unchanged: params.include_unchanged,
+			strict: false,
 			format: crate::OutputFormat::Json,
 			output: None,
-			dependency_propagation: crate::change_classify::DependencyPropagation::None,
+			dependency_propagation,
 		};
 		let output = match crate::change_classify::render_change_classification(&root, &options) {
 			Ok(output) => output,

@@ -8,9 +8,12 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::Read as _;
+use std::io::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use std::process::Stdio;
 
 #[cfg(feature = "cargo")]
 use monochange_cargo::semantic_analyzer as cargo_semantic_analyzer;
@@ -20,6 +23,8 @@ use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageAnalysisContext;
+use monochange_core::PackagePathMatch;
+use monochange_core::PackagePathMatcher;
 use monochange_core::PackageRecord;
 use monochange_core::SemanticAnalyzer;
 use monochange_core::git;
@@ -211,7 +216,46 @@ enum SnapshotTarget {
 #[derive(Debug, Clone)]
 struct AnalysisWorkspace {
 	packages: Vec<PackageRecord>,
+	path_matchers: BTreeMap<String, PackagePathMatcher>,
+	workspace_path_matcher: PackagePathMatcher,
 	warnings: Vec<String>,
+}
+
+/// Reusable package discovery and analyzer state for several change frames.
+#[non_exhaustive]
+pub struct AnalysisSession {
+	repo_root: PathBuf,
+	workspace: AnalysisWorkspace,
+	registry: AnalyzerRegistry,
+	config: AnalysisConfig,
+}
+
+impl AnalysisSession {
+	/// Discover the workspace once for subsequent frame analyses.
+	///
+	/// # Errors
+	///
+	/// Returns an error if workspace configuration or package discovery fails.
+	pub fn new(repo_root: &Path, config: AnalysisConfig) -> MonochangeResult<Self> {
+		let repo_root = normalize_path(repo_root);
+		let workspace = discover_analysis_workspace(&repo_root)?;
+
+		Ok(Self {
+			repo_root,
+			workspace,
+			registry: AnalyzerRegistry::new(),
+			config,
+		})
+	}
+
+	/// Analyze one frame without repeating workspace discovery.
+	///
+	/// # Errors
+	///
+	/// Returns an error if git inspection, snapshot capture, or an analyzer fails.
+	pub fn analyze(&self, frame: &ChangeFrame) -> MonochangeResult<ChangeAnalysis> {
+		analyze_changes_in_session(self, frame)
+	}
 }
 
 /// Analyze changes for the requested frame.
@@ -225,14 +269,32 @@ pub fn analyze_changes(
 	frame: &ChangeFrame,
 	config: &AnalysisConfig,
 ) -> MonochangeResult<ChangeAnalysis> {
-	let repo_root = normalize_path(repo_root);
-	let workspace = discover_analysis_workspace(&repo_root)?;
-	let changed_paths = frame.changed_files(&repo_root)?;
-	let registry = AnalyzerRegistry::new();
-	let targets = resolve_snapshot_targets(&repo_root, frame)?;
-	let mut warnings = workspace.warnings;
+	AnalysisSession::new(repo_root, config.clone())?.analyze(frame)
+}
+
+fn analyze_changes_in_session(
+	session: &AnalysisSession,
+	frame: &ChangeFrame,
+) -> MonochangeResult<ChangeAnalysis> {
+	let changed_paths = frame
+		.changed_files(&session.repo_root)?
+		.into_iter()
+		.filter(|path| {
+			session.workspace.workspace_path_matcher.classify(path) != PackagePathMatch::Ignored
+		})
+		.collect::<Vec<_>>();
+	let targets = resolve_snapshot_targets(&session.repo_root, frame)?;
+	let mut warnings = session.workspace.warnings.clone();
 	let mut package_analyses = BTreeMap::new();
-	let package_inputs = package_inputs(&repo_root, &workspace.packages, &changed_paths, &targets)?;
+	// patch-coverage:ignore-start -- success and failure are covered through analysis sessions; llvm-cov attributes the closing `?` expression inconsistently.
+	let package_inputs = package_inputs(
+		&session.repo_root,
+		&session.workspace.packages,
+		&session.workspace.path_matchers,
+		&changed_paths,
+		&targets,
+	)?;
+	// patch-coverage:ignore-end
 	let matched_paths = package_inputs
 		.values()
 		.flat_map(|value| value.iter().map(|change| change.path.clone()))
@@ -247,27 +309,42 @@ pub fn analyze_changes(
 		}
 	}
 
-	for package in &workspace.packages {
+	for package in &session.workspace.packages {
 		let Some(changed_files) = package_inputs.get(&package.id) else {
 			continue;
 		};
 
-		let before_snapshot = snapshot_package(&repo_root, package, &targets.before)?;
-		let after_snapshot = snapshot_package(&repo_root, package, &targets.after)?;
+		let package_root = package_root_relative(&session.repo_root, package)
+			.expect("analyzed packages should have a repository-relative root");
+		let package_matcher = session.workspace.path_matchers.get(&package.id);
+		let mut before_snapshot = snapshot_package(&session.repo_root, package, &targets.before)?;
+		let mut after_snapshot = snapshot_package(&session.repo_root, package, &targets.after)?;
+		filter_snapshot_files(
+			&mut before_snapshot,
+			&package_root,
+			&session.workspace.workspace_path_matcher,
+			package_matcher,
+		);
+		filter_snapshot_files(
+			&mut after_snapshot,
+			&package_root,
+			&session.workspace.workspace_path_matcher,
+			package_matcher,
+		);
 		let package_id = preferred_package_id(package);
 		let package_changed_files = changed_files
 			.iter()
 			.map(|file| file.package_path.clone())
 			.collect::<Vec<_>>();
 
-		let analyzer = registry.analyzer_for(package).expect(
+		let analyzer = session.registry.analyzer_for(package).expect(
 			"semantic analyzer registry should cover all discovered ecosystems when all default features are enabled",
 		);
 
 		let context = PackageAnalysisContext {
-			repo_root: &repo_root,
+			repo_root: &session.repo_root,
 			package,
-			detection_level: config.detection_level,
+			detection_level: session.config.detection_level,
 			changed_files,
 			before_snapshot: Some(&before_snapshot),
 			after_snapshot: Some(&after_snapshot),
@@ -290,8 +367,8 @@ pub fn analyze_changes(
 
 	Ok(ChangeAnalysis {
 		frame: frame.clone(),
-		detection_level: config.detection_level,
-		packages: workspace.packages,
+		detection_level: session.config.detection_level,
+		packages: session.workspace.packages.clone(),
 		package_analyses,
 		warnings,
 	})
@@ -443,8 +520,38 @@ fn discover_analysis_workspace(root: &Path) -> MonochangeResult<AnalysisWorkspac
 
 	let (_, version_group_warnings) = apply_version_groups(&mut packages, &configuration)?;
 	warnings.extend(version_group_warnings);
+	if !configuration.packages.is_empty() {
+		packages.retain(|package| package.metadata.contains_key("config_id"));
+	} // patch-coverage:ignore-start patch-coverage:ignore-end -- configured-package filtering is exercised by every configured analysis fixture; llvm-cov attributes the closing brace inconsistently.
+	let workspace_path_matcher = PackagePathMatcher::new(
+		"workspace",
+		Path::new(""),
+		&[],
+		&configuration.changesets.affected.ignored_paths,
+	);
+	let path_matchers = packages
+		.iter()
+		.filter_map(|package| {
+			let config_id = package.metadata.get("config_id")?;
+			let definition = configuration.package_by_id(config_id)?;
+			Some((
+				package.id.clone(),
+				PackagePathMatcher::new(
+					config_id,
+					&definition.path,
+					&definition.additional_paths,
+					&definition.ignored_paths,
+				),
+			))
+		})
+		.collect();
 
-	Ok(AnalysisWorkspace { packages, warnings })
+	Ok(AnalysisWorkspace {
+		packages,
+		path_matchers,
+		workspace_path_matcher,
+		warnings,
+	})
 }
 
 fn normalize_package_ids(root: &Path, packages: &mut [PackageRecord]) {
@@ -463,13 +570,14 @@ fn normalize_package_ids(root: &Path, packages: &mut [PackageRecord]) {
 fn package_inputs(
 	repo_root: &Path,
 	packages: &[PackageRecord],
+	path_matchers: &BTreeMap<String, PackagePathMatcher>,
 	changed_paths: &[PathBuf],
 	targets: &SnapshotTargets,
 ) -> MonochangeResult<BTreeMap<String, Vec<AnalyzedFileChange>>> {
 	let mut inputs = BTreeMap::<String, Vec<AnalyzedFileChange>>::new();
 
 	for changed_path in changed_paths {
-		let package_matches = packages_for_path(repo_root, packages, changed_path);
+		let package_matches = packages_for_path(repo_root, packages, path_matchers, changed_path);
 		for package in package_matches {
 			let package_root = package_root_relative(repo_root, package)
 				.expect("package path matching should only return packages with a resolvable root");
@@ -504,10 +612,25 @@ fn package_inputs(
 fn packages_for_path<'a>(
 	repo_root: &Path,
 	packages: &'a [PackageRecord],
+	path_matchers: &BTreeMap<String, PackagePathMatcher>,
 	changed_path: &Path,
 ) -> Vec<&'a PackageRecord> {
+	let configured_matches = packages
+		.iter()
+		.filter(|package| {
+			path_matchers
+				.get(&package.id)
+				.is_some_and(|matcher| matcher.classify(changed_path) == PackagePathMatch::Touched)
+		})
+		.collect::<Vec<_>>();
+
+	if !configured_matches.is_empty() {
+		return configured_matches;
+	}
+
 	let mut matches = packages
 		.iter()
+		.filter(|package| !path_matchers.contains_key(&package.id))
 		.filter_map(|package| {
 			let package_root = package_root_relative(repo_root, package)?;
 			(changed_path == package_root || changed_path.starts_with(&package_root))
@@ -529,6 +652,21 @@ fn package_root_relative(repo_root: &Path, package: &PackageRecord) -> Option<Pa
 		.parent()
 		.unwrap_or(&package.workspace_root);
 	relative_to_root(repo_root, package_root)
+}
+
+fn filter_snapshot_files(
+	snapshot: &mut PackageSnapshot,
+	package_root: &Path,
+	workspace_matcher: &PackagePathMatcher,
+	package_matcher: Option<&PackagePathMatcher>,
+) {
+	snapshot.files.retain(|file| {
+		let repository_path = package_root.join(&file.path);
+		workspace_matcher.classify(&repository_path) != PackagePathMatch::Ignored
+			&& !package_matcher.is_some_and(|matcher| {
+				matcher.classify(&repository_path) == PackagePathMatch::Ignored
+			})
+	});
 }
 
 fn classify_file_change(before: Option<&String>, after: Option<&String>) -> FileChangeKind {
@@ -688,12 +826,145 @@ fn snapshot_files_from_revision(
 		package_root_text.as_str(),
 	];
 	let paths = git_list_files(repo_root, &args)?;
-	build_snapshot_files_from_paths(
-		repo_root,
-		package_root,
-		&SnapshotTarget::GitRevision(revision.to_string()),
-		&paths,
-	)
+	build_revision_snapshot_files(repo_root, package_root, revision, &paths)
+}
+
+fn build_revision_snapshot_files(
+	repo_root: &Path,
+	package_root: &Path,
+	revision: &str,
+	paths: &[PathBuf],
+) -> MonochangeResult<Vec<PackageSnapshotFile>> {
+	let mut child = Command::new("git")
+		.current_dir(repo_root)
+		.args(["cat-file", "--batch"])
+		.stdin(Stdio::piped())
+		.stdout(Stdio::piped())
+		.stderr(Stdio::piped())
+		.spawn()
+		.map_err(|error| MonochangeError::Io(format!("failed to run git cat-file: {error}")))?;
+	let mut stdout = child
+		.stdout
+		.take()
+		.ok_or_else(|| MonochangeError::Io("failed to open git cat-file stdout".to_string()))?;
+	let output_reader = std::thread::spawn(move || {
+		let mut output = Vec::new();
+		stdout.read_to_end(&mut output).map(|_| output)
+	});
+	let mut stderr = child
+		.stderr
+		.take()
+		.ok_or_else(|| MonochangeError::Io("failed to open git cat-file stderr".to_string()))?;
+	let error_reader = std::thread::spawn(move || {
+		let mut output = Vec::new();
+		stderr.read_to_end(&mut output).map(|_| output)
+	});
+	{
+		let mut stdin = child
+			.stdin
+			.take()
+			.ok_or_else(|| MonochangeError::Io("failed to open git cat-file stdin".to_string()))?;
+		for path in paths {
+			// patch-coverage:ignore-start -- pipe write/read/wait failures require invalidating handles owned exclusively by this function; successful concurrent draining and process-status failure are tested.
+			writeln!(&mut stdin, "{revision}:{}", path.to_string_lossy()).map_err(|error| {
+				MonochangeError::Io(format!("failed to write git cat-file input: {error}"))
+			})?;
+			// patch-coverage:ignore-end
+		}
+	}
+
+	// patch-coverage:ignore-start -- child wait and reader failures require invalidating handles owned exclusively by this function.
+	let status = child.wait().map_err(|error| {
+		MonochangeError::Io(format!("failed to wait for git cat-file: {error}"))
+	})?;
+	let output = output_reader
+		.join()
+		.map_err(|_| MonochangeError::Io("git cat-file output reader panicked".to_string()))?
+		.map_err(|error| {
+			MonochangeError::Io(format!("failed to read git cat-file output: {error}"))
+		})?;
+	let stderr = error_reader
+		.join()
+		.map_err(|_| MonochangeError::Io("git cat-file error reader panicked".to_string()))?
+		.map_err(|error| {
+			MonochangeError::Io(format!("failed to read git cat-file errors: {error}"))
+		})?;
+	// patch-coverage:ignore-end
+	if !status.success() {
+		return Err(MonochangeError::Discovery(format!(
+			"git cat-file failed: {}",
+			String::from_utf8_lossy(&stderr).trim()
+		)));
+	}
+
+	parse_revision_snapshot_batch(package_root, paths, &output)
+}
+
+fn parse_revision_snapshot_batch(
+	package_root: &Path,
+	paths: &[PathBuf],
+	output: &[u8],
+) -> MonochangeResult<Vec<PackageSnapshotFile>> {
+	let mut cursor = 0;
+	let mut files = Vec::new();
+	for path in paths {
+		// patch-coverage:ignore-start -- cursor advancement is bounded by slices below, so the outer slice and computed header slice cannot be absent.
+		let remaining = output.get(cursor..).ok_or_else(|| {
+			MonochangeError::Discovery("truncated git cat-file batch output".to_string())
+		})?;
+		// patch-coverage:ignore-end
+		let header_end = remaining
+			.iter()
+			.position(|byte| *byte == b'\n')
+			.map(|position| cursor + position)
+			.ok_or_else(|| {
+				MonochangeError::Discovery("truncated git cat-file batch header".to_string())
+			})?;
+		// patch-coverage:ignore-start -- header_end is derived from the same remaining output slice.
+		let header = String::from_utf8_lossy(output.get(cursor..header_end).ok_or_else(|| {
+			MonochangeError::Discovery("truncated git cat-file batch header".to_string())
+		})?);
+		// patch-coverage:ignore-end
+		cursor = header_end + 1;
+		if header.ends_with(" missing") {
+			continue;
+		}
+		let size = header
+			.rsplit_once(' ')
+			.and_then(|(_, size)| size.parse::<usize>().ok())
+			.ok_or_else(|| {
+				MonochangeError::Discovery(format!("invalid git cat-file batch header `{header}`"))
+			})?;
+		let content_end = cursor.checked_add(size).ok_or_else(|| {
+			MonochangeError::Discovery("git cat-file batch size overflow".to_string())
+		})?;
+		let contents = output.get(cursor..content_end).ok_or_else(|| {
+			MonochangeError::Discovery("truncated git cat-file batch content".to_string())
+		})?;
+		// patch-coverage:ignore-start -- content_end must index the output slice, so adding the protocol newline cannot overflow usize.
+		cursor = content_end.checked_add(1).ok_or_else(|| {
+			MonochangeError::Discovery("git cat-file batch cursor overflow".to_string())
+		})?;
+		// patch-coverage:ignore-end
+
+		let Some(relative_to_package) = path.strip_prefix(package_root).ok().map(Path::to_path_buf)
+		else {
+			continue;
+		};
+		if size > 256 * 1024 {
+			continue;
+		}
+		let Ok(contents) = String::from_utf8(contents.to_vec()) else {
+			continue;
+		};
+		files.push(PackageSnapshotFile {
+			path: relative_to_package,
+			contents,
+		});
+	}
+
+	files.sort_by(|left, right| left.path.cmp(&right.path));
+	Ok(files)
 }
 
 fn snapshot_files_from_index(

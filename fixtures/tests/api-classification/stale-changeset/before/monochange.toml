@@ -1,0 +1,3 @@
+[package.core]
+path = "packages/core"
+type = "npm"

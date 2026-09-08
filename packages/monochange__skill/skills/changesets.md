@@ -220,6 +220,8 @@ Breaking changes should have their own changeset with migration guidance.
 
 When in doubt, choose the bump based on the user's or integrator's experience, not on implementation size. A one-line removal from a public API is usually `major`; a large internal refactor can be `none` if no published behavior changes.
 
+Before choosing the bump, follow [Choose changeset severity](./change-classification.md). Use the current pull request's `proposedChangesetBump`, not the accumulated `releaseFloor`, and inspect every finding when `reviewRequired` is `true`.
+
 ## Lifecycle rules
 
 Before adding a new changeset:

@@ -221,12 +221,13 @@ fn collect_public_symbols_from_module_declaration(
 ) {
 	match declaration {
 		ModuleDeclaration::ExportDeclaration(export) => {
-			let signature = normalize_signature(export.span.source_text(source_text));
+			let signature = export.span.source_text(source_text);
 			collect_public_symbols_from_declaration(
 				&export.declaration,
 				module_prefix,
 				file_path,
-				&signature,
+				signature,
+				export.span.start,
 				output,
 			);
 		}
@@ -276,12 +277,13 @@ fn collect_public_symbols_from_module_declaration(
 			);
 		}
 		ModuleDeclaration::ExportDefaultDeclaration(export) => {
-			let signature = normalize_signature(export.span.source_text(source_text));
+			let signature = export.span.source_text(source_text);
 			collect_public_symbols_from_default_export(
 				&export.declaration,
 				module_prefix,
 				file_path,
-				&signature,
+				signature,
+				export.span.start,
 				output,
 			);
 		}
@@ -321,12 +323,18 @@ fn collect_public_symbols_from_declaration(
 	module_prefix: &[String],
 	file_path: &Path,
 	signature: &str,
+	signature_start: u32,
 	output: &mut Vec<ExportedSymbol>,
 ) {
+	let normalized_signature = normalize_signature(signature);
 	match declaration {
 		Declaration::FunctionDeclaration(function) => {
 			if let Some(identifier) = &function.id {
-				let public_signature = function_signature_without_body(signature);
+				let body_start = function
+					.body
+					.as_ref()
+					.map(|body| (body.span.start - signature_start) as usize);
+				let public_signature = function_signature_without_body(signature, body_start);
 				push_symbol(
 					output,
 					"function",
@@ -344,7 +352,7 @@ fn collect_public_symbols_from_declaration(
 					"class",
 					module_prefix,
 					identifier.name.to_string(),
-					signature,
+					&normalized_signature,
 					file_path,
 				);
 			}
@@ -358,7 +366,7 @@ fn collect_public_symbols_from_declaration(
 						item_kind,
 						module_prefix,
 						identifier.name.to_string(),
-						signature,
+						&normalized_signature,
 						file_path,
 					);
 				}
@@ -370,7 +378,7 @@ fn collect_public_symbols_from_declaration(
 				"interface",
 				module_prefix,
 				interface.id.name.to_string(),
-				signature,
+				&normalized_signature,
 				file_path,
 			);
 		}
@@ -380,7 +388,7 @@ fn collect_public_symbols_from_declaration(
 				"type_alias",
 				module_prefix,
 				alias.id.name.to_string(),
-				signature,
+				&normalized_signature,
 				file_path,
 			);
 		}
@@ -390,7 +398,7 @@ fn collect_public_symbols_from_declaration(
 				"enum",
 				module_prefix,
 				declaration.id.name.to_string(),
-				signature,
+				&normalized_signature,
 				file_path,
 			);
 		}
@@ -400,7 +408,7 @@ fn collect_public_symbols_from_declaration(
 				"namespace",
 				module_prefix,
 				namespace.id.name.to_string(),
-				signature,
+				&normalized_signature,
 				file_path,
 			);
 		}
@@ -410,7 +418,7 @@ fn collect_public_symbols_from_declaration(
 				"namespace",
 				module_prefix,
 				external.id.to_string(),
-				signature,
+				&normalized_signature,
 				file_path,
 			);
 		}
@@ -423,11 +431,17 @@ fn collect_public_symbols_from_default_export(
 	module_prefix: &[String],
 	file_path: &Path,
 	signature: &str,
+	signature_start: u32,
 	output: &mut Vec<ExportedSymbol>,
 ) {
+	let normalized_signature = normalize_signature(signature);
 	match declaration {
 		ExportDefaultDeclarationKind::FunctionDeclaration(function) => {
-			let public_signature = function_signature_without_body(signature);
+			let body_start = function
+				.body
+				.as_ref()
+				.map(|body| (body.span.start - signature_start) as usize);
+			let public_signature = function_signature_without_body(signature, body_start);
 			if let Some(identifier) = &function.id {
 				push_symbol(
 					output,
@@ -455,7 +469,7 @@ fn collect_public_symbols_from_default_export(
 					"class",
 					module_prefix,
 					identifier.name.to_string(),
-					signature,
+					&normalized_signature,
 					file_path,
 				);
 			} else {
@@ -464,7 +478,7 @@ fn collect_public_symbols_from_default_export(
 					"default_export",
 					module_prefix,
 					"default",
-					signature,
+					&normalized_signature,
 					file_path,
 				);
 			}
@@ -475,7 +489,7 @@ fn collect_public_symbols_from_default_export(
 				"interface",
 				module_prefix,
 				interface.id.name.to_string(),
-				signature,
+				&normalized_signature,
 				file_path,
 			);
 		}
@@ -485,18 +499,19 @@ fn collect_public_symbols_from_default_export(
 				"default_export",
 				module_prefix,
 				"default",
-				signature,
+				&normalized_signature,
 				file_path,
 			);
 		}
 	}
 }
 
-fn function_signature_without_body(signature: &str) -> String {
-	let Some(body_start) = signature.find('{') else {
-		return signature.to_string();
+fn function_signature_without_body(signature: &str, body_start: Option<usize>) -> String {
+	let Some(body_start) = body_start else {
+		return normalize_signature(signature);
 	};
-	let prefix = signature[..body_start].trim_end();
+	let prefix = normalize_signature(&signature[..body_start]);
+	let prefix = prefix.trim_end();
 	if prefix.ends_with(';') {
 		prefix.to_string()
 	} else {

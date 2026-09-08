@@ -1015,6 +1015,7 @@ After copying the bundled skill, you get a small documentation set that is desig
 - `REFERENCE.md`: broader high-context reference with more examples
 - `skills/README.md`: index of focused deep dives
 - `skills/adoption.md`: setup-depth questions, migration guidance, and recommendation patterns
+- `skills/change-classification.md`: release-aware severity decisions, uncertainty, and ecosystem review
 - `skills/changesets.md`: changeset authoring and lifecycle guidance
 - `skills/commands.md`: built-in command catalog and workflow selection
 - `skills/configuration.md`: `monochange.toml` setup and editing guidance
@@ -1037,7 +1038,7 @@ This layout keeps the top-level skill small while still making the richer guidan
 - `monochange_lint_catalog`: list registered manifest lint rules and presets
 - `monochange_lint_explain`: explain one manifest lint rule or preset
 - `monochange_analyze_changes`: analyze git diff state and return ecosystem-specific semantic changes
-- `monochange_classify_changes`: classify API-impacting changes and recommend package bumps
+- `monochange_classify_changes`: compare the pull request and latest release, then return evidence-backed package bumps
 - `monochange_validate_changeset`: validate one changeset against the current semantic diff
 
 <!-- {/mcpToolsList} -->
@@ -1063,6 +1064,7 @@ This layout keeps the top-level skill small while still making the richer guidan
 - Run `monochange step validate` before and after release-affecting edits.
 - Use `monochange step discover --format json` to inspect package ids, group ownership, and dependency edges.
 - Use `monochange step diagnose-changesets --format json` or `monochange_diagnostics` for a structured view of all pending changesets with git and review context.
+- Run `monochange change classify --format json --dependency-propagation public` before writing release intent. Trace each proposed bump to its finding ids and review partial results.
 - Use `monochange_lint_catalog` and `monochange_lint_explain` when you need lint metadata without shelling out.
 - Prefer `monochange run change` plus `.changeset/*.md` files over ad hoc release notes.
 - Use `monochange step prepare-release --dry-run --format json` before mutating release state.
