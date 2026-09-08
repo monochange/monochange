@@ -13,8 +13,9 @@ exit_code: 1
 ----- stdout -----
 
 ----- stderr -----
-config error: error: unrecognized subcommand 'not-a-command'
+error[config.invalid]: error: unrecognized subcommand 'not-a-command'
+  cause: Usage: monochange [OPTIONS] <COMMAND>
 
-Usage: monochange [OPTIONS] <COMMAND>
-
-For more information, try '--help'.
+    For more information, try '--help'.
+  command: monochange not-a-command
+  help: Check `monochange.toml` and the command arguments, then rerun the command.

@@ -1293,9 +1293,12 @@ fn changeset_context_timeout_uses_configured_source_release_timeout() {
 }
 
 #[test]
-fn warn_about_incomplete_cargo_lockfiles_returns_early_when_commands_are_configured() {
+fn incomplete_cargo_lockfile_warnings_returns_empty_when_commands_are_configured() {
 	let configuration = workspace_configuration_with_lockfile_commands();
-	warn_about_incomplete_cargo_lockfiles(Path::new("."), &configuration, &[], &BTreeMap::new());
+	assert!(
+		incomplete_cargo_lockfile_warnings(Path::new("."), &configuration, &[], &BTreeMap::new(),)
+			.is_empty()
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]

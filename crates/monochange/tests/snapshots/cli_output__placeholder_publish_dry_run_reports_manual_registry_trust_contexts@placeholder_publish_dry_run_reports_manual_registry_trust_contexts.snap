@@ -10,11 +10,11 @@ info:
   env:
     GITHUB_JOB: release
     GITHUB_WORKFLOW_REF: ifiokjr/monochange/.github/workflows/publish.yml@refs/heads/main
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:57962"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:57962"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:54049"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:54049"
     MONOCHANGE_NO_PROGRESS: "1"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:57962"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:57962"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:54049"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:54049"
     NO_COLOR: "1"
     RUST_LOG: ""
 ---
@@ -23,8 +23,9 @@ exit_code: 1
 ----- stdout -----
 
 ----- stderr -----
-config error: error: unrecognized subcommand 'placeholder-publish'
+error[config.invalid]: error: unrecognized subcommand 'placeholder-publish'
+  cause: Usage: monochange [OPTIONS] <COMMAND>
 
-Usage: monochange [OPTIONS] <COMMAND>
-
-For more information, try '--help'.
+    For more information, try '--help'.
+  command: monochange placeholder-publish
+  help: Check `monochange.toml` and the command arguments, then rerun the command.

@@ -58,15 +58,16 @@ use monochange_python::write_python_placeholder_manifest;
 use crate::PreparedRelease;
 use crate::discover_release_record;
 use crate::discover_release_workspace;
-use crate::publish_progress::StderrPublishProgressReporter;
+use crate::output::ProgressFormat;
+use crate::output::ProgressReporter;
 
-pub(crate) async fn try_run_placeholder_publish_with_npm_otp(
+pub(crate) async fn try_run_placeholder_publish_with_progress(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
 	selected_packages: &BTreeSet<String>,
 	dry_run: bool,
 	npm_otp: Option<&str>,
-	quiet: bool,
+	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
 	let discovery = discover_release_workspace(root, configuration).map_err(|error| {
 		monochange_publish::PackagePublishFailure::new(
@@ -93,7 +94,6 @@ pub(crate) async fn try_run_placeholder_publish_with_npm_otp(
 	if let Some(otp) = npm_otp.filter(|otp| !otp.is_empty()) {
 		set_npm_publish_otp_for_requests(&mut requests, otp);
 	}
-	let progress = StderrPublishProgressReporter::new(quiet);
 	try_execute_publish_requests_with_process_and_progress(
 		root,
 		configuration.source.as_ref(),
@@ -104,7 +104,7 @@ pub(crate) async fn try_run_placeholder_publish_with_npm_otp(
 		&placeholder_manifest_writer_registry(),
 		&publish_readiness_registry(),
 		&CliPublishTrustHandler,
-		&progress,
+		progress,
 	)
 	.await
 }
@@ -182,6 +182,36 @@ pub(crate) async fn try_run_publish_packages_with_resume(
 	selected_ecosystems: &BTreeSet<Ecosystem>,
 	options: PublishPackagesOptions<'_>,
 ) -> PackagePublishExecutionResult {
+	let progress = ProgressReporter::named(
+		"publish packages",
+		options.dry_run,
+		options.output.quiet,
+		ProgressFormat::Auto,
+	);
+	try_run_publish_packages_with_resume_and_progress(
+		root,
+		configuration,
+		prepared_release,
+		selected_packages,
+		selected_groups,
+		selected_ecosystems,
+		options,
+		&progress,
+	)
+	.await
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn try_run_publish_packages_with_resume_and_progress(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	prepared_release: Option<&PreparedRelease>,
+	selected_packages: &BTreeSet<String>,
+	selected_groups: &BTreeSet<String>,
+	selected_ecosystems: &BTreeSet<Ecosystem>,
+	options: PublishPackagesOptions<'_>,
+	progress: &dyn PublishProgressReporter,
+) -> PackagePublishExecutionResult {
 	let publication_targets = if options.publish_all_configured_packages {
 		let discovery = discover_release_workspace(root, configuration).map_err(|error| {
 			monochange_publish::PackagePublishFailure::new(
@@ -216,12 +246,13 @@ pub(crate) async fn try_run_publish_packages_with_resume(
 		selected_ecosystems,
 	);
 
-	try_run_publish_packages_with_publications_and_resume(
+	try_run_publish_packages_with_publications_and_resume_and_progress(
 		root,
 		configuration,
 		&selected_targets.publication_targets,
 		&selected_targets.selected_packages,
 		options,
+		progress,
 	)
 	.await
 }
@@ -275,6 +306,31 @@ async fn try_run_publish_packages_with_publications_and_resume(
 	publication_targets: &[PackagePublicationTarget],
 	selected_packages: &BTreeSet<String>,
 	options: PublishPackagesOptions<'_>,
+) -> PackagePublishExecutionResult {
+	let progress = ProgressReporter::named(
+		"publish packages",
+		options.dry_run,
+		options.output.quiet,
+		ProgressFormat::Auto,
+	);
+	try_run_publish_packages_with_publications_and_resume_and_progress(
+		root,
+		configuration,
+		publication_targets,
+		selected_packages,
+		options,
+		&progress,
+	)
+	.await
+}
+
+async fn try_run_publish_packages_with_publications_and_resume_and_progress(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	publication_targets: &[PackagePublicationTarget],
+	selected_packages: &BTreeSet<String>,
+	options: PublishPackagesOptions<'_>,
+	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
 	let discovery = discover_release_workspace(root, configuration).map_err(|error| {
 		monochange_publish::PackagePublishFailure::new(
@@ -336,9 +392,9 @@ async fn try_run_publish_packages_with_publications_and_resume(
 		root,
 		configuration,
 		options.dry_run,
-		options.output.quiet,
 		&requests,
 		&resumed_outcomes,
+		progress,
 	)
 	.await
 	{
@@ -369,12 +425,12 @@ async fn try_execute_release_publish_requests(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
 	dry_run: bool,
-	quiet: bool,
 	requests: &[PublishRequest],
 	resumed_outcomes: &[PackagePublishOutcome],
+	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
 	let progress = ResumedPublishProgressReporter {
-		inner: StderrPublishProgressReporter::new(quiet),
+		inner: progress,
 		resumed: PackagePublishReport {
 			mode: PackagePublishRunMode::Release,
 			dry_run,
@@ -401,13 +457,13 @@ async fn try_execute_release_publish_requests(
 	.await
 }
 
-struct ResumedPublishProgressReporter {
-	inner: StderrPublishProgressReporter,
+struct ResumedPublishProgressReporter<'a> {
+	inner: &'a dyn PublishProgressReporter,
 	resumed: PackagePublishSummary,
 	resumed_ecosystems: BTreeSet<Ecosystem>,
 }
 
-impl PublishProgressReporter for ResumedPublishProgressReporter {
+impl PublishProgressReporter for ResumedPublishProgressReporter<'_> {
 	fn report(&self, event: PublishProgressEvent) {
 		self.inner.report(offset_publish_progress_event(
 			event,

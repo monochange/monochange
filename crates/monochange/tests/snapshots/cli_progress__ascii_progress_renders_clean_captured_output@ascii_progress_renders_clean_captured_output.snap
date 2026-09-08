@@ -2,6 +2,8 @@
 source: crates/monochange/tests/cli_progress.rs
 expression: normalized_ascii_progress(&stderr)
 ---
+> Loading workspace configuration
++ Loaded workspace configuration [duration]
 monochange running `progress-ascii`
 > [1/2] plan release (PrepareRelease)
 + [1/2] plan release (PrepareRelease) [duration]

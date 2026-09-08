@@ -64,6 +64,25 @@ use tempfile::TempDir;
 use toml::Value as TomlValue;
 
 use super::*;
+
+async fn try_run_placeholder_publish_with_npm_otp(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	selected_packages: &BTreeSet<String>,
+	dry_run: bool,
+	npm_otp: Option<&str>,
+	_quiet: bool,
+) -> PackagePublishExecutionResult {
+	try_run_placeholder_publish_with_progress(
+		root,
+		configuration,
+		selected_packages,
+		dry_run,
+		npm_otp,
+		&monochange_publish::NoopPublishProgressReporter,
+	)
+	.await
+}
 use crate::tests::TEST_ENV_LOCK;
 
 fn build_placeholder_directory(

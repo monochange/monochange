@@ -11,6 +11,7 @@ use clap::ArgMatches;
 use monochange_config::load_workspace_configuration;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+use monochange_core::WorkspaceConfiguration;
 use monochange_core::lint::LintPreset;
 use monochange_core::lint::LintProgressReporter;
 use monochange_core::lint::LintReport;
@@ -23,9 +24,7 @@ use monochange_lint::Linter;
 use crate::OutputFormat;
 
 #[allow(clippy::vec_init_then_push)]
-fn lint_suites(
-	configuration: Option<&monochange_core::WorkspaceConfiguration>,
-) -> Vec<Box<dyn LintSuite>> {
+fn lint_suites(configuration: Option<&WorkspaceConfiguration>) -> Vec<Box<dyn LintSuite>> {
 	let mut suites: Vec<Box<dyn LintSuite>> = Vec::new();
 	#[cfg(feature = "cargo")]
 	suites.push(Box::new(monochange_cargo::lints::lint_suite()));
@@ -43,10 +42,7 @@ fn lint_suites(
 	suites
 }
 
-fn build_linter(
-	configuration: &monochange_core::WorkspaceConfiguration,
-	selection: LintSelection,
-) -> Linter {
+fn build_linter(configuration: &WorkspaceConfiguration, selection: LintSelection) -> Linter {
 	Linter::new(
 		lint_suites(Some(configuration)),
 		configuration.lints.clone(),
@@ -56,7 +52,7 @@ fn build_linter(
 
 pub(crate) fn collect_workspace_validation_issues(
 	root: &Path,
-	configuration: &monochange_core::WorkspaceConfiguration,
+	configuration: &WorkspaceConfiguration,
 ) -> (Vec<String>, Vec<String>) {
 	let mut warnings = Vec::new();
 	let mut errors = Vec::new();
@@ -118,39 +114,27 @@ pub(crate) fn explain_lint_preset(preset_id: &str) -> Option<LintPreset> {
 	.find_preset(preset_id)
 }
 
-/// Run the check command (validate + lint).
-pub(crate) fn run_check_command(
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn run_check_command_with_configuration(
 	root: &Path,
+	configuration: &WorkspaceConfiguration,
 	fix: bool,
 	ecosystems: &[String],
 	only_rules: &[String],
 	format: OutputFormat,
 	verbose: bool,
+	reporter: &crate::output::ProgressReporter,
 ) -> MonochangeResult<String> {
-	run_check_command_with_progress(root, fix, ecosystems, only_rules, format, verbose, true)
-}
-
-pub(crate) fn run_check_command_with_progress(
-	root: &Path,
-	fix: bool,
-	ecosystems: &[String],
-	only_rules: &[String],
-	format: OutputFormat,
-	verbose: bool,
-	progress_enabled: bool,
-) -> MonochangeResult<String> {
-	let configuration = load_workspace_configuration(root)?;
 	let mut output = String::new();
 
-	let human_output = matches!(format, OutputFormat::Text | OutputFormat::Markdown);
-	let reporter = (human_output && progress_enabled)
-		.then(crate::lint_check_reporter::HumanLintProgressReporter::new);
-	if let Some(reporter) = &reporter {
-		reporter.validation_started();
-	}
-
+	let validation_started = std::time::Instant::now();
+	reporter.phase_started("Validating workspace configuration");
 	let (validation_warnings, validation_errors) =
-		collect_workspace_validation_issues(root, &configuration);
+		collect_workspace_validation_issues(root, configuration);
+	reporter.phase_finished(
+		"Validated workspace configuration",
+		validation_started.elapsed(),
+	);
 	for warning in &validation_warnings {
 		let _ = writeln!(output, "warning: {warning}");
 	}
@@ -166,26 +150,16 @@ pub(crate) fn run_check_command_with_progress(
 	let selection = LintSelection::all()
 		.with_suites(ecosystems.iter().cloned())
 		.with_rules(only_rules.iter().cloned());
-	let linter = build_linter(&configuration, selection);
+	let linter = build_linter(configuration, selection);
 
-	let mut report = if let Some(ref r) = reporter {
-		linter.lint_workspace(root, &configuration, r)
-	} else {
-		linter.lint_workspace(
-			root,
-			&configuration,
-			&monochange_core::lint::NoopLintProgressReporter,
-		)
-	};
+	let mut report = linter.lint_workspace(root, configuration, reporter);
 
 	let mut fixed_files: Vec<(PathBuf, String)> = Vec::new();
 	let mut fixed_file_count = 0usize;
 	if fix {
 		let fixes = linter.apply_fixes(&report);
 		fixed_file_count = fixes.len();
-		if let Some(ref r) = reporter {
-			r.fix_started(fixed_file_count);
-		}
+		reporter.fix_started(fixed_file_count);
 		for (file_path, fixed_content) in fixes {
 			std::fs::write(&file_path, fixed_content).map_err(|error| {
 				MonochangeError::Io(format!(
@@ -194,27 +168,23 @@ pub(crate) fn run_check_command_with_progress(
 					error
 				))
 			})?;
-			if let Some(ref r) = reporter {
-				let description = report
-					.autofixable()
-					.iter()
-					.find(|res| res.location.file_path == file_path)
-					.and_then(|res| res.fix.as_ref())
-					.map_or("fixed", |f| f.description.as_str());
-				fixed_files.push((file_path.clone(), description.to_string()));
-				r.fix_applied(&file_path, description);
-			}
+			let description = report
+				.autofixable()
+				.iter()
+				.find(|res| res.location.file_path == file_path)
+				.and_then(|res| res.fix.as_ref())
+				.map_or("fixed", |f| f.description.as_str());
+			fixed_files.push((file_path.clone(), description.to_string()));
+			reporter.fix_applied(&file_path, description);
 		}
-		if let Some(ref r) = reporter {
-			r.fix_finished(fixed_files.len());
-		}
+		reporter.fix_finished(fixed_files.len());
 
 		if fixed_file_count > 0 {
 			// NOTE: optimize later by re-linting only fixed files or adding a safe
 			// fast-path for “all original errors were fixed.”
 			report = linter.lint_workspace(
 				root,
-				&configuration,
+				configuration,
 				&monochange_core::lint::NoopLintProgressReporter,
 			);
 		}
@@ -223,15 +193,12 @@ pub(crate) fn run_check_command_with_progress(
 	let lint_has_errors = report.has_errors();
 	let validation_has_errors = !validation_errors.is_empty();
 	let fixed_any_files = fixed_file_count > 0;
-	if let Some(r) = reporter {
-		r.summary(
-			report.error_count,
-			report.warning_count,
-			report.autofixable().len(),
-			fixed_any_files,
-		);
-		r.finish();
-	}
+	reporter.summary(
+		report.error_count,
+		report.warning_count,
+		report.autofixable().len(),
+		fixed_any_files,
+	);
 
 	match format {
 		OutputFormat::Json | OutputFormat::JsonMin => {
@@ -269,7 +236,28 @@ pub(crate) fn run_check_command_with_progress(
 		OutputFormat::Text | OutputFormat::Markdown => {
 			output.push_str(&format_check_report(&report, fixed_any_files, verbose));
 			if validation_has_errors || lint_has_errors {
-				Err(MonochangeError::Config(format!("check failed:\n{output}")))
+				let mut diagnostic = format!(
+					"check failed: {} error{}, {} warning{}",
+					report.error_count + validation_errors.len(),
+					if report.error_count + validation_errors.len() == 1 {
+						""
+					} else {
+						"s"
+					},
+					report.warning_count + validation_warnings.len(),
+					if report.warning_count + validation_warnings.len() == 1 {
+						""
+					} else {
+						"s"
+					},
+				);
+				if validation_has_errors {
+					diagnostic.push_str("\nworkspace validation failed");
+					for error in &validation_errors {
+						let _ = write!(diagnostic, "\n{error}");
+					}
+				}
+				Err(MonochangeError::Reported { output, diagnostic })
 			} else {
 				Ok(output)
 			}

@@ -15,18 +15,19 @@ exit_code: 1
 ----- stdout -----
 
 ----- stderr -----
-error: package `core` belongs to multiple groups: `cli` and `sdk`
-  --> monochange.toml:11:13
+error[cli.diagnostic]: error: package `core` belongs to multiple groups: `cli` and `sdk`
+  cause:   --> monochange.toml:11:13
 
-   |
-11 | packages = ["core"]
-   |             ^^^^^^ first group membership
+       |
+    11 | packages = ["core"]
+       |             ^^^^^^ first group membership
 
-  ::: monochange.toml:8:13
-  |
-8 | packages = ["core"]
-  |             ^^^^^^ conflicting group membership
+      ::: monochange.toml:8:13
+      |
+    8 | packages = ["core"]
+      |             ^^^^^^ conflicting group membership
 
-  = help: move the package into exactly one [group.<id>] declaration
-  = note: the first snippet marks the primary failure location
-  = note: additional snippets show related locations referenced by this error
+      = help: move the package into exactly one [group.<id>] declaration
+      = note: the first snippet marks the primary failure location
+      = note: additional snippets show related locations referenced by this error
+  command: monochange step validate

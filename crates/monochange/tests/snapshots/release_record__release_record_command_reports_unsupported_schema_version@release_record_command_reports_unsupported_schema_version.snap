@@ -2,4 +2,6 @@
 source: crates/monochange/tests/release_record.rs
 expression: "String::from_utf8(output.stderr).unwrap_or_else(|error|\npanic!(\"stderr utf8: {error}\"))"
 ---
-discovery error: release record in commit [SHA] uses unsupported schema_version [SCHEMA_VERSION] (upgrade monochange to read this record)
+error[workspace.discovery_failed]: release record in commit [SHA] uses unsupported schema_version [SCHEMA_VERSION] (upgrade monochange to read this record)
+  command: monochange step release-record
+  help: Check the configured package paths and workspace manifests, then rerun the command.

@@ -21,6 +21,33 @@ fn type_scoped_changeset_workspace() -> tempfile::TempDir {
 	monochange_test_helpers::setup_scenario_workspace!("lint-check/type-scope")
 }
 
+fn run_check_command(
+	root: &std::path::Path,
+	fix: bool,
+	ecosystems: &[String],
+	only_rules: &[String],
+	format: OutputFormat,
+	verbose: bool,
+) -> MonochangeResult<String> {
+	let configuration = monochange_config::load_workspace_configuration(root)?;
+	let reporter = crate::output::ProgressReporter::named(
+		"check",
+		false,
+		true,
+		crate::output::ProgressFormat::Auto,
+	);
+	run_check_command_with_configuration(
+		root,
+		&configuration,
+		fix,
+		ecosystems,
+		only_rules,
+		format,
+		verbose,
+		&reporter,
+	)
+}
+
 #[test]
 fn test_format_check_report_empty() {
 	let report = LintReport::new();
@@ -150,7 +177,9 @@ fn run_check_command_enforces_type_scoped_changeset_rules() {
 	let workspace = type_scoped_changeset_workspace();
 	let error = run_check_command(workspace.path(), false, &[], &[], OutputFormat::Text, false)
 		.expect_err("expected the missing developer notes section to fail");
-	let message = error.to_string();
+	let message = error
+		.reported_output()
+		.expect("text check failures preserve the complete result");
 
 	assert!(message.contains("changesets/types/app_feature"));
 	assert!(message.contains("changeset must include a `Developer notes` section"));

@@ -86,13 +86,20 @@ fn normalize_head_commit(root: &Path, contents: String) -> String {
 }
 
 fn normalize_io_error(contents: &str) -> String {
-	let operation = contents
+	let mut lines = contents.lines();
+	let first_line = lines.next().unwrap_or(contents);
+	let operation = first_line
 		.rsplit_once(": ")
-		.map_or(contents, |(operation, _error)| operation);
+		.map_or(first_line, |(operation, _error)| operation);
 	let context = operation
 		.rsplit_once(' ')
 		.map_or(operation, |(context, _path)| context);
-	format!("{context} [PATH]: [OS ERROR]")
+	let mut normalized = format!("{context} [PATH]: [OS ERROR]");
+	for line in lines {
+		normalized.push('\n');
+		normalized.push_str(line);
+	}
+	normalized
 }
 
 #[test]

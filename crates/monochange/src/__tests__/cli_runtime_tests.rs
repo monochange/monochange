@@ -36,6 +36,48 @@ fn block_on_in_context<T>(future: impl std::future::Future<Output = T>) -> T {
 use super::*;
 use crate::tests::TEST_ENV_LOCK;
 
+async fn execute_cli_command(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	cli_command: &CliCommandDefinition,
+	dry_run: bool,
+	inputs: BTreeMap<String, Vec<String>>,
+) -> MonochangeResult<String> {
+	execute_cli_command_with_options(
+		root,
+		configuration,
+		cli_command,
+		ExecuteCliCommandOptions {
+			dry_run,
+			quiet: false,
+			show_diff: false,
+			inputs,
+			prepared_release_path: None,
+			progress_format: ProgressFormat::Auto,
+			progress: None,
+		},
+	)
+	.await
+}
+
+async fn execute_matches(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	cli_command_name: &str,
+	cli_command_matches: &ArgMatches,
+	quiet: bool,
+) -> MonochangeResult<String> {
+	execute_matches_with_progress(
+		root,
+		configuration,
+		cli_command_name,
+		cli_command_matches,
+		quiet,
+		None,
+	)
+	.await
+}
+
 fn cli_context() -> CliContext {
 	CliContext {
 		root: PathBuf::from("."),
@@ -966,6 +1008,7 @@ path = "crates/core"
 		root,
 		&BTreeMap::from([("from".to_string(), vec!["HEAD".to_string()])]),
 		true,
+		None,
 	)
 	.await
 	.unwrap_or_else(|error| panic!("execute affected packages step: {error}"));
@@ -1045,6 +1088,7 @@ path = "packages/core"
 		root,
 		&BTreeMap::from([("from".to_string(), vec!["HEAD".to_string()])]),
 		true,
+		None,
 	)
 	.await
 	.unwrap_or_else(|error| panic!("execute affected packages step: {error}"));
@@ -2213,7 +2257,7 @@ fn run_cli_command_command_streams_output_when_progress_is_enabled() {
 		steps: vec![step.clone()],
 		dry_run: false,
 	};
-	let mut progress = CliProgressReporter::new(&cli_command, false, false, ProgressFormat::Json);
+	let mut progress = ProgressReporter::new(&cli_command, false, false, ProgressFormat::Json);
 
 	run_cli_command_command(
 		&mut context,
@@ -2267,7 +2311,7 @@ fn run_cli_command_command_runs_interactive_steps_without_capturing_output() {
 		steps: vec![step.clone()],
 		dry_run: false,
 	};
-	let mut progress = CliProgressReporter::new(&cli_command, false, false, ProgressFormat::Json);
+	let mut progress = ProgressReporter::new(&cli_command, false, false, ProgressFormat::Json);
 
 	run_cli_command_command(
 		&mut context,
@@ -2326,7 +2370,7 @@ fn interactive_command_step_surfaces_spawn_failures() {
 		steps: vec![step.clone()],
 		dry_run: false,
 	};
-	let mut progress = CliProgressReporter::new(&cli_command, false, false, ProgressFormat::Json);
+	let mut progress = ProgressReporter::new(&cli_command, false, false, ProgressFormat::Json);
 
 	let error = run_cli_command_command(
 		&mut context,
@@ -2420,7 +2464,7 @@ fn drain_stream_events_collects_stdout_stderr_and_handles_closed_channels() {
 		steps: Vec::new(),
 		dry_run: false,
 	};
-	let mut progress = CliProgressReporter::new(&cli_command, false, false, ProgressFormat::Auto);
+	let mut progress = ProgressReporter::new(&cli_command, false, false, ProgressFormat::Auto);
 	let step = CliStepDefinition::Command {
 		show_progress: None,
 		name: Some("stream output".to_string()),
@@ -2473,7 +2517,7 @@ fn drain_stream_events_emits_heartbeats_while_command_is_silent() {
 		steps: Vec::new(),
 		dry_run: false,
 	};
-	let mut progress = CliProgressReporter::new(&cli_command, false, true, ProgressFormat::Json);
+	let mut progress = ProgressReporter::new(&cli_command, false, true, ProgressFormat::Json);
 	let step = CliStepDefinition::Command {
 		show_progress: None,
 		name: Some("silent command".to_string()),
@@ -2550,6 +2594,7 @@ async fn configured_config_step_uses_generic_completion_without_config_json() {
 			inputs: BTreeMap::new(),
 			prepared_release_path: None,
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -2593,6 +2638,7 @@ async fn execute_cli_command_suppresses_progress_for_interactive_command_steps()
 			inputs: BTreeMap::new(),
 			prepared_release_path: None,
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -2819,6 +2865,7 @@ async fn execute_cli_command_preserves_stdout_and_stderr_from_failed_commands() 
 			inputs: BTreeMap::new(),
 			prepared_release_path: None,
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -2894,6 +2941,7 @@ async fn execute_cli_command_with_options_covers_final_artifact_save_call() {
 			inputs: BTreeMap::new(),
 			prepared_release_path: None,
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -2952,6 +3000,7 @@ async fn execute_cli_command_with_options_plans_publish_rate_limits_from_prepare
 			inputs: BTreeMap::new(),
 			prepared_release_path: Some(artifact_path),
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -2993,6 +3042,7 @@ async fn execute_cli_command_with_options_rejects_readiness_for_placeholder_publ
 			]),
 			prepared_release_path: None,
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -3033,6 +3083,7 @@ async fn execute_cli_command_with_options_reuses_prepared_release_artifact_for_v
 			inputs: BTreeMap::from([("format".to_string(), vec!["json".to_string()])]),
 			prepared_release_path: Some(artifact_path),
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -3066,6 +3117,7 @@ async fn execute_cli_command_with_options_reports_invalid_versions_artifacts() {
 			inputs: BTreeMap::new(),
 			prepared_release_path: Some(invalid_artifact_path),
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -3106,6 +3158,7 @@ async fn execute_cli_command_with_options_reports_invalid_versions_output_format
 			inputs: BTreeMap::from([("format".to_string(), vec!["yaml".to_string()])]),
 			prepared_release_path: Some(artifact_path),
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	)
 	.await
@@ -3127,7 +3180,7 @@ fn record_skipped_and_failure_helpers_cover_silent_paths() {
 		inputs: BTreeMap::new(),
 	};
 	let mut context = cli_context();
-	let mut progress = CliProgressReporter::new(&cli_command, false, true, ProgressFormat::Auto);
+	let mut progress = ProgressReporter::new(&cli_command, false, true, ProgressFormat::Auto);
 
 	record_skipped_cli_step(&mut context, &step, 0, &mut progress, false);
 	report_cli_step_failure(
@@ -3604,6 +3657,7 @@ async fn execute_cli_command_always_run_steps_continue_after_failure() {
 			inputs: BTreeMap::new(),
 			prepared_release_path: None,
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	);
 
@@ -3667,6 +3721,7 @@ async fn execute_cli_command_always_run_continue_after_resolve_step_inputs_failu
 			inputs: BTreeMap::new(),
 			prepared_release_path: None,
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	);
 
@@ -3726,6 +3781,7 @@ async fn execute_cli_command_always_run_continue_after_should_execute_failure() 
 			inputs: BTreeMap::new(),
 			prepared_release_path: None,
 			progress_format: ProgressFormat::Auto,
+			progress: None,
 		},
 	);
 

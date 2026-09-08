@@ -262,7 +262,7 @@ fn spinner_swaps_frames_in_place_without_reprinting_the_full_line() {
 		tempdir.path(),
 		&["progress-spinner"],
 		None,
-		&[("INSTA_WORKSPACE_ROOT", "1")],
+		&[("INSTA_WORKSPACE_ROOT", "1"), ("TERM", "xterm-256color")],
 		&[],
 	);
 	assert_eq!(status, 0, "{transcript}");
@@ -298,7 +298,8 @@ fn release_progress_renders_skipped_failed_steps_and_stderr_on_tty() {
 	assert!(transcript.contains("stderr only [stderr] warn line"));
 	assert!(transcript.contains("✖ [3/5] fail loud (Command)"));
 	assert!(transcript.contains("fail loud [stderr] bad line"));
-	assert!(transcript.contains("stderr:\nbad line"));
+	assert!(transcript.contains("error[workspace.discovery_failed]"));
+	assert!(transcript.contains("cause: stderr:\n    bad line"));
 	assert!(transcript.contains("✔ [4/5] cleanup (Command)"));
 	assert!(transcript.contains("cleanup [stdout] cleanup complete"));
 	assert!(
@@ -338,7 +339,7 @@ fn release_progress_renders_stdout_only_command_failure_details() {
 	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
 	assert!(transcript.contains("✖ [1/1] fail stdout only (Command)"));
 	assert!(
-		transcript.contains("stdout:\nstdout failure line"),
+		transcript.contains("cause: stdout:\n    stdout failure line"),
 		"expected stdout-only failure details in transcript:\n{transcript}"
 	);
 	assert!(!transcript.contains("stderr:"));

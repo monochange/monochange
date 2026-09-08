@@ -2,4 +2,6 @@
 source: crates/monochange/tests/release_record.rs
 expression: "String::from_utf8(output.stderr).unwrap_or_else(|error|\npanic!(\"stderr utf8: {error}\"))"
 ---
-discovery error: no monochange release record found in first-parent ancestry from `HEAD`
+error[workspace.discovery_failed]: no monochange release record found in first-parent ancestry from `HEAD`
+  command: monochange step release-record
+  help: Check the configured package paths and workspace manifests, then rerun the command.
