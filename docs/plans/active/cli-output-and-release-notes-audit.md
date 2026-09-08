@@ -441,12 +441,12 @@ Acceptance checks:
 
 ### PR 3: Make publish outcomes obvious
 
-- [ ] Replace the four-field publish summary with per-status counts.
-- [ ] Render `planned` as “would publish” in a dry run.
-- [ ] Render `SkippedExisting` as “already exists,” not as “did not match.”
-- [ ] Put the published or planned package list immediately below the headline.
-- [ ] Move registry commands, stdout, stderr, trust details, and individual skipped rows behind `--verbose` or `--show-all`.
-- [ ] Keep a complete structured report for JSON callers.
+- [x] Replace the four-field publish summary with per-status counts.
+- [x] Render `planned` as “would publish” in a dry run.
+- [x] Render `SkippedExisting` as “already exists,” not as “did not match.”
+- [x] Put the published or planned package list immediately below the headline.
+- [x] Move registry commands, stdout, stderr, trust details, and individual skipped rows behind `--verbose` or `--show-all`.
+- [x] Keep a complete structured report for JSON callers.
 
 Acceptance checks:
 

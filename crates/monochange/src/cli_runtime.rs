@@ -2498,17 +2498,9 @@ pub(crate) fn build_cli_template_context(
 
 	// Structured publish.* namespace
 	if let Some(report) = &context.package_publish_report {
-		let details = filter_placeholder_publish_report(
-			report.clone(),
-			boolean_step_input(&context.last_step_inputs, "show-all"),
-		);
 		template_context.insert(
 			"publish".to_string(),
-			build_package_publish_template_value(
-				report,
-				&details,
-				context.rate_limit_report.as_ref(),
-			),
+			build_package_publish_template_value(report, context.rate_limit_report.as_ref()),
 		);
 	} else if let Some(report) = &context.rate_limit_report {
 		template_context.insert(
@@ -2685,10 +2677,9 @@ fn build_release_commit_template_value(report: &CommitReleaseReport) -> serde_js
 
 fn build_package_publish_template_value(
 	report: &package_publish::PackagePublishReport,
-	details: &package_publish::PackagePublishReport,
 	rate_limit_report: Option<&monochange_core::PublishRateLimitReport>,
 ) -> serde_json::Value {
-	let mut value = serde_json::to_value(details).unwrap_or(serde_json::Value::Null);
+	let mut value = serde_json::to_value(report).unwrap_or(serde_json::Value::Null);
 	if let Some(object) = value.as_object_mut() {
 		object.insert(
 			"summary".to_string(),
@@ -2707,18 +2698,16 @@ fn build_package_publish_template_value(
 fn render_publish_command_json(
 	format: OutputFormat,
 	package_publish: Option<&package_publish::PackagePublishReport>,
-	details: Option<&package_publish::PackagePublishReport>,
 	rate_limit_report: Option<&monochange_core::PublishRateLimitReport>,
 ) -> MonochangeResult<String> {
 	format.render_json_value(
 		&serde_json::json!({
 			"package_publish": package_publish.map(|report| {
-				let details = details.unwrap_or(report);
 				serde_json::json!({
 					"mode": report.mode,
 					"dry_run": report.dry_run,
 					"summary": report.summary(),
-					"packages": details.packages,
+					"packages": report.packages,
 				})
 			}),
 			"publish_rate_limits": rate_limit_report,
@@ -2887,33 +2876,6 @@ fn boolean_step_input(step_inputs: &BTreeMap<String, Vec<String>>, name: &str) -
 	step_inputs
 		.get(name)
 		.is_some_and(|values| values.iter().any(|value| value == "true"))
-}
-
-fn filter_placeholder_publish_report(
-	mut report: package_publish::PackagePublishReport,
-	show_all_packages: bool,
-) -> package_publish::PackagePublishReport {
-	if show_all_packages || report.mode != package_publish::PackagePublishRunMode::Placeholder {
-		return report;
-	}
-
-	report.packages.retain(|package| {
-		if report.dry_run {
-			matches!(
-				package.status,
-				package_publish::PackagePublishStatus::Planned
-					| package_publish::PackagePublishStatus::Blocked
-					| package_publish::PackagePublishStatus::Failed
-			)
-		} else {
-			matches!(
-				package.status,
-				package_publish::PackagePublishStatus::Published
-					| package_publish::PackagePublishStatus::Failed
-			)
-		}
-	});
-	report
 }
 
 fn optional_publish_plan_readiness_artifact_path(
@@ -3098,27 +3060,57 @@ fn render_release_commit_report(report: &CommitReleaseReport) -> Vec<String> {
 	lines
 }
 
-fn render_package_publish_report(report: &package_publish::PackagePublishReport) -> Vec<String> {
+fn render_package_publish_report(
+	report: &package_publish::PackagePublishReport,
+	show_all_packages: bool,
+) -> Vec<String> {
 	let summary = report.summary();
-	let mut lines = vec![match report.mode {
-		package_publish::PackagePublishRunMode::Placeholder => {
-			"placeholder publishing:".to_string()
-		}
-		package_publish::PackagePublishRunMode::Release => "package publishing:".to_string(),
-	}];
-	lines.push(format!(
-		"  summary: {} expected, {} succeeded, {} failed, {} skipped",
-		summary.expected, summary.succeeded, summary.failed, summary.skipped
-	));
-
-	if report.packages.is_empty() {
-		lines.push("- no packages matched the publishing criteria".to_string());
+	let mut lines = vec![package_publish_headline(report, summary)];
+	if summary.total() == 0 {
 		return lines;
 	}
 
+	let primary_packages = report
+		.packages
+		.iter()
+		.filter(|package| {
+			matches!(
+				package.status,
+				package_publish::PackagePublishStatus::Planned
+					| package_publish::PackagePublishStatus::Published
+			)
+		})
+		.collect::<Vec<_>>();
+	if !primary_packages.is_empty() {
+		lines.push(String::new());
+		lines.extend(render_publish_package_rows(&primary_packages, false));
+	}
+
+	append_publish_problem_rows(
+		&mut lines,
+		report,
+		package_publish::PackagePublishStatus::Failed,
+		"Failed",
+	);
+	append_publish_problem_rows(
+		&mut lines,
+		report,
+		package_publish::PackagePublishStatus::Blocked,
+		"Blocked",
+	);
+
+	lines.push(String::new());
+	lines.push(package_publish_counts(report, summary));
+
+	if !show_all_packages {
+		return lines;
+	}
+
+	lines.push(String::new());
+	lines.push("Details".to_string());
 	for package in &report.packages {
 		lines.push(format!(
-			"- {} {} via {} -> {}",
+			"- {} {} via {} — {}",
 			package.package,
 			package.version,
 			package.registry,
@@ -3152,6 +3144,170 @@ fn render_package_publish_report(report: &package_publish::PackagePublishReport)
 	}
 
 	lines
+}
+
+fn package_publish_headline(
+	report: &package_publish::PackagePublishReport,
+	summary: package_publish::PackagePublishSummary,
+) -> String {
+	if summary.total() == 0 {
+		return match report.mode {
+			package_publish::PackagePublishRunMode::Placeholder => {
+				"No packages matched placeholder publishing criteria".to_string()
+			}
+			package_publish::PackagePublishRunMode::Release => {
+				"No packages matched publishing criteria".to_string()
+			}
+		};
+	}
+	if summary.already_exists == summary.total() {
+		return match report.mode {
+			package_publish::PackagePublishRunMode::Placeholder => {
+				"No placeholder packages need publishing".to_string()
+			}
+			package_publish::PackagePublishRunMode::Release => {
+				"No packages need publishing".to_string()
+			}
+		};
+	}
+	if summary.failed > 0 {
+		if summary.published > 0 {
+			return format!(
+				"Published {}; {} failed",
+				publish_package_count(report.mode, summary.published),
+				summary.failed,
+			);
+		}
+		return format!(
+			"Publishing failed for {}",
+			publish_package_count(report.mode, summary.failed)
+		);
+	}
+	if summary.planned > 0 {
+		return format!(
+			"Would publish {}",
+			publish_package_count(report.mode, summary.planned)
+		);
+	}
+	if summary.blocked > 0 {
+		return format!(
+			"Publishing blocked for {}",
+			publish_package_count(report.mode, summary.blocked)
+		);
+	}
+	if summary.published > 0 {
+		return format!(
+			"Published {}",
+			publish_package_count(report.mode, summary.published)
+		);
+	}
+
+	"No packages were published".to_string()
+}
+
+fn publish_package_count(mode: package_publish::PackagePublishRunMode, count: usize) -> String {
+	let placeholder = match mode {
+		package_publish::PackagePublishRunMode::Placeholder => "placeholder ",
+		package_publish::PackagePublishRunMode::Release => "",
+	};
+	let noun = if count == 1 { "package" } else { "packages" };
+	format!("{count} {placeholder}{noun}")
+}
+
+fn package_publish_counts(
+	report: &package_publish::PackagePublishReport,
+	summary: package_publish::PackagePublishSummary,
+) -> String {
+	let package_noun = if summary.total() == 1 {
+		"package"
+	} else {
+		"packages"
+	};
+	if summary.already_exists == summary.total() {
+		let version_kind = match report.mode {
+			package_publish::PackagePublishRunMode::Placeholder => "placeholder versions",
+			package_publish::PackagePublishRunMode::Release => "selected versions",
+		};
+		return format!(
+			"Checked {} {package_noun}. All {version_kind} already exist.",
+			summary.total()
+		);
+	}
+
+	let mut parts = vec![format!("Checked {} {package_noun}", summary.total())];
+	if summary.already_exists > 0 {
+		parts.push(if summary.already_exists == 1 {
+			"1 package version already exists".to_string()
+		} else {
+			format!("{} package versions already exist", summary.already_exists)
+		});
+	}
+	if summary.blocked > 0 {
+		parts.push(format!("{} blocked", summary.blocked));
+	}
+	if summary.failed > 0 {
+		parts.push(format!("{} failed", summary.failed));
+	}
+	if summary.not_attempted > 0 {
+		parts.push(format!("{} not attempted", summary.not_attempted));
+	}
+	if report.dry_run {
+		parts.push("No changes were made".to_string());
+	} else if summary.failed == 0 {
+		parts.push("0 failed".to_string());
+	}
+	format!("{}.", parts.join(". "))
+}
+
+fn render_publish_package_rows(
+	packages: &[&package_publish::PackagePublishOutcome],
+	include_message: bool,
+) -> Vec<String> {
+	let package_width = packages
+		.iter()
+		.map(|package| package.package.chars().count())
+		.max()
+		.unwrap_or_default();
+	let version_width = packages
+		.iter()
+		.map(|package| package.version.chars().count())
+		.max()
+		.unwrap_or_default();
+	packages
+		.iter()
+		.map(|package| {
+			let message = if include_message {
+				format!(" — {}", package.message)
+			} else {
+				String::new()
+			};
+			format!(
+				"  {name:<package_width$}  {version:<version_width$}  {registry}{message}",
+				name = package.package,
+				version = package.version,
+				registry = package.registry,
+			)
+		})
+		.collect()
+}
+
+fn append_publish_problem_rows(
+	lines: &mut Vec<String>,
+	report: &package_publish::PackagePublishReport,
+	status: package_publish::PackagePublishStatus,
+	title: &str,
+) {
+	let packages = report
+		.packages
+		.iter()
+		.filter(|package| package.status == status)
+		.collect::<Vec<_>>();
+	if packages.is_empty() {
+		return;
+	}
+	lines.push(String::new());
+	lines.push(title.to_string());
+	lines.extend(render_publish_package_rows(&packages, true));
 }
 
 fn append_package_publish_command_output_lines(
@@ -3204,18 +3360,65 @@ fn append_markdown_output_block(lines: &mut Vec<String>, label: &str, value: Opt
 
 fn render_package_publish_report_markdown(
 	report: &package_publish::PackagePublishReport,
+	show_all_packages: bool,
 	color: bool,
 ) -> Vec<String> {
 	let summary = report.summary();
-	let mut lines = vec![format!(
-		"- **Summary:** {} expected, {} succeeded, {} failed, {} skipped",
-		summary.expected, summary.succeeded, summary.failed, summary.skipped
-	)];
-	if report.packages.is_empty() {
-		lines.push("- no packages matched the publishing criteria".to_string());
+	let mut lines = vec![format!("**{}**", package_publish_headline(report, summary))];
+	if summary.total() == 0 {
 		return lines;
 	}
 
+	for package in report.packages.iter().filter(|package| {
+		matches!(
+			package.status,
+			package_publish::PackagePublishStatus::Planned
+				| package_publish::PackagePublishStatus::Published
+		)
+	}) {
+		lines.push(format!(
+			"- **{}** {} via {}",
+			paint_markdown_inline(
+				&format!("`{}`", package.package),
+				MarkdownStyle::Code,
+				color,
+			),
+			paint_markdown_inline(
+				&format!("`{}`", package.version),
+				MarkdownStyle::Code,
+				color,
+			),
+			paint_markdown_inline(
+				&format!("`{}`", package.registry),
+				MarkdownStyle::Code,
+				color,
+			),
+		));
+	}
+
+	append_publish_problem_rows_markdown(
+		&mut lines,
+		report,
+		package_publish::PackagePublishStatus::Failed,
+		"Failed",
+		color,
+	);
+	append_publish_problem_rows_markdown(
+		&mut lines,
+		report,
+		package_publish::PackagePublishStatus::Blocked,
+		"Blocked",
+		color,
+	);
+	lines.push(String::new());
+	lines.push(package_publish_counts(report, summary));
+
+	if !show_all_packages {
+		return lines;
+	}
+
+	lines.push(String::new());
+	lines.push("### Details".to_string());
 	for package in &report.packages {
 		lines.push(format!(
 			"- **{}** {} via {} → {}",
@@ -3285,12 +3488,52 @@ fn render_package_publish_report_markdown(
 	lines
 }
 
+fn append_publish_problem_rows_markdown(
+	lines: &mut Vec<String>,
+	report: &package_publish::PackagePublishReport,
+	status: package_publish::PackagePublishStatus,
+	title: &str,
+	color: bool,
+) {
+	let packages = report
+		.packages
+		.iter()
+		.filter(|package| package.status == status)
+		.collect::<Vec<_>>();
+	if packages.is_empty() {
+		return;
+	}
+	lines.push(String::new());
+	lines.push(format!("**{title}**"));
+	lines.extend(packages.into_iter().map(|package| {
+		format!(
+			"- **{}** {} via {} — {}",
+			paint_markdown_inline(
+				&format!("`{}`", package.package),
+				MarkdownStyle::Code,
+				color,
+			),
+			paint_markdown_inline(
+				&format!("`{}`", package.version),
+				MarkdownStyle::Code,
+				color,
+			),
+			paint_markdown_inline(
+				&format!("`{}`", package.registry),
+				MarkdownStyle::Code,
+				color,
+			),
+			package.message,
+		)
+	}));
+}
+
 fn package_publish_status_label(status: package_publish::PackagePublishStatus) -> &'static str {
 	match status {
 		package_publish::PackagePublishStatus::Planned => "planned",
 		package_publish::PackagePublishStatus::Published => "published",
-		package_publish::PackagePublishStatus::SkippedExisting => "skipped-existing",
-		package_publish::PackagePublishStatus::SkippedExternal => "skipped-external",
+		package_publish::PackagePublishStatus::SkippedExisting => "already exists",
+		package_publish::PackagePublishStatus::SkippedExternal => "not attempted",
 		package_publish::PackagePublishStatus::Blocked => "blocked",
 		package_publish::PackagePublishStatus::Failed => "failed",
 	}
@@ -3460,33 +3703,26 @@ pub(crate) fn render_cli_command_result(
 		return render_retarget_release_report(report);
 	}
 
-	let mut lines = vec![format!(
-		"command `{}` completed{}",
-		cli_command.name,
-		if context.dry_run { " (dry-run)" } else { "" }
-	)];
+	let mut lines = context.package_publish_report.as_ref().map_or_else(
+		|| {
+			vec![format!(
+				"command `{}` completed{}",
+				cli_command.name,
+				if context.dry_run { " (dry-run)" } else { "" }
+			)]
+		},
+		|report| {
+			render_package_publish_report(
+				report,
+				boolean_step_input(&context.last_step_inputs, "show-all"),
+			)
+		},
+	);
 
 	if let Some(prepared_release) = &context.prepared_release {
 		render_prepared_release_summary(&mut lines, prepared_release, context);
 	}
 
-	if let Some(report) = &context.package_publish_report {
-		let details = filter_placeholder_publish_report(
-			report.clone(),
-			boolean_step_input(&context.last_step_inputs, "show-all"),
-		);
-		let mut rendered = render_package_publish_report(&details);
-		if details.packages.len() != report.packages.len()
-			&& let Some(summary) = rendered.get_mut(1)
-		{
-			let complete = report.summary();
-			*summary = format!(
-				"  summary: {} expected, {} succeeded, {} failed, {} skipped",
-				complete.expected, complete.succeeded, complete.failed, complete.skipped
-			);
-		}
-		lines.extend(rendered);
-	}
 	if let Some(report) = &context.rate_limit_report {
 		lines.push("publish rate limits:".to_string());
 		if report.windows.is_empty() {
@@ -3563,7 +3799,10 @@ pub(crate) fn render_cli_command_result(
 			}
 		}
 	}
-	if !context.command_logs.is_empty() {
+	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
+	if !context.command_logs.is_empty()
+		&& (context.package_publish_report.is_none() || show_all_publish_details)
+	{
 		lines.push("commands:".to_string());
 		for log in &context.command_logs {
 			lines.push(format!("- {log}"));
@@ -3881,6 +4120,18 @@ pub(crate) fn render_cli_command_markdown_result(
 			String::new()
 		}
 	)];
+	if let Some(report) = &context.package_publish_report {
+		let title = match report.mode {
+			package_publish::PackagePublishRunMode::Placeholder => "Placeholder publishing",
+			package_publish::PackagePublishRunMode::Release => "Package publishing",
+		};
+		let rendered = render_package_publish_report_markdown(
+			report,
+			boolean_step_input(&context.last_step_inputs, "show-all"),
+			color,
+		);
+		sections.push(render_markdown_section(title, &rendered, color));
+	}
 
 	if let Some(prepared_release) = &context.prepared_release {
 		let mut summary = Vec::new();
@@ -4027,28 +4278,10 @@ pub(crate) fn render_cli_command_markdown_result(
 			sections.push(render_markdown_section("Deleted changesets", &lines, color));
 		}
 	}
-	if let Some(report) = &context.package_publish_report {
-		let title = match report.mode {
-			package_publish::PackagePublishRunMode::Placeholder => "Placeholder publishing",
-			package_publish::PackagePublishRunMode::Release => "Package publishing",
-		};
-		let details = filter_placeholder_publish_report(
-			report.clone(),
-			boolean_step_input(&context.last_step_inputs, "show-all"),
-		);
-		let mut rendered = render_package_publish_report_markdown(&details, color);
-		if details.packages.len() != report.packages.len()
-			&& let Some(summary) = rendered.first_mut()
-		{
-			let complete = report.summary();
-			*summary = format!(
-				"- **Summary:** {} expected, {} succeeded, {} failed, {} skipped",
-				complete.expected, complete.succeeded, complete.failed, complete.skipped
-			);
-		}
-		sections.push(render_markdown_section(title, &rendered, color));
-	}
-	if !context.command_logs.is_empty() {
+	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
+	if !context.command_logs.is_empty()
+		&& (context.package_publish_report.is_none() || show_all_publish_details)
+	{
 		let lines = context
 			.command_logs
 			.iter()
@@ -4438,14 +4671,9 @@ fn resolve_command_output(
 		let format = context.output_format;
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
-				let details = filter_placeholder_publish_report(
-					report.clone(),
-					boolean_step_input(&context.last_step_inputs, "show-all"),
-				);
 				render_publish_command_json(
 					format,
 					Some(report),
-					Some(&details),
 					context.rate_limit_report.as_ref(),
 				)?
 			}
@@ -4461,7 +4689,7 @@ fn resolve_command_output(
 		let format = context.output_format;
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
-				render_publish_command_json(format, None, None, Some(report))?
+				render_publish_command_json(format, None, Some(report))?
 			}
 			OutputFormat::Markdown | OutputFormat::Text => {
 				render_cli_command_result(cli_command, context)

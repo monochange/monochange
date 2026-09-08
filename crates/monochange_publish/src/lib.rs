@@ -307,34 +307,50 @@ pub type PackagePublishExecutionResult = Result<PackagePublishReport, PackagePub
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct PackagePublishSummary {
-	pub expected: usize,
-	pub succeeded: usize,
+	pub planned: usize,
+	pub published: usize,
+	pub already_exists: usize,
+	pub blocked: usize,
 	pub failed: usize,
-	pub skipped: usize,
+	pub not_attempted: usize,
+}
+
+impl PackagePublishSummary {
+	#[must_use]
+	pub const fn total(self) -> usize {
+		self.planned
+			+ self.published
+			+ self.already_exists
+			+ self.blocked
+			+ self.failed
+			+ self.not_attempted
+	}
 }
 
 impl PackagePublishReport {
 	#[must_use]
 	pub fn summary(&self) -> PackagePublishSummary {
 		let mut summary = PackagePublishSummary {
-			expected: self.packages.len(),
-			succeeded: 0,
+			planned: 0,
+			published: 0,
+			already_exists: 0,
+			blocked: 0,
 			failed: 0,
-			skipped: 0,
+			not_attempted: 0,
 		};
 
 		for outcome in &self.packages {
 			match outcome.status {
-				PackagePublishStatus::Published => summary.succeeded += 1,
+				PackagePublishStatus::Planned => summary.planned += 1,
+				PackagePublishStatus::Published => summary.published += 1,
+				PackagePublishStatus::SkippedExisting => summary.already_exists += 1,
+				PackagePublishStatus::SkippedExternal => summary.not_attempted += 1,
+				PackagePublishStatus::Blocked => summary.blocked += 1,
 				PackagePublishStatus::Failed => summary.failed += 1,
-				_ => summary.skipped += 1,
 			}
 		}
 
-		debug_assert_eq!(
-			summary.expected,
-			summary.succeeded + summary.failed + summary.skipped
-		);
+		debug_assert_eq!(self.packages.len(), summary.total());
 		summary
 	}
 }
@@ -1453,9 +1469,9 @@ pub async fn try_execute_publish_requests_with_progress(
 	let summary = report.summary();
 	progress.report(PublishProgressEvent::RunFinished {
 		mode,
-		total: summary.expected,
-		published: summary.succeeded,
-		skipped: summary.skipped,
+		total: summary.total(),
+		published: summary.published,
+		skipped: summary.planned + summary.already_exists + summary.blocked + summary.not_attempted,
 		failed: summary.failed,
 	});
 	if let Some(error) = primary_error {
@@ -3235,11 +3251,14 @@ pub fn ensure_publish_report_succeeded(report: &PackagePublishReport) -> Monocha
 	};
 
 	Err(MonochangeError::Discovery(format!(
-		"package publishing did not complete: expected {}, succeeded {}, failed {}, skipped {}; failed package {} {}: {}",
-		summary.expected,
-		summary.succeeded,
+		"package publishing did not complete: {} total, {} published, {} failed, {} blocked, {} already existed, {} not attempted, {} planned; failed package {} {}: {}",
+		summary.total(),
+		summary.published,
 		summary.failed,
-		summary.skipped,
+		summary.blocked,
+		summary.already_exists,
+		summary.not_attempted,
+		summary.planned,
 		failed.package,
 		failed.version,
 		failed.message

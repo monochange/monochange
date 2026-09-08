@@ -1878,6 +1878,7 @@ fn valid_input_names_returns_expected_names_for_display_and_publish_steps() {
 				"ecosystem",
 				"resume",
 				"all",
+				"show-all",
 				"stream-output",
 				"fail-on-duplicate",
 			]
@@ -2289,6 +2290,10 @@ fn expected_input_kind_returns_correct_types_for_display_and_publish_steps() {
 	assert_eq!(
 		publish.expected_input_kind("output"),
 		Some(CliInputKind::Path)
+	);
+	assert_eq!(
+		publish.expected_input_kind("show-all"),
+		Some(CliInputKind::Boolean)
 	);
 	assert_eq!(publish.expected_input_kind("unknown"), None);
 

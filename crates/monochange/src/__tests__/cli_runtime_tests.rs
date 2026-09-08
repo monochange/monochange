@@ -1240,6 +1240,7 @@ fn render_cli_command_results_include_package_publish_reports() {
 		dry_run: false,
 	};
 	let mut context = cli_context();
+	context.last_step_inputs = BTreeMap::from([("show-all".to_string(), vec!["true".to_string()])]);
 	context.package_publish_report = Some(package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Release,
 		dry_run: false,
@@ -1267,7 +1268,7 @@ fn render_cli_command_results_include_package_publish_reports() {
 	context.command_logs = vec!["ran npm trust".to_string()];
 
 	let text = render_cli_command_result(&cli_command, &context);
-	assert!(text.contains("package publishing:"));
+	assert!(text.starts_with("Published 1 package"));
 	assert!(text.contains("@scope/pkg"));
 	assert!(text.contains("trusted publishing: configured"));
 	assert!(text.contains("repository: monochange/monochange"));
@@ -1286,7 +1287,7 @@ fn render_cli_command_results_include_package_publish_reports() {
 }
 
 #[test]
-fn filter_placeholder_publish_report_hides_completed_dry_run_packages_by_default() {
+fn placeholder_publish_report_prioritizes_actions_and_hides_details_by_default() {
 	let report = package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Placeholder,
 		dry_run: true,
@@ -1310,30 +1311,25 @@ fn filter_placeholder_publish_report_hides_completed_dry_run_packages_by_default
 		],
 	};
 
-	let filtered = filter_placeholder_publish_report(report.clone(), false);
-	let statuses = filtered
-		.packages
-		.iter()
-		.map(|package| package.status)
-		.collect::<Vec<_>>();
+	let default = render_package_publish_report(&report, false).join("\n");
+	assert!(default.starts_with("Would publish 1 placeholder package\n\n  @scope/pkg"));
+	assert!(default.contains("Blocked\n  @scope/pkg"));
+	assert!(default.contains(
+		"Checked 4 packages. 1 package version already exists. 1 blocked. 1 not attempted. No changes were made."
+	));
+	assert!(!default.contains("Details"));
+	assert!(!default.contains("trusted publishing:"));
+	assert_eq!(default.matches("@scope/pkg").count(), 2);
 
-	assert_eq!(
-		statuses,
-		vec![
-			package_publish::PackagePublishStatus::Planned,
-			package_publish::PackagePublishStatus::Blocked,
-		]
-	);
-	assert_eq!(
-		filter_placeholder_publish_report(report, true)
-			.packages
-			.len(),
-		4
-	);
+	let detailed = render_package_publish_report(&report, true).join("\n");
+	assert!(detailed.contains("Details"));
+	assert!(detailed.contains("already exists"));
+	assert!(detailed.contains("not attempted"));
+	assert!(detailed.contains("trusted publishing:"));
 }
 
 #[test]
-fn placeholder_rendering_keeps_complete_summary_when_detail_rows_are_filtered() {
+fn publish_rendering_puts_the_outcome_before_command_metadata() {
 	let mut context = cli_context();
 	context.package_publish_report = Some(package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Placeholder,
@@ -1358,15 +1354,20 @@ fn placeholder_rendering_keeps_complete_summary_when_detail_rows_are_filtered() 
 	};
 
 	let text = render_cli_command_result(&command, &context);
-	assert!(text.contains("summary: 2 expected, 1 succeeded, 0 failed, 1 skipped"));
-	assert_eq!(text.matches(" via ").count(), 1);
+	assert!(text.starts_with("Published 1 placeholder package\n\n  @scope/pkg"));
+	assert!(text.contains("Checked 2 packages. 1 package version already exists. 0 failed."));
+	assert_eq!(text.matches("@scope/pkg").count(), 1);
+	assert!(!text.contains("command `placeholder` completed"));
 
 	let markdown = render_cli_command_markdown_result(&command, &context);
-	assert!(markdown.contains("**Summary:** 2 expected, 1 succeeded, 0 failed, 1 skipped"));
+	let publishing = markdown
+		.find("## Placeholder publishing")
+		.expect("publish section");
+	assert!(markdown[publishing..].contains("**Published 1 placeholder package**"));
 }
 
 #[test]
-fn placeholder_json_and_template_outputs_filter_package_rows_but_keep_complete_summary() {
+fn placeholder_json_and_template_outputs_keep_all_package_rows() {
 	let mut context = cli_context();
 	context.output_format = OutputFormat::Json;
 	context.last_step_inputs = BTreeMap::from([
@@ -1403,60 +1404,165 @@ fn placeholder_json_and_template_outputs_filter_package_rows_but_keep_complete_s
 		.unwrap_or_else(|error| panic!("package publish json output: {error}"));
 	let parsed: serde_json::Value =
 		serde_json::from_str(&rendered).unwrap_or_else(|error| panic!("parse json: {error}"));
-	assert_eq!(parsed["package_publish"]["summary"]["expected"], 3);
+	assert_eq!(parsed["package_publish"]["summary"]["published"], 1);
+	assert_eq!(parsed["package_publish"]["summary"]["already_exists"], 1);
+	assert_eq!(parsed["package_publish"]["summary"]["failed"], 1);
 	assert_eq!(
 		parsed["package_publish"]["packages"]
 			.as_array()
 			.expect("package rows")
 			.len(),
-		2
+		3
 	);
 
 	let template_context = build_cli_template_context(&context, &context.last_step_inputs, None);
-	assert_eq!(template_context["publish"]["summary"]["expected"], 3);
+	assert_eq!(template_context["publish"]["summary"]["published"], 1);
+	assert_eq!(template_context["publish"]["summary"]["already_exists"], 1);
+	assert_eq!(template_context["publish"]["summary"]["failed"], 1);
 	assert_eq!(
 		template_context["publish"]["packages"]
 			.as_array()
 			.expect("template package rows")
 			.len(),
-		2
+		3
 	);
 }
 
 #[test]
-fn filter_placeholder_publish_report_hides_unchanged_real_run_packages_by_default() {
-	let report = package_publish::PackagePublishReport {
-		mode: package_publish::PackagePublishRunMode::Placeholder,
-		dry_run: false,
-		packages: vec![
-			sample_package_publish_outcome(
-				package_publish::PackagePublishStatus::Published,
-				package_publish::TrustedPublishingStatus::Configured,
-			),
-			sample_package_publish_outcome(
-				package_publish::PackagePublishStatus::Failed,
-				package_publish::TrustedPublishingStatus::Disabled,
-			),
-			sample_package_publish_outcome(
-				package_publish::PackagePublishStatus::SkippedExisting,
-				package_publish::TrustedPublishingStatus::Configured,
-			),
-		],
+fn package_publish_headlines_distinguish_every_outcome() {
+	let report = |mode, dry_run, statuses: &[package_publish::PackagePublishStatus]| {
+		package_publish::PackagePublishReport {
+			mode,
+			dry_run,
+			packages: statuses
+				.iter()
+				.map(|status| {
+					sample_package_publish_outcome(
+						*status,
+						package_publish::TrustedPublishingStatus::Disabled,
+					)
+				})
+				.collect(),
+		}
+	};
+	let headline = |report: &package_publish::PackagePublishReport| {
+		package_publish_headline(report, report.summary())
 	};
 
-	let filtered = filter_placeholder_publish_report(report, false);
-	let statuses = filtered
-		.packages
-		.iter()
-		.map(|package| package.status)
-		.collect::<Vec<_>>();
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Placeholder,
+			false,
+			&[],
+		)),
+		"No packages matched placeholder publishing criteria"
+	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Placeholder,
+			false,
+			&[package_publish::PackagePublishStatus::SkippedExisting],
+		)),
+		"No placeholder packages need publishing"
+	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Release,
+			false,
+			&[package_publish::PackagePublishStatus::SkippedExisting],
+		)),
+		"No packages need publishing"
+	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Placeholder,
+			true,
+			&[package_publish::PackagePublishStatus::Planned],
+		)),
+		"Would publish 1 placeholder package"
+	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Release,
+			false,
+			&[package_publish::PackagePublishStatus::Blocked],
+		)),
+		"Publishing blocked for 1 package"
+	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Release,
+			false,
+			&[package_publish::PackagePublishStatus::Failed],
+		)),
+		"Publishing failed for 1 package"
+	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Release,
+			false,
+			&[
+				package_publish::PackagePublishStatus::Published,
+				package_publish::PackagePublishStatus::Failed,
+			],
+		)),
+		"Published 1 package; 1 failed"
+	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Release,
+			false,
+			&[package_publish::PackagePublishStatus::Published],
+		)),
+		"Published 1 package"
+	);
+}
+
+#[test]
+fn package_publish_counts_explain_existing_and_failed_packages() {
+	let report = |mode, statuses: &[package_publish::PackagePublishStatus]| {
+		package_publish::PackagePublishReport {
+			mode,
+			dry_run: false,
+			packages: statuses
+				.iter()
+				.map(|status| {
+					sample_package_publish_outcome(
+						*status,
+						package_publish::TrustedPublishingStatus::Disabled,
+					)
+				})
+				.collect(),
+		}
+	};
+	let counts = |report: &package_publish::PackagePublishReport| {
+		package_publish_counts(report, report.summary())
+	};
 
 	assert_eq!(
-		statuses,
-		vec![
-			package_publish::PackagePublishStatus::Published,
-			package_publish::PackagePublishStatus::Failed,
-		]
+		counts(&report(
+			package_publish::PackagePublishRunMode::Placeholder,
+			&[package_publish::PackagePublishStatus::SkippedExisting],
+		)),
+		"Checked 1 package. All placeholder versions already exist."
+	);
+	assert_eq!(
+		counts(&report(
+			package_publish::PackagePublishRunMode::Release,
+			&[package_publish::PackagePublishStatus::SkippedExisting],
+		)),
+		"Checked 1 package. All selected versions already exist."
+	);
+	assert_eq!(
+		counts(&report(
+			package_publish::PackagePublishRunMode::Release,
+			&[
+				package_publish::PackagePublishStatus::SkippedExisting,
+				package_publish::PackagePublishStatus::SkippedExisting,
+				package_publish::PackagePublishStatus::Failed,
+			],
+		)),
+		"Checked 3 packages. 2 package versions already exist. 1 failed."
 	);
 }
 
@@ -1467,22 +1573,14 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 		dry_run: true,
 		packages: Vec::new(),
 	};
-	let text_lines = render_package_publish_report(&empty_placeholder);
-	assert_eq!(text_lines[0], "placeholder publishing:");
+	let text_lines = render_package_publish_report(&empty_placeholder, false);
 	assert_eq!(
-		text_lines[1],
-		"  summary: 0 expected, 0 succeeded, 0 failed, 0 skipped"
+		text_lines,
+		vec!["No packages matched placeholder publishing criteria"]
 	);
 	assert_eq!(
-		text_lines[2],
-		"- no packages matched the publishing criteria"
-	);
-	assert_eq!(
-		render_package_publish_report_markdown(&empty_placeholder, false),
-		vec![
-			"- **Summary:** 0 expected, 0 succeeded, 0 failed, 0 skipped".to_string(),
-			"- no packages matched the publishing criteria".to_string(),
-		]
+		render_package_publish_report_markdown(&empty_placeholder, false, false),
+		vec!["**No packages matched placeholder publishing criteria**".to_string()]
 	);
 
 	let detailed_report = package_publish::PackagePublishReport {
@@ -1493,17 +1591,35 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 			package_publish::TrustedPublishingStatus::ManualActionRequired,
 		)],
 	};
-	let text = render_package_publish_report(&detailed_report).join("\n");
+	let text = render_package_publish_report(&detailed_report, true).join("\n");
 	assert!(text.contains("repository: monochange/monochange"));
 	assert!(text.contains("workflow: publish.yml"));
 	assert!(text.contains("environment: release"));
 	assert!(text.contains("setup: https://docs.npmjs.com/cli/v11/commands/npm-trust"));
 
-	let markdown = render_package_publish_report_markdown(&detailed_report, false).join("\n");
+	let markdown = render_package_publish_report_markdown(&detailed_report, true, false).join("\n");
 	assert!(markdown.contains("**Repository:** `monochange/monochange`"));
 	assert!(markdown.contains("**Workflow:** `publish.yml`"));
 	assert!(markdown.contains("**Environment:** `release`"));
 	assert!(markdown.contains("**Setup:** `https://docs.npmjs.com/cli/v11/commands/npm-trust`"));
+
+	let problem_report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: vec![
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::Failed,
+				package_publish::TrustedPublishingStatus::Disabled,
+			),
+			sample_package_publish_outcome(
+				package_publish::PackagePublishStatus::Blocked,
+				package_publish::TrustedPublishingStatus::Disabled,
+			),
+		],
+	};
+	let markdown = render_package_publish_report_markdown(&problem_report, false, false).join("\n");
+	assert!(markdown.contains("**Failed**\n- **`@scope/pkg`** `1.2.3` via `npm`"));
+	assert!(markdown.contains("**Blocked**\n- **`@scope/pkg`** `1.2.3` via `npm`"));
 }
 
 #[test]
@@ -1521,12 +1637,17 @@ fn render_package_publish_reports_include_command_output_blocks() {
 		packages: vec![outcome],
 	};
 
-	let text = render_package_publish_report(&report).join("\n");
+	let default = render_package_publish_report(&report, false).join("\n");
+	assert!(!default.contains("command: npm publish --access public"));
+	assert!(!default.contains("stdout:"));
+	assert!(!default.contains("stderr:"));
+
+	let text = render_package_publish_report(&report, true).join("\n");
 	assert!(text.contains("command: npm publish --access public"));
 	assert!(text.contains("stdout:\n    │ published\n    │ with provenance"));
 	assert!(text.contains("stderr:\n    │ npm notice package"));
 
-	let markdown = render_package_publish_report_markdown(&report, false).join("\n");
+	let markdown = render_package_publish_report_markdown(&report, true, false).join("\n");
 	assert!(markdown.contains("**Command:** `npm publish --access public`"));
 	assert!(markdown.contains("**stdout:**\n  ```text\n  published\n  with provenance\n  ```"));
 	assert!(markdown.contains("**stderr:**\n  ```text\n  npm notice package\n  ```"));
@@ -1561,7 +1682,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 		}],
 	};
 
-	let text = render_package_publish_report(&report).join("\n");
+	let text = render_package_publish_report(&report, true).join("\n");
 	assert!(text.contains("trusted publishing: manual-action-required"));
 	assert!(text.contains("trust message: configure trusted publishing manually for `pkg`"));
 	assert!(text.contains("setup: https://crates.io/crates/pkg"));
@@ -1569,7 +1690,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 		"next: open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"
 	));
 
-	let markdown = render_package_publish_report_markdown(&report, false).join("\n");
+	let markdown = render_package_publish_report_markdown(&report, true, false).join("\n");
 	assert!(markdown.contains("**Trusted publishing:** manual-action-required"));
 	assert!(
 		markdown.contains("**Trust message:** configure trusted publishing manually for `pkg`")
@@ -1590,11 +1711,11 @@ fn package_publish_status_labels_cover_all_variants() {
 	);
 	assert_eq!(
 		package_publish_status_label(package_publish::PackagePublishStatus::SkippedExisting),
-		"skipped-existing"
+		"already exists"
 	);
 	assert_eq!(
 		package_publish_status_label(package_publish::PackagePublishStatus::SkippedExternal),
-		"skipped-external"
+		"not attempted"
 	);
 
 	assert_eq!(
@@ -1699,10 +1820,12 @@ fn resolve_command_output_supports_package_publish_json_without_release_state() 
 	assert_eq!(
 		parsed["package_publish"]["summary"],
 		serde_json::json!({
-			"expected": 1,
-			"succeeded": 0,
+			"planned": 1,
+			"published": 0,
+			"already_exists": 0,
+			"blocked": 0,
 			"failed": 0,
-			"skipped": 1,
+			"not_attempted": 0,
 		})
 	);
 	assert_eq!(
@@ -1752,8 +1875,7 @@ fn resolve_command_output_supports_package_publish_text_and_markdown_without_rel
 	});
 	let text = resolve_command_output(&cli_command, &text_context, true, None)
 		.unwrap_or_else(|error| panic!("package publish text output: {error}"));
-	assert!(text.contains("placeholder publishing:"));
-	assert!(text.contains("no packages matched the publishing criteria"));
+	assert_eq!(text, "No packages matched placeholder publishing criteria");
 
 	let mut markdown_context = cli_context();
 	markdown_context.output_format = OutputFormat::Markdown;
@@ -1771,7 +1893,7 @@ fn resolve_command_output_supports_package_publish_text_and_markdown_without_rel
 		let markdown = resolve_command_output(&cli_command, &markdown_context, true, None)
 			.unwrap_or_else(|error| panic!("package publish markdown output: {error}"));
 		assert!(markdown.contains("## Placeholder publishing"));
-		assert!(markdown.contains("no packages matched the publishing criteria"));
+		assert!(markdown.contains("No packages matched placeholder publishing criteria"));
 	});
 }
 

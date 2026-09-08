@@ -4546,10 +4546,12 @@ fn process_command_executor_runs_commands_and_reports_spawn_failures() {
 #[test]
 fn resumed_publish_progress_offsets_run_totals_and_leaves_package_events_unchanged() {
 	let resumed = monochange_publish::PackagePublishSummary {
-		expected: 12,
-		succeeded: 10,
+		planned: 0,
+		published: 10,
+		already_exists: 2,
+		blocked: 0,
 		failed: 0,
-		skipped: 2,
+		not_attempted: 0,
 	};
 	let resumed_ecosystems = BTreeSet::from([Ecosystem::Cargo]);
 	let started = offset_publish_progress_event(

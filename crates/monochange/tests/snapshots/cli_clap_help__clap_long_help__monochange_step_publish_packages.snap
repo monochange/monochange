@@ -7,7 +7,7 @@ Command: monochange step publish-packages
 
 Run the built-in publish-packages release workflow step
 
-[1m[97mUsage:[0m monochange step publish-packages [--dry-run] [--format <FORMAT>] [--output <PATH>] [--package <PACKAGE>] [--group <GROUP>] [--ecosystem <ECOSYSTEM>] [--resume <PATH>] [--all] [--stream-output] [--fail-on-duplicate]
+[1m[97mUsage:[0m monochange step publish-packages [--dry-run] [--format <FORMAT>] [--output <PATH>] [--package <PACKAGE>] [--group <GROUP>] [--ecosystem <ECOSYSTEM>] [--resume <PATH>] [--all] [--show-all] [--stream-output] [--fail-on-duplicate]
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
@@ -40,6 +40,9 @@ Run the built-in publish-packages release workflow step
 
       [93m--all[0m
           Include every matching package instead of the default subset
+
+      [93m--show-all[0m
+          Include unchanged and skipped package details
 
       [93m--stream-output[0m
           Stream package-manager output while publishing

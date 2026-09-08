@@ -26,6 +26,7 @@ pub(crate) use monochange_publish::PackagePublishOutcome;
 pub(crate) use monochange_publish::PackagePublishReport;
 pub(crate) use monochange_publish::PackagePublishRunMode;
 pub(crate) use monochange_publish::PackagePublishStatus;
+pub(crate) use monochange_publish::PackagePublishSummary;
 use monochange_publish::PlaceholderManifestWriterRegistry;
 use monochange_publish::PublishProgressEvent;
 use monochange_publish::PublishProgressReporter;
@@ -402,7 +403,7 @@ async fn try_execute_release_publish_requests(
 
 struct ResumedPublishProgressReporter {
 	inner: StderrPublishProgressReporter,
-	resumed: monochange_publish::PackagePublishSummary,
+	resumed: PackagePublishSummary,
 	resumed_ecosystems: BTreeSet<Ecosystem>,
 }
 
@@ -418,7 +419,7 @@ impl PublishProgressReporter for ResumedPublishProgressReporter {
 
 fn offset_publish_progress_event(
 	event: PublishProgressEvent,
-	resumed: monochange_publish::PackagePublishSummary,
+	resumed: PackagePublishSummary,
 	resumed_ecosystems: &BTreeSet<Ecosystem>,
 ) -> PublishProgressEvent {
 	match event {
@@ -431,7 +432,7 @@ fn offset_publish_progress_event(
 			PublishProgressEvent::RunStarted {
 				mode,
 				dry_run,
-				total: total + resumed.expected,
+				total: total + resumed.total(),
 				ecosystems: resumed_ecosystems
 					.iter()
 					.copied()
@@ -450,9 +451,13 @@ fn offset_publish_progress_event(
 		} => {
 			PublishProgressEvent::RunFinished {
 				mode,
-				total: total + resumed.expected,
-				published: published + resumed.succeeded,
-				skipped: skipped + resumed.skipped,
+				total: total + resumed.total(),
+				published: published + resumed.published,
+				skipped: skipped
+					+ resumed.planned
+					+ resumed.already_exists
+					+ resumed.blocked
+					+ resumed.not_attempted,
 				failed: failed + resumed.failed,
 			}
 		}

@@ -76,6 +76,7 @@ Use `PlaceholderPublish` instead when you need to bootstrap a package that does 
 - `ecosystem`: optional repeated ecosystem names (`cargo`, `npm`, `deno`, `dart`, `python`, `go`; `flutter` is accepted as a legacy alias for `dart`); only packages targeting the selected ecosystems are published
 - `resume`: optional path to a JSON result artifact from an earlier real `monochange step publish-packages` or configured publish workflow run; completed package versions are skipped and failed or pending work is retried
 - `output`: optional path where monochange writes the package publish result JSON artifact for retry/resume workflows
+- `show-all`: include every package's status, trusted-publishing metadata, command, and captured output in human-readable results
 
 ## Step-level `when` condition
 
@@ -107,6 +108,9 @@ always_run = true
 
 - in dry-run mode, plans and previews publish operations without touching registries
 - in normal mode, validates release-branch policy and publish-relevant dependency cycles, then publishes package versions to their configured registries
+- starts human-readable output with the outcome and the package versions published or planned, followed by explicit per-status counts
+- keeps already-existing and external package rows, trusted-publishing metadata, commands, and captured output behind `--show-all`
+- returns every package row when `--format json` is selected, regardless of `--show-all`
 - when `output` is set, writes the package publish result artifact even if a registry publish command fails, then exits non-zero for failed package outcomes
 - contributes `publish.*` and `publish_rate_limits.*` template context to the command result
 
@@ -148,10 +152,15 @@ name = "output"
 type = "path"
 help_text = "Write the package publish result JSON artifact for retry/resume"
 
+[[cli.publish.inputs]]
+name = "show-all"
+type = "boolean"
+help_text = "Include unchanged and skipped package details"
+
 [[cli.publish.steps]]
 name = "publish packages"
 type = "PublishPackages"
-inputs = ["format", "package", "group", "ecosystem", "resume", "output"]
+inputs = ["format", "package", "group", "ecosystem", "resume", "output", "show-all"]
 ```
 
 <!-- {/cliStepPublishPackagesExample} -->
