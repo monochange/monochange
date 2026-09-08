@@ -156,6 +156,8 @@ fn changed_files_distinguishes_working_directory_and_staged_only() {
 	git(root, &["add", "staged.txt"]);
 	fs::write(root.join("README.md"), "hello updated\n")
 		.unwrap_or_else(|error| panic!("write unstaged tracked file: {error}"));
+	fs::write(root.join("untracked.txt"), "untracked\n")
+		.unwrap_or_else(|error| panic!("write untracked file: {error}"));
 
 	assert_eq!(
 		ChangeFrame::StagedOnly
@@ -170,8 +172,59 @@ fn changed_files_distinguishes_working_directory_and_staged_only() {
 		vec![
 			std::path::PathBuf::from("README.md"),
 			std::path::PathBuf::from("staged.txt"),
+			std::path::PathBuf::from("untracked.txt"),
 		]
 	);
+}
+
+#[test]
+fn changed_files_includes_deleted_files() {
+	let tempdir = init_repo();
+	let root = tempdir.path();
+	fs::remove_file(root.join("README.md"))
+		.unwrap_or_else(|error| panic!("remove tracked file: {error}"));
+
+	assert_eq!(
+		ChangeFrame::WorkingDirectory
+			.changed_files(root)
+			.unwrap_or_else(|error| panic!("working changed files: {error}")),
+		vec![std::path::PathBuf::from("README.md")]
+	);
+}
+
+#[test]
+fn custom_range_compares_exact_refs_when_default_branch_advanced() {
+	let tempdir = init_repo();
+	let root = tempdir.path();
+	let release = git_output_trimmed(root, &["rev-parse", "HEAD"]);
+
+	git(root, &["checkout", "-b", "feature"]);
+	fs::write(root.join("feature.txt"), "feature\n")
+		.unwrap_or_else(|error| panic!("write feature file: {error}"));
+	git(root, &["add", "feature.txt"]);
+	git(root, &["commit", "-m", "feature"]);
+
+	git(root, &["checkout", "main"]);
+	fs::write(root.join("main.txt"), "main\n")
+		.unwrap_or_else(|error| panic!("write main file: {error}"));
+	git(root, &["add", "main.txt"]);
+	git(root, &["commit", "-m", "main"]);
+
+	let changed = ChangeFrame::CustomRange {
+		base: "main".to_string(),
+		head: "feature".to_string(),
+	}
+	.changed_files(root)
+	.unwrap_or_else(|error| panic!("custom range changed files: {error}"));
+
+	assert_eq!(
+		changed,
+		vec![
+			std::path::PathBuf::from("feature.txt"),
+			std::path::PathBuf::from("main.txt"),
+		]
+	);
+	assert_ne!(release, git_output_trimmed(root, &["rev-parse", "main"]));
 }
 
 #[test]
@@ -210,7 +263,7 @@ fn change_frame_display() {
 			head: "feature".to_string(),
 		}
 		.to_string(),
-		"main...feature"
+		"main..feature"
 	);
 
 	assert_eq!(
@@ -232,7 +285,7 @@ fn revision_ranges() {
 			head: "feature".to_string(),
 		}
 		.revision_range(),
-		"main...feature"
+		"main..feature"
 	);
 	assert_eq!(
 		ChangeFrame::PullRequest {
@@ -249,7 +302,14 @@ fn revision_ranges() {
 fn includes_unstaged() {
 	assert!(ChangeFrame::WorkingDirectory.includes_unstaged());
 	assert!(
-		ChangeFrame::BranchRange {
+		!ChangeFrame::BranchRange {
+			base: "main".to_string(),
+			head: "feature".to_string(),
+		}
+		.includes_unstaged()
+	);
+	assert!(
+		!ChangeFrame::CustomRange {
 			base: "main".to_string(),
 			head: "feature".to_string(),
 		}
@@ -263,7 +323,14 @@ fn includes_staged() {
 	assert!(ChangeFrame::WorkingDirectory.includes_staged());
 	assert!(ChangeFrame::StagedOnly.includes_staged());
 	assert!(
-		ChangeFrame::BranchRange {
+		!ChangeFrame::BranchRange {
+			base: "main".to_string(),
+			head: "feature".to_string(),
+		}
+		.includes_staged()
+	);
+	assert!(
+		!ChangeFrame::CustomRange {
 			base: "main".to_string(),
 			head: "feature".to_string(),
 		}
@@ -358,7 +425,7 @@ fn test_custom_range_display() {
 			head: "v2.0.0".to_string(),
 		}
 		.to_string(),
-		"v1.0.0...v2.0.0"
+		"v1.0.0..v2.0.0"
 	);
 }
 
@@ -375,7 +442,7 @@ fn test_custom_range_revision_range() {
 			head: "v2.0.0".to_string(),
 		}
 		.revision_range(),
-		"v1.0.0...v2.0.0"
+		"v1.0.0..v2.0.0"
 	);
 }
 
@@ -452,8 +519,8 @@ fn test_change_frame_branch_range() {
 	};
 	assert_eq!(frame.base_revision(), Some("main"));
 	assert_eq!(frame.head_revision(), Some("feature"));
-	assert!(frame.includes_unstaged());
-	assert!(frame.includes_staged());
+	assert!(!frame.includes_unstaged());
+	assert!(!frame.includes_staged());
 }
 
 #[test]

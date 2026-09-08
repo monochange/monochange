@@ -77,7 +77,7 @@ impl fmt::Display for ChangeFrame {
 		match self {
 			Self::WorkingDirectory => write!(f, "working directory"),
 			Self::BranchRange { base, head } | Self::CustomRange { base, head } => {
-				write!(f, "{base}...{head}")
+				write!(f, "{base}..{head}")
 			}
 			Self::PullRequest { target, pr_branch } => {
 				write!(f, "PR: {target} <- {pr_branch}")
@@ -134,7 +134,7 @@ impl ChangeFrame {
 		match self {
 			Self::WorkingDirectory => "HEAD".to_string(),
 			Self::BranchRange { base, head } | Self::CustomRange { base, head } => {
-				format!("{base}...{head}")
+				format!("{base}..{head}")
 			}
 			Self::PullRequest { target, pr_branch } => format!("{target}...{pr_branch}"),
 			Self::StagedOnly => "--staged".to_string(),
@@ -165,16 +165,13 @@ impl ChangeFrame {
 	/// Check if this frame includes unstaged changes.
 	#[must_use]
 	pub fn includes_unstaged(&self) -> bool {
-		matches!(self, Self::WorkingDirectory | Self::BranchRange { .. })
+		matches!(self, Self::WorkingDirectory)
 	}
 
 	/// Check if this frame includes staged changes.
 	#[must_use]
 	pub fn includes_staged(&self) -> bool {
-		matches!(
-			self,
-			Self::WorkingDirectory | Self::StagedOnly | Self::BranchRange { .. }
-		)
+		matches!(self, Self::WorkingDirectory | Self::StagedOnly)
 	}
 
 	/// Get the list of changed files for this frame.
@@ -185,22 +182,25 @@ impl ChangeFrame {
 	pub fn changed_files(&self, repo_root: &Path) -> Result<Vec<std::path::PathBuf>, FrameError> {
 		let output = match self {
 			Self::WorkingDirectory => {
-				// Get both staged and unstaged
-				let mut staged =
-					run_git_diff_name_only(repo_root, &["--staged", "--diff-filter=ACMRT"])?;
-				let unstaged = run_git_diff_name_only(repo_root, &["HEAD", "--diff-filter=ACMRT"])?;
-
-				staged.extend(unstaged);
-				staged.sort();
-				staged.dedup();
-				return Ok(staged);
+				let mut changed =
+					run_git_diff_name_only(repo_root, &["HEAD", "--diff-filter=ACMRTD"])?;
+				changed.extend(run_git_lines(
+					repo_root,
+					&["ls-files", "--others", "--exclude-standard"],
+				)?);
+				changed.sort();
+				changed.dedup();
+				return Ok(changed);
 			}
 			Self::StagedOnly => {
-				run_git_diff_name_only(repo_root, &["--staged", "--diff-filter=ACMRT"])?
+				run_git_diff_name_only(repo_root, &["--staged", "--diff-filter=ACMRTD"])?
 			}
-			_ => {
+			Self::BranchRange { base, head } | Self::CustomRange { base, head } => {
+				run_git_diff_name_only(repo_root, &[base, head, "--diff-filter=ACMRTD"])?
+			}
+			Self::PullRequest { .. } => {
 				let range = self.revision_range();
-				run_git_diff_name_only(repo_root, &[&range, "--diff-filter=ACMRT"])?
+				run_git_diff_name_only(repo_root, &[&range, "--diff-filter=ACMRTD"])?
 			}
 		};
 
@@ -529,6 +529,28 @@ fn run_git_diff_name_only(
 		.collect();
 
 	Ok(files)
+}
+
+fn run_git_lines(repo_root: &Path, args: &[&str]) -> Result<Vec<std::path::PathBuf>, FrameError> {
+	let output = Command::new("git")
+		.current_dir(repo_root)
+		.args(args)
+		.output()
+		.map_err(|error| FrameError::Git(format!("failed to run git {args:?}: {error}")))?;
+
+	if !output.status.success() {
+		return Err(FrameError::Git(format!("git {args:?} failed")));
+	}
+
+	String::from_utf8(output.stdout)
+		.map_err(|error| FrameError::Git(format!("invalid utf-8 from git {args:?}: {error}")))
+		.map(|stdout| {
+			stdout
+				.lines()
+				.filter(|line| !line.is_empty())
+				.map(std::path::PathBuf::from)
+				.collect()
+		})
 }
 
 #[cfg(test)]

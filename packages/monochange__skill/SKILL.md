@@ -25,11 +25,11 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 
 1. Inspect configuration: `monochange step validate`, `monochange step config`, or `monochange help`. Use this to learn package ids, enabled ecosystems, groups, and which top-level workflow commands actually exist.
 2. Inspect packages: use the configured workflow command (often `monochange run discover --format json`) or the immutable `monochange step discover --format json`. Prefer JSON when another tool or agent will consume the package graph.
-3. Classify API impact before writing release intent: run `monochange change classify --base origin/main --format markdown --dependency-propagation public` (or use the `monochange_classify_changes` MCP tool) and use the recommended bumps as the starting point for changesets. Omit `--dependency-propagation public` when you only want packages with direct source changes.
+3. Classify change severity before writing release intent: run `monochange change classify --format json --dependency-propagation public` or call `monochange_classify_changes`. Read [skills/change-classification.md](skills/change-classification.md), then account for every affected package, finding, and pending changeset action.
 4. Create release intent: use a configured workflow command (often `monochange run change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
 5. Preview versioned files: use the configured workflow command (often `monochange run release --dry-run --format json` or `--diff`) or `monochange step prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
 6. Extract a named release-note artifact when it needs separate review or delivery: `monochange notes --output <id> [--target <id>]`. It prints to stdout by default; use `--file <path>` for a CI artifact. This is read-only and does not prepare a release.
-7. Run validation and linting: `monochange check`, `monochange step validate`, and `monochange changeset validate --api --base origin/main`. `validate` catches monochange configuration and target issues; `check` also runs manifest lint rules.
+7. Run validation and linting: `monochange check`, `monochange step validate`, and `monochange changeset validate --api`. API validation enforces only high-confidence evidence by default; use `--strict` only after the repository has calibrated partial analyzers.
 8. Only after review, run configured commit/release/publish workflows. Keep release-record, readiness, bootstrap, plan, and publish artifacts when the workflow emits them.
 
 ## What to open next
@@ -38,6 +38,7 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 - [skills/commands.md](skills/commands.md): verified built-in commands, step commands, user-defined command behavior, and all CLI step types.
 - [skills/configuration.md](skills/configuration.md): current `monochange.toml` structure and examples.
 - [skills/changesets.md](skills/changesets.md): changeset file shape, CLI creation, and lifecycle rules.
+- [skills/change-classification.md](skills/change-classification.md): release-aware severity decisions, uncertainty, and ecosystem review.
 - [skills/linting.md](skills/linting.md): `monochange check`, lint presets, and manifest policy.
 - [skills/multi-package-publishing.md](skills/multi-package-publishing.md): readiness, bootstrap, and package publishing flows.
 - [skills/trusted-publishing.md](skills/trusted-publishing.md): registry trust/OIDC notes for publishing.
@@ -56,10 +57,9 @@ Built-in commands in the current CLI:
 - `monochange subagents`: generate repository-local agent/subagent guidance for monochange work.
 - `monochange analyze`: inspect semantic changes for a package.
 - `monochange notes --output <id>`: render one configured release-note output to stdout or an explicit file without modifying release state.
-- `monochange change classify --base origin/main --format markdown --dependency-propagation public`: classify API-impacting semantic changes, including direct public dependents, and recommend package bumps.
+- `monochange change classify --format json --dependency-propagation public`: compare the pull request and latest release, report finding evidence, and propose package bumps.
 - `monochange api diff --base origin/main --format json`: inspect API diff classification as structured data.
-- `monochange api snapshot --head HEAD --format json`: inspect the current monochange API snapshot report shape.
-- `monochange changeset validate --api --base origin/main --format markdown`: advisory validation comparing API classification expectations with changeset intent; use this in CI as a non-blocking comment/check first.
+- `monochange changeset validate --api --format markdown`: validate pending changesets against high-confidence classification evidence; add `--strict` to enforce advisory proposals.
 - `monochange step tag-release`: create release tags from an embedded release record.
 - `monochange step release-record`: inspect the release record reachable from a tag or commit.
 - `monochange check`: validate configuration, changesets, and manifest lint rules.
@@ -106,21 +106,21 @@ The `monochange mcp` server exposes these tools:
 - `monochange_lint_catalog`: list lint rules and presets.
 - `monochange_lint_explain`: explain one lint rule or preset.
 - `monochange_analyze_changes`: inspect semantic diffs for package-aware changes.
-- `monochange_classify_changes`: classify API-impacting changes and return package bump recommendations.
+- `monochange_classify_changes`: compare the pull request and latest release, then return evidence-backed package bumps.
 - `monochange_validate_changeset`: check one changeset against the current semantic diff.
 
 Prefer MCP tools when the caller needs structured data and the shell when you need to run the exact repository workflow that maintainers use locally or in CI.
 
 ## Semantic SemVer guardrails
 
-Release planning treats semantic analysis as advisory guardrails. When a git change frame can be analyzed, `monochange run release --dry-run --format json`, `monochange_release_preview`, and release manifests may include `compatibilityEvidence` inferred from public API/export, dependency, and metadata changes. Compare this with human-authored changesets:
+Release planning treats built-in semantic analysis as advisory evidence. `monochange change classify` reports the current pull request separately from the full interval since the package's latest release. Compare this evidence with human-authored changesets:
 
 - removed or modified public API/export evidence implies at least `major`;
 - added public API/export evidence implies at least `minor`;
 - dependency or metadata evidence is usually `patch` context;
 - warnings about semantic changes without matching changesets should be resolved before release.
 
-Do not let semantic analysis author releases automatically. Use it to catch mismatched or missing changesets, then update `.changeset/*.md` deliberately.
+Built-in findings are partial and medium-confidence. Follow [skills/change-classification.md](skills/change-classification.md) to inspect coverage gaps and use cargo-semver-checks for a higher-assurance Rust decision.
 
 For comparing two refs, use `monochange analyze`:
 

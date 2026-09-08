@@ -13,6 +13,7 @@ monochange discovers packages in a monorepo, reads release intent from `.changes
 - [skills/commands.md](./skills/commands.md): verified built-in commands, step commands, and step types.
 - [skills/configuration.md](./skills/configuration.md): authoring `monochange.toml` with copyable examples.
 - [skills/changesets.md](./skills/changesets.md): creating and maintaining `.changeset/*.md` files.
+- [skills/change-classification.md](./skills/change-classification.md): deciding major, minor, patch, or none from release-aware evidence.
 - [skills/reference.md](./skills/reference.md): complete reference for day-to-day operation.
 - [skills/linting.md](./skills/linting.md): `monochange check`, lint presets, rule severity, and manifest policy.
 - [skills/multi-package-publishing.md](./skills/multi-package-publishing.md): readiness, bootstrap, and package publishing flows.

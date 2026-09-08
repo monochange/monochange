@@ -4,8 +4,9 @@
 
 - Branch: `docs/api-snapshot-change-classification`
 - Worktree: `/Users/ifiokjr/.pi/agent/worktrees/root/root/Users/ifiokjr/Developer/projects/monochange/monochange/worktrees/docs-api-snapshot-change-classification`
-- State: implemented
-- Primary decision: use monochange-owned API snapshot files and diffing, not `cargo-semver-checks`.
+- State: implemented and superseded by [Release-aware change classification](release-aware-change-classification.md)
+- Primary decision at the time: use monochange-owned API snapshot files for the fast default loop. The release-aware follow-up keeps that loop and documents cargo-semver-checks as a higher-assurance Rust check.
+- Public API decision in the follow-up: `monochange change classify` is the canonical agent contract and `monochange api diff` is its lower-level diagnostic alias. Do not expose `api snapshot` until it returns normalized `ApiSnapshot` records instead of a zero-delta classification report.
 
 ## Problem statement
 

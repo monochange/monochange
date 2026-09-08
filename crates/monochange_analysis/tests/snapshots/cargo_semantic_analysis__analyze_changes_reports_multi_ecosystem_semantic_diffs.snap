@@ -151,6 +151,7 @@ expression: analysis
       "ecosystem": "deno",
       "analyzer_id": "deno/manifest",
       "changed_files": [
+        "cli.ts",
         "deno.json",
         "mod.ts"
       ],

@@ -144,6 +144,8 @@ Release planning also runs semantic analysis for the detected git change frame w
 
 Dry-run JSON and release manifest payloads include this data under `compatibilityEvidence`. Human reviewers should compare that evidence with the authored changesets before preparing a release.
 
+Before writing a changeset, use `monochange change classify --format json` to compare the pull request with both the default branch and the latest release. See [Change classification](../reference/change-classification.md) for finding confidence, coverage limits, and changeset validation.
+
 ## Release manifests vs release records
 
 Release planning and release repair use two different artifacts on purpose.

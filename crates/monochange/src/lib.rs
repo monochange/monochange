@@ -23,10 +23,7 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use analyze::render_analyze_report;
-use change_classify::parse_api_diff_options;
-use change_classify::parse_api_snapshot_options;
-use change_classify::parse_change_classify_options;
-use change_classify::parse_changeset_validate_api_options;
+use change_classify::classify_options_from_matches;
 use change_classify::render_change_classification;
 use change_classify::render_changeset_api_validation;
 pub(crate) use monochange_changelog::ChangelogBuildContext;
@@ -1115,22 +1112,6 @@ where
 	if let Some(output) = render_cli_snapshot_classification(&args)? {
 		return Ok(output);
 	}
-	if let Some(classify_options) = parse_change_classify_options(&args)? {
-		let output = render_change_classification(root, &classify_options)?;
-		return Ok(output);
-	}
-	if let Some(api_options) = parse_api_diff_options(&args)? {
-		let output = render_change_classification(root, &api_options)?;
-		return Ok(output);
-	}
-	if let Some(api_options) = parse_api_snapshot_options(&args)? {
-		let output = render_change_classification(root, &api_options)?;
-		return Ok(output);
-	}
-	if let Some(validate_options) = parse_changeset_validate_api_options(&args)? {
-		let output = render_changeset_api_validation(root, &validate_options)?;
-		return Ok(output);
-	}
 	// Fast path: parse config-free command shapes before any workspace loading.
 	// This keeps version and root help responsive even in repositories with costly
 	// package or glob validation.
@@ -1300,6 +1281,36 @@ where
 				generate_mcp: !subagent_matches.get_flag("no-mcp"),
 			};
 			let output = run_subagents(root, &options)?;
+			if quiet { Ok(String::new()) } else { Ok(output) }
+		}
+		Some(("change", change_matches)) => {
+			let Some(("classify", classify_matches)) = change_matches.subcommand() else {
+				return Err(MonochangeError::Config(
+					"Usage: monochange change classify [OPTIONS]".to_string(),
+				));
+			};
+			let options = classify_options_from_matches(classify_matches)?;
+			let output = render_change_classification(root, &options)?;
+			if quiet { Ok(String::new()) } else { Ok(output) }
+		}
+		Some(("api", api_matches)) => {
+			let Some(("diff", diff_matches)) = api_matches.subcommand() else {
+				return Err(MonochangeError::Config(
+					"Usage: monochange api diff [OPTIONS]".to_string(),
+				));
+			};
+			let options = classify_options_from_matches(diff_matches)?;
+			let output = render_change_classification(root, &options)?;
+			if quiet { Ok(String::new()) } else { Ok(output) }
+		}
+		Some(("changeset", changeset_matches)) => {
+			let Some(("validate", validate_matches)) = changeset_matches.subcommand() else {
+				return Err(MonochangeError::Config(
+					"Usage: monochange changeset validate --api [OPTIONS]".to_string(),
+				));
+			};
+			let options = classify_options_from_matches(validate_matches)?;
+			let output = render_changeset_api_validation(root, &options)?;
 			if quiet { Ok(String::new()) } else { Ok(output) }
 		}
 		Some(("analyze", analyze_matches)) => {

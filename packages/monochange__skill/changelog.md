@@ -7,6 +7,7 @@
 - Rewrote the skill package around the current monochange CLI/tool harness.
 - Documented verified built-in commands, step commands, MCP tools, user-defined command behavior, and all current CLI step types.
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
+- Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
 
 ## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
 

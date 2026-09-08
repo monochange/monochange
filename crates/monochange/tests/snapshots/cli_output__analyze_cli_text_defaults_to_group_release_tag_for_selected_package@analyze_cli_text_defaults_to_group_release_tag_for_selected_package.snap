@@ -9,7 +9,6 @@ info:
   env:
     MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -28,7 +27,7 @@ analyze:
   first release: no
 
 main -> head:
-  frame: main...HEAD
+  frame: main..HEAD
   semantic changes: 1
   changed files:
   - src/lib.rs
@@ -36,7 +35,7 @@ main -> head:
   - function `shout` added (src/lib.rs)
 
 release -> main:
-  frame: v1.0.0...main
+  frame: v1.0.0..main
   semantic changes: 6
   changed files:
   - Cargo.toml
@@ -50,7 +49,7 @@ release -> main:
   - manifest_field `package.edition` modified (Cargo.toml)
 
 release -> head:
-  frame: v1.0.0...HEAD
+  frame: v1.0.0..HEAD
   semantic changes: 7
   changed files:
   - Cargo.toml

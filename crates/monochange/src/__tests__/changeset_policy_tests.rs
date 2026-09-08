@@ -579,26 +579,28 @@ fn path_helpers_cover_normalization_matching_and_comment_rendering() {
 	assert!(is_changeset_markdown_path(".changeset/test.md"));
 	assert!(!is_changeset_markdown_path(".changeset/test.txt"));
 
-	let matcher = PackagePathMatcher::new(&package);
+	let matcher = PackagePathMatcher::new(
+		&package.id,
+		&package.path,
+		&package.additional_paths,
+		&package.ignored_paths,
+	);
 	assert_eq!(
-		matcher.classify("crates/core/src/lib.rs"),
+		matcher.classify(Path::new("crates/core/src/lib.rs")),
 		PackagePathMatch::Touched
 	);
 	assert_eq!(
-		matcher.classify("shared/config.json"),
+		matcher.classify(Path::new("shared/config.json")),
 		PackagePathMatch::Touched
 	);
-	assert!(matcher.is_ignored("crates/core/README.md"));
-	let docs_relative_path = package_relative_path(
-		"crates/core/docs/guide.md",
-		&matcher.package_root,
-		&matcher.package_root_prefix,
+	assert_eq!(
+		matcher.classify(Path::new("crates/core/README.md")),
+		PackagePathMatch::Ignored
 	);
-	assert!(matches_any_compiled_package_pattern(
-		"crates/core/docs/guide.md",
-		docs_relative_path,
-		&matcher.ignored_patterns
-	));
+	assert_eq!(
+		matcher.classify(Path::new("crates/core/docs/guide.md")),
+		PackagePathMatch::Ignored
+	);
 
 	let verify = ChangesetAffectedSettings {
 		enabled: true,
@@ -691,43 +693,21 @@ fn render_comment_includes_related_skip_guidance() {
 #[test]
 fn package_pattern_helpers_cover_root_relative_and_invalid_patterns() {
 	let package = sample_package();
-	let matcher = PackagePathMatcher::new(&package);
+	let matcher = PackagePathMatcher::new(
+		&package.id,
+		&package.path,
+		&package.additional_paths,
+		&package.ignored_paths,
+	);
 
 	assert_eq!(
-		package_relative_path(
-			"crates/core",
-			&matcher.package_root,
-			&matcher.package_root_prefix,
-		),
-		Some("")
+		matcher.classify(Path::new("crates/core")),
+		PackagePathMatch::Touched
 	);
-	assert!(
-		package_relative_path(
-			"docs/readme.md",
-			&matcher.package_root,
-			&matcher.package_root_prefix,
-		)
-		.is_none()
+	assert_eq!(
+		matcher.classify(Path::new("docs/readme.md")),
+		PackagePathMatch::Unmatched
 	);
-	assert!(matcher.is_ignored("crates/core/docs/guide.md"));
-	assert!(matches_any_compiled_package_pattern(
-		"crates/core/README.md",
-		package_relative_path(
-			"crates/core/README.md",
-			&matcher.package_root,
-			&matcher.package_root_prefix,
-		),
-		&compile_patterns(&package.ignored_paths)
-	));
-	assert!(!matches_any_compiled_package_pattern(
-		"crates/core/src/lib.rs",
-		package_relative_path(
-			"crates/core/src/lib.rs",
-			&matcher.package_root,
-			&matcher.package_root_prefix,
-		),
-		&compile_patterns(&["[".to_string()])
-	));
 	assert!(path_matches_compiled_patterns(
 		"docs/readme.md",
 		&compile_patterns(&["docs/**".to_string()])
@@ -736,10 +716,6 @@ fn package_pattern_helpers_cover_root_relative_and_invalid_patterns() {
 		"docs/readme.md",
 		&compile_patterns(&["[".to_string()])
 	));
-	assert_eq!(
-		matcher.classify("docs/readme.md"),
-		PackagePathMatch::Unmatched
-	);
 }
 
 #[tokio::test(flavor = "multi_thread")]

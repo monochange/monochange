@@ -23,6 +23,7 @@ use tempfile::tempdir;
 
 use super::AffectedParam;
 use super::ChangeParam;
+use super::ClassifyChangesParam;
 use super::DiagnosticsParam;
 use super::EmptyParam;
 use super::LintExplainParam;
@@ -143,6 +144,29 @@ fn setup_analysis_workspace() -> tempfile::TempDir {
 	tempdir
 }
 
+fn setup_classification_workspace() -> tempfile::TempDir {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_directory(
+		&fixture_path("api-classification/mixed-api/before"),
+		tempdir.path(),
+	);
+	git(tempdir.path(), &["init"]);
+	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
+	git(
+		tempdir.path(),
+		&["config", "user.email", "monochange-tests@example.com"],
+	);
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "base"]);
+	copy_directory(
+		&fixture_path("api-classification/mixed-api/after"),
+		tempdir.path(),
+	);
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "api changes"]);
+	tempdir
+}
+
 fn setup_analysis_workspace_without_git() -> tempfile::TempDir {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	copy_directory(
@@ -252,9 +276,75 @@ fn get_info_exposes_tool_instructions_and_capabilities() {
 	assert!(info.instructions.as_ref().is_some_and(|text| {
 		text.contains(
 			"monochange manages versions and releases across Cargo, npm, Deno, and Dart/Flutter workspaces",
-		)
+		) && text.contains("classify_changes")
 	}));
 	assert!(info.capabilities.tools.is_some());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn classify_changes_matches_the_cli_report_with_public_dependency_propagation() {
+	let fixture = setup_classification_workspace();
+	let options = crate::change_classify::ClassifyOptions {
+		base: Some("HEAD~1".to_string()),
+		head: "HEAD".to_string(),
+		release: None,
+		packages: Vec::new(),
+		detection_level: DetectionLevel::Signature,
+		include_unchanged: false,
+		strict: false,
+		format: crate::OutputFormat::Json,
+		output: None,
+		dependency_propagation: crate::change_classify::DependencyPropagation::Public,
+	};
+	let expected = crate::change_classify::render_change_classification(fixture.path(), &options)
+		.unwrap_or_else(|error| panic!("CLI classification: {error}"));
+	let expected = serde_json::from_str::<serde_json::Value>(&expected)
+		.unwrap_or_else(|error| panic!("parse CLI classification: {error}"));
+
+	let result = MonochangeMcpServer::new()
+		.classify_changes(Parameters(ClassifyChangesParam {
+			path: Some(fixture.path().display().to_string()),
+			base: Some("HEAD~1".to_string()),
+			head: Some("HEAD".to_string()),
+			release: None,
+			packages: Vec::new(),
+			detection_level: Some("signature".to_string()),
+			include_unchanged: false,
+			dependency_propagation: Some("public".to_string()),
+		}))
+		.await
+		.unwrap_or_else(|error| panic!("MCP classification: {error}"));
+	let response = serde_json::from_str::<serde_json::Value>(&content_text(&result))
+		.unwrap_or_else(|error| panic!("parse MCP classification: {error}"));
+
+	assert_eq!(response["ok"], true);
+	assert_eq!(response["report"], expected);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn classify_changes_rejects_unknown_dependency_propagation() {
+	let result = MonochangeMcpServer::new()
+		.classify_changes(Parameters(ClassifyChangesParam {
+			path: None,
+			base: None,
+			head: None,
+			release: None,
+			packages: Vec::new(),
+			detection_level: None,
+			include_unchanged: false,
+			dependency_propagation: Some("transitive".to_string()),
+		}))
+		.await
+		.unwrap_or_else(|error| panic!("MCP classification: {error}"));
+	let response = serde_json::from_str::<serde_json::Value>(&content_text(&result))
+		.unwrap_or_else(|error| panic!("parse MCP error: {error}"));
+
+	assert_eq!(response["ok"], false);
+	assert!(
+		response["summary"]
+			.as_str()
+			.is_some_and(|summary| summary.contains("expected none or public"))
+	);
 }
 
 #[test]

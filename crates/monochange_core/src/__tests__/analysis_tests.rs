@@ -213,3 +213,46 @@ fn api_diff_is_empty_when_no_changes_are_present() {
 	assert!(diff.is_empty());
 	assert_eq!(diff.suggested_bump, BumpSeverity::None);
 }
+
+#[test]
+fn package_path_matcher_applies_root_additional_and_ignored_paths() {
+	let matcher = PackagePathMatcher::new(
+		"core",
+		Path::new("packages/core"),
+		&["schema/**".to_string()],
+		&["tests/**".to_string()],
+	);
+
+	assert_eq!(matcher.package_id(), "core");
+	assert_eq!(
+		matcher.classify(Path::new("packages/core/src/lib.rs")),
+		PackagePathMatch::Touched
+	);
+	assert_eq!(
+		matcher.classify(Path::new("packages/core/tests/api.rs")),
+		PackagePathMatch::Ignored
+	);
+	assert_eq!(
+		matcher.classify(Path::new("schema/public.json")),
+		PackagePathMatch::Touched
+	);
+	assert_eq!(
+		matcher.classify(Path::new("packages/other/src/lib.rs")),
+		PackagePathMatch::Unmatched
+	);
+
+	let workspace_matcher = PackagePathMatcher::new(
+		"workspace",
+		Path::new(""),
+		&[],
+		&["fixtures/**".to_string()],
+	);
+	assert_eq!(
+		workspace_matcher.classify(Path::new("fixtures/tests/example.ts")),
+		PackagePathMatch::Ignored
+	);
+	assert_eq!(
+		workspace_matcher.classify(Path::new("README.md")),
+		PackagePathMatch::Touched
+	);
+}

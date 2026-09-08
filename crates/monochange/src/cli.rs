@@ -331,6 +331,9 @@ When provided, the generated config includes:\n\
 		.subcommand(build_command_wizard_subcommand())
 		.subcommand(build_skill_subcommand())
 		.subcommand(build_subagents_subcommand())
+		.subcommand(build_change_subcommand())
+		.subcommand(build_api_subcommand())
+		.subcommand(build_changeset_subcommand())
 		.subcommand(build_analyze_subcommand())
 		.subcommand(build_notes_subcommand())
 		.subcommand(build_migrate_subcommand())
@@ -358,6 +361,171 @@ When provided, the generated config includes:\n\
 		.subcommand(build_run_subcommand(cli));
 
 	command
+}
+
+pub(crate) fn build_change_subcommand() -> Command {
+	Command::new("change")
+		.about("Determine the release severity of repository changes")
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand(build_classify_subcommand())
+}
+
+fn build_classify_subcommand() -> Command {
+	Command::new("classify")
+		.about("Compare the pull request and latest release, then propose package bumps")
+		.long_about(
+			"Compare a merge candidate with the default branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.",
+		)
+		.arg(
+			Arg::new("base")
+				.long("base")
+				.value_name("REF")
+				.help("Override the automatically detected default branch ref"),
+		)
+		.arg(
+			Arg::new("head")
+				.long("head")
+				.value_name("REF")
+				.default_value("HEAD")
+				.help("Pull request head ref to classify"),
+		)
+		.arg(classification_release_arg())
+		.arg(classification_package_arg())
+		.arg(classification_detection_level_arg())
+		.arg(classification_include_unchanged_arg())
+		.arg(classification_format_arg())
+		.arg(classification_output_arg())
+		.arg(classification_dependency_propagation_arg())
+}
+
+pub(crate) fn build_api_subcommand() -> Command {
+	Command::new("api")
+		.about("Inspect lower-level API diffs")
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand(
+			Command::new("diff")
+				.about("Classify an explicit API diff")
+				.arg(
+					Arg::new("base")
+						.long("base")
+						.value_name("REF")
+						.help("Base ref; defaults to the remote default branch"),
+				)
+				.arg(
+					Arg::new("head")
+						.long("head")
+						.value_name("REF")
+						.default_value("HEAD"),
+				)
+				.arg(classification_release_arg())
+				.arg(classification_package_arg())
+				.arg(classification_detection_level_arg())
+				.arg(classification_include_unchanged_arg())
+				.arg(classification_format_arg())
+				.arg(classification_output_arg())
+				.arg(classification_dependency_propagation_arg()),
+		)
+}
+
+pub(crate) fn build_changeset_subcommand() -> Command {
+	Command::new("changeset")
+		.about("Inspect and validate pending changeset intent")
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand(
+			Command::new("validate")
+				.about("Compare pending changesets with classified change severity")
+				.arg(
+					Arg::new("api")
+						.long("api")
+						.required(true)
+						.action(ArgAction::SetTrue)
+						.help("Validate against semantic change classification"),
+				)
+				.arg(
+					Arg::new("base")
+						.long("base")
+						.value_name("REF")
+						.help("Override the automatically detected default branch ref"),
+				)
+				.arg(
+					Arg::new("head")
+						.long("head")
+						.value_name("REF")
+						.default_value("HEAD"),
+				)
+				.arg(classification_release_arg())
+				.arg(classification_package_arg())
+				.arg(classification_detection_level_arg())
+				.arg(classification_include_unchanged_arg())
+				.arg(
+					Arg::new("strict")
+						.long("strict")
+						.action(ArgAction::SetTrue)
+						.help("Fail on any proposed bump mismatch, including incomplete evidence"),
+				)
+				.arg(classification_format_arg())
+				.arg(classification_output_arg())
+				.arg(classification_dependency_propagation_arg()),
+		)
+}
+
+fn classification_release_arg() -> Arg {
+	Arg::new("release")
+		.long("release")
+		.value_name("REF")
+		.help("Override the latest release ref for every selected package")
+}
+
+fn classification_package_arg() -> Arg {
+	Arg::new("package")
+		.long("package")
+		.value_name("PACKAGE")
+		.action(ArgAction::Append)
+		.help("Limit classification to a package id or name; repeat to select several")
+}
+
+fn classification_detection_level_arg() -> Arg {
+	Arg::new("detection-level")
+		.long("detection-level")
+		.value_name("LEVEL")
+		.default_value("signature")
+		.value_parser(["basic", "signature", "semantic"])
+		.help("Choose analyzer depth")
+}
+
+fn classification_include_unchanged_arg() -> Arg {
+	Arg::new("include-unchanged")
+		.long("include-unchanged")
+		.action(ArgAction::SetTrue)
+		.help("Include packages without findings")
+}
+
+fn classification_output_arg() -> Arg {
+	Arg::new("output")
+		.long("output")
+		.value_name("PATH")
+		.help("Also write the report to a file")
+}
+
+fn classification_format_arg() -> Arg {
+	Arg::new("format")
+		.long("format")
+		.value_name("FORMAT")
+		.default_value("markdown")
+		.value_parser(["markdown", "md", "json", "json-min", "text"])
+		.help("Report format")
+}
+
+fn classification_dependency_propagation_arg() -> Arg {
+	Arg::new("dependency-propagation")
+		.long("dependency-propagation")
+		.value_name("MODE")
+		.default_value("none")
+		.value_parser(["none", "public"])
+		.help("Propose patch bumps for direct public runtime dependents")
 }
 
 pub(crate) fn build_notes_subcommand() -> Command {

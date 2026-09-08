@@ -72,11 +72,12 @@ fn package<'a>(report: &'a Value, package_id: &str) -> &'a Value {
 fn assert_package_recommendation(report: &Value, package_id: &str, expected: &str) {
 	let package = package(report, package_id);
 	assert_eq!(package["recommendation"], expected);
+	assert_eq!(package["decision"]["proposedChangesetBump"], expected);
 	assert!(
-		package["semanticChanges"]
+		package["findings"]
 			.as_array()
 			.is_some_and(|changes| !changes.is_empty()),
-		"expected semantic changes for {package_id}: {package:#}"
+		"expected classification findings for {package_id}: {package:#}"
 	);
 }
 
@@ -92,9 +93,15 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 	);
 
 	assert_eq!(report["recommendation"], "major");
+	assert_eq!(report["schemaVersion"], 1);
 	assert_package_recommendation(&report, "rust_core", "major");
 	assert_package_recommendation(&report, "ts_client", "minor");
 	assert_package_recommendation(&report, "js_utils", "patch");
+	assert!(report["comparisons"].as_array().is_some_and(|comparisons| {
+		comparisons
+			.iter()
+			.any(|comparison| comparison["kind"] == "pullRequest")
+	}));
 
 	snapshot_settings().bind(|| {
 		assert_json_snapshot!(report);
@@ -116,6 +123,110 @@ fn api_diff_uses_the_same_classifier_for_mixed_api_impacts() {
 	assert_package_recommendation(&report, "rust_core", "major");
 	assert_package_recommendation(&report, "ts_client", "minor");
 	assert_package_recommendation(&report, "js_utils", "patch");
+}
+
+#[test]
+fn change_classify_uses_the_net_candidate_when_local_edits_revert_the_branch() {
+	let fixture = setup_api_fixture("net-revert-changeset");
+	let before = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/api-classification/net-revert-changeset/before");
+	copy_directory(&before, fixture.path());
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	assert_eq!(report["recommendation"], "none");
+	let package = package(&report, "core");
+	assert_eq!(package["recommendation"], "none");
+	assert_eq!(package["action"], "review");
+	assert_eq!(package["decision"]["reviewRequired"], true);
+	assert_eq!(package["existingChangesets"][0]["bump"], "major");
+	assert!(report["comparisons"].as_array().is_some_and(|comparisons| {
+		comparisons.iter().any(|comparison| {
+			comparison["kind"] == "workingTree"
+				&& comparison["note"]
+					.as_str()
+					.is_some_and(|note| note.contains("final candidate"))
+		})
+	}));
+}
+
+#[test]
+fn change_classify_supports_global_jq_and_equals_options() {
+	let fixture = setup_api_fixture("mixed-api");
+
+	let output = run_mc(
+		fixture.path(),
+		&[
+			"--jq",
+			".schemaVersion",
+			"change",
+			"classify",
+			"--base=HEAD~1",
+			"--head=HEAD",
+			"--format=json",
+		],
+	);
+
+	assert_eq!(output, "1");
+}
+
+#[test]
+fn changeset_api_validation_writes_the_requested_report() {
+	let fixture = setup_api_fixture("stale-changeset");
+	let report_path = fixture.path().join("classification.json");
+	let output_arg = format!("--output={}", report_path.display());
+
+	let output = run_mc(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--base=HEAD~1",
+			"--head=HEAD",
+			"--format=json",
+			&output_arg,
+		],
+	);
+	let written = std::fs::read_to_string(&report_path)
+		.unwrap_or_else(|error| panic!("read {}: {error}", report_path.display()));
+
+	assert_eq!(written, output);
+	assert_eq!(
+		serde_json::from_str::<Value>(&written)
+			.unwrap_or_else(|error| panic!("parse written report: {error}"))["schemaVersion"],
+		1
+	);
+}
+
+#[test]
+fn changeset_api_validation_writes_the_complete_markdown_output() {
+	let fixture = setup_api_fixture("stale-changeset");
+	let report_path = fixture.path().join("classification.md");
+	let output_arg = format!("--output={}", report_path.display());
+
+	let output = run_mc(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--base=HEAD~1",
+			"--head=HEAD",
+			"--format=markdown",
+			&output_arg,
+		],
+	);
+	let written = std::fs::read_to_string(&report_path)
+		.unwrap_or_else(|error| panic!("read {}: {error}", report_path.display()));
+
+	assert_eq!(written, output);
+	assert!(written.starts_with("# Changeset API validation"));
 }
 
 #[test]
@@ -168,18 +279,21 @@ fn change_classify_detects_dart_api_impacts() {
 }
 
 #[test]
-fn api_snapshot_command_is_callable_for_a_mixed_api_workspace() {
-	let fixture = setup_api_fixture("mixed-api");
+fn change_classify_reports_changeset_only_intent_for_review() {
+	let fixture = setup_api_fixture("stale-changeset");
 
-	let snapshot = run_json(
+	let report = run_json(
 		fixture.path(),
-		&["api", "snapshot", "--head", "HEAD", "--format", "json"],
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
+		],
 	);
+	let package = package(&report, "core");
 
-	assert_eq!(snapshot["recommendation"], "none");
-	assert_eq!(snapshot["packages"].as_array().map(Vec::len), Some(0));
-
-	snapshot_settings().bind(|| {
-		assert_json_snapshot!(snapshot);
-	});
+	assert_eq!(package["recommendation"], "none");
+	assert_eq!(package["action"], "review");
+	assert_eq!(package["decision"]["compatibilityImpact"], "unknown");
+	assert_eq!(package["decision"]["completeness"], "unsupported");
+	assert_eq!(package["decision"]["reviewRequired"], true);
+	assert_eq!(package["existingChangesets"][0]["bump"], "minor");
 }
