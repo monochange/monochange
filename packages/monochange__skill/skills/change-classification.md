@@ -70,3 +70,30 @@ monochange step prepare-release --dry-run --format json
 The default API validation fails only on high-confidence evidence. To enforce every proposal after the repository has calibrated its analyzers, add `--strict`.
 
 Complete the workflow when every affected package has the intended changeset action, both validations pass, and the dry-run release manifest shows the expected package, stream, output, and bump.
+
+## Surface the decision on pull requests
+
+Use the `change-classification` action when a repository should publish the same evidence for maintainers and agents:
+
+```yaml
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+steps:
+  - uses: actions/checkout@v6
+    with:
+      fetch-depth: 0
+      ref: ${{ github.event.pull_request.head.sha }}
+  - id: classify
+    uses: monochange/actions/change-classification@v0
+    with:
+      dependency-propagation: public
+```
+
+Keep `fetch-depth: 0` so the classifier can resolve the merge base, default branch, and release tags. Check out the pull request head SHA so the candidate excludes GitHub's synthetic test-merge commit.
+
+The action writes the full report to the job summary and exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. With `post-comment: true`, it also updates one marker comment rather than adding a new comment on every run. Treat `recommendation` as a routing hint only: read `json` and resolve every package whose `reviewRequired` is true before writing its changeset. Comment creation is best-effort so fork pull requests with read-only tokens still produce outputs and a job summary.
+
+Until a monochange CLI release containing `change classify` is installed by the action, preinstall a compatible build and pass `setup-monochange: false`, or pass the executable command through `setup-monochange`.
