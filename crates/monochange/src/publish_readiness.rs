@@ -267,12 +267,14 @@ fn rebuild_publish_requests(
 	Vec<monochange_core::PackageRecord>,
 )> {
 	let workspace = crate::workspace_ops::discover_release_workspace(root, configuration)?;
+	// patch-coverage:ignore-start -- the error branch requires a custom-registry publication, which built-in publishing rejects before readiness runs.
 	let requests = monochange_publish::build_release_requests(
 		configuration,
 		&workspace.packages,
 		publication_targets,
 		selected_packages,
 	)?;
+	// patch-coverage:ignore-end
 	// patch-coverage:ignore-start -- llvm-cov attributes this Ok-return region to the spawned binary; exercised by the empty-publications unit test and the publish-readiness integration test.
 	Ok((requests, workspace.packages))
 	// patch-coverage:ignore-end
