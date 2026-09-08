@@ -1,4 +1,5 @@
 ---
+"@monochange/skill": patch
 monochange_analysis: patch
 ---
 
