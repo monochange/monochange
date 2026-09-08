@@ -3,8 +3,8 @@ pub fn content_text(result: &rmcp::model::CallToolResult) -> String {
 		return String::new();
 	};
 
-	match &content.raw {
-		rmcp::model::RawContent::Text(text) => text.text.clone(),
+	match content {
+		rmcp::model::ContentBlock::Text(text) => text.text.clone(),
 		_ => String::new(),
 	}
 }

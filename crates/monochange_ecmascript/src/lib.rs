@@ -22,10 +22,10 @@ use monochange_core::SemanticChangeKind;
 use oxc_allocator::Allocator;
 use oxc_ast::ast::Declaration;
 use oxc_ast::ast::ExportDefaultDeclarationKind;
+use oxc_ast::ast::ExportSpecifier;
 use oxc_ast::ast::ImportOrExportKind;
 use oxc_ast::ast::ModuleDeclaration;
 use oxc_ast::ast::ModuleExportName;
-use oxc_ast::ast::TSModuleDeclarationName;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
 
@@ -220,36 +220,37 @@ fn collect_public_symbols_from_module_declaration(
 	output: &mut Vec<ExportedSymbol>,
 ) {
 	match declaration {
+		ModuleDeclaration::ExportDeclaration(export) => {
+			let signature = normalize_signature(export.span.source_text(source_text));
+			collect_public_symbols_from_declaration(
+				&export.declaration,
+				module_prefix,
+				file_path,
+				&signature,
+				output,
+			);
+		}
 		ModuleDeclaration::ExportNamedDeclaration(export) => {
 			let signature = normalize_signature(export.span.source_text(source_text));
-			if let Some(declaration) = &export.declaration {
-				collect_public_symbols_from_declaration(
-					declaration,
-					module_prefix,
-					file_path,
-					&signature,
-					output,
-				);
-				return;
-			}
-
-			for specifier in &export.specifiers {
-				let item_kind = if matches!(export.export_kind, ImportOrExportKind::Type)
-					|| matches!(specifier.export_kind, ImportOrExportKind::Type)
-				{
-					"type_reexport"
-				} else {
-					"reexport"
-				};
-				push_symbol(
-					output,
-					item_kind,
-					module_prefix,
-					module_export_name(&specifier.exported),
-					&signature,
-					file_path,
-				);
-			}
+			push_specifier_reexports(
+				&export.specifiers,
+				export.export_kind,
+				module_prefix,
+				&signature,
+				file_path,
+				output,
+			);
+		}
+		ModuleDeclaration::ExportFromDeclaration(export) => {
+			let signature = normalize_signature(export.span.source_text(source_text));
+			push_specifier_reexports(
+				&export.specifiers,
+				export.export_kind,
+				module_prefix,
+				&signature,
+				file_path,
+				output,
+			);
 		}
 		ModuleDeclaration::ExportAllDeclaration(export) => {
 			let signature = normalize_signature(export.span.source_text(source_text));
@@ -285,6 +286,33 @@ fn collect_public_symbols_from_module_declaration(
 			);
 		}
 		_ => {}
+	}
+}
+
+fn push_specifier_reexports(
+	specifiers: &[ExportSpecifier<'_>],
+	export_kind: ImportOrExportKind,
+	module_prefix: &[String],
+	signature: &str,
+	file_path: &Path,
+	output: &mut Vec<ExportedSymbol>,
+) {
+	for specifier in specifiers {
+		let item_kind = if matches!(export_kind, ImportOrExportKind::Type)
+			|| matches!(specifier.export_kind, ImportOrExportKind::Type)
+		{
+			"type_reexport"
+		} else {
+			"reexport"
+		};
+		push_symbol(
+			output,
+			item_kind,
+			module_prefix,
+			module_export_name(&specifier.exported),
+			signature,
+			file_path,
+		);
 	}
 }
 
@@ -366,12 +394,22 @@ fn collect_public_symbols_from_declaration(
 				file_path,
 			);
 		}
-		Declaration::TSModuleDeclaration(namespace) => {
+		Declaration::TSNamespaceDeclaration(namespace) => {
 			push_symbol(
 				output,
 				"namespace",
 				module_prefix,
-				ts_module_name(&namespace.id),
+				namespace.id.name.to_string(),
+				signature,
+				file_path,
+			);
+		}
+		Declaration::TSExternalModuleDeclaration(external) => {
+			push_symbol(
+				output,
+				"namespace",
+				module_prefix,
+				external.id.to_string(),
 				signature,
 				file_path,
 			);
@@ -471,10 +509,6 @@ fn module_export_name(name: &ModuleExportName<'_>) -> String {
 }
 
 // patch-coverage:ignore-start -- parser helper declaration lines are not reliably attributed by llvm-cov; branches are covered by symbol extraction tests.
-fn ts_module_name(name: &TSModuleDeclarationName<'_>) -> String {
-	name.to_string()
-}
-
 fn variable_item_kind(kind: oxc_ast::ast::VariableDeclarationKind) -> &'static str {
 	if matches!(kind, oxc_ast::ast::VariableDeclarationKind::Const) {
 		"constant"
