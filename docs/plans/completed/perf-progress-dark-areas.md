@@ -1,5 +1,9 @@
 # Performance and progress dark-area hardening
 
+## Status
+
+Completed by `fix: add provider HTTP timeouts and dark-area plan (#581)`. The later unified progress work in #667 replaced the remaining CLI-local reporter boundaries without reopening the performance work recorded here.
+
 ## Goal
 
 Make monochange feel alive and predictable in lesser-used ecosystems and providers by preventing commands from silently exceeding ~5 seconds without progress, and by adding benchmark coverage for discovery, provider/network, git-history, and external-command paths that are not yet battle-tested.

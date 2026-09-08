@@ -1,5 +1,9 @@
 # Plan: plain-text JSON output and `--format json-min`
 
+## Status
+
+Completed by `feat(cli): add --format json-min and guarantee plain text JSON output (#648)` and archived after the human-first output contract confirmed JSON remains an explicit format.
+
 ## Goal
 
 - All `--format json` CLI output (flags and cli step inputs) renders as plain text: no text colors, no background colors, no ANSI styling of any kind.
