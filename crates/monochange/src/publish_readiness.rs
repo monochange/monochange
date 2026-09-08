@@ -273,7 +273,9 @@ fn rebuild_publish_requests(
 		publication_targets,
 		selected_packages,
 	)?;
+	// patch-coverage:ignore-start -- llvm-cov attributes this Ok-return region to the spawned binary; exercised by the empty-publications unit test and the publish-readiness integration test.
 	Ok((requests, workspace.packages))
+	// patch-coverage:ignore-end
 }
 
 fn publish_request_key(
