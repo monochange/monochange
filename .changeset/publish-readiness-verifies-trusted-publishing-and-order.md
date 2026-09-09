@@ -28,4 +28,6 @@ The artifact now records the dependency-corrected `publish_order` and `order_fin
 
 Real `monochange step publish-packages` runs now run every readiness checker for all packages before the first publish command executes. A package that cannot publish aborts the run before any registry mutation, instead of failing midway after other packages have already been published. Trusted-publishing project-side checks are registered for every built-in registry, so a package whose trust configuration cannot support the publish is caught in preflight too.
 
-New `monochange_publish` APIs: `registry_package_exists` / `registry_package_exists_with_transport` probe package existence on npm, crates.io, and pub.dev; `publish_order_dependency_edges` and `publish_order_dependency_fields` are now public for order validation.
+`monochange_publish::registry_client` now bounds every registry request with a 30-second connect timeout and a 60-second total timeout, so an unresponsive registry surfaces as a handled error instead of stalling a publish run or readiness check indefinitely.
+
+New `monochange_publish` APIs: `registry_package_exists_with_transport` probes package existence on npm, crates.io, and pub.dev; `publish_order_dependency_edges` and `publish_order_dependency_fields` are now public for order validation.
