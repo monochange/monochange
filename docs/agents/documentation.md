@@ -8,4 +8,5 @@ Shared documentation blocks live in `.templates/` and are synchronized with `mdt
 - Run `docs:update` after changing shared docs or consumer blocks.
 - Run `docs:check` before opening a PR to confirm shared blocks are synchronized and agent-facing documentation stays fresh.
 - For complex or multi-step work, create or update a plan under `docs/plans/active/`, then move it to `docs/plans/completed/` when the work lands.
+- Migration guides live in `docs/src/guide/migrations/`, one file per version with breaking changes (for example `0.11.md`), listed newest first under the "Migration guides" part in `SUMMARY.md`. Update the version guide in the same PR that introduces the breaking change.
 - Treat `docs/` as a product surface when behavior changes.
