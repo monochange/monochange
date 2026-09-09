@@ -82,7 +82,9 @@ fn normalize_head_commit(root: &Path, contents: String) -> String {
 	assert!(output.status.success(), "git rev-parse failed");
 	let commit = String::from_utf8(output.stdout)
 		.unwrap_or_else(|error| panic!("fixture HEAD is not UTF-8: {error}"));
-	contents.replace(&format!("`{}`", commit.trim()), "`[COMMIT]`")
+	contents
+		.replace(&format!("`{}`", commit.trim()), "`[COMMIT]`")
+		.replace(commit.trim(), "[COMMIT]")
 }
 
 fn normalize_io_error(contents: &str) -> String {
@@ -150,24 +152,12 @@ fn release_outputs_filter_changesets_by_stream() {
 		.unwrap_or_else(|error| panic!("parse user notes: {error}"));
 	let user_group = serde_json::from_str::<serde_json::Value>(&user_group)
 		.unwrap_or_else(|error| panic!("parse user group notes: {error}"));
-	assert_json_snapshot!("user_release_notes", user_notes, {
-		".sections[].entries[]" => "[multiline text]",
-	});
-	assert_snapshot!(
-		"user_release_note_entry",
-		user_notes["sections"][0]["entries"][0]
-			.as_str()
-			.unwrap_or_else(|| panic!("user release-note entry"))
-	);
+	assert_json_snapshot!("user_release_notes", user_notes);
 	assert_snapshot!("user_text_release_notes", user_text);
-	assert_json_snapshot!("user_group_release_notes", user_group, {
-		".sections[].entries[]" => "[multiline text]",
-	});
-	assert_snapshot!(
-		"user_group_release_note_entry",
-		user_group["sections"][0]["entries"][0]
-			.as_str()
-			.unwrap_or_else(|| panic!("user group release-note entry"))
+	assert_json_snapshot!("user_group_release_notes", user_group);
+	assert_eq!(
+		user_group["sections"][0]["entries"][0]["packages"],
+		json!(["app"])
 	);
 	assert_snapshot!("developer_release_notes", developer_notes);
 	assert_snapshot!("developer_append_release_notes", developer_append);
@@ -191,19 +181,11 @@ fn notes_prints_configured_markdown_text_and_json_outputs() {
 		"notes_user_text_stdout",
 		normalize_head_commit(workspace.path(), text)
 	);
-	assert_json_snapshot!("notes_user_json_stdout", json, {
-		".sections[].entries[]" => "[multiline text]",
-	});
-	assert_snapshot!(
-		"notes_user_json_entry",
-		normalize_head_commit(
-			workspace.path(),
-			json["sections"][0]["entries"][0]
-				.as_str()
-				.unwrap_or_else(|| panic!("user JSON entry"))
-				.to_string(),
-		)
-	);
+	let normalized_json = normalize_head_commit(workspace.path(), json.to_string());
+	let normalized_json: serde_json::Value = serde_json::from_str(&normalized_json)
+		.unwrap_or_else(|error| panic!("normalized release notes JSON: {error}"));
+	assert_json_snapshot!("notes_user_json_stdout", normalized_json);
+	assert_eq!(json["sections"][0]["entries"][0]["style"], "compact");
 }
 
 #[test]

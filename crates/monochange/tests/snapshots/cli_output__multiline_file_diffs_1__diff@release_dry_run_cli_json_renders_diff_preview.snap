@@ -10,7 +10,7 @@ expression: contents
 +## 1.1.0 ([DATE])
 +
 +Grouped release for `sdk`.
-+### 🚀 Feature
 +
-+#### add feature
-+_Packages:_ _core_
++### Features
++
++- **core**: **add feature.**

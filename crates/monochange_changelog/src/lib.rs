@@ -32,13 +32,19 @@ use monochange_core::PackageLabelStyle;
 use monochange_core::PackageRecord;
 use monochange_core::PreparedChangeset;
 use monochange_core::PreparedChangesetTarget;
+use monochange_core::ReleaseNoteEntryStyle;
+use monochange_core::ReleaseNoteProvenance;
+use monochange_core::ReleaseNoteReference;
 use monochange_core::ReleaseNotesDocument;
+use monochange_core::ReleaseNotesEntry;
 use monochange_core::ReleaseNotesSection;
 use monochange_core::ReleaseOwnerKind;
 use monochange_core::ReleasePlan;
 use monochange_core::VersionFormat;
 use monochange_core::relative_to_root;
-use monochange_core::render_release_notes;
+use monochange_core::render_release_note_entry_markdown;
+use monochange_core::render_structured_release_notes;
+use monochange_core::render_structured_release_notes_with;
 use typed_builder::TypedBuilder;
 
 pub type PackageChangelogTargets = BTreeMap<String, ChangelogTarget>;
@@ -299,8 +305,21 @@ pub fn build_changelog_updates(
 			.changelog
 			.release_notes
 			.resolve(&context.configuration.changelog.style);
-		let rendered =
-			render_release_notes(changelog_target.format, &document, &release_notes_style);
+		let rendered = render_changelog_release_notes(
+			changelog_target.format,
+			&document,
+			&release_notes_style,
+			&context.configuration.changelog.templates,
+			&package_id,
+			&planned_version.to_string(),
+		);
+		let notes = legacy_release_notes_document(
+			&document,
+			&release_notes_style,
+			&context.configuration.changelog.templates,
+			&package_id,
+			&planned_version.to_string(),
+		);
 		let initial_header = render_package_initial_changelog_header(
 			context,
 			changelog_target,
@@ -324,7 +343,7 @@ pub fn build_changelog_updates(
 			output: monochange_core::DEFAULT_CHANGELOG_OUTPUT.to_string(),
 			stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
 			format: changelog_target.format,
-			notes: document,
+			notes,
 			rendered,
 		});
 	}
@@ -380,8 +399,21 @@ pub fn build_changelog_updates(
 			.changelog
 			.release_notes
 			.resolve(&context.configuration.changelog.style);
-		let rendered =
-			render_release_notes(changelog_target.format, &document, &release_notes_style);
+		let rendered = render_changelog_release_notes(
+			changelog_target.format,
+			&document,
+			&release_notes_style,
+			&context.configuration.changelog.templates,
+			&planned_group.group_id,
+			&planned_version.to_string(),
+		);
+		let notes = legacy_release_notes_document(
+			&document,
+			&release_notes_style,
+			&context.configuration.changelog.templates,
+			&planned_group.group_id,
+			&planned_version.to_string(),
+		);
 		let initial_header = render_group_initial_changelog_header(
 			context,
 			changelog_target,
@@ -405,7 +437,7 @@ pub fn build_changelog_updates(
 			output: monochange_core::DEFAULT_CHANGELOG_OUTPUT.to_string(),
 			stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
 			format: changelog_target.format,
-			notes: document,
+			notes,
 			rendered,
 		});
 	}
@@ -573,7 +605,8 @@ fn build_named_package_changelog_update(
 		package_definition.id.clone(),
 		ReleaseOwnerKind::Package,
 		target,
-		document,
+		&planned_version.to_string(),
+		&document,
 		&initial_header,
 	)
 	.map(Some)
@@ -650,7 +683,8 @@ fn build_named_group_changelog_update(
 		group_definition.id.clone(),
 		ReleaseOwnerKind::Group,
 		target,
-		document,
+		&planned_version.to_string(),
+		&document,
 		&initial_header,
 	)
 	.map(Some)
@@ -712,7 +746,8 @@ fn build_named_changelog_update(
 	owner_id: String,
 	owner_kind: ReleaseOwnerKind,
 	target: ChangelogTarget,
-	document: ReleaseNotesDocument,
+	version: &str,
+	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
 	initial_header: &str,
 ) -> MonochangeResult<ChangelogUpdate> {
 	let style = context
@@ -720,7 +755,21 @@ fn build_named_changelog_update(
 		.changelog
 		.release_notes
 		.resolve(&context.configuration.changelog.style);
-	let rendered = render_release_notes(output.format, &document, &style);
+	let rendered = render_changelog_release_notes(
+		output.format,
+		document,
+		&style,
+		&context.configuration.changelog.templates,
+		&owner_id,
+		version,
+	);
+	let notes = legacy_release_notes_document(
+		document,
+		&style,
+		&context.configuration.changelog.templates,
+		&owner_id,
+		version,
+	);
 	let file_content = match output.mode {
 		ChangelogOutputMode::Append => {
 			append_changelog_section(&target.path, &rendered, Some(initial_header))?
@@ -738,7 +787,7 @@ fn build_named_changelog_update(
 		output: output_id.to_string(),
 		stream: output.stream.clone(),
 		format: output.format,
-		notes: document,
+		notes,
 		rendered,
 	})
 }
@@ -1628,20 +1677,19 @@ fn build_release_notes_document(
 	summary: Vec<String>,
 	changelog: &ChangelogSettings,
 	changes: &[ReleaseNoteChange],
-) -> ReleaseNotesDocument {
+) -> ReleaseNotesDocument<ReleaseNotesEntry> {
 	ReleaseNotesDocument {
 		title: version.to_string(),
 		summary,
-		sections: render_release_note_sections(target_id, version, changelog, changes),
+		sections: build_release_note_sections(target_id, changelog, changes),
 	}
 }
 
-fn render_release_note_sections(
+fn build_release_note_sections(
 	target_id: &str,
-	version: &str,
 	changelog: &ChangelogSettings,
 	changes: &[ReleaseNoteChange],
-) -> Vec<ReleaseNotesSection> {
+) -> Vec<ReleaseNotesSection<ReleaseNotesEntry>> {
 	// Sort sections by priority (lower = earlier)
 	let mut sorted_sections: Vec<(&str, &str, i8)> = changelog
 		.sections
@@ -1653,25 +1701,18 @@ fn render_release_note_sections(
 	let collapse_threshold = changelog.section_thresholds.collapse;
 	let ignored_threshold = changelog.section_thresholds.ignored;
 
-	let mut section_entries: BTreeMap<&str, Vec<String>> = BTreeMap::new();
-	let mut uncategorized = Vec::<String>::new();
+	let mut section_entries: BTreeMap<&str, Vec<ReleaseNotesEntry>> = BTreeMap::new();
+	let mut uncategorized = Vec::<ReleaseNotesEntry>::new();
 
 	for change in changes {
-		let rendered = render_change_entry(
-			change,
-			target_id,
-			version,
-			&changelog.templates,
-			changelog.style.package_label_style,
-			changelog.style.package_label_placement,
-		);
+		let entry = release_notes_entry(change, target_id);
 		let change_type = change.change_type.as_deref().unwrap_or("");
 		if let Some(typ) = changelog.types.get(change_type) {
 			let section_key = typ.section.as_str();
 			let entries = section_entries.entry(section_key).or_default();
-			push_unique_release_note_entry(entries, rendered);
+			push_unique_release_note_entry(entries, entry);
 		} else {
-			push_unique_release_note_entry(&mut uncategorized, rendered);
+			push_unique_release_note_entry(&mut uncategorized, entry);
 		}
 	}
 
@@ -1703,11 +1744,439 @@ fn render_release_note_sections(
 		sections.push(ReleaseNotesSection {
 			title: "Changed".to_string(),
 			collapsed: false,
-			entries: vec!["- prepare release".to_string()],
+			entries: vec![ReleaseNotesEntry {
+				summary: "Prepare release".to_string(),
+				details_markdown: None,
+				packages: Vec::new(),
+				change_type: None,
+				bump: BumpSeverity::None,
+				stream: monochange_core::DEFAULT_CHANGELOG_STREAM.to_string(),
+				style: ReleaseNoteEntryStyle::Compact,
+				provenance: ReleaseNoteProvenance::default(),
+			}],
 		});
 		return sections;
 	}
 	sections
+}
+
+fn release_notes_entry(change: &ReleaseNoteChange, target_id: &str) -> ReleaseNotesEntry {
+	let packages = if change.package_name == target_id {
+		Vec::new()
+	} else if change.package_labels.is_empty() {
+		vec![change.package_name.clone()]
+	} else {
+		change.package_labels.clone()
+	};
+	ReleaseNotesEntry {
+		summary: change.summary.clone(),
+		details_markdown: change.details.clone(),
+		packages,
+		change_type: change.change_type.clone(),
+		bump: change.bump,
+		stream: change.stream.clone(),
+		style: release_note_entry_style(change),
+		provenance: release_note_provenance(change),
+	}
+}
+
+fn release_note_entry_style(change: &ReleaseNoteChange) -> ReleaseNoteEntryStyle {
+	let is_breaking = change.bump == BumpSeverity::Major
+		|| change
+			.change_type
+			.as_deref()
+			.is_some_and(|change_type| matches!(change_type, "breaking" | "major"));
+	let details_need_space = change.details.as_deref().is_some_and(|details| {
+		let lowercase = details.to_ascii_lowercase();
+		details.contains("```") || details.contains('\n') || lowercase.contains("migration")
+	});
+	if is_breaking || details_need_space {
+		ReleaseNoteEntryStyle::Expanded
+	} else {
+		ReleaseNoteEntryStyle::Compact
+	}
+}
+
+fn release_note_provenance(change: &ReleaseNoteChange) -> ReleaseNoteProvenance {
+	ReleaseNoteProvenance {
+		source_path: change.source_path.clone(),
+		changeset_path: change.changeset_path.clone(),
+		change_owner: release_note_reference(
+			change.change_owner.as_deref(),
+			change.change_owner_link.as_deref(),
+		),
+		review_request: release_note_reference(
+			change.review_request.as_deref(),
+			change.review_request_link.as_deref(),
+		),
+		introduced_commit: release_note_reference(
+			change.introduced_commit.as_deref(),
+			change.introduced_commit_link.as_deref(),
+		),
+		last_updated_commit: release_note_reference(
+			change.last_updated_commit.as_deref(),
+			change.last_updated_commit_link.as_deref(),
+		),
+		related_issues: release_note_references(
+			change.related_issues.as_deref(),
+			change.related_issue_links.as_deref(),
+		),
+		closed_issues: release_note_references(
+			change.closed_issues.as_deref(),
+			change.closed_issue_links.as_deref(),
+		),
+	}
+}
+
+fn release_note_reference(
+	label: Option<&str>,
+	markdown_link: Option<&str>,
+) -> Option<ReleaseNoteReference> {
+	let label = label?.to_string();
+	Some(ReleaseNoteReference {
+		url: markdown_link.and_then(markdown_link_url),
+		label,
+	})
+}
+
+fn release_note_references(
+	labels: Option<&str>,
+	markdown_links: Option<&str>,
+) -> Vec<ReleaseNoteReference> {
+	let urls = markdown_links
+		.into_iter()
+		.flat_map(|links| links.split(", "))
+		.map(markdown_link_url)
+		.collect::<Vec<_>>();
+	labels
+		.into_iter()
+		.flat_map(|labels| labels.split(", "))
+		.enumerate()
+		.map(|(index, label)| {
+			ReleaseNoteReference {
+				label: label.to_string(),
+				url: urls.get(index).cloned().flatten(),
+			}
+		})
+		.collect()
+}
+
+fn markdown_link_url(link: &str) -> Option<String> {
+	let (_, url) = link.rsplit_once("](")?;
+	url.strip_suffix(')').map(ToString::to_string)
+}
+
+fn render_changelog_release_notes(
+	format: ChangelogFormat,
+	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
+	style: &monochange_core::ChangelogStyle,
+	templates: &[String],
+	target_id: &str,
+	version: &str,
+) -> String {
+	if uses_default_change_templates(templates) {
+		return render_structured_release_notes(format, document, style);
+	}
+	render_structured_release_notes_with(format, document, style, |entry, style| {
+		render_configured_release_note_entry(entry, style, templates, target_id, version)
+	})
+}
+
+fn legacy_release_notes_document(
+	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
+	style: &monochange_core::ChangelogStyle,
+	templates: &[String],
+	target_id: &str,
+	version: &str,
+) -> ReleaseNotesDocument {
+	ReleaseNotesDocument {
+		title: document.title.clone(),
+		summary: document.summary.clone(),
+		sections: document
+			.sections
+			.iter()
+			.map(|section| {
+				ReleaseNotesSection {
+					title: section.title.clone(),
+					collapsed: section.collapsed,
+					entries: section
+						.entries
+						.iter()
+						.map(|entry| {
+							render_configured_release_note_entry(
+								entry, style, templates, target_id, version,
+							)
+						})
+						.collect(),
+				}
+			})
+			.collect(),
+	}
+}
+
+fn uses_default_change_templates(templates: &[String]) -> bool {
+	templates.is_empty()
+		|| templates.len() == DEFAULT_CONFIGURED_CHANGE_TEMPLATES.len()
+			&& templates
+				.iter()
+				.zip(DEFAULT_CONFIGURED_CHANGE_TEMPLATES)
+				.all(|(configured, default)| configured == default)
+}
+
+fn render_configured_release_note_entry(
+	entry: &ReleaseNotesEntry,
+	style: &monochange_core::ChangelogStyle,
+	templates: &[String],
+	target_id: &str,
+	version: &str,
+) -> String {
+	if uses_default_change_templates(templates) {
+		return render_release_note_entry_markdown(entry, style);
+	}
+	for template in templates
+		.iter()
+		.map(String::as_str)
+		.chain(DEFAULT_CHANGE_TEMPLATES)
+	{
+		if let Some(rendered) =
+			apply_release_note_entry_template(template, entry, style, target_id, version)
+		{
+			return format_structured_labeled_entry(entry, &rendered, style);
+		}
+	}
+	format_structured_labeled_entry(entry, &format!("- {}", entry.summary), style)
+}
+
+fn apply_release_note_entry_template(
+	template: &str,
+	entry: &ReleaseNotesEntry,
+	style: &monochange_core::ChangelogStyle,
+	target_id: &str,
+	version: &str,
+) -> Option<String> {
+	let mut context = BTreeMap::<&str, String>::new();
+	context.insert("summary", entry.summary.clone());
+	context.insert(
+		"package",
+		if entry.packages.is_empty() {
+			target_id.to_string()
+		} else {
+			entry.packages.join(", ")
+		},
+	);
+	context.insert("version", version.to_string());
+	context.insert("target_id", target_id.to_string());
+	context.insert("bump", entry.bump.to_string());
+	if let Some(value) = entry.details_markdown.as_ref() {
+		context.insert("details", value.clone());
+	}
+	if let Some(value) = entry.change_type.as_ref() {
+		context.insert("type", value.clone());
+	}
+	let rendered_context = render_release_note_context(entry, style.metadata_style);
+	if !rendered_context.is_empty() {
+		context.insert("context", rendered_context);
+	}
+	insert_provenance_template_values(&mut context, &entry.provenance);
+
+	let jinja_context = minijinja::Value::from_serialize(&context);
+	let rendered = render_jinja_template_strict(template, &jinja_context).ok()?;
+	let rendered = rendered.trim().to_string();
+	(!rendered.is_empty() && rendered != "-").then_some(rendered)
+}
+
+fn insert_provenance_template_values(
+	context: &mut BTreeMap<&str, String>,
+	provenance: &ReleaseNoteProvenance,
+) {
+	if let Some(value) = provenance.changeset_path.as_ref() {
+		context.insert("changeset_path", value.clone());
+	}
+	insert_reference_template_values(
+		context,
+		"change_owner",
+		"change_owner_link",
+		provenance.change_owner.as_ref(),
+	);
+	insert_reference_template_values(
+		context,
+		"review_request",
+		"review_request_link",
+		provenance.review_request.as_ref(),
+	);
+	insert_reference_template_values(
+		context,
+		"introduced_commit",
+		"introduced_commit_link",
+		provenance.introduced_commit.as_ref(),
+	);
+	insert_reference_template_values(
+		context,
+		"last_updated_commit",
+		"last_updated_commit_link",
+		provenance.last_updated_commit.as_ref(),
+	);
+	insert_references_template_values(
+		context,
+		"related_issues",
+		"related_issue_links",
+		&provenance.related_issues,
+	);
+	insert_references_template_values(
+		context,
+		"closed_issues",
+		"closed_issue_links",
+		&provenance.closed_issues,
+	);
+}
+
+fn insert_reference_template_values(
+	context: &mut BTreeMap<&str, String>,
+	label_key: &'static str,
+	link_key: &'static str,
+	reference: Option<&ReleaseNoteReference>,
+) {
+	let Some(reference) = reference else {
+		return;
+	};
+	context.insert(label_key, reference.label.clone());
+	context.insert(link_key, render_release_note_reference(reference));
+}
+
+fn insert_references_template_values(
+	context: &mut BTreeMap<&str, String>,
+	label_key: &'static str,
+	link_key: &'static str,
+	references: &[ReleaseNoteReference],
+) {
+	if references.is_empty() {
+		return;
+	}
+	context.insert(
+		label_key,
+		references
+			.iter()
+			.map(|reference| reference.label.as_str())
+			.collect::<Vec<_>>()
+			.join(", "),
+	);
+	context.insert(
+		link_key,
+		references
+			.iter()
+			.map(render_release_note_reference)
+			.collect::<Vec<_>>()
+			.join(", "),
+	);
+}
+
+fn render_release_note_context(entry: &ReleaseNotesEntry, metadata_style: MetadataStyle) -> String {
+	let mut lines = Vec::new();
+	if let Some(reference) = entry.provenance.change_owner.as_ref() {
+		lines.push(format!(
+			"_Owner:_ {}",
+			render_release_note_reference(reference)
+		));
+	}
+	if let Some(reference) = entry.provenance.review_request.as_ref() {
+		lines.push(format!(
+			"_Review:_ {}",
+			render_release_note_reference(reference)
+		));
+	} else {
+		if let Some(reference) = entry.provenance.introduced_commit.as_ref() {
+			lines.push(format!(
+				"_Introduced in:_ {}",
+				render_release_note_reference(reference)
+			));
+		}
+		if let Some(reference) = entry.provenance.last_updated_commit.as_ref() {
+			lines.push(format!(
+				"_Last updated in:_ {}",
+				render_release_note_reference(reference)
+			));
+		}
+	}
+	if !entry.provenance.closed_issues.is_empty() {
+		lines.push(format!(
+			"_Closed issues:_ {}",
+			entry
+				.provenance
+				.closed_issues
+				.iter()
+				.map(render_release_note_reference)
+				.collect::<Vec<_>>()
+				.join(", ")
+		));
+	}
+	if !entry.provenance.related_issues.is_empty() {
+		lines.push(format!(
+			"_Related issues:_ {}",
+			entry
+				.provenance
+				.related_issues
+				.iter()
+				.map(render_release_note_reference)
+				.collect::<Vec<_>>()
+				.join(", ")
+		));
+	}
+	match metadata_style {
+		MetadataStyle::Inline => lines.join(" · "),
+		MetadataStyle::Blockquote => {
+			lines
+				.into_iter()
+				.map(|line| format!("> {line}"))
+				.collect::<Vec<_>>()
+				.join("\n")
+		}
+		MetadataStyle::Plain => lines.join("\n"),
+		MetadataStyle::Omit | _ => String::new(),
+	}
+}
+
+fn render_release_note_reference(reference: &ReleaseNoteReference) -> String {
+	reference.url.as_deref().map_or_else(
+		|| reference.label.clone(),
+		|url| render_markdown_link(&reference.label, Some(url)),
+	)
+}
+
+fn format_structured_labeled_entry(
+	entry: &ReleaseNotesEntry,
+	rendered: &str,
+	style: &monochange_core::ChangelogStyle,
+) -> String {
+	if entry.packages.is_empty() || style.package_label_style == PackageLabelStyle::Omit {
+		return rendered.to_string();
+	}
+	let labels = entry
+		.packages
+		.iter()
+		.map(|package| {
+			match style.package_label_style {
+				PackageLabelStyle::Badge => format!("*{package}*"),
+				PackageLabelStyle::Inline | PackageLabelStyle::Omit | _ => format!("_{package}_"),
+			}
+		})
+		.collect::<Vec<_>>()
+		.join(", ");
+	let label_line = format!("_Packages:_ {labels}");
+	if style.package_label_placement == PackageLabelPlacement::AfterChange {
+		return format!("{rendered}\n{label_line}");
+	}
+	if let Some((heading, body)) = rendered.split_once('\n')
+		&& heading.starts_with('#')
+	{
+		return format!("{heading}\n{label_line}\n{body}");
+	}
+	if let [package] = entry.packages.as_slice()
+		&& !rendered.contains('\n')
+		&& let Some(item) = rendered.strip_prefix("- ")
+	{
+		return format!("- **{package}**: {item}");
+	}
+	format!("{rendered}\n{label_line}")
 }
 
 fn config_package_id(package: &PackageRecord) -> String {
@@ -1718,156 +2187,20 @@ fn config_package_id(package: &PackageRecord) -> String {
 		.unwrap_or_else(|| package.name.clone())
 }
 
-fn render_change_entry(
-	change: &ReleaseNoteChange,
-	target_id: &str,
-	version: &str,
-	change_templates: &[String],
-	package_label_style: PackageLabelStyle,
-	package_label_placement: PackageLabelPlacement,
-) -> String {
-	for template in change_templates
-		.iter()
-		.map(String::as_str)
-		.chain(DEFAULT_CHANGE_TEMPLATES)
-	{
-		if let Some(rendered) = apply_change_template(template, change, target_id, version) {
-			return format_group_labeled_entry(
-				change,
-				&rendered,
-				package_label_style,
-				package_label_placement,
-			);
-		}
-	}
-	format_group_labeled_entry(
-		change,
-		&format!("- {}", change.summary),
-		package_label_style,
-		package_label_placement,
-	)
-}
-
-fn format_group_labeled_entry(
-	change: &ReleaseNoteChange,
-	rendered: &str,
-	style: PackageLabelStyle,
-	placement: PackageLabelPlacement,
-) -> String {
-	if change.package_labels.is_empty() || style == PackageLabelStyle::Omit {
-		return rendered.to_string();
-	}
-	let labels = format_package_labels(change, style);
-	let label_line = format!("_Packages:_ {labels}");
-	if placement == PackageLabelPlacement::AfterChange {
-		return format!("{rendered}\n{label_line}");
-	}
-	if let Some((heading, body)) = rendered.split_once('\n')
-		&& heading.starts_with('#')
-	{
-		return format!("{heading}\n{label_line}\n{body}");
-	}
-	if change.package_labels.len() == 1
-		&& !rendered.contains('\n')
-		&& let Some(entry) = rendered.strip_prefix("- ")
-		&& let Some(package_label) = change.package_labels.first()
-	{
-		return format!("- **{package_label}**: {entry}");
-	}
-	format!("{rendered}\n{label_line}")
-}
-fn format_package_labels(change: &ReleaseNoteChange, style: PackageLabelStyle) -> String {
-	change
-		.package_labels
-		.iter()
-		.map(|package| {
-			match style {
-				PackageLabelStyle::Badge => format!("*{package}*"),
-				PackageLabelStyle::Inline | PackageLabelStyle::Omit | _ => format!("_{package}_"),
-			}
-		})
-		.collect::<Vec<_>>()
-		.join(", ")
-}
-
 const DEFAULT_CHANGE_TEMPLATES: [&str; 3] = [
 	"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}",
 	"#### {{ summary }}\n\n{{ details }}",
 	"- {{ summary }}",
 ];
 
-fn apply_change_template(
-	template: &str,
-	change: &ReleaseNoteChange,
-	target_id: &str,
-	version: &str,
-) -> Option<String> {
-	let bump = change.bump.to_string();
-	let mut context = BTreeMap::<&str, &str>::new();
-	context.insert("summary", &change.summary);
-	context.insert("package", &change.package_name);
-	context.insert("version", version);
-	context.insert("target_id", target_id);
-	context.insert("bump", &bump);
-	if let Some(value) = change.details.as_deref() {
-		context.insert("details", value);
-	}
-	if let Some(value) = change.change_type.as_deref() {
-		context.insert("type", value);
-	}
-	if let Some(value) = change.context.as_deref() {
-		context.insert("context", value);
-	}
-	if let Some(value) = change.changeset_path.as_deref() {
-		context.insert("changeset_path", value);
-	}
-	if let Some(value) = change.change_owner.as_deref() {
-		context.insert("change_owner", value);
-	}
-	if let Some(value) = change.change_owner_link.as_deref() {
-		context.insert("change_owner_link", value);
-	}
-	if let Some(value) = change.review_request.as_deref() {
-		context.insert("review_request", value);
-	}
-	if let Some(value) = change.review_request_link.as_deref() {
-		context.insert("review_request_link", value);
-	}
-	if let Some(value) = change.introduced_commit.as_deref() {
-		context.insert("introduced_commit", value);
-	}
-	if let Some(value) = change.introduced_commit_link.as_deref() {
-		context.insert("introduced_commit_link", value);
-	}
-	if let Some(value) = change.last_updated_commit.as_deref() {
-		context.insert("last_updated_commit", value);
-	}
-	if let Some(value) = change.last_updated_commit_link.as_deref() {
-		context.insert("last_updated_commit_link", value);
-	}
-	if let Some(value) = change.related_issues.as_deref() {
-		context.insert("related_issues", value);
-	}
-	if let Some(value) = change.related_issue_links.as_deref() {
-		context.insert("related_issue_links", value);
-	}
-	if let Some(value) = change.closed_issues.as_deref() {
-		context.insert("closed_issues", value);
-	}
-	if let Some(value) = change.closed_issue_links.as_deref() {
-		context.insert("closed_issue_links", value);
-	}
-	let jinja_context = minijinja::Value::from_serialize(&context);
-	let rendered = render_jinja_template_strict(template, &jinja_context).ok()?;
-	let rendered = rendered.trim().to_string();
-	if rendered.is_empty() || rendered == "-" {
-		None
-	} else {
-		Some(rendered)
-	}
-}
+const DEFAULT_CONFIGURED_CHANGE_TEMPLATES: [&str; 4] = [
+	"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}",
+	"#### {{ summary }}\n\n{{ context }}",
+	"#### {{ summary }}\n\n{{ details }}",
+	"- {{ summary }}",
+];
 
-fn push_unique_release_note_entry(entries: &mut Vec<String>, entry: String) {
+fn push_unique_release_note_entry<Entry: Eq>(entries: &mut Vec<Entry>, entry: Entry) {
 	if !entries.iter().any(|existing| existing == &entry) {
 		entries.push(entry);
 	}

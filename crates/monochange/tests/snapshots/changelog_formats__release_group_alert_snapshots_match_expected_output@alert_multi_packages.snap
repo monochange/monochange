@@ -11,7 +11,7 @@ This changelog is managed by [monochange](https://github.com/monochange/monochan
 ## 1.1.0 ([DATE])
 
 Grouped release for `sdk`.
-### 🚀 Feature
 
-#### add shared release note
-_Packages:_ _core_, _app_
+### Features
+
+- _Packages:_ _core_, _app_**add shared release note.**

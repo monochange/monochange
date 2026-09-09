@@ -86,6 +86,7 @@ impl LintSuite for ChangesetLintSuite {
 	fn rules(&self) -> Vec<Box<dyn LintRuleRunner>> {
 		let mut rules: Vec<Box<dyn LintRuleRunner>> = vec![
 			Box::new(SummaryRule::new()),
+			Box::new(SummaryDescriptionRule::new()),
 			Box::new(NoSectionHeadingsRule::new()),
 			Box::new(PreferInlineRule::new()),
 			Box::new(BumpScopeRule::new(BumpSeverity::None)),
@@ -111,6 +112,16 @@ impl LintSuite for ChangesetLintSuite {
 			.with_rules(BTreeMap::from([
 				(
 					"changesets/summary".to_string(),
+					LintRuleConfig::Detailed {
+						level: LintSeverity::Error,
+						options: BTreeMap::from([
+							("required".to_string(), serde_json::json!(true)),
+							("heading_level".to_string(), serde_json::json!(1)),
+						]),
+					},
+				),
+				(
+					"changesets/summary-description".to_string(),
 					LintRuleConfig::Severity(LintSeverity::Error),
 				),
 				(
@@ -495,6 +506,97 @@ impl LintRuleRunner for SummaryRule {
 
 		results
 	}
+}
+
+#[derive(Debug)]
+struct SummaryDescriptionRule {
+	rule: LintRule,
+}
+
+impl SummaryDescriptionRule {
+	fn new() -> Self {
+		Self {
+			rule: LintRule::new(
+				"changesets/summary-description",
+				"Changeset summary description",
+				"Rejects a first description sentence that repeats the summary",
+				LintCategory::Correctness,
+				LintMaturity::Stable,
+				false,
+			),
+		}
+	}
+}
+
+impl LintRuleRunner for SummaryDescriptionRule {
+	fn rule(&self) -> &LintRule {
+		&self.rule
+	}
+
+	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
+		let severity = config.severity();
+		if !severity.is_enabled() {
+			return Vec::new();
+		}
+		let Some(file) = changeset_file(ctx) else {
+			return Vec::new();
+		};
+		let Some((summary, paragraph)) = summary_and_first_description(&file.body) else {
+			return Vec::new();
+		};
+		let first_sentence = paragraph
+			.split_inclusive(['.', '!', '?'])
+			.next()
+			.unwrap_or(&paragraph);
+		if normalized_release_note_text(&summary) != normalized_release_note_text(first_sentence) {
+			return Vec::new();
+		}
+
+		vec![LintResult::new(
+			self.rule.id.clone(),
+			LintLocation::new(ctx.manifest_path, 1, 1),
+			"changeset description must add information instead of repeating the summary",
+			severity,
+		)]
+	}
+}
+
+fn summary_and_first_description(body: &str) -> Option<(String, String)> {
+	let mut lines = body.lines();
+	let summary_line = lines.find(|line| !line.trim().is_empty())?.trim();
+	let summary =
+		crate::markdown_heading_text(summary_line).unwrap_or_else(|| summary_line.to_string());
+	let mut paragraph = Vec::new();
+	for line in lines {
+		let trimmed = line.trim();
+		if trimmed.is_empty() {
+			if !paragraph.is_empty() {
+				break;
+			}
+			continue;
+		}
+		if trimmed.starts_with('#') && paragraph.is_empty() {
+			continue;
+		}
+		paragraph.push(trimmed);
+	}
+	(!paragraph.is_empty()).then(|| (summary, paragraph.join(" ")))
+}
+
+fn normalized_release_note_text(value: &str) -> String {
+	value
+		.chars()
+		.map(|character| {
+			if character.is_alphanumeric() {
+				character.to_ascii_lowercase()
+			} else {
+				' '
+			}
+		})
+		.collect::<String>()
+		.split_whitespace()
+		.collect::<Vec<_>>()
+		.join(" ")
 }
 
 // ── No section headings rule ─────────────────────────────────────────────────

@@ -985,6 +985,8 @@ Named `[changelog.outputs.<id>]` tables support:
 
 JSON and text outputs must use `mode = "release"`. The existing package/group changelog configuration is the implicit output named `default`; `[source.releases].changelog_output` selects which output becomes the hosted release body.
 
+JSON release notes expose structured entry fields such as `summary`, `details_markdown`, `packages`, `change_type`, `bump`, `stream`, `style`, and `provenance`. They do not embed a pre-rendered Markdown entry. Text output is rendered from the same data without Markdown emphasis or link syntax, which keeps it readable in logs and shell pipelines.
+
 Preview or export one configured artifact without preparing the release:
 
 ```bash
@@ -998,6 +1000,10 @@ monochange notes --output user --target app --file artifacts/app-release-notes.j
 `--output` selects the configured stream and format. It is required so automation cannot accidentally publish the wrong audience. Use `--target` when an output has more than one target. The command is read-only: it does not update versions, consume changesets, or write the output's configured `path`. Omitting `--file` (or passing `--file -`) writes to stdout, so ordinary shell redirection also works.
 
 Use `[changelog.style]` to tune rendered release-note shape. `metadata_style` accepts `inline` (the default), `blockquote`, `plain`, or `omit`. The inline style renders owner, review request, and issue metadata as one `·`-separated paragraph; when a PR/MR link is available, commit links are omitted because the review link already identifies the change.
+
+Routine entries use a compact bullet. Breaking entries and entries with migration guidance, code fences, or multiline details use an expanded heading and body. A package's own release notes omit the redundant package label; group and workspace notes keep package labels so readers can see what each entry affects.
+
+Built-in section headings are plain text, such as `Features` and `Fixes`. Configure custom `[changelog.sections.<id>].heading` values when a project deliberately wants emoji or other decoration.
 
 ```toml
 [changelog.style]

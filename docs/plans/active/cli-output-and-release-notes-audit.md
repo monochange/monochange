@@ -5,7 +5,7 @@
 - Audit date: 2026-09-08
 - Scope: CLI results, progress, diagnostics, CI logs, changeset authoring, and changelog rendering
 - Outcome: output contract approved; implementation is in progress
-- Code changes: PRs 1–4 are complete; structured release-note work is next
+- Code changes: PRs 1–5 are complete; plan consolidation is next
 
 ## Assessment
 
@@ -494,13 +494,13 @@ Acceptance checks:
 
 ### PR 5: Separate release-note data from rendering
 
-- [ ] Add `ReleaseNotesEntry` and structured provenance to `monochange_core`.
-- [ ] Convert `ReleaseNoteChange` to structured entries without rendering Markdown.
-- [ ] Render Markdown, text, and JSON only at the final boundary.
-- [ ] Add compact and expanded changelog entry styles.
-- [ ] Make grouped and package changelogs choose package-label visibility from context.
-- [ ] Align the changeset guide, generator, lint defaults, and examples on an H1 source summary.
-- [ ] Add a lint for summary and first-paragraph duplication.
+- [x] Add `ReleaseNotesEntry` and structured provenance to `monochange_core`.
+- [x] Convert `ReleaseNoteChange` to structured entries without rendering Markdown.
+- [x] Render Markdown, text, and JSON only at the final boundary.
+- [x] Add compact and expanded changelog entry styles.
+- [x] Make grouped and package changelogs choose package-label visibility from context.
+- [x] Align the changeset guide, generator, lint defaults, and examples on an H1 source summary.
+- [x] Add a lint for summary and first-paragraph duplication.
 
 Acceptance checks:
 

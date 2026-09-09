@@ -20,9 +20,9 @@ expression: redacted
             {
               "collapsed": false,
               "entries": [
-                "[multiline text]"
+                "- **core**: **add feature.**"
               ],
-              "title": "🚀 Feature"
+              "title": "Features"
             }
           ],
           "summary": [
@@ -44,9 +44,9 @@ expression: redacted
             {
               "collapsed": false,
               "entries": [
-                "#### add feature"
+                "- **add feature.**"
               ],
-              "title": "🚀 Feature"
+              "title": "Features"
             }
           ],
           "summary": [],

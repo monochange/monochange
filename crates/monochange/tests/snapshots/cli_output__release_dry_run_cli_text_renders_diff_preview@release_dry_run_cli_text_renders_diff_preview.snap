@@ -57,10 +57,10 @@ file diffs:
 +## 1.1.0 ([DATE])
 +
 +Grouped release for `sdk`.
-+### 🚀 Feature
 +
-+#### add feature
-+_Packages:_ _core_
++### Features
++
++- **core**: **add feature.**
 
 --- a/crates/core/CHANGELOG.md
 +++ b/crates/core/CHANGELOG.md
@@ -69,9 +69,9 @@ file diffs:
 +
 +## 1.1.0 ([DATE])
 +
-+### 🚀 Feature
++### Features
 +
-+#### add feature
++- **add feature.**
 
 --- a/group.toml
 +++ b/group.toml

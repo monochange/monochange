@@ -116,7 +116,9 @@ fn render_lint_explanation_supports_rules_and_presets() {
 #[test]
 fn generated_config_defaults_to_baseline_lints() {
 	let template = include_str!("../monochange.toml.template");
-	assert!(template.contains("use = [\"cargo/baseline\", \"npm/baseline\", \"dart/baseline\"]"));
+	assert!(template.contains(
+		"use = [\"cargo/baseline\", \"npm/baseline\", \"dart/baseline\", \"changesets/recommended\"]"
+	));
 	assert!(template.contains("without turning formatting preferences into blocking errors"));
 }
 

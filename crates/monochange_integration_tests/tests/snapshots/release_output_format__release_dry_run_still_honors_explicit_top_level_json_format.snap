@@ -10,7 +10,7 @@ expression: json_release_summary(&json)
       "sections": [
         {
           "entries": 1,
-          "title": "🐛 Fixed"
+          "title": "Fixes"
         }
       ]
     }

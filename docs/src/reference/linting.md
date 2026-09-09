@@ -73,7 +73,7 @@ Preset rules provide the baseline. Explicit entries in `[lints.rules]` override 
 
 | Preset                   | What it is for                                                  | Rules enabled                                                                                                                                                                                                                                                                                                                           |
 | ------------------------ | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `changesets/recommended` | Baseline changeset hygiene.                                     | `changesets/summary = error`, `changesets/prefer-inline = error`                                                                                                                                                                                                                                                                        |
+| `changesets/recommended` | Baseline changeset hygiene.                                     | `changesets/summary = error` with an H1 heading, `changesets/summary-description = error`, `changesets/prefer-inline = error`                                                                                                                                                                                                           |
 | `cargo/recommended`      | Balanced Cargo manifest policy for most workspaces.             | `cargo/internal-dependency-workspace = error`, `cargo/publishable-dependencies = error`, `cargo/required-package-fields = error`, `cargo/dependency-field-order = warning`, `cargo/sorted-dependencies = warning`, `cargo/unlisted-package-private = warning`                                                                           |
 | `cargo/strict`           | Cargo policy with style rules promoted to errors.               | Same as `cargo/recommended`, but `cargo/dependency-field-order` and `cargo/sorted-dependencies` are `error`.                                                                                                                                                                                                                            |
 | `npm/recommended`        | Balanced npm-family manifest policy.                            | `npm/workspace-protocol = error`, `npm/no-duplicate-dependencies = error`, `npm/required-package-fields = error`, `npm/root-no-prod-deps = error`, `npm/sorted-dependencies = warning`, `npm/unlisted-package-private = warning`                                                                                                        |
@@ -86,6 +86,7 @@ Preset rules provide the baseline. Explicit entries in `[lints.rules]` override 
 | Rule id                                          | Ecosystem      | Category      | Autofix | Summary                                                                                                                             |
 | ------------------------------------------------ | -------------- | ------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `changesets/summary`                             | changesets     | correctness   | no      | Requires a changeset body to start with a summary heading.                                                                          |
+| `changesets/summary-description`                 | changesets     | style         | no      | Requires the first description sentence to add information instead of repeating the summary.                                        |
 | `changesets/no_section_headings`                 | changesets     | correctness   | no      | Rejects change-type headings inside changeset bodies.                                                                               |
 | `changesets/prefer-inline`                       | changesets     | style         | yes     | Rewrites object change entries that repeat what the inline form already implies.                                                    |
 | `changesets/bump/none`                           | changesets     | correctness   | no      | Applies scoped body policy to `none` bump entries.                                                                                  |
@@ -131,7 +132,8 @@ use = ["changesets/recommended"]
 
 [lints.rules]
 "changesets/no_section_headings" = "error"
-"changesets/summary" = { level = "error", required = true, heading_level = 2, min_length = 12, max_length = 80, forbid_trailing_period = true, forbid_conventional_commit_prefix = true, require_description = true }
+"changesets/summary" = { level = "error", required = true, heading_level = 1, min_length = 12, max_length = 80, forbid_trailing_period = true, forbid_conventional_commit_prefix = true, require_description = true }
+"changesets/summary-description" = "error"
 "changesets/bump/major" = { level = "error", required_sections = ["Impact", "Migration"], min_body_chars = 120, require_code_block = true }
 "changesets/types/breaking" = { level = "error", forbidden_headings = ["Breaking", "Breaking changes"], required_sections = ["Impact", "Migration"], required_bump = "major" }
 ```
@@ -142,6 +144,8 @@ use = ["changesets/recommended"]
 
 **What it checks:** the first heading in a changeset body. It can require a heading, constrain its level and length, ban trailing periods, ban conventional-commit prefixes, and require descriptive body text after the heading.
 
+The `changesets/recommended` preset requires an H1 summary. The release-note renderer chooses the final heading depth, so authors do not need to anticipate whether an entry will be rendered compactly or expanded.
+
 **Useful options:**
 
 - `required`: require the summary heading.
@@ -150,6 +154,28 @@ use = ["changesets/recommended"]
 - `forbid_trailing_period`: reject summaries ending in `.`.
 - `forbid_conventional_commit_prefix`: reject summaries such as `feat: add parser`.
 - `require_description`: require a non-empty paragraph after the heading.
+
+### `changesets/summary-description`
+
+**Why:** repeating the headline as the first sentence makes a changeset look longer without telling the reader anything new.
+
+**What it checks:** after normalizing case, punctuation, and whitespace, the first description sentence must differ from the summary. Use the description to explain impact, behavior, or required action.
+
+**Without the rule:**
+
+```markdown
+# Show publish results clearly
+
+Show publish results clearly.
+```
+
+**With the rule:**
+
+```markdown
+# Show publish results clearly
+
+Publish now ends with package counts and one outcome row per package, so CI logs expose the result without requiring debug output.
+```
 
 ### `changesets/no_section_headings`
 

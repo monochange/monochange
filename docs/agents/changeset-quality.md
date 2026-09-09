@@ -6,11 +6,13 @@ A changeset is a permanent record of how the project changed from the perspectiv
 
 Every changeset body must include:
 
-1. **A headline** (`#### short title`) describing what changed in user-facing terms.
+1. **One H1 headline** (`# Short outcome`) describing what changed in user-facing terms, with no trailing period.
 2. **An impact summary** explaining why the change matters to users or callers.
-3. **Usage examples** showing the change in context (see sections below).
+3. **A focused example when callers must change an invocation, API, configuration, migration, or expected output shape.**
 
 A one-liner that only restates the PR title is not acceptable. The body must be detailed enough that a user reading the release notes can act on the information without consulting the source diff.
+
+Do not repeat the headline as the first sentence of the impact summary. Start with the consequence, affected audience, or action instead. monochange selects the final changelog heading depth and package-label placement; authors should not encode either concern in the changeset source.
 
 ## Audience-specific streams
 
@@ -50,7 +52,7 @@ The goal is to highlight the differences, not duplicate unchanged context.
 
 Example headline for a streamlined invocation:
 
-> #### allow one `monochange step affected-packages --changed-paths` flag to accept several paths
+> # Allow one `monochange step affected-packages --changed-paths` flag to accept several paths
 
 Example body:
 
@@ -70,7 +72,7 @@ Example body:
 
 When the invocation is unchanged but the output changes, prefer a structure like this:
 
-> #### update `monochange step plan-publish-rate-limits --format json` batch filtering
+> # Update `monochange step plan-publish-rate-limits --format json` batch filtering
 >
 > Command:
 >
@@ -94,7 +96,7 @@ When the invocation is unchanged but the output changes, prefer a structure like
 
 When a command is **removed**, explain what users should do instead:
 
-> #### remove legacy deployment workflow command
+> # Remove legacy deployment workflow command
 >
 > Use your CI platform's native deployment triggers (e.g. a GitHub Actions `workflow_run` event on the release workflow) instead of the legacy deployment wrapper.
 
@@ -109,7 +111,7 @@ For any change that adds, modifies, or removes a public type, function, or trait
 
 Example body for a renamed type:
 
-> #### rename `WorkflowDefinition` to `CliCommandDefinition`
+> # Rename `WorkflowDefinition` to `CliCommandDefinition`
 >
 > **Before (`monochange_config`):**
 >
@@ -127,7 +129,7 @@ Example body for a renamed type:
 
 For new APIs, show a minimal but realistic usage example:
 
-> #### add `ChangelogFormat` enum to `monochange_core`
+> # Add `ChangelogFormat` enum to `monochange_core`
 >
 > ```rust
 > use monochange_core::ChangelogFormat;
@@ -180,7 +182,7 @@ For graphical or browser-based interfaces, embed a screenshot or screen recordin
 
 Example:
 
-> #### add release summary panel to dashboard
+> # Add release summary panel to dashboard
 >
 > A collapsible **Release summary** card now appears at the top of the project page after a release run completes. It lists each published package, the new version, and a link to the corresponding changelog entry.
 >

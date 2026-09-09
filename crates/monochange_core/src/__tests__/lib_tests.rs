@@ -58,7 +58,11 @@ use crate::RegistryKind;
 use crate::ReleaseManifest;
 use crate::ReleaseManifestChangelog;
 use crate::ReleaseManifestPlan;
+use crate::ReleaseNoteEntryStyle;
+use crate::ReleaseNoteProvenance;
+use crate::ReleaseNoteReference;
 use crate::ReleaseNotesDocument;
+use crate::ReleaseNotesEntry;
 use crate::ReleaseNotesSection;
 use crate::ReleaseNotesStyleOverrides;
 use crate::ReleaseOwnerKind;
@@ -2575,6 +2579,244 @@ fn render_release_notes_supports_markdown_json_and_text_formats() {
 		&document.sections[0].entries[0]
 	);
 	insta::assert_snapshot!("render_release_notes_supports_formats__text", text);
+}
+
+#[test]
+fn structured_release_notes_render_data_without_markdown_leaking_into_text() {
+	let document = ReleaseNotesDocument {
+		title: "1.2.3".to_string(),
+		summary: Vec::new(),
+		sections: vec![ReleaseNotesSection {
+			title: "Fixes".to_string(),
+			collapsed: false,
+			entries: vec![
+				ReleaseNotesEntry {
+					summary: "Keep JSON failures non-zero".to_string(),
+					details_markdown: Some(
+						"`monochange check` now returns **status 1**.".to_string(),
+					),
+					packages: Vec::new(),
+					change_type: Some("fix".to_string()),
+					bump: BumpSeverity::Patch,
+					stream: "default".to_string(),
+					style: ReleaseNoteEntryStyle::Compact,
+					provenance: ReleaseNoteProvenance::default(),
+				},
+				ReleaseNotesEntry {
+					summary: "Replace the release-note document".to_string(),
+					details_markdown: Some("Migrate callers to the typed entry API.".to_string()),
+					packages: vec!["monochange_core".to_string()],
+					change_type: Some("breaking".to_string()),
+					bump: BumpSeverity::Major,
+					stream: "default".to_string(),
+					style: ReleaseNoteEntryStyle::Expanded,
+					provenance: ReleaseNoteProvenance {
+						review_request: Some(ReleaseNoteReference {
+							label: "PR 842".to_string(),
+							url: Some("https://example.com/pull/842".to_string()),
+						}),
+						..ReleaseNoteProvenance::default()
+					},
+				},
+			],
+		}],
+	};
+
+	let markdown = crate::render_structured_release_notes(
+		ChangelogFormat::Monochange,
+		&document,
+		&ChangelogStyle::default(),
+	);
+	assert!(markdown.contains("- **Keep JSON failures non-zero.**"));
+	assert!(markdown.contains("#### Replace the release-note document"));
+	assert!(markdown.contains("_Packages:_ _monochange_core_"));
+
+	let text = crate::render_structured_release_notes(
+		ChangelogFormat::Text,
+		&document,
+		&ChangelogStyle::default(),
+	);
+	assert!(!text.contains("**"));
+	assert!(!text.contains('`'));
+	assert!(text.contains("monochange check now returns status 1."));
+	assert_eq!(
+		crate::plain_markdown("Keep _important_ `package_name` values"),
+		"Keep important package_name values"
+	);
+
+	let json = crate::render_structured_release_notes(
+		ChangelogFormat::Json,
+		&document,
+		&ChangelogStyle::default(),
+	);
+	let json: serde_json::Value =
+		serde_json::from_str(&json).unwrap_or_else(|error| panic!("structured JSON: {error}"));
+	assert_eq!(
+		json["sections"][0]["entries"][0]["summary"],
+		"Keep JSON failures non-zero"
+	);
+	assert_eq!(json["sections"][0]["entries"][1]["style"], "expanded");
+}
+
+#[test]
+fn structured_release_notes_cover_layout_and_metadata_variants() {
+	let provenance = ReleaseNoteProvenance {
+		source_path: Some(".changeset/fix.md".to_string()),
+		changeset_path: Some(".changeset/fix.md".to_string()),
+		change_owner: Some(ReleaseNoteReference {
+			label: "@octocat".to_string(),
+			url: None,
+		}),
+		review_request: None,
+		introduced_commit: Some(ReleaseNoteReference {
+			label: "abc1234".to_string(),
+			url: Some("https://example.com/commit/abc1234".to_string()),
+		}),
+		last_updated_commit: Some(ReleaseNoteReference {
+			label: "def5678".to_string(),
+			url: None,
+		}),
+		closed_issues: vec![
+			ReleaseNoteReference {
+				label: "#20".to_string(),
+				url: Some("https://example.com/issues/20".to_string()),
+			},
+			ReleaseNoteReference {
+				label: "#21".to_string(),
+				url: None,
+			},
+		],
+		related_issues: vec![ReleaseNoteReference {
+			label: "#10".to_string(),
+			url: None,
+		}],
+	};
+	let expanded_entry = ReleaseNotesEntry {
+		summary: "Migrate the release API".to_string(),
+		details_markdown: Some(
+			"Use [`new_api`](https://example.com/new).\n\n```rust\nnew_api();\n```".to_string(),
+		),
+		packages: vec!["core".to_string(), "cli".to_string()],
+		change_type: Some("breaking".to_string()),
+		bump: BumpSeverity::Major,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Expanded,
+		provenance,
+	};
+	let compact_entry = ReleaseNotesEntry {
+		summary: "Tighten output?".to_string(),
+		details_markdown: Some("Keep `snake_case` names.".to_string()),
+		packages: vec!["cli".to_string()],
+		change_type: Some("fix".to_string()),
+		bump: BumpSeverity::Patch,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Compact,
+		provenance: ReleaseNoteProvenance::default(),
+	};
+	let document = ReleaseNotesDocument {
+		title: "[`sdk`](https://example.com/sdk) 2.0.0".to_string(),
+		summary: vec![
+			"First **summary**.".to_string(),
+			"Second summary.".to_string(),
+		],
+		sections: vec![
+			ReleaseNotesSection {
+				title: "Empty".to_string(),
+				collapsed: false,
+				entries: Vec::new(),
+			},
+			ReleaseNotesSection {
+				title: "Breaking changes".to_string(),
+				collapsed: true,
+				entries: vec![expanded_entry.clone(), expanded_entry.clone()],
+			},
+			ReleaseNotesSection {
+				title: "Fixes".to_string(),
+				collapsed: false,
+				entries: vec![compact_entry.clone()],
+			},
+		],
+	};
+
+	let blockquote_style = ChangelogStyle {
+		section_separator: SectionSeparator::ThematicBreak,
+		package_label_style: PackageLabelStyle::Badge,
+		package_label_placement: PackageLabelPlacement::AfterChange,
+		metadata_style: MetadataStyle::Blockquote,
+		collapsed_section_style: CollapsedSectionStyle::Details,
+	};
+	let markdown = crate::render_structured_release_notes(
+		ChangelogFormat::KeepAChangelog,
+		&document,
+		&blockquote_style,
+	);
+	assert!(markdown.contains("<summary><strong>Breaking changes</strong></summary>"));
+	assert!(markdown.contains("_Packages:_ *core*, *cli*"));
+	assert!(markdown.contains("> _Last updated in:_ def5678"));
+	assert!(markdown.contains("> _Closed issues:_ [#20](https://example.com/issues/20), #21"));
+	assert!(markdown.contains("\n---\n"));
+	let no_separator = crate::render_structured_release_notes(
+		ChangelogFormat::Monochange,
+		&document,
+		&ChangelogStyle {
+			section_separator: SectionSeparator::None,
+			collapsed_section_style: CollapsedSectionStyle::Plain,
+			..ChangelogStyle::default()
+		},
+	);
+	assert!(!no_separator.contains("\n---\n"));
+
+	let legacy = document.to_legacy_markdown(&blockquote_style);
+	assert_eq!(legacy.title, document.title);
+	assert_eq!(legacy.sections[1].entries.len(), 2);
+
+	let plain_style = ChangelogStyle {
+		package_label_placement: PackageLabelPlacement::AfterChange,
+		metadata_style: MetadataStyle::Plain,
+		collapsed_section_style: CollapsedSectionStyle::Plain,
+		..ChangelogStyle::default()
+	};
+	let expanded = crate::render_release_note_entry_markdown(&expanded_entry, &plain_style);
+	assert!(expanded.contains("_Packages:_ _core_, _cli_"));
+	assert!(expanded.contains("_Related issues:_ #10"));
+	let compact = crate::render_release_note_entry_markdown(&compact_entry, &plain_style);
+	assert!(compact.contains("\n  **cli**:"));
+
+	let omitted = crate::render_release_note_entry_markdown(
+		&expanded_entry,
+		&ChangelogStyle {
+			metadata_style: MetadataStyle::Omit,
+			..ChangelogStyle::default()
+		},
+	);
+	assert!(!omitted.contains("Owner:"));
+
+	let mut text_document = document.clone();
+	text_document.sections[2].entries.push(ReleaseNotesEntry {
+		details_markdown: None,
+		..compact_entry.clone()
+	});
+	let text = crate::render_structured_release_notes(
+		ChangelogFormat::Text,
+		&text_document,
+		&ChangelogStyle::default(),
+	);
+	assert!(text.contains("sdk 2.0.0\n\nFirst summary.\n\nSecond summary."));
+	assert!(text.contains("Last updated in: def5678"));
+	assert!(text.contains("Closed issues: #20, #21"));
+	assert!(text.contains("Related issues: #10"));
+	assert!(!text.contains("```"));
+
+	assert_eq!(crate::plain_markdown_inline("[broken"), "[broken");
+	assert_eq!(
+		crate::plain_markdown_inline("[label](missing"),
+		"[label](missing"
+	);
+	assert_eq!(crate::strip_underscore_emphasis("_open"), "_open");
+	assert_eq!(
+		crate::strip_underscore_emphasis("_value_more"),
+		"_value_more"
+	);
 }
 
 #[test]
