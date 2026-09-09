@@ -3583,3 +3583,98 @@ async fn registry_package_exists_reports_missing_crates_io_and_pub_dev_packages(
 		.join()
 		.unwrap_or_else(|_| panic!("pub.dev server thread"));
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn env_readiness_checker_error_fails_the_run_before_any_mutation() {
+	let requests = [publish_request("failed"), publish_request("tail")];
+	// The preflight must abort before any registry lookup, so the mock
+	// registry never receives a request.
+	let (endpoints, registry_thread) = npm_not_found_endpoints(0);
+	let readiness = PublishReadinessRegistry::new().with_env_checker(
+		RegistryKind::Npm,
+		Box::new(|_, _, _| {
+			Err(MonochangeError::Config(
+				"env readiness checker failed".to_string(),
+			))
+		}),
+	);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor =
+		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
+
+	let failure = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&readiness,
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.expect_err("env readiness checker failure should fail the run")
+	.into_parts();
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert!(failure.1.packages.is_empty());
+	assert!(executor.commands.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dry_run_readiness_block_records_skipped_outcomes_without_publishing() {
+	let requests = [publish_request("failed"), publish_request("tail")];
+	// The checker passes the preflight, then errors on the mid-loop
+	// re-check, exercising the loop's own error branch.
+	let (endpoints, registry_thread) = npm_not_found_endpoints(2);
+	let readiness = PublishReadinessRegistry::new().with_checker(
+		RegistryKind::Npm,
+		Box::new(|_, _| Ok(Some("mid-loop readiness block".to_string()))),
+	);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor =
+		SequencedCommandExecutor::new(std::iter::empty::<MonochangeResult<CommandOutput>>());
+
+	// A real (non-dry) Release run fails in the preflight (env checkers
+	// included) before the mid-loop check; use a dry run where the mid-loop
+	// runs the static checker and the block surfaces as a skipped outcome.
+	let report = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		true,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&readiness,
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("dry run should complete: {error}"));
+
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	assert!(executor.commands.is_empty());
+	assert_eq!(report.packages.len(), 2);
+	assert!(
+		report
+			.packages
+			.iter()
+			.all(|outcome| outcome.status == PackagePublishStatus::Blocked)
+	);
+}

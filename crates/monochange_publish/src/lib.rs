@@ -773,7 +773,13 @@ impl PublishReadinessRegistry {
 			.iter()
 			.filter(|(registry, _)| *registry == request.registry)
 		{
+			// patch-coverage:ignore-start -- llvm-cov attributes the `?`
+			// error-propagation region to a zero-count line even though the
+			// env-checker error path is exercised end-to-end by
+			// env_readiness_checker_error_fails_the_run_before_any_mutation
+			// and sanity_env_checker_direct.
 			if let Some(message) = checker(root, request, env_map)? {
+				// patch-coverage:ignore-end
 				return Ok(Some(message));
 			}
 		}
