@@ -193,6 +193,21 @@ fn run_readiness_release(root: &Path) {
 fn publish_readiness_command(root: &Path, crates_io_port: u16) -> Command {
 	let mut command = monochange_command();
 	command.current_dir(root);
+	// Neutralize the runner's CI identity so the local-run report does not
+	// depend on which workflow file the fixture happens to carry.
+	for env_var in [
+		"GITHUB_ACTIONS",
+		"GITHUB_REPOSITORY",
+		"GITHUB_WORKFLOW",
+		"GITHUB_WORKFLOW_REF",
+		"GITHUB_ENVIRONMENT",
+		"GITHUB_JOB",
+		"GITHUB_RUN_ID",
+		"GITHUB_REF_NAME",
+		"MONOCHANGE_TRUSTED_PUBLISHING_ENVIRONMENT",
+	] {
+		command.env_remove(env_var);
+	}
 	command.env(
 		"MONOCHANGE_CRATES_IO_API_URL",
 		format!("http://127.0.0.1:{crates_io_port}"),
