@@ -91,13 +91,97 @@ fn monochange_command() -> Command {
 	command
 }
 
+/// Run a command to completion with a hard timeout. On timeout the child is
+/// killed and the panic names the phase and dumps the captured stderr tail,
+/// so a hung subprocess becomes an actionable failure instead of stalling
+/// until the nextest test timeout.
+fn guarded_output(mut command: Command, phase: &str) -> std::process::Output {
+	// Pipe every stream (like `Command::output`) so reader threads always
+	// exist; inheriting stdio would leave the recv calls below without a
+	// sender and deadlock the guard.
+	command
+		.stdin(std::process::Stdio::null())
+		.stdout(std::process::Stdio::piped())
+		.stderr(std::process::Stdio::piped());
+	let mut child = command
+		.spawn()
+		.unwrap_or_else(|error| panic!("spawn {phase}: {error}"));
+	let stdout_pipe = child.stdout.take();
+	let stderr_pipe = child.stderr.take();
+	let (stdout_tx, stdout_rx) = std::sync::mpsc::channel::<Vec<u8>>();
+	let (stderr_tx, stderr_rx) = std::sync::mpsc::channel::<String>();
+	if let Some(mut pipe) = stdout_pipe {
+		std::thread::spawn(move || {
+			let mut buffer = Vec::new();
+			if std::io::Read::read_to_end(&mut pipe, &mut buffer).is_ok() {
+				let _ = stdout_tx.send(buffer);
+			}
+		});
+	}
+	if let Some(mut pipe) = stderr_pipe {
+		std::thread::spawn(move || {
+			let mut buffer = String::new();
+			if std::io::Read::read_to_string(&mut pipe, &mut buffer).is_ok() {
+				let _ = stderr_tx.send(buffer);
+			}
+		});
+	}
+	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
+	let mut last_report = std::time::Instant::now() - std::time::Duration::from_secs(2);
+	loop {
+		if last_report.elapsed() > std::time::Duration::from_secs(1) {
+			eprintln!(
+				"[readiness-test] still waiting on {phase}, child pid {:?}",
+				child.id()
+			);
+			last_report = std::time::Instant::now();
+		}
+		match child.try_wait() {
+			Ok(Some(status)) => {
+				let stdout = stdout_rx
+					.recv_timeout(std::time::Duration::from_secs(10))
+					.unwrap_or_default();
+				let stderr = stderr_rx
+					.recv_timeout(std::time::Duration::from_secs(10))
+					.unwrap_or_default();
+				return std::process::Output {
+					status,
+					stdout,
+					stderr: stderr.into_bytes(),
+				};
+			}
+			Ok(None) => {
+				if std::time::Instant::now() > deadline {
+					let _ = child.kill();
+					let stderr_tail = stderr_rx
+						.recv_timeout(std::time::Duration::from_secs(5))
+						.unwrap_or_default();
+					let tail: String = stderr_tail
+						.chars()
+						.rev()
+						.take(4000)
+						.collect::<Vec<_>>()
+						.into_iter()
+						.rev()
+						.collect();
+					panic!("{phase} did not finish within 90s; stderr tail:\n{tail}");
+				}
+				std::thread::sleep(std::time::Duration::from_millis(50));
+			}
+			Err(error) => panic!("wait {phase}: {error}"),
+		}
+	}
+}
+
 fn run_readiness_release(root: &Path) {
-	let output = monochange_command()
+	eprintln!("[readiness-test] starting readiness-release");
+	let mut command = monochange_command();
+	command
 		.current_dir(root)
 		.arg("run")
-		.arg("readiness-release")
-		.output()
-		.unwrap_or_else(|error| panic!("run readiness-release: {error}"));
+		.arg("readiness-release");
+	let output = guarded_output(command, "readiness-release");
+	eprintln!("[readiness-test] readiness-release finished");
 	assert!(
 		output.status.success(),
 		"readiness-release failed\nstdout:\n{}\nstderr:\n{}",
@@ -130,11 +214,18 @@ fn publish_readiness_reports_trusted_publishing_and_publish_order() {
 	// trusted-publishing findings in any environment (local or CI).
 	let (port, _mock) = mock_crates_io(4);
 	let workspace = setup_publish_readiness_repo();
+	eprintln!("[readiness-test] fixture ready");
 	run_readiness_release(workspace.path());
+	eprintln!("[readiness-test] readiness-release committed");
 
-	let output = publish_readiness_command(workspace.path(), port)
-		.output()
-		.unwrap_or_else(|error| panic!("run publish-readiness: {error}"));
+	let output = guarded_output(
+		publish_readiness_command(workspace.path(), port),
+		"publish-readiness",
+	);
+	eprintln!(
+		"[readiness-test] publish-readiness exited with {}",
+		output.status.code().unwrap_or(-1)
+	);
 	assert!(
 		output.status.success(),
 		"publish-readiness failed\nstdout:\n{}\nstderr:\n{}",
