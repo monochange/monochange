@@ -4585,6 +4585,7 @@ fn ecosystem_settings_with_auto_discover_round_trip() -> Result<(), serde_json::
 				version_format: Some(VersionFormat::Namespaced),
 			},
 		}),
+		semver_checks: crate::CargoSemverChecksSettings::default(),
 	};
 	let json = serde_json::to_string(&settings)?;
 	let round_tripped: EcosystemSettings = serde_json::from_str(&json)?;

@@ -598,6 +598,7 @@ fn rebase_discovered_workspace_reports_outside_paths_and_rewrites_warnings() {
 	let workspace_matcher = PackagePathMatcher::new("workspace", Path::new(""), &[], &[]);
 	let make_workspace = |package: PackageRecord| {
 		AnalysisWorkspace {
+			cargo_semver_checks: CargoSemverChecksSettings::default(),
 			packages: vec![package],
 			release_identities: BTreeMap::new(),
 			path_matchers: BTreeMap::new(),
@@ -687,11 +688,17 @@ fn snapshot_helpers_cover_error_paths_and_filtered_content() {
 	);
 	assert!(should_skip_directory(Path::new("target")));
 	assert!(!should_skip_directory(Path::new("src")));
-	assert_eq!(snapshot_label(&SnapshotTarget::WorkingTree), "working_tree");
-	assert_eq!(snapshot_label(&SnapshotTarget::GitIndex), "index");
+	let working_label = snapshot_label(&root, &SnapshotTarget::WorkingTree)
+		.unwrap_or_else(|error| panic!("working label: {error}"));
+	let index_label = snapshot_label(&root, &SnapshotTarget::GitIndex)
+		.unwrap_or_else(|error| panic!("index label: {error}"));
+	assert_eq!(working_label.len(), 40);
+	assert_eq!(index_label.len(), 40);
 	assert_eq!(
-		snapshot_label(&SnapshotTarget::GitRevision(head.clone())),
-		head
+		snapshot_label(&root, &SnapshotTarget::GitRevision(head.clone()))
+			.unwrap_or_else(|error| panic!("revision label: {error}")),
+		git_tree_object(&root, &head)
+			.unwrap_or_else(|error| panic!("resolve expected tree: {error}"))
 	);
 
 	let outside_package = PackageRecord::new(
@@ -711,6 +718,11 @@ fn snapshot_helpers_cover_error_paths_and_filtered_content() {
 	assert!(git_list_error.contains("git"));
 	let missing_repo = root.join("missing-repo");
 	assert!(read_text_file_from_git_object(&missing_repo, "HEAD:file.rs").is_err());
+	let index = not_a_repo.path().join("index");
+	let index_error = git_with_index(not_a_repo.path(), &index, &["write-tree"])
+		.expect_err("writing a tree outside a repository should fail")
+		.render();
+	assert!(index_error.contains("failed while resolving a semantic-analysis snapshot"));
 }
 
 #[test]

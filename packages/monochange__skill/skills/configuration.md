@@ -129,6 +129,32 @@ Use ecosystem `publish` defaults when most packages share the same publishing be
 
 Lockfile commands are command-driven. Configure them when the repository has a preferred package manager or when inferred defaults would update the wrong files. They normally run as part of a release workflow after versions are prepared and before the release commit is created.
 
+Cargo semantic classification can opt into a bounded cargo-semver-checks matrix:
+
+```toml
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 300
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "wasm"
+feature_mode = "none"
+features = ["wasm"]
+target = "wasm32-unknown-unknown"
+```
+
+Use `default`, `all`, `none`, or `heuristic` for `feature_mode`. Add `features`, `baseline_features`, or `current_features` when a public configuration needs explicit or endpoint-specific feature selection. Matrix names must be unique; the matrix is limited to 16 cells and each cell is limited to 1–1800 seconds. This table is invalid for non-Cargo ecosystems.
+
+The matrix runs only during `monochange change classify --detection-level semantic`. It executes Cargo builds, including build scripts and procedural macros, so do not enable it for untrusted code running with elevated credentials.
+
 ## Publishing settings
 
 ```toml

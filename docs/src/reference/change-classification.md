@@ -47,7 +47,7 @@ Identical evidence found in several comparisons shares one finding and lists eve
 
 monochange compares package manifests at both endpoints. Adding or removing a package produces a `monochange/package-lifecycle` finding with `complete` coverage and high confidence. Removing a package proposes `major`, even when the package has no modeled public symbols. Adding one proposes `minor`.
 
-The built-in Cargo, JavaScript, Deno, and Dart source analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. For example, the Rust analyzer does not model every `cfg` and feature combination, trait compatibility rule, or downstream build witness.
+The built-in Cargo, JavaScript, Deno, and Dart source analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. Cargo packages can opt into a cargo-semver-checks matrix for stronger Rust evidence.
 
 ### TypeScript declaration compatibility
 
@@ -86,15 +86,50 @@ When the repository defines `[package.*]` entries, classification is limited to 
 
 Package discovery reads both comparison endpoints and joins packages by ecosystem and repository-relative manifest path. A package that exists only in the base remains in the report with its baseline package id, path policy, release owner, and tag format. Its before snapshot contains the package files, and its after snapshot is empty. This behavior also applies when the pull request removes the package's `[package.*]` entry from `monochange.toml`.
 
-For a higher-assurance Rust check, run cargo-semver-checks against the resolved release tag and the current manifest:
+### Rust compatibility matrix
+
+Install cargo-semver-checks, then opt into it for semantic classification:
 
 ```bash
-cargo semver-checks check-release \
-	--manifest-path crates/example/Cargo.toml \
-	--baseline-rev example/v1.2.3
+cargo install cargo-semver-checks --locked
 ```
 
-cargo-semver-checks reports compatibility violations across the selected feature and target configuration. Run extra feature or target combinations when those combinations are part of the supported API. monochange does not currently import this external result, so reconcile its diagnostics with the matching monochange findings before choosing the changeset bump.
+```toml
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 300
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "wasm"
+feature_mode = "none"
+features = ["wasm"]
+target = "wasm32-unknown-unknown"
+```
+
+Install every configured target before classification, for example `rustup target add wasm32-unknown-unknown`. A matrix may contain at most 16 uniquely named cells. `timeout_seconds` applies to each cell and must be between 1 and 1800. Feature mode is `default`, `all`, `none`, or `heuristic`; the `features`, `baseline_features`, and `current_features` lists add common or endpoint-specific features.
+
+The integration runs only with `--detection-level semantic`. monochange materializes each Git endpoint as a complete, isolated repository tree so workspace inheritance and path dependencies remain available. Each cell receives an isolated `CARGO_TARGET_DIR`. The JSON finding exposes the exact cell inputs, `checked`, `failed`, or `skipped` status, minimum bump, lint ids, authoritative lint references, and cargo-semver-checks version under `coverage.checks`.
+
+Results merge conservatively:
+
+| Matrix result                                                | Classification behavior                                                                  |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Any checked cell proves a break                              | Propose `major`, even if another cell fails                                              |
+| A checked cell reports a minor requirement and none break    | Propose at least `minor`                                                                 |
+| Every configured cell is checked and requires no bump        | Report compatible Rust API evidence; retain syntax-derived additions as `minor` evidence |
+| A tool, target, build, timeout, or matrix cell is incomplete | Keep conservative syntax findings and require review                                     |
+
+cargo-semver-checks' active lint set is authoritative for the rules it runs, but compatible additions are not exhaustively enabled by default. monochange therefore retains syntax-derived additions even after a clean matrix. Runtime behavior, undocumented supported configurations, and downstream build behavior remain outside this proof.
+
+> **Security:** cargo-semver-checks asks Cargo and rustdoc to build both endpoints. Build scripts and procedural macros can execute repository code. Enable this only for code you are prepared to execute. In CI, use a normal `pull_request` job with least-privilege credentials; do not run semantic classification on untrusted changes through `pull_request_target` or with publishing secrets.
 
 ## Output and validation
 
@@ -138,6 +173,9 @@ steps:
     with:
       fetch-depth: 0
       ref: ${{ github.event.pull_request.head.sha }}
+  - name: Install Rust semantic analyzer
+    if: ${{ hashFiles('**/Cargo.toml') != '' }}
+    run: cargo install cargo-semver-checks --locked
   - id: classify
     uses: monochange/actions/change-classification@v0
     with:
@@ -147,4 +185,4 @@ steps:
 
 Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`.
 
-For complete TypeScript evidence, install the repository dependencies before this step. Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary. Until a tagged monochange CLI release contains `change classify`, preinstall a compatible CLI and set `setup-monochange: false`, or pass its executable command through `setup-monochange`.
+For complete TypeScript evidence, install the repository dependencies before this step. For configured Rust target cells, install those targets before the action. Keep the workflow on `pull_request`; the analyzer may execute changed build scripts and procedural macros. Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary. Until a tagged monochange CLI release contains `change classify`, preinstall a compatible CLI and set `setup-monochange: false`, or pass its executable command through `setup-monochange`.

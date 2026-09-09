@@ -89,13 +89,13 @@ Acceptance: declaration-equivalent source refactors recommend `none`; additive d
 
 ## Unit 3: Rust semantic compatibility matrix
 
-- [ ] Define an explicit configuration for feature and target combinations.
-- [ ] Run cargo-semver-checks against isolated before/after package snapshots.
-- [ ] Record the exact feature/target matrix, tool version, skipped cells, and diagnostics in analyzer evidence.
-- [ ] Merge results conservatively: any proven break is `major`; additive API is `minor`; compatible implementation-only changes are `none`; incomplete cells keep the result partial.
-- [ ] Preserve the syntax analyzer as a deterministic fallback.
-- [ ] Cover default features, no-default-features, all-features, selected features, target-gated APIs, trait changes, and unavailable-tool behavior.
-- [ ] Document installation and CI setup without invoking release workflows.
+- [x] Define an explicit configuration for feature and target combinations.
+- [x] Run cargo-semver-checks against isolated before/after package snapshots.
+- [x] Record the exact feature/target matrix, tool version, skipped cells, and diagnostics in analyzer evidence.
+- [x] Merge results conservatively: any proven break is `major`; additive API is `minor`; compatible implementation-only changes are `none`; incomplete cells keep the result partial.
+- [x] Preserve the syntax analyzer as a deterministic fallback.
+- [x] Cover default features, no-default-features, all-features, selected features, target-gated APIs, trait changes, and unavailable-tool behavior.
+- [x] Document installation and CI setup without invoking release workflows.
 
 Acceptance: feature- or target-gated breaks cannot disappear behind a successful default build, and every recommendation states which matrix cells were checked.
 

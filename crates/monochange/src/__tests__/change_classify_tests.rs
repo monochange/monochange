@@ -1259,6 +1259,128 @@ fn semantic_assessment_mapping_covers_every_current_evidence_variant() {
 }
 
 #[test]
+fn semantic_finding_preserves_and_renders_matrix_checks() {
+	let mut change = removed_api_change();
+	change.assessment = Some(monochange_core::SemanticChangeAssessment::new(
+		monochange_core::SemanticAnalysisOutcome::Breaking,
+		BumpSeverity::Major,
+		monochange_core::ApiConfidence::High,
+		monochange_core::SemanticAnalyzerEvidence::new(
+			"cargo/cargo-semver-checks",
+			"cargo-semver-checks",
+			monochange_core::SemanticAnalysisCompleteness::Complete,
+			"2/2 feature/target cells checked",
+		)
+		.with_version("0.47.0")
+		.with_checks(vec![
+			monochange_core::SemanticAnalyzerCheck::new(
+				"all-features",
+				monochange_core::SemanticAnalyzerCheckStatus::Checked,
+				BTreeMap::from([("target".to_string(), "host".to_string())]),
+			)
+			.with_result(
+				monochange_core::SemanticAnalysisOutcome::Breaking,
+				BumpSeverity::Major,
+			)
+			.with_diagnostics(vec![monochange_core::SemanticAnalyzerDiagnostic::new(
+				"trait_method_missing",
+				"pub trait method removed",
+			)]),
+		]),
+	));
+	let finding = finding_from_semantic_change(
+		finding_id("cargo/public-api", &change),
+		"cargo/public-api",
+		&change,
+		DetectionLevel::Semantic,
+	);
+	let json =
+		serde_json::to_value(&finding).unwrap_or_else(|error| panic!("serialize finding: {error}"));
+
+	assert_eq!(json["coverage"]["checks"][0]["name"], "all-features");
+	assert_eq!(json["coverage"]["checks"][0]["suggestedBump"], "major");
+	assert!(
+		finding_evidence(&finding).contains(
+			"all-features=checked/major [trait_method_missing: pub trait method removed]"
+		)
+	);
+}
+
+#[test]
+fn matrix_evidence_limits_human_diagnostics_without_truncating_json() {
+	let diagnostics = (0..6)
+		.map(|index| {
+			monochange_core::SemanticAnalyzerDiagnostic::new(
+				format!("lint_{index}"),
+				format!("diagnostic {index}"),
+			)
+		})
+		.collect::<Vec<_>>();
+	let checks = vec![
+		monochange_core::SemanticAnalyzerCheck::new(
+			"all-features",
+			monochange_core::SemanticAnalyzerCheckStatus::Checked,
+			BTreeMap::new(),
+		)
+		.with_result(
+			monochange_core::SemanticAnalysisOutcome::Breaking,
+			BumpSeverity::Major,
+		)
+		.with_diagnostics(diagnostics),
+	];
+	let rendered = finding_checks_evidence(&checks);
+
+	assert!(rendered.contains("lint_0: diagnostic 0"));
+	assert!(rendered.contains("+1 more"));
+	assert!(!rendered.contains("lint_5: diagnostic 5"));
+	assert_eq!(checks.first().map(|check| check.diagnostics.len()), Some(6));
+}
+
+#[test]
+fn matrix_evidence_renders_every_status_and_bump() {
+	let checks = vec![
+		SemanticAnalyzerCheck::new(
+			"checked",
+			SemanticAnalyzerCheckStatus::Checked,
+			BTreeMap::new(),
+		),
+		SemanticAnalyzerCheck::new(
+			"none",
+			SemanticAnalyzerCheckStatus::Checked,
+			BTreeMap::new(),
+		)
+		.with_result(SemanticAnalysisOutcome::Compatible, BumpSeverity::None),
+		SemanticAnalyzerCheck::new(
+			"patch",
+			SemanticAnalyzerCheckStatus::Checked,
+			BTreeMap::new(),
+		)
+		.with_result(SemanticAnalysisOutcome::Compatible, BumpSeverity::Patch),
+		SemanticAnalyzerCheck::new(
+			"minor",
+			SemanticAnalyzerCheckStatus::Checked,
+			BTreeMap::new(),
+		)
+		.with_result(SemanticAnalysisOutcome::Additive, BumpSeverity::Minor),
+		SemanticAnalyzerCheck::new(
+			"skipped",
+			SemanticAnalyzerCheckStatus::Skipped,
+			BTreeMap::new(),
+		),
+		SemanticAnalyzerCheck::new(
+			"failed",
+			SemanticAnalyzerCheckStatus::Failed,
+			BTreeMap::new(),
+		),
+	];
+
+	assert_eq!(
+		finding_checks_evidence(&checks),
+		"; checks: checked=checked; none=checked/none; patch=checked/patch; minor=checked/minor; skipped=skipped; failed=failed"
+	);
+}
+
+#[test]
 fn finding_fingerprint_includes_the_semantic_assessment() {
 	let mut change = removed_api_change();
 	let without_assessment = FindingEvidenceKey::from(&change).stable_fingerprint();

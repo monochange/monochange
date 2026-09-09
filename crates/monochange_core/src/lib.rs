@@ -2694,6 +2694,13 @@ pub struct EcosystemSettings {
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub auto_discover: Option<AutoDiscoverSettings>,
+	/// Opt-in Rust compatibility matrix. Used only by the Cargo ecosystem.
+	#[serde(default, skip_serializing_if = "cargo_semver_checks_is_default")]
+	pub semver_checks: CargoSemverChecksSettings,
+}
+
+fn cargo_semver_checks_is_default(settings: &CargoSemverChecksSettings) -> bool {
+	settings == &CargoSemverChecksSettings::default()
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]

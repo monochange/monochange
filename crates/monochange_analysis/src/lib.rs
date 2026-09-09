@@ -16,9 +16,10 @@ use std::process::Stdio;
 use std::sync::Mutex;
 
 #[cfg(feature = "cargo")]
-use monochange_cargo::semantic_analyzer as cargo_semantic_analyzer;
+use monochange_cargo::semantic_analyzer_with_settings as cargo_semantic_analyzer;
 use monochange_config::apply_version_groups;
 use monochange_config::load_workspace_configuration;
+use monochange_core::CargoSemverChecksSettings;
 use monochange_core::Ecosystem;
 use monochange_core::EffectiveReleaseIdentity;
 use monochange_core::MonochangeError;
@@ -184,10 +185,10 @@ struct AnalyzerRegistry {
 }
 
 impl AnalyzerRegistry {
-	fn new() -> Self {
+	fn new(cargo_semver_checks: CargoSemverChecksSettings) -> Self {
 		let analyzers: Vec<Box<dyn SemanticAnalyzer>> = vec![
 			#[cfg(feature = "cargo")]
-			Box::new(cargo_semantic_analyzer()),
+			Box::new(cargo_semantic_analyzer(cargo_semver_checks)),
 			#[cfg(feature = "npm")]
 			Box::new(npm_semantic_analyzer()),
 			#[cfg(feature = "deno")]
@@ -222,6 +223,7 @@ enum SnapshotTarget {
 
 #[derive(Debug, Clone)]
 struct AnalysisWorkspace {
+	cargo_semver_checks: CargoSemverChecksSettings,
 	packages: Vec<PackageRecord>,
 	release_identities: BTreeMap<String, EffectiveReleaseIdentity>,
 	path_matchers: BTreeMap<String, PackagePathMatcher>,
@@ -249,12 +251,13 @@ impl AnalysisSession {
 	pub fn new(repo_root: &Path, config: AnalysisConfig) -> MonochangeResult<Self> {
 		let repo_root = normalize_path(repo_root);
 		let workspace = discover_analysis_workspace(&repo_root)?;
+		let registry = AnalyzerRegistry::new(workspace.cargo_semver_checks.clone());
 
 		Ok(Self {
 			repo_root,
 			workspace,
 			workspace_cache: Mutex::new(BTreeMap::new()),
-			registry: AnalyzerRegistry::new(),
+			registry,
 			config,
 		})
 	}
@@ -673,6 +676,7 @@ fn discover_analysis_workspace(root: &Path) -> MonochangeResult<AnalysisWorkspac
 		.collect();
 
 	Ok(AnalysisWorkspace {
+		cargo_semver_checks: configuration.cargo.semver_checks.clone(),
 		packages,
 		release_identities,
 		path_matchers,
@@ -893,6 +897,7 @@ fn merge_analysis_workspaces(
 	warnings.dedup();
 
 	AnalysisWorkspace {
+		cargo_semver_checks: after.cargo_semver_checks,
 		packages: packages.into_values().collect(),
 		release_identities,
 		path_matchers,
@@ -1105,7 +1110,7 @@ fn snapshot_package(
 			package.id
 		))
 	})?;
-	let label = snapshot_label(target);
+	let label = snapshot_label(repo_root, target)?;
 	let files = match target {
 		SnapshotTarget::WorkingTree => snapshot_files_from_working_tree(repo_root, &package_root)?,
 		SnapshotTarget::GitRevision(revision) => {
@@ -1117,12 +1122,63 @@ fn snapshot_package(
 	Ok(PackageSnapshot { label, files })
 }
 
-fn snapshot_label(target: &SnapshotTarget) -> String {
+fn snapshot_label(repo_root: &Path, target: &SnapshotTarget) -> MonochangeResult<String> {
 	match target {
-		SnapshotTarget::GitRevision(revision) => revision.clone(),
-		SnapshotTarget::WorkingTree => "working_tree".to_string(),
-		SnapshotTarget::GitIndex => "index".to_string(),
+		SnapshotTarget::GitRevision(revision) => git_tree_object(repo_root, revision),
+		SnapshotTarget::WorkingTree => working_tree_object(repo_root),
+		SnapshotTarget::GitIndex => git_index_tree_object(repo_root),
 	}
+}
+
+fn working_tree_object(repo_root: &Path) -> MonochangeResult<String> {
+	// patch-coverage:ignore-start -- exercising temporary-directory allocation failure requires exhausting OS resources.
+	let temporary = tempfile::tempdir().map_err(|error| {
+		MonochangeError::Io(format!(
+			"failed to create a temporary index for semantic analysis: {error}"
+		))
+	})?;
+	// patch-coverage:ignore-end
+	let index = temporary.path().join("index");
+	git_with_index(repo_root, &index, &["read-tree", "HEAD"])?;
+	git_with_index(repo_root, &index, &["add", "--all", "--", "."])?;
+	git_with_index(repo_root, &index, &["write-tree"])
+}
+
+fn git_index_tree_object(repo_root: &Path) -> MonochangeResult<String> {
+	let output = Command::new("git")
+		.current_dir(repo_root)
+		.args(["write-tree"])
+		.output()
+		.map_err(|error| MonochangeError::Io(format!("failed to run git write-tree: {error}")))?;
+	git_object_output(output, "git write-tree")
+}
+
+fn git_with_index(repo_root: &Path, index: &Path, args: &[&str]) -> MonochangeResult<String> {
+	let output = Command::new("git")
+		.current_dir(repo_root)
+		.env("GIT_INDEX_FILE", index)
+		.args(args)
+		.output()
+		.map_err(|error| MonochangeError::Io(format!("failed to run git {args:?}: {error}")))?;
+	git_object_output(output, &format!("git {args:?}"))
+}
+
+fn git_object_output(output: std::process::Output, operation: &str) -> MonochangeResult<String> {
+	if !output.status.success() {
+		return Err(MonochangeError::Discovery(format!(
+			"{operation} failed while resolving a semantic-analysis snapshot: {}",
+			String::from_utf8_lossy(&output.stderr).trim()
+		)));
+	}
+	String::from_utf8(output.stdout)
+		.map(|value| value.trim().to_string())
+		// patch-coverage:ignore-start -- Git emits ASCII object ids; invalid output requires replacing the executable after spawn.
+		.map_err(|error| {
+			MonochangeError::Discovery(format!(
+				"{operation} returned invalid UTF-8 while resolving a semantic-analysis snapshot: {error}"
+			))
+		})
+	// patch-coverage:ignore-end
 }
 
 #[allow(clippy::unnecessary_wraps)]

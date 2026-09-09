@@ -39,6 +39,110 @@
 			],
 			"type": "string"
 		},
+		"CargoSemverChecksSettings": {
+			"additionalProperties": false,
+			"description": "Opt-in cargo-semver-checks configuration for semantic Rust analysis.",
+			"properties": {
+				"enabled": {
+					"default": false,
+					"description": "Run the external analyzer when semantic detection is requested.",
+					"type": "boolean"
+				},
+				"matrix": {
+					"default": [
+						{
+							"feature_mode": "default",
+							"name": "default"
+						}
+					],
+					"description": "Feature and target combinations that define supported Rust API coverage.",
+					"items": {
+						"$ref": "#/$defs/CargoSemverMatrixCell"
+					},
+					"type": "array"
+				},
+				"timeout_seconds": {
+					"default": 300,
+					"description": "Maximum duration of each matrix cell.",
+					"format": "uint64",
+					"minimum": 0,
+					"type": "integer"
+				}
+			},
+			"type": "object"
+		},
+		"CargoSemverFeatureMode": {
+			"description": "Cargo feature selection used by one cargo-semver-checks matrix cell.",
+			"oneOf": [
+				{
+					"const": "default",
+					"description": "Check the crate-defined default features plus explicitly listed features.",
+					"type": "string"
+				},
+				{
+					"const": "all",
+					"description": "Check every declared feature.",
+					"type": "string"
+				},
+				{
+					"const": "none",
+					"description": "Disable implicit features and use only explicitly listed features.",
+					"type": "string"
+				},
+				{
+					"const": "heuristic",
+					"description": "Use cargo-semver-checks' stable-feature heuristic.",
+					"type": "string"
+				}
+			]
+		},
+		"CargoSemverMatrixCell": {
+			"additionalProperties": false,
+			"description": "One configured cargo-semver-checks feature and target combination.",
+			"properties": {
+				"baseline_features": {
+					"description": "Extra features enabled only for the baseline endpoint.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"current_features": {
+					"description": "Extra features enabled only for the candidate endpoint.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"feature_mode": {
+					"$ref": "#/$defs/CargoSemverFeatureMode",
+					"default": "default",
+					"description": "Implicit feature-selection mode shared by both endpoints."
+				},
+				"features": {
+					"description": "Extra features enabled at both endpoints.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"name": {
+					"description": "Stable, human-readable identifier used in reports.",
+					"type": "string"
+				},
+				"target": {
+					"description": "Rust compilation target, or the host target when omitted.",
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"name"
+			],
+			"type": "object"
+		},
 		"ChangelogFormat": {
 			"enum": [
 				"monochange",
@@ -2185,6 +2289,19 @@
 						"type": "string"
 					},
 					"type": "array"
+				},
+				"semver_checks": {
+					"$ref": "#/$defs/CargoSemverChecksSettings",
+					"default": {
+						"enabled": false,
+						"matrix": [
+							{
+								"feature_mode": "default",
+								"name": "default"
+							}
+						],
+						"timeout_seconds": 300
+					}
 				},
 				"versioned_files": {
 					"items": {

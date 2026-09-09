@@ -2147,6 +2147,7 @@ dependencies = [
  "toml",
  "toml_edit",
  "tracing",
+ "wait-timeout",
  "walkdir",
 ]
 

@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use monochange_core::AnalyzedFileChange;
 use monochange_core::ApiItem;
 use monochange_core::ApiSnapshot;
+use monochange_core::CargoSemverChecksSettings;
 use monochange_core::DetectionLevel;
 use monochange_core::Ecosystem;
 use monochange_core::MonochangeResult;
@@ -21,15 +22,37 @@ use quote::ToTokens;
 use toml::Value;
 
 use crate::CARGO_MANIFEST_FILE;
+use crate::semver_checks::CargoSemverAnalysis;
+use crate::semver_checks::CargoSemverChecksAnalyzer;
 
 /// Cargo analyzer that extracts public Rust API, dependency, and manifest metadata diffs.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct CargoSemanticAnalyzer;
+#[derive(Debug)]
+pub struct CargoSemanticAnalyzer {
+	semver_checks: CargoSemverChecksAnalyzer,
+}
+
+impl Default for CargoSemanticAnalyzer {
+	fn default() -> Self {
+		Self {
+			semver_checks: CargoSemverChecksAnalyzer::new(CargoSemverChecksSettings::default()),
+		}
+	}
+}
 
 /// Return the shared Cargo semantic analyzer.
 #[must_use]
-pub const fn semantic_analyzer() -> CargoSemanticAnalyzer {
-	CargoSemanticAnalyzer
+pub fn semantic_analyzer() -> CargoSemanticAnalyzer {
+	CargoSemanticAnalyzer::default()
+}
+
+/// Return a Cargo semantic analyzer with an explicit compatibility-matrix configuration.
+#[must_use]
+pub fn semantic_analyzer_with_settings(
+	settings: CargoSemverChecksSettings,
+) -> CargoSemanticAnalyzer {
+	CargoSemanticAnalyzer {
+		semver_checks: CargoSemverChecksAnalyzer::new(settings),
+	}
 }
 
 impl SemanticAnalyzer for CargoSemanticAnalyzer {
@@ -62,6 +85,7 @@ impl SemanticAnalyzer for CargoSemanticAnalyzer {
 		warnings.append(&mut after_warnings);
 
 		semantic_changes.extend(diff_public_symbols(&before_symbols, &after_symbols));
+		merge_semver_analysis(&mut semantic_changes, self.semver_checks.analyze(context));
 
 		if let Some(manifest_change) = context
 			.changed_files
@@ -99,6 +123,22 @@ impl SemanticAnalyzer for CargoSemanticAnalyzer {
 			warnings,
 		})
 	}
+}
+
+fn merge_semver_analysis(
+	semantic_changes: &mut Vec<SemanticChange>,
+	analysis: Option<CargoSemverAnalysis>,
+) {
+	let Some(analysis) = analysis else {
+		return;
+	};
+	if analysis.replace_syntax_changes {
+		semantic_changes.retain(|change| {
+			change.category != SemanticChangeCategory::PublicApi
+				|| change.kind == SemanticChangeKind::Added
+		});
+	}
+	semantic_changes.push(analysis.change);
 }
 
 fn display_package_id(package: &PackageRecord) -> String {

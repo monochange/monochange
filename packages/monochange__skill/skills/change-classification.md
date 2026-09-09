@@ -56,15 +56,36 @@ Treat a complete TypeScript `breaking` result as major and an `additive` result 
 
 Inherited config and dependency declarations may only exist in the current checkout rather than both Git snapshots. monochange uses them to keep the comparison useful but marks that evidence partial. Changed generic declarations and classes with private or protected members are also inconclusive when cross-snapshot identity prevents a sound comparison. Never upgrade partial evidence to complete from the absence of a diagnostic.
 
-For a Rust breaking-change decision that needs stronger evidence, run cargo-semver-checks with the release tag from `releaseOwner.latestRelease`:
+For high-assurance Rust classification, install cargo-semver-checks and enable the repository's explicit matrix:
 
 ```bash
-cargo semver-checks check-release \
-	--manifest-path crates/example/Cargo.toml \
-	--baseline-rev example/v1.2.3
+cargo install cargo-semver-checks --locked
+monochange change classify --detection-level semantic --format json --dependency-propagation public
 ```
 
-Run the feature and target combinations that the crate supports. Reconcile cargo-semver-checks diagnostics with monochange findings. A clean run only covers the chosen configuration.
+```toml
+[ecosystems.cargo.semver_checks]
+enabled = true
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+```
+
+Configure every supported feature/target combination, up to 16 uniquely named cells, and install each target before classification. Read `finding.coverage.checks` rather than inferring coverage from the overall bump. Each cell records its configuration, status, outcome, bump, and cargo-semver-checks lint diagnostics.
+
+- Any checked cell that proves a break is sufficient for `major`, even if another cell fails.
+- Only a fully checked, clean matrix can prove compatibility and replace syntax-derived removals or modifications.
+- Syntax-derived additions remain `minor` because cargo-semver-checks does not enable every additive lint by default.
+- A missing tool, target, failed build, timeout, skipped cell, or unrecognized tool response preserves the syntax fallback and requires review.
+
+Do not translate “no diagnostic” into “no release” unless `coverage.completeness` is `complete`, every configured check has `status: "checked"`, and the package has no retained additive or runtime finding. The matrix proves only configured cargo-semver-checks rules and configurations; still inspect runtime behavior and supported configurations omitted from the matrix.
+
+cargo-semver-checks executes Cargo builds, including build scripts and procedural macros, at both endpoints. Use it only for repository code you are prepared to execute. In CI, never combine semantic classification of untrusted changes with `pull_request_target`, registry credentials, or publishing secrets.
 
 For JavaScript-only packages, inspect every published entrypoint manually. For TypeScript, inspect runtime behavior plus every fallback named in the report. For Rust, inspect `cfg`, features, traits, impls, and re-exports that are outside the analyzer's coverage note.
 

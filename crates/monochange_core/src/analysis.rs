@@ -172,7 +172,7 @@ pub struct PackageSnapshotFile {
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct PackageSnapshot {
-	/// Human-readable label for this snapshot.
+	/// Stable label for this snapshot, normally an immutable Git tree id.
 	pub label: String,
 	/// Text files available to analyzers.
 	pub files: Vec<PackageSnapshotFile>,
@@ -482,6 +482,201 @@ pub enum SemanticAnalysisCompleteness {
 	Unsupported,
 }
 
+/// Cargo feature selection used by one cargo-semver-checks matrix cell.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum CargoSemverFeatureMode {
+	/// Check the crate-defined default features plus explicitly listed features.
+	#[default]
+	Default,
+	/// Check every declared feature.
+	All,
+	/// Disable implicit features and use only explicitly listed features.
+	None,
+	/// Use cargo-semver-checks' stable-feature heuristic.
+	Heuristic,
+}
+
+/// One configured cargo-semver-checks feature and target combination.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CargoSemverMatrixCell {
+	/// Stable, human-readable identifier used in reports.
+	pub name: String,
+	/// Implicit feature-selection mode shared by both endpoints.
+	#[serde(default)]
+	pub feature_mode: CargoSemverFeatureMode,
+	/// Extra features enabled at both endpoints.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub features: Vec<String>,
+	/// Extra features enabled only for the baseline endpoint.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub baseline_features: Vec<String>,
+	/// Extra features enabled only for the candidate endpoint.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub current_features: Vec<String>,
+	/// Rust compilation target, or the host target when omitted.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub target: Option<String>,
+}
+
+impl Default for CargoSemverMatrixCell {
+	fn default() -> Self {
+		Self {
+			name: "default".to_string(),
+			feature_mode: CargoSemverFeatureMode::Default,
+			features: Vec::new(),
+			baseline_features: Vec::new(),
+			current_features: Vec::new(),
+			target: None,
+		}
+	}
+}
+
+fn default_cargo_semver_timeout_seconds() -> u64 {
+	300
+}
+
+fn default_cargo_semver_matrix() -> Vec<CargoSemverMatrixCell> {
+	vec![CargoSemverMatrixCell::default()]
+}
+
+/// Opt-in cargo-semver-checks configuration for semantic Rust analysis.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CargoSemverChecksSettings {
+	/// Run the external analyzer when semantic detection is requested.
+	#[serde(default)]
+	pub enabled: bool,
+	/// Maximum duration of each matrix cell.
+	#[serde(default = "default_cargo_semver_timeout_seconds")]
+	pub timeout_seconds: u64,
+	/// Feature and target combinations that define supported Rust API coverage.
+	#[serde(default = "default_cargo_semver_matrix")]
+	pub matrix: Vec<CargoSemverMatrixCell>,
+}
+
+impl Default for CargoSemverChecksSettings {
+	fn default() -> Self {
+		Self {
+			enabled: false,
+			timeout_seconds: default_cargo_semver_timeout_seconds(),
+			matrix: default_cargo_semver_matrix(),
+		}
+	}
+}
+
+/// Completion state for one analyzer sub-check.
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum SemanticAnalyzerCheckStatus {
+	/// The analyzer completed and returned a compatibility outcome.
+	Checked,
+	/// The analyzer deliberately skipped this scope because a prerequisite was unavailable.
+	Skipped,
+	/// The analyzer attempted this scope but did not produce trustworthy evidence.
+	Failed,
+}
+
+/// One stable diagnostic emitted by a semantic analyzer sub-check.
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct SemanticAnalyzerDiagnostic {
+	/// Stable tool-specific diagnostic code.
+	pub code: String,
+	/// Human-readable diagnostic title or summary.
+	pub message: String,
+	/// Authoritative reference for the diagnostic, when available.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub reference: Option<String>,
+}
+
+impl SemanticAnalyzerDiagnostic {
+	/// Create a diagnostic without an external reference.
+	#[must_use]
+	pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
+		Self {
+			code: code.into(),
+			message: message.into(),
+			reference: None,
+		}
+	}
+
+	/// Attach an authoritative reference for this diagnostic.
+	#[must_use]
+	pub fn with_reference(mut self, reference: impl Into<String>) -> Self {
+		self.reference = Some(reference.into());
+		self
+	}
+}
+
+/// Machine-readable result for one scope within an analyzer run.
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct SemanticAnalyzerCheck {
+	/// Stable check name, such as a feature/target matrix cell id.
+	pub name: String,
+	/// Whether the check completed, was skipped, or failed.
+	pub status: SemanticAnalyzerCheckStatus,
+	/// Exact analyzer-specific inputs used for this check.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub configuration: BTreeMap<String, String>,
+	/// Compatibility outcome for a completed check.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub outcome: Option<SemanticAnalysisOutcome>,
+	/// Minimum release bump reported by a completed check.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub suggested_bump: Option<BumpSeverity>,
+	/// Stable diagnostics that explain the result.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub diagnostics: Vec<SemanticAnalyzerDiagnostic>,
+}
+
+impl SemanticAnalyzerCheck {
+	/// Create a sub-check with no compatibility result or diagnostics.
+	#[must_use]
+	pub fn new(
+		name: impl Into<String>,
+		status: SemanticAnalyzerCheckStatus,
+		configuration: BTreeMap<String, String>,
+	) -> Self {
+		Self {
+			name: name.into(),
+			status,
+			configuration,
+			outcome: None,
+			suggested_bump: None,
+			diagnostics: Vec::new(),
+		}
+	}
+
+	/// Attach a completed compatibility result.
+	#[must_use]
+	pub fn with_result(
+		mut self,
+		outcome: SemanticAnalysisOutcome,
+		suggested_bump: BumpSeverity,
+	) -> Self {
+		self.outcome = Some(outcome);
+		self.suggested_bump = Some(suggested_bump);
+		self
+	}
+
+	/// Attach diagnostics produced by this sub-check.
+	#[must_use]
+	pub fn with_diagnostics(mut self, diagnostics: Vec<SemanticAnalyzerDiagnostic>) -> Self {
+		self.diagnostics = diagnostics;
+		self
+	}
+}
+
 /// Provenance and coverage for one analyzer assessment.
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -501,6 +696,9 @@ pub struct SemanticAnalyzerEvidence {
 	/// Reason the primary analysis could not complete, when applicable.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub fallback_reason: Option<String>,
+	/// Individual scopes checked by the analyzer, when it exposes them.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub checks: Vec<SemanticAnalyzerCheck>,
 }
 
 impl SemanticAnalyzerEvidence {
@@ -518,6 +716,7 @@ impl SemanticAnalyzerEvidence {
 			completeness,
 			coverage: coverage.into(),
 			fallback_reason: None,
+			checks: Vec::new(),
 		}
 	}
 
@@ -532,6 +731,13 @@ impl SemanticAnalyzerEvidence {
 	#[must_use]
 	pub fn with_fallback_reason(mut self, reason: impl Into<String>) -> Self {
 		self.fallback_reason = Some(reason.into());
+		self
+	}
+
+	/// Attach the analyzer's individual sub-check results.
+	#[must_use]
+	pub fn with_checks(mut self, checks: Vec<SemanticAnalyzerCheck>) -> Self {
+		self.checks = checks;
 		self
 	}
 }

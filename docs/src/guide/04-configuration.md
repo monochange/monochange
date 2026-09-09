@@ -250,6 +250,42 @@ Base strategies:
 
 When no changesets exist, prerelease mode still synthesizes release decisions from discovered packages and version groups. Repeated prerelease runs persist state in `.monochange/prerelease-state.json` so a series advances from `alpha.0` to `alpha.1` without repeatedly reapplying the same stable bump. Set `branches` when prerelease tag/publish workflow steps should be allowed from a different branch set than stable releases. Disable prerelease mode for the final stable release; successful stable preparation removes the state file. If prerelease mode is disabled and `.monochange/prerelease-state.json` is still present, validation/check fails so stale prerelease state is not ignored.
 
+## Rust semantic compatibility
+
+Rust packages can opt into cargo-semver-checks when `change classify` runs at the semantic detection level:
+
+```toml
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 300
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "linux-no-defaults"
+feature_mode = "none"
+features = ["server"]
+target = "x86_64-unknown-linux-gnu"
+```
+
+Each matrix cell defines one supported feature and compilation-target contract. Feature mode accepts `default`, `all`, `none`, or `heuristic`. `features` applies to both endpoints; `baseline_features` and `current_features` support intentional feature renames and migrations. Cell names must be unique. A matrix has 1–16 cells, and `timeout_seconds` is 1–1800 seconds per cell.
+
+Install cargo-semver-checks and every configured Rust target before classification. The analyzer reports failures as incomplete evidence and retains monochange's conservative syntax result. It never silently treats a missing tool or failed target build as compatible.
+
+```bash
+cargo install cargo-semver-checks --locked
+rustup target add x86_64-unknown-linux-gnu
+monochange change classify --detection-level semantic --format json
+```
+
+cargo-semver-checks executes Cargo builds, including build scripts and procedural macros, from both comparison endpoints. Use least-privilege CI credentials and do not run this analysis for untrusted pull-request code through `pull_request_target`.
+
 ## Package publishing
 
 Built-in package publishing is configured through `publish` on packages and ecosystems.

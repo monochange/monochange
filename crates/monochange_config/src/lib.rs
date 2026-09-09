@@ -22,6 +22,8 @@ use monochange_core::AutoDiscoverSettings;
 use monochange_core::BumpPropagation;
 use monochange_core::BumpPropagationMode;
 use monochange_core::BumpSeverity;
+use monochange_core::CargoSemverChecksSettings;
+use monochange_core::CargoSemverMatrixCell;
 use monochange_core::ChangeSignal;
 use monochange_core::ChangelogDefinition;
 use monochange_core::ChangelogFormat;
@@ -400,6 +402,8 @@ pub(crate) struct RawEcosystemSettings {
 	publish_order: PublishOrderSettings,
 	#[serde(default)]
 	auto_discover: Option<RawAutoDiscoverSettings>,
+	#[serde(default)]
+	semver_checks: CargoSemverChecksSettings,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -939,6 +943,20 @@ fn normalize_ecosystem_settings(
 	inferred_ecosystem_type: EcosystemType,
 	raw: RawEcosystemSettings,
 ) -> MonochangeResult<EcosystemSettings> {
+	validate_semver_checks_settings(contents, owner_id, &raw.semver_checks)?;
+	if owner_id != "cargo" && raw.semver_checks != CargoSemverChecksSettings::default() {
+		return Err(config_diagnostic(
+			contents,
+			format!("`ecosystems.{owner_id}.semver_checks` is only supported for Cargo"),
+			vec![config_section_label(
+				contents,
+				"ecosystems",
+				owner_id,
+				"unsupported semantic analyzer configuration",
+			)],
+			Some("move this table to `[ecosystems.cargo.semver_checks]`".to_string()),
+		));
+	}
 	let publish = normalize_publish_settings(
 		contents,
 		None,
@@ -966,7 +984,110 @@ fn normalize_ecosystem_settings(
 		publish,
 		publish_order: raw.publish_order,
 		auto_discover: normalize_auto_discover_settings(raw.auto_discover),
+		semver_checks: raw.semver_checks,
 	})
+}
+
+fn validate_semver_checks_settings(
+	contents: &str,
+	owner_id: &str,
+	settings: &CargoSemverChecksSettings,
+) -> MonochangeResult<()> {
+	if !(1..=1_800).contains(&settings.timeout_seconds) {
+		return Err(semver_checks_config_error(
+			contents,
+			owner_id,
+			"`timeout_seconds` must be between 1 and 1800",
+		));
+	}
+	if settings.matrix.is_empty() {
+		return Err(semver_checks_config_error(
+			contents,
+			owner_id,
+			"`matrix` must contain at least one feature and target combination",
+		));
+	}
+	if settings.matrix.len() > 16 {
+		return Err(semver_checks_config_error(
+			contents,
+			owner_id,
+			"`matrix` cannot contain more than 16 combinations",
+		));
+	}
+
+	let mut names = BTreeSet::new();
+	for cell in &settings.matrix {
+		validate_semver_matrix_cell(contents, owner_id, cell, &mut names)?;
+	}
+	Ok(())
+}
+
+fn validate_semver_matrix_cell(
+	contents: &str,
+	owner_id: &str,
+	cell: &CargoSemverMatrixCell,
+	names: &mut BTreeSet<String>,
+) -> MonochangeResult<()> {
+	let name = cell.name.trim();
+	if name.is_empty() {
+		return Err(semver_checks_config_error(
+			contents,
+			owner_id,
+			"every matrix cell must have a non-empty `name`",
+		));
+	}
+	if !names.insert(name.to_string()) {
+		return Err(semver_checks_config_error(
+			contents,
+			owner_id,
+			&format!("matrix cell name `{name}` is duplicated"),
+		));
+	}
+	if cell
+		.target
+		.as_deref()
+		.is_some_and(|target| target.trim().is_empty())
+	{
+		return Err(semver_checks_config_error(
+			contents,
+			owner_id,
+			&format!("matrix cell `{name}` has an empty `target`"),
+		));
+	}
+	for feature in cell
+		.features
+		.iter()
+		.chain(&cell.baseline_features)
+		.chain(&cell.current_features)
+	{
+		if feature.trim().is_empty() || feature.contains(',') {
+			return Err(semver_checks_config_error(
+				contents,
+				owner_id,
+				&format!(
+					"matrix cell `{name}` contains an empty feature or a feature with a comma"
+				),
+			));
+		}
+	}
+	Ok(())
+}
+
+fn semver_checks_config_error(contents: &str, owner_id: &str, message: &str) -> MonochangeError {
+	config_diagnostic(
+		contents,
+		message.to_string(),
+		vec![config_section_label(
+			contents,
+			"ecosystems",
+			owner_id,
+			"invalid cargo-semver-checks matrix",
+		)],
+		Some(
+			"define a bounded, uniquely named matrix under `[ecosystems.cargo.semver_checks]`"
+				.to_string(),
+		),
+	)
 }
 
 fn normalize_auto_discover_settings(

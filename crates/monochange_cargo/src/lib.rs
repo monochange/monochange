@@ -6,6 +6,7 @@
 #![doc = include_str!("crate_docs.md")]
 pub mod analysis;
 pub mod lints;
+mod semver_checks;
 
 type TomlValue = Value;
 use std::collections::BTreeMap;
@@ -18,6 +19,7 @@ use std::path::PathBuf;
 
 pub use analysis::CargoSemanticAnalyzer;
 pub use analysis::semantic_analyzer;
+pub use analysis::semantic_analyzer_with_settings;
 use monochange_core::AdapterDiscovery;
 use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
