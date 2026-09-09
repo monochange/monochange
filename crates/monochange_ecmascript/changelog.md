@@ -4,6 +4,101 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.11.0](https://github.com/monochange/monochange/releases/tag/v0.11.0) (2026-09-09)
+
+### 🐛 Fixed
+
+#### classify TypeScript declaration compatibility with the project compiler
+
+`monochange change classify --detection-level semantic` now resolves each npm package's typed entrypoints, emits isolated before and after declaration surfaces, and asks the workspace's TypeScript compiler whether the consumer contract is breaking, additive, compatible, or inconclusive. Complete breaking evidence proposes `major`, additive evidence proposes `minor`, and compatible implementation-only changes can propose `none`.
+
+Install `node`, TypeScript, and the package dependencies before classification. Missing tools, invalid configuration, unresolved dependencies, wildcard exports, and identity-sensitive generic or nominal types remain visible as partial evidence with a conservative `patch` proposal and `reviewRequired: true`.
+
+Findings now include the semantic engine, exact engine version, coverage completeness, coverage note, and fallback reason in JSON, text, Markdown, MCP output, job summaries, and pull request comments. The change-classification JSON schema version is now `2`.
+
+The `monochange_core::SemanticChange` struct is now non-exhaustive and has an optional `assessment`. Custom analyzers should construct findings with `SemanticChange::new` and attach compiler evidence with `with_assessment` instead of using a struct literal:
+
+```rust
+let change = SemanticChange::new(
+	SemanticChangeCategory::PublicApi,
+	SemanticChangeKind::Modified,
+	"function",
+	"parse",
+	"function `parse` changed",
+	"src/lib.rs",
+)
+.with_assessment(SemanticChangeAssessment::new(
+	SemanticAnalysisOutcome::Breaking,
+	BumpSeverity::Major,
+	ApiConfidence::High,
+	SemanticAnalyzerEvidence::new(
+		"example/analyzer",
+		"example-engine",
+		SemanticAnalysisCompleteness::Complete,
+		"all public entrypoints checked",
+	),
+));
+```
+
+The semver layer clamps analyzer recommendations to the minimum severity implied by their outcome, so malformed or third-party evidence cannot understate a proven breaking or additive change.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #672](https://github.com/monochange/monochange/pull/672)
+
+#### classify pull request severity against both the default branch and latest release
+
+Agents and reviewers can now run one command to propose a `major`, `minor`, `patch`, or `none` changeset for every affected package:
+
+```bash
+monochange change classify --format json --dependency-propagation public
+```
+
+The versioned JSON report resolves the remote default branch, models the pull request's merge result, finds each release owner's latest reachable tag, and keeps the current pull request recommendation separate from the accumulated release floor. Each package reports compatibility impact, the proposed bump, the enforceable high-confidence minimum, confidence, completeness, pending changesets, the required changeset action, and stable finding ids. Findings include their analyzer, source location, before and after signatures, and the comparisons in which they occur.
+
+Markdown output contains the same decision evidence for terminal output, job summaries, and pull request comments. The `monochange_classify_changes` MCP tool returns the JSON contract and accepts the same base, head, release, package, and detection controls.
+
+Changeset validation now enforces only high-confidence findings by default:
+
+```bash
+monochange changeset validate --api --format markdown
+```
+
+Use `--strict` to require pending changesets to satisfy partial or medium-confidence proposals too. A changed package that has no modeled semantic finding now receives a low-confidence patch proposal and a review requirement instead of a false `none` result.
+
+`monochange_analysis::AnalysisSession` is available for tools that compare several git frames. It discovers the package graph once and reuses it:
+
+```rust
+use monochange_analysis::{AnalysisConfig, AnalysisSession, ChangeFrame};
+
+let session = AnalysisSession::new(root, AnalysisConfig::default())?;
+let pull_request = session.analyze(&ChangeFrame::CustomRange {
+	base: "origin/main".into(),
+	head: "HEAD".into(),
+})?;
+```
+
+Exact custom ranges now use `base..head`, while pull request source deltas retain merge-base semantics. Working-directory analysis includes staged, unstaged, deleted, and untracked files. Git revision snapshots use batched object reads, which avoids starting one Git process per file.
+
+`monochange_core::PackagePathMatcher` provides the shared package path policy used by changeset coverage and semantic analysis. Classification honors configured package boundaries, package-level additional and ignored paths, and workspace-level changeset ignores:
+
+```rust
+use monochange_core::{PackagePathMatch, PackagePathMatcher};
+
+let matcher = PackagePathMatcher::new(
+	"web",
+	"packages/web".as_ref(),
+	&["shared/schema/**".into()],
+	&["fixtures/**".into()],
+);
+assert_eq!(
+	matcher.classify("shared/schema/api.json".as_ref()),
+	PackagePathMatch::Touched,
+);
+```
+
+TypeScript and JavaScript function signatures now preserve object-shaped parameter and return types while excluding implementation bodies, so changes inside those public types are no longer hidden from classification.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #664](https://github.com/monochange/monochange/pull/664)
+
 ## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
 
 ### Changed

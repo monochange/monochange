@@ -4,6 +4,283 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.11.0](https://github.com/monochange/monochange/releases/tag/v0.11.0) (2026-09-09)
+
+### 💥 Breaking Change
+
+#### classify Rust compatibility across configured feature and target matrices
+
+Cargo packages can opt into cargo-semver-checks during semantic change classification:
+
+```toml
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 300
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+```
+
+monochange materializes complete before and after repository trees, runs every configured feature/target cell with an isolated Cargo target directory, and reports the cargo-semver-checks version, exact cell inputs, status, outcome, minimum bump, lint ids, lint titles, and authoritative references. Any proven break proposes `major`, while failed or skipped cells preserve the conservative syntax fallback and require review. A complete non-breaking matrix can replace syntax-derived modifications and removals; added public syntax remains `minor` evidence because cargo-semver-checks does not enable every additive lint by default.
+
+The change-classification JSON schema is now version `3`. Each finding's `coverage` may include a `checks` array with machine-readable analyzer sub-checks. Pull request comments and text reports render the same cell outcomes and diagnostic summaries.
+
+`monochange_core::EcosystemSettings` now includes `semver_checks`, and `monochange_cargo::CargoSemanticAnalyzer` is no longer a unit struct. Construct it with `monochange_cargo::semantic_analyzer()` for the disabled default or `monochange_cargo::semantic_analyzer_with_settings(settings)` for an explicit matrix.
+
+cargo-semver-checks executes Cargo builds at both endpoints, including build scripts and procedural macros. Run semantic classification only for code you are prepared to execute and without elevated CI or publishing credentials.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #673](https://github.com/monochange/monochange/pull/673)
+
+#### classify TypeScript declaration compatibility with the project compiler
+
+`monochange change classify --detection-level semantic` now resolves each npm package's typed entrypoints, emits isolated before and after declaration surfaces, and asks the workspace's TypeScript compiler whether the consumer contract is breaking, additive, compatible, or inconclusive. Complete breaking evidence proposes `major`, additive evidence proposes `minor`, and compatible implementation-only changes can propose `none`.
+
+Install `node`, TypeScript, and the package dependencies before classification. Missing tools, invalid configuration, unresolved dependencies, wildcard exports, and identity-sensitive generic or nominal types remain visible as partial evidence with a conservative `patch` proposal and `reviewRequired: true`.
+
+Findings now include the semantic engine, exact engine version, coverage completeness, coverage note, and fallback reason in JSON, text, Markdown, MCP output, job summaries, and pull request comments. The change-classification JSON schema version is now `2`.
+
+The `monochange_core::SemanticChange` struct is now non-exhaustive and has an optional `assessment`. Custom analyzers should construct findings with `SemanticChange::new` and attach compiler evidence with `with_assessment` instead of using a struct literal:
+
+```rust
+let change = SemanticChange::new(
+	SemanticChangeCategory::PublicApi,
+	SemanticChangeKind::Modified,
+	"function",
+	"parse",
+	"function `parse` changed",
+	"src/lib.rs",
+)
+.with_assessment(SemanticChangeAssessment::new(
+	SemanticAnalysisOutcome::Breaking,
+	BumpSeverity::Major,
+	ApiConfidence::High,
+	SemanticAnalyzerEvidence::new(
+		"example/analyzer",
+		"example-engine",
+		SemanticAnalysisCompleteness::Complete,
+		"all public entrypoints checked",
+	),
+));
+```
+
+The semver layer clamps analyzer recommendations to the minimum severity implied by their outcome, so malformed or third-party evidence cannot understate a proven breaking or additive change.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #672](https://github.com/monochange/monochange/pull/672)
+
+### 🚀 Feature
+
+#### classify fully deleted packages as breaking changes
+
+`monochange change classify` now discovers packages at both comparison endpoints. A pull request that deletes a package manifest reports the baseline package id, release owner, release tag, and removed API surface even when the candidate also removes its `monochange.toml` entry.
+
+The report adds a high-confidence `monochange/package-lifecycle/package/removed/package` finding and proposes a major changeset. Package additions produce the corresponding minor finding. `monochange_core::SemanticChangeCategory` now includes `Package` for this lifecycle evidence.
+
+Agents can use the standard command without a manual baseline-discovery fallback:
+
+```bash
+monochange change classify --format json --dependency-propagation public
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #670](https://github.com/monochange/monochange/pull/670)
+
+#### classify pull request severity against both the default branch and latest release
+
+Agents and reviewers can now run one command to propose a `major`, `minor`, `patch`, or `none` changeset for every affected package:
+
+```bash
+monochange change classify --format json --dependency-propagation public
+```
+
+The versioned JSON report resolves the remote default branch, models the pull request's merge result, finds each release owner's latest reachable tag, and keeps the current pull request recommendation separate from the accumulated release floor. Each package reports compatibility impact, the proposed bump, the enforceable high-confidence minimum, confidence, completeness, pending changesets, the required changeset action, and stable finding ids. Findings include their analyzer, source location, before and after signatures, and the comparisons in which they occur.
+
+Markdown output contains the same decision evidence for terminal output, job summaries, and pull request comments. The `monochange_classify_changes` MCP tool returns the JSON contract and accepts the same base, head, release, package, and detection controls.
+
+Changeset validation now enforces only high-confidence findings by default:
+
+```bash
+monochange changeset validate --api --format markdown
+```
+
+Use `--strict` to require pending changesets to satisfy partial or medium-confidence proposals too. A changed package that has no modeled semantic finding now receives a low-confidence patch proposal and a review requirement instead of a false `none` result.
+
+`monochange_analysis::AnalysisSession` is available for tools that compare several git frames. It discovers the package graph once and reuses it:
+
+```rust
+use monochange_analysis::{AnalysisConfig, AnalysisSession, ChangeFrame};
+
+let session = AnalysisSession::new(root, AnalysisConfig::default())?;
+let pull_request = session.analyze(&ChangeFrame::CustomRange {
+	base: "origin/main".into(),
+	head: "HEAD".into(),
+})?;
+```
+
+Exact custom ranges now use `base..head`, while pull request source deltas retain merge-base semantics. Working-directory analysis includes staged, unstaged, deleted, and untracked files. Git revision snapshots use batched object reads, which avoids starting one Git process per file.
+
+`monochange_core::PackagePathMatcher` provides the shared package path policy used by changeset coverage and semantic analysis. Classification honors configured package boundaries, package-level additional and ignored paths, and workspace-level changeset ignores:
+
+```rust
+use monochange_core::{PackagePathMatch, PackagePathMatcher};
+
+let matcher = PackagePathMatcher::new(
+	"web",
+	"packages/web".as_ref(),
+	&["shared/schema/**".into()],
+	&["fixtures/**".into()],
+);
+assert_eq!(
+	matcher.classify("shared/schema/api.json".as_ref()),
+	PackagePathMatch::Touched,
+);
+```
+
+TypeScript and JavaScript function signatures now preserve object-shaped parameter and return types while excluding implementation bodies, so changes inside those public types are no longer hidden from classification.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #664](https://github.com/monochange/monochange/pull/664)
+
+#### Keep release notes structured until their output format is known
+
+JSON release-note artifacts now expose summaries, Markdown details, package labels, change types, bump severity, streams, layout, and provenance as separate fields. Text artifacts render those fields directly without Markdown emphasis, while Markdown uses compact list entries for routine changes and expanded sections for breaking changes, migrations, code blocks, and multi-paragraph explanations.
+
+Package changelogs omit their own package label. Group and workspace changelogs retain package labels so readers can see where each change applies. The built-in section names no longer include emoji; repositories can still opt in by putting emoji in configured section headings.
+
+The public document types remain source-compatible through a default generic entry type. Callers can opt into structured entries and convert them for an adapter that still expects Markdown strings:
+
+```rust
+// Before: entries were rendered before choosing JSON or text.
+let notes: ReleaseNotesDocument = ReleaseNotesDocument {
+    title: "1.2.3".into(),
+    summary: vec![],
+    sections: vec![ReleaseNotesSection {
+        title: "Fixes".into(),
+        collapsed: false,
+        entries: vec!["- Keep JSON failures non-zero".into()],
+    }],
+};
+
+// After: the existing form still works, while typed entries are available.
+let notes: ReleaseNotesDocument<ReleaseNotesEntry> = ReleaseNotesDocument {
+    title: "1.2.3".into(),
+    summary: vec![],
+    sections: vec![ReleaseNotesSection {
+        title: "Fixes".into(),
+        collapsed: false,
+        entries: vec![ReleaseNotesEntry {
+            summary: "Keep JSON failures non-zero".into(),
+            details_markdown: Some("CI can trust the exit status.".into()),
+            packages: vec![],
+            change_type: Some("fix".into()),
+            bump: BumpSeverity::Patch,
+            stream: "default".into(),
+            style: ReleaseNoteEntryStyle::Compact,
+            provenance: ReleaseNoteProvenance::default(),
+        }],
+    }],
+};
+let legacy = notes.to_legacy_markdown(&ChangelogStyle::default());
+```
+
+The `changesets/recommended` preset now requires an H1 source summary and rejects a first description sentence that merely repeats it. Enable the standalone check with `"changesets/summary-description" = "error"` when not using the preset.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #668](https://github.com/monochange/monochange/pull/668)
+
+### 🐛 Fixed
+
+#### Preserve structured command output when an operation fails
+
+`MonochangeError::Reported` lets a command return a machine-readable result on stdout and a separate failure diagnostic. Use `reported_output()` at the process boundary to write the result before returning a non-zero exit status.
+
+```rust
+let error = MonochangeError::Reported {
+	output: json_report,
+	diagnostic: "check failed: 1 error".to_string(),
+};
+
+assert_eq!(error.reported_output(), Some(expected_json));
+```
+
+Callers that only use `Display` or `render()` continue to receive the diagnostic without the attached output.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #661](https://github.com/monochange/monochange/pull/661)
+
+#### Describe every built-in workflow step input
+
+`CliStepDefinition::step_inputs_schema()` now provides non-empty `help_text` for every built-in input. CLIs and agent snapshots built from the schema can explain flags such as `--package`, `--show-all`, `--otp`, `--resume`, and `--sync-provider` without maintaining a second help-text table.
+
+```rust
+let placeholder = monochange_core::all_step_variants()
+	.into_iter()
+	.find(|step| step.kind_name() == "PlaceholderPublish")
+	.expect("placeholder step");
+
+assert!(placeholder
+	.step_inputs_schema()
+	.iter()
+	.all(|input| input.help_text.is_some()));
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #662](https://github.com/monochange/monochange/pull/662) · _Related issues:_ [#661](https://github.com/monochange/monochange/issues/661)
+
+#### refresh docs and validate doc samples in tests
+
+Every crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.
+
+Documentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.
+
+Command references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.
+
+New doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)
+
+#### `monochange check --fix` no longer replaces whole manifests with a single line
+
+Running `monochange check --fix` no longer replaces whole manifests with a single line
+
+Running `monochange check --fix` with manifest lint rules enabled could replace an entire `Cargo.toml` with a one-line fragment such as `repository = "..."`, deleting every other field, table, and comment in the file. The `cargo/manifest-repository` rule (with or without `allow_workspace_inheritance`) triggered this whenever it rewrote a repository value, and the `cargo/dependency-field-order`, `cargo/internal-dependency-workspace`, and `cargo/sorted-dependencies` fixes carried the same hazard.
+
+The cargo lint fixes now rewrite the whole manifest from a mutated copy of the parsed document, so unrelated content always survives and toml_edit keeps the surrounding formatting. Whole-file rewrites are additionally validated against the target ecosystem's own manifest parser (`LintSuite::validate_contents`) before anything is written; a rewrite that would produce an unparseable manifest is skipped and the original file is kept. Manifest-level fixes across the npm and dart suites now use the same explicit `LintFix::document` constructor, and new regression tests cover every cargo lint rule's fix output plus an end-to-end `check --fix` convergence run.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #658](https://github.com/monochange/monochange/pull/658)
+
+#### Make package publishing outcomes obvious
+
+Package publishing now starts human-readable output with a distinct outcome such as `Published 3 packages`, `Would publish 3 packages`, `No packages need publishing`, or `Publishing failed for 1 package`. Published or planned package versions appear immediately below the headline, with explicit counts for versions that already exist, are blocked, failed, or were not attempted.
+
+Pass `--show-all` to `PublishPackages` or `PlaceholderPublish` when you need every package's status, trusted-publishing metadata, command, stdout, and stderr. JSON and template output always retain all package rows.
+
+`PackagePublishSummary` now reports each domain status directly. Replace `expected`, `succeeded`, and `skipped` with `total()`, `published`, `already_exists`, `blocked`, and `not_attempted` as appropriate:
+
+```rust
+let summary = report.summary();
+assert_eq!(summary.total(), report.packages.len());
+assert_eq!(summary.published, 3);
+assert_eq!(summary.already_exists, 2);
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #663](https://github.com/monochange/monochange/pull/663)
+
+#### Raise the default publish timeout from 60 to 300 seconds
+
+`cargo publish` waits for crates.io's server-side verification to complete, and that can take minutes when the registry queue is backed up. During the monosecret v0.3.3 release, `cargo publish --locked -p monosecret` needed ~4 minutes and exhausted all three 60-second attempts, failing the release's publish step (and skipping `monosecret_derive`, which depends on the crate being present first).
+
+The default `publish.timeout.timeout_seconds` is now `300` seconds. The timeout is a ceiling, not a delay: publishes that finish quickly are unaffected, while slow registries no longer report spurious failures (or leave a package unpublished after a run that actually succeeded server-side).
+
+The schema default is part of the published contract, so the release-record and configuration schemas advance to `v0.6`; the `0.5` → `0.6` migration edge accepts existing records unchanged. Override the default per ecosystem or per package, and set `timeout_seconds = 0` to disable the timeout entirely:
+
+```toml
+[ecosystems.cargo.publish.timeout]
+timeout_seconds = 300
+retries = 2
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #671](https://github.com/monochange/monochange/pull/671) · _Related issues:_ [#630](https://github.com/monochange/monochange/issues/630)
+
 ## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
 
 ### 💥 Breaking Change

@@ -880,3 +880,53 @@ With `fail_on_duplicate` enabled, a package whose version already exists on the 
 The built-in `publish-packages` step also exposes the policy as a boolean CLI input: `monochange step publish-packages --fail-on-duplicate` forces the strict policy for that run and overrides per-package settings without editing configuration. Dry-run integration tests snapshot the skip, failure, and planned outcomes for both the configuration-driven and CLI-driven variants.
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #645](https://github.com/monochange/monochange/pull/645) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+## monochange_schema [0.6.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.6.0) (2026-09-09)
+
+### 💥 Breaking Change
+
+#### Raise the default publish timeout from 60 to 300 seconds
+
+`cargo publish` waits for crates.io's server-side verification to complete, and that can take minutes when the registry queue is backed up. During the monosecret v0.3.3 release, `cargo publish --locked -p monosecret` needed ~4 minutes and exhausted all three 60-second attempts, failing the release's publish step (and skipping `monosecret_derive`, which depends on the crate being present first).
+
+The default `publish.timeout.timeout_seconds` is now `300` seconds. The timeout is a ceiling, not a delay: publishes that finish quickly are unaffected, while slow registries no longer report spurious failures (or leave a package unpublished after a run that actually succeeded server-side).
+
+The schema default is part of the published contract, so the release-record and configuration schemas advance to `v0.6`; the `0.5` → `0.6` migration edge accepts existing records unchanged. Override the default per ecosystem or per package, and set `timeout_seconds = 0` to disable the timeout entirely:
+
+```toml
+[ecosystems.cargo.publish.timeout]
+timeout_seconds = 300
+retries = 2
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #671](https://github.com/monochange/monochange/pull/671) · _Related issues:_ [#630](https://github.com/monochange/monochange/issues/630)
+
+### 🚀 Feature
+
+#### classify Rust compatibility across configured feature and target matrices
+
+Cargo packages can opt into cargo-semver-checks during semantic change classification:
+
+```toml
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 300
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+```
+
+monochange materializes complete before and after repository trees, runs every configured feature/target cell with an isolated Cargo target directory, and reports the cargo-semver-checks version, exact cell inputs, status, outcome, minimum bump, lint ids, lint titles, and authoritative references. Any proven break proposes `major`, while failed or skipped cells preserve the conservative syntax fallback and require review. A complete non-breaking matrix can replace syntax-derived modifications and removals; added public syntax remains `minor` evidence because cargo-semver-checks does not enable every additive lint by default.
+
+The change-classification JSON schema is now version `3`. Each finding's `coverage` may include a `checks` array with machine-readable analyzer sub-checks. Pull request comments and text reports render the same cell outcomes and diagnostic summaries.
+
+`monochange_core::EcosystemSettings` now includes `semver_checks`, and `monochange_cargo::CargoSemanticAnalyzer` is no longer a unit struct. Construct it with `monochange_cargo::semantic_analyzer()` for the disabled default or `monochange_cargo::semantic_analyzer_with_settings(settings)` for an explicit matrix.
+
+cargo-semver-checks executes Cargo builds at both endpoints, including build scripts and procedural macros. Run semantic classification only for code you are prepared to execute and without elevated CI or publishing credentials.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #673](https://github.com/monochange/monochange/pull/673)
