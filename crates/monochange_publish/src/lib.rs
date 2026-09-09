@@ -1262,27 +1262,11 @@ pub async fn try_execute_publish_requests_with_progress(
 			continue;
 		}
 
-		let blocked_message = if mode == PackagePublishRunMode::Release && !dry_run {
-			match readiness.blocked_message_with_env(root, request, env_map) {
-				Ok(message) => message,
-				Err(error) => {
-					let message = error.render();
-					primary_error = Some(error);
-					append_publish_failure_outcomes(
-						&mut outcomes,
-						remaining_requests,
-						mode,
-						request,
-						message,
-						progress,
-					);
-					break;
-				}
-			}
-		} else if mode == PackagePublishRunMode::Release {
-			// Dry-run planning keeps manifest blockers visible but never
-			// blocks on environment-dependent trusted publishing: a missing
-			// CI workflow file must not mark a package skipped in a plan.
+		// The mid-loop check uses the static (environment-independent)
+		// checkers for every mode: environment-aware trusted-publishing
+		// checks already ran in the fail-fast preflight above, and dry-run
+		// planning must not block on a missing CI workflow file.
+		let blocked_message = if mode == PackagePublishRunMode::Release {
 			match readiness.blocked_message_static(root, request) {
 				Ok(message) => message,
 				Err(error) => {
