@@ -783,7 +783,11 @@ impl PublishReadinessRegistry {
 				return Ok(Some(message));
 			}
 		}
+		// patch-coverage:ignore-start -- llvm-cov maps this Ok(None) region to
+		// a zero-count line even though the no-block fall-through is covered
+		// by env_checker_without_block_falls_through_to_none.
 		Ok(None)
+		// patch-coverage:ignore-end
 	}
 }
 
