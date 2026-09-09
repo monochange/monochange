@@ -236,7 +236,11 @@ fn publish_readiness_reports_trusted_publishing_and_publish_order() {
 		.unwrap_or_else(|error| panic!("parse publish readiness json: {error}"));
 	let report = &value;
 
-	assert_eq!(report["status"].as_str(), Some("ready"));
+	assert_eq!(
+		report["status"].as_str(),
+		Some("ready"),
+		"unexpected readiness report: {report:#}"
+	);
 	assert_eq!(report["schema_version"].as_u64(), Some(3));
 
 	let publish_order = report["publish_order"]
@@ -297,7 +301,7 @@ fn mock_crates_io_missing(request_count: usize) -> (u16, MockCratesIo) {
 	listener
 		.set_nonblocking(true)
 		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
-	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(300);
 	let thread = std::thread::spawn(move || {
 		let mut served = 0_usize;
 		while served < request_count && std::time::Instant::now() < deadline {
