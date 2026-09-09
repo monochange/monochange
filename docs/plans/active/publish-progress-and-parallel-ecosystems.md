@@ -1,19 +1,22 @@
 # Publish progress and parallel ecosystems
 
+## Status
+
+- The human output, unified progress, and complete sequential outcome work is complete through #629, #663, and #667.
+- This active plan now owns only dependency-aware parallel publishing across ecosystem lanes.
+- The completed [human-first CLI output and release-note audit](../completed/cli-output-and-release-notes-audit.md) owns the shared terminal and diagnostic contract. Changes here must reuse that boundary instead of adding another reporter.
+
 ## Why
 
-`monochange step publish-packages` currently depends on telemetry and log-level output for most of its visibility. That makes local terminal runs feel stalled and makes CI failures hard to diagnose without digging through structured traces. Publishing also runs as one sequential list, so an npm-heavy run can finish all npm work before crates.io starts, even when ecosystems are independent.
+`monochange step publish-packages` now reports readable progress on stderr and keeps machine-readable reports on stdout or in files. Publishing still runs as one sequential list, so an npm-heavy run can finish all npm work before crates.io starts even when ecosystems are independent.
 
-This work makes release operations easier to trust by giving users readable progress on stderr while preserving machine-readable reports on stdout/files. It also prepares publish execution for safe ecosystem-level parallelism so independent registries can make progress at the same time without breaking dependency order.
+The remaining work is safe ecosystem-level parallelism so independent registries can make progress at the same time without breaking dependency order.
 
 ## Goals
 
-- Add a reusable progress reporter that writes to stderr.
-- Use emojis for ecosystem identity in both terminals and CI logs.
-- Use loading indicators only for interactive terminals; CI gets deterministic start/finish lines with emojis and no spinner noise.
-- Let each ecosystem define its own progress emoji through a trait-like abstraction instead of hardcoding all presentation at call sites.
-- Add publish progress first, then broaden progress to all CLI steps, then add safe parallel publish lanes by ecosystem.
-- Keep JSON/stdout outputs stable unless a command explicitly renders human output.
+- Add safe parallel publish lanes by ecosystem.
+- Reuse the shared progress reporter and ecosystem presentation metadata already delivered.
+- Preserve deterministic CI lines, interactive-only animation, and explicit machine-readable JSON.
 
 ## Non-goals
 
@@ -24,10 +27,9 @@ This work makes release operations easier to trust by giving users readable prog
 
 ## Affected areas
 
-- `crates/monochange/src/cli_runtime.rs`: CLI step start/finish/skip progress.
-- `crates/monochange/src/cli_theme.rs` / new progress module: shared styling and stderr rendering.
-- `crates/monochange/src/package_publish.rs`: wire publish progress from the app layer.
-- `crates/monochange_publish/src/lib.rs`: publish events, ecosystem emoji trait, and later ecosystem scheduler.
+- `crates/monochange_publish/src/lib.rs`: dependency-aware ecosystem scheduler and stable report ordering.
+- `crates/monochange/src/package_publish.rs`: app-layer orchestration and scheduler integration.
+- `crates/monochange/src/output/progress.rs`: reuse the shared renderer if parallel lanes need new events.
 - `crates/monochange*/src/__tests__/`: focused unit coverage for changed executable lines.
 - CLI snapshots/integration tests where human output intentionally changes.
 
@@ -35,11 +37,11 @@ This work makes release operations easier to trust by giving users readable prog
 
 ### 1. Progress reporter foundation + publish progress
 
-- [ ] Add a small progress abstraction with two renderers:
+- [x] Add a small progress abstraction with two renderers:
   - interactive terminal renderer with spinner-style status updates,
   - CI/plain renderer with deterministic emoji start/finish lines.
-- [ ] Add an ecosystem presentation trait or trait-like helper so ecosystems own their emoji and label.
-- [ ] Emit publish events for:
+- [x] Add an ecosystem presentation trait or trait-like helper so ecosystems own their emoji and label.
+- [x] Emit publish events for:
   - publish run start and completion,
   - ecosystem lane/package start,
   - registry check,
@@ -47,32 +49,32 @@ This work makes release operations easier to trust by giving users readable prog
   - dry-run planned publish,
   - published,
   - blocked/failed.
-- [ ] Keep progress on stderr and existing reports on stdout/artifacts.
-- [ ] Add tests for emoji labels, CI/plain output, and publish event sequencing.
-- [ ] Validate with `cargo fmt`, targeted tests, `cargo clippy -q -p monochange --all-targets --all-features -- -D warnings`, and `devenv shell monochange step validate`.
+- [x] Keep progress on stderr and existing reports on stdout/artifacts.
+- [x] Add tests for emoji labels, CI/plain output, and publish event sequencing.
+- [x] Validate with `cargo fmt`, targeted tests, `cargo clippy -q -p monochange --all-targets --all-features -- -D warnings`, and `devenv shell monochange step validate`.
 
 ### 2. Progress across CLI steps
 
-- [ ] Emit step-level progress in `cli_runtime`:
+- [x] Emit step-level progress in `cli_runtime`:
   - command workflow start and exactly one success/failure finish,
   - step start before fallible input and condition resolution,
   - exactly one step success/failure/skip finish,
   - skipped steps with `when` or earlier-failure context,
   - failure context before returning errors.
-- [ ] Enable deterministic default progress on stderr for terminals, CI, editor tasks, and captured processes; only quiet mode, `MONOCHANGE_NO_PROGRESS`, or an explicit per-step opt-out suppresses it.
-- [ ] Preserve subprocess stderr and stdout in configured command and lockfile command failures, including stdout-only failures.
-- [ ] Add step-specific concise summaries for discover, validate/check/lint, prepare release, commit/tag/open release request, publish readiness, issue comments, affected packages, and retargeting.
-- [ ] Ensure JSON output commands remain parseable by keeping progress on stderr.
-- [ ] Add tests/snapshots for CI/plain stderr formatting where the harness supports it.
+- [x] Enable deterministic default progress on stderr for terminals, CI, editor tasks, and captured processes; only quiet mode, `MONOCHANGE_NO_PROGRESS`, or an explicit per-step opt-out suppresses it.
+- [x] Preserve subprocess stderr and stdout in configured command and lockfile command failures, including stdout-only failures.
+- [x] Add step-specific concise summaries for discover, validate/check/lint, prepare release, commit/tag/open release request, publish readiness, issue comments, affected packages, and retargeting.
+- [x] Ensure JSON output commands remain parseable by keeping progress on stderr.
+- [x] Add tests/snapshots for CI/plain stderr formatting where the harness supports it.
 
 ### 2a. Complete sequential publish failure summaries
 
-- [ ] Preserve one terminal outcome for every package expected by a sequential publish run.
-- [ ] Report packages not attempted after the first failure as skipped because of that failure.
-- [ ] Derive and display expected, succeeded, failed, and skipped totals from the complete report.
-- [ ] Include aggregate totals and the underlying failed package error in the returned CLI error.
-- [ ] Propagate quiet mode into nested publish progress.
-- [ ] Add unit and output coverage for partial success, first failure, skipped tails, resume behavior, and command stdout/stderr diagnostics.
+- [x] Preserve one terminal outcome for every package expected by a sequential publish run.
+- [x] Report packages not attempted after the first failure as blocked by that failure.
+- [x] Derive and display planned, published, already-existing, blocked, failed, and not-attempted totals from the complete report.
+- [x] Include aggregate totals and the underlying failed package error in the returned CLI error.
+- [x] Propagate quiet mode into nested publish progress.
+- [x] Add unit and output coverage for partial success, first failure, blocked tails, resume behavior, and command stdout/stderr diagnostics.
 
 ### 3. Parallel publish by ecosystem
 
@@ -86,15 +88,12 @@ This work makes release operations easier to trust by giving users readable prog
 
 ## Decisions
 
-- Use emojis, not nerdfonts, for portability and readability.
-- Emojis are allowed in CI logs; only spinner/loading animation is terminal-only.
-- stderr is the default channel for progress so stdout remains usable for JSON and command composition.
-- Default progress is deterministic and visible even when stderr is captured or non-interactive; animation remains terminal-only.
+- Use portable Unicode symbols where supported and ASCII fallbacks otherwise.
+- stderr is the progress channel so stdout remains usable for results and command composition.
+- Captured and CI progress uses complete deterministic lines; animation is interactive-terminal-only.
 - Sequential publish reports keep fail-fast execution but represent every expected package, including packages skipped after failure.
 - Parallelism starts at ecosystem granularity, not package granularity, to limit registry-rate and dependency-order risk.
 
-## Open questions
+## Open question
 
-- Whether to add an explicit `--no-progress`/`NO_COLOR`-style opt-out for progress lines or rely on stdout/stderr separation.
-- Whether the progress abstraction should live in `monochange` only first, then move to `monochange_core`/`monochange_publish` once the parallel scheduler needs it across crates.
-- Whether parallel publish should be opt-in for one release before becoming default.
+- Whether parallel publishing should be opt-in for one release before becoming the default.

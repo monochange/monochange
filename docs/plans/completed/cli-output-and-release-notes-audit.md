@@ -4,12 +4,12 @@
 
 - Audit date: 2026-09-08
 - Scope: CLI results, progress, diagnostics, CI logs, changeset authoring, and changelog rendering
-- Outcome: output contract approved; implementation is in progress
-- Code changes: PRs 1–5 are complete; plan consolidation is next
+- Outcome: implemented in stacked pull requests #661, #662, #663, #667, and #668
+- Code changes: complete; this plan was archived by the final consolidation pull request
 
 ## Assessment
 
-The CLI does not have one output contract. Each command decides what `text`, `markdown`, and `json` mean. Three progress reporters make separate decisions about animation, color, terminal control sequences, and CI. Release-note documents also store rendered Markdown entries instead of structured entries, so a later renderer cannot produce clean text or JSON.
+At audit time, the CLI did not have one output contract. Each command decided what `text`, `markdown`, and `json` meant. Three progress reporters made separate decisions about animation, color, terminal control sequences, and CI. Release-note documents also stored rendered Markdown entries instead of structured entries, so a later renderer could not produce clean text or JSON.
 
 These are product-model problems. More styling would hide the symptoms for a short time, but it would not make results easier to understand.
 
@@ -27,10 +27,10 @@ Every command should follow this contract:
 6. The output format never changes the exit status.
 7. `--quiet` changes output only. It never turns a real operation into a dry run.
 8. Animation requires an interactive terminal. Captured output and CI use complete, deterministic lines with no cursor control sequences.
-9. `NO_COLOR`, `MONOCHANGE_NO_PROGRESS`, and a future `--no-progress` flag apply to every command and nested operation.
+9. `NO_COLOR` and `MONOCHANGE_NO_PROGRESS` apply to every command and nested operation.
 10. A failure says what failed, why it failed, where it failed, and what the user can do next. `--log-level debug` remains an implementation trace, not the normal way to understand a failure.
 
-## Evidence from the current CLI
+## Evidence from the audited CLI baseline
 
 The commands below used `target/debug/monochange` in this checkout. Publish inspection used `--dry-run`; no package was published.
 
@@ -75,7 +75,7 @@ TERM=dumb \
 
 Inspect the stderr files with a control-character-aware viewer. Both paths can emit cursor-clearing sequences even though neither command writes to an interactive terminal.
 
-## Root causes
+## Root causes in the audited baseline
 
 ### Output format is chosen too late and means different things
 
@@ -398,13 +398,14 @@ The terminal capability snapshot should include:
 
 All reporters should use the same locked stderr writer. Only the interactive renderer may clear or rewrite a line. Every style helper must reset its style in the same write.
 
-After that boundary exists, split `cli_runtime.rs` by responsibility:
+The implemented boundary keeps workflow orchestration and command-specific result rendering in `cli_runtime.rs`, while shared terminal concerns live under `output/`:
 
-- Keep workflow orchestration in `cli_runtime.rs`.
-- Move result rendering to `output/result.rs`.
-- Move the shared progress reporter to `output/progress.rs`.
-- Move terminal capability detection and the locked writer to `output/terminal.rs`.
-- Keep domain-specific result construction near `lint`, `package_publish`, `release_artifacts`, and `changesets`.
+- `output/progress.rs` owns the shared progress reporter and domain adapters.
+- `output/terminal.rs` owns terminal capability detection and the locked writer.
+- `output/diagnostic.rs` owns stable diagnostic codes, context, hints, and rendering.
+- Domain-specific result construction stays near `lint`, `package_publish`, `release_artifacts`, and `changesets`.
+
+A separate `output/result.rs` layer was not added because command-specific renderers still have clear owners and moving them would add indirection without reducing duplicated behavior.
 
 ## Ordered implementation plan
 
@@ -511,10 +512,10 @@ Acceptance checks:
 
 ### PR 6: Consolidate the existing plans
 
-- [ ] Move completed progress and output plans from `docs/plans/active` to `docs/plans/completed`.
-- [ ] Fold remaining publish work into this plan or link the plans with explicit ownership.
-- [ ] Mark shipped `json-min` work complete.
-- [ ] Remove plan statements that conflict with the final output contract.
+- [x] Move completed progress and output plans from `docs/plans/active` to `docs/plans/completed`.
+- [x] Link the remaining ecosystem-parallel publish work with explicit ownership.
+- [x] Mark shipped `json-min` work complete.
+- [x] Remove plan statements that conflict with the final output contract.
 
 ## Test matrix
 
@@ -540,7 +541,7 @@ Use the real binary in `crates/monochange_integration_tests`. Tests that call `r
 Run repository commands in the devenv shell:
 
 ```bash
-devenv shell dprint check docs/plans/active/cli-output-and-release-notes-audit.md
+devenv shell dprint check docs/plans/completed/cli-output-and-release-notes-audit.md
 devenv shell cargo test -p monochange --lib
 devenv shell cargo test -p monochange_integration_tests
 devenv shell lint:all
@@ -564,15 +565,16 @@ For each PR that changes executable lines, also run the repository's patch-cover
 - `crates/monochange/src/lib.rs`: process boundary, default format, error exit, and quiet semantics
 - `crates/monochange/src/cli.rs`: help text and global output flags
 - `crates/monochange/src/cli_runtime.rs`: workflow orchestration and current result renderers
-- `crates/monochange/src/cli_progress.rs`: current workflow progress renderer
-- `crates/monochange/src/lint_check_reporter.rs`: current lint reporter
-- `crates/monochange/src/publish_progress.rs`: current publish reporter
+- `crates/monochange/src/output/progress.rs`: shared workflow, lint, publish, and subprocess progress renderer
+- `crates/monochange/src/output/terminal.rs`: terminal capabilities and synchronized stderr output
+- `crates/monochange/src/output/diagnostic.rs`: stable, actionable CLI diagnostics
 - `crates/monochange/src/lint.rs`: check result and exit-status logic
 - `crates/monochange/src/tracing_setup.rs`: maintainer tracing
 - `crates/monochange_publish/src/lib.rs`: publish status model and summary
 - `crates/monochange_changelog/src/lib.rs`: changelog entry construction and rendering
 - `crates/monochange_core/src/lib.rs`: release-note document types
 - `crates/monochange_config/src/lib.rs`: changeset parsing and heading normalization
+- `crates/monochange_config/src/lints.rs`: changeset summary and duplication policy
 - `crates/monochange/src/changesets.rs`: changeset source generation
 - `docs/agents/changeset-quality.md`: authoring guidance
 - `crates/monochange_integration_tests`: process-level contract tests
