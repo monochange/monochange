@@ -42,7 +42,7 @@ in
 
   enterShell = ''
     set -euo pipefail
-    export PATH="$DEVENV_PROFILE/bin:$PATH"
+    export PATH="${currentDir}/.bin/rust-nightly/cargo-semver-checks/0.47.0/bin:$DEVENV_PROFILE/bin:$PATH"
   '';
 
   # disable dotenv since it interferes with variable interpolation in the shell

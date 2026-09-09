@@ -1,6 +1,7 @@
 mod mutant_killers_tests;
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -8420,6 +8421,146 @@ version_format = "primary"
 			.iter()
 			.all(|package| package.id != "ignored-lib")
 	);
+}
+
+#[test]
+fn load_workspace_configuration_parses_cargo_semver_matrix() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 120
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "wasm"
+feature_mode = "none"
+features = ["serde"]
+baseline_features = ["old-api"]
+current_features = ["new-api"]
+target = "wasm32-unknown-unknown"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let settings = configuration.cargo.semver_checks;
+
+	assert!(settings.enabled);
+	assert_eq!(settings.timeout_seconds, 120);
+	assert_eq!(settings.matrix.len(), 2);
+	let wasm = settings
+		.matrix
+		.get(1)
+		.unwrap_or_else(|| panic!("missing wasm matrix cell"));
+	assert_eq!(wasm.name, "wasm");
+	assert_eq!(wasm.target.as_deref(), Some("wasm32-unknown-unknown"));
+}
+
+#[test]
+fn load_workspace_configuration_rejects_duplicate_semver_matrix_names() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[ecosystems.cargo.semver_checks]
+enabled = true
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let error = load_workspace_configuration(tempdir.path())
+		.expect_err("duplicate matrix names should fail");
+
+	assert!(
+		error
+			.to_string()
+			.contains("matrix cell name `default` is duplicated")
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_semver_checks_for_non_cargo_ecosystems() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		tempdir.path().join("monochange.toml"),
+		r"
+[ecosystems.npm.semver_checks]
+enabled = true
+",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let error = load_workspace_configuration(tempdir.path())
+		.expect_err("non-Cargo semver checks should fail");
+
+	assert!(
+		error
+			.to_string()
+			.contains("`ecosystems.npm.semver_checks` is only supported for Cargo")
+	);
+}
+
+#[test]
+fn load_workspace_configuration_validates_semver_matrix_bounds_and_values() {
+	let too_many_cells = (0..17).fold(String::new(), |mut contents, index| {
+		writeln!(
+			contents,
+			"[[ecosystems.cargo.semver_checks.matrix]]\nname = \"cell-{index}\""
+		)
+		.unwrap_or_else(|error| panic!("write matrix case: {error}"));
+		contents
+	});
+	let cases = [
+		(
+			"[ecosystems.cargo.semver_checks]\nenabled = true\ntimeout_seconds = 0\n",
+			"`timeout_seconds` must be between 1 and 1800",
+		),
+		(
+			"[ecosystems.cargo.semver_checks]\nenabled = true\nmatrix = []\n",
+			"`matrix` must contain at least one feature and target combination",
+		),
+		(
+			too_many_cells.as_str(),
+			"`matrix` cannot contain more than 16 combinations",
+		),
+		(
+			"[[ecosystems.cargo.semver_checks.matrix]]\nname = \"bad-target\"\ntarget = \"  \"\n",
+			"matrix cell `bad-target` has an empty `target`",
+		),
+		(
+			"[[ecosystems.cargo.semver_checks.matrix]]\nname = \"  \"\n",
+			"every matrix cell must have a non-empty `name`",
+		),
+		(
+			"[[ecosystems.cargo.semver_checks.matrix]]\nname = \"bad-feature\"\nfeatures = [\"serde,derive\"]\n",
+			"matrix cell `bad-feature` contains an empty feature or a feature with a comma",
+		),
+	];
+
+	for (contents, expected) in cases {
+		let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+		std::fs::write(tempdir.path().join("monochange.toml"), contents)
+			.unwrap_or_else(|error| panic!("write config: {error}"));
+		let error = load_workspace_configuration(tempdir.path())
+			.expect_err("invalid semver matrix should fail");
+		assert!(
+			error.to_string().contains(expected),
+			"expected `{expected}` in `{error}`"
+		);
+	}
 }
 
 #[test]

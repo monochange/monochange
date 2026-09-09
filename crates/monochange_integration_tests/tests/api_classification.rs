@@ -2,6 +2,7 @@
 
 use std::ffi::OsString;
 use std::path::Path;
+use std::process::Command;
 
 use insta::assert_json_snapshot;
 use monochange_test_helpers::copy_directory;
@@ -20,6 +21,7 @@ fn setup_api_fixture(name: &str) -> TempDir {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 
 	copy_directory(&before, tempdir.path());
+	replace_host_target_placeholder(tempdir.path());
 	git(tempdir.path(), &["init"]);
 	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
 	git(
@@ -34,6 +36,47 @@ fn setup_api_fixture(name: &str) -> TempDir {
 	git(tempdir.path(), &["commit", "-m", "api changes"]);
 
 	tempdir
+}
+
+fn replace_host_target_placeholder(root: &Path) {
+	let config_path = root.join("monochange.toml");
+	let Ok(config) = std::fs::read_to_string(&config_path) else {
+		return;
+	};
+	if !config.contains("__HOST_TARGET__") {
+		return;
+	}
+	let output = Command::new("rustc")
+		.arg("-vV")
+		.output()
+		.unwrap_or_else(|error| panic!("run rustc: {error}"));
+	assert!(output.status.success(), "rustc -vV should succeed");
+	let version = String::from_utf8(output.stdout)
+		.unwrap_or_else(|error| panic!("rustc version should be UTF-8: {error}"));
+	let host = version
+		.lines()
+		.find_map(|line| line.strip_prefix("host: "))
+		.unwrap_or_else(|| panic!("rustc did not report its host target"));
+	std::fs::write(&config_path, config.replace("__HOST_TARGET__", host))
+		.unwrap_or_else(|error| panic!("write host target config: {error}"));
+}
+
+fn redact_host_target(value: &mut Value) {
+	match value {
+		Value::Array(values) => values.iter_mut().for_each(redact_host_target),
+		Value::Object(object) => {
+			if object.get("name").and_then(Value::as_str) == Some("host-target")
+				&& let Some(Value::Object(configuration)) = object.get_mut("configuration")
+			{
+				configuration.insert(
+					"target".to_string(),
+					Value::String("[host target]".to_string()),
+				);
+			}
+			object.values_mut().for_each(redact_host_target);
+		}
+		_ => {}
+	}
 }
 
 fn setup_deleted_package_fixture() -> TempDir {
@@ -123,7 +166,7 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 	);
 
 	assert_eq!(report["recommendation"], "major");
-	assert_eq!(report["schemaVersion"], 2);
+	assert_eq!(report["schemaVersion"], 3);
 	assert_package_recommendation(&report, "rust_core", "major");
 	assert_package_recommendation(&report, "ts_client", "minor");
 	assert_package_recommendation(&report, "js_utils", "patch");
@@ -135,6 +178,77 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 
 	snapshot_settings().bind(|| {
 		assert_json_snapshot!(report);
+	});
+}
+
+#[test]
+fn change_classify_detects_feature_gated_rust_breaks_in_the_configured_matrix() {
+	let fixture = setup_api_fixture("rust-semver-matrix");
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change",
+			"classify",
+			"--base",
+			"HEAD~1",
+			"--head",
+			"HEAD",
+			"--detection-level",
+			"semantic",
+			"--format",
+			"json",
+		],
+	);
+	let rust_api = package(&report, "rust_api");
+	let matrix = rust_api["findings"]
+		.as_array()
+		.and_then(|findings| {
+			findings.iter().find(|finding| {
+				finding["analyzer"]["id"] == "cargo/cargo-semver-checks"
+					&& finding["comparisons"]
+						.as_array()
+						.is_some_and(|comparisons| {
+							comparisons
+								.iter()
+								.any(|comparison| comparison == "pullRequest")
+						})
+			})
+		})
+		.unwrap_or_else(|| panic!("missing Rust matrix finding: {rust_api:#}"));
+	let checks = matrix["coverage"]["checks"]
+		.as_array()
+		.unwrap_or_else(|| panic!("matrix checks should be an array"));
+	let bump_for = |name: &str| {
+		checks
+			.iter()
+			.find(|check| check["name"] == name)
+			.map(|check| check["suggestedBump"].clone())
+	};
+
+	assert_eq!(rust_api["recommendation"], "major");
+	assert_eq!(bump_for("default"), Some(serde_json::json!("none")));
+	assert_eq!(
+		bump_for("no-default-features"),
+		Some(serde_json::json!("none"))
+	);
+	assert_eq!(
+		bump_for("selected-experimental"),
+		Some(serde_json::json!("major"))
+	);
+	assert_eq!(bump_for("all-features"), Some(serde_json::json!("major")));
+	assert_eq!(bump_for("host-target"), Some(serde_json::json!("major")));
+	assert!(checks.iter().any(|check| {
+		check["diagnostics"].as_array().is_some_and(|diagnostics| {
+			diagnostics
+				.iter()
+				.any(|diagnostic| diagnostic["code"] == "trait_method_missing")
+		})
+	}));
+
+	let mut snapshot = report.clone();
+	redact_host_target(&mut snapshot);
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(snapshot);
 	});
 }
 
@@ -362,7 +476,7 @@ fn change_classify_supports_global_jq_and_equals_options() {
 		],
 	);
 
-	assert_eq!(output, "2");
+	assert_eq!(output, "3");
 }
 
 #[test]
@@ -390,7 +504,7 @@ fn changeset_api_validation_writes_the_requested_report() {
 	assert_eq!(
 		serde_json::from_str::<Value>(&written)
 			.unwrap_or_else(|error| panic!("parse written report: {error}"))["schemaVersion"],
-		2
+		3
 	);
 }
 

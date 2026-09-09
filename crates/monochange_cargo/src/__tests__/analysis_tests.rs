@@ -9,6 +9,74 @@ fn module_prefix_for_root_library_file_is_empty() {
 }
 
 #[test]
+fn analyzer_constructors_keep_the_default_analyzer_available() {
+	assert_eq!(semantic_analyzer().analyzer_id(), "cargo/public-api");
+	assert_eq!(
+		CargoSemanticAnalyzer::default().analyzer_id(),
+		"cargo/public-api"
+	);
+}
+
+#[test]
+fn complete_semver_results_replace_only_conservative_public_api_changes() {
+	let mut changes = vec![
+		SemanticChange::new(
+			SemanticChangeCategory::PublicApi,
+			SemanticChangeKind::Removed,
+			"function",
+			"removed",
+			"removed",
+			"src/lib.rs",
+		),
+		SemanticChange::new(
+			SemanticChangeCategory::PublicApi,
+			SemanticChangeKind::Added,
+			"function",
+			"added",
+			"added",
+			"src/lib.rs",
+		),
+		SemanticChange::new(
+			SemanticChangeCategory::Metadata,
+			SemanticChangeKind::Modified,
+			"manifest",
+			"edition",
+			"changed",
+			"Cargo.toml",
+		),
+	];
+	let matrix = SemanticChange::new(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Modified,
+		"compatibility_matrix",
+		"configured_matrix",
+		"compatible",
+		"Cargo.toml",
+	);
+
+	merge_semver_analysis(
+		&mut changes,
+		Some(CargoSemverAnalysis {
+			change: matrix,
+			replace_syntax_changes: true,
+		}),
+	);
+
+	assert_eq!(changes.len(), 3);
+	assert!(changes.iter().any(|change| change.item_path == "added"));
+	assert!(changes.iter().any(|change| change.item_path == "edition"));
+	assert!(
+		changes
+			.iter()
+			.any(|change| change.item_path == "configured_matrix")
+	);
+	assert!(!changes.iter().any(|change| change.item_path == "removed"));
+	let previous_len = changes.len();
+	merge_semver_analysis(&mut changes, None);
+	assert_eq!(changes.len(), previous_len);
+}
+
+#[test]
 fn module_prefix_for_nested_module_tracks_path_components() {
 	assert_eq!(
 		module_prefix_for_file(Path::new("src/api/render.rs")),

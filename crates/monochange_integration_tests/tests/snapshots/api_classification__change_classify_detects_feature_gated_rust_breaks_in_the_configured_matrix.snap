@@ -1,0 +1,216 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+expression: snapshot
+---
+{
+  "candidate": "merge-tree:[SHA]",
+  "comparisons": [
+    {
+      "base": "HEAD~1",
+      "head": "merge-tree:[SHA]",
+      "kind": "pullRequest",
+      "note": null,
+      "status": "analyzed"
+    },
+    {
+      "base": "[SHA]",
+      "head": "HEAD",
+      "kind": "sourceDelta",
+      "note": null,
+      "status": "analyzed"
+    }
+  ],
+  "defaultBranch": "HEAD~1",
+  "packages": [
+    {
+      "action": "create",
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pullRequest",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "sourceDelta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "releaseToDefault",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        }
+      ],
+      "decision": {
+        "compatibilityImpact": "breaking",
+        "completeness": "complete",
+        "confidence": "high",
+        "enforceableMinimum": "major",
+        "findingIds": [
+          "cargo/cargo-semver-checks/public_api/modified/compatibility_matrix/configured_matrix",
+          "cargo/public-api/public_api/modified/trait/ExperimentalApi"
+        ],
+        "proposedChangesetBump": "major",
+        "releaseFloor": "major",
+        "reviewRequired": false
+      },
+      "ecosystem": "cargo",
+      "existingChangesets": [],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "engine": "cargo-semver-checks",
+            "id": "cargo/cargo-semver-checks",
+            "version": "0.47.0"
+          },
+          "before": null,
+          "bump": "major",
+          "change": "modified",
+          "comparisons": [
+            "pullRequest",
+            "sourceDelta"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "checks": [
+              {
+                "configuration": {
+                  "featureMode": "default",
+                  "target": "host"
+                },
+                "name": "default",
+                "outcome": "compatible",
+                "status": "checked",
+                "suggestedBump": "none"
+              },
+              {
+                "configuration": {
+                  "featureMode": "none",
+                  "target": "host"
+                },
+                "name": "no-default-features",
+                "outcome": "compatible",
+                "status": "checked",
+                "suggestedBump": "none"
+              },
+              {
+                "configuration": {
+                  "featureMode": "none",
+                  "features": "experimental",
+                  "target": "host"
+                },
+                "diagnostics": [
+                  {
+                    "code": "trait_method_missing",
+                    "message": "pub trait method removed or renamed",
+                    "reference": "https://github.com/obi1kenobi/cargo-semver-checks/tree/v0.47.0/src/lints/trait_method_missing.ron"
+                  }
+                ],
+                "name": "selected-experimental",
+                "outcome": "breaking",
+                "status": "checked",
+                "suggestedBump": "major"
+              },
+              {
+                "configuration": {
+                  "featureMode": "all",
+                  "target": "host"
+                },
+                "diagnostics": [
+                  {
+                    "code": "trait_method_missing",
+                    "message": "pub trait method removed or renamed",
+                    "reference": "https://github.com/obi1kenobi/cargo-semver-checks/tree/v0.47.0/src/lints/trait_method_missing.ron"
+                  }
+                ],
+                "name": "all-features",
+                "outcome": "breaking",
+                "status": "checked",
+                "suggestedBump": "major"
+              },
+              {
+                "configuration": {
+                  "featureMode": "all",
+                  "target": "[host target]"
+                },
+                "diagnostics": [
+                  {
+                    "code": "trait_method_missing",
+                    "message": "pub trait method removed or renamed",
+                    "reference": "https://github.com/obi1kenobi/cargo-semver-checks/tree/v0.47.0/src/lints/trait_method_missing.ron"
+                  }
+                ],
+                "name": "host-target",
+                "outcome": "breaking",
+                "status": "checked",
+                "suggestedBump": "major"
+              }
+            ],
+            "completeness": "complete",
+            "detectionLevel": "semantic",
+            "note": "cargo-semver-checks active lints checked 5/5 configured feature/target cells; additive Rust exports remain syntax-derived"
+          },
+          "id": "cargo/cargo-semver-checks/public_api/modified/compatibility_matrix/configured_matrix",
+          "impact": "breaking",
+          "location": "Cargo.toml",
+          "ruleId": "cargo/cargo-semver-checks/public_api/modified/compatibility_matrix",
+          "summary": "cargo-semver-checks found a breaking Rust API change in the configured matrix",
+          "surface": "public_api"
+        },
+        {
+          "after": "# [cfg (feature = \"experimental\")] pub trait ExperimentalApi { fn retained (& self) ; }",
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "# [cfg (feature = \"experimental\")] pub trait ExperimentalApi { fn retained (& self) ; fn removed (& self) ; }",
+          "bump": "major",
+          "change": "modified",
+          "comparisons": [
+            "pullRequest",
+            "sourceDelta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detectionLevel": "semantic",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/modified/trait/ExperimentalApi",
+          "impact": "breaking",
+          "location": "src/lib.rs",
+          "ruleId": "cargo/public-api/public_api/modified/trait",
+          "summary": "trait `ExperimentalApi` modified",
+          "surface": "public_api"
+        }
+      ],
+      "packageId": "rust_api",
+      "packageName": "rust-semver-matrix-fixture",
+      "recommendation": "major",
+      "releaseOwner": {
+        "id": "rust_api",
+        "kind": "package",
+        "latestRelease": null
+      },
+      "summary": "2 breaking finding(s) propose a major changeset",
+      "warnings": []
+    }
+  ],
+  "recommendation": "major",
+  "schemaVersion": 3,
+  "warnings": []
+}

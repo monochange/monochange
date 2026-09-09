@@ -1,0 +1,29 @@
+[package.rust_api]
+path = "crates/rust-api"
+type = "cargo"
+
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 120
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "no-default-features"
+feature_mode = "none"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "selected-experimental"
+feature_mode = "none"
+features = ["experimental"]
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "host-target"
+feature_mode = "all"
+target = "__HOST_TARGET__"

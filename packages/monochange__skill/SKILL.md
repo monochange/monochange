@@ -121,7 +121,7 @@ Release planning treats built-in semantic analysis as advisory evidence. `monoch
 - dependency or metadata evidence is usually `patch` context;
 - warnings about semantic changes without matching changesets should be resolved before release.
 
-Package lifecycle findings are complete and high-confidence. TypeScript declaration findings can also be complete and high-confidence when semantic mode resolves the workspace compiler, config, dependencies, and explicit typed entrypoints. Syntax fallbacks and the other built-in ecosystem source findings remain partial. Follow [skills/change-classification.md](skills/change-classification.md) to inspect engine versions and coverage gaps, install TypeScript dependencies before classification, and use cargo-semver-checks for a higher-assurance Rust decision.
+Package lifecycle findings are complete and high-confidence. TypeScript declaration findings can also be complete and high-confidence when semantic mode resolves the workspace compiler, config, dependencies, and explicit typed entrypoints. Cargo findings can be complete for the configured cargo-semver-checks feature/target matrix. Syntax fallbacks and unchecked runtime behavior remain partial. Follow [skills/change-classification.md](skills/change-classification.md) to inspect engine versions, every `coverage.checks` cell, and all coverage gaps before choosing release intent.
 
 For comparing two refs, use `monochange analyze`:
 

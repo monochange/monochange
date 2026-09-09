@@ -19,6 +19,8 @@ use monochange_core::PackageRecord;
 use monochange_core::ReleaseOwnerKind;
 use monochange_core::SemanticAnalysisCompleteness as CoreAnalysisCompleteness;
 use monochange_core::SemanticAnalysisOutcome;
+use monochange_core::SemanticAnalyzerCheck;
+use monochange_core::SemanticAnalyzerCheckStatus;
 use monochange_core::SemanticChange;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
@@ -29,7 +31,7 @@ use serde::Serialize;
 use crate::OutputFormat;
 
 const DEFAULT_HEAD_REF: &str = "HEAD";
-const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 2;
+const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 3;
 const ANALYZER_VERSION: &str = "1";
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -140,6 +142,8 @@ pub(crate) struct FindingCoverage {
 	pub(crate) note: String,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub(crate) fallback_reason: Option<String>,
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub(crate) checks: Vec<SemanticAnalyzerCheck>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -1423,6 +1427,8 @@ fn finding_from_semantic_change(
 			),
 			fallback_reason: assessment
 				.and_then(|assessment| assessment.evidence.fallback_reason.clone()),
+			checks: assessment
+				.map_or_else(Vec::new, |assessment| assessment.evidence.checks.clone()),
 		},
 		before: change.before_signature.clone(),
 		after: change.after_signature.clone(),
@@ -1565,6 +1571,7 @@ fn ensure_unclassified_finding(
 			completeness: AnalysisCompleteness::Partial,
 			note: "changed package files produced no modeled compatibility finding".to_string(),
 			fallback_reason: None,
+			checks: Vec::new(),
 		},
 		before: None,
 		after: None,
@@ -1780,6 +1787,7 @@ fn propagate_public_dependency_impacts(
 				completeness: AnalysisCompleteness::Partial,
 				note: "direct runtime dependency propagation".to_string(),
 				fallback_reason: None,
+				checks: Vec::new(),
 			},
 			before: None,
 			after: None,
@@ -2184,16 +2192,78 @@ fn finding_evidence(finding: &ClassificationFinding) -> String {
 		.fallback_reason
 		.as_deref()
 		.map_or_else(String::new, |reason| format!("; fallback: {reason}"));
+	let checks = finding_checks_evidence(&finding.coverage.checks);
 
 	format!(
-		"{}{} {}; coverage {}: {}{}",
+		"{}{} {}; coverage {}: {}{}{}",
 		finding.analyzer.id,
 		engine,
 		finding.analyzer.version,
 		analysis_completeness_name(finding.coverage.completeness),
 		finding.coverage.note,
-		fallback
+		fallback,
+		checks
 	)
+}
+
+fn finding_checks_evidence(checks: &[SemanticAnalyzerCheck]) -> String {
+	if checks.is_empty() {
+		return String::new();
+	}
+	let checks = checks
+		.iter()
+		.map(|check| {
+			let result = match check.status {
+				SemanticAnalyzerCheckStatus::Checked => {
+					check.suggested_bump.map_or_else(
+						|| "checked".to_string(),
+						|bump| format!("checked/{}", bump_severity_name(bump)),
+					)
+				}
+				SemanticAnalyzerCheckStatus::Skipped => "skipped".to_string(),
+				SemanticAnalyzerCheckStatus::Failed => "failed".to_string(),
+				// patch-coverage:ignore-start -- the enum is non-exhaustive for downstream compatibility; every current variant is tested.
+				_ => "unknown".to_string(),
+				// patch-coverage:ignore-end
+			};
+			let diagnostics = check
+				.diagnostics
+				.iter()
+				.take(5)
+				.map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+				.collect::<Vec<_>>();
+			let omitted = check.diagnostics.len().saturating_sub(diagnostics.len());
+			if diagnostics.is_empty() {
+				format!("{}={result}", check.name)
+			} else {
+				let omitted = if omitted == 0 {
+					String::new()
+				} else {
+					format!(", +{omitted} more")
+				};
+				format!(
+					"{}={result} [{}{}]",
+					check.name,
+					diagnostics.join(", "),
+					omitted
+				)
+			}
+		})
+		.collect::<Vec<_>>()
+		.join("; ");
+	format!("; checks: {checks}")
+}
+
+fn bump_severity_name(bump: BumpSeverity) -> &'static str {
+	match bump {
+		BumpSeverity::None => "none",
+		BumpSeverity::Patch => "patch",
+		BumpSeverity::Minor => "minor",
+		BumpSeverity::Major => "major",
+		// patch-coverage:ignore-start -- the enum is non-exhaustive for downstream compatibility; every current variant is tested.
+		_ => "unknown",
+		// patch-coverage:ignore-end
+	}
 }
 
 fn markdown_finding_evidence(finding: &ClassificationFinding) -> String {

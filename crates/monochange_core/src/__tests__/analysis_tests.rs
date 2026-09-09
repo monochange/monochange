@@ -73,6 +73,45 @@ fn semantic_change_assessment_serializes_analyzer_provenance_and_fallback() {
 }
 
 #[test]
+fn cargo_semver_checks_settings_default_to_a_disabled_host_matrix() {
+	let settings = CargoSemverChecksSettings::default();
+
+	assert!(!settings.enabled);
+	assert_eq!(settings.timeout_seconds, 300);
+	assert_eq!(settings.matrix, vec![CargoSemverMatrixCell::default()]);
+}
+
+#[test]
+fn semantic_analyzer_evidence_serializes_machine_readable_checks() {
+	let check = SemanticAnalyzerCheck::new(
+		"all-features",
+		SemanticAnalyzerCheckStatus::Checked,
+		BTreeMap::from([("target".to_string(), "host".to_string())]),
+	)
+	.with_result(SemanticAnalysisOutcome::Breaking, BumpSeverity::Major)
+	.with_diagnostics(vec![
+		SemanticAnalyzerDiagnostic::new("struct_missing", "public struct removed")
+			.with_reference("https://example.com/struct_missing"),
+	]);
+	let evidence = SemanticAnalyzerEvidence::new(
+		"cargo/cargo-semver-checks",
+		"cargo-semver-checks",
+		SemanticAnalysisCompleteness::Complete,
+		"1/1 matrix cells checked",
+	)
+	.with_checks(vec![check]);
+	let json = serde_json::to_value(evidence)
+		.unwrap_or_else(|error| panic!("evidence should serialize: {error}"));
+
+	assert_eq!(json["checks"][0]["name"], "all-features");
+	assert_eq!(json["checks"][0]["suggestedBump"], "major");
+	assert_eq!(
+		json["checks"][0]["diagnostics"][0]["code"],
+		"struct_missing"
+	);
+}
+
+#[test]
 fn semantic_change_builder_attaches_optional_evidence() {
 	let assessment = SemanticChangeAssessment::new(
 		SemanticAnalysisOutcome::Breaking,
