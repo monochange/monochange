@@ -1132,6 +1132,25 @@ async fn cli_configured_command_help_groups_generated_configured_and_global_opti
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn change_help_loads_workspace_configuration() {
+	let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+	let output = run_with_args_in_dir(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("change"),
+			OsString::from("--help"),
+		],
+		&root,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("change help: {error}"));
+
+	assert!(output.contains("Usage: monochange change"));
+	assert!(output.contains("classify"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn publish_release_help_documents_draft_release_options() {
 	let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
 	let output = run_with_args_in_dir(
