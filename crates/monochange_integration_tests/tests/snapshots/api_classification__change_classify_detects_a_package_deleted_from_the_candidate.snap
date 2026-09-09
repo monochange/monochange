@@ -334,7 +334,7 @@ expression: report
     }
   ],
   "recommendation": "major",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "warnings": [
     "changed path `Cargo.toml` did not match any configured package",
     "changed path `monochange.toml` did not match any configured package"

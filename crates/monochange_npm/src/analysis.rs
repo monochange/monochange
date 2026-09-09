@@ -58,7 +58,17 @@ impl SemanticAnalyzer for NpmSemanticAnalyzer {
 				context.changed_files,
 				&NPM_ECMASCRIPT_EXPORT_CONFIG,
 			);
-			semantic_changes.extend(diff_public_symbols(&before_symbols, &after_symbols));
+			let syntax_changes = diff_public_symbols(&before_symbols, &after_symbols);
+
+			if context.detection_level == DetectionLevel::Semantic
+				&& crate::typescript::has_typescript_surface(context)
+			{
+				let typescript = crate::typescript::analyze_typescript(context, syntax_changes);
+				semantic_changes.extend(typescript.changes);
+				warnings.extend(typescript.warnings);
+			} else {
+				semantic_changes.extend(syntax_changes);
+			}
 		}
 
 		if let Some(manifest_change) = context
@@ -454,16 +464,17 @@ fn build_manifest_change(
 		"modified"
 	};
 
-	SemanticChange {
+	let mut change = SemanticChange::new(
 		category,
 		kind,
-		item_kind: entry.item_kind.clone(),
-		item_path: item_path.to_string(),
-		summary: format!("{} `{}` {verb}", entry.item_kind, item_path),
-		file_path: file_path.to_path_buf(),
-		before_signature,
-		after_signature,
-	}
+		entry.item_kind.clone(),
+		item_path,
+		format!("{} `{}` {verb}", entry.item_kind, item_path),
+		file_path,
+	);
+	change.before_signature = before_signature;
+	change.after_signature = after_signature;
+	change
 }
 
 fn describe_json_value(value: &Value) -> String {

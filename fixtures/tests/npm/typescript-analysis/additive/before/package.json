@@ -1,0 +1,5 @@
+{
+	"name": "@fixture/additive",
+	"type": "module",
+	"types": "./dist/index.d.ts"
+}

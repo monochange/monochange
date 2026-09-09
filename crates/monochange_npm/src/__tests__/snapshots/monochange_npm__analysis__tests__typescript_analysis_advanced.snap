@@ -1,0 +1,231 @@
+---
+source: crates/monochange_npm/src/__tests__/analysis_tests.rs
+expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"changes\": changes, \"warnings\":\n    result.warnings,\n})"
+---
+{
+  "analyzerId": "npm/package-json",
+  "changes": [
+    {
+      "assessment": {
+        "confidence": "low",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "partial",
+          "coverage": "the declaration was emitted but could not be compared conclusively",
+          "engine": "typescript",
+          "fallbackReason": "generic declaration identity prevents a conclusive cross-snapshot comparison",
+          "version": "6.0.3"
+        },
+        "outcome": "inconclusive",
+        "suggestedBump": "patch"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "type",
+      "itemPath": ".#Box",
+      "kind": "modified",
+      "summary": "changed generic TypeScript declaration requires review `.#Box`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript checked value assignability in both directions",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "additive",
+        "suggestedBump": "minor"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "type",
+      "itemPath": ".#Locked",
+      "kind": "modified",
+      "summary": "new value contract adds assignable capability to `.#Locked`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript proved a consumer-visible assignability failure",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "breaking",
+        "suggestedBump": "major"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "type",
+      "itemPath": ".#Mutable",
+      "kind": "modified",
+      "summary": "public member value became readonly on `.#Mutable`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript checked value assignability in both directions",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "additive",
+        "suggestedBump": "minor"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "type",
+      "itemPath": ".#Options",
+      "kind": "modified",
+      "summary": "new value contract adds assignable capability to `.#Options`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript proved a consumer-visible assignability failure",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "breaking",
+        "suggestedBump": "major"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "type",
+      "itemPath": ".#Scalar",
+      "kind": "modified",
+      "summary": "type is not mutually assignable across snapshots for `.#Scalar`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript proved a consumer-visible assignability failure",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "breaking",
+        "suggestedBump": "major"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "type_and_value",
+      "itemPath": ".#Client",
+      "kind": "modified",
+      "summary": "type is not mutually assignable across snapshots for `.#Client`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript proved a consumer-visible assignability failure",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "breaking",
+        "suggestedBump": "major"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "type_and_value",
+      "itemPath": ".#Mode",
+      "kind": "modified",
+      "summary": "new value contract is not assignable to the previous contract for `.#Mode`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript checked consumer-visible assignability in both directions",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "compatible",
+        "suggestedBump": "none"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "value",
+      "itemPath": ".#choose",
+      "kind": "modified",
+      "summary": "declaration remains consumer-compatible for `.#choose`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript checked value assignability in both directions",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "additive",
+        "suggestedBump": "minor"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "value",
+      "itemPath": ".#configure",
+      "kind": "modified",
+      "summary": "new value contract adds assignable capability to `.#configure`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript proved a consumer-visible assignability failure",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "breaking",
+        "suggestedBump": "major"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "value",
+      "itemPath": ".#format",
+      "kind": "modified",
+      "summary": "new value contract is not assignable to the previous contract for `.#format`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript checked value assignability in both directions",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "additive",
+        "suggestedBump": "minor"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "value",
+      "itemPath": ".#parse",
+      "kind": "modified",
+      "summary": "new value contract adds assignable capability to `.#parse`"
+    }
+  ],
+  "warnings": []
+}

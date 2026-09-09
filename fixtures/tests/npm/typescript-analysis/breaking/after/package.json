@@ -1,0 +1,5 @@
+{
+	"name": "@fixture/breaking",
+	"type": "module",
+	"types": "./dist/index.d.ts"
+}

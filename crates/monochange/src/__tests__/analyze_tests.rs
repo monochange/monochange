@@ -250,16 +250,17 @@ fn render_frame_section_covers_change_and_warning_paths() {
 			release_identity: None,
 			analyzer_id: Some("cargo/public-api".to_string()),
 			changed_files: vec![Path::new("src/lib.rs").to_path_buf()],
-			semantic_changes: vec![monochange_analysis::SemanticChange {
-				category: monochange_analysis::SemanticChangeCategory::PublicApi,
-				kind: monochange_analysis::SemanticChangeKind::Added,
-				item_kind: "function".to_string(),
-				item_path: "shout".to_string(),
-				summary: "function `shout` added".to_string(),
-				file_path: Path::new("src/lib.rs").to_path_buf(),
-				before_signature: None,
-				after_signature: Some("fn shout (name : & str) -> String".to_string()),
-			}],
+			semantic_changes: vec![
+				monochange_analysis::SemanticChange::new(
+					monochange_analysis::SemanticChangeCategory::PublicApi,
+					monochange_analysis::SemanticChangeKind::Added,
+					"function",
+					"shout",
+					"function `shout` added",
+					Path::new("src/lib.rs"),
+				)
+				.with_after_signature("fn shout (name : & str) -> String"),
+			],
 			warnings: vec!["package warning".to_string()],
 		},
 	);

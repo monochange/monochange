@@ -237,16 +237,16 @@ fn sample_changeset(summary: Option<&str>, package_id: &str) -> LoadedChangesetF
 }
 
 fn sample_semantic_change(item_path: &str) -> SemanticChange {
-	SemanticChange {
-		category: SemanticChangeCategory::PublicApi,
-		kind: SemanticChangeKind::Modified,
-		item_kind: "function".to_string(),
-		item_path: item_path.to_string(),
-		summary: format!("function `{item_path}` modified"),
-		file_path: PathBuf::from("src/lib.rs"),
-		before_signature: Some(format!("fn {item_path}()")),
-		after_signature: Some(format!("fn {item_path}(arg: &str)")),
-	}
+	SemanticChange::new(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Modified,
+		"function",
+		item_path,
+		format!("function `{item_path}` modified"),
+		PathBuf::from("src/lib.rs"),
+	)
+	.with_before_signature(format!("fn {item_path}()"))
+	.with_after_signature(format!("fn {item_path}(arg: &str)"))
 }
 
 #[test]

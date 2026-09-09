@@ -54,7 +54,11 @@ pub use monochange_core::DetectionLevel;
 pub use monochange_core::FileChangeKind;
 pub use monochange_core::PackageSnapshot;
 pub use monochange_core::PackageSnapshotFile;
+pub use monochange_core::SemanticAnalysisCompleteness;
+pub use monochange_core::SemanticAnalysisOutcome;
+pub use monochange_core::SemanticAnalyzerEvidence;
 pub use monochange_core::SemanticChange;
+pub use monochange_core::SemanticChangeAssessment;
 pub use monochange_core::SemanticChangeCategory;
 pub use monochange_core::SemanticChangeKind;
 
@@ -470,16 +474,17 @@ fn package_lifecycle_change(
 		// patch-coverage:ignore-end
 	};
 
-	Some(SemanticChange {
-		category: SemanticChangeCategory::Package,
+	let mut change = SemanticChange::new(
+		SemanticChangeCategory::Package,
 		kind,
-		item_kind: "package".to_string(),
-		item_path: package.name.clone(),
+		"package",
+		package.name.clone(),
 		summary,
-		file_path: manifest_path,
-		before_signature: before_has_manifest.then(|| descriptor.clone()),
-		after_signature: after_has_manifest.then_some(descriptor),
-	})
+		manifest_path,
+	);
+	change.before_signature = before_has_manifest.then(|| descriptor.clone());
+	change.after_signature = after_has_manifest.then_some(descriptor);
+	Some(change)
 }
 
 /// Analyze three release-aware semantic frames using explicit refs.

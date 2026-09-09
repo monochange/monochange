@@ -25,7 +25,7 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 
 1. Inspect configuration: `monochange step validate`, `monochange step config`, or `monochange help`. Use this to learn package ids, enabled ecosystems, groups, and which top-level workflow commands actually exist.
 2. Inspect packages: use the configured workflow command (often `monochange run discover --format json`) or the immutable `monochange step discover --format json`. Prefer JSON when another tool or agent will consume the package graph.
-3. Classify change severity before writing release intent: run `monochange change classify --format json --dependency-propagation public` or call `monochange_classify_changes`. Read [skills/change-classification.md](skills/change-classification.md), then account for every affected package, finding, and pending changeset action.
+3. Classify change severity before writing release intent: run `monochange change classify --detection-level semantic --format json --dependency-propagation public` or call `monochange_classify_changes` with `detection_level: "semantic"`. Read [skills/change-classification.md](skills/change-classification.md), then account for every affected package, finding, coverage boundary, and pending changeset action.
 4. Create release intent: use a configured workflow command (often `monochange run change ...`) or write `.changeset/*.md` manually. Read existing changesets first so you can update or merge related intent instead of creating duplicates.
 5. Preview versioned files: use the configured workflow command (often `monochange run release --dry-run --format json` or `--diff`) or `monochange step prepare-release --dry-run`. The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and semantic SemVer `compatibilityEvidence` before mutating the tree.
 6. Extract a named release-note artifact when it needs separate review or delivery: `monochange notes --output <id> [--target <id>]`. It prints to stdout by default; use `--file <path>` for a CI artifact. This is read-only and does not prepare a release.
@@ -57,7 +57,7 @@ Built-in commands in the current CLI:
 - `monochange subagents`: generate repository-local agent/subagent guidance for monochange work.
 - `monochange analyze`: inspect semantic changes for a package.
 - `monochange notes --output <id>`: render one configured release-note output to stdout or an explicit file without modifying release state.
-- `monochange change classify --format json --dependency-propagation public`: compare the pull request and latest release, report finding evidence, and propose package bumps.
+- `monochange change classify --detection-level semantic --format json --dependency-propagation public`: compare the pull request and latest release, run the richest available ecosystem analysis, report finding evidence, and propose package bumps.
 - `monochange api diff --base origin/main --format json`: inspect API diff classification as structured data.
 - `monochange changeset validate --api --format markdown`: validate pending changesets against high-confidence classification evidence; add `--strict` to enforce advisory proposals.
 - `monochange step tag-release`: create release tags from an embedded release record.
@@ -115,13 +115,13 @@ Prefer MCP tools when the caller needs structured data and the shell when you ne
 
 Release planning treats built-in semantic analysis as advisory evidence. `monochange change classify` reports the current pull request separately from the full interval since the package's latest release. Compare this evidence with human-authored changesets:
 
-- removed or modified public API/export evidence implies at least `major`;
+- removed or incompatibly modified public API/export evidence implies at least `major`;
 - a removed `monochange/package-lifecycle` package implies at least `major` with high-confidence evidence;
 - added public API/export evidence implies at least `minor`;
 - dependency or metadata evidence is usually `patch` context;
 - warnings about semantic changes without matching changesets should be resolved before release.
 
-Package lifecycle findings are complete and high-confidence. Built-in ecosystem source findings remain partial and medium-confidence. Follow [skills/change-classification.md](skills/change-classification.md) to inspect coverage gaps and use cargo-semver-checks for a higher-assurance Rust decision.
+Package lifecycle findings are complete and high-confidence. TypeScript declaration findings can also be complete and high-confidence when semantic mode resolves the workspace compiler, config, dependencies, and explicit typed entrypoints. Syntax fallbacks and the other built-in ecosystem source findings remain partial. Follow [skills/change-classification.md](skills/change-classification.md) to inspect engine versions and coverage gaps, install TypeScript dependencies before classification, and use cargo-semver-checks for a higher-assurance Rust decision.
 
 For comparing two refs, use `monochange analyze`:
 

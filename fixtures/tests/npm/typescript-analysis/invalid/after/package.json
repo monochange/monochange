@@ -1,0 +1,5 @@
+{
+	"name": "@fixture/invalid",
+	"type": "module",
+	"types": "./dist/index.d.ts"
+}
