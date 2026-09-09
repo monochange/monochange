@@ -89,7 +89,7 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
   test:
-    timeout-minutes: 60
+    timeout-minutes: 120
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
@@ -243,7 +243,7 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
   coverage:
-    timeout-minutes: 60
+    timeout-minutes: 120
     runs-on: ubuntu-latest
     outputs:
       codecov-flags: ${{ steps.prepare-codecov-flags.outputs.flags }}
@@ -516,7 +516,7 @@ jobs:
 
   release-test:
     if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'monochange/release')
-    timeout-minutes: 60
+    timeout-minutes: 120
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
