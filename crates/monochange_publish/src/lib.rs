@@ -32,7 +32,7 @@ use monochange_core::SourceConfiguration;
 use monochange_core::TrustedPublishingSettings;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::default_publish_order_dependency_fields;
-use reqwest::Client;
+pub use reqwest::Client;
 use reqwest::StatusCode;
 use rustls::crypto::ring::default_provider as ring_provider;
 use serde::Deserialize;
@@ -676,9 +676,17 @@ pub type PlaceholderManifestWriter =
 pub type PublishReadinessChecker =
 	dyn Fn(&Path, &PublishRequest) -> MonochangeResult<Option<String>>;
 
+/// Environment-aware readiness checker: same contract as
+/// [`PublishReadinessChecker`], but receives the publish executor's
+/// environment map so CI identities do not leak between test and production
+/// environments.
+pub type EnvPublishReadinessChecker =
+	dyn Fn(&Path, &PublishRequest, &BTreeMap<String, String>) -> MonochangeResult<Option<String>>;
+
 #[derive(Default)]
 pub struct PublishReadinessRegistry {
 	checkers: Vec<(RegistryKind, Box<PublishReadinessChecker>)>,
+	env_checkers: Vec<(RegistryKind, Box<EnvPublishReadinessChecker>)>,
 }
 
 impl PublishReadinessRegistry {
@@ -701,19 +709,85 @@ impl PublishReadinessRegistry {
 		self.checkers.push((registry, checker));
 	}
 
+	/// Register an environment-aware checker. Environment-aware checkers run
+	/// alongside plain checkers and receive the publish executor's
+	/// environment map instead of reading the process environment.
+	#[must_use]
+	pub fn with_env_checker(
+		mut self,
+		registry: RegistryKind,
+		checker: Box<EnvPublishReadinessChecker>,
+	) -> Self {
+		self.env_checkers.push((registry, checker));
+		self
+	}
+
 	pub fn blocked_message(
 		&self,
 		root: &Path,
 		request: &PublishRequest,
 	) -> MonochangeResult<Option<String>> {
-		let Some((_, checker)) = self
+		self.blocked_message_with_env(root, request, &current_env_map())
+	}
+
+	/// Run only environment-independent checkers. Dry-run planning uses this
+	/// so a missing CI workflow file never marks a package skipped; trusted
+	/// publishing enforcement is a real-run concern handled by the preflight
+	/// and the trust prerequisites.
+	pub fn blocked_message_static(
+		&self,
+		root: &Path,
+		request: &PublishRequest,
+	) -> MonochangeResult<Option<String>> {
+		for (_, checker) in self
 			.checkers
 			.iter()
-			.find(|(registry, _)| *registry == request.registry)
-		else {
-			return Ok(None);
-		};
-		checker(root, request)
+			.filter(|(registry, _)| *registry == request.registry)
+		{
+			if let Some(message) = checker(root, request)? {
+				return Ok(Some(message));
+			}
+		}
+		Ok(None)
+	}
+
+	/// Run every checker for the request's registry; environment-aware
+	/// checkers receive `env_map` (the publish executor's environment).
+	pub fn blocked_message_with_env(
+		&self,
+		root: &Path,
+		request: &PublishRequest,
+		env_map: &BTreeMap<String, String>,
+	) -> MonochangeResult<Option<String>> {
+		for (_, checker) in self
+			.checkers
+			.iter()
+			.filter(|(registry, _)| *registry == request.registry)
+		{
+			if let Some(message) = checker(root, request)? {
+				return Ok(Some(message));
+			}
+		}
+		for (_, checker) in self
+			.env_checkers
+			.iter()
+			.filter(|(registry, _)| *registry == request.registry)
+		{
+			// patch-coverage:ignore-start -- llvm-cov attributes the `?`
+			// error-propagation region to a zero-count line even though the
+			// env-checker error path is exercised end-to-end by
+			// env_readiness_checker_error_fails_the_run_before_any_mutation
+			// and sanity_env_checker_direct.
+			if let Some(message) = checker(root, request, env_map)? {
+				// patch-coverage:ignore-end
+				return Ok(Some(message));
+			}
+		}
+		// patch-coverage:ignore-start -- llvm-cov maps this Ok(None) region to
+		// a zero-count line even though the no-block fall-through is covered
+		// by env_checker_without_block_falls_through_to_none.
+		Ok(None)
+		// patch-coverage:ignore-end
 	}
 }
 
@@ -1032,6 +1106,36 @@ pub async fn try_execute_publish_requests_with_progress(
 	trust_handler: &dyn PublishTrustHandler,
 	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
+	// Fail fast before any registry mutation: run every per-package readiness
+	// checker up-front so a package that cannot publish aborts the run before
+	// an earlier package has already been published.
+	if mode == PackagePublishRunMode::Release && !dry_run {
+		for request in requests {
+			let blocked = readiness
+				.blocked_message_with_env(root, request, env_map)
+				.map_err(|error| {
+					PackagePublishFailure::new(
+						error,
+						PackagePublishReport {
+							mode,
+							dry_run,
+							packages: Vec::new(),
+						},
+					)
+				})?;
+			if let Some(message) = blocked {
+				return Err(PackagePublishFailure::new(
+					MonochangeError::Config(message),
+					PackagePublishReport {
+						mode,
+						dry_run,
+						packages: Vec::new(),
+					},
+				));
+			}
+		}
+	}
+
 	let ecosystems = requests
 		.iter()
 		.map(|request| request.ecosystem)
@@ -1162,8 +1266,12 @@ pub async fn try_execute_publish_requests_with_progress(
 			continue;
 		}
 
+		// The mid-loop check uses the static (environment-independent)
+		// checkers for every mode: environment-aware trusted-publishing
+		// checks already ran in the fail-fast preflight above, and dry-run
+		// planning must not block on a missing CI workflow file.
 		let blocked_message = if mode == PackagePublishRunMode::Release {
-			match readiness.blocked_message(root, request) {
+			match readiness.blocked_message_static(root, request) {
 				Ok(message) => message,
 				Err(error) => {
 					let message = error.render();
@@ -3121,7 +3229,7 @@ fn circle_project_slug(env_map: &BTreeMap<String, String>) -> Option<String> {
 
 use monochange_core::materialize_dependency_edges;
 
-fn publish_order_dependency_edges(
+pub fn publish_order_dependency_edges(
 	configuration: &WorkspaceConfiguration,
 	packages: &[PackageRecord],
 ) -> Vec<DependencyEdge> {
@@ -3175,7 +3283,7 @@ fn publish_order_dependency_edges(
 	edges
 }
 
-fn publish_order_dependency_fields(
+pub fn publish_order_dependency_fields(
 	configuration: &WorkspaceConfiguration,
 	ecosystem: Ecosystem,
 ) -> BTreeSet<String> {
@@ -3557,6 +3665,11 @@ pub fn registry_client() -> MonochangeResult<Client> {
 
 	Client::builder()
 		.user_agent(format!("monochange/{}", env!("CARGO_PKG_VERSION")))
+		// Registry lookups must never hang indefinitely: a registry that accepts
+		// a connection but never answers would otherwise stall publish runs and
+		// readiness checks forever.
+		.connect_timeout(Duration::from_secs(30))
+		.timeout(Duration::from_secs(60))
 		.build()
 		.map_err(http_error("registry client build"))
 }
@@ -3595,6 +3708,101 @@ pub async fn filter_pending_publish_requests_with_transport(
 	}
 
 	Ok(pending_requests)
+}
+
+/// Probe whether a package exists on its registry at all (any version).
+///
+/// Returns `Ok(None)` for registries that monochange cannot probe without
+/// credentials. Trusted publishing requires an existing package on npm,
+/// crates.io, and pub.dev, so readiness uses this to catch packages that
+/// would fail midway through a publish run.
+pub async fn registry_package_exists_with_transport(
+	request: &PublishRequest,
+	client: &Client,
+	endpoints: &RegistryEndpoints,
+) -> MonochangeResult<Option<bool>> {
+	if request.registry == RegistryKind::Npm {
+		let url = format!(
+			"{}/{}",
+			endpoints.npm_registry.trim_end_matches('/'),
+			encode(&request.package_name)
+		);
+		let response = client
+			.get(url)
+			.send()
+			.await
+			.map_err(http_error("npm registry lookup"))?;
+		if response.status() == StatusCode::NOT_FOUND {
+			return Ok(Some(false));
+		}
+		let response = response
+			.error_for_status()
+			.map_err(http_error("npm registry lookup"))?;
+		let json = response
+			.json::<JsonValue>()
+			.await
+			.map_err(http_error("npm registry decode"))?;
+		let exists = json
+			.get("versions")
+			.and_then(JsonValue::as_object)
+			.is_some_and(|versions| !versions.is_empty());
+		return Ok(Some(exists));
+	}
+
+	if request.registry == RegistryKind::CratesIo {
+		let url = format!(
+			"{}/crates/{}",
+			endpoints.crates_io_api.trim_end_matches('/'),
+			encode(&request.package_name)
+		);
+		let response = client
+			.get(url)
+			.send()
+			.await
+			.map_err(http_error("crates.io lookup"))?;
+		if response.status() == StatusCode::NOT_FOUND {
+			return Ok(Some(false));
+		}
+		let response = response
+			.error_for_status()
+			.map_err(http_error("crates.io lookup"))?;
+		let json = response
+			.json::<JsonValue>()
+			.await
+			.map_err(http_error("crates.io decode"))?;
+		let exists = json.get("crate").is_some();
+		return Ok(Some(exists));
+	}
+
+	if request.registry == RegistryKind::PubDev {
+		let url = format!(
+			"{}/packages/{}",
+			endpoints.pub_dev_api.trim_end_matches('/'),
+			encode(&request.package_name)
+		);
+		let response = client
+			.get(url)
+			.send()
+			.await
+			.map_err(http_error("pub.dev lookup"))?;
+		if response.status() == StatusCode::NOT_FOUND {
+			return Ok(Some(false));
+		}
+		let response = response
+			.error_for_status()
+			.map_err(http_error("pub.dev lookup"))?;
+		let json = response
+			.json::<JsonValue>()
+			.await
+			.map_err(http_error("pub.dev decode"))?;
+		let exists = json
+			.get("versions")
+			.and_then(JsonValue::as_array)
+			.is_some_and(|versions| !versions.is_empty());
+		return Ok(Some(exists));
+	}
+
+	Ok(None)
 }
 pub async fn registry_version_exists(
 	client: &Client,

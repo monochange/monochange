@@ -126,7 +126,7 @@ async fn execute_publish_requests(
 		executor,
 		&build_publish_command_builder(),
 		&placeholder_manifest_writer_registry(),
-		&publish_readiness_registry(),
+		&publish_readiness_registry(None),
 		&CliPublishTrustHandler,
 	)
 	.await
@@ -4972,7 +4972,14 @@ async fn try_run_publish_packages_with_publications_maps_publish_execution_failu
 		registry: None,
 		version: "1.0.0".to_string(),
 		mode: PublishMode::Builtin,
-		trusted_publishing: TrustedPublishingSettings::default(),
+		// Trusted publishing stays disabled: this test exercises registry
+		// failure reporting, and the preflight would otherwise block on the
+		// missing CI workflow file in this fixture when run under a GitHub
+		// Actions runner environment.
+		trusted_publishing: TrustedPublishingSettings {
+			enabled: false,
+			..TrustedPublishingSettings::default()
+		},
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
 		fail_on_duplicate: false,

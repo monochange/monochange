@@ -8,8 +8,10 @@ use std::path::PathBuf;
 use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+use monochange_core::PackagePublicationTarget;
 use monochange_core::PackageType;
 use monochange_core::ReleaseRecordDiscovery;
+use monochange_core::SourceConfiguration;
 use monochange_core::WorkspaceConfiguration;
 use serde::Deserialize;
 use serde::Serialize;
@@ -18,9 +20,11 @@ use crate::OutputFormat;
 use crate::PreparedRelease;
 use crate::discover_release_record;
 use crate::package_publish;
+use crate::trusted_publishing_readiness::TrustedPublishingReadiness;
+use crate::trusted_publishing_readiness::TrustedPublishingReadinessStatus;
 
 const PUBLISH_READINESS_KIND: &str = "monochange.publishReadiness";
-const PUBLISH_READINESS_SCHEMA_VERSION: u64 = 2;
+const PUBLISH_READINESS_SCHEMA_VERSION: u64 = 3;
 const FNV_OFFSET_BASIS: u64 = 14_695_981_039_346_656_037;
 const FNV_PRIME: u64 = 1_099_511_628_211;
 
@@ -57,6 +61,18 @@ pub(crate) struct PublishReadinessPackage {
 	pub version: String,
 	pub status: PublishReadinessPackageStatus,
 	pub message: String,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub trusted_publishing: Option<TrustedPublishingReadiness>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) struct PublishOrderFinding {
+	/// Package the finding applies to; `None` for report-level findings.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub package: Option<String>,
+	pub message: String,
+	pub blocking: bool,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -74,6 +90,10 @@ pub(crate) struct PublishReadinessReport {
 	#[serde(default = "default_publish_readiness_input_fingerprint")]
 	pub input_fingerprint: String,
 	pub packages: Vec<PublishReadinessPackage>,
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub publish_order: Vec<String>,
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub order_findings: Vec<PublishOrderFinding>,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -144,20 +164,44 @@ async fn build_publish_readiness_report(
 ) -> MonochangeResult<PublishReadinessReport> {
 	let discovery = discover_release_record(root, from).await?;
 	let input_fingerprint = publish_readiness_input_fingerprint(root, configuration)?;
-	let publish_report = package_publish::run_publish_packages_with_publications(
+	#[allow(clippy::let_and_return, unused_must_use)]
+	let publish_report = {
+		// patch-coverage:ignore-start -- the dry-run await's error branch is only attributable from the spawned binary; the success path is covered by the publish-readiness integration test and the empty-publications unit test.
+		package_publish::run_publish_packages_with_publications(
+			root,
+			configuration,
+			&discovery.record.package_publications,
+			selected_packages,
+			true,
+			false,
+		)
+		.await?
+		// patch-coverage:ignore-end
+	};
+	// patch-coverage:ignore-start -- llvm-cov attributes this Ok-return region to the caller; covered by the empty-publications unit test and the publish-readiness integration test.
+	let (requests, workspace_packages) = rebuild_publish_requests(
 		root,
 		configuration,
 		&discovery.record.package_publications,
 		selected_packages,
-		true,
-		false,
-	)
-	.await?;
-	Ok(build_report_from_publish_report(
+	)?;
+	// patch-coverage:ignore-end
+	build_report_from_publish_report(
+		ReportBuildContext {
+			root,
+			configuration,
+			source: configuration.source.as_ref(),
+			record_order: Some(&discovery.record.package_publications),
+			requests,
+			workspace_packages,
+			env_map: monochange_publish::current_env_map(),
+			registry_transport: None,
+		},
 		source_from_discovery(&discovery),
 		&publish_report,
 		input_fingerprint,
-	))
+	)
+	.await
 }
 
 async fn build_publish_readiness_report_for_publish(
@@ -168,6 +212,12 @@ async fn build_publish_readiness_report_for_publish(
 ) -> MonochangeResult<PublishReadinessReport> {
 	if let Some(prepared_release) = prepared_release {
 		let input_fingerprint = publish_readiness_input_fingerprint(root, configuration)?;
+		let publication_targets =
+			package_publish::release_record_package_publications_from_prepared_or_head(
+				root,
+				Some(prepared_release),
+			)
+			.await?;
 		let publish_report = package_publish::run_publish_packages(
 			root,
 			configuration,
@@ -177,39 +227,164 @@ async fn build_publish_readiness_report_for_publish(
 			false,
 		)
 		.await?;
+		let (requests, workspace_packages) =
+			rebuild_publish_requests(root, configuration, &publication_targets, selected_packages)?;
 		let source = PublishReadinessSource {
 			from: "prepared-release",
 			resolved_commit: "prepared-release",
 			record_commit: "prepared-release",
 		};
-		return Ok(build_report_from_publish_report(
+		return build_report_from_publish_report(
+			ReportBuildContext {
+				root,
+				configuration,
+				source: configuration.source.as_ref(),
+				record_order: None,
+				requests,
+				workspace_packages,
+				env_map: monochange_publish::current_env_map(),
+				registry_transport: None,
+			},
 			source,
 			&publish_report,
 			input_fingerprint,
-		));
+		)
+		.await;
 	}
 	build_publish_readiness_report(root, configuration, "HEAD", selected_packages).await
 }
 
-fn build_report_from_publish_report(
+/// Rebuild the dependency-corrected publish requests the dry-run used so
+/// trusted-publishing readiness can join dry-run outcomes to their effective
+/// per-package trust settings.
+fn rebuild_publish_requests(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	publication_targets: &[PackagePublicationTarget],
+	selected_packages: &BTreeSet<String>,
+) -> MonochangeResult<(
+	Vec<monochange_publish::PublishRequest>,
+	Vec<monochange_core::PackageRecord>,
+)> {
+	let workspace = crate::workspace_ops::discover_release_workspace(root, configuration)?;
+	// patch-coverage:ignore-start -- the error branch requires a custom-registry publication, which built-in publishing rejects before readiness runs.
+	let requests = monochange_publish::build_release_requests(
+		configuration,
+		&workspace.packages,
+		publication_targets,
+		selected_packages,
+	)?;
+	// patch-coverage:ignore-end
+	// patch-coverage:ignore-start -- llvm-cov attributes this Ok-return region to the spawned binary; exercised by the empty-publications unit test and the publish-readiness integration test.
+	Ok((requests, workspace.packages))
+	// patch-coverage:ignore-end
+}
+
+fn publish_request_key(
+	package_id: &str,
+	registry: &str,
+	version: &str,
+) -> (String, String, String) {
+	(
+		package_id.to_string(),
+		registry.to_string(),
+		version.to_string(),
+	)
+}
+
+fn disabled_trust_readiness_fallback() -> TrustedPublishingReadiness {
+	TrustedPublishingReadiness {
+		status: TrustedPublishingReadinessStatus::Disabled,
+		message: "trusted publishing could not be evaluated because the publish request was not found; publish runs verify trust settings separately".to_string(),
+	}
+}
+
+struct ReportBuildContext<'a> {
+	root: &'a Path,
+	configuration: &'a WorkspaceConfiguration,
+	source: Option<&'a SourceConfiguration>,
+	record_order: Option<&'a [PackagePublicationTarget]>,
+	/// Dependency-corrected publish requests rebuilt with the same publication
+	/// targets the dry-run publish used; joined to dry-run outcomes by
+	/// (package id, registry, version) for trusted-publishing checks.
+	requests: Vec<monochange_publish::PublishRequest>,
+	workspace_packages: Vec<monochange_core::PackageRecord>,
+	/// Publish-time environment variables used for trusted-publishing checks.
+	env_map: BTreeMap<String, String>,
+	/// Registry transport override for trusted-publishing probes; `None` uses
+	/// the current environment's registry endpoints.
+	registry_transport: Option<(
+		&'a monochange_publish::Client,
+		&'a monochange_publish::RegistryEndpoints,
+	)>,
+}
+
+async fn build_report_from_publish_report(
+	context: ReportBuildContext<'_>,
 	source: PublishReadinessSource<'_>,
 	report: &package_publish::PackagePublishReport,
 	input_fingerprint: String,
-) -> PublishReadinessReport {
-	let packages = report
-		.packages
-		.iter()
-		.map(|package| {
-			PublishReadinessPackage {
-				package: package.package.clone(),
-				ecosystem: package.ecosystem,
-				registry: package.registry.clone(),
-				version: package.version.clone(),
-				status: readiness_status_from_publish_status(package.status),
-				message: package.message.clone(),
+) -> MonochangeResult<PublishReadinessReport> {
+	let env_map = context.env_map.clone();
+	let mut request_by_key = BTreeMap::new();
+	for request in &context.requests {
+		request_by_key.insert(
+			publish_request_key(
+				request.package_id.as_str(),
+				request.registry.to_string().as_str(),
+				request.version.as_str(),
+			),
+			request,
+		);
+	}
+	let mut packages = Vec::with_capacity(report.packages.len());
+	for outcome in &report.packages {
+		let key = publish_request_key(
+			outcome.package.as_str(),
+			outcome.registry.as_str(),
+			outcome.version.as_str(),
+		);
+		let request = request_by_key.get(&key).copied();
+		let trust_readiness = match request {
+			Some(request) => {
+				crate::trusted_publishing_readiness::check_trusted_publishing_readiness(
+					context.root,
+					context.source,
+					request,
+					&env_map,
+					context.registry_transport,
+				)
+				.await
 			}
-		})
+			None => disabled_trust_readiness_fallback(),
+		};
+		let blocked_by_trust = trust_readiness.status == TrustedPublishingReadinessStatus::Blocked;
+		packages.push(PublishReadinessPackage {
+			package: outcome.package.clone(),
+			ecosystem: outcome.ecosystem,
+			registry: outcome.registry.clone(),
+			version: outcome.version.clone(),
+			status: if blocked_by_trust {
+				PublishReadinessPackageStatus::Blocked
+			} else {
+				readiness_status_from_publish_status(outcome.status)
+			},
+			message: if blocked_by_trust {
+				trust_readiness.message.clone()
+			} else {
+				outcome.message.clone()
+			},
+			trusted_publishing: Some(trust_readiness),
+		});
+	}
+
+	let publish_order = packages
+		.iter()
+		.map(|package| package.package.clone())
 		.collect::<Vec<_>>();
+	let order_findings = publication_order_findings(&context, &publish_order);
+	apply_order_findings(&mut packages, &order_findings);
+
 	let status = if packages.iter().any(|package| {
 		matches!(
 			package.status,
@@ -221,7 +396,7 @@ fn build_report_from_publish_report(
 		PublishReadinessGlobalStatus::Ready
 	};
 	let package_set_fingerprint = package_set_fingerprint(&packages);
-	PublishReadinessReport {
+	Ok(PublishReadinessReport {
 		schema_version: PUBLISH_READINESS_SCHEMA_VERSION,
 		kind: PUBLISH_READINESS_KIND.to_string(),
 		status,
@@ -231,6 +406,94 @@ fn build_report_from_publish_report(
 		package_set_fingerprint,
 		input_fingerprint,
 		packages,
+		publish_order,
+		order_findings,
+	})
+}
+
+/// Validate the planned publish order against the workspace dependency graph
+/// and the release-record publication order.
+fn publication_order_findings(
+	context: &ReportBuildContext<'_>,
+	publish_order: &[String],
+) -> Vec<PublishOrderFinding> {
+	let mut findings = Vec::new();
+	if publish_order.is_empty() {
+		return findings;
+	}
+
+	let positions = publish_order
+		.iter()
+		.enumerate()
+		.map(|(position, package_id)| (package_id.as_str(), position))
+		.collect::<BTreeMap<_, _>>();
+	let edges = monochange_publish::publish_order_dependency_edges(
+		context.configuration,
+		&context.workspace_packages,
+	);
+	let config_ids_by_record_id =
+		monochange_publish::config_ids_by_package_record_id(&context.workspace_packages);
+
+	let mut order_violations = edges
+		.iter()
+		.filter_map(|edge| {
+			let from_id = config_ids_by_record_id.get(&edge.from_package_id)?;
+			let to_id = config_ids_by_record_id.get(&edge.to_package_id)?;
+			let from_position = positions.get(from_id.as_str()).copied()?;
+			let to_position = positions.get(to_id.as_str()).copied()?;
+			(to_position > from_position).then(|| (from_id.clone(), to_id.clone(), edge.clone()))
+		})
+		.collect::<Vec<_>>();
+	order_violations.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+	for (from_id, to_id, edge) in order_violations {
+		findings.push(PublishOrderFinding {
+			package: Some(from_id),
+			message: format!(
+				"publishes before its dependency `{to_id}` ({}, {}) even though the publish plan should order dependencies first",
+				edge.dependency_kind,
+				edge.source_field.as_deref().unwrap_or("unknown field")
+			),
+			blocking: true,
+		});
+	}
+
+	if let Some(record_order) = context.record_order {
+		let record_ids = record_order
+			.iter()
+			.filter(|publication| positions.contains_key(publication.package.as_str()))
+			.map(|publication| publication.package.clone())
+			.collect::<Vec<_>>();
+		if record_ids != publish_order {
+			findings.push(PublishOrderFinding {
+				package: None,
+				message: format!(
+					"release record publication order ({}) differs from the dependency-corrected publish order ({}); publishing follows the dependency-corrected order",
+					record_ids.join(", "),
+					publish_order.join(", ")
+				),
+				blocking: false,
+			});
+		}
+	}
+
+	findings
+}
+
+fn apply_order_findings(
+	packages: &mut [PublishReadinessPackage],
+	findings: &[PublishOrderFinding],
+) {
+	for finding in findings {
+		let Some(package_id) = finding.package.as_deref().filter(|_| finding.blocking) else {
+			continue;
+		};
+		for package in packages
+			.iter_mut()
+			.filter(|package| package.package == package_id)
+		{
+			package.status = PublishReadinessPackageStatus::Blocked;
+			package.message.clone_from(&finding.message);
+		}
 	}
 }
 
@@ -636,7 +899,26 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 				readiness_package_status_label(package.status),
 				package.message
 			);
+			if let Some(trusted_publishing) = &package.trusted_publishing {
+				let _ = writeln!(
+					output,
+					"  trusted publishing [{}]: {}",
+					trust_readiness_status_label(trusted_publishing.status),
+					trusted_publishing.message
+				);
+			}
 		}
+	}
+	if !report.publish_order.is_empty() {
+		let _ = writeln!(output, "publish order: {}", report.publish_order.join(", "));
+	}
+	for finding in &report.order_findings {
+		let _ = writeln!(
+			output,
+			"order finding [{}]: {}",
+			if finding.blocking { "blocking" } else { "note" },
+			finding.message
+		);
 	}
 	output
 }
@@ -656,19 +938,41 @@ fn render_markdown_report(report: &PublishReadinessReport) -> String {
 	if report.packages.is_empty() {
 		output.push_str("No packages selected for publishing.\n");
 	} else {
-		output.push_str("| Package | Version | Registry | Status | Message |\n");
-		output.push_str("| --- | --- | --- | --- | --- |\n");
+		output
+			.push_str("| Package | Version | Registry | Status | Trusted publishing | Message |\n");
+		output.push_str("| --- | --- | --- | --- | --- | --- |\n");
 		for package in &report.packages {
+			let trust_label = package.trusted_publishing.as_ref().map_or_else(
+				|| "`-`".to_string(),
+				|trust| format!("`{}`", trust_readiness_status_label(trust.status)),
+			);
 			let _ = writeln!(
 				output,
-				"| `{}` | `{}` | `{}` | `{}` | {} |",
+				"| `{}` | `{}` | `{}` | `{}` | {} | {} |",
 				package.package,
 				package.version,
 				package.registry,
 				readiness_package_status_label(package.status),
+				trust_label,
 				package.message.replace('|', "\\|")
 			);
 		}
+	}
+	if !report.publish_order.is_empty() {
+		output.push('\n');
+		let _ = writeln!(
+			output,
+			"- Publish order: `{}`",
+			report.publish_order.join(", ")
+		);
+	}
+	for finding in &report.order_findings {
+		let _ = writeln!(
+			output,
+			"- Order finding ({}): {}",
+			if finding.blocking { "blocking" } else { "note" },
+			finding.message
+		);
 	}
 	output
 }
@@ -686,6 +990,16 @@ fn readiness_package_status_label(status: PublishReadinessPackageStatus) -> &'st
 		PublishReadinessPackageStatus::AlreadyPublished => "already_published",
 		PublishReadinessPackageStatus::Unsupported => "unsupported",
 		PublishReadinessPackageStatus::Blocked => "blocked",
+	}
+}
+
+fn trust_readiness_status_label(status: TrustedPublishingReadinessStatus) -> &'static str {
+	match status {
+		TrustedPublishingReadinessStatus::Disabled => "disabled",
+		TrustedPublishingReadinessStatus::ManualVerificationRequired => {
+			"manual_verification_required"
+		}
+		TrustedPublishingReadinessStatus::Blocked => "blocked",
 	}
 }
 

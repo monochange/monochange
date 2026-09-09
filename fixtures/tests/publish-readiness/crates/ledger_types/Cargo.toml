@@ -1,0 +1,6 @@
+[package]
+name = "fixture-ledger-types"
+version = "0.1.0"
+edition = "2021"
+description = "Ledger types fixture crate"
+license = "MIT"

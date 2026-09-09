@@ -1,0 +1,5 @@
+# Bound every test: anything still running after 2 minutes is terminated and
+# reported as a failure, so hung tests surface loudly with diagnostics instead
+# of silently stalling the CI job until the job-level timeout kills the run.
+[profile.default]
+slow-timeout = { period = "60s", terminate-after = 2 }

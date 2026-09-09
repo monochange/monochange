@@ -102,7 +102,7 @@ pub(crate) async fn try_run_placeholder_publish_with_progress(
 		&requests,
 		&build_publish_command_builder(),
 		&placeholder_manifest_writer_registry(),
-		&publish_readiness_registry(),
+		&publish_readiness_registry(configuration.source.as_ref()),
 		&CliPublishTrustHandler,
 		progress,
 	)
@@ -450,7 +450,7 @@ async fn try_execute_release_publish_requests(
 		requests,
 		&build_publish_command_builder(),
 		&placeholder_manifest_writer_registry(),
-		&publish_readiness_registry(),
+		&publish_readiness_registry(configuration.source.as_ref()),
 		&CliPublishTrustHandler,
 		&progress,
 	)
@@ -696,8 +696,9 @@ fn planned_trust_outcome(
 	}
 }
 
-fn publish_readiness_registry() -> PublishReadinessRegistry {
-	PublishReadinessRegistry::new().with_checker(
+fn publish_readiness_registry(source: Option<&SourceConfiguration>) -> PublishReadinessRegistry {
+	let source = source.cloned();
+	let mut registry = PublishReadinessRegistry::new().with_checker(
 		RegistryKind::CratesIo,
 		Box::new(|root, request| {
 			let blockers = cargo_publish_readiness_blockers(root, request)?;
@@ -707,7 +708,37 @@ fn publish_readiness_registry() -> PublishReadinessRegistry {
 				Ok(Some(publish_blocked_message(request, &blockers)))
 			}
 		}),
-	)
+	);
+	// Trusted-publishing preflight checks apply to every built-in registry so
+	// a package whose trust configuration cannot support the publish aborts
+	// before any registry mutation. They are environment-aware checkers: they
+	// receive the publish executor's environment map instead of reading the
+	// process environment, so CI runner identities do not leak into tests
+	// that construct their own environments.
+	for registry_kind in [
+		RegistryKind::Npm,
+		RegistryKind::CratesIo,
+		RegistryKind::PubDev,
+		RegistryKind::Jsr,
+		RegistryKind::Pypi,
+		RegistryKind::GoProxy,
+	] {
+		let source = source.clone();
+		registry = registry.with_env_checker(
+			registry_kind,
+			Box::new(move |root, request, env_map| {
+				Ok(
+					crate::trusted_publishing_readiness::trusted_publishing_project_blocker_message(
+						root,
+						source.as_ref(),
+						request,
+						env_map,
+					),
+				)
+			}),
+		);
+	}
+	registry
 }
 
 fn placeholder_manifest_writer_registry() -> PlaceholderManifestWriterRegistry {

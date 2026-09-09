@@ -1,0 +1,6 @@
+[package]
+name = "fixture-auth-policy"
+version = "0.1.0"
+edition = "2021"
+description = "Auth policy fixture crate"
+license = "MIT"

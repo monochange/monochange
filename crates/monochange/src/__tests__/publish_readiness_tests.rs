@@ -1,6 +1,55 @@
 #![allow(clippy::disallowed_methods)]
 use super::*;
 
+fn trusted_registry_client() -> monochange_publish::Client {
+	monochange_publish::registry_client().unwrap_or_else(|error| panic!("registry client: {error}"))
+}
+
+fn trusted_registry_not_found() -> &'static [u8] {
+	b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+}
+
+fn trusted_registry_mock(
+	response: &'static [u8],
+) -> (
+	monochange_publish::RegistryEndpoints,
+	std::thread::JoinHandle<()>,
+) {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind registry mock: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("registry mock address: {error}"));
+	listener
+		.set_nonblocking(true)
+		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
+	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+	let thread = std::thread::spawn(move || {
+		while std::time::Instant::now() < deadline {
+			match listener.accept() {
+				Ok((mut stream, _)) => {
+					// macOS accepted sockets inherit the listener's O_NONBLOCK
+					// flag; switch back to blocking before reading or writing.
+					stream
+						.set_nonblocking(false)
+						.unwrap_or_else(|error| panic!("set blocking: {error}"));
+					let mut request = [0_u8; 2048];
+					let _ = std::io::Read::read(&mut stream, &mut request);
+					let _ = std::io::Write::write_all(&mut stream, response);
+					return;
+				}
+				Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+					std::thread::sleep(std::time::Duration::from_millis(25));
+				}
+				Err(_) => return,
+			}
+		}
+	});
+	let mut endpoints = monochange_publish::RegistryEndpoints::from_env();
+	endpoints.npm_registry = format!("http://{address}");
+	(endpoints, thread)
+}
+
 async fn validate_publish_readiness_artifact(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
@@ -85,7 +134,7 @@ fn sample_publish_outcome(
 	package_publish::PackagePublishOutcome {
 		package: "core".to_string(),
 		ecosystem: Ecosystem::Cargo,
-		registry: "crates.io".to_string(),
+		registry: "crates_io".to_string(),
 		version: "1.2.3".to_string(),
 		status,
 		message: "ready to publish core 1.2.3".to_string(),
@@ -123,6 +172,21 @@ fn sample_readiness_report(packages: Vec<PublishReadinessPackage>) -> PublishRea
 		package_set_fingerprint: package_set_fingerprint(&packages),
 		input_fingerprint: "fnv1a64:sample".to_string(),
 		packages,
+		publish_order: Vec::new(),
+		order_findings: Vec::new(),
+	}
+}
+
+fn sample_report_context(root: &Path) -> ReportBuildContext<'_> {
+	ReportBuildContext {
+		root,
+		configuration: Box::leak(Box::new(sample_configuration(root))),
+		source: None,
+		record_order: None,
+		requests: Vec::new(),
+		workspace_packages: Vec::new(),
+		env_map: BTreeMap::new(),
+		registry_transport: None,
 	}
 }
 
@@ -134,6 +198,7 @@ fn sample_readiness_package() -> PublishReadinessPackage {
 		version: "1.2.3".to_string(),
 		status: PublishReadinessPackageStatus::Ready,
 		message: "ready to publish core 1.2.3".to_string(),
+		trusted_publishing: None,
 	}
 }
 
@@ -223,8 +288,8 @@ fn sample_prepared_release(root: &Path) -> PreparedRelease {
 	}
 }
 
-#[test]
-fn build_report_maps_publish_dry_run_statuses_to_readiness_statuses() {
+#[tokio::test]
+async fn build_report_maps_publish_dry_run_statuses_to_readiness_statuses() {
 	let report = package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Release,
 		dry_run: true,
@@ -235,8 +300,14 @@ fn build_report_maps_publish_dry_run_statuses_to_readiness_statuses() {
 			sample_publish_outcome(package_publish::PackagePublishStatus::Blocked),
 		],
 	};
-	let readiness =
-		build_report_from_publish_report(sample_source(), &report, "fnv1a64:sample".to_string());
+	let readiness = build_report_from_publish_report(
+		sample_report_context(Path::new(".")),
+		sample_source(),
+		&report,
+		"fnv1a64:sample".to_string(),
+	)
+	.await
+	.unwrap();
 
 	assert_eq!(readiness.schema_version, PUBLISH_READINESS_SCHEMA_VERSION);
 	assert_eq!(readiness.kind, PUBLISH_READINESS_KIND);
@@ -388,20 +459,61 @@ fn write_test_file(path: impl AsRef<Path>, contents: &[u8]) {
 
 #[test]
 fn render_report_supports_json_text_and_markdown() {
-	let report = sample_readiness_report(vec![sample_readiness_package()]);
+	let mut report = sample_readiness_report(vec![sample_readiness_package()]);
+	report.publish_order = vec!["core".to_string()];
+	report.order_findings.push(PublishOrderFinding {
+		package: None,
+		message: "release record publication order differs".to_string(),
+		blocking: false,
+	});
+	report.packages[0].trusted_publishing = Some(TrustedPublishingReadiness {
+		status: TrustedPublishingReadinessStatus::ManualVerificationRequired,
+		message: "verify the registry-side trusted publisher configuration".to_string(),
+	});
 
 	let text = render_report(&report, OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("text report: {error}"));
 	assert!(text.contains("publish readiness: ready"));
 	assert!(text.contains("release record: record123"));
+	assert!(text.contains("trusted publishing [manual_verification_required]"));
+	assert!(text.contains("publish order: core"));
+	assert!(text.contains("order finding [note]: release record publication order differs"));
 	let markdown = render_report(&report, OutputFormat::Markdown)
 		.unwrap_or_else(|error| panic!("markdown report: {error}"));
 	assert!(markdown.contains("## Publish readiness"));
 	assert!(markdown.contains("Release record: `record123`"));
+	assert!(markdown.contains("Trusted publishing"));
+	assert!(markdown.contains("Publish order: `core`"));
+	assert!(markdown.contains("Order finding (note)"));
 	let json = render_report(&report, OutputFormat::Json)
 		.unwrap_or_else(|error| panic!("json report: {error}"));
 	assert!(json.contains("\"status\": \"ready\""));
 	assert!(json.contains("\"kind\": \"monochange.publishReadiness\""));
+	assert!(json.contains("\"trusted_publishing\""));
+	assert!(json.contains("\"publish_order\""));
+	assert!(json.contains("\"order_findings\""));
+
+	let blocked_report = sample_readiness_report(vec![PublishReadinessPackage {
+		trusted_publishing: Some(TrustedPublishingReadiness {
+			status: TrustedPublishingReadinessStatus::Blocked,
+			message: "blocked".to_string(),
+		}),
+		..sample_readiness_package()
+	}]);
+	let blocked_text = render_report(&blocked_report, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("blocked text report: {error}"));
+	assert!(blocked_text.contains("trusted publishing [blocked]"));
+
+	let disabled_report = sample_readiness_report(vec![PublishReadinessPackage {
+		trusted_publishing: Some(TrustedPublishingReadiness {
+			status: TrustedPublishingReadinessStatus::Disabled,
+			message: "trusted publishing is disabled".to_string(),
+		}),
+		..sample_readiness_package()
+	}]);
+	let disabled_text = render_report(&disabled_report, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("disabled text report: {error}"));
+	assert!(disabled_text.contains("trusted publishing [disabled]"));
 }
 
 #[test]
@@ -831,4 +943,417 @@ async fn build_publish_readiness_for_publish_falls_back_to_head_without_prepared
 	.unwrap_or_else(|| panic!("expected missing release record error"));
 
 	assert!(error.to_string().contains("no monochange release record"));
+}
+
+fn trust_request_for(
+	registry: &str,
+	version: &str,
+	enabled: bool,
+) -> monochange_publish::PublishRequest {
+	let mut request = monochange_publish::PublishRequest {
+		package_id: "core".to_string(),
+		package_name: "core".to_string(),
+		ecosystem: Ecosystem::Cargo,
+		manifest_path: PathBuf::from("Cargo.toml"),
+		package_root: PathBuf::from("."),
+		registry: monochange_core::RegistryKind::CratesIo,
+		package_manager: None,
+		package_metadata: BTreeMap::new(),
+		mode: monochange_core::PublishMode::Builtin,
+		version: version.to_string(),
+		placeholder: false,
+		trusted_publishing: monochange_core::TrustedPublishingSettings {
+			enabled,
+			..Default::default()
+		},
+		attestations: monochange_core::PublishAttestationSettings::default(),
+		timeout: monochange_core::PublishTimeoutSettings::default(),
+		fail_on_duplicate: false,
+		placeholder_readme: "placeholder".to_string(),
+	};
+	if registry != "crates_io" {
+		request.package_id = "web".to_string();
+		request.package_name = "web".to_string();
+		request.ecosystem = Ecosystem::Npm;
+		request.registry = monochange_core::RegistryKind::Npm;
+	}
+	request
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_report_attaches_trusted_publishing_findings_and_publish_order() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let mut context = sample_report_context(root);
+	context.requests = vec![
+		trust_request_for("crates_io", "1.2.3", false),
+		trust_request_for("npm", "4.5.6", false),
+	];
+	let report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: vec![
+			sample_publish_outcome(package_publish::PackagePublishStatus::Planned),
+			{
+				let mut outcome =
+					sample_publish_outcome(package_publish::PackagePublishStatus::Planned);
+				outcome.package = "web".to_string();
+				outcome.ecosystem = Ecosystem::Npm;
+				outcome.registry = "npmjs".to_string();
+				outcome.version = "4.5.6".to_string();
+				outcome
+			},
+		],
+	};
+
+	let readiness = build_report_from_publish_report(
+		context,
+		sample_source(),
+		&report,
+		"fnv1a64:sample".to_string(),
+	)
+	.await
+	.unwrap();
+
+	assert_eq!(
+		readiness.publish_order,
+		vec!["core".to_string(), "web".to_string()]
+	);
+	assert!(readiness.order_findings.is_empty());
+	let trust_findings: Vec<_> = readiness
+		.packages
+		.iter()
+		.map(|package| package.trusted_publishing.as_ref().unwrap().status)
+		.collect();
+	assert_eq!(
+		trust_findings,
+		vec![
+			crate::trusted_publishing_readiness::TrustedPublishingReadinessStatus::Disabled,
+			crate::trusted_publishing_readiness::TrustedPublishingReadinessStatus::Disabled,
+		]
+	);
+	assert_eq!(readiness.status, PublishReadinessGlobalStatus::Ready);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_report_flags_packages_publishing_before_their_dependencies() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let mut configuration = sample_configuration(root);
+	configuration.npm.publish_order.dependency_fields = Some(vec![
+		"dependencies".to_string(),
+		"devDependencies".to_string(),
+	]);
+
+	let mut app = monochange_core::PackageRecord::new(
+		Ecosystem::Npm,
+		"app".to_string(),
+		root.join("app/package.json"),
+		root.to_path_buf(),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	app.metadata
+		.insert("config_id".to_string(), "app".to_string());
+	app.declared_dependencies
+		.push(monochange_core::PackageDependency {
+			name: "ui".to_string(),
+			kind: monochange_core::DependencyKind::Development,
+			version_constraint: None,
+			optional: false,
+			source_field: Some("devDependencies".to_string()),
+		});
+	let mut ui = monochange_core::PackageRecord::new(
+		Ecosystem::Npm,
+		"ui".to_string(),
+		root.join("ui/package.json"),
+		root.to_path_buf(),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	ui.metadata
+		.insert("config_id".to_string(), "ui".to_string());
+
+	let npm_outcome = |package: &str, version: &str| {
+		let mut outcome = sample_publish_outcome(package_publish::PackagePublishStatus::Planned);
+		outcome.package = package.to_string();
+		outcome.ecosystem = Ecosystem::Npm;
+		outcome.registry = "npmjs".to_string();
+		outcome.version = version.to_string();
+		outcome
+	};
+	let report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: vec![npm_outcome("app", "2.0.0"), npm_outcome("ui", "1.0.0")],
+	};
+
+	let mut context = sample_report_context(root);
+	context.configuration = Box::leak(Box::new(configuration));
+	context.workspace_packages = vec![app, ui];
+
+	let readiness = build_report_from_publish_report(
+		context,
+		sample_source(),
+		&report,
+		"fnv1a64:sample".to_string(),
+	)
+	.await
+	.unwrap();
+
+	assert_eq!(
+		readiness.publish_order,
+		vec!["app".to_string(), "ui".to_string()]
+	);
+	let blocking: Vec<_> = readiness
+		.order_findings
+		.iter()
+		.filter(|finding| finding.blocking)
+		.collect();
+	assert_eq!(blocking.len(), 1);
+	assert_eq!(blocking[0].package.as_deref(), Some("app"));
+	assert!(blocking[0].message.contains("ui"));
+	assert!(blocking[0].message.contains("devDependencies"));
+
+	let app_row = readiness
+		.packages
+		.iter()
+		.find(|package| package.package == "app")
+		.unwrap();
+	assert_eq!(app_row.status, PublishReadinessPackageStatus::Blocked);
+	assert_eq!(readiness.status, PublishReadinessGlobalStatus::Blocked);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_report_notes_release_record_order_mismatch_without_blocking() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let mut app = monochange_core::PackageRecord::new(
+		Ecosystem::Npm,
+		"app".to_string(),
+		root.join("app/package.json"),
+		root.to_path_buf(),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	app.metadata
+		.insert("config_id".to_string(), "app".to_string());
+	let mut ui = monochange_core::PackageRecord::new(
+		Ecosystem::Npm,
+		"ui".to_string(),
+		root.join("ui/package.json"),
+		root.to_path_buf(),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	ui.metadata
+		.insert("config_id".to_string(), "ui".to_string());
+
+	let npm_outcome = |package: &str| {
+		let mut outcome = sample_publish_outcome(package_publish::PackagePublishStatus::Planned);
+		outcome.package = package.to_string();
+		outcome.ecosystem = Ecosystem::Npm;
+		outcome.registry = "npmjs".to_string();
+		outcome
+	};
+	let report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: vec![npm_outcome("app"), npm_outcome("ui")],
+	};
+
+	let mut context = sample_report_context(root);
+	context.workspace_packages = vec![app, ui];
+	let record_publication = |package: &str| {
+		PackagePublicationTarget {
+			package: package.to_string(),
+			ecosystem: Ecosystem::Npm,
+			registry: None,
+			version: "1.0.0".to_string(),
+			mode: monochange_core::PublishMode::Builtin,
+			trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
+			attestations: monochange_core::PublishAttestationSettings::default(),
+			timeout: monochange_core::PublishTimeoutSettings::default(),
+			fail_on_duplicate: false,
+		}
+	};
+	let record_order = vec![record_publication("ui"), record_publication("app")];
+	context.record_order = Some(&record_order);
+
+	let readiness = build_report_from_publish_report(
+		context,
+		sample_source(),
+		&report,
+		"fnv1a64:sample".to_string(),
+	)
+	.await
+	.unwrap();
+
+	assert!(readiness.order_findings.iter().any(|finding| {
+		!finding.blocking && finding.package.is_none() && finding.message.contains("release record")
+	}));
+	assert_eq!(readiness.status, PublishReadinessGlobalStatus::Ready);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_report_falls_back_to_disabled_trust_when_requests_are_missing() {
+	let report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: vec![sample_publish_outcome(
+			package_publish::PackagePublishStatus::Planned,
+		)],
+	};
+
+	let readiness = build_report_from_publish_report(
+		sample_report_context(Path::new(".")),
+		sample_source(),
+		&report,
+		"fnv1a64:sample".to_string(),
+	)
+	.await
+	.unwrap();
+
+	let trust = readiness.packages[0].trusted_publishing.as_ref().unwrap();
+	assert_eq!(trust.status, TrustedPublishingReadinessStatus::Disabled);
+	assert!(trust.message.contains("could not be evaluated"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_report_handles_empty_publish_sets_without_order_findings() {
+	let report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: Vec::new(),
+	};
+
+	let readiness = build_report_from_publish_report(
+		sample_report_context(Path::new(".")),
+		sample_source(),
+		&report,
+		"fnv1a64:sample".to_string(),
+	)
+	.await
+	.unwrap();
+
+	assert!(readiness.publish_order.is_empty());
+	assert!(readiness.order_findings.is_empty());
+	assert!(readiness.packages.is_empty());
+	assert_eq!(readiness.status, PublishReadinessGlobalStatus::Ready);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_report_blocks_packages_when_trusted_publishing_readiness_blocks() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let mut request = monochange_publish::PublishRequest {
+		registry: monochange_core::RegistryKind::Npm,
+		ecosystem: Ecosystem::Npm,
+		..trust_request_for("crates_io", "1.2.3", true)
+	};
+	request.trusted_publishing.repository = Some("acme/widgets".to_string());
+	request.trusted_publishing.workflow = Some("release.yml".to_string());
+	std::fs::create_dir_all(root.join(".github/workflows")).unwrap();
+	std::fs::write(root.join(".github/workflows/release.yml"), "jobs: {}").unwrap();
+
+	let mut context = sample_report_context(root);
+	context.requests = vec![request];
+	context.env_map = BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		("GITHUB_REPOSITORY".to_string(), "acme/widgets".to_string()),
+		(
+			"GITHUB_WORKFLOW_REF".to_string(),
+			"acme/widgets/.github/workflows/release.yml@refs/heads/main".to_string(),
+		),
+		("GITHUB_JOB".to_string(), "publish".to_string()),
+	]);
+	let client = trusted_registry_client();
+	let (endpoints, server) = trusted_registry_mock(trusted_registry_not_found());
+	context.registry_transport = Some((&client, &endpoints));
+
+	let mut outcome = sample_publish_outcome(package_publish::PackagePublishStatus::Planned);
+	outcome.registry = "npm".to_string();
+	let report = package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: vec![outcome],
+	};
+
+	let readiness = build_report_from_publish_report(
+		context,
+		sample_source(),
+		&report,
+		"fnv1a64:sample".to_string(),
+	)
+	.await
+	.unwrap();
+
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("registry mock thread"));
+	assert_eq!(readiness.status, PublishReadinessGlobalStatus::Blocked);
+	let package = &readiness.packages[0];
+	assert_eq!(package.status, PublishReadinessPackageStatus::Blocked);
+	assert!(package.message.contains("placeholder-publish"));
+	let trust = package.trusted_publishing.as_ref().unwrap();
+	assert_eq!(
+		trust.status,
+		crate::trusted_publishing_readiness::TrustedPublishingReadinessStatus::Blocked
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn build_publish_readiness_report_handles_empty_release_publications() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let git = |args: &[&str]| {
+		std::process::Command::new("git")
+			.current_dir(root)
+			.args(["-c", "commit.gpgsign=false"])
+			.args(args)
+			.output()
+			.unwrap_or_else(|error| panic!("git {args:?}: {error}"));
+	};
+	git(&["init"]);
+	git(&["config", "user.name", "monochange-tests"]);
+	git(&["config", "user.email", "monochange-tests@example.com"]);
+	fs::write(
+		root.join("monochange.toml"),
+		"[defaults]\npackage_type = \"cargo\"\n",
+	)
+	.unwrap();
+	let releases = root.join(".monochange/releases/abc123");
+	fs::create_dir_all(&releases).unwrap();
+	fs::write(
+		releases.join("release.json"),
+		r#"{
+	"schema_version": "0.4",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-04-07T00:00:00Z",
+	"command": "release",
+	"version": null,
+	"versions": {},
+	"release_targets": [],
+	"released_packages": [],
+	"changed_files": [],
+	"package_publications": [],
+	"updated_changelogs": [],
+	"deleted_changesets": [],
+	"changesets": [],
+	"changelogs": [],
+	"provider": null
+}"#,
+	)
+	.unwrap();
+	git(&["add", "."]);
+	git(&["commit", "-m", "release"]);
+
+	let report =
+		build_publish_readiness_report(root, &sample_configuration(root), "HEAD", &BTreeSet::new())
+			.await
+			.unwrap_or_else(|error| panic!("build readiness report: {error}"));
+
+	assert!(report.packages.is_empty());
+	assert!(report.publish_order.is_empty());
+	assert_eq!(report.status, PublishReadinessGlobalStatus::Ready);
 }

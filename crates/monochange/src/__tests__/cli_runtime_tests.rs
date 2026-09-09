@@ -3453,7 +3453,7 @@ async fn publish_rate_limit_selected_package_ids_uses_readiness_artifact_for_pub
 	let configuration = sample_configuration(tempdir.path());
 	let artifact_path = tempdir.path().join("readiness.json");
 	let report = publish_readiness::PublishReadinessReport {
-		schema_version: 2,
+		schema_version: 3,
 		kind: "monochange.publishReadiness".to_string(),
 		status: publish_readiness::PublishReadinessGlobalStatus::Ready,
 		from: "prepared-release".to_string(),
@@ -3462,6 +3462,8 @@ async fn publish_rate_limit_selected_package_ids_uses_readiness_artifact_for_pub
 		package_set_fingerprint: String::new(),
 		input_fingerprint: "fnv1a64:3a84781749cb9027".to_string(),
 		packages: Vec::new(),
+		publish_order: Vec::new(),
+		order_findings: Vec::new(),
 	};
 	let inputs = BTreeMap::from([(
 		"readiness".to_string(),

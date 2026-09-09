@@ -8417,9 +8417,13 @@ async fn execute_cli_command_publish_packages_step_surfaces_report_carrying_fail
 async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution_failure() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
+	// Trusted publishing is disabled so the test exercises the artifact-write
+	// failure path instead of the trusted-publishing preflight, which would
+	// block the run before the registry mock is ever contacted on CI (where
+	// GITHUB_* environment variables are set).
 	fs::write(
 		root.join("monochange.toml"),
-		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n\n[package.pkg.publish.trusted_publishing]\nenabled = false\n",
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 	fs::create_dir_all(root.join("packages/pkg")).unwrap_or_else(|error| panic!("mkdir: {error}"));
@@ -8449,23 +8453,53 @@ async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution
 	let registry_address = registry
 		.local_addr()
 		.unwrap_or_else(|error| panic!("registry address: {error}"));
-	let registry_thread = std::thread::spawn(move || {
-		let mut served_not_found = false;
-		for _ in 0..2 {
-			let Ok((mut stream, _)) = registry.accept() else {
-				break;
-			};
-			let mut request = [0_u8; 2048];
-			let _ = std::io::Read::read(&mut stream, &mut request);
-			let response: &[u8] = if served_not_found {
-				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-			} else {
-				served_not_found = true;
-				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-			};
-			let _ = std::io::Write::write_all(&mut stream, response);
-		}
-	});
+	registry
+		.set_nonblocking(true)
+		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
+	let flow_finished = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+	registry
+		.set_nonblocking(true)
+		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
+	let registry_thread = {
+		let flow_finished = std::sync::Arc::clone(&flow_finished);
+		std::thread::spawn(move || {
+			let mut served_not_found = false;
+			let mut served = 0_usize;
+			let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+			while served < 2 && std::time::Instant::now() < deadline {
+				if flow_finished.load(std::sync::atomic::Ordering::Relaxed) {
+					break;
+				}
+				match registry.accept() {
+					Ok((mut stream, _)) => {
+						// macOS accepted sockets inherit the listener's
+						// O_NONBLOCK flag; switch back to blocking so the read
+						// and write behave like the original blocking mock.
+						stream
+							.set_nonblocking(false)
+							.unwrap_or_else(|error| panic!("set blocking: {error}"));
+						let mut request = [0_u8; 2048];
+						match std::io::Read::read(&mut stream, &mut request) {
+							Ok(0) | Err(_) => break,
+							Ok(_) => {}
+						}
+						let response: &[u8] = if served_not_found {
+							b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+						} else {
+							served_not_found = true;
+							b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+						};
+						let _ = std::io::Write::write_all(&mut stream, response);
+						served += 1;
+					}
+					Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+						std::thread::sleep(std::time::Duration::from_millis(25));
+					}
+					Err(_) => break,
+				}
+			}
+		})
+	};
 
 	temp_env::async_with_vars(
 		[(
@@ -8594,9 +8628,12 @@ async fn execute_cli_command_publish_packages_step_surfaces_publish_execution_fa
 async fn execute_cli_command_publish_packages_step_writes_report_artifact_on_execution_failure() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
+	// Trusted publishing stays disabled so the run surfaces the intended
+	// execution failure instead of a preflight trust block when the test
+	// executes under a GitHub Actions runner environment.
 	fs::write(
 		root.join("monochange.toml"),
-		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n\n[package.pkg.publish.trusted_publishing]\nenabled = false\n",
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 	fs::create_dir_all(root.join("packages/pkg")).unwrap_or_else(|error| panic!("mkdir: {error}"));
@@ -8751,30 +8788,57 @@ async fn execute_cli_command_publish_packages_step_surfaces_write_artifact_failu
 	let registry_address = registry
 		.local_addr()
 		.unwrap_or_else(|error| panic!("registry address: {error}"));
-	let registry_thread = std::thread::spawn(move || {
-		let mut served_not_found = false;
-		for _ in 0..2 {
-			let Ok((mut stream, _)) = registry.accept() else {
-				break;
-			};
-			let mut request = [0_u8; 2048];
-			let _ = std::io::Read::read(&mut stream, &mut request);
-			let response: &[u8] = if served_not_found {
-				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-			} else {
-				served_not_found = true;
-				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-			};
-			let _ = std::io::Write::write_all(&mut stream, response);
-		}
-	});
+	let flow_finished = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+	registry
+		.set_nonblocking(true)
+		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
+	let registry_thread = {
+		let flow_finished = std::sync::Arc::clone(&flow_finished);
+		std::thread::spawn(move || {
+			let mut served_not_found = false;
+			let mut served = 0_usize;
+			let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+			while served < 2 && std::time::Instant::now() < deadline {
+				if flow_finished.load(std::sync::atomic::Ordering::Relaxed) {
+					break;
+				}
+				match registry.accept() {
+					Ok((mut stream, _)) => {
+						// A read timeout keeps a pooled keep-alive connection
+						// from wedging this thread past the deadline.
+						stream
+							.set_read_timeout(Some(std::time::Duration::from_millis(500)))
+							.unwrap_or_else(|error| panic!("set read timeout: {error}"));
+						let mut request = [0_u8; 2048];
+						match std::io::Read::read(&mut stream, &mut request) {
+							Ok(0) | Err(_) => break,
+							Ok(_) => {}
+						}
+						let response: &[u8] = if served_not_found {
+							b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+						} else {
+							served_not_found = true;
+							b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+						};
+						let _ = std::io::Write::write_all(&mut stream, response);
+						served += 1;
+					}
+					Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+						std::thread::sleep(std::time::Duration::from_millis(25));
+					}
+					Err(_) => break,
+				}
+			}
+		})
+	};
 
+	let flow_finished_for_flow = std::sync::Arc::clone(&flow_finished);
 	temp_env::async_with_vars(
 		[(
 			"MONOCHANGE_NPM_REGISTRY_URL",
 			Some(format!("http://{registry_address}")),
 		)],
-		async {
+		async move {
 			let error = execute_cli_command(
 				root,
 				&configuration,
@@ -8796,6 +8860,7 @@ async fn execute_cli_command_publish_packages_step_surfaces_write_artifact_failu
 				"unexpected error: {}",
 				error.render()
 			);
+			flow_finished_for_flow.store(true, std::sync::atomic::Ordering::Relaxed);
 		},
 	)
 	.await;
