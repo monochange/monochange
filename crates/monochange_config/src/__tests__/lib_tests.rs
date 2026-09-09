@@ -4303,7 +4303,7 @@ retries = 3
 		EcosystemType::Cargo,
 	)
 	.unwrap_or_else(|error| panic!("publish settings: {error}"));
-	assert_eq!(defaults.timeout.timeout_seconds, 60);
+	assert_eq!(defaults.timeout.timeout_seconds, 600);
 	assert_eq!(defaults.timeout.retries, 2);
 }
 

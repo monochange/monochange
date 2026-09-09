@@ -2349,7 +2349,7 @@ impl PublishTimeoutSettings {
 }
 
 fn default_publish_timeout_seconds() -> u64 {
-	60
+	600
 }
 
 fn default_publish_timeout_retries() -> u32 {
