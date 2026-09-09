@@ -61,6 +61,11 @@ fn spawn_registry_mock(response: &'static [u8]) -> (String, std::thread::JoinHan
 		while std::time::Instant::now() < deadline {
 			match listener.accept() {
 				Ok((mut stream, _)) => {
+					// macOS accepted sockets inherit the listener's O_NONBLOCK
+					// flag; switch back to blocking before reading or writing.
+					stream
+						.set_nonblocking(false)
+						.unwrap_or_else(|error| panic!("set blocking: {error}"));
 					let mut request = [0_u8; 2048];
 					let _ = std::io::Read::read(&mut stream, &mut request);
 					let _ = std::io::Write::write_all(&mut stream, response);

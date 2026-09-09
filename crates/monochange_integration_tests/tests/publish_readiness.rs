@@ -125,7 +125,9 @@ fn publish_readiness_command(root: &Path, crates_io_port: u16) -> Command {
 #[test]
 fn publish_readiness_reports_trusted_publishing_and_publish_order() {
 	// Two requests per package: the dry-run publish version lookup and the
-	// trusted-publishing package-existence probe.
+	// trusted-publishing package-existence probe. The mock reports the
+	// packages as existing so the report is ready with manual-verification
+	// trusted-publishing findings in any environment (local or CI).
 	let (port, _mock) = mock_crates_io(4);
 	let workspace = setup_publish_readiness_repo();
 	run_readiness_release(workspace.path());
