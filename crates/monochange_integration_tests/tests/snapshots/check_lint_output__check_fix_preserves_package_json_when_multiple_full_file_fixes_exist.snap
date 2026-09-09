@@ -2,7 +2,6 @@
 source: crates/monochange_integration_tests/tests/check_lint_output.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-config error: check failed:
 workspace validation passed for [workspace]
 lint: 5 errors, 1 warnings
 

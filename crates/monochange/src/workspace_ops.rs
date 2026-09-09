@@ -1083,10 +1083,13 @@ pub(crate) fn build_lockfile_command_executions(
 	configuration: &monochange_core::WorkspaceConfiguration,
 	packages: &[PackageRecord],
 	plan: &ReleasePlan,
-) -> MonochangeResult<Vec<LockfileCommandExecution>> {
+) -> MonochangeResult<(Vec<LockfileCommandExecution>, Vec<String>)> {
 	let released_versions = released_versions_by_record_id(plan);
 	#[cfg(feature = "cargo")]
-	warn_about_incomplete_cargo_lockfiles(root, configuration, packages, &released_versions);
+	let warnings =
+		incomplete_cargo_lockfile_warnings(root, configuration, packages, &released_versions);
+	#[cfg(not(feature = "cargo"))]
+	let warnings = Vec::new();
 	#[cfg(feature = "cargo")]
 	let cargo_executions = resolve_lockfile_command_executions(
 		root,
@@ -1149,19 +1152,19 @@ pub(crate) fn build_lockfile_command_executions(
 	executions.extend(python_executions);
 	#[cfg(feature = "go")]
 	executions.extend(go_executions);
-	Ok(dedup_lockfile_command_executions(executions))
+	Ok((dedup_lockfile_command_executions(executions), warnings))
 }
 // patch-coverage:ignore-end
 
 #[cfg(feature = "cargo")]
-fn warn_about_incomplete_cargo_lockfiles(
+fn incomplete_cargo_lockfile_warnings(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 	packages: &[PackageRecord],
 	released_versions: &BTreeMap<String, String>,
-) {
+) -> Vec<String> {
 	if !configuration.cargo.lockfile_commands.is_empty() {
-		return;
+		return Vec::new();
 	}
 	let released_packages = packages
 		.iter()
@@ -1170,13 +1173,14 @@ fn warn_about_incomplete_cargo_lockfiles(
 		})
 		.collect::<Vec<_>>();
 	if released_packages.is_empty() {
-		return;
+		return Vec::new();
 	}
 	let cargo_packages = packages
 		.iter()
 		.filter(|package| package.ecosystem == Ecosystem::Cargo)
 		.collect::<Vec<_>>();
 	let mut warned_lockfiles = BTreeSet::new();
+	let mut warnings = Vec::new();
 	for package in released_packages {
 		for lockfile in monochange_cargo::discover_lockfiles(package) {
 			let shared_packages = cargo_packages
@@ -1191,13 +1195,14 @@ fn warn_about_incomplete_cargo_lockfiles(
 			}
 			let relative_lockfile = root_relative(root, &lockfile);
 			if warned_lockfiles.insert(relative_lockfile.clone()) {
-				eprintln!(
-					"warning: `{}` still looks incomplete after monochange rewrote it directly; run `cargo generate-lockfile`, `cargo check`, or configure `[ecosystems.cargo].lockfile_commands` if you want cargo to refresh it automatically",
-					relative_lockfile.display()
-				);
+				warnings.push(format!(
+					"`{}` still looks incomplete after monochange rewrote it directly; run `cargo generate-lockfile`, `cargo check`, or configure `[ecosystems.cargo].lockfile_commands` if you want cargo to refresh it automatically",
+					relative_lockfile.display(),
+				));
 			}
 		}
 	}
+	warnings
 }
 
 fn resolve_lockfile_command_executions(
@@ -1875,6 +1880,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			},
 			file_diffs: Vec::new(),
 			phase_timings,
+			warnings: Vec::new(),
 		});
 	}
 
@@ -2046,7 +2052,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		build_release_targets(configuration, &discovery.packages, &plan, &changeset_paths),
 	)
 	.await;
-	let lockfile_commands = lockfile_commands_result.0?;
+	let (lockfile_commands, warnings) = lockfile_commands_result.0?;
 	let mut package_publications =
 		build_package_publication_targets(configuration, &discovery.packages, &plan);
 	if configuration.prerelease.enabled && !configuration.prerelease.publish_packages {
@@ -2246,6 +2252,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		},
 		file_diffs,
 		phase_timings,
+		warnings,
 	})
 }
 

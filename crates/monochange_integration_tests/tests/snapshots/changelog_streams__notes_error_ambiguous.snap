@@ -2,4 +2,6 @@
 source: crates/monochange_integration_tests/tests/changelog_streams.rs
 expression: "String::from_utf8_lossy(&output.stderr).trim()"
 ---
-config error: changelog output `user_multi` produced release notes for multiple targets; pass `--target <id>` to select one
+error[config.invalid]: changelog output `user_multi` produced release notes for multiple targets; pass `--target <id>` to select one
+  command: monochange notes
+  help: Check `monochange.toml` and the command arguments, then rerun the command.

@@ -2,4 +2,6 @@
 source: crates/monochange_integration_tests/tests/dart_trusted_publishing.rs
 expression: "String::from_utf8_lossy(&output.stderr).replace(&server.base_url,\n\"[mock-endpoints]\")"
 ---
-discovery error: package publishing did not complete: 1 total, 0 published, 1 failed, 0 blocked, 0 already existed, 0 not attempted, 0 planned; failed package dart_pkg 0.0.0: io error: refreshing the pub.dev trusted publishing token for package `dart_pkg` failed: io error: GitHub Actions OIDC token request for [mock-endpoints]/token&audience=https%3A%2F%2Fpub.dev failed with HTTP 500 Internal Server Error: the workflow job must grant `permissions: id-token: write`
+error[workspace.discovery_failed]: package publishing did not complete: 1 total, 0 published, 1 failed, 0 blocked, 0 already existed, 0 not attempted, 0 planned; failed package dart_pkg 0.0.0: io error: refreshing the pub.dev trusted publishing token for package `dart_pkg` failed: io error: GitHub Actions OIDC token request for [mock-endpoints]/token&audience=https%3A%2F%2Fpub.dev failed with HTTP 500 Internal Server Error: the workflow job must grant `permissions: id-token: write`
+  command: monochange step placeholder-publish
+  help: Check the configured package paths and workspace manifests, then rerun the command.

@@ -5,7 +5,7 @@
 - Audit date: 2026-09-08
 - Scope: CLI results, progress, diagnostics, CI logs, changeset authoring, and changelog rendering
 - Outcome: output contract approved; implementation is in progress
-- Code changes: PR 1 process-contract and PR 2 human-default work are complete
+- Code changes: PRs 1–4 are complete; structured release-note work is next
 
 ## Assessment
 
@@ -456,12 +456,35 @@ Acceptance checks:
 
 ### PR 4: Unify progress and diagnostics
 
-- [ ] Introduce one terminal capability snapshot and one stderr writer.
-- [ ] Route workflow, lint, publish, and subprocess events through one progress reporter.
-- [ ] Create phase events before workspace configuration loads and during validation.
-- [ ] Keep interactive animation and deterministic CI rendering as two views of the same event.
-- [ ] Add structured CLI diagnostics with stable codes, context, and hints.
-- [ ] Keep tracing opt-in and document it as maintainer diagnostics.
+Architecture checklist:
+
+- [x] Ground the design in the current workflow, lint, publish, subprocess, and process-error paths.
+- [x] Sketch a single synchronous reporter and a channel-backed output-session alternative.
+- [x] Choose the synchronous reporter: it makes one-writer and one-spinner ownership explicit without adding a worker lifecycle or queue.
+- [x] Implement the chosen boundary and migrate every producer.
+- [x] Recheck the design after integration tests; keep the synchronous reporter and remove the former standalone workflow, lint, and publish reporters.
+
+The chosen shape is a cloneable, CLI-owned `ProgressReporter` backed by one shared terminal snapshot, writer, sequence counter, and spinner state. It accepts typed configuration, workflow, lint, publish, and subprocess events, then renders each event through either the human view or the NDJSON view. The existing lint and publish progress traits become adapters on the same reporter, so their domain crates remain unaware of terminal presentation.
+
+```text
+run_with_args_in_dir
+  -> TerminalCapabilities + ProgressReporter
+       -> configuration events
+       -> workflow events
+       -> LintProgressReporter adapter
+       -> PublishProgressReporter adapter
+       -> subprocess events
+       -> one stderr writer / at most one spinner
+```
+
+The alternative placed a channel and dedicated renderer worker between producers and stderr. That makes serialization an ownership guarantee, but adds shutdown, backpressure, disconnect, and pause-acknowledgement failure modes. Those costs are not justified while progress callbacks are synchronous and a shared reporter can provide the same user-visible contract directly.
+
+- [x] Introduce one terminal capability snapshot and one stderr writer.
+- [x] Route workflow, lint, publish, and subprocess events through one progress reporter.
+- [x] Create phase events before workspace configuration loads and during validation.
+- [x] Keep interactive animation and deterministic CI rendering as two views of the same event.
+- [x] Add structured CLI diagnostics with stable codes, context, and hints.
+- [x] Keep tracing opt-in and document it as maintainer diagnostics.
 
 Acceptance checks:
 

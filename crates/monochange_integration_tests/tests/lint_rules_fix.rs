@@ -42,7 +42,11 @@ fn run_check(root: &Path, args: &[&str]) -> String {
 	));
 	match result {
 		Ok(output) => output,
-		Err(error) => error.to_string(),
+		Err(error) => {
+			error
+				.reported_output()
+				.map_or_else(|| error.to_string(), ToOwned::to_owned)
+		}
 	}
 }
 

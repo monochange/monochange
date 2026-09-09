@@ -170,6 +170,7 @@ pub(crate) async fn load_prepared_release_execution(
 			label: "load prepared release artifact".to_string(),
 			duration: load_started_at.elapsed(),
 		}],
+		warnings: Vec::new(),
 	};
 	let message = format!(
 		"reused prepared release artifact `{}`",

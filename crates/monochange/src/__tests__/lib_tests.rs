@@ -94,6 +94,48 @@ use crate::workspace_ops::prepare_release_execution_with_file_diffs;
 use crate::workspace_ops::render_cli_commands_toml;
 use crate::workspace_ops::render_interactive_changeset_markdown;
 
+async fn execute_cli_command(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	cli_command: &CliCommandDefinition,
+	dry_run: bool,
+	inputs: BTreeMap<String, Vec<String>>,
+) -> monochange_core::MonochangeResult<String> {
+	crate::cli_runtime::execute_cli_command_with_options(
+		root,
+		configuration,
+		cli_command,
+		crate::cli_runtime::ExecuteCliCommandOptions {
+			dry_run,
+			quiet: false,
+			show_diff: false,
+			inputs,
+			prepared_release_path: None,
+			progress_format: crate::output::ProgressFormat::Auto,
+			progress: None,
+		},
+	)
+	.await
+}
+
+async fn execute_matches(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	cli_command_name: &str,
+	cli_command_matches: &clap::ArgMatches,
+	quiet: bool,
+) -> monochange_core::MonochangeResult<String> {
+	crate::cli_runtime::execute_matches_with_progress(
+		root,
+		configuration,
+		cli_command_name,
+		cli_command_matches,
+		quiet,
+		None,
+	)
+	.await
+}
+
 fn apply_versioned_file_definition(
 	root: &Path,
 	updates: &mut BTreeMap<PathBuf, crate::CachedDocument>,
@@ -1087,6 +1129,25 @@ async fn cli_configured_command_help_groups_generated_configured_and_global_opti
 	assert!(output.contains("Global Options:\n  -q, --quiet"));
 	assert!(output.contains("      --progress-format <FORMAT>"));
 	assert!(output.contains("      --jq <EXPRESSION>"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn change_help_loads_workspace_configuration() {
+	let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+	let output = run_with_args_in_dir(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("change"),
+			OsString::from("--help"),
+		],
+		&root,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("change help: {error}"));
+
+	assert!(output.contains("Usage: monochange change"));
+	assert!(output.contains("classify"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -3454,7 +3515,7 @@ async fn command_versions_reports_planned_versions_without_mutating_files() {
 	let versions_matches = step_matches
 		.subcommand_matches("display-versions")
 		.unwrap_or_else(|| panic!("expected versions subcommand matches"));
-	let output = crate::execute_matches(
+	let output = execute_matches(
 		tempdir.path(),
 		&configuration,
 		"step display-versions",
@@ -3860,6 +3921,7 @@ fn build_lockfile_command_executions_only_returns_configured_commands() {
 			&plan,
 		)
 		.unwrap_or_else(|error| panic!("lockfile commands: {error}"))
+		.0
 		.is_empty()
 	);
 }
@@ -4302,7 +4364,7 @@ async fn command_step_without_dry_run_override_reports_skipped_command() {
 		}],
 		dry_run: false,
 	};
-	let output = crate::execute_cli_command(
+	let output = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -4338,7 +4400,7 @@ async fn command_step_rejects_unparseable_commands() {
 		}],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -4379,7 +4441,7 @@ async fn command_step_rejects_empty_commands() {
 		}],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -4416,7 +4478,7 @@ async fn command_step_reports_process_spawn_failures() {
 		}],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -4457,7 +4519,7 @@ async fn command_step_reports_nonzero_exit_status_without_stderr() {
 		}],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -4497,7 +4559,7 @@ async fn command_step_reports_stderr_text_for_nonzero_exit_status() {
 		}],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -4523,7 +4585,7 @@ async fn execute_cli_command_without_steps_reports_completion_status() {
 		steps: Vec::new(),
 		dry_run: false,
 	};
-	let output = crate::execute_cli_command(
+	let output = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -4533,7 +4595,7 @@ async fn execute_cli_command_without_steps_reports_completion_status() {
 	.await
 	.unwrap_or_else(|error| panic!("noop output: {error}"));
 	assert_eq!(output, "command `noop` completed");
-	let dry_run_output = crate::execute_cli_command(
+	let dry_run_output = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -7351,7 +7413,7 @@ async fn execute_cli_command_retarget_release_requires_from_input() {
 		}],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -7416,7 +7478,7 @@ async fn execute_cli_command_builtin_release_steps_require_from_input() {
 			steps: vec![step],
 			dry_run: false,
 		};
-		let error = crate::execute_cli_command(
+		let error = execute_cli_command(
 			tempdir.path(),
 			&configuration,
 			&cli_command,
@@ -7482,7 +7544,7 @@ branches = ["release/*"]
 		}],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -7581,7 +7643,7 @@ async fn execute_cli_command_release_follow_up_steps_require_prepare_release() {
 			steps: vec![step],
 			dry_run: false,
 		};
-		let error = crate::execute_cli_command(
+		let error = execute_cli_command(
 			tempdir.path(),
 			&configuration,
 			&cli_command,
@@ -7632,7 +7694,7 @@ async fn execute_cli_command_source_follow_up_steps_require_source_configuration
 		],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		root,
 		&configuration,
 		&prepare_and_publish,
@@ -7679,11 +7741,10 @@ async fn execute_cli_command_comment_released_issues_requires_source_configurati
 		dry_run: false,
 	};
 
-	let error =
-		crate::execute_cli_command(root, &configuration, &cli_command, true, BTreeMap::new())
-			.await
-			.err()
-			.unwrap_or_else(|| panic!("expected missing source configuration error"));
+	let error = execute_cli_command(root, &configuration, &cli_command, true, BTreeMap::new())
+		.await
+		.err()
+		.unwrap_or_else(|| panic!("expected missing source configuration error"));
 
 	assert!(
 		error
@@ -7743,11 +7804,10 @@ async fn execute_cli_command_publish_and_request_steps_require_source_configurat
 			],
 			dry_run: false,
 		};
-		let error =
-			crate::execute_cli_command(root, &configuration, &cli_command, true, BTreeMap::new())
-				.await
-				.err()
-				.unwrap_or_else(|| panic!("expected missing source error for {name}"));
+		let error = execute_cli_command(root, &configuration, &cli_command, true, BTreeMap::new())
+			.await
+			.err()
+			.unwrap_or_else(|| panic!("expected missing source error for {name}"));
 		assert!(error.to_string().contains(expected), "error: {error}");
 	}
 }
@@ -7773,7 +7833,7 @@ async fn execute_cli_command_change_step_requires_reason_input() {
 		],
 		dry_run: false,
 	};
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		&root,
 		&configuration,
 		&cli_command,
@@ -7824,7 +7884,7 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 		}],
 		dry_run: false,
 	};
-	let render_output = crate::execute_cli_command(
+	let render_output = execute_cli_command(
 		root,
 		&configuration,
 		&prepare_release,
@@ -7859,7 +7919,7 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 		],
 		dry_run: false,
 	};
-	let publish_output = crate::execute_cli_command(
+	let publish_output = execute_cli_command(
 		root,
 		&configuration,
 		&publish_release,
@@ -7894,7 +7954,7 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 		],
 		dry_run: false,
 	};
-	let request_output = crate::execute_cli_command(
+	let request_output = execute_cli_command(
 		root,
 		&configuration,
 		&release_request,
@@ -7928,7 +7988,7 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 		dry_run: false,
 	};
 	let comments_output =
-		crate::execute_cli_command(root, &configuration, &issue_comments, true, BTreeMap::new())
+		execute_cli_command(root, &configuration, &issue_comments, true, BTreeMap::new())
 			.await
 			.unwrap_or_else(|error| panic!("comment released issues: {error}"));
 	assert!(!comments_output.is_empty());
@@ -7988,7 +8048,7 @@ async fn execute_cli_command_prepare_release_dry_run_skips_release_record_unless
 	};
 
 	// Dry-run (preview) must not write the release record by default.
-	let preview_output = crate::execute_cli_command(
+	let preview_output = execute_cli_command(
 		root,
 		&configuration,
 		&prepare_release,
@@ -8007,7 +8067,7 @@ async fn execute_cli_command_prepare_release_dry_run_skips_release_record_unless
 	);
 
 	// `--release-json` opts preview back into writing the release record.
-	let record_output = crate::execute_cli_command(
+	let record_output = execute_cli_command(
 		root,
 		&configuration,
 		&prepare_release,
@@ -8073,7 +8133,7 @@ async fn execute_cli_command_prepare_release_surfaces_release_record_write_failu
 
 	// Write the record once so we can discover the deterministic hash dir, then
 	// replace it with a file so the next write fails and surfaces the error.
-	let _ = crate::execute_cli_command(
+	let _ = execute_cli_command(
 		root,
 		&configuration,
 		&prepare_release,
@@ -8092,7 +8152,7 @@ async fn execute_cli_command_prepare_release_surfaces_release_record_write_failu
 	fs::remove_dir_all(&hash_path).unwrap_or_else(|error| panic!("remove hash dir: {error}"));
 	fs::write(&hash_path, "blocking file").unwrap_or_else(|error| panic!("write blocker: {error}"));
 
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		root,
 		&configuration,
 		&prepare_release,
@@ -8186,7 +8246,7 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 				}],
 				dry_run: false,
 			};
-			let placeholder_output = crate::execute_cli_command(
+			let placeholder_output = execute_cli_command(
 				root,
 				&configuration,
 				&placeholder_command,
@@ -8223,7 +8283,7 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 				],
 				dry_run: false,
 			};
-			let publish_output = crate::execute_cli_command(
+			let publish_output = execute_cli_command(
 				root,
 				&configuration,
 				&publish_command,
@@ -8282,7 +8342,7 @@ async fn execute_cli_command_placeholder_publish_step_surfaces_report_carrying_f
 	temp_env::async_with_vars(
 		[("MONOCHANGE_CRATES_IO_API_URL", Some(server.base_url()))],
 		async {
-			let error = crate::execute_cli_command(
+			let error = execute_cli_command(
 				root,
 				&configuration,
 				&placeholder_command,
@@ -8334,7 +8394,7 @@ async fn execute_cli_command_publish_packages_step_surfaces_report_carrying_fail
 	temp_env::async_with_vars(
 		[("MONOCHANGE_CRATES_IO_API_URL", Some(server.base_url()))],
 		async {
-			let error = crate::execute_cli_command(
+			let error = execute_cli_command(
 				root,
 				&configuration,
 				&publish_command,
@@ -8413,7 +8473,7 @@ async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution
 			Some(format!("http://{registry_address}")),
 		)],
 		async {
-			let error = crate::execute_cli_command(
+			let error = execute_cli_command(
 				root,
 				&configuration,
 				&placeholder_command,
@@ -8505,7 +8565,7 @@ async fn execute_cli_command_publish_packages_step_surfaces_publish_execution_fa
 			Some(format!("http://{registry_address}")),
 		)],
 		async {
-			let error = crate::execute_cli_command(
+			let error = execute_cli_command(
 				root,
 				&configuration,
 				&publish_command,
@@ -8605,7 +8665,7 @@ async fn execute_cli_command_publish_packages_step_writes_report_artifact_on_exe
 			Some(format!("http://{registry_address}")),
 		)],
 		async {
-			let error = crate::execute_cli_command(
+			let error = execute_cli_command(
 				root,
 				&configuration,
 				&publish_command,
@@ -8715,7 +8775,7 @@ async fn execute_cli_command_publish_packages_step_surfaces_write_artifact_failu
 			Some(format!("http://{registry_address}")),
 		)],
 		async {
-			let error = crate::execute_cli_command(
+			let error = execute_cli_command(
 				root,
 				&configuration,
 				&publish_command,
@@ -8774,7 +8834,7 @@ async fn execute_cli_command_plan_publish_rate_limits_renders_json_output() {
 	temp_env::async_with_vars(
 		[("MONOCHANGE_CRATES_IO_API_URL", Some(server.base_url()))],
 		async {
-			let output = crate::execute_cli_command(
+			let output = execute_cli_command(
 				root,
 				&configuration,
 				&plan_command,
@@ -8823,7 +8883,7 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 				}],
 				dry_run: false,
 			};
-			let placeholder_output = crate::execute_cli_command(
+			let placeholder_output = execute_cli_command(
 				root,
 				&configuration,
 				&placeholder_command,
@@ -8862,7 +8922,7 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 				],
 				dry_run: false,
 			};
-			let publish_output = crate::execute_cli_command(
+			let publish_output = execute_cli_command(
 				root,
 				&configuration,
 				&publish_command,
@@ -8900,7 +8960,7 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 				}],
 				dry_run: false,
 			};
-			let publish_output = crate::execute_cli_command(
+			let publish_output = execute_cli_command(
 				release_root,
 				&release_configuration,
 				&publish_release_command,
@@ -8936,7 +8996,7 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 				}],
 				dry_run: false,
 			};
-			let plan_output = crate::execute_cli_command(
+			let plan_output = execute_cli_command(
 				root,
 				&configuration,
 				&plan_command,
@@ -9079,7 +9139,7 @@ async fn execute_matches_rejects_unknown_cli_command_names() {
 	let matches = Command::new("dummy")
 		.try_get_matches_from(["dummy"])
 		.unwrap_or_else(|error| panic!("matches: {error}"));
-	let error = crate::execute_matches(tempdir.path(), &configuration, "missing", &matches, false)
+	let error = execute_matches(tempdir.path(), &configuration, "missing", &matches, false)
 		.await
 		.err()
 		.unwrap_or_else(|| panic!("expected unknown command error"));
@@ -10058,7 +10118,7 @@ async fn execute_cli_command_commit_release_requires_prepare_release() {
 		dry_run: false,
 	};
 
-	let error = crate::execute_cli_command(
+	let error = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -15908,7 +15968,7 @@ branches = ["release/*"]
 		}],
 		dry_run: false,
 	};
-	let result = crate::execute_cli_command(
+	let result = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -16062,7 +16122,7 @@ repo = "monochange"
 		}],
 		dry_run: false,
 	};
-	let result = crate::execute_cli_command(
+	let result = execute_cli_command(
 		tempdir.path(),
 		&configuration,
 		&cli_command,
@@ -16239,7 +16299,7 @@ async fn cli_command_dry_run_field_runs_command_in_dry_run_without_flag() {
 		.subcommand_matches("run")
 		.and_then(|matches| matches.subcommand_matches("announce"))
 		.unwrap_or_else(|| panic!("expected announce subcommand matches"));
-	crate::execute_matches(
+	execute_matches(
 		tempdir.path(),
 		&configuration,
 		"announce",
@@ -16321,7 +16381,7 @@ async fn execute_cli_command_retarget_release_applies_git_updates_without_provid
 		}],
 		dry_run: false,
 	};
-	let result = crate::execute_cli_command(
+	let result = execute_cli_command(
 		&root,
 		&configuration,
 		&cli_command,
@@ -16398,6 +16458,37 @@ versioned_files = [
 	.await
 	.unwrap_or_else(|error| panic!("traced help output: {error}"));
 	assert!(traced_help.contains("custom"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn top_level_alias_uses_the_progress_aware_dispatch() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[cli.announce]
+help_text = "Announce a release"
+steps = [{ name = "say hello", type = "Command", command = "printf hello" }]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let discovered = run_with_args_in_dir(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("discover"),
+			OsString::from("--format"),
+			OsString::from("json"),
+		],
+		tempdir.path(),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("top-level discover alias: {error}"));
+	assert_eq!(
+		serde_json::from_str::<serde_json::Value>(&discovered).unwrap()["packages"],
+		serde_json::json!([]),
+	);
 }
 
 #[tokio::test]

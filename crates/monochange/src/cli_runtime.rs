@@ -45,21 +45,22 @@ use serde::ser::SerializeStruct;
 
 use crate::changeset_policy::check_changeset_bump_alignment;
 use crate::cli::command_supports_release_diff_preview;
-use crate::cli_progress::CliProgressReporter;
-use crate::cli_progress::CommandStream;
-use crate::cli_progress::ProgressFormat;
 use crate::maybe_load_prepared_release_execution;
+use crate::output::CommandStream;
+use crate::output::ProgressFormat;
+use crate::output::ProgressReporter;
 use crate::release_branch_policy;
 use crate::save_prepared_release_execution;
 use crate::workspace_ops::validate_cargo_workspace_version_groups;
 use crate::*;
 
-pub(crate) async fn execute_matches(
+pub(crate) async fn execute_matches_with_progress(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 	cli_command_name: &str,
 	cli_command_matches: &ArgMatches,
 	quiet: bool,
+	progress: Option<&mut ProgressReporter>,
 ) -> MonochangeResult<String> {
 	let cli_command = configuration
 		.cli
@@ -93,37 +94,21 @@ pub(crate) async fn execute_matches(
 		.then(|| cli_command_matches.get_one::<String>("prepared-release"))
 		.flatten()
 		.map(PathBuf::from);
-	if show_diff {
-		execute_cli_command_with_options(
-			root,
-			configuration,
-			&cli_command,
-			ExecuteCliCommandOptions {
-				dry_run,
-				quiet,
-				show_diff: true,
-				inputs,
-				prepared_release_path,
-				progress_format,
-			},
-		)
-		.await
-	} else {
-		execute_cli_command_with_options(
-			root,
-			configuration,
-			&cli_command,
-			ExecuteCliCommandOptions {
-				dry_run,
-				quiet,
-				show_diff: false,
-				inputs,
-				prepared_release_path,
-				progress_format,
-			},
-		)
-		.await
-	}
+	execute_cli_command_with_options(
+		root,
+		configuration,
+		&cli_command,
+		ExecuteCliCommandOptions {
+			dry_run,
+			quiet,
+			show_diff,
+			inputs,
+			prepared_release_path,
+			progress_format,
+			progress,
+		},
+	)
+	.await
 }
 
 fn parse_progress_format(value: &str) -> MonochangeResult<ProgressFormat> {
@@ -578,59 +563,40 @@ async fn build_issue_comment_results_for_source(
 }
 // patch-coverage:ignore-end
 
-pub(crate) async fn execute_cli_command(
+pub(crate) async fn execute_cli_command_with_progress(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 	cli_command: &CliCommandDefinition,
-	dry_run: bool,
-	inputs: BTreeMap<String, Vec<String>>,
-) -> MonochangeResult<String> {
-	execute_cli_command_with_options(
-		root,
-		configuration,
-		cli_command,
-		ExecuteCliCommandOptions {
-			dry_run,
-			quiet: false,
-			show_diff: false,
-			inputs,
-			prepared_release_path: None,
-			progress_format: ProgressFormat::Auto,
-		},
-	)
-	.await
-}
-
-pub(crate) async fn execute_cli_command_quietly(
-	root: &Path,
-	configuration: &monochange_core::WorkspaceConfiguration,
-	cli_command: &CliCommandDefinition,
-	dry_run: bool,
-	inputs: BTreeMap<String, Vec<String>>,
-) -> MonochangeResult<String> {
-	execute_cli_command_with_options(
-		root,
-		configuration,
-		cli_command,
-		ExecuteCliCommandOptions {
-			dry_run,
-			quiet: true,
-			show_diff: false,
-			inputs,
-			prepared_release_path: None,
-			progress_format: ProgressFormat::Auto,
-		},
-	)
-	.await
-}
-
-pub(crate) struct ExecuteCliCommandOptions {
 	dry_run: bool,
 	quiet: bool,
-	show_diff: bool,
 	inputs: BTreeMap<String, Vec<String>>,
-	prepared_release_path: Option<PathBuf>,
-	progress_format: ProgressFormat,
+	progress: &mut ProgressReporter,
+) -> MonochangeResult<String> {
+	execute_cli_command_with_options(
+		root,
+		configuration,
+		cli_command,
+		ExecuteCliCommandOptions {
+			dry_run,
+			quiet,
+			show_diff: false,
+			inputs,
+			prepared_release_path: None,
+			progress_format: ProgressFormat::Auto,
+			progress: Some(progress),
+		},
+	)
+	.await
+}
+
+pub(crate) struct ExecuteCliCommandOptions<'a> {
+	pub(crate) dry_run: bool,
+	pub(crate) quiet: bool,
+	pub(crate) show_diff: bool,
+	pub(crate) inputs: BTreeMap<String, Vec<String>>,
+	pub(crate) prepared_release_path: Option<PathBuf>,
+	pub(crate) progress_format: ProgressFormat,
+	pub(crate) progress: Option<&'a mut ProgressReporter>,
 }
 
 // patch-coverage:ignore-start -- real publish enforcement branches are integration-boundary guards; dry-run and error flows are covered.
@@ -639,7 +605,7 @@ pub(crate) async fn execute_cli_command_with_options(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 	cli_command: &CliCommandDefinition,
-	options: ExecuteCliCommandOptions,
+	options: ExecuteCliCommandOptions<'_>,
 ) -> MonochangeResult<String> {
 	let ExecuteCliCommandOptions {
 		dry_run,
@@ -648,6 +614,7 @@ pub(crate) async fn execute_cli_command_with_options(
 		inputs,
 		prepared_release_path,
 		progress_format,
+		progress,
 	} = options;
 	let output_format = cli_command_output_format(&inputs)?;
 	let mut context = CliContext {
@@ -678,7 +645,15 @@ pub(crate) async fn execute_cli_command_with_options(
 	};
 	let mut output = None;
 	let command_started_at = Instant::now();
-	let mut progress = CliProgressReporter::new(cli_command, dry_run, quiet, progress_format);
+	let mut owned_progress = progress
+		.is_none()
+		.then(|| ProgressReporter::new(cli_command, dry_run, quiet, progress_format));
+	let progress = progress.unwrap_or_else(|| {
+		owned_progress
+			.as_mut()
+			.expect("an owned progress reporter exists")
+	});
+	progress.configure_command(cli_command, dry_run);
 	progress.command_started();
 	let telemetry = CliTelemetry::new(
 		TelemetrySink::from_env(),
@@ -714,14 +689,7 @@ pub(crate) async fn execute_cli_command_with_options(
 			Ok(step_inputs) => step_inputs,
 			Err(error) => {
 				let elapsed = step_started_at.elapsed();
-				report_cli_step_failure(
-					&mut progress,
-					show_progress,
-					step_index,
-					step,
-					elapsed,
-					&error,
-				);
+				report_cli_step_failure(progress, show_progress, step_index, step, elapsed, &error);
 				telemetry.capture_step(
 					step_index,
 					step,
@@ -739,14 +707,7 @@ pub(crate) async fn execute_cli_command_with_options(
 			Ok(should_execute) => should_execute,
 			Err(error) => {
 				let elapsed = step_started_at.elapsed();
-				report_cli_step_failure(
-					&mut progress,
-					show_progress,
-					step_index,
-					step,
-					elapsed,
-					&error,
-				);
+				report_cli_step_failure(progress, show_progress, step_index, step, elapsed, &error);
 				telemetry.capture_step(
 					step_index,
 					step,
@@ -760,7 +721,7 @@ pub(crate) async fn execute_cli_command_with_options(
 			}
 		};
 		if !should_execute {
-			record_skipped_cli_step(&mut context, step, step_index, &mut progress, show_progress);
+			record_skipped_cli_step(&mut context, step, step_index, progress, show_progress);
 			telemetry.capture_step(
 				step_index,
 				step,
@@ -791,15 +752,29 @@ pub(crate) async fn execute_cli_command_with_options(
 					Ok(())
 				}
 				CliStepDefinition::Validate { .. } => {
+					let validation_started = Instant::now();
+					progress.phase_started("Checking workspace configuration");
 					let (warnings, mut validation_errors) =
 						lint::collect_workspace_validation_issues(root, configuration);
+					progress.phase_finished(
+						"Checked workspace configuration",
+						validation_started.elapsed(),
+					);
 					#[cfg(feature = "cargo")]
-					if let Err(error) = validate_cargo_workspace_version_groups(root) {
-						validation_errors.push(error.render());
+					{
+						let cargo_validation_started = Instant::now();
+						progress.phase_started("Checking cargo version groups");
+						if let Err(error) = validate_cargo_workspace_version_groups(root) {
+							validation_errors.push(error.render());
+						}
+						progress.phase_finished(
+							"Checked cargo version groups",
+							cargo_validation_started.elapsed(),
+						);
 					}
 					if !context.quiet {
 						for warning in &warnings {
-							eprintln!("warning: {warning}");
+							progress.warning(warning);
 						}
 					}
 					if !validation_errors.is_empty() {
@@ -845,6 +820,9 @@ pub(crate) async fn execute_cli_command_with_options(
 							.await?
 						}
 					};
+					for warning in &prepared_execution.warnings {
+						progress.warning(warning);
+					}
 					step_phase_timings.clone_from(&prepared_execution.phase_timings);
 					let rendered_output = render_display_versions_output(
 						&prepared_execution.prepared_release,
@@ -858,7 +836,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						root,
 						configuration,
 						&step_inputs,
-						&mut progress,
+						progress,
 						step_index,
 						step,
 					)?);
@@ -900,6 +878,9 @@ pub(crate) async fn execute_cli_command_with_options(
 						)
 						.await?
 					};
+					for warning in &prepared_execution.warnings {
+						progress.warning(warning);
+					}
 					step_phase_timings.clone_from(&prepared_execution.phase_timings);
 					context.prepared_file_diffs = prepared_execution.file_diffs;
 					context.prepared_release = Some(prepared_execution.prepared_release);
@@ -1027,13 +1008,13 @@ pub(crate) async fn execute_cli_command_with_options(
 							publish_rate_limits::PublishRateLimitMode::Placeholder,
 						)?;
 					}
-					let report = match package_publish::try_run_placeholder_publish_with_npm_otp(
+					let report = match package_publish::try_run_placeholder_publish_with_progress(
 						root,
 						configuration,
 						&selected_packages,
 						context.dry_run,
 						npm_otp,
-						context.quiet,
+						progress,
 					)
 					.await
 					{
@@ -1093,46 +1074,48 @@ pub(crate) async fn execute_cli_command_with_options(
 							publish_rate_limits::PublishRateLimitMode::Publish,
 						)?;
 					}
-					let report = match package_publish::try_run_publish_packages_with_resume(
-						root,
-						configuration,
-						context.prepared_release.as_ref(),
-						&selected_packages,
-						&selected_groups,
-						&selected_ecosystems,
-						package_publish::PublishPackagesOptions {
-							publish_all_configured_packages: publish_all,
-							dry_run: context.dry_run,
-							resume_path: resume_path.as_deref(),
-							fail_on_duplicate,
-							output: package_publish::PublishOutputOptions {
-								stream_output,
-								quiet: context.quiet,
+					let report =
+						match package_publish::try_run_publish_packages_with_resume_and_progress(
+							root,
+							configuration,
+							context.prepared_release.as_ref(),
+							&selected_packages,
+							&selected_groups,
+							&selected_ecosystems,
+							package_publish::PublishPackagesOptions {
+								publish_all_configured_packages: publish_all,
+								dry_run: context.dry_run,
+								resume_path: resume_path.as_deref(),
+								fail_on_duplicate,
+								output: package_publish::PublishOutputOptions {
+									stream_output,
+									quiet: context.quiet,
+								},
 							},
-						},
-					)
-					.await
-					{
-						Ok(report) => report,
-						Err(error) => {
-							let (primary_error, report) = error.into_parts();
-							if !context.dry_run
-								&& let Some(output_path) = output_path.as_deref()
-							{
-								monochange_publish::write_publish_report_artifact(
-									output_path,
-									&report,
-								)?;
+							progress,
+						)
+						.await
+						{
+							Ok(report) => report,
+							Err(error) => {
+								let (primary_error, report) = error.into_parts();
+								if !context.dry_run
+									&& let Some(output_path) = output_path.as_deref()
+								{
+									monochange_publish::write_publish_report_artifact(
+										output_path,
+										&report,
+									)?;
+								}
+								let error =
+									monochange_publish::ensure_publish_report_succeeded(&report)
+										.err()
+										.unwrap_or(primary_error);
+								context.package_publish_report = Some(report);
+								context.rate_limit_report = Some(rate_limit_report);
+								return Err(error);
 							}
-							let error =
-								monochange_publish::ensure_publish_report_succeeded(&report)
-									.err()
-									.unwrap_or(primary_error);
-							context.package_publish_report = Some(report);
-							context.rate_limit_report = Some(rate_limit_report);
-							return Err(error);
-						}
-					};
+						};
 					if !context.dry_run
 						&& let Some(output_path) = output_path.as_deref()
 					{
@@ -1390,8 +1373,13 @@ pub(crate) async fn execute_cli_command_with_options(
 					Ok(())
 				}
 				CliStepDefinition::AffectedPackages { .. } => {
-					let evaluation =
-						execute_affected_packages_step(root, &step_inputs, context.quiet).await?;
+					let evaluation = execute_affected_packages_step(
+						root,
+						&step_inputs,
+						context.quiet,
+						Some(progress),
+					)
+					.await?;
 					context.changeset_policy_evaluation = Some(evaluation);
 					output = None;
 					Ok(())
@@ -1512,7 +1500,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						&mut context,
 						step,
 						step_index,
-						&mut progress,
+						progress,
 						show_progress,
 						CommandStepOptions {
 							command,
@@ -1535,14 +1523,7 @@ pub(crate) async fn execute_cli_command_with_options(
 		.await;
 		if let Err(error) = step_result {
 			let elapsed = step_started_at.elapsed();
-			report_cli_step_failure(
-				&mut progress,
-				show_progress,
-				step_index,
-				step,
-				elapsed,
-				&error,
-			);
+			report_cli_step_failure(progress, show_progress, step_index, step, elapsed, &error);
 			telemetry.capture_step(
 				step_index,
 				step,
@@ -1936,7 +1917,7 @@ fn run_cli_command_command(
 	context: &mut CliContext,
 	step: &CliStepDefinition,
 	step_index: usize,
-	progress: &mut CliProgressReporter,
+	progress: &mut ProgressReporter,
 	show_progress: bool,
 	options: CommandStepOptions<'_>,
 ) -> MonochangeResult<()> {
@@ -1987,7 +1968,7 @@ fn record_skipped_cli_step(
 	context: &mut CliContext,
 	step: &CliStepDefinition,
 	step_index: usize,
-	progress: &mut CliProgressReporter,
+	progress: &mut ProgressReporter,
 	show_progress: bool,
 ) {
 	if show_progress {
@@ -2062,7 +2043,7 @@ fn build_process_command(
 
 fn execute_process_command(
 	process_command: &mut ProcessCommand,
-	progress: &mut CliProgressReporter,
+	progress: &mut ProgressReporter,
 	show_progress: bool,
 	interactive: bool,
 	step_index: usize,
@@ -2162,7 +2143,7 @@ enum StreamEvent {
 
 fn run_process_with_streaming(
 	process_command: &mut ProcessCommand,
-	progress: &mut CliProgressReporter,
+	progress: &mut ProgressReporter,
 	step_index: usize,
 	step: &CliStepDefinition,
 	interpolated: &str,
@@ -2211,7 +2192,7 @@ fn take_process_stream<T>(
 
 fn drain_stream_events(
 	receiver: &mpsc::Receiver<StreamEvent>,
-	progress: &mut CliProgressReporter,
+	progress: &mut ProgressReporter,
 	step_index: usize,
 	step: &CliStepDefinition,
 ) -> (Vec<u8>, Vec<u8>) {
@@ -2226,7 +2207,7 @@ fn drain_stream_events(
 
 fn drain_stream_events_with_heartbeat_timeout(
 	receiver: &mpsc::Receiver<StreamEvent>,
-	progress: &mut CliProgressReporter,
+	progress: &mut ProgressReporter,
 	step_index: usize,
 	step: &CliStepDefinition,
 	heartbeat_interval: Duration,
@@ -4405,7 +4386,7 @@ fn execute_create_change_file_step(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
 	step_inputs: &BTreeMap<String, Vec<String>>,
-	progress: &mut CliProgressReporter,
+	progress: &mut ProgressReporter,
 	step_index: usize,
 	step: &CliStepDefinition,
 ) -> MonochangeResult<String> {
@@ -4506,6 +4487,7 @@ async fn execute_affected_packages_step(
 	root: &Path,
 	step_inputs: &BTreeMap<String, Vec<String>>,
 	quiet: bool,
+	progress: Option<&ProgressReporter>,
 ) -> MonochangeResult<ChangesetPolicyEvaluation> {
 	let from_ref = step_inputs
 		.get("from")
@@ -4516,8 +4498,11 @@ async fn execute_affected_packages_step(
 		.unwrap_or_default();
 	let changed_paths = match &from_ref {
 		Some(rev) => {
-			if !quiet && !explicit_paths.is_empty() {
-				eprintln!("warning: --from takes priority; --changed-paths was ignored");
+			if !quiet
+				&& !explicit_paths.is_empty()
+				&& let Some(progress) = progress
+			{
+				progress.warning("--from takes priority; --changed-paths was ignored");
 			}
 
 			compute_changed_paths_since(root, rev)?
@@ -4537,7 +4522,7 @@ async fn execute_affected_packages_step(
 }
 
 fn report_cli_step_failure(
-	progress: &mut CliProgressReporter,
+	progress: &mut ProgressReporter,
 	show_progress: bool,
 	step_index: usize,
 	step: &CliStepDefinition,
@@ -4561,11 +4546,13 @@ fn maybe_fail_enforced_changeset_policy(
 		evaluation.status == ChangesetPolicyStatus::Failed,
 	) {
 		(true, true) => {
-			if !quiet {
-				println!("{rendered}");
+			if quiet {
+				return Err(MonochangeError::Config(evaluation.summary.clone()));
 			}
-
-			Err(MonochangeError::Config(evaluation.summary.clone()))
+			Err(MonochangeError::Reported {
+				output: rendered,
+				diagnostic: evaluation.summary.clone(),
+			})
 		}
 		_ => Ok(rendered),
 	}

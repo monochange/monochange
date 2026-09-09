@@ -129,8 +129,12 @@ fn spawn_endpoint_server(oidc_response: Option<String>) -> MockServer {
 	let captured = Arc::clone(&requests);
 	let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
 	let stop_for_thread = Arc::clone(&stop);
+	let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel(0);
 	std::thread::spawn(move || {
 		let _ = listener.set_nonblocking(true);
+		ready_tx
+			.send(())
+			.unwrap_or_else(|error| panic!("signal mock endpoint readiness: {error}"));
 		while !stop_for_thread.load(Ordering::Relaxed) {
 			let Ok((mut stream, _)) = listener.accept() else {
 				std::thread::sleep(Duration::from_millis(5));
@@ -163,8 +167,12 @@ fn spawn_endpoint_server(oidc_response: Option<String>) -> MockServer {
 				PUB_DEV_NOT_FOUND_RESPONSE.to_string()
 			};
 			let _ = stream.write_all(response.as_bytes());
+			let _ = stream.flush();
 		}
 	});
+	ready_rx
+		.recv()
+		.unwrap_or_else(|error| panic!("wait for mock endpoint readiness: {error}"));
 	MockServer {
 		base_url: format!("http://{address}"),
 		requests,

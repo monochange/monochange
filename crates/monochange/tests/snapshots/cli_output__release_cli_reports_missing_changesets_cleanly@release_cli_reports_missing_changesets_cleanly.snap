@@ -16,4 +16,6 @@ exit_code: 1
 ----- stdout -----
 
 ----- stderr -----
-config error: no markdown changesets found under .changeset
+error[config.invalid]: no markdown changesets found under .changeset
+  command: monochange run release
+  help: Check `monochange.toml` and the command arguments, then rerun the command.

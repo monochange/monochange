@@ -2,7 +2,6 @@
 source: crates/monochange_integration_tests/tests/check_lint_output.rs
 expression: output
 ---
-config error: check failed:
 workspace validation passed for [workspace]
 lint: 3 errors, 0 warnings
 

@@ -47,9 +47,8 @@ use cli::cli_commands_for_root;
 use cli::cli_commands_from_config;
 use cli::current_dir_or_dot;
 pub(crate) use cli_runtime::collect_cli_command_inputs;
-pub(crate) use cli_runtime::execute_cli_command;
-use cli_runtime::execute_cli_command_quietly;
-use cli_runtime::execute_matches;
+use cli_runtime::execute_cli_command_with_progress;
+use cli_runtime::execute_matches_with_progress;
 pub(crate) use cli_runtime::parse_output_format;
 use command_wizard::run_command_wizard;
 use git_support::git_commit_paths;
@@ -234,7 +233,6 @@ mod change_classify;
 mod changeset_policy;
 mod changesets;
 mod cli;
-mod cli_progress;
 mod cli_runtime;
 mod cli_theme;
 mod command_wizard;
@@ -243,14 +241,13 @@ mod hosted_sources;
 mod interactive;
 mod jq_filter;
 mod lint;
-mod lint_check_reporter;
 #[cfg(feature = "mcp")]
 mod mcp;
 mod migration_audit;
 mod notes;
+mod output;
 mod package_publish;
 mod prepared_release_cache;
-mod publish_progress;
 mod publish_rate_limits;
 mod publish_readiness;
 mod release_artifacts;
@@ -487,6 +484,7 @@ struct PreparedReleaseExecution {
 	prepared_release: PreparedRelease,
 	file_diffs: Vec<PreparedFileDiff>,
 	phase_timings: Vec<StepPhaseTiming>,
+	warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -585,13 +583,16 @@ const CHANGESET_DIR: &str = ".changeset";
 /// `--quiet` was requested.
 #[must_use = "the run result must be checked"]
 #[allow(clippy::large_futures)]
+#[coverage(off)]
 pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
 	let log_level = extract_log_level_from_args();
 	tracing_setup::init_tracing(log_level.as_deref());
 
-	let quiet = extract_quiet_from_args(std::env::args_os());
-	let args = std::env::args_os();
-	let output = run_with_args(bin_name, args).await?;
+	let args = std::env::args_os().collect::<Vec<_>>();
+	let quiet = extract_quiet_from_args(args.iter().cloned());
+	let mut progress = output::ProgressReporter::for_invocation(&args);
+	let root = current_dir_or_dot();
+	let output = run_with_args_in_dir_with_progress(bin_name, args, &root, &mut progress).await?;
 	if !quiet && !output.is_empty() {
 		println!("{output}");
 	}
@@ -605,20 +606,38 @@ pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
 #[coverage(off)]
 #[must_use = "the process exit code must be returned"]
 pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
-	let quiet = extract_quiet_from_args(std::env::args_os());
-	let result = Box::pin(run_from_env(bin_name)).await;
-	let Err(error) = result else {
-		return ExitCode::SUCCESS;
-	};
-
-	if !quiet {
-		if let Some(output) = error.reported_output() {
-			println!("{output}");
+	let arguments = std::env::args_os().collect::<Vec<_>>();
+	let command = cli_diagnostic_command(&arguments);
+	let quiet = extract_quiet_from_args(arguments.iter().cloned());
+	let log_level = extract_log_level_from_args();
+	tracing_setup::init_tracing(log_level.as_deref());
+	let mut progress = output::ProgressReporter::for_invocation(&arguments);
+	let root = current_dir_or_dot();
+	let result = Box::pin(run_with_args_in_dir_with_progress(
+		bin_name,
+		arguments,
+		&root,
+		&mut progress,
+	))
+	.await;
+	match result {
+		Ok(output) => {
+			if !quiet && !output.is_empty() {
+				println!("{output}");
+			}
+			ExitCode::SUCCESS
 		}
-		eprintln!("{}", error.render());
+		Err(error) => {
+			if !quiet {
+				if let Some(output) = error.reported_output().filter(|output| !output.is_empty()) {
+					println!("{output}");
+				}
+				let diagnostic = output::CliDiagnostic::from_error(&error, command.as_deref());
+				progress.write_diagnostic(&diagnostic);
+			}
+			ExitCode::FAILURE
+		}
 	}
-
-	ExitCode::FAILURE
 }
 
 fn extract_log_level_from_args() -> Option<String> {
@@ -644,12 +663,29 @@ fn command_args_after_globals(args: &[OsString]) -> impl Iterator<Item = &str> {
 				skip_value = false;
 				return true;
 			}
-			if matches!(*arg, "--log-level" | "--format") {
+			if matches!(
+				*arg,
+				"--log-level" | "--format" | "--progress-format" | "--jq"
+			) {
 				skip_value = true;
 				return true;
 			}
 			matches!(*arg, "--quiet" | "-q")
 		})
+}
+
+fn cli_diagnostic_command(args: &[OsString]) -> Option<String> {
+	let mut command_args =
+		command_args_after_globals(args).filter(|argument| !argument.starts_with('-'));
+	let first = command_args.next()?;
+	let mut command = format!("monochange {first}");
+	if matches!(first, "run" | "step" | "versions" | "lint")
+		&& let Some(second) = command_args.next()
+	{
+		command.push(' ');
+		command.push_str(second);
+	}
+	Some(command)
 }
 
 fn extract_quiet_from_args<I>(args: I) -> bool
@@ -1100,7 +1136,24 @@ where
 	I: IntoIterator<Item = OsString>,
 {
 	let args = args.into_iter().collect::<Vec<_>>();
+	let mut progress = output::ProgressReporter::for_invocation(&args);
+	let result = Box::pin(run_with_args_in_dir_with_progress(
+		bin_name,
+		args,
+		root,
+		&mut progress,
+	))
+	.await;
+	drop(progress);
+	result
+}
 
+async fn run_with_args_in_dir_with_progress(
+	bin_name: &'static str,
+	args: Vec<OsString>,
+	root: &Path,
+	progress: &mut output::ProgressReporter,
+) -> MonochangeResult<String> {
 	let root_help_requested = is_root_help_request(&args);
 	if root_help_requested {
 		let cli = cli_commands_for_root(root);
@@ -1165,7 +1218,29 @@ where
 	}
 
 	// Slow path: load workspace configuration for command execution.
+	let configuration_started = std::time::Instant::now();
+	let show_configuration_progress = command_help_request(&args).is_none();
+	if show_configuration_progress {
+		progress.phase_started("Loading workspace configuration");
+	}
 	let configuration = load_workspace_configuration(root);
+	if show_configuration_progress {
+		match &configuration {
+			Ok(_) => {
+				progress.phase_finished(
+					"Loaded workspace configuration",
+					configuration_started.elapsed(),
+				);
+			}
+			Err(error) => {
+				progress.phase_failed(
+					"Load workspace configuration",
+					configuration_started.elapsed(),
+					&error.render(),
+				);
+			}
+		}
+	}
 	let cli = cli_commands_from_config(&configuration);
 	let quiet = extract_quiet_from_args(args.iter().cloned());
 	let matches = match build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone()) {
@@ -1386,6 +1461,8 @@ where
 		Some(("mcp", _)) => run_mcp_command_with(quiet, mcp::run_server).await,
 
 		Some(("check", check_matches)) => {
+			let configuration = configuration?;
+			progress.configure_named_command("check");
 			let fix = check_matches.get_flag("fix");
 			let verbose = check_matches.get_flag("verbose");
 			let format = check_matches
@@ -1399,19 +1476,16 @@ where
 				.get_many::<String>("only")
 				.map(|values| values.map(String::as_str).map(String::from).collect())
 				.unwrap_or_default();
-			if quiet {
-				lint::run_check_command_with_progress(
-					root,
-					fix,
-					&ecosystems,
-					&only_rules,
-					format,
-					verbose,
-					false,
-				)
-			} else {
-				lint::run_check_command(root, fix, &ecosystems, &only_rules, format, verbose)
-			}
+			lint::run_check_command_with_configuration(
+				root,
+				&configuration,
+				fix,
+				&ecosystems,
+				&only_rules,
+				format,
+				verbose,
+				progress,
+			)
 		}
 		Some(("lint", lint_matches)) => lint::handle_lint_subcommand(root, lint_matches),
 
@@ -1434,9 +1508,7 @@ where
 				}
 				None => {
 					if !quiet {
-						eprintln!(
-							"warning: `monochange versions` is deprecated and will be removed in a future version; use `monochange versions sync` instead"
-						);
+						progress.warning("`monochange versions` is deprecated and will be removed in a future version; use `monochange versions sync` instead");
 					}
 					run_versions_sync(root, versions_matches, quiet)
 				}
@@ -1453,11 +1525,16 @@ where
 			let synthetic = synthetic_step_command_definition(step_name)?;
 			let inputs = collect_cli_command_inputs(&synthetic, step_command_matches);
 			let dry_run = step_command_matches.get_flag("dry-run");
-			if quiet {
-				execute_cli_command_quietly(root, &configuration, &synthetic, dry_run, inputs).await
-			} else {
-				execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
-			}
+			execute_cli_command_with_progress(
+				root,
+				&configuration,
+				&synthetic,
+				dry_run,
+				quiet,
+				inputs,
+				progress,
+			)
+			.await
 		}
 		Some((cli_command_name, cli_command_matches))
 			if cli::top_level_step_alias(cli_command_name).is_some() =>
@@ -1469,11 +1546,16 @@ where
 				.expect("top-level step alias target exists");
 			let inputs = collect_cli_command_inputs(&synthetic, cli_command_matches);
 			let dry_run = alias.force_dry_run || cli_command_matches.get_flag("dry-run");
-			if quiet {
-				execute_cli_command_quietly(root, &configuration, &synthetic, dry_run, inputs).await
-			} else {
-				execute_cli_command(root, &configuration, &synthetic, dry_run, inputs).await
-			}
+			execute_cli_command_with_progress(
+				root,
+				&configuration,
+				&synthetic,
+				dry_run,
+				quiet,
+				inputs,
+				progress,
+			)
+			.await
 		}
 		Some(("run", run_matches)) => {
 			let Some((cli_command_name, cli_command_matches)) = run_matches.subcommand() else {
@@ -1482,26 +1564,30 @@ where
 				));
 			};
 			let configuration = configuration?;
-			execute_matches(
+			execute_matches_with_progress(
 				root,
 				&configuration,
 				cli_command_name,
 				cli_command_matches,
 				quiet,
+				Some(progress),
 			)
 			.await
 		}
+		// patch-coverage:ignore-start -- clap only returns built-ins, generated aliases, or `run` commands handled above.
 		Some((cli_command_name, cli_command_matches)) => {
 			let configuration = configuration?;
-			execute_matches(
+			execute_matches_with_progress(
 				root,
 				&configuration,
 				cli_command_name,
 				cli_command_matches,
 				quiet,
+				Some(progress),
 			)
 			.await
 		}
+		// patch-coverage:ignore-end
 		None => Err(MonochangeError::Config("Usage: monochange".to_string())),
 	}?;
 

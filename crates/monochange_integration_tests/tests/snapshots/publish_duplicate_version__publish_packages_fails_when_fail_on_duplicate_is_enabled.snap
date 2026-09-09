@@ -2,4 +2,6 @@
 source: crates/monochange_integration_tests/tests/publish_duplicate_version.rs
 expression: "String::from_utf8_lossy(&output.stderr).trim()"
 ---
-discovery error: package publishing did not complete: 1 total, 0 published, 1 failed, 0 blocked, 0 already existed, 0 not attempted, 0 planned; failed package strict 1.0.0: strict 1.0.0 already exists on npm and `publish.fail_on_duplicate` rejects duplicate version publications
+error[workspace.discovery_failed]: package publishing did not complete: 1 total, 0 published, 1 failed, 0 blocked, 0 already existed, 0 not attempted, 0 planned; failed package strict 1.0.0: strict 1.0.0 already exists on npm and `publish.fail_on_duplicate` rejects duplicate version publications
+  command: monochange step publish-packages
+  help: Check the configured package paths and workspace manifests, then rerun the command.
