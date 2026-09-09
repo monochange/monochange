@@ -4,6 +4,114 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.11.0](https://github.com/monochange/monochange/releases/tag/v0.11.0) (2026-09-09)
+
+### 🚀 Feature
+
+#### classify Rust compatibility across configured feature and target matrices
+
+Cargo packages can opt into cargo-semver-checks during semantic change classification:
+
+```toml
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 300
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+```
+
+monochange materializes complete before and after repository trees, runs every configured feature/target cell with an isolated Cargo target directory, and reports the cargo-semver-checks version, exact cell inputs, status, outcome, minimum bump, lint ids, lint titles, and authoritative references. Any proven break proposes `major`, while failed or skipped cells preserve the conservative syntax fallback and require review. A complete non-breaking matrix can replace syntax-derived modifications and removals; added public syntax remains `minor` evidence because cargo-semver-checks does not enable every additive lint by default.
+
+The change-classification JSON schema is now version `3`. Each finding's `coverage` may include a `checks` array with machine-readable analyzer sub-checks. Pull request comments and text reports render the same cell outcomes and diagnostic summaries.
+
+`monochange_core::EcosystemSettings` now includes `semver_checks`, and `monochange_cargo::CargoSemanticAnalyzer` is no longer a unit struct. Construct it with `monochange_cargo::semantic_analyzer()` for the disabled default or `monochange_cargo::semantic_analyzer_with_settings(settings)` for an explicit matrix.
+
+cargo-semver-checks executes Cargo builds at both endpoints, including build scripts and procedural macros. Run semantic classification only for code you are prepared to execute and without elevated CI or publishing credentials.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #673](https://github.com/monochange/monochange/pull/673)
+
+#### Keep release notes structured until their output format is known
+
+JSON release-note artifacts now expose summaries, Markdown details, package labels, change types, bump severity, streams, layout, and provenance as separate fields. Text artifacts render those fields directly without Markdown emphasis, while Markdown uses compact list entries for routine changes and expanded sections for breaking changes, migrations, code blocks, and multi-paragraph explanations.
+
+Package changelogs omit their own package label. Group and workspace changelogs retain package labels so readers can see where each change applies. The built-in section names no longer include emoji; repositories can still opt in by putting emoji in configured section headings.
+
+The public document types remain source-compatible through a default generic entry type. Callers can opt into structured entries and convert them for an adapter that still expects Markdown strings:
+
+```rust
+// Before: entries were rendered before choosing JSON or text.
+let notes: ReleaseNotesDocument = ReleaseNotesDocument {
+    title: "1.2.3".into(),
+    summary: vec![],
+    sections: vec![ReleaseNotesSection {
+        title: "Fixes".into(),
+        collapsed: false,
+        entries: vec!["- Keep JSON failures non-zero".into()],
+    }],
+};
+
+// After: the existing form still works, while typed entries are available.
+let notes: ReleaseNotesDocument<ReleaseNotesEntry> = ReleaseNotesDocument {
+    title: "1.2.3".into(),
+    summary: vec![],
+    sections: vec![ReleaseNotesSection {
+        title: "Fixes".into(),
+        collapsed: false,
+        entries: vec![ReleaseNotesEntry {
+            summary: "Keep JSON failures non-zero".into(),
+            details_markdown: Some("CI can trust the exit status.".into()),
+            packages: vec![],
+            change_type: Some("fix".into()),
+            bump: BumpSeverity::Patch,
+            stream: "default".into(),
+            style: ReleaseNoteEntryStyle::Compact,
+            provenance: ReleaseNoteProvenance::default(),
+        }],
+    }],
+};
+let legacy = notes.to_legacy_markdown(&ChangelogStyle::default());
+```
+
+The `changesets/recommended` preset now requires an H1 source summary and rejects a first description sentence that merely repeats it. Enable the standalone check with `"changesets/summary-description" = "error"` when not using the preset.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #668](https://github.com/monochange/monochange/pull/668)
+
+### 🐛 Fixed
+
+#### refresh docs and validate doc samples in tests
+
+Every crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.
+
+Documentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.
+
+Command references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.
+
+New doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)
+
+#### Raise the default publish timeout from 60 to 300 seconds
+
+`cargo publish` waits for crates.io's server-side verification to complete, and that can take minutes when the registry queue is backed up. During the monosecret v0.3.3 release, `cargo publish --locked -p monosecret` needed ~4 minutes and exhausted all three 60-second attempts, failing the release's publish step (and skipping `monosecret_derive`, which depends on the crate being present first).
+
+The default `publish.timeout.timeout_seconds` is now `300` seconds. The timeout is a ceiling, not a delay: publishes that finish quickly are unaffected, while slow registries no longer report spurious failures (or leave a package unpublished after a run that actually succeeded server-side).
+
+The schema default is part of the published contract, so the release-record and configuration schemas advance to `v0.6`; the `0.5` → `0.6` migration edge accepts existing records unchanged. Override the default per ecosystem or per package, and set `timeout_seconds = 0` to disable the timeout entirely:
+
+```toml
+[ecosystems.cargo.publish.timeout]
+timeout_seconds = 300
+retries = 2
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #671](https://github.com/monochange/monochange/pull/671) · _Related issues:_ [#630](https://github.com/monochange/monochange/issues/630)
+
 ## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
 
 ### 💥 Breaking Change
