@@ -176,6 +176,22 @@ Example:
 >
 > Rename every `[[workflows]]` table to `[cli.<command>]` and move `[[workflows.steps]]` entries to `[[cli.<command>.steps]]`.
 
+### Version migration guides
+
+A version whose release contains breaking changes ships a migration guide, so readers upgrade from one document instead of reconstructing steps from changelog entries:
+
+- File: `docs/src/guide/migrations/<version>.md` (for example `docs/src/guide/migrations/0.11.md`), added to the "Migration guides" part in `docs/src/SUMMARY.md`, newest first.
+- Add or update the version guide in the same PR that introduces the breaking change. Never defer it to a later PR.
+- Group entries by audience: CLI behaviour first, then configuration and machine-readable schemas, then library APIs.
+- Each entry states who is affected, what changed, and the exact update step with before/after examples.
+- Reference the guide from the breaking changeset so release notes link the two:
+
+  > **Breaking change:** the default command result is now text.
+  >
+  > Parsers must request `--format json` or `--format json-min`. See `docs/src/guide/migrations/0.11.md`.
+
+Feature releases without breaking changes and patch releases do not get a guide.
+
 ## GUI / app changes
 
 For graphical or browser-based interfaces, embed a screenshot or screen recording link when one is available. If screenshots are not feasible, describe the visual change in enough detail that a user can identify the affected UI element and understand what it looks like now.

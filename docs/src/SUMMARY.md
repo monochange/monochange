@@ -15,13 +15,18 @@
 - [Advanced: Trusted publishing and OIDC](guide/07-trusted-publishing.md)
 - [Advanced: GitHub automation](guide/08-github-automation.md)
 - [Advanced: Assistant setup and MCP](guide/09-assistant-setup.md)
-- [Migrating from knope](guide/10-migrating-from-knope.md)
 - [Advanced: Diagnostics](guide/11-diagnostics.md)
 - [Advanced: Repairable releases](guide/12-repairable-releases.md)
 - [Advanced: CI, package publishing, and release PR flows](guide/13-ci-and-publishing.md)
 - [Advanced: Multi-package publishing patterns](guide/14-multi-package-publishing.md)
 - [Advanced: Publish rate-limit planning](guide/15-publish-rate-limits.md)
-- [Migrating CLI automation to the nested command API](guide/16-cli-command-migration.md)
+
+# Migration guides
+
+- [About migration guides](guide/migrations/index.md)
+- [Upgrading to 0.11](guide/migrations/0.11.md)
+- [Upgrading to 0.9: the nested command API](guide/migrations/0.9-cli-command-api.md)
+- [Migrating from knope](guide/migrations/from-knope.md)
 
 # Reference
 

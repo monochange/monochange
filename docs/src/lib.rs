@@ -35,7 +35,7 @@ doc_comment::doctest!("guide/05-version-groups.md");
 doc_comment::doctest!("guide/06-release-planning.md");
 doc_comment::doctest!("guide/08-github-automation.md");
 doc_comment::doctest!("guide/09-assistant-setup.md");
-doc_comment::doctest!("guide/10-migrating-from-knope.md");
+doc_comment::doctest!("guide/migrations/from-knope.md");
 doc_comment::doctest!("guide/11-diagnostics.md");
 doc_comment::doctest!("guide/12-repairable-releases.md");
 doc_comment::doctest!("reference/progress-output.md");
