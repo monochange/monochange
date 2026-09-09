@@ -468,7 +468,11 @@ pub(crate) fn build_change_classification_report(
 			continue;
 		}
 
-		let release_identity = configuration.effective_release_identity(&package_id);
+		let release_identity = pull_request
+			.package_analyses
+			.get(&package_id)
+			.and_then(|analysis| analysis.release_identity.clone())
+			.or_else(|| configuration.effective_release_identity(&package_id));
 		let latest_release = match &options.release {
 			Some(release) => Some(release.clone()),
 			None => {
@@ -1231,6 +1235,11 @@ fn collect_findings(
 			.unwrap_or("monochange/unknown-analyzer");
 
 		for change in &package.semantic_changes {
+			let analyzer_id = if change.category == SemanticChangeCategory::Package {
+				"monochange/package-lifecycle"
+			} else {
+				analyzer_id
+			};
 			let base_id = finding_id(analyzer_id, change);
 			let pending = grouped
 				.entry(base_id)
@@ -1337,6 +1346,7 @@ fn finding_from_semantic_change(
 ) -> ClassificationFinding {
 	let bump = monochange_semver::semantic_change_severity(change);
 	let impact = compatibility_impact(change.category, change.kind);
+	let package_lifecycle = change.category == SemanticChangeCategory::Package;
 	let surface = semantic_category_name(change.category).to_string();
 	let change_name = semantic_kind_name(change.kind).to_string();
 	let rule_id = format!("{analyzer_id}/{surface}/{change_name}/{}", change.item_kind);
@@ -1348,14 +1358,22 @@ fn finding_from_semantic_change(
 		change: change_name,
 		impact,
 		bump,
-		confidence: ClassificationConfidence::Medium,
+		confidence: if package_lifecycle {
+			ClassificationConfidence::High
+		} else {
+			ClassificationConfidence::Medium
+		},
 		analyzer: FindingAnalyzer {
 			id: analyzer_id.to_string(),
 			version: ANALYZER_VERSION.to_string(),
 		},
 		coverage: FindingCoverage {
 			detection_level,
-			completeness: AnalysisCompleteness::Partial,
+			completeness: if package_lifecycle {
+				AnalysisCompleteness::Complete
+			} else {
+				AnalysisCompleteness::Partial
+			},
 			note: analyzer_coverage_note(analyzer_id).to_string(),
 		},
 		before: change.before_signature.clone(),
@@ -1372,11 +1390,15 @@ fn compatibility_impact(
 ) -> CompatibilityImpact {
 	match (category, kind) {
 		(
-			SemanticChangeCategory::PublicApi | SemanticChangeCategory::Export,
+			SemanticChangeCategory::Package
+			| SemanticChangeCategory::PublicApi
+			| SemanticChangeCategory::Export,
 			SemanticChangeKind::Removed | SemanticChangeKind::Modified,
 		) => CompatibilityImpact::Breaking,
 		(
-			SemanticChangeCategory::PublicApi | SemanticChangeCategory::Export,
+			SemanticChangeCategory::Package
+			| SemanticChangeCategory::PublicApi
+			| SemanticChangeCategory::Export,
 			SemanticChangeKind::Added,
 		) => CompatibilityImpact::Additive,
 		(SemanticChangeCategory::Dependency | SemanticChangeCategory::Metadata, _) => {
@@ -1390,6 +1412,7 @@ fn compatibility_impact(
 
 fn semantic_category_name(category: SemanticChangeCategory) -> &'static str {
 	match category {
+		SemanticChangeCategory::Package => "package",
 		SemanticChangeCategory::PublicApi => "public_api",
 		SemanticChangeCategory::Export => "export",
 		SemanticChangeCategory::Dependency => "dependency",
@@ -1412,6 +1435,9 @@ fn semantic_kind_name(kind: SemanticChangeKind) -> &'static str {
 }
 
 fn analyzer_coverage_note(analyzer_id: &str) -> &'static str {
+	if analyzer_id == "monochange/package-lifecycle" {
+		return "package manifest presence was compared at both endpoints";
+	}
 	if analyzer_id.starts_with("cargo/") {
 		return "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete";
 	}
@@ -1508,10 +1534,15 @@ fn build_recommendation(
 		.map(|finding| finding.confidence)
 		.max()
 		.unwrap_or(ClassificationConfidence::High);
-	let completeness = if has_current_changes {
-		AnalysisCompleteness::Partial
-	} else {
+	let has_conclusive_major = current.iter().any(|finding| {
+		finding.bump == BumpSeverity::Major
+			&& finding.confidence == ClassificationConfidence::High
+			&& finding.coverage.completeness == AnalysisCompleteness::Complete
+	});
+	let completeness = if !has_current_changes || has_conclusive_major {
 		AnalysisCompleteness::Complete
+	} else {
+		AnalysisCompleteness::Partial
 	};
 	let review_required = completeness != AnalysisCompleteness::Complete
 		|| compatibility_impact == CompatibilityImpact::Unknown;

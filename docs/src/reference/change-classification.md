@@ -35,7 +35,7 @@ Each package has a `decision` object with these fields:
 
 `proposedChangesetBump` describes the current pull request. `releaseFloor` describes the complete unreleased interval. A pull request can propose `patch` while the release floor is `major` because an earlier merged pull request introduced the breaking change.
 
-`none` is conclusive only when `completeness` is `complete` and `reviewRequired` is `false`. A changed package without modeled semantic evidence receives a low-confidence `patch` proposal instead of a false `none` result.
+`none` is conclusive only when `completeness` is `complete` and `reviewRequired` is `false`. A changed package without modeled semantic evidence receives a low-confidence `patch` proposal instead of a false `none` result. A high-confidence `major` finding also makes the bump decision complete because no unmodeled finding can require a higher bump.
 
 The package-level `action` is `create`, `update`, `keep`, `review`, or `no_changeset`. The report includes packages targeted only by a pending changeset and marks them `review`; a changeset can intentionally describe a consumer-facing effect implemented in another package, so monochange does not assume that unmatched intent is stale. Public dependency propagation retains the dependent package's release owner, comparisons, and existing changesets.
 
@@ -45,11 +45,13 @@ Each finding records its `ruleId`, API surface, change kind, compatibility impac
 
 Identical evidence found in several comparisons shares one finding and lists every comparison. If the same item has different before or after signatures across the pull-request and release intervals, monochange emits distinct comparison-qualified finding ids so that an agent never applies one interval's signature evidence to another interval.
 
-The built-in Cargo, npm, Deno, and Dart analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. For example, the Rust analyzer does not model every `cfg` and feature combination, trait compatibility rule, or downstream build witness. The TypeScript and JavaScript analyzer does not yet run the TypeScript assignability checker for every exported entrypoint.
+monochange compares package manifests at both endpoints. Adding or removing a package produces a `monochange/package-lifecycle` finding with `complete` coverage and high confidence. Removing a package proposes `major`, even when the package has no modeled public symbols. Adding one proposes `minor`.
+
+The built-in Cargo, npm, Deno, and Dart source analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. For example, the Rust analyzer does not model every `cfg` and feature combination, trait compatibility rule, or downstream build witness. The TypeScript and JavaScript analyzer does not yet run the TypeScript assignability checker for every exported entrypoint.
 
 When the repository defines `[package.*]` entries, classification is limited to those configured packages. Package `additional_paths` and `ignored_paths`, plus `[changesets.affected].ignored_paths`, use the same path policy as changeset coverage. This keeps fixtures, tests, generated output, and other explicitly ignored paths from producing release recommendations.
 
-Package discovery reads the candidate checkout. If a pull request removes an entire package, including its manifest, monochange cannot reconstruct that package's identity from the current checkout. Treat a deleted manifest as a manual-review signal and compare the package from the base or release ref before choosing its final changeset.
+Package discovery reads both comparison endpoints and joins packages by ecosystem and repository-relative manifest path. A package that exists only in the base remains in the report with its baseline package id, path policy, release owner, and tag format. Its before snapshot contains the package files, and its after snapshot is empty. This behavior also applies when the pull request removes the package's `[package.*]` entry from `monochange.toml`.
 
 For a higher-assurance Rust check, run cargo-semver-checks against the resolved release tag and the current manifest:
 

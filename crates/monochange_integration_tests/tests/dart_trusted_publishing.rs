@@ -136,6 +136,9 @@ fn spawn_endpoint_server(oidc_response: Option<String>) -> MockServer {
 				std::thread::sleep(Duration::from_millis(5));
 				continue;
 			};
+			// The listener is nonblocking so shutdown can be polled. Each accepted
+			// connection must use blocking I/O for the complete request/response.
+			let _ = stream.set_nonblocking(false);
 			let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
 			let mut head = Vec::new();
 			let mut buffer = [0_u8; 4096];

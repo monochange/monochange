@@ -1,0 +1,4 @@
+[package]
+name = "retired"
+version = "1.0.0"
+edition = "2024"

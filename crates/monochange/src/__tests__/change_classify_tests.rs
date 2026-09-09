@@ -1006,6 +1006,7 @@ fn package_with_changes(
 		package_record_id: package_id.to_string(),
 		package_name: package_id.to_string(),
 		ecosystem: Ecosystem::Cargo,
+		release_identity: None,
 		analyzer_id: Some("cargo/public-api".to_string()),
 		changed_files: vec![PathBuf::from("src/lib.rs")],
 		semantic_changes,
@@ -1133,6 +1134,47 @@ fn semantic_finding_mapping_keeps_impact_and_evidence_separate() {
 		metadata_finding.confidence,
 		ClassificationConfidence::Medium
 	);
+}
+
+#[test]
+fn package_lifecycle_findings_are_complete_and_enforceable() {
+	let removed = SemanticChange {
+		category: SemanticChangeCategory::Package,
+		kind: SemanticChangeKind::Removed,
+		item_kind: "package".to_string(),
+		item_path: "retired".to_string(),
+		summary: "removed cargo package `retired`".to_string(),
+		file_path: PathBuf::from("Cargo.toml"),
+		before_signature: Some("cargo package `retired`".to_string()),
+		after_signature: None,
+	};
+	let finding = finding_from_semantic_change(
+		finding_id("monochange/package-lifecycle", &removed),
+		"monochange/package-lifecycle",
+		&removed,
+		monochange_analysis::DetectionLevel::Signature,
+	);
+
+	assert_eq!(finding.impact, CompatibilityImpact::Breaking);
+	assert_eq!(finding.bump, BumpSeverity::Major);
+	assert_eq!(finding.confidence, ClassificationConfidence::High);
+	assert_eq!(
+		finding.coverage.completeness,
+		AnalysisCompleteness::Complete
+	);
+	assert_eq!(finding.surface, "package");
+	let mut finding = finding;
+	finding.comparisons.insert(ComparisonKind::PullRequest);
+	let decision = build_recommendation(&[finding.clone()], true, false);
+	assert_eq!(decision.enforceable_minimum, BumpSeverity::Major);
+	assert_eq!(decision.completeness, AnalysisCompleteness::Complete);
+	assert!(!decision.review_required);
+
+	finding.coverage.completeness = AnalysisCompleteness::Partial;
+	let partial_decision = build_recommendation(&[finding], true, false);
+	assert_eq!(partial_decision.enforceable_minimum, BumpSeverity::Major);
+	assert_eq!(partial_decision.completeness, AnalysisCompleteness::Partial);
+	assert!(partial_decision.review_required);
 }
 
 #[test]

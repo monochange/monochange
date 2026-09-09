@@ -1,0 +1,10 @@
+[package.retired]
+path = "crates/retired"
+type = "cargo"
+tag = true
+
+[package.retired_js]
+path = "packages/retired-js"
+type = "npm"
+tag = true
+version_format = "namespaced"

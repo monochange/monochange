@@ -492,6 +492,11 @@ fn semantic_change(
 
 #[test]
 fn semantic_change_severity_maps_public_api_breaks_to_major() {
+	let removed_package = semantic_change(
+		SemanticChangeCategory::Package,
+		SemanticChangeKind::Removed,
+		"removed package",
+	);
 	let removed = semantic_change(
 		SemanticChangeCategory::PublicApi,
 		SemanticChangeKind::Removed,
@@ -503,12 +508,21 @@ fn semantic_change_severity_maps_public_api_breaks_to_major() {
 		"modified export signature",
 	);
 
+	assert_eq!(
+		semantic_change_severity(&removed_package),
+		BumpSeverity::Major
+	);
 	assert_eq!(semantic_change_severity(&removed), BumpSeverity::Major);
 	assert_eq!(semantic_change_severity(&modified), BumpSeverity::Major);
 }
 
 #[test]
 fn semantic_change_severity_maps_additions_to_minor_and_metadata_to_patch() {
+	let added_package = semantic_change(
+		SemanticChangeCategory::Package,
+		SemanticChangeKind::Added,
+		"added package",
+	);
 	let added = semantic_change(
 		SemanticChangeCategory::PublicApi,
 		SemanticChangeKind::Added,
@@ -520,6 +534,10 @@ fn semantic_change_severity_maps_additions_to_minor_and_metadata_to_patch() {
 		"changed package metadata",
 	);
 
+	assert_eq!(
+		semantic_change_severity(&added_package),
+		BumpSeverity::Minor
+	);
 	assert_eq!(semantic_change_severity(&added), BumpSeverity::Minor);
 	assert_eq!(semantic_change_severity(&metadata), BumpSeverity::Patch);
 }
