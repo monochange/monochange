@@ -238,6 +238,7 @@ fn release_record_rust_migration_edges_are_explicit_and_ordered() {
 			(SchemaVersion::new(0, 2), SchemaVersion::new(0, 3)),
 			(SchemaVersion::new(0, 3), SchemaVersion::new(0, 4)),
 			(SchemaVersion::new(0, 4), SchemaVersion::new(0, 5)),
+			(SchemaVersion::new(0, 5), SchemaVersion::new(0, 6)),
 		]
 	);
 }
@@ -274,7 +275,7 @@ fn release_record_v0_4_migration_adds_default_output_identity() {
 	}))
 	.unwrap_or_else(|error| panic!("migrate v0.4 release record: {error}"));
 
-	assert_eq!(migrated["schema_version"], json!("0.5"));
+	assert_eq!(migrated["schema_version"], json!("0.6"));
 	assert_eq!(migrated["changelogs"][0]["output"], json!("default"));
 	assert_eq!(migrated["changelogs"][0]["stream"], json!("default"));
 	assert_eq!(migrated["changelogs"][1]["output"], json!("user"));
@@ -286,12 +287,12 @@ fn release_record_v0_4_migration_adds_default_output_identity() {
 fn release_record_rust_migration_edges_reject_missing_paths() {
 	let mut value = json!({
 		"kind": release_record::KIND,
-		"schema_version": "0.5"
+		"schema_version": "0.6"
 	});
 	let error = migrations::apply_release_record_edges(
 		&mut value,
-		SchemaVersion::new(0, 5),
 		SchemaVersion::new(0, 6),
+		SchemaVersion::new(0, 7),
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected missing migration path error"));
@@ -300,8 +301,8 @@ fn release_record_rust_migration_edges_reject_missing_paths() {
 		error,
 		SchemaError::MissingMigrationPath {
 			artifact: release_record::KIND,
-			from: SchemaVersion { major: 0, minor: 5 },
-			to: SchemaVersion { major: 0, minor: 6 },
+			from: SchemaVersion { major: 0, minor: 6 },
+			to: SchemaVersion { major: 0, minor: 7 },
 		}
 	));
 }

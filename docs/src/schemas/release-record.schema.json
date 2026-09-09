@@ -583,7 +583,7 @@
 					"type": "integer"
 				},
 				"timeout_seconds": {
-					"default": 600,
+					"default": 300,
 					"format": "uint64",
 					"minimum": 0,
 					"type": "integer"
@@ -878,7 +878,7 @@
 			"type": "array"
 		},
 		"schema_version": {
-			"default": "0.5",
+			"default": "0.6",
 			"type": "string"
 		},
 		"updated_changelogs": {
