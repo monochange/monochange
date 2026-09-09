@@ -583,7 +583,7 @@
 					"type": "integer"
 				},
 				"timeout_seconds": {
-					"default": 60,
+					"default": 600,
 					"format": "uint64",
 					"minimum": 0,
 					"type": "integer"
