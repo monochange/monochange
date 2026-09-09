@@ -42,6 +42,76 @@ fn package_analysis_context_exposes_package_root() {
 }
 
 #[test]
+fn semantic_change_assessment_serializes_analyzer_provenance_and_fallback() {
+	let evidence = SemanticAnalyzerEvidence::new(
+		"npm/typescript",
+		"typescript",
+		SemanticAnalysisCompleteness::Partial,
+		"the root export could not emit declarations",
+	)
+	.with_version("6.0.3")
+	.with_fallback_reason("tsconfig.json extends an unavailable file");
+	let assessment = SemanticChangeAssessment::new(
+		SemanticAnalysisOutcome::Inconclusive,
+		BumpSeverity::Patch,
+		ApiConfidence::Low,
+		evidence,
+	);
+	let json = serde_json::to_value(&assessment)
+		.unwrap_or_else(|error| panic!("serialize semantic assessment: {error}"));
+
+	assert_eq!(json["outcome"], "inconclusive");
+	assert_eq!(json["suggestedBump"], "patch");
+	assert_eq!(json["evidence"]["analyzerId"], "npm/typescript");
+	assert_eq!(json["evidence"]["engine"], "typescript");
+	assert_eq!(json["evidence"]["version"], "6.0.3");
+	assert_eq!(json["evidence"]["completeness"], "partial");
+	assert_eq!(
+		json["evidence"]["fallbackReason"],
+		"tsconfig.json extends an unavailable file"
+	);
+}
+
+#[test]
+fn semantic_change_builder_attaches_optional_evidence() {
+	let assessment = SemanticChangeAssessment::new(
+		SemanticAnalysisOutcome::Breaking,
+		BumpSeverity::Major,
+		ApiConfidence::High,
+		SemanticAnalyzerEvidence::new(
+			"npm/typescript",
+			"typescript",
+			SemanticAnalysisCompleteness::Complete,
+			"all explicit exports",
+		),
+	);
+	let change = SemanticChange::new(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Modified,
+		"function",
+		".#parse",
+		"changed parse",
+		"dist/index.d.ts",
+	)
+	.with_before_signature("parse(value: string): string")
+	.with_after_signature("parse(value: number): string")
+	.with_assessment(assessment);
+
+	assert_eq!(
+		change.before_signature.as_deref(),
+		Some("parse(value: string): string")
+	);
+	assert_eq!(
+		change.after_signature.as_deref(),
+		Some("parse(value: number): string")
+	);
+	assert_eq!(
+		change.assessment.map(|value| value.suggested_bump),
+		Some(BumpSeverity::Major)
+	);
+}
+
+#[test]
 fn api_snapshot_sorts_items_for_stable_json_output() {
 	let snapshot = ApiSnapshot::new(
 		"core",

@@ -1,0 +1,97 @@
+---
+source: crates/monochange_npm/src/__tests__/analysis_tests.rs
+expression: "if signatures.is_empty() { \"[no changed signatures]\" } else { &signatures }"
+---
+.#Box
+BEFORE
+export interface Box<T> {
+    value: T;
+}
+AFTER
+export interface Box<T extends string> {
+    value: T;
+}
+
+.#Locked
+BEFORE
+export interface Locked {
+    readonly value: string;
+}
+AFTER
+export interface Locked {
+    value: string;
+}
+
+.#Mutable
+BEFORE
+export interface Mutable {
+    value: string;
+}
+AFTER
+export interface Mutable {
+    readonly value: string;
+}
+
+.#Options
+BEFORE
+export interface Options {
+    strict: boolean;
+}
+AFTER
+export interface Options {
+    cache?: boolean;
+    strict: boolean;
+}
+
+.#Scalar
+BEFORE
+export type Scalar = string | number;
+AFTER
+export type Scalar = string;
+
+.#Client
+BEFORE
+export declare class Client {
+    request(path: string): Promise<string>;
+}
+AFTER
+export declare class Client {
+    request(path: string): Promise<string>;
+    close(): void;
+}
+
+.#Mode
+BEFORE
+export declare enum Mode {
+    Fast = 0
+}
+AFTER
+export declare enum Mode {
+    Fast = 0,
+    Safe = 1
+}
+
+.#choose
+BEFORE
+export declare function choose(): string;
+AFTER
+export declare function choose(): "default";
+
+.#configure
+BEFORE
+export declare function configure(value: string): void;
+AFTER
+export declare function configure(value: string, options?: Options): void;
+
+.#format
+BEFORE
+export declare function format(value: string): string;
+AFTER
+export declare function format(value: string): number;
+
+.#parse
+BEFORE
+export declare function parse(value: string): string;
+AFTER
+export declare function parse(value: string): string;
+export declare function parse(value: number): number;

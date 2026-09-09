@@ -68,6 +68,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 typed-builder = { version = "0.23.2", default-features = false }
 urlencoding = { version = "2", default-features = false }
 walkdir = { version = "2", default-features = false }
+wait-timeout = { version = "0.2", default-features = false }
 
 # Internal crates
 monochange = { version = "0.10.0", path = "./crates/monochange" }

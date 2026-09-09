@@ -1,0 +1,4 @@
+{
+	"name": "@fixture/declaration-only",
+	"types": "./index.d.ts"
+}

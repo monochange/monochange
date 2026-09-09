@@ -10,6 +10,7 @@ use monochange_core::BumpSeverity;
 use monochange_core::ChangeSignal;
 use monochange_core::CompatibilityAssessment;
 use monochange_core::PackageRecord;
+use monochange_core::SemanticAnalysisOutcome;
 use monochange_core::SemanticChange;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
@@ -131,6 +132,16 @@ pub fn propagated_release_severity(
 #[must_use]
 #[rustfmt::skip]
 pub fn semantic_change_severity(change: &SemanticChange) -> BumpSeverity {
+	if let Some(assessment) = &change.assessment {
+		let outcome_floor = match assessment.outcome {
+			SemanticAnalysisOutcome::Breaking => BumpSeverity::Major,
+			SemanticAnalysisOutcome::Additive => BumpSeverity::Minor,
+			SemanticAnalysisOutcome::Compatible => BumpSeverity::None,
+			_ => BumpSeverity::Patch,
+		};
+		return merge_severities(outcome_floor, assessment.suggested_bump);
+	}
+
 	if matches!(
 		(change.category, change.kind),
 		(

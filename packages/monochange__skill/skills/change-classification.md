@@ -8,10 +8,10 @@ Use this workflow before you create or edit a changeset for code, configuration,
 2. Run the canonical JSON command from the repository root:
 
    ```bash
-   monochange change classify --format json --dependency-propagation public
+   monochange change classify --detection-level semantic --format json --dependency-propagation public
    ```
 
-3. If the CLI is unavailable and the monochange MCP server is configured, call `monochange_classify_changes` with `packages: []`, `detection_level: "signature"`, `include_unchanged: false`, and `dependency_propagation: "public"`.
+3. If the CLI is unavailable and the monochange MCP server is configured, call `monochange_classify_changes` with `packages: []`, `detection_level: "semantic"`, `include_unchanged: false`, and `dependency_propagation: "public"`.
 4. Read every returned package. Finish only after each affected package has release intent or a documented review decision.
 
 The command detects the remote default branch. Pass `--base <ref>` only when the detected branch is wrong. Pass `--release <ref>` to reproduce a known release baseline. Use repeated `--package <id-or-name>` flags only to narrow an investigation; classify the full change before final validation.
@@ -30,7 +30,7 @@ Interpret the remaining fields together:
 
 - `compatibilityImpact: breaking` means a caller can require migration. Write a dedicated major changeset with the old and new usage.
 - `compatibilityImpact: additive` means the public surface grew compatibly. Start with a minor changeset.
-- `compatibilityImpact: compatible` means the modeled change is suitable for a patch.
+- `compatibilityImpact: compatible` means the modeled public contract remains compatible. Use `proposedChangesetBump`: `none` means no declaration-driven bump, while a future analyzer may still recommend `patch` for compatible behavior.
 - `compatibilityImpact: unknown` means the built-in analyzer could not classify the surface. Inspect the diff before choosing a bump.
 - `reviewRequired: true` means the recommendation is advisory. Keep the proposed bump unless repository policy or stronger evidence justifies another choice.
 - `completeness: complete` with `proposedChangesetBump: none` supports no release intent. A warning, unavailable comparison, or partial result requires review.
@@ -41,7 +41,20 @@ A `monochange/package-lifecycle` finding comes from manifest presence at both co
 
 ## Check ecosystem coverage
 
-Package lifecycle findings are high-confidence and complete. Built-in Cargo, npm, Deno, and Dart source findings are medium-confidence and partial. The source analyzers model syntax and package metadata, but they do not prove every source-compatible behavior.
+Package lifecycle findings are high-confidence and complete. Built-in Cargo, JavaScript, Deno, and Dart source findings are medium-confidence and partial. The source analyzers model syntax and package metadata, but they do not prove every source-compatible behavior.
+
+For a TypeScript package, install `node`, the workspace's `typescript` compiler, and the package dependencies. Then use `detection_level: "semantic"`. monochange emits declarations independently for the before and after snapshots, resolves explicit `exports`, `types`, and `typings` entrypoints, and asks TypeScript to check consumer assignability.
+
+Read these fields on every TypeScript finding:
+
+- `analyzer.id: "npm/typescript"` confirms declaration comparison ran.
+- `analyzer.engine` and `analyzer.version` identify the compiler that produced the evidence.
+- `coverage.completeness: "complete"` means every explicit typed entrypoint in the declared scope was checked.
+- `coverage.fallbackReason` explains missing config, dependencies, wildcard exports, or identity-sensitive declarations.
+
+Treat a complete TypeScript `breaking` result as major and an `additive` result as minor. A complete `compatible` result can support `none` for declaration impact, but it does not prove runtime behavior. Review implementation semantics, side effects, and dynamic entrypoints separately. Keep `patch` and `reviewRequired: true` when the result is inconclusive.
+
+Inherited config and dependency declarations may only exist in the current checkout rather than both Git snapshots. monochange uses them to keep the comparison useful but marks that evidence partial. Changed generic declarations and classes with private or protected members are also inconclusive when cross-snapshot identity prevents a sound comparison. Never upgrade partial evidence to complete from the absence of a diagnostic.
 
 For a Rust breaking-change decision that needs stronger evidence, run cargo-semver-checks with the release tag from `releaseOwner.latestRelease`:
 
@@ -53,7 +66,7 @@ cargo semver-checks check-release \
 
 Run the feature and target combinations that the crate supports. Reconcile cargo-semver-checks diagnostics with monochange findings. A clean run only covers the chosen configuration.
 
-For TypeScript or JavaScript, inspect every published entrypoint and generated declaration. Check assignability when a parameter, return type, generic constraint, overload, export condition, or module format changed. For Rust, inspect `cfg`, features, traits, impls, and re-exports that are outside the analyzer's coverage note.
+For JavaScript-only packages, inspect every published entrypoint manually. For TypeScript, inspect runtime behavior plus every fallback named in the report. For Rust, inspect `cfg`, features, traits, impls, and re-exports that are outside the analyzer's coverage note.
 
 ## Write and validate release intent
 
@@ -89,11 +102,12 @@ steps:
   - id: classify
     uses: monochange/actions/change-classification@v0
     with:
+      detection-level: semantic
       dependency-propagation: public
 ```
 
 Keep `fetch-depth: 0` so the classifier can resolve the merge base, default branch, and release tags. Check out the pull request head SHA so the candidate excludes GitHub's synthetic test-merge commit.
 
-The action writes the full report to the job summary and exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. With `post-comment: true`, it also updates one marker comment rather than adding a new comment on every run. Treat `recommendation` as a routing hint only: read `json` and resolve every package whose `reviewRequired` is true before writing its changeset. Comment creation is best-effort so fork pull requests with read-only tokens still produce outputs and a job summary.
+Install repository dependencies before the classification step when TypeScript packages publish declarations. The action writes the full report to the job summary and exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. With `post-comment: true`, it also updates one marker comment rather than adding a new comment on every run. The comment includes analyzer engine, version, completeness, coverage, and fallback reasons beneath each finding. Treat `recommendation` as a routing hint only: read `json` and resolve every package whose `reviewRequired` is true before writing its changeset. Comment creation is best-effort so fork pull requests with read-only tokens still produce outputs and a job summary.
 
 Until a monochange CLI release containing `change classify` is installed by the action, preinstall a compatible build and pass `setup-monochange: false`, or pass the executable command through `setup-monochange`.

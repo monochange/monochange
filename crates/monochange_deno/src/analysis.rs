@@ -384,16 +384,17 @@ fn build_manifest_change(
 		"modified"
 	};
 
-	SemanticChange {
+	let mut change = SemanticChange::new(
 		category,
 		kind,
-		item_kind: entry.item_kind.clone(),
-		item_path: item_path.to_string(),
-		summary: format!("{} `{}` {verb}", entry.item_kind, item_path),
-		file_path: file_path.to_path_buf(),
-		before_signature,
-		after_signature,
-	}
+		entry.item_kind.clone(),
+		item_path,
+		format!("{} `{}` {verb}", entry.item_kind, item_path),
+		file_path,
+	);
+	change.before_signature = before_signature;
+	change.after_signature = after_signature;
+	change
 }
 
 fn describe_json_value(value: &Value) -> String {

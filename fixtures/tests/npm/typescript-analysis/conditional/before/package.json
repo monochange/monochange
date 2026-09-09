@@ -1,0 +1,19 @@
+{
+	"name": "@fixture/conditional",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./feature": {
+			"import": {
+				"types": "./dist/feature.d.mts",
+				"default": "./dist/feature.mjs"
+			},
+			"require": {
+				"types": "./dist/feature.d.cts",
+				"default": "./dist/feature.cjs"
+			}
+		}
+	}
+}

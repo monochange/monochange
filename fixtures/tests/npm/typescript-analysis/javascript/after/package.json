@@ -1,0 +1,5 @@
+{
+	"name": "@fixture/javascript",
+	"exports": "./src/index.js",
+	"type": "module"
+}

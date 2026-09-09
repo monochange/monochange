@@ -1,0 +1,4 @@
+{
+	"name": "@fixture/transitive",
+	"types": "./dist/index.d.ts"
+}

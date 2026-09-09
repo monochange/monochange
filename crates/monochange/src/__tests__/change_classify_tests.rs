@@ -950,6 +950,44 @@ fn markdown_report_is_agent_readable() {
 	assert!(markdown.contains("Recommended bump: `minor`"));
 	assert!(markdown.contains("### `ui`"));
 	assert!(markdown.contains("Review required: `true`"));
+	assert!(markdown.contains("Evidence: cargo/public-api 1; coverage partial"));
+}
+
+#[test]
+fn markdown_report_surfaces_semantic_engine_and_fallback_evidence() {
+	let mut change = removed_api_change();
+	change.assessment = Some(monochange_core::SemanticChangeAssessment::new(
+		monochange_core::SemanticAnalysisOutcome::Inconclusive,
+		BumpSeverity::Patch,
+		monochange_core::ApiConfidence::Low,
+		monochange_core::SemanticAnalyzerEvidence::new(
+			"npm/typescript",
+			"typescript",
+			monochange_core::SemanticAnalysisCompleteness::Partial,
+			"syntax fallback",
+		)
+		.with_version("6.0.3")
+		.with_fallback_reason("tsconfig could not be resolved"),
+	));
+	let analysis = ChangeAnalysis {
+		frame: ChangeFrame::CustomRange {
+			base: "origin/main".to_string(),
+			head: "HEAD".to_string(),
+		},
+		detection_level: monochange_analysis::DetectionLevel::Semantic,
+		package_analyses: [("ui".to_string(), package_with_changes("ui", vec![change]))]
+			.into_iter()
+			.collect(),
+		warnings: Vec::new(),
+		packages: Vec::new(),
+	};
+	let report = classification_report(&analysis, DependencyPropagation::None);
+
+	let markdown = render_markdown_report(&report);
+
+	assert!(markdown.contains(
+		"Evidence: npm/typescript via typescript 6.0.3; coverage partial: syntax fallback; fallback: tsconfig could not be resolved"
+	));
 }
 
 #[test]
@@ -1049,66 +1087,62 @@ fn no_change_recommendation() -> ChangeRecommendation {
 }
 
 fn removed_api_change() -> SemanticChange {
-	SemanticChange {
-		category: SemanticChangeCategory::PublicApi,
-		kind: SemanticChangeKind::Removed,
-		item_kind: "function".to_string(),
-		item_path: "crate::old".to_string(),
-		summary: "removed public function `crate::old`".to_string(),
-		file_path: PathBuf::from("src/lib.rs"),
-		before_signature: Some("pub fn old()".to_string()),
-		after_signature: None,
-	}
+	SemanticChange::new(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Removed,
+		"function",
+		"crate::old",
+		"removed public function `crate::old`",
+		PathBuf::from("src/lib.rs"),
+	)
+	.with_before_signature("pub fn old()")
 }
 
 fn added_export_change() -> SemanticChange {
-	SemanticChange {
-		category: SemanticChangeCategory::Export,
-		kind: SemanticChangeKind::Added,
-		item_kind: "function".to_string(),
-		item_path: "render".to_string(),
-		summary: "added export `render`".to_string(),
-		file_path: PathBuf::from("src/index.ts"),
-		before_signature: None,
-		after_signature: Some("export function render()".to_string()),
-	}
+	SemanticChange::new(
+		SemanticChangeCategory::Export,
+		SemanticChangeKind::Added,
+		"function",
+		"render",
+		"added export `render`",
+		PathBuf::from("src/index.ts"),
+	)
+	.with_after_signature("export function render()")
 }
 
 fn patch_dependency_change() -> SemanticChange {
-	SemanticChange {
-		category: SemanticChangeCategory::Dependency,
-		kind: SemanticChangeKind::Modified,
-		item_kind: "dependency".to_string(),
-		item_path: "serde".to_string(),
-		summary: "changed dependency `serde`".to_string(),
-		file_path: PathBuf::from("Cargo.toml"),
-		before_signature: Some("serde = 1".to_string()),
-		after_signature: Some("serde = 1.0.1".to_string()),
-	}
+	SemanticChange::new(
+		SemanticChangeCategory::Dependency,
+		SemanticChangeKind::Modified,
+		"dependency",
+		"serde",
+		"changed dependency `serde`",
+		PathBuf::from("Cargo.toml"),
+	)
+	.with_before_signature("serde = 1")
+	.with_after_signature("serde = 1.0.1")
 }
 
 #[test]
 fn semantic_finding_mapping_keeps_impact_and_evidence_separate() {
-	let modified = SemanticChange {
-		category: SemanticChangeCategory::Dependency,
-		kind: SemanticChangeKind::Modified,
-		item_kind: "dependency".to_string(),
-		item_path: "serde".to_string(),
-		summary: "changed dependency `serde`".to_string(),
-		file_path: PathBuf::from("Cargo.toml"),
-		before_signature: Some("serde = 1".to_string()),
-		after_signature: Some("serde = 2".to_string()),
-	};
-	let unchanged = SemanticChange {
-		category: SemanticChangeCategory::Metadata,
-		kind: SemanticChangeKind::Modified,
-		item_kind: "implementation".to_string(),
-		item_path: "crate::detail".to_string(),
-		summary: "changed internal implementation".to_string(),
-		file_path: PathBuf::from("src/lib.rs"),
-		before_signature: None,
-		after_signature: None,
-	};
+	let modified = SemanticChange::new(
+		SemanticChangeCategory::Dependency,
+		SemanticChangeKind::Modified,
+		"dependency",
+		"serde",
+		"changed dependency `serde`",
+		PathBuf::from("Cargo.toml"),
+	)
+	.with_before_signature("serde = 1")
+	.with_after_signature("serde = 2");
+	let unchanged = SemanticChange::new(
+		SemanticChangeCategory::Metadata,
+		SemanticChangeKind::Modified,
+		"implementation",
+		"crate::detail",
+		"changed internal implementation",
+		PathBuf::from("src/lib.rs"),
+	);
 
 	let dependency_finding = finding_from_semantic_change(
 		finding_id("cargo/public-api", &modified),
@@ -1137,17 +1171,126 @@ fn semantic_finding_mapping_keeps_impact_and_evidence_separate() {
 }
 
 #[test]
+fn semantic_finding_uses_explicit_analyzer_assessment() {
+	let mut change = removed_api_change();
+	change.kind = SemanticChangeKind::Modified;
+	change.summary = "implementation changed without changing declarations".to_string();
+	change.assessment = Some(monochange_core::SemanticChangeAssessment::new(
+		monochange_core::SemanticAnalysisOutcome::Compatible,
+		BumpSeverity::None,
+		monochange_core::ApiConfidence::High,
+		monochange_core::SemanticAnalyzerEvidence::new(
+			"npm/typescript",
+			"typescript",
+			monochange_core::SemanticAnalysisCompleteness::Complete,
+			"all explicit typed exports were checked",
+		)
+		.with_version("6.0.3"),
+	));
+
+	let finding = finding_from_semantic_change(
+		finding_id("npm/package-json", &change),
+		"npm/package-json",
+		&change,
+		monochange_analysis::DetectionLevel::Semantic,
+	);
+
+	assert_eq!(finding.impact, CompatibilityImpact::Compatible);
+	assert_eq!(finding.bump, BumpSeverity::None);
+	assert_eq!(finding.confidence, ClassificationConfidence::High);
+	assert_eq!(finding.analyzer.id, "npm/typescript");
+	assert_eq!(finding.analyzer.engine.as_deref(), Some("typescript"));
+	assert_eq!(finding.analyzer.version, "6.0.3");
+	assert_eq!(
+		finding.coverage.completeness,
+		AnalysisCompleteness::Complete
+	);
+	assert_eq!(
+		finding.coverage.note,
+		"all explicit typed exports were checked"
+	);
+	assert_eq!(finding.coverage.fallback_reason, None);
+	let mut current = finding;
+	current.comparisons.insert(ComparisonKind::PullRequest);
+	let decision = build_recommendation(&[current], true, false);
+	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::None);
+	assert_eq!(decision.completeness, AnalysisCompleteness::Complete);
+	assert!(!decision.review_required);
+}
+
+#[test]
+fn semantic_assessment_mapping_covers_every_current_evidence_variant() {
+	assert_eq!(
+		compatibility_impact_from_outcome(monochange_core::SemanticAnalysisOutcome::Additive),
+		CompatibilityImpact::Additive
+	);
+	assert_eq!(
+		compatibility_impact_from_outcome(monochange_core::SemanticAnalysisOutcome::Breaking),
+		CompatibilityImpact::Breaking
+	);
+	assert_eq!(
+		compatibility_impact_from_outcome(monochange_core::SemanticAnalysisOutcome::Inconclusive),
+		CompatibilityImpact::Unknown
+	);
+	assert_eq!(
+		classification_confidence(monochange_core::ApiConfidence::Medium),
+		ClassificationConfidence::Medium
+	);
+	assert_eq!(
+		classification_confidence(monochange_core::ApiConfidence::Low),
+		ClassificationConfidence::Low
+	);
+	assert_eq!(
+		analysis_completeness(monochange_core::SemanticAnalysisCompleteness::Partial),
+		AnalysisCompleteness::Partial
+	);
+	assert_eq!(
+		analysis_completeness(monochange_core::SemanticAnalysisCompleteness::Unsupported),
+		AnalysisCompleteness::Unsupported
+	);
+	assert_eq!(
+		analysis_completeness_name(AnalysisCompleteness::Complete),
+		"complete"
+	);
+	assert_eq!(
+		analysis_completeness_name(AnalysisCompleteness::Unsupported),
+		"unsupported"
+	);
+}
+
+#[test]
+fn finding_fingerprint_includes_the_semantic_assessment() {
+	let mut change = removed_api_change();
+	let without_assessment = FindingEvidenceKey::from(&change).stable_fingerprint();
+	change.assessment = Some(monochange_core::SemanticChangeAssessment::new(
+		monochange_core::SemanticAnalysisOutcome::Breaking,
+		BumpSeverity::Major,
+		monochange_core::ApiConfidence::High,
+		monochange_core::SemanticAnalyzerEvidence::new(
+			"npm/typescript",
+			"typescript",
+			monochange_core::SemanticAnalysisCompleteness::Complete,
+			"all exports",
+		),
+	));
+
+	assert_ne!(
+		FindingEvidenceKey::from(&change).stable_fingerprint(),
+		without_assessment
+	);
+}
+
+#[test]
 fn package_lifecycle_findings_are_complete_and_enforceable() {
-	let removed = SemanticChange {
-		category: SemanticChangeCategory::Package,
-		kind: SemanticChangeKind::Removed,
-		item_kind: "package".to_string(),
-		item_path: "retired".to_string(),
-		summary: "removed cargo package `retired`".to_string(),
-		file_path: PathBuf::from("Cargo.toml"),
-		before_signature: Some("cargo package `retired`".to_string()),
-		after_signature: None,
-	};
+	let removed = SemanticChange::new(
+		SemanticChangeCategory::Package,
+		SemanticChangeKind::Removed,
+		"package",
+		"retired",
+		"removed cargo package `retired`",
+		PathBuf::from("Cargo.toml"),
+	)
+	.with_before_signature("cargo package `retired`");
 	let finding = finding_from_semantic_change(
 		finding_id("monochange/package-lifecycle", &removed),
 		"monochange/package-lifecycle",

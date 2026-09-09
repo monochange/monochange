@@ -1,0 +1,33 @@
+---
+source: crates/monochange_npm/src/__tests__/analysis_tests.rs
+expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"changes\": changes, \"warnings\":\n    result.warnings,\n})"
+---
+{
+  "analyzerId": "npm/package-json",
+  "changes": [
+    {
+      "assessment": {
+        "confidence": "low",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "partial",
+          "coverage": "syntax fallback; TypeScript declaration compatibility was not completed",
+          "engine": "typescript",
+          "fallbackReason": "after: TS5083: Cannot read file 'virtual/missing-config.json'.",
+          "version": "6.0.3"
+        },
+        "outcome": "inconclusive",
+        "suggestedBump": "patch"
+      },
+      "category": "public_api",
+      "filePath": "package.json",
+      "itemKind": "declaration_analysis",
+      "itemPath": "typescript",
+      "kind": "modified",
+      "summary": "TypeScript declaration compatibility is inconclusive"
+    }
+  ],
+  "warnings": [
+    "after: TS5083: Cannot read file 'virtual/missing-config.json'."
+  ]
+}

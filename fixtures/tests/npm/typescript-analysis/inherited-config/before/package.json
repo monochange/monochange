@@ -1,0 +1,4 @@
+{
+	"name": "@fixture/inherited-config",
+	"types": "./dist/index.d.ts"
+}

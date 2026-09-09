@@ -29,14 +29,61 @@ Acceptance: `change classify --base <base> --head <head>` includes the removed p
 
 ## Unit 2: TypeScript declaration compatibility
 
-- [ ] Define analyzer evidence that records engine, version, coverage, outcome, and fallback reason.
-- [ ] Resolve public TypeScript entry points from package metadata and exports.
-- [ ] Produce declaration snapshots in isolated before/after trees.
-- [ ] Ask TypeScript to check consumer-visible assignability in both directions.
-- [ ] Distinguish breaking, additive, compatible implementation-only, and inconclusive changes.
-- [ ] Fall back to syntax analysis without overstating confidence when Node, TypeScript, dependencies, or build configuration are unavailable.
-- [ ] Cover overloads, generics, union narrowing/widening, optionality, enums, classes, re-exports, and declaration generation failures with fixtures.
-- [ ] Document exact setup and failure modes for agents and CI.
+### Grounded architecture
+
+The caller remains `monochange change classify --detection-level semantic`; callers do not coordinate declaration emission, entrypoint discovery, or TypeScript processes. `monochange_analysis` supplies immutable package snapshots to the npm adapter, the npm adapter owns TypeScript-specific policy, and the classifier only consumes shared semantic assessments. This preserves the existing boundary: core defines evidence, adapters interpret ecosystems, and the CLI orchestrates.
+
+The existing `SemanticChange` shape can describe syntax differences, but it cannot represent a compiler-proven compatible change or a deliberately inconclusive result. Unit 2 therefore adds an optional assessment with these orthogonal facts:
+
+- compatibility outcome (`breaking`, `additive`, `compatible`, or `unknown`)
+- proposed bump (`major`, `minor`, `patch`, or `none`)
+- confidence
+- engine name and version
+- coverage completeness and note
+- fallback reason, when the compiler could not complete the check
+
+Old analyzers may omit the assessment and retain the classifier's current conservative defaults. TypeScript findings populate it. This contract is also the integration point for the Rust matrix in Unit 3.
+
+### Usage sketch
+
+Projects install TypeScript in the workspace and opt into the semantic tier:
+
+```bash
+pnpm add --save-dev typescript
+monochange change classify --detection-level semantic --format json
+```
+
+The same command remains usable without Node or TypeScript. In that case, syntax findings remain available, the report records the unavailable engine and fallback reason, and `reviewRequired` stays true.
+
+### Design synthesis
+
+Two shapes were considered:
+
+1. A deep npm-adapter module runs one embedded JavaScript helper, emits declarations from isolated in-memory package snapshots, resolves every explicit typed export, and returns assessed semantic changes. The public surface is one analyzer call and the module hides process control, compiler diagnostics, entrypoint rules, and assignability direction.
+2. A generic external-analyzer framework materializes whole repositories and exposes process stages through core. This could support future ecosystems, but it makes callers understand staging and tool lifecycles before a second implementation proves those abstractions.
+
+The first shape is the base. The shared assessment type is the only part generalized for Unit 3. Whole-repository materialization is rejected for this unit because it broadens the trusted and performance-sensitive surface; package-local snapshots remain deterministic, while inherited configs and external dependency state are reported as partial coverage instead of being silently treated as exact historical evidence.
+
+The TypeScript comparison uses the compiler's public `TypeChecker.isTypeAssignableTo` API. New value exports must remain assignable to their old value contracts. Type declarations are checked in both directions because consumers can use exported types as inputs or outputs. Exact declaration equality short-circuits identity-sensitive constructs; changed generic or nominal declarations become inconclusive unless the checker can prove a directional incompatibility without relying on declaration identity. This deliberately favors an honest review requirement over a false major.
+
+Tradeoffs:
+
+- We accept an installed Node and TypeScript requirement for complete semantic evidence in exchange for using the project's real compiler semantics.
+- We accept partial results for inherited build configuration and identity-sensitive types in exchange for avoiding false certainty.
+- We accept a bounded external process in semantic mode in exchange for keeping basic and signature modes fast and dependency-free.
+
+The first implementation step is a failing npm-adapter fixture that expects declaration-equivalent, additive, breaking, and unavailable-engine outcomes through the shared assessment contract.
+
+- [x] Define analyzer evidence that records engine, version, coverage, outcome, and fallback reason.
+- [x] Resolve public TypeScript entry points from package metadata and exports.
+- [x] Produce declaration snapshots in isolated before/after trees.
+- [x] Ask TypeScript to check consumer-visible assignability in both directions.
+- [x] Distinguish breaking, additive, compatible implementation-only, and inconclusive changes.
+- [x] Fall back to syntax analysis without overstating confidence when Node, TypeScript, dependencies, or build configuration are unavailable.
+- [x] Cover overloads, generics, union narrowing/widening, optionality, enums, classes, re-exports, and declaration generation failures with fixtures.
+- [x] Document exact setup and failure modes for agents and CI.
+
+Implemented fixture coverage also includes declaration-only and source entrypoints, sole-entrypoint and optional-member removal, import/require conditional surfaces, readonly transitions, optional arguments, inherited configuration, transitive private types, wildcard exports, JavaScript packages with unpublished TypeScript declarations, root packages, unsafe paths, missing Node, and bounded process input, output, and runtime. The report hashes the complete assessment into finding identity and clamps a supplied bump to the minimum severity implied by its compatibility outcome.
 
 Acceptance: declaration-equivalent source refactors recommend `none`; additive declarations recommend `minor`; incompatible declarations recommend `major`; unavailable type-system evidence is reported as partial rather than guessed.
 
@@ -65,9 +112,9 @@ Acceptance: a strict-default decision is backed by reproducible measurements, no
 
 ## Cross-cutting quality bar
 
-- [ ] Keep comparison endpoints explicit in human and JSON output.
-- [ ] Keep analyzer provenance and uncertainty machine-readable.
-- [ ] Never downgrade a proven breaking change because another analyzer is incomplete.
-- [ ] Never convert missing evidence into a high-confidence recommendation.
-- [ ] Keep fixtures file-based and integration snapshots readable.
-- [ ] Run `devenv shell fix:all`, `devenv shell build:all`, `devenv shell lint:all`, `devenv shell test:all`, `devenv shell coverage:all`, `devenv shell coverage:patch`, and `devenv shell monochange step validate` before queueing each pull request.
+- [x] Keep comparison endpoints explicit in human and JSON output.
+- [x] Keep analyzer provenance and uncertainty machine-readable.
+- [x] Never downgrade a proven breaking change because another analyzer is incomplete.
+- [x] Never convert missing evidence into a high-confidence recommendation.
+- [x] Keep fixtures file-based and integration snapshots readable.
+- [x] Run `devenv shell fix:all`, `devenv shell build:all`, `devenv shell lint:all`, `devenv shell test:all`, `devenv shell coverage:all`, `devenv shell coverage:patch`, and `devenv shell monochange step validate` before queueing each pull request.

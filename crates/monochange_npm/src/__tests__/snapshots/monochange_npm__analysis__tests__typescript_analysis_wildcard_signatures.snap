@@ -1,0 +1,5 @@
+---
+source: crates/monochange_npm/src/__tests__/analysis_tests.rs
+expression: "if signatures.is_empty() { \"[no changed signatures]\" } else { &signatures }"
+---
+[no changed signatures]

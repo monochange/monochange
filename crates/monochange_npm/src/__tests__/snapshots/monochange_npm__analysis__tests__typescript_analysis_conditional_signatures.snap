@@ -1,0 +1,21 @@
+---
+source: crates/monochange_npm/src/__tests__/analysis_tests.rs
+expression: "if signatures.is_empty() { \"[no changed signatures]\" } else { &signatures }"
+---
+.#version
+BEFORE
+version = "before"
+AFTER
+version = "after"
+
+./feature[import]#feature
+BEFORE
+export declare function feature(value: string): string;
+AFTER
+export declare function feature(value: string | number): string;
+
+./feature[require]#feature
+BEFORE
+export declare function feature(value: string): string;
+AFTER
+export declare function feature(value: number): string;

@@ -8,6 +8,7 @@ use monochange_analysis::AnalysisConfig;
 use monochange_analysis::AnalysisSession;
 use monochange_analysis::ChangeAnalysis;
 use monochange_analysis::ChangeFrame;
+use monochange_core::ApiConfidence;
 use monochange_core::BumpSeverity;
 use monochange_core::DependencyKind;
 use monochange_core::DetectionLevel;
@@ -16,6 +17,8 @@ use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageRecord;
 use monochange_core::ReleaseOwnerKind;
+use monochange_core::SemanticAnalysisCompleteness as CoreAnalysisCompleteness;
+use monochange_core::SemanticAnalysisOutcome;
 use monochange_core::SemanticChange;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
@@ -26,7 +29,7 @@ use serde::Serialize;
 use crate::OutputFormat;
 
 const DEFAULT_HEAD_REF: &str = "HEAD";
-const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 1;
+const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 2;
 const ANALYZER_VERSION: &str = "1";
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -124,6 +127,8 @@ pub(crate) enum AnalysisCompleteness {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct FindingAnalyzer {
 	pub(crate) id: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub(crate) engine: Option<String>,
 	pub(crate) version: String,
 }
 
@@ -133,6 +138,8 @@ pub(crate) struct FindingCoverage {
 	pub(crate) detection_level: DetectionLevel,
 	pub(crate) completeness: AnalysisCompleteness,
 	pub(crate) note: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub(crate) fallback_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -1229,7 +1236,7 @@ fn collect_findings(
 		let Some(package) = frame.analysis.package_analyses.get(package_id) else {
 			continue;
 		};
-		let analyzer_id = package
+		let package_analyzer_id = package
 			.analyzer_id
 			.as_deref()
 			.unwrap_or("monochange/unknown-analyzer");
@@ -1238,7 +1245,12 @@ fn collect_findings(
 			let analyzer_id = if change.category == SemanticChangeCategory::Package {
 				"monochange/package-lifecycle"
 			} else {
-				analyzer_id
+				change
+					.assessment
+					.as_ref()
+					.map_or(package_analyzer_id, |assessment| {
+						assessment.evidence.analyzer_id.as_str()
+					})
 			};
 			let base_id = finding_id(analyzer_id, change);
 			let pending = grouped
@@ -1285,6 +1297,7 @@ struct FindingEvidenceKey {
 	after: Option<String>,
 	location: PathBuf,
 	summary: String,
+	assessment: Option<monochange_core::SemanticChangeAssessment>,
 }
 
 impl From<&SemanticChange> for FindingEvidenceKey {
@@ -1294,6 +1307,7 @@ impl From<&SemanticChange> for FindingEvidenceKey {
 			after: change.after_signature.clone(),
 			location: change.file_path.clone(),
 			summary: change.summary.clone(),
+			assessment: change.assessment.clone(),
 		}
 	}
 }
@@ -1305,11 +1319,20 @@ impl FindingEvidenceKey {
 
 		let mut hash = FNV_OFFSET_BASIS;
 		let location = self.location.to_string_lossy();
+		let assessment = self.assessment.as_ref().map(|assessment| {
+			serde_json::to_string(assessment).unwrap_or_else(|error| {
+				// patch-coverage:ignore-start -- this assessment contains only strings and
+				// fieldless enums, so serde_json has no fallible value to encode.
+				panic!("semantic assessment serialization failed: {error}")
+				// patch-coverage:ignore-end
+			})
+		});
 		for value in [
 			self.before.as_deref(),
 			self.after.as_deref(),
 			Some(location.as_ref()),
 			Some(self.summary.as_str()),
+			assessment.as_deref(),
 		] {
 			for byte in value.unwrap_or("\0").as_bytes() {
 				hash ^= u64::from(*byte);
@@ -1345,7 +1368,14 @@ fn finding_from_semantic_change(
 	detection_level: DetectionLevel,
 ) -> ClassificationFinding {
 	let bump = monochange_semver::semantic_change_severity(change);
-	let impact = compatibility_impact(change.category, change.kind);
+	let assessment = change.assessment.as_ref();
+	let analyzer_id = assessment.map_or(analyzer_id, |assessment| {
+		assessment.evidence.analyzer_id.as_str()
+	});
+	let impact = assessment.map_or_else(
+		|| compatibility_impact(change.category, change.kind),
+		|assessment| compatibility_impact_from_outcome(assessment.outcome),
+	);
 	let package_lifecycle = change.category == SemanticChangeCategory::Package;
 	let surface = semantic_category_name(change.category).to_string();
 	let change_name = semantic_kind_name(change.kind).to_string();
@@ -1358,29 +1388,75 @@ fn finding_from_semantic_change(
 		change: change_name,
 		impact,
 		bump,
-		confidence: if package_lifecycle {
-			ClassificationConfidence::High
-		} else {
-			ClassificationConfidence::Medium
-		},
+		confidence: assessment.map_or_else(
+			|| {
+				if package_lifecycle {
+					ClassificationConfidence::High
+				} else {
+					ClassificationConfidence::Medium
+				}
+			},
+			|assessment| classification_confidence(assessment.confidence),
+		),
 		analyzer: FindingAnalyzer {
 			id: analyzer_id.to_string(),
-			version: ANALYZER_VERSION.to_string(),
+			engine: assessment.map(|assessment| assessment.evidence.engine.clone()),
+			version: assessment
+				.and_then(|assessment| assessment.evidence.version.clone())
+				.unwrap_or_else(|| ANALYZER_VERSION.to_string()),
 		},
 		coverage: FindingCoverage {
 			detection_level,
-			completeness: if package_lifecycle {
-				AnalysisCompleteness::Complete
-			} else {
-				AnalysisCompleteness::Partial
-			},
-			note: analyzer_coverage_note(analyzer_id).to_string(),
+			completeness: assessment.map_or_else(
+				|| {
+					if package_lifecycle {
+						AnalysisCompleteness::Complete
+					} else {
+						AnalysisCompleteness::Partial
+					}
+				},
+				|assessment| analysis_completeness(assessment.evidence.completeness),
+			),
+			note: assessment.map_or_else(
+				|| analyzer_coverage_note(analyzer_id).to_string(),
+				|assessment| assessment.evidence.coverage.clone(),
+			),
+			fallback_reason: assessment
+				.and_then(|assessment| assessment.evidence.fallback_reason.clone()),
 		},
 		before: change.before_signature.clone(),
 		after: change.after_signature.clone(),
 		location: change.file_path.clone(),
 		comparisons: BTreeSet::new(),
 		summary: change.summary.clone(),
+	}
+}
+
+fn compatibility_impact_from_outcome(outcome: SemanticAnalysisOutcome) -> CompatibilityImpact {
+	match outcome {
+		SemanticAnalysisOutcome::Compatible => CompatibilityImpact::Compatible,
+		SemanticAnalysisOutcome::Additive => CompatibilityImpact::Additive,
+		SemanticAnalysisOutcome::Breaking => CompatibilityImpact::Breaking,
+		// Includes inconclusive and future variants from this non-exhaustive external enum.
+		_ => CompatibilityImpact::Unknown,
+	}
+}
+
+fn classification_confidence(confidence: ApiConfidence) -> ClassificationConfidence {
+	match confidence {
+		ApiConfidence::Medium => ClassificationConfidence::Medium,
+		ApiConfidence::High => ClassificationConfidence::High,
+		// Includes low and future variants from this non-exhaustive external enum.
+		_ => ClassificationConfidence::Low,
+	}
+}
+
+fn analysis_completeness(completeness: CoreAnalysisCompleteness) -> AnalysisCompleteness {
+	match completeness {
+		CoreAnalysisCompleteness::Complete => AnalysisCompleteness::Complete,
+		CoreAnalysisCompleteness::Partial => AnalysisCompleteness::Partial,
+		// Includes unsupported and future variants from this non-exhaustive external enum.
+		_ => AnalysisCompleteness::Unsupported,
 	}
 }
 
@@ -1481,12 +1557,14 @@ fn ensure_unclassified_finding(
 		confidence: ClassificationConfidence::Low,
 		analyzer: FindingAnalyzer {
 			id: format!("{}/fallback", ecosystem.as_str()),
+			engine: None,
 			version: ANALYZER_VERSION.to_string(),
 		},
 		coverage: FindingCoverage {
 			detection_level,
 			completeness: AnalysisCompleteness::Partial,
 			note: "changed package files produced no modeled compatibility finding".to_string(),
+			fallback_reason: None,
 		},
 		before: None,
 		after: None,
@@ -1539,11 +1617,16 @@ fn build_recommendation(
 			&& finding.confidence == ClassificationConfidence::High
 			&& finding.coverage.completeness == AnalysisCompleteness::Complete
 	});
-	let completeness = if !has_current_changes || has_conclusive_major {
-		AnalysisCompleteness::Complete
-	} else {
-		AnalysisCompleteness::Partial
-	};
+	let all_current_findings_complete = !current.is_empty()
+		&& current
+			.iter()
+			.all(|finding| finding.coverage.completeness == AnalysisCompleteness::Complete);
+	let completeness =
+		if !has_current_changes || has_conclusive_major || all_current_findings_complete {
+			AnalysisCompleteness::Complete
+		} else {
+			AnalysisCompleteness::Partial
+		};
 	let review_required = completeness != AnalysisCompleteness::Complete
 		|| compatibility_impact == CompatibilityImpact::Unknown;
 	let finding_ids = current
@@ -1689,12 +1772,14 @@ fn propagate_public_dependency_impacts(
 			confidence: ClassificationConfidence::Medium,
 			analyzer: FindingAnalyzer {
 				id: "monochange/dependency-propagation".to_string(),
+				engine: None,
 				version: ANALYZER_VERSION.to_string(),
 			},
 			coverage: FindingCoverage {
 				detection_level: analysis.detection_level,
 				completeness: AnalysisCompleteness::Partial,
 				note: "direct runtime dependency propagation".to_string(),
+				fallback_reason: None,
 			},
 			before: None,
 			after: None,
@@ -1941,6 +2026,10 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 						finding.bump,
 						classification_confidence_name(finding.confidence)
 					));
+					lines.push(format!(
+						"  - Evidence: {}",
+						markdown_finding_evidence(finding)
+					));
 				}
 			}
 			if package.findings.len() > 10 {
@@ -2059,6 +2148,10 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 					finding.bump,
 					classification_confidence_name(finding.confidence)
 				));
+				lines.push(format!(
+					"    Evidence: {}",
+					plain_text_fragment(&finding_evidence(finding))
+				));
 			}
 			if package.findings.len() > 10 {
 				lines.push(format!("  - {} more findings", package.findings.len() - 10));
@@ -2080,8 +2173,54 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 	lines.join("\n")
 }
 
+fn finding_evidence(finding: &ClassificationFinding) -> String {
+	let engine = finding
+		.analyzer
+		.engine
+		.as_deref()
+		.map_or_else(String::new, |engine| format!(" via {engine}"));
+	let fallback = finding
+		.coverage
+		.fallback_reason
+		.as_deref()
+		.map_or_else(String::new, |reason| format!("; fallback: {reason}"));
+
+	format!(
+		"{}{} {}; coverage {}: {}{}",
+		finding.analyzer.id,
+		engine,
+		finding.analyzer.version,
+		analysis_completeness_name(finding.coverage.completeness),
+		finding.coverage.note,
+		fallback
+	)
+}
+
+fn markdown_finding_evidence(finding: &ClassificationFinding) -> String {
+	finding_evidence(finding)
+		.split('`')
+		.map(markdown_text_fragment)
+		.collect::<Vec<_>>()
+		.join("\\`")
+}
+
+fn markdown_text_fragment(value: &str) -> String {
+	value
+		.replace('\\', "\\\\")
+		.replace('*', "\\*")
+		.replace('_', "\\_")
+}
+
 fn plain_text_fragment(value: &str) -> String {
 	value.replace('`', "")
+}
+
+fn analysis_completeness_name(completeness: AnalysisCompleteness) -> &'static str {
+	match completeness {
+		AnalysisCompleteness::Complete => "complete",
+		AnalysisCompleteness::Partial => "partial",
+		AnalysisCompleteness::Unsupported => "unsupported",
+	}
 }
 
 fn comparison_kind_name(kind: ComparisonKind) -> &'static str {

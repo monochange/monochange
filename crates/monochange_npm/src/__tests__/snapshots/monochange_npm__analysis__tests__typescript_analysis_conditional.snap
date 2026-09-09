@@ -1,0 +1,70 @@
+---
+source: crates/monochange_npm/src/__tests__/analysis_tests.rs
+expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"changes\": changes, \"warnings\":\n    result.warnings,\n})"
+---
+{
+  "analyzerId": "npm/package-json",
+  "changes": [
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript proved a consumer-visible assignability failure",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "breaking",
+        "suggestedBump": "major"
+      },
+      "category": "public_api",
+      "filePath": "dist/index.d.ts",
+      "itemKind": "value",
+      "itemPath": ".#version",
+      "kind": "modified",
+      "summary": "new value contract is not assignable to the previous contract for `.#version`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript checked value assignability in both directions",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "additive",
+        "suggestedBump": "minor"
+      },
+      "category": "public_api",
+      "filePath": "dist/feature.d.mts",
+      "itemKind": "value",
+      "itemPath": "./feature[import]#feature",
+      "kind": "modified",
+      "summary": "new value contract adds assignable capability to `./feature[import]#feature`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "TypeScript proved a consumer-visible assignability failure",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "breaking",
+        "suggestedBump": "major"
+      },
+      "category": "public_api",
+      "filePath": "dist/feature.d.cts",
+      "itemKind": "value",
+      "itemPath": "./feature[require]#feature",
+      "kind": "modified",
+      "summary": "new value contract is not assignable to the previous contract for `./feature[require]#feature`"
+    }
+  ],
+  "warnings": []
+}

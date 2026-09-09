@@ -454,9 +454,125 @@ pub enum SemanticChangeKind {
 	Modified,
 }
 
+/// Compatibility outcome proven or inferred by a semantic analyzer.
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum SemanticAnalysisOutcome {
+	/// The analyzer could not reach a conclusive compatibility result.
+	Inconclusive,
+	/// The public contract remains compatible.
+	Compatible,
+	/// The public contract gained compatible capability.
+	Additive,
+	/// The public contract is incompatible with existing consumers.
+	Breaking,
+}
+
+/// How much of the declared public surface an analyzer checked.
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum SemanticAnalysisCompleteness {
+	/// Every public surface in the analyzer's declared scope was checked.
+	Complete,
+	/// Some public surfaces or required inputs were unavailable.
+	Partial,
+	/// The package does not expose a surface supported by the analyzer.
+	Unsupported,
+}
+
+/// Provenance and coverage for one analyzer assessment.
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct SemanticAnalyzerEvidence {
+	/// Stable analyzer identifier, such as `npm/typescript`.
+	pub analyzer_id: String,
+	/// Tool or engine that produced the evidence.
+	pub engine: String,
+	/// Engine version, when it could be resolved.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub version: Option<String>,
+	/// Completeness of this assessment's declared coverage.
+	pub completeness: SemanticAnalysisCompleteness,
+	/// Human-readable description of the surface that was checked.
+	pub coverage: String,
+	/// Reason the primary analysis could not complete, when applicable.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub fallback_reason: Option<String>,
+}
+
+impl SemanticAnalyzerEvidence {
+	/// Create analyzer evidence for a declared coverage boundary.
+	pub fn new(
+		analyzer_id: impl Into<String>,
+		engine: impl Into<String>,
+		completeness: SemanticAnalysisCompleteness,
+		coverage: impl Into<String>,
+	) -> Self {
+		Self {
+			analyzer_id: analyzer_id.into(),
+			engine: engine.into(),
+			version: None,
+			completeness,
+			coverage: coverage.into(),
+			fallback_reason: None,
+		}
+	}
+
+	/// Attach the engine version that produced this evidence.
+	#[must_use]
+	pub fn with_version(mut self, version: impl Into<String>) -> Self {
+		self.version = Some(version.into());
+		self
+	}
+
+	/// Attach the reason the primary analysis could not complete.
+	#[must_use]
+	pub fn with_fallback_reason(mut self, reason: impl Into<String>) -> Self {
+		self.fallback_reason = Some(reason.into());
+		self
+	}
+}
+
+/// Explicit compatibility and release recommendation from an analyzer.
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct SemanticChangeAssessment {
+	/// Compatibility outcome produced by the analyzer.
+	pub outcome: SemanticAnalysisOutcome,
+	/// Changeset bump proposed from the analyzed evidence.
+	pub suggested_bump: BumpSeverity,
+	/// Confidence in the outcome.
+	pub confidence: ApiConfidence,
+	/// Analyzer provenance and coverage.
+	pub evidence: SemanticAnalyzerEvidence,
+}
+
+impl SemanticChangeAssessment {
+	/// Create an explicit compatibility and release assessment.
+	#[must_use]
+	pub fn new(
+		outcome: SemanticAnalysisOutcome,
+		suggested_bump: BumpSeverity,
+		confidence: ApiConfidence,
+		evidence: SemanticAnalyzerEvidence,
+	) -> Self {
+		Self {
+			outcome,
+			suggested_bump,
+			confidence,
+			evidence,
+		}
+	}
+}
+
 /// One semantic diff record emitted by an ecosystem analyzer.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub struct SemanticChange {
 	/// Broad category of change.
 	pub category: SemanticChangeCategory,
@@ -474,6 +590,54 @@ pub struct SemanticChange {
 	pub before_signature: Option<String>,
 	/// Signature or descriptor after the change, when available.
 	pub after_signature: Option<String>,
+	/// Analyzer-provided compatibility assessment, when stronger evidence is available.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub assessment: Option<SemanticChangeAssessment>,
+}
+
+impl SemanticChange {
+	/// Create one semantic change without optional signatures or an assessment.
+	pub fn new(
+		category: SemanticChangeCategory,
+		kind: SemanticChangeKind,
+		item_kind: impl Into<String>,
+		item_path: impl Into<String>,
+		summary: impl Into<String>,
+		file_path: impl Into<PathBuf>,
+	) -> Self {
+		Self {
+			category,
+			kind,
+			item_kind: item_kind.into(),
+			item_path: item_path.into(),
+			summary: summary.into(),
+			file_path: file_path.into(),
+			before_signature: None,
+			after_signature: None,
+			assessment: None,
+		}
+	}
+
+	/// Attach the signature that existed before this change.
+	#[must_use]
+	pub fn with_before_signature(mut self, signature: impl Into<String>) -> Self {
+		self.before_signature = Some(signature.into());
+		self
+	}
+
+	/// Attach the signature that exists after this change.
+	#[must_use]
+	pub fn with_after_signature(mut self, signature: impl Into<String>) -> Self {
+		self.after_signature = Some(signature.into());
+		self
+	}
+
+	/// Attach analyzer-provided compatibility evidence.
+	#[must_use]
+	pub fn with_assessment(mut self, assessment: SemanticChangeAssessment) -> Self {
+		self.assessment = Some(assessment);
+		self
+	}
 }
 
 /// Analyzer output for one package.

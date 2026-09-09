@@ -1,0 +1,54 @@
+---
+source: crates/monochange_npm/src/__tests__/analysis_tests.rs
+expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"changes\": changes, \"warnings\":\n    result.warnings,\n})"
+---
+{
+  "analyzerId": "npm/package-json",
+  "changes": [
+    {
+      "assessment": {
+        "confidence": "low",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "partial",
+          "coverage": "some typed entrypoints or inputs were not fully checked against isolated snapshots",
+          "engine": "typescript",
+          "fallbackReason": "before: wildcard export ./features/* could not be enumerated conclusively; after: wildcard export ./features/* could not be enumerated conclusively",
+          "version": "6.0.3"
+        },
+        "outcome": "inconclusive",
+        "suggestedBump": "patch"
+      },
+      "category": "public_api",
+      "filePath": "package.json",
+      "itemKind": "declaration_analysis",
+      "itemPath": "@fixture/wildcard",
+      "kind": "modified",
+      "summary": "TypeScript declaration compatibility is inconclusive for `@fixture/wildcard`"
+    },
+    {
+      "assessment": {
+        "confidence": "high",
+        "evidence": {
+          "analyzerId": "npm/typescript",
+          "completeness": "complete",
+          "coverage": "all explicit typed entrypoints emitted and compared",
+          "engine": "typescript",
+          "version": "6.0.3"
+        },
+        "outcome": "compatible",
+        "suggestedBump": "none"
+      },
+      "category": "public_api",
+      "filePath": "package.json",
+      "itemKind": "declaration_surface",
+      "itemPath": "@fixture/wildcard",
+      "kind": "modified",
+      "summary": "source changes preserve the emitted TypeScript declaration surface"
+    }
+  ],
+  "warnings": [
+    "after: wildcard export ./features/* could not be enumerated conclusively",
+    "before: wildcard export ./features/* could not be enumerated conclusively"
+  ]
+}

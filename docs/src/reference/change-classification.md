@@ -35,19 +35,52 @@ Each package has a `decision` object with these fields:
 
 `proposedChangesetBump` describes the current pull request. `releaseFloor` describes the complete unreleased interval. A pull request can propose `patch` while the release floor is `major` because an earlier merged pull request introduced the breaking change.
 
-`none` is conclusive only when `completeness` is `complete` and `reviewRequired` is `false`. A changed package without modeled semantic evidence receives a low-confidence `patch` proposal instead of a false `none` result. A high-confidence `major` finding also makes the bump decision complete because no unmodeled finding can require a higher bump.
+`none` is conclusive only when `completeness` is `complete` and `reviewRequired` is `false`. A changed package without modeled semantic evidence receives a low-confidence `patch` proposal instead of a false `none` result. A decision is also complete when every current finding is complete. A high-confidence `major` finding makes the bump decision complete even when another analyzer is partial because no unmodeled finding can require a higher bump.
 
 The package-level `action` is `create`, `update`, `keep`, `review`, or `no_changeset`. The report includes packages targeted only by a pending changeset and marks them `review`; a changeset can intentionally describe a consumer-facing effect implemented in another package, so monochange does not assume that unmatched intent is stale. Public dependency propagation retains the dependent package's release owner, comparisons, and existing changesets.
 
 ## Findings
 
-Each finding records its `ruleId`, API surface, change kind, compatibility impact, bump, confidence, analyzer id and version, coverage note, source location, before and after signatures, and comparison membership.
+Each finding records its `ruleId`, API surface, change kind, compatibility impact, bump, confidence, analyzer id, engine and version, coverage note, optional fallback reason, source location, before and after signatures, and comparison membership. Markdown and text reports print the evidence directly below each finding so pull request comments retain the same provenance as JSON.
 
 Identical evidence found in several comparisons shares one finding and lists every comparison. If the same item has different before or after signatures across the pull-request and release intervals, monochange emits distinct comparison-qualified finding ids so that an agent never applies one interval's signature evidence to another interval.
 
 monochange compares package manifests at both endpoints. Adding or removing a package produces a `monochange/package-lifecycle` finding with `complete` coverage and high confidence. Removing a package proposes `major`, even when the package has no modeled public symbols. Adding one proposes `minor`.
 
-The built-in Cargo, npm, Deno, and Dart source analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. For example, the Rust analyzer does not model every `cfg` and feature combination, trait compatibility rule, or downstream build witness. The TypeScript and JavaScript analyzer does not yet run the TypeScript assignability checker for every exported entrypoint.
+The built-in Cargo, JavaScript, Deno, and Dart source analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. For example, the Rust analyzer does not model every `cfg` and feature combination, trait compatibility rule, or downstream build witness.
+
+### TypeScript declaration compatibility
+
+Use semantic detection when an npm package publishes TypeScript types:
+
+```bash
+monochange change classify \
+	--detection-level semantic \
+	--format json \
+	--dependency-propagation public
+```
+
+The npm adapter resolves the package's explicit `exports`, `types`, or `typings` entrypoints, emits declarations for the before and after package snapshots, and asks the workspace's TypeScript compiler to compare the resulting consumer contracts. It keeps import and require conditions separate. Declaration-only packages do not need a `tsconfig.json`.
+
+The analyzer classifies evidence as follows:
+
+| Evidence                                                                 | Impact       | Proposed bump |
+| ------------------------------------------------------------------------ | ------------ | ------------- |
+| Removed entrypoint, export, or non-assignable consumer contract          | `breaking`   | `major`       |
+| Added entrypoint/export, overload, optional member, or input capability  | `additive`   | `minor`       |
+| Changed source with an equivalent or consumer-compatible declaration API | `compatible` | `none`        |
+| Unresolved config, wildcard export, generic/nominal identity, or failure | `unknown`    | `patch`       |
+
+Complete TypeScript evidence requires `node` and a locally resolvable `typescript` package. Install TypeScript and the package's dependencies in the workspace before classification. monochange reports the exact compiler version in `finding.analyzer.version`.
+
+```bash
+pnpm add --save-dev --workspace-root typescript
+pnpm install --frozen-lockfile
+```
+
+Snapshots contain package files from each Git endpoint. monochange never substitutes a candidate package file into the baseline. An inherited config or dependency declaration that only exists in the current checkout is allowed so the compiler can proceed, but the finding records partial coverage and a fallback reason. Wildcard exports are also partial because an export pattern cannot be enumerated conclusively from package metadata alone.
+
+Changed generic declarations and classes with private or protected identity are reported as inconclusive when TypeScript cannot compare the two snapshot identities safely. Runtime behavior, side effects, JavaScript-only packages, and unlisted dynamic entrypoints remain outside declaration compatibility. Review those changes even when the declaration result is `none`.
 
 When the repository defines `[package.*]` entries, classification is limited to those configured packages. Package `additional_paths` and `ignored_paths`, plus `[changesets.affected].ignored_paths`, use the same path policy as changeset coverage. This keeps fixtures, tests, generated output, and other explicitly ignored paths from producing release recommendations.
 
@@ -108,9 +141,10 @@ steps:
   - id: classify
     uses: monochange/actions/change-classification@v0
     with:
+      detection-level: semantic
       dependency-propagation: public
 ```
 
 Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`.
 
-Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary. Until a tagged monochange CLI release contains `change classify`, preinstall a compatible CLI and set `setup-monochange: false`, or pass its executable command through `setup-monochange`.
+For complete TypeScript evidence, install the repository dependencies before this step. Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary. Until a tagged monochange CLI release contains `change classify`, preinstall a compatible CLI and set `setup-monochange: false`, or pass its executable command through `setup-monochange`.

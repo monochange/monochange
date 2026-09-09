@@ -478,16 +478,14 @@ fn semantic_change(
 	kind: SemanticChangeKind,
 	summary: &str,
 ) -> SemanticChange {
-	SemanticChange {
+	SemanticChange::new(
 		category,
 		kind,
-		item_kind: "function".to_string(),
-		item_path: "pkg::api".to_string(),
-		summary: summary.to_string(),
-		file_path: PathBuf::from("src/lib.rs"),
-		before_signature: None,
-		after_signature: None,
-	}
+		"function",
+		"pkg::api",
+		summary,
+		PathBuf::from("src/lib.rs"),
+	)
 }
 
 #[test]
@@ -540,6 +538,63 @@ fn semantic_change_severity_maps_additions_to_minor_and_metadata_to_patch() {
 	);
 	assert_eq!(semantic_change_severity(&added), BumpSeverity::Minor);
 	assert_eq!(semantic_change_severity(&metadata), BumpSeverity::Patch);
+}
+
+#[test]
+fn semantic_change_severity_prefers_analyzer_assessment() {
+	let mut compatible = semantic_change(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Modified,
+		"implementation changed without changing declarations",
+	);
+	compatible.assessment = Some(monochange_core::SemanticChangeAssessment::new(
+		monochange_core::SemanticAnalysisOutcome::Compatible,
+		BumpSeverity::None,
+		monochange_core::ApiConfidence::High,
+		monochange_core::SemanticAnalyzerEvidence::new(
+			"npm/typescript",
+			"typescript",
+			monochange_core::SemanticAnalysisCompleteness::Complete,
+			"all typed exports",
+		)
+		.with_version("6.0.3"),
+	));
+
+	assert_eq!(semantic_change_severity(&compatible), BumpSeverity::None);
+
+	let mut invalid_breaking = compatible;
+	invalid_breaking.assessment = Some(monochange_core::SemanticChangeAssessment::new(
+		monochange_core::SemanticAnalysisOutcome::Breaking,
+		BumpSeverity::None,
+		monochange_core::ApiConfidence::High,
+		monochange_core::SemanticAnalyzerEvidence::new(
+			"test/invalid",
+			"test",
+			monochange_core::SemanticAnalysisCompleteness::Complete,
+			"test invalid analyzer output",
+		),
+	));
+	assert_eq!(
+		semantic_change_severity(&invalid_breaking),
+		BumpSeverity::Major
+	);
+
+	let mut invalid_additive = invalid_breaking;
+	invalid_additive.assessment = Some(monochange_core::SemanticChangeAssessment::new(
+		monochange_core::SemanticAnalysisOutcome::Additive,
+		BumpSeverity::None,
+		monochange_core::ApiConfidence::High,
+		monochange_core::SemanticAnalyzerEvidence::new(
+			"test/invalid",
+			"test",
+			monochange_core::SemanticAnalysisCompleteness::Complete,
+			"test invalid analyzer output",
+		),
+	));
+	assert_eq!(
+		semantic_change_severity(&invalid_additive),
+		BumpSeverity::Minor
+	);
 }
 
 #[test]

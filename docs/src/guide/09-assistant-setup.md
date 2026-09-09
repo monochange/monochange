@@ -10,7 +10,7 @@ monochange ships two assistant-facing surfaces:
 Run the JSON form when an agent needs to decide release intent:
 
 ```bash
-monochange change classify --format json --dependency-propagation public
+monochange change classify --detection-level semantic --format json --dependency-propagation public
 ```
 
 The report compares the pull request candidate with both the default branch and each package's latest release. It separates the current `proposedChangesetBump` from the accumulated `releaseFloor`, and every major or minor proposal links to specific findings. Read [Change classification](../reference/change-classification.md) for the full report contract and coverage limits.
@@ -21,7 +21,7 @@ After writing or updating the changesets, validate high-confidence evidence:
 monochange changeset validate --api --format markdown
 ```
 
-Package addition and removal findings use complete, high-confidence endpoint evidence. Ecosystem source analyzers report partial, medium-confidence evidence, so their recommendations remain advisory by default. Add `--strict` only when the repository wants every proposal to fail CI on a changeset mismatch.
+Package addition and removal findings use complete, high-confidence endpoint evidence. TypeScript packages can also produce complete, high-confidence declaration evidence in semantic mode when their compiler inputs are available. Other ecosystem source findings and TypeScript fallbacks remain advisory. Add `--strict` only when the repository wants every proposal to fail CI on a changeset mismatch.
 
 ## Install the CLI and skill
 

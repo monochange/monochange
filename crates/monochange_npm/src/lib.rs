@@ -6,6 +6,7 @@
 #![doc = include_str!("crate_docs.md")]
 pub mod analysis;
 pub mod lints;
+mod typescript;
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;

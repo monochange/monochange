@@ -768,16 +768,17 @@ fn build_symbol_change(
 		"modified"
 	};
 
-	SemanticChange {
-		category: SemanticChangeCategory::PublicApi,
+	let mut change = SemanticChange::new(
+		SemanticChangeCategory::PublicApi,
 		kind,
-		item_kind: symbol.item_kind.clone(),
-		item_path: symbol.item_path.clone(),
-		summary: format!("{} `{}` {verb}", symbol.item_kind, symbol.item_path),
-		file_path: symbol.file_path.clone(),
-		before_signature,
-		after_signature,
-	}
+		symbol.item_kind.clone(),
+		symbol.item_path.clone(),
+		format!("{} `{}` {verb}", symbol.item_kind, symbol.item_path),
+		symbol.file_path.clone(),
+	);
+	change.before_signature = before_signature;
+	change.after_signature = after_signature;
+	change
 }
 
 #[cfg(test)]
