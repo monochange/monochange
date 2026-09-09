@@ -203,19 +203,30 @@ fn mock_crates_io_missing(request_count: usize) -> (u16, MockCratesIo) {
 		.local_addr()
 		.unwrap_or_else(|error| panic!("mock crates.io address: {error}"))
 		.port();
+	listener
+		.set_nonblocking(true)
+		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
+	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
 	let thread = std::thread::spawn(move || {
-		for _ in 0..request_count {
-			let Ok((mut stream, _)) = listener.accept() else {
-				break;
-			};
-			let mut request = [0_u8; 2048];
-			std::io::Read::read(&mut stream, &mut request)
-				.unwrap_or_else(|error| panic!("read mock crates.io request: {error}"));
-			stream
-				.write_all(
-					b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
-				)
-				.unwrap_or_else(|error| panic!("write mock crates.io response: {error}"));
+		let mut served = 0_usize;
+		while served < request_count && std::time::Instant::now() < deadline {
+			match listener.accept() {
+				Ok((mut stream, _)) => {
+					stream
+						.set_nonblocking(false)
+						.unwrap_or_else(|error| panic!("set blocking: {error}"));
+					let mut request = [0_u8; 2048];
+					let _ = std::io::Read::read(&mut stream, &mut request);
+					let _ = stream.write_all(
+						b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+					);
+					served += 1;
+				}
+				Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+					std::thread::sleep(std::time::Duration::from_millis(25));
+				}
+				Err(_) => break,
+			}
 		}
 	});
 	(

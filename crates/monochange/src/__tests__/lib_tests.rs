@@ -8628,9 +8628,12 @@ async fn execute_cli_command_publish_packages_step_surfaces_publish_execution_fa
 async fn execute_cli_command_publish_packages_step_writes_report_artifact_on_execution_failure() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
+	// Trusted publishing stays disabled so the run surfaces the intended
+	// execution failure instead of a preflight trust block when the test
+	// executes under a GitHub Actions runner environment.
 	fs::write(
 		root.join("monochange.toml"),
-		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n\n[package.pkg.publish.trusted_publishing]\nenabled = false\n",
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 	fs::create_dir_all(root.join("packages/pkg")).unwrap_or_else(|error| panic!("mkdir: {error}"));

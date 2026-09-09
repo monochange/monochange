@@ -676,9 +676,17 @@ pub type PlaceholderManifestWriter =
 pub type PublishReadinessChecker =
 	dyn Fn(&Path, &PublishRequest) -> MonochangeResult<Option<String>>;
 
+/// Environment-aware readiness checker: same contract as
+/// [`PublishReadinessChecker`], but receives the publish executor's
+/// environment map so CI identities do not leak between test and production
+/// environments.
+pub type EnvPublishReadinessChecker =
+	dyn Fn(&Path, &PublishRequest, &BTreeMap<String, String>) -> MonochangeResult<Option<String>>;
+
 #[derive(Default)]
 pub struct PublishReadinessRegistry {
 	checkers: Vec<(RegistryKind, Box<PublishReadinessChecker>)>,
+	env_checkers: Vec<(RegistryKind, Box<EnvPublishReadinessChecker>)>,
 }
 
 impl PublishReadinessRegistry {
@@ -701,19 +709,75 @@ impl PublishReadinessRegistry {
 		self.checkers.push((registry, checker));
 	}
 
+	/// Register an environment-aware checker. Environment-aware checkers run
+	/// alongside plain checkers and receive the publish executor's
+	/// environment map instead of reading the process environment.
+	#[must_use]
+	pub fn with_env_checker(
+		mut self,
+		registry: RegistryKind,
+		checker: Box<EnvPublishReadinessChecker>,
+	) -> Self {
+		self.env_checkers.push((registry, checker));
+		self
+	}
+
 	pub fn blocked_message(
 		&self,
 		root: &Path,
 		request: &PublishRequest,
 	) -> MonochangeResult<Option<String>> {
-		let Some((_, checker)) = self
+		self.blocked_message_with_env(root, request, &current_env_map())
+	}
+
+	/// Run only environment-independent checkers. Dry-run planning uses this
+	/// so a missing CI workflow file never marks a package skipped; trusted
+	/// publishing enforcement is a real-run concern handled by the preflight
+	/// and the trust prerequisites.
+	pub fn blocked_message_static(
+		&self,
+		root: &Path,
+		request: &PublishRequest,
+	) -> MonochangeResult<Option<String>> {
+		for (_, checker) in self
 			.checkers
 			.iter()
-			.find(|(registry, _)| *registry == request.registry)
-		else {
-			return Ok(None);
-		};
-		checker(root, request)
+			.filter(|(registry, _)| *registry == request.registry)
+		{
+			if let Some(message) = checker(root, request)? {
+				return Ok(Some(message));
+			}
+		}
+		Ok(None)
+	}
+
+	/// Run every checker for the request's registry; environment-aware
+	/// checkers receive `env_map` (the publish executor's environment).
+	pub fn blocked_message_with_env(
+		&self,
+		root: &Path,
+		request: &PublishRequest,
+		env_map: &BTreeMap<String, String>,
+	) -> MonochangeResult<Option<String>> {
+		for (_, checker) in self
+			.checkers
+			.iter()
+			.filter(|(registry, _)| *registry == request.registry)
+		{
+			if let Some(message) = checker(root, request)? {
+				return Ok(Some(message));
+			}
+		}
+		for (_, checker) in self
+			.env_checkers
+			.iter()
+			.filter(|(registry, _)| *registry == request.registry)
+		{
+			if let Some(message) = checker(root, request, env_map)? {
+				return Ok(Some(message));
+			}
+		}
+		Ok(None)
 	}
 }
 
@@ -1037,16 +1101,18 @@ pub async fn try_execute_publish_requests_with_progress(
 	// an earlier package has already been published.
 	if mode == PackagePublishRunMode::Release && !dry_run {
 		for request in requests {
-			let blocked = readiness.blocked_message(root, request).map_err(|error| {
-				PackagePublishFailure::new(
-					error,
-					PackagePublishReport {
-						mode,
-						dry_run,
-						packages: Vec::new(),
-					},
-				)
-			})?;
+			let blocked = readiness
+				.blocked_message_with_env(root, request, env_map)
+				.map_err(|error| {
+					PackagePublishFailure::new(
+						error,
+						PackagePublishReport {
+							mode,
+							dry_run,
+							packages: Vec::new(),
+						},
+					)
+				})?;
 			if let Some(message) = blocked {
 				return Err(PackagePublishFailure::new(
 					MonochangeError::Config(message),
@@ -1190,8 +1256,28 @@ pub async fn try_execute_publish_requests_with_progress(
 			continue;
 		}
 
-		let blocked_message = if mode == PackagePublishRunMode::Release {
-			match readiness.blocked_message(root, request) {
+		let blocked_message = if mode == PackagePublishRunMode::Release && !dry_run {
+			match readiness.blocked_message_with_env(root, request, env_map) {
+				Ok(message) => message,
+				Err(error) => {
+					let message = error.render();
+					primary_error = Some(error);
+					append_publish_failure_outcomes(
+						&mut outcomes,
+						remaining_requests,
+						mode,
+						request,
+						message,
+						progress,
+					);
+					break;
+				}
+			}
+		} else if mode == PackagePublishRunMode::Release {
+			// Dry-run planning keeps manifest blockers visible but never
+			// blocks on environment-dependent trusted publishing: a missing
+			// CI workflow file must not mark a package skipped in a plan.
+			match readiness.blocked_message_static(root, request) {
 				Ok(message) => message,
 				Err(error) => {
 					let message = error.render();

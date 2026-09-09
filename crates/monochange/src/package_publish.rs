@@ -709,9 +709,12 @@ fn publish_readiness_registry(source: Option<&SourceConfiguration>) -> PublishRe
 			}
 		}),
 	);
-	// Trusted-publishing project-side checks apply to every built-in registry
-	// so preflight catches packages whose trust configuration cannot support
-	// the publish before any registry mutation happens.
+	// Trusted-publishing preflight checks apply to every built-in registry so
+	// a package whose trust configuration cannot support the publish aborts
+	// before any registry mutation. They are environment-aware checkers: they
+	// receive the publish executor's environment map instead of reading the
+	// process environment, so CI runner identities do not leak into tests
+	// that construct their own environments.
 	for registry_kind in [
 		RegistryKind::Npm,
 		RegistryKind::CratesIo,
@@ -721,16 +724,15 @@ fn publish_readiness_registry(source: Option<&SourceConfiguration>) -> PublishRe
 		RegistryKind::GoProxy,
 	] {
 		let source = source.clone();
-		registry.push_checker(
+		registry = registry.with_env_checker(
 			registry_kind,
-			Box::new(move |root, request| {
-				let env_map = monochange_publish::current_env_map();
+			Box::new(move |root, request, env_map| {
 				Ok(
 					crate::trusted_publishing_readiness::trusted_publishing_project_blocker_message(
 						root,
 						source.as_ref(),
 						request,
-						&env_map,
+						env_map,
 					),
 				)
 			}),
