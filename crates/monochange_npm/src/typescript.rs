@@ -183,12 +183,7 @@ fn analyze_typescript_with(
 	let package_root = context
 		.package_root()
 		.strip_prefix(context.repo_root)
-		.or_else(|_| context.package_root().strip_prefix(&repo_root))
-		.or_else(|_| {
-			context
-				.package_root()
-				.strip_prefix(&context.package.workspace_root)
-		});
+		.or_else(|_| context.package_root().strip_prefix(&repo_root));
 	let Ok(package_root) = package_root else {
 		return fallback_analysis(
 			syntax_changes,
