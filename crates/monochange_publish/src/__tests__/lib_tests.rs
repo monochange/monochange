@@ -3678,3 +3678,30 @@ async fn dry_run_readiness_block_records_skipped_outcomes_without_publishing() {
 			.all(|outcome| outcome.status == PackagePublishStatus::Blocked)
 	);
 }
+
+#[test]
+fn env_checker_without_block_falls_through_to_none() {
+	let request = sample_publish_request_for_registry(RegistryKind::Npm);
+	let readiness = PublishReadinessRegistry::new()
+		.with_checker(
+			RegistryKind::Npm,
+			Box::new(|_, _| Ok(Some("manifest blocker".to_string()))),
+		)
+		.with_env_checker(RegistryKind::Npm, Box::new(|_, _, _| Ok(None)));
+	let result = readiness.blocked_message_with_env(Path::new("."), &request, &BTreeMap::new());
+	assert_eq!(
+		result.unwrap().as_deref(),
+		Some("manifest blocker"),
+		"env checker without a block must fall through to the plain checkers"
+	);
+
+	let quiet = PublishReadinessRegistry::new()
+		.with_env_checker(RegistryKind::Npm, Box::new(|_, _, _| Ok(None)));
+	assert_eq!(
+		quiet
+			.blocked_message_with_env(Path::new("."), &request, &BTreeMap::new())
+			.unwrap(),
+		None,
+		"no checkers blocking must fall through to Ok(None)"
+	);
+}
