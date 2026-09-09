@@ -3585,6 +3585,11 @@ pub fn registry_client() -> MonochangeResult<Client> {
 
 	Client::builder()
 		.user_agent(format!("monochange/{}", env!("CARGO_PKG_VERSION")))
+		// Registry lookups must never hang indefinitely: a registry that accepts
+		// a connection but never answers would otherwise stall publish runs and
+		// readiness checks forever.
+		.connect_timeout(Duration::from_secs(30))
+		.timeout(Duration::from_secs(60))
 		.build()
 		.map_err(http_error("registry client build"))
 }
