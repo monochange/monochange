@@ -53,15 +53,25 @@ fn spawn_registry_mock(response: &'static [u8]) -> (String, std::thread::JoinHan
 	let address = listener
 		.local_addr()
 		.unwrap_or_else(|error| panic!("registry mock address: {error}"));
+	listener
+		.set_nonblocking(true)
+		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
+	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
 	let thread = std::thread::spawn(move || {
-		let (mut stream, _) = listener
-			.accept()
-			.unwrap_or_else(|error| panic!("accept registry request: {error}"));
-		let mut request = [0_u8; 2048];
-		std::io::Read::read(&mut stream, &mut request)
-			.unwrap_or_else(|error| panic!("read registry request: {error}"));
-		std::io::Write::write_all(&mut stream, response)
-			.unwrap_or_else(|error| panic!("write registry response: {error}"));
+		while std::time::Instant::now() < deadline {
+			match listener.accept() {
+				Ok((mut stream, _)) => {
+					let mut request = [0_u8; 2048];
+					let _ = std::io::Read::read(&mut stream, &mut request);
+					let _ = std::io::Write::write_all(&mut stream, response);
+					return;
+				}
+				Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+					std::thread::sleep(std::time::Duration::from_millis(25));
+				}
+				Err(_) => return,
+			}
+		}
 	});
 	(format!("http://{address}"), thread)
 }

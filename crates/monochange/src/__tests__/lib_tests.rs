@@ -8417,9 +8417,13 @@ async fn execute_cli_command_publish_packages_step_surfaces_report_carrying_fail
 async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution_failure() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
+	// Trusted publishing is disabled so the test exercises the artifact-write
+	// failure path instead of the trusted-publishing preflight, which would
+	// block the run before the registry mock is ever contacted on CI (where
+	// GITHUB_* environment variables are set).
 	fs::write(
 		root.join("monochange.toml"),
-		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n",
+		"[package.pkg]\npath = \"packages/pkg\"\ntype = \"npm\"\n\n[package.pkg.publish.trusted_publishing]\nenabled = false\n",
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 	fs::create_dir_all(root.join("packages/pkg")).unwrap_or_else(|error| panic!("mkdir: {error}"));
@@ -8449,21 +8453,32 @@ async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution
 	let registry_address = registry
 		.local_addr()
 		.unwrap_or_else(|error| panic!("registry address: {error}"));
+	registry
+		.set_nonblocking(true)
+		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
 	let registry_thread = std::thread::spawn(move || {
 		let mut served_not_found = false;
-		for _ in 0..2 {
-			let Ok((mut stream, _)) = registry.accept() else {
-				break;
-			};
-			let mut request = [0_u8; 2048];
-			let _ = std::io::Read::read(&mut stream, &mut request);
-			let response: &[u8] = if served_not_found {
-				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-			} else {
-				served_not_found = true;
-				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-			};
-			let _ = std::io::Write::write_all(&mut stream, response);
+		let mut served = 0_usize;
+		let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+		while served < 2 && std::time::Instant::now() < deadline {
+			match registry.accept() {
+				Ok((mut stream, _)) => {
+					let mut request = [0_u8; 2048];
+					let _ = std::io::Read::read(&mut stream, &mut request);
+					let response: &[u8] = if served_not_found {
+						b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+					} else {
+						served_not_found = true;
+						b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+					};
+					let _ = std::io::Write::write_all(&mut stream, response);
+					served += 1;
+				}
+				Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+					std::thread::sleep(std::time::Duration::from_millis(25));
+				}
+				Err(_) => break,
+			}
 		}
 	});
 
