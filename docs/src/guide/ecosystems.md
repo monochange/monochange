@@ -47,6 +47,8 @@ monochange versions sync --strategy exact
 
 The `--strategy` flag accepts `default`, `exact`, `caret`, or `compatible`. `default` uses each supported ecosystem's normal constraint style; for `monochange versions` that means each ecosystem's configured or default constraint style. Dart version sync scans `dependencies`, `dev_dependencies`, and `dependency_overrides`; when a pubspec uses `resolution: workspace`, path references to internal packages are converted to version constraints. npm version sync scans package dependency sections and leaves `workspace:*` protocol references alone. Cargo, Deno, Go, and Python manifests are also rewritten when they reference another workspace package.
 
+[Internal dependency versions](../reference/versions.md) lists the exact constraint each strategy writes per ecosystem. `versions sync` cannot write custom prefixes such as `~` or `=`; to stamp internal dependency references with those, use a typed `versioned_files` entry with an explicit `prefix`, or set `[ecosystems.<name>] dependency_version_prefix` to change the prefix typed versioned files write by default (see [Versioned files](04-configuration.md#versioned-files)).
+
 ## Cargo
 
 Cargo support is designed for Rust crates that keep version data in `Cargo.toml` and dependency resolution in `Cargo.lock`.
