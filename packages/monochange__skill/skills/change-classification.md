@@ -131,4 +131,14 @@ Keep `fetch-depth: 0` so the classifier can resolve the merge base, default bran
 
 Install repository dependencies before the classification step when TypeScript packages publish declarations. The action writes the full report to the job summary and exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. With `post-comment: true`, it also updates one marker comment rather than adding a new comment on every run. The comment includes analyzer engine, version, completeness, coverage, and fallback reasons beneath each finding. Treat `recommendation` as a routing hint only: read `json` and resolve every package whose `reviewRequired` is true before writing its changeset. Comment creation is best-effort so fork pull requests with read-only tokens still produce outputs and a job summary.
 
-Until a monochange CLI release containing `change classify` is installed by the action, preinstall a compatible build and pass `setup-monochange: false`, or pass the executable command through `setup-monochange`.
+The action accepts every report with classification `schemaVersion` 1 or newer, so new monochange CLI releases can extend the report without breaking the workflow.
+
+To make the policy gate enforce classification in CI, give the `changeset-policy` action a `from` ref instead of an explicit path list:
+
+```yaml
+- uses: monochange/actions/changeset-policy@v0
+  with:
+    from: origin/main
+```
+
+With `from` set, a changeset whose bump is lower than the classified change type fails the check with the package name and both bumps; a higher bump only warns. Write changesets at `decision.proposedChangesetBump` or above so the policy passes.

@@ -183,6 +183,21 @@ steps:
       dependency-propagation: public
 ```
 
-Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`.
+Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`. The action accepts every report with classification `schemaVersion` 1 or newer.
 
-For complete TypeScript evidence, install the repository dependencies before this step. For configured Rust target cells, install those targets before the action. Keep the workflow on `pull_request`; the analyzer may execute changed build scripts and procedural macros. Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary. Until a tagged monochange CLI release contains `change classify`, preinstall a compatible CLI and set `setup-monochange: false`, or pass its executable command through `setup-monochange`.
+For complete TypeScript evidence, install the repository dependencies before this step. For configured Rust target cells, install those targets before the action. Keep the workflow on `pull_request`; the analyzer may execute changed build scripts and procedural macros. Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary.
+
+The [`changeset-policy` action](https://github.com/monochange/actions/tree/main/changeset-policy) can turn the same classification into an enforced gate. Pass `from` instead of `changed-paths` so `monochange step affected-packages --verify --from <ref>` derives changed packages from git history and compares each attached changeset bump with the classified change type:
+
+```yaml
+steps:
+  - uses: actions/checkout@v6
+    with:
+      fetch-depth: 0
+  - uses: monochange/actions/changeset-policy@v0
+    with:
+      from: origin/main
+      comment-on-failure: true
+```
+
+A changeset that understates the classified change type fails the policy and names the package with the requested and recommended bumps. A higher bump only warns, and changesets with `bump: none` or an explicit target version skip the alignment check. `from` requires a full-history checkout and takes priority over `changed-paths`.
