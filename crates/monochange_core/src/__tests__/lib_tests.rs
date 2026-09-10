@@ -4800,6 +4800,26 @@ fn source_configuration_default_branch_reads_configured_base() {
 }
 
 #[test]
+fn provider_merge_request_settings_effective_commit_subject_falls_back_to_title() {
+	let settings = ProviderMergeRequestSettings::default();
+	assert_eq!(settings.effective_commit_subject(), settings.title);
+	assert_eq!(settings.commit_subject, None);
+}
+
+#[test]
+fn provider_merge_request_settings_effective_commit_subject_prefers_override() {
+	let settings = ProviderMergeRequestSettings {
+		commit_subject: Some("🔖 chore(release): prepare release".to_string()),
+		..ProviderMergeRequestSettings::default()
+	};
+	assert_eq!(
+		settings.effective_commit_subject(),
+		"🔖 chore(release): prepare release"
+	);
+	assert_eq!(settings.title, "chore(release): prepare release");
+}
+
+#[test]
 fn bump_propagation_mode_floor_returns_fixed_severities() {
 	assert_eq!(BumpPropagationMode::Inherit.floor(), None);
 	assert_eq!(BumpPropagationMode::None.floor(), Some(BumpSeverity::None));

@@ -511,6 +511,9 @@ enabled = true
 branch_prefix = "monochange/release"
 base = "main"
 title = "chore(release): prepare release"
+# Optional: override the release commit subject while keeping `title` for the
+# release PR title. When omitted, the commit subject falls back to `title`.
+# commit_subject = "🔖 chore(release): prepare release"
 labels = ["release", "automated"]
 auto_merge = false
 

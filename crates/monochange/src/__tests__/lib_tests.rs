@@ -5704,6 +5704,20 @@ fn build_release_commit_message_uses_default_title_without_source() {
 }
 
 #[test]
+fn build_release_commit_message_uses_commit_subject_override() {
+	let mut source = sample_source_configuration_for_release_commit();
+	source.pull_requests.commit_subject = Some("🔖 chore(release): prepare release".to_string());
+	let manifest = sample_release_manifest_for_commit_message(false, false);
+
+	let commit_message = crate::build_release_commit_message(Some(&source), &manifest);
+	assert_eq!(commit_message.subject, "🔖 chore(release): prepare release");
+	assert_eq!(
+		source.pull_requests.title,
+		"chore(release): prepare release"
+	);
+}
+
+#[test]
 fn render_release_commit_body_omits_empty_optional_sections() {
 	let source = sample_source_configuration_for_release_commit();
 	let manifest = sample_release_manifest_for_commit_message(false, false);
