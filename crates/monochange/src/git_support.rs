@@ -184,25 +184,28 @@ pub(crate) async fn find_release_record_files_at_commit(
 	let shallow_file = root.join(PathBuf::from(shallow_file.trim()));
 	let is_shallow_boundary = fs::read_to_string(shallow_file)
 		.is_ok_and(|contents| contents.lines().any(|line| line == resolved_commit.trim()));
-	let has_available_parent = if let Some(parent) = first_parent.as_deref() {
-		git_command_output(root, &["cat-file", "-e", &format!("{parent}^{{commit}}")])
+	if let Some(parent) = first_parent.as_deref()
+		&& !is_shallow_boundary
+		&& git_command_output(root, &["cat-file", "-e", &format!("{parent}^{{commit}}")])
 			.await
 			.is_ok()
-	} else {
-		false
-	};
-
-	if has_available_parent && !is_shallow_boundary {
+	{
 		// Exclude deleted paths: a commit that removes a release record (for
 		// example when reverting a release preparation) must not make the
 		// discovery walk treat the deleted record as present at that commit.
+		//
+		// Diff against the first parent only. `-m` diffs a merge commit
+		// against every parent, so a branch that was cut before a release
+		// re-reports that release's record relative to its older second
+		// parent, and every post-release merge of such a branch looks like a
+		// new release commit.
 		let args = [
 			"diff-tree",
-			"-m",
 			"--no-commit-id",
 			"--name-only",
 			"-r",
 			"--diff-filter=d",
+			parent,
 			commit,
 		];
 		let output = run_git_capture(root, &args, "failed to list files at commit").await?;
