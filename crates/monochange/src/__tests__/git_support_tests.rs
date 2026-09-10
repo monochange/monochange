@@ -393,3 +393,106 @@ async fn find_release_record_files_at_commit_excludes_deleted_records() {
 		vec![".monochange/releases/62bde665dd709751/release.json".to_string()]
 	);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn find_release_record_files_at_commit_ignores_records_reintroduced_by_merges() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	init_git_repo(root);
+
+	fs::write(root.join("base.txt"), "base\n")
+		.unwrap_or_else(|error| panic!("write base: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-q", "-m", "base"]);
+
+	// A branch is cut before the release record lands on main.
+	git(root, &["checkout", "-q", "-b", "docs"]);
+	fs::write(root.join("docs.md"), "docs\n").unwrap_or_else(|error| panic!("write docs: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-q", "-m", "docs"]);
+	git(root, &["checkout", "-q", "main"]);
+
+	// main records a release while the branch is open.
+	let record_dir = root.join(".monochange/releases/62bde665dd709751");
+	fs::create_dir_all(&record_dir).unwrap_or_else(|error| panic!("create record dir: {error}"));
+	fs::write(
+		record_dir.join("release.json"),
+		r#"{"schema_version":"1.0"}"#,
+	)
+	.unwrap_or_else(|error| panic!("write record: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-q", "-m", "release prep"]);
+	let record_commit = git_output(root, &["rev-parse", "HEAD"]);
+
+	// Merging the pre-release branch must not re-report the record relative
+	// to its second parent; otherwise every post-release merge of a
+	// pre-release branch looks like a new release commit.
+	git(
+		root,
+		&["merge", "--no-ff", "-q", "-m", "merge docs", "docs"],
+	);
+	let merge_commit = git_output(root, &["rev-parse", "HEAD"]);
+
+	let files_at_merge = find_release_record_files_at_commit(root, &merge_commit)
+		.await
+		.unwrap_or_else(|error| panic!("scan merge commit: {error}"));
+	assert!(
+		files_at_merge.is_empty(),
+		"merge must not reintroduce the record from its second parent, got: {files_at_merge:?}"
+	);
+
+	// The release commit itself still reports the record.
+	let files_at_record_commit = find_release_record_files_at_commit(root, &record_commit)
+		.await
+		.unwrap_or_else(|error| panic!("scan record commit: {error}"));
+	assert_eq!(
+		files_at_record_commit,
+		vec![".monochange/releases/62bde665dd709751/release.json".to_string()]
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn find_release_record_files_at_commit_detects_records_added_by_merged_branches() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	init_git_repo(root);
+
+	fs::write(root.join("base.txt"), "base\n")
+		.unwrap_or_else(|error| panic!("write base: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-q", "-m", "base"]);
+
+	// A release branch adds the record itself, so the merge genuinely
+	// introduces it into main's first-parent history.
+	git(root, &["checkout", "-q", "-b", "release-prep"]);
+	let record_dir = root.join(".monochange/releases/62bde665dd709751");
+	fs::create_dir_all(&record_dir).unwrap_or_else(|error| panic!("create record dir: {error}"));
+	fs::write(
+		record_dir.join("release.json"),
+		r#"{"schema_version":"1.0"}"#,
+	)
+	.unwrap_or_else(|error| panic!("write record: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-q", "-m", "release prep"]);
+	git(root, &["checkout", "-q", "main"]);
+	git(
+		root,
+		&[
+			"merge",
+			"--no-ff",
+			"-q",
+			"-m",
+			"merge release prep",
+			"release-prep",
+		],
+	);
+	let merge_commit = git_output(root, &["rev-parse", "HEAD"]);
+
+	let files_at_merge = find_release_record_files_at_commit(root, &merge_commit)
+		.await
+		.unwrap_or_else(|error| panic!("scan merge commit: {error}"));
+	assert_eq!(
+		files_at_merge,
+		vec![".monochange/releases/62bde665dd709751/release.json".to_string()]
+	);
+}
