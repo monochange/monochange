@@ -8,4 +8,4 @@ Grouped release for `sdk`.
 
 ### Changed
 
-- **No group-facing notes were recorded for this release. Member packages were updated as part of the synchronized group `sdk` version, but their changes are not configured for inclusion in this changelog.**
+- **No group-facing notes were recorded for this release.** Member packages were updated as part of the synchronized group `sdk` version, but their changes are not configured for inclusion in this changelog.

@@ -2659,6 +2659,160 @@ fn structured_release_notes_render_data_without_markdown_leaking_into_text() {
 }
 
 #[test]
+fn split_release_note_summary_extracts_only_the_lead_sentence() {
+	let cases = [
+		("Add one thing", "Add one thing", ""),
+		("", "", ""),
+		(
+			"Add one thing. Keep the rest plain",
+			"Add one thing.",
+			"Keep the rest plain",
+		),
+		("Does it work? Yes it does", "Does it work?", "Yes it does"),
+		("Stop! Hammer time", "Stop!", "Hammer time"),
+		("Ends with a period.", "Ends with a period.", ""),
+		(
+			"Quoted \"ends here.\" Next one",
+			"Quoted \"ends here.\"",
+			"Next one",
+		),
+		(
+			"Bold **ends here.** Next one",
+			"Bold **ends here.**",
+			"Next one",
+		),
+		(
+			"Uses `code.here` inline. Next one",
+			"Uses `code.here` inline.",
+			"Next one",
+		),
+		(
+			"Reads `a. b` tokens. Next one",
+			"Reads `a. b` tokens.",
+			"Next one",
+		),
+		(
+			"Uses `unbalanced code. Next one",
+			"Uses `unbalanced code. Next one",
+			"",
+		),
+		("Versions 3.13.0. Next one", "Versions 3.13.0.", "Next one"),
+		(
+			"Tools like e.g. make. Next one",
+			"Tools like e.g. make.",
+			"Next one",
+		),
+		("Option b. Wins ties", "Option b. Wins ties", ""),
+		(
+			"Handle when it isn't. Then remove",
+			"Handle when it isn't. Then remove",
+			"",
+		),
+		("Node.js is fast", "Node.js is fast", ""),
+		("Costs 3.13 dollars", "Costs 3.13 dollars", ""),
+		("Path a.b continues", "Path a.b continues", ""),
+	];
+	for (summary, lead, rest) in cases {
+		assert_eq!(
+			crate::split_release_note_summary(summary),
+			(lead, rest),
+			"summary: {summary}"
+		);
+	}
+}
+
+#[test]
+fn compact_entries_separate_multi_package_labels_from_the_summary() {
+	let entry = ReleaseNotesEntry {
+		summary: "add shared release note".to_string(),
+		details_markdown: None,
+		packages: vec!["core".to_string(), "app".to_string()],
+		change_type: Some("feat".to_string()),
+		bump: BumpSeverity::Minor,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Compact,
+		provenance: ReleaseNoteProvenance::default(),
+	};
+	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
+	assert_eq!(
+		rendered,
+		"- _Packages:_ _core_, _app_ **add shared release note.**"
+	);
+}
+
+#[test]
+fn compact_entries_bold_only_the_first_sentence_of_a_long_summary() {
+	let entry = ReleaseNotesEntry {
+		summary: "Add the first thing. Preserve the rest as plain text".to_string(),
+		details_markdown: Some("Details stay plain.".to_string()),
+		packages: vec!["cli".to_string()],
+		change_type: Some("feat".to_string()),
+		bump: BumpSeverity::Minor,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Compact,
+		provenance: ReleaseNoteProvenance::default(),
+	};
+	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
+	assert_eq!(
+		rendered,
+		"- **cli**: **Add the first thing.** Preserve the rest as plain text Details stay plain."
+	);
+
+	let after_change = crate::render_release_note_entry_markdown(
+		&ReleaseNotesEntry {
+			details_markdown: None,
+			..entry.clone()
+		},
+		&ChangelogStyle {
+			package_label_placement: PackageLabelPlacement::AfterChange,
+			..ChangelogStyle::default()
+		},
+	);
+	assert_eq!(
+		after_change,
+		"- **Add the first thing.** Preserve the rest as plain text\n  **cli**:"
+	);
+}
+
+#[test]
+fn compact_entries_render_details_without_a_summary() {
+	let entry = ReleaseNotesEntry {
+		summary: String::new(),
+		details_markdown: Some("Details carry the change.".to_string()),
+		packages: vec!["core".to_string(), "app".to_string()],
+		change_type: Some("fix".to_string()),
+		bump: BumpSeverity::Patch,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Compact,
+		provenance: ReleaseNoteProvenance::default(),
+	};
+	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
+	assert_eq!(
+		rendered,
+		"- _Packages:_ _core_, _app_ Details carry the change."
+	);
+}
+
+#[test]
+fn expanded_entries_move_the_summary_remainder_into_the_body() {
+	let entry = ReleaseNotesEntry {
+		summary: "Migrate the config format. Details follow the heading".to_string(),
+		details_markdown: Some("Existing `monochange.toml` files keep working.".to_string()),
+		packages: vec!["core".to_string()],
+		change_type: Some("breaking".to_string()),
+		bump: BumpSeverity::Major,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Expanded,
+		provenance: ReleaseNoteProvenance::default(),
+	};
+	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
+	assert_eq!(
+		rendered,
+		"#### Migrate the config format.\n\nDetails follow the heading\n\n_Packages:_ _core_\n\nExisting `monochange.toml` files keep working."
+	);
+}
+
+#[test]
 fn structured_release_notes_cover_layout_and_metadata_variants() {
 	let provenance = ReleaseNoteProvenance {
 		source_path: Some(".changeset/fix.md".to_string()),
