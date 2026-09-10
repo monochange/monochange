@@ -4,6 +4,76 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
+
+Grouped release for `main`.
+
+### 🚀 Feature
+
+#### Override the release commit subject
+
+_Packages:_ _monochange_, _monochange_core_
+
+`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.
+
+Repos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:
+
+```toml
+[source.pull_requests]
+title = "chore(release): prepare release"
+commit_subject = "🔖 chore(release): prepare release"
+```
+
+The override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)
+
+### 🐛 Fixed
+
+#### Detect release records at merge commits from the first parent only
+
+_Packages:_ _monochange_
+
+Release-record discovery diffed each commit against every parent with `git diff-tree -m`. A merge of a branch that was cut before a release therefore re-reported that release's `.monochange/releases/<hash>/release.json` relative to its older second parent, and the merge commit itself resolved as the release-record commit at distance 0. `release-record --from HEAD` then reported a fresh release for every post-release merge of a pre-release branch, and `tag-release` failed with `tag ... already points to commit ...` even though the existing tags were correct and nothing needed to move — which failed the `release-post-merge` CI job. Any pull request opened before a release PR that merges right after it triggers this, which the merge queue makes routine.
+
+Discovery now diffs each commit against its first parent only, the parent the commit landed through. A merge of a pre-release branch no longer looks like a new release commit, while a release branch that adds the record itself is still detected when it merges, and a commit that deletes the record stays excluded.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #677](https://github.com/monochange/monochange/pull/677) · _Related issues:_ [#674](https://github.com/monochange/monochange/issues/674)
+
+#### Ship crate_docs.md in published crate tarballs
+
+_Packages:_ _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_dart_, _monochange_deno_, _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_, _monochange_go_, _monochange_graph_, _monochange_hosting_, _monochange_npm_, _monochange_python_, _monochange_semver_, _monochange_telemetry_
+
+These crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.
+
+Each manifest now includes the file:
+
+```toml
+include = ["src/**/*.rs", "Cargo.toml", "src/crate_docs.md", "readme.md"]
+```
+
+A `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)
+
+#### Override the release commit subject
+
+_Packages:_ _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_
+
+`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.
+
+Repos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:
+
+```toml
+[source.pull_requests]
+title = "chore(release): prepare release"
+commit_subject = "🔖 chore(release): prepare release"
+```
+
+The override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)
+
 ## [0.11.0](https://github.com/monochange/monochange/releases/tag/v0.11.0) (2026-09-09)
 
 Grouped release for `main`.

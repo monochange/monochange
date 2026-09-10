@@ -1,0 +1,2005 @@
+{
+	"schema_version": "0.6",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-09-10T03:15:09Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.11.1",
+		"monochange_schema": "0.6.1"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.11.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.11.1",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.6.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.6.1",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.6.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.11.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/detect-release-records-from-first-parent-only.md",
+		".changeset/override-release-commit-subject.md",
+		".changeset/ship-crate-docs-in-published-tarballs.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/detect-release-records-from-first-parent-only.md",
+			"summary": "Detect release records at merge commits from the first parent only",
+			"details": "Release-record discovery diffed each commit against every parent with `git diff-tree -m`. A merge of a branch that was cut before a release therefore re-reported that release's `.monochange/releases/<hash>/release.json` relative to its older second parent, and the merge commit itself resolved as the release-record commit at distance 0. `release-record --from HEAD` then reported a fresh release for every post-release merge of a pre-release branch, and `tag-release` failed with `tag ... already points to commit ...` even though the existing tags were correct and nothing needed to move — which failed the `release-post-merge` CI job. Any pull request opened before a release PR that merges right after it triggers this, which the merge queue makes routine.\n\nDiscovery now diffs each commit against its first parent only, the parent the commit landed through. A merge of a pre-release branch no longer looks like a new release commit, while a release branch that adds the record itself is still detected when it merges, and a commit that deletes the record stays excluded.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5a5737fc986e4eaabf23e918a222a1cc620d6ad1",
+						"short_sha": "5a5737f",
+						"url": "https://github.com/monochange/monochange/commit/5a5737fc986e4eaabf23e918a222a1cc620d6ad1",
+						"authored_at": "2026-09-10T02:30:39+01:00",
+						"committed_at": "2026-09-10T02:30:39+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#677",
+						"title": "fix(release): discover release records through the first parent of merge commits",
+						"url": "https://github.com/monochange/monochange/pull/677",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5a5737fc986e4eaabf23e918a222a1cc620d6ad1",
+						"short_sha": "5a5737f",
+						"url": "https://github.com/monochange/monochange/commit/5a5737fc986e4eaabf23e918a222a1cc620d6ad1",
+						"authored_at": "2026-09-10T02:30:39+01:00",
+						"committed_at": "2026-09-10T02:30:39+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#677",
+						"title": "fix(release): discover release records through the first parent of merge commits",
+						"url": "https://github.com/monochange/monochange/pull/677",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#674",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/674",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/override-release-commit-subject.md",
+			"summary": "Override the release commit subject",
+			"details": "`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_gitlab",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_gitea",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_forgejo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7b368d1f9c9dd47d9ada20c3a26caa3752902ed3",
+						"short_sha": "7b368d1",
+						"url": "https://github.com/monochange/monochange/commit/7b368d1f9c9dd47d9ada20c3a26caa3752902ed3",
+						"authored_at": "2026-09-10T01:22:20+01:00",
+						"committed_at": "2026-09-10T01:59:21+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#675",
+						"title": "feat(config): allow overriding the release commit subject",
+						"url": "https://github.com/monochange/monochange/pull/675",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7b368d1f9c9dd47d9ada20c3a26caa3752902ed3",
+						"short_sha": "7b368d1",
+						"url": "https://github.com/monochange/monochange/commit/7b368d1f9c9dd47d9ada20c3a26caa3752902ed3",
+						"authored_at": "2026-09-10T01:22:20+01:00",
+						"committed_at": "2026-09-10T01:59:21+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#675",
+						"title": "feat(config): allow overriding the release commit subject",
+						"url": "https://github.com/monochange/monochange/pull/675",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/ship-crate-docs-in-published-tarballs.md",
+			"summary": "Ship crate_docs.md in published crate tarballs",
+			"details": "These crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.",
+			"targets": [
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_dart",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_deno",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_forgejo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_gitea",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_gitlab",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_go",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_graph",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_hosting",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_python",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_semver",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_telemetry",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "667e3b48152360bf3fa79d934cdc586f37083b5c",
+						"short_sha": "667e3b4",
+						"url": "https://github.com/monochange/monochange/commit/667e3b48152360bf3fa79d934cdc586f37083b5c",
+						"authored_at": "2026-09-10T02:42:42+01:00",
+						"committed_at": "2026-09-10T02:42:42+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#678",
+						"title": "fix(publish): ship crate_docs.md in package tarballs and restore packaging checks",
+						"url": "https://github.com/monochange/monochange/pull/678",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "667e3b48152360bf3fa79d934cdc586f37083b5c",
+						"short_sha": "667e3b4",
+						"url": "https://github.com/monochange/monochange/commit/667e3b48152360bf3fa79d934cdc586f37083b5c",
+						"authored_at": "2026-09-10T02:42:42+01:00",
+						"committed_at": "2026-09-10T02:42:42+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#678",
+						"title": "fix(publish): ship crate_docs.md in package tarballs and restore packaging checks",
+						"url": "https://github.com/monochange/monochange/pull/678",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Override the release commit subject\n\n_Packages:_ _monochange_, _monochange_core_\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Detect release records at merge commits from the first parent only\n\n_Packages:_ _monochange_\n\nRelease-record discovery diffed each commit against every parent with `git diff-tree -m`. A merge of a branch that was cut before a release therefore re-reported that release's `.monochange/releases/<hash>/release.json` relative to its older second parent, and the merge commit itself resolved as the release-record commit at distance 0. `release-record --from HEAD` then reported a fresh release for every post-release merge of a pre-release branch, and `tag-release` failed with `tag ... already points to commit ...` even though the existing tags were correct and nothing needed to move — which failed the `release-post-merge` CI job. Any pull request opened before a release PR that merges right after it triggers this, which the merge queue makes routine.\n\nDiscovery now diffs each commit against its first parent only, the parent the commit landed through. A merge of a pre-release branch no longer looks like a new release commit, while a release branch that adds the record itself is still detected when it merges, and a commit that deletes the record stays excluded.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #677](https://github.com/monochange/monochange/pull/677) · _Related issues:_ [#674](https://github.com/monochange/monochange/issues/674)",
+							"#### Ship crate_docs.md in published crate tarballs\n\n_Packages:_ _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_dart_, _monochange_deno_, _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_, _monochange_go_, _monochange_graph_, _monochange_hosting_, _monochange_npm_, _monochange_python_, _monochange_semver_, _monochange_telemetry_\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)",
+							"#### Override the release commit subject\n\n_Packages:_ _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\nGrouped release for `main`.\n\n### 🚀 Feature\n\n#### Override the release commit subject\n\n_Packages:_ _monochange_, _monochange_core_\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)\n\n### 🐛 Fixed\n\n#### Detect release records at merge commits from the first parent only\n\n_Packages:_ _monochange_\n\nRelease-record discovery diffed each commit against every parent with `git diff-tree -m`. A merge of a branch that was cut before a release therefore re-reported that release's `.monochange/releases/<hash>/release.json` relative to its older second parent, and the merge commit itself resolved as the release-record commit at distance 0. `release-record --from HEAD` then reported a fresh release for every post-release merge of a pre-release branch, and `tag-release` failed with `tag ... already points to commit ...` even though the existing tags were correct and nothing needed to move — which failed the `release-post-merge` CI job. Any pull request opened before a release PR that merges right after it triggers this, which the merge queue makes routine.\n\nDiscovery now diffs each commit against its first parent only, the parent the commit landed through. A merge of a pre-release branch no longer looks like a new release commit, while a release branch that adds the record itself is still detected when it merges, and a commit that deletes the record stays excluded.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #677](https://github.com/monochange/monochange/pull/677) · _Related issues:_ [#674](https://github.com/monochange/monochange/issues/674)\n\n#### Ship crate_docs.md in published crate tarballs\n\n_Packages:_ _monochange_cargo_, _monochange_config_, _monochange_core_, _monochange_dart_, _monochange_deno_, _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_, _monochange_go_, _monochange_graph_, _monochange_hosting_, _monochange_npm_, _monochange_python_, _monochange_semver_, _monochange_telemetry_\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)\n\n#### Override the release commit subject\n\n_Packages:_ _monochange_forgejo_, _monochange_gitea_, _monochange_github_, _monochange_gitlab_\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Detect release records at merge commits from the first parent only\n\nRelease-record discovery diffed each commit against every parent with `git diff-tree -m`. A merge of a branch that was cut before a release therefore re-reported that release's `.monochange/releases/<hash>/release.json` relative to its older second parent, and the merge commit itself resolved as the release-record commit at distance 0. `release-record --from HEAD` then reported a fresh release for every post-release merge of a pre-release branch, and `tag-release` failed with `tag ... already points to commit ...` even though the existing tags were correct and nothing needed to move — which failed the `release-post-merge` CI job. Any pull request opened before a release PR that merges right after it triggers this, which the merge queue makes routine.\n\nDiscovery now diffs each commit against its first parent only, the parent the commit landed through. A merge of a pre-release branch no longer looks like a new release commit, while a release branch that adds the record itself is still detected when it merges, and a commit that deletes the record stays excluded.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #677](https://github.com/monochange/monochange/pull/677) · _Related issues:_ [#674](https://github.com/monochange/monochange/issues/674)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🚀 Feature\n\n#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)\n\n### 🐛 Fixed\n\n#### Detect release records at merge commits from the first parent only\n\nRelease-record discovery diffed each commit against every parent with `git diff-tree -m`. A merge of a branch that was cut before a release therefore re-reported that release's `.monochange/releases/<hash>/release.json` relative to its older second parent, and the merge commit itself resolved as the release-record commit at distance 0. `release-record --from HEAD` then reported a fresh release for every post-release merge of a pre-release branch, and `tag-release` failed with `tag ... already points to commit ...` even though the existing tags were correct and nothing needed to move — which failed the `release-post-merge` CI job. Any pull request opened before a release PR that merges right after it triggers this, which the merge queue makes routine.\n\nDiscovery now diffs each commit against its first parent only, the parent the commit landed through. A merge of a pre-release branch no longer looks like a new release commit, while a release branch that adds the record itself is still detected when it merges, and a commit that deletes the record stays excluded.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #677](https://github.com/monochange/monochange/pull/677) · _Related issues:_ [#674](https://github.com/monochange/monochange/issues/674)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🚀 Feature\n\n#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)",
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)",
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)",
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)",
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_lint` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_lint` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_linting` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_linting` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_publish` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_publish` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.6.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.6.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.6.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.6.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Override the release commit subject\n\n`[source.pull_requests]` accepts a new optional `commit_subject` key that sets the release commit subject independently of the release pull request title. When omitted, the commit subject keeps falling back to `title`, so existing configs are unchanged.\n\nRepos that prefix release commits with an emoji no longer have to put the emoji in the pull request title:\n\n```toml\n[source.pull_requests]\ntitle = \"chore(release): prepare release\"\ncommit_subject = \"🔖 chore(release): prepare release\"\n```\n\nThe override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### 🐛 Fixed\n\n#### Ship crate_docs.md in published crate tarballs\n\nThese crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.\n\nEach manifest now includes the file:\n\n```toml\ninclude = [\"src/**/*.rs\", \"Cargo.toml\", \"src/crate_docs.md\", \"readme.md\"]\n```\n\nA `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.11.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.11.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.11.1 as part of group `main`.**"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
