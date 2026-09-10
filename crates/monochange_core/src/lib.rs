@@ -4193,12 +4193,17 @@ fn render_structured_text_release_notes(
 }
 
 /// Render one structured entry as Markdown with the selected style.
+///
+/// Only the first sentence of a multi-sentence summary is emphasized; the
+/// remainder keeps the plain formatting it had in the changeset file so a long
+/// line cannot turn into one bold block.
 #[must_use]
 pub fn render_release_note_entry_markdown(
 	entry: &ReleaseNotesEntry,
 	style: &ChangelogStyle,
 ) -> String {
-	let summary = sentence_case_release_note_summary(&entry.summary);
+	let (lead, summary_rest) = split_release_note_summary(entry.summary.trim());
+	let summary = sentence_case_release_note_summary(lead);
 	let details = entry
 		.details_markdown
 		.as_deref()
@@ -4214,10 +4219,15 @@ pub fn render_release_note_entry_markdown(
 				rendered.push_str(&package_label);
 			}
 			if !summary.is_empty() {
+				push_release_note_chunk_separator(&mut rendered);
 				let _ = write!(rendered, "**{summary}**");
 			}
+			if !summary_rest.is_empty() {
+				push_release_note_chunk_separator(&mut rendered);
+				rendered.push_str(summary_rest);
+			}
 			if let Some(details) = details {
-				rendered.push(' ');
+				push_release_note_chunk_separator(&mut rendered);
 				rendered.push_str(details);
 			}
 			if style.package_label_placement == PackageLabelPlacement::AfterChange
@@ -4233,7 +4243,10 @@ pub fn render_release_note_entry_markdown(
 			rendered
 		}
 		ReleaseNoteEntryStyle::Expanded => {
-			let mut parts = vec![format!("#### {}", entry.summary.trim())];
+			let mut parts = vec![format!("#### {}", lead)];
+			if !summary_rest.is_empty() {
+				parts.push(summary_rest.to_string());
+			}
 			if style.package_label_placement == PackageLabelPlacement::AfterHeading
 				&& !package_label.is_empty()
 			{
@@ -4286,6 +4299,83 @@ fn sentence_case_release_note_summary(summary: &str) -> String {
 		summary.to_string()
 	} else {
 		format!("{summary}.")
+	}
+}
+
+/// Punctuation that may sit between sentence-terminal punctuation and the next
+/// sentence, such as a closing quote or the end of a bold span.
+const RELEASE_NOTE_SENTENCE_CLOSERS: [char; 7] = ['"', '\'', ')', ']', '’', '”', '*'];
+
+/// Words whose terminal period does not end a sentence in a summary.
+const RELEASE_NOTE_SENTENCE_ABBREVIATIONS: [&str; 21] = [
+	"al", "approx", "cf", "co", "dr", "e.g", "etc", "fig", "i.e", "inc", "jr", "ltd", "max", "min",
+	"mr", "mrs", "ms", "no", "sr", "st", "vs",
+];
+
+/// Split a release-note summary into its lead sentence and the remainder.
+///
+/// A boundary exists at sentence punctuation followed by whitespace and a new
+/// word. Periods inside inline code spans, in abbreviations such as `e.g.`, in
+/// version numbers like `3.13.0`, and after single-letter initials never start
+/// a new sentence. Returns the unchanged summary as the lead when it holds a
+/// single sentence.
+fn split_release_note_summary(summary: &str) -> (&str, &str) {
+	let mut in_code_span = false;
+	let mut word_start = 0;
+	for (index, character) in summary.char_indices() {
+		if character == '`' {
+			in_code_span = !in_code_span;
+			continue;
+		}
+		if matches!(character, '.' | '!' | '?') && !in_code_span {
+			let end = release_note_sentence_end(summary, index + character.len_utf8());
+			if release_note_starts_new_sentence(&summary[end..])
+				&& !is_release_note_abbreviation(&summary[word_start..index])
+			{
+				return (&summary[..end], summary[end..].trim_start());
+			}
+			continue;
+		}
+		if !character.is_alphanumeric() {
+			word_start = index + character.len_utf8();
+		}
+	}
+	(summary, "")
+}
+
+/// Advance past closing punctuation that belongs to the sentence ending.
+fn release_note_sentence_end(summary: &str, mut end: usize) -> usize {
+	while let Some(closer) = summary[end..].chars().next() {
+		if !RELEASE_NOTE_SENTENCE_CLOSERS.contains(&closer) {
+			break;
+		}
+		end += closer.len_utf8();
+	}
+	end
+}
+
+/// Require whitespace plus a leading word character so decimals such as
+/// `3.13` and paths such as `Node.js` stay inside one sentence.
+fn release_note_starts_new_sentence(rest: &str) -> bool {
+	let trimmed = rest.trim_start();
+	trimmed.len() < rest.len()
+		&& trimmed
+			.chars()
+			.next()
+			.is_some_and(|next| next.is_alphabetic() || next == '`')
+}
+
+fn is_release_note_abbreviation(word: &str) -> bool {
+	let lowercase = word.to_ascii_lowercase();
+	RELEASE_NOTE_SENTENCE_ABBREVIATIONS.contains(&lowercase.as_str())
+		|| (word.chars().count() == 1 && word.chars().next().is_some_and(char::is_alphabetic))
+}
+
+/// Separate inline compact-entry chunks with exactly one space. The
+/// multi-package label has no trailing whitespace of its own.
+fn push_release_note_chunk_separator(rendered: &mut String) {
+	if !rendered.ends_with(char::is_whitespace) {
+		rendered.push(' ');
 	}
 }
 
