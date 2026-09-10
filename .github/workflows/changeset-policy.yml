@@ -37,7 +37,7 @@ jobs:
         uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
 
       - name: run changeset policy
-        uses: monochange/actions/changeset-policy@53bd37cbecff25eeefa689bd7ac5fc807dbabac7
+        uses: monochange/actions/changeset-policy@1fe45f5214577e78f6339e233c05fd429b1adaf7 # v0.9.0
         with:
           setup-monochange: devenv shell monochange
           changed-paths: ${{ steps.changed.outputs.all_changed_files }}
