@@ -14,6 +14,31 @@ Treat publishing as a separate phase from release preparation. Release preparati
 
 Readiness and publish artifacts are part of the safety model. They make a publish job auditable, let later steps confirm they are operating on the same release record, and help distinguish already-published packages from packages that still need work.
 
+## Dry-run publish checks
+
+<!-- {=publishDryRunChecks} -->
+
+Publishing is the only release phase that cannot be rolled back. A broken release commit is fixed with a follow-up commit, and release tags can be deleted and re-created, but registry publications are permanent: when a multi-package publish fails partway, earlier packages are already live, later packages are missing, and cleanup usually means manual unpublishing or burned version numbers.
+
+Run a dry-run publish check before anything mutates:
+
+```bash
+monochange step publish-packages --dry-run
+```
+
+The dry run resolves the same publish set and dependency-aware batches as a real publish, checks each selected version against its registry, and validates the configured publishing flow without mutating any registry. Repositories commonly expose it through a configured workflow command such as `monochange run publish-check` or through a lint script.
+
+Use it at two checkpoints:
+
+1. **A required CI job on every pull request.** Changes that would break publication fail CI instead of merging. This protects the default branch, but the pull request tree is not yet the release tree, so problems that only appear after versions change can still slip through.
+2. **A simulated release commit.** In the same pull request, create the release commit locally without pushing (`monochange run release --commit`), run the dry-run publish check against that tree, then discard the commit. This validates the exact bumped versions, manifests, and changelogs the release will publish, and it is the strongest pre-merge signal.
+
+For compiled ecosystems, also verify packages build from their packaged tarballs (for example `cargo package --workspace`) so a tarball that cannot compile fails CI instead of surfacing during publication.
+
+Keep a dry-run publish check in the release workflow as the final gate before real publication. A problem that slips past CI then fails the release job before tags and hosted releases are created, so the fix is another commit instead of rolling back half-published registries.
+
+<!-- {/publishDryRunChecks} -->
+
 ## Configuration pattern
 
 ```toml
