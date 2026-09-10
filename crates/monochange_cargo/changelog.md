@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
+
+### 🐛 Fixed
+
+#### Ship crate_docs.md in published crate tarballs
+
+These crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.
+
+Each manifest now includes the file:
+
+```toml
+include = ["src/**/*.rs", "Cargo.toml", "src/crate_docs.md", "readme.md"]
+```
+
+A `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)
+
 ## [0.11.0](https://github.com/monochange/monochange/releases/tag/v0.11.0) (2026-09-09)
 
 ### 💥 Breaking Change
