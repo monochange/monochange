@@ -19,6 +19,7 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 - When authoring `[cli.*]` workflows, command inputs are explicit per step. Add `inputs = ["name"]` on a step to inherit a command input unchanged, or use the map form for overrides and renamed values.
 - Prefer package or group ids from `monochange.toml` over manifest names.
 - Use dry-run or preview commands before mutating versions, committing, tagging, releasing, or publishing.
+- Gate CI on a dry-run publish check (`monochange step publish-packages --dry-run`), ideally also against a simulated release commit (`monochange run release --commit` without pushing), so changes that would break publication never merge; see [skills/multi-package-publishing.md](skills/multi-package-publishing.md).
 - Never publish with local credentials on behalf of a user unless they explicitly own that operation and the project rules allow it.
 
 ## Fast workflow
