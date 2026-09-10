@@ -205,7 +205,11 @@ jobs:
       - name: detect release commit
         id: release_record
         run: |
-          if git log --oneline -1 --grep='chore(release)' HEAD | grep -q 'chore(release)'; then
+          # Only HEAD's own subject counts. `git log -1 --grep` walks the
+          # whole history for any matching commit, so after the first release
+          # every commit was treated as a release commit and the packaging
+          # verification never ran again.
+          if git show -s --format=%s HEAD | grep -q '^chore(release):'; then
             echo "is_release_commit=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_release_commit=false" >> "$GITHUB_OUTPUT"
