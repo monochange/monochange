@@ -6,7 +6,7 @@ categories = { workspace = true }
 documentation = "https://docs.rs/monochange_telemetry"
 edition = { workspace = true }
 homepage = { workspace = true }
-include = ["src/**/*.rs", "tests/**/*.rs", "Cargo.toml", "readme.md"]
+include = ["src/**/*.rs", "tests/**/*.rs", "Cargo.toml", "src/crate_docs.md", "readme.md"]
 keywords = ["cli", "telemetry", "jsonl", "tracing", "monorepo"]
 license = { workspace = true }
 readme = "readme.md"
