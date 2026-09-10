@@ -1533,6 +1533,13 @@
 					"default": "monochange/release",
 					"type": "string"
 				},
+				"commit_subject": {
+					"description": "Overrides the release commit subject while keeping `title` for the pull request.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
 				"enabled": {
 					"default": true,
 					"type": "boolean"

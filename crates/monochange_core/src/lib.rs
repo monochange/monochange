@@ -5622,12 +5622,25 @@ pub struct ProviderMergeRequestSettings {
 	pub base: String,
 	#[serde(default = "default_pull_request_title")]
 	pub title: String,
+	/// Overrides the release commit subject while keeping `title` for the pull request.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub commit_subject: Option<String>,
 	#[serde(default = "default_pull_request_labels")]
 	pub labels: Vec<String>,
 	#[serde(default)]
 	pub auto_merge: bool,
 	#[serde(default)]
 	pub verified_commits: bool,
+}
+
+impl ProviderMergeRequestSettings {
+	/// Returns the commit subject for the release commit, falling back to `title`.
+	#[must_use]
+	pub fn effective_commit_subject(&self) -> String {
+		self.commit_subject
+			.clone()
+			.unwrap_or_else(|| self.title.clone())
+	}
 }
 
 impl Default for ProviderMergeRequestSettings {
@@ -5637,6 +5650,7 @@ impl Default for ProviderMergeRequestSettings {
 			branch_prefix: default_pull_request_branch_prefix(),
 			base: default_pull_request_base(),
 			title: default_pull_request_title(),
+			commit_subject: None,
 			labels: default_pull_request_labels(),
 			auto_merge: false,
 			verified_commits: false,

@@ -380,7 +380,6 @@ pub fn build_release_pull_request_request(
 	manifest: &ReleaseManifest,
 ) -> SourceChangeRequest {
 	let repository = format!("{}/{}", source.owner, source.repo);
-	let title = source.pull_requests.title.clone();
 	SourceChangeRequest {
 		provider: SourceProvider::Gitea,
 		repository: repository.clone(),
@@ -391,12 +390,12 @@ pub fn build_release_pull_request_request(
 			&source.pull_requests.branch_prefix,
 			&manifest.command,
 		),
-		title: title.clone(),
+		title: source.pull_requests.title.clone(),
 		body: release_pull_request_body(manifest),
 		labels: source.pull_requests.labels.clone(),
 		auto_merge: source.pull_requests.auto_merge,
 		commit_message: CommitMessage {
-			subject: title,
+			subject: source.pull_requests.effective_commit_subject(),
 			body: None,
 		},
 	}

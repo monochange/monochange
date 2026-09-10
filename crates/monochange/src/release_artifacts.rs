@@ -1071,8 +1071,8 @@ pub(crate) fn build_release_commit_message(
 ) -> CommitMessage {
 	CommitMessage {
 		subject: source.map_or_else(
-			|| monochange_core::ProviderMergeRequestSettings::default().title,
-			|source| source.pull_requests.title.clone(),
+			|| monochange_core::ProviderMergeRequestSettings::default().effective_commit_subject(),
+			|source| source.pull_requests.effective_commit_subject(),
 		),
 		body: Some(render_release_commit_body(source, manifest)),
 	}
