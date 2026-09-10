@@ -519,7 +519,7 @@ versioned_files = ["**/crates/*/Cargo.toml"]
 versioned_files = [{ path = "group.toml", type = "cargo", name = "sdk-core" }]
 versioned_files = [{ path = "docs/version.txt", type = "cargo" }]
 versioned_files = [
-	{ path = "Cargo.toml", type = "cargo", fields = ["workspace.metadata.bin.monochange.version"], prefix = "" },
+	{ path = "Cargo.toml", type = "cargo", fields = ["workspace.metadata.bin.monochange.version"], prefix = "" }, # bare version, e.g. 1.2.3
 ]
 versioned_files = [
 	{ path = "package.json", type = "npm", fields = ["metadata.bin.monochange.version"] },
@@ -539,6 +539,25 @@ versioned_files = ["**/packages/*/package.json"]
 ```
 
 Typed manifest entries can update dependency sections and arbitrary string fields inside TOML or JSON manifests. Dependency targets in `versioned_files` must reference declared package ids. Groups must use explicit typed entries because monochange cannot infer a group ecosystem from a bare string.
+
+### Dependency prefixes
+
+Typed entries write internal dependency references with a range prefix. Set `prefix` on an entry to control it exactly — `"^"`, `"~"`, `">="`, `"="`, `"v"`, or `""` for a bare version:
+
+```toml
+versioned_files = [
+	# write internal npm dependencies as tilde ranges, e.g. "~1.2.3"
+	{ path = "package.json", type = "npm", fields = ["dependencies"], prefix = "~" },
+]
+```
+
+Resolution order for the prefix:
+
+1. the entry's `prefix`
+2. `[ecosystems.<type>] dependency_version_prefix` (see the `[ecosystems.*]` reference in [Ecosystems](ecosystems.md))
+3. the ecosystem default: `^` for npm, deno, and dart; `>=` for python; `v` for go; empty for cargo
+
+The prefix applies to internal dependency references only — the package's own `version` field is written without it. `format` entries ignore `prefix` and always write the bare version, and `regex` entries cannot set `prefix`. `monochange versions sync --strategy` uses its own fixed per-ecosystem prefixes and ignores `dependency_version_prefix`; see [Internal dependency versions](../reference/versions.md) for that table.
 
 ### Format versioned files
 

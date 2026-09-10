@@ -110,6 +110,17 @@ versioned_files = [
 
 String entries infer the package ecosystem when they appear under `[package.*]`. Group entries should be explicit because a group can span ecosystems.
 
+Typed entries write internal dependency references with a range prefix. Set `prefix` on an entry to choose it exactly — `"^"`, `"~"`, `">="`, `"="`, `"v"`, or `""` for a bare version:
+
+```toml
+versioned_files = [
+	# write internal npm dependencies as tilde ranges, e.g. "~1.2.3"
+	{ path = "package.json", type = "npm", fields = ["dependencies"], prefix = "~" },
+]
+```
+
+Without `prefix`, the ecosystem default applies (`^` for npm, deno, and dart; `>=` for python; `v` for go; empty for cargo), overridable with `[ecosystems.<name>] dependency_version_prefix`. The prefix affects internal dependency references only — the package's own version is written bare. `format` and `regex` entries do not take a prefix. `monochange versions sync --strategy` ignores this configuration and uses its own fixed per-ecosystem prefixes; it never writes `~` or `=`.
+
 Use regex entries for docs, install snippets, generated metadata, or examples that are not native package manifests. The regex must include a named `version` capture so monochange knows exactly which portion to replace.
 
 ## Ecosystem settings

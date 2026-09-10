@@ -18,6 +18,7 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 - Binary commands are wired by the CLI. Step commands are always exposed as `monochange step <step-name>` for built-in step variants, except the generic `Command` step.
 - When authoring `[cli.*]` workflows, command inputs are explicit per step. Add `inputs = ["name"]` on a step to inherit a command input unchanged, or use the map form for overrides and renamed values.
 - Prefer package or group ids from `monochange.toml` over manifest names.
+- Internal dependency constraint prefixes come from the strategy in `monochange versions sync --strategy exact|caret|compatible` (never `~` or `=` there). To write custom prefixes at release time, set `prefix` on a typed `versioned_files` entry, or `[ecosystems.<name>] dependency_version_prefix` for the ecosystem default; see [skills/configuration.md](skills/configuration.md).
 - Use dry-run or preview commands before mutating versions, committing, tagging, releasing, or publishing.
 - Gate CI on a dry-run publish check (`monochange step publish-packages --dry-run`), ideally also against a simulated release commit (`monochange run release --commit` without pushing), so changes that would break publication never merge; see [skills/multi-package-publishing.md](skills/multi-package-publishing.md).
 - Never publish with local credentials on behalf of a user unless they explicitly own that operation and the project rules allow it.
@@ -69,7 +70,7 @@ Built-in commands in the current CLI:
 - `monochange step validate`: validate `monochange.toml` and changeset targets.
 - `monochange step publish-readiness`: verify publishability from a release record without publishing.
 - `monochange step placeholder-publish`: publish first-time placeholder versions for packages in a release record.
-- `monochange versions`: synchronize internal workspace dependency constraints across all supported ecosystems.
+- `monochange versions`: synchronize internal workspace dependency constraints across all supported ecosystems; `--strategy exact|caret|compatible` controls the written constraint prefix.
 
 Built-in step commands:
 
