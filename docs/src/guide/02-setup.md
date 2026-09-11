@@ -18,6 +18,12 @@ The generated file is intentionally minimal and does not create default `[cli.*]
 
 Add `[cli.*]` tables only when you want repository-specific named workflows that chain steps, expose custom inputs, or run shell `Command` steps.
 
+### Commit `.monochange/`, gitignore only `.monochange/local/`
+
+monochange writes committed state under `.monochange/`. The most important file is the release record at `.monochange/releases/<id>/release.json`, which `CommitRelease` writes and later `publish-readiness`, `tag-release`, and provider release automation read from git history. Prerelease state in `.monochange/prerelease-state.json` is committed too.
+
+Only the `.monochange/local/` directory holds local artifacts. Never add `.monochange/` as a whole to `.gitignore`: ignoring it hides new release records from git and makes releases unpublishable. monochange keeps local state out of `git status` by adding `.monochange/local/` to `.git/info/exclude` automatically when it writes a local artifact, so local runs should either use the default `.monochange/local/` paths or write artifacts to a temporary directory.
+
 ### Automated CI setup with `--provider`
 
 When you know which source provider you will use for release automation, include the `--provider` flag during initialization:

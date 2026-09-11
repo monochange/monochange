@@ -9,6 +9,8 @@ monochange is a CLI/tool harness for producing versioned packages from a monorep
 3. `PrepareRelease` computes package/group versions, updates files, and emits release-plan data.
 4. Follow-up steps can commit, open release requests, tag releases, publish provider releases, publish package artifacts, and comment on issues.
 
+Release records and prerelease state under `.monochange/` are committed release state, not local scratch space. Only `.monochange/local/` may be gitignored; never add `.monochange/` as a whole to `.gitignore`, because `CommitRelease`, `publish-readiness`, `tag-release`, and provider release automation read `.monochange/releases/<id>/release.json` from git history and ignoring them makes releases unpublishable. monochange adds `.monochange/local/` to `.git/info/exclude` on its own when it writes a local artifact.
+
 ## Inspecting a repository
 
 ```bash

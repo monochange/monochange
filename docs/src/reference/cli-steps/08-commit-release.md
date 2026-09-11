@@ -59,7 +59,7 @@ always_run = true
 You can provide that state in either of two ways:
 
 - run a previous `PrepareRelease` step in the same command
-- reuse a saved prepared release artifact from `.monochange/prepared-release-cache.json` or `--prepared-release`
+- reuse a saved prepared release artifact from `.monochange/local/prepared-release-cache.json` or `--prepared-release`
 
 `CommitRelease` is a **consumer** step. It does not plan a release on its own.
 
@@ -70,6 +70,8 @@ In normal mode, `CommitRelease` creates a local commit.
 In `--dry-run` mode, it previews the commit payload without creating the commit.
 
 Before committing, `CommitRelease` validates the `.monochange/releases/<id>/release.json` record on disk. If the file exists, the step compares it against the expected content **semantically** (parsed JSON values), so formatting-only differences such as indentation or key ordering do not trigger a mismatch. If the file is missing or semantically different, the step either errors (default) or overwrites the file, depending on the `update_release_json` input.
+
+The release record is committed state. Only `.monochange/local/` may be gitignored, and an ignore rule that also matches `.monochange/releases/` keeps the record out of git history, which breaks `publish-readiness`, `tag-release`, and provider release automation.
 
 It exposes a structured `release_commit.*` namespace to later `Command` steps. Commonly useful fields include:
 

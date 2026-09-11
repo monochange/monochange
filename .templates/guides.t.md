@@ -1077,6 +1077,7 @@ This layout keeps the top-level skill small while still making the richer guidan
 - Use `monochange_lint_catalog` and `monochange_lint_explain` when you need lint metadata without shelling out.
 - Prefer `monochange run change` plus `.changeset/*.md` files over ad hoc release notes.
 - Use `monochange step prepare-release --dry-run --format json` before mutating release state.
+- Gitignore only `.monochange/local/`. Never ignore the whole `.monochange/` directory: release records and prerelease state are committed release state that publish, tag, and readiness steps read from git history, so ignoring them makes releases unpublishable.
 
 <!-- {/assistantRepoGuidance} -->
 
