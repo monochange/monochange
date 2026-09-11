@@ -244,8 +244,12 @@ fn release_progress_streams_named_steps_on_tty() {
 
 	assert!(transcript.contains("[1/2] plan release (PrepareRelease)"));
 	assert!(transcript.contains("[2/2] stream summary (Command)"));
-	assert!(transcript.contains("stream summary [stdout] streamed line 1"));
-	assert!(transcript.contains("stream summary [stdout] streamed line 2"));
+	// Captured output names its step once, then indents every line under it.
+	assert!(
+		transcript.contains("  │ stream summary\n  │   streamed line 1\n  │   streamed line 2")
+	);
+	assert!(!transcript.contains("[stdout]"));
+	assert!(!transcript.contains("[stderr]"));
 	assert!(transcript.contains("`progress-release` finished"));
 	assert!(transcript.contains("command `progress-release` completed"));
 }
@@ -295,13 +299,15 @@ fn release_progress_renders_skipped_failed_steps_and_stderr_on_tty() {
 	assert!(transcript.contains(
 		"○ [1/5] skip validate (Validate) — skipped (when condition `{{ false }}` is false)"
 	));
-	assert!(transcript.contains("stderr only [stderr] warn line"));
+	assert!(transcript.contains("  │ stderr only\n  │   warn line"));
 	assert!(transcript.contains("✖ [3/5] fail loud (Command)"));
-	assert!(transcript.contains("fail loud [stderr] bad line"));
+	assert!(transcript.contains("  │ fail loud\n  │   bad line"));
 	assert!(transcript.contains("error[workspace.discovery_failed]"));
 	assert!(transcript.contains("cause: stderr:\n    bad line"));
 	assert!(transcript.contains("✔ [4/5] cleanup (Command)"));
-	assert!(transcript.contains("cleanup [stdout] cleanup complete"));
+	assert!(transcript.contains("  │ cleanup\n  │   cleanup complete"));
+	assert!(!transcript.contains("[stdout]"));
+	assert!(!transcript.contains("[stderr]"));
 	assert!(
 		transcript
 			.contains("○ [5/5] skip after failure (Command) — skipped (an earlier step failed)")

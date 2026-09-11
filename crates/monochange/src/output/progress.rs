@@ -56,6 +56,7 @@ struct ProgressSymbols {
 	bullet: &'static str,
 	log_pipe: &'static str,
 	spinner_frames: &'static [&'static str],
+	ecosystem_emoji: bool,
 }
 
 const UNICODE_SYMBOLS: ProgressSymbols = ProgressSymbols {
@@ -68,6 +69,7 @@ const UNICODE_SYMBOLS: ProgressSymbols = ProgressSymbols {
 	bullet: "·",
 	log_pipe: "│",
 	spinner_frames: &UNICODE_SPINNER_FRAMES,
+	ecosystem_emoji: true,
 };
 
 const ASCII_SYMBOLS: ProgressSymbols = ProgressSymbols {
@@ -80,6 +82,7 @@ const ASCII_SYMBOLS: ProgressSymbols = ProgressSymbols {
 	bullet: "-",
 	log_pipe: "|",
 	spinner_frames: &ASCII_SPINNER_FRAMES,
+	ecosystem_emoji: false,
 };
 
 #[allow(clippy::struct_excessive_bools)]
@@ -98,6 +101,7 @@ pub(crate) struct ProgressReporter {
 	symbols: ProgressSymbols,
 	event_sequence: AtomicU64,
 	line_cleared: Arc<AtomicBool>,
+	output_block: Mutex<Option<String>>,
 }
 
 struct SpinnerState {
@@ -217,6 +221,7 @@ impl ProgressReporter {
 			symbols,
 			event_sequence: AtomicU64::new(0),
 			line_cleared: Arc::new(AtomicBool::new(false)),
+			output_block: Mutex::new(None),
 		}
 	}
 
@@ -622,23 +627,29 @@ impl ProgressReporter {
 			return;
 		}
 		self.command_started();
-		let stream_label = match stream {
-			CommandStream::Stdout => self.paint("stdout", Style::Muted),
-			CommandStream::Stderr => self.paint("stderr", Style::Warning),
-		};
 		let step_label = step.display_name();
+		let mut output_block = self.output_block.lock().unwrap();
+		if output_block.as_deref() != Some(step_label) {
+			self.write_line(&format!(
+				"  {} {}",
+				self.paint(self.symbols.log_pipe, Style::Muted),
+				self.paint(step_label, Style::Detail),
+			));
+			output_block.replace(step_label.to_string());
+		}
+		let indent = format!("  {}   ", self.paint(self.symbols.log_pipe, Style::Muted));
 		for line in text.lines() {
+			if line.trim().is_empty() {
+				self.write_line(indent.trim_end());
+				continue;
+			}
 			let line = if self.color {
 				line.to_string()
 			} else {
 				strip_terminal_controls(line)
 			};
 			let reset = if self.color { "\u{1b}[0m" } else { "" };
-			self.print_line(&format!(
-				"  {} {} {line}{reset}",
-				self.paint(self.symbols.log_pipe, Style::Muted),
-				self.paint(&format!("{step_label} [{stream_label}]"), Style::Detail),
-			));
+			self.write_line(&format!("{indent}{line}{reset}"));
 		}
 	}
 
@@ -716,6 +727,13 @@ impl ProgressReporter {
 	}
 
 	fn print_line(&self, text: &str) {
+		self.write_line(text);
+		// Any progress line ends the current command-output run, so the next
+		// output line re-establishes which step it belongs to.
+		self.output_block.lock().unwrap().take();
+	}
+
+	fn write_line(&self, text: &str) {
 		let spinner_active = self.animate && self.active_spinner.lock().unwrap().is_some();
 		let prefix = if spinner_active {
 			"\r\u{1b}[2K\u{1b}[0m"
@@ -1050,11 +1068,11 @@ impl PublishProgressReporter for ProgressReporter {
 			event,
 			PublishProgressEvent::RegistryCheckStarted(_) | PublishProgressEvent::PackageStarted(_)
 		);
-		let line = render_publish_event(
-			&event,
-			self.capabilities.stderr_is_terminal && !self.capabilities.ci,
-		);
-		if activity && self.animate {
+		// The spinner renders the animated activity line and supplies its own
+		// frame, so that message must not embed a second one.
+		let spinner_message = activity && self.animate;
+		let line = render_publish_event(&event, &self.symbols, self.color, spinner_message);
+		if spinner_message {
 			self.start_spinner(line);
 		} else {
 			if !activity {
@@ -1092,7 +1110,12 @@ fn summary_count_line(
 	(!line.is_empty()).then_some(line)
 }
 
-fn render_publish_event(event: &PublishProgressEvent, interactive: bool) -> String {
+fn render_publish_event(
+	event: &PublishProgressEvent,
+	symbols: &ProgressSymbols,
+	color: bool,
+	spinner_message: bool,
+) -> String {
 	let mut output = String::with_capacity(128);
 	match event {
 		PublishProgressEvent::RunStarted {
@@ -1102,59 +1125,74 @@ fn render_publish_event(event: &PublishProgressEvent, interactive: bool) -> Stri
 			ecosystems,
 		} => {
 			let dry_run = if *dry_run { " dry-run" } else { "" };
-			let _ = write!(output, "◆ Publishing {total} packages ({mode:?}{dry_run})");
+			let _ = write!(
+				output,
+				"{} Publishing {total} package{} ({mode:?}{dry_run})",
+				paint_text(symbols.step_start, Style::Accent, color),
+				if *total == 1 { "" } else { "s" },
+			);
 			if !ecosystems.is_empty() {
 				output.push_str(" across ");
-				append_ecosystems(&mut output, ecosystems);
+				append_ecosystems(&mut output, ecosystems, symbols.ecosystem_emoji);
 			}
 		}
 		PublishProgressEvent::RegistryCheckStarted(package) => {
-			output.push_str(start_symbol(interactive));
-			output.push(' ');
-			append_package_prefix(&mut output, package);
 			let _ = write!(
 				output,
-				" checking {} on {}",
-				package.version, package.registry,
+				"{}{} checking {} on {}",
+				activity_prefix(spinner_message, symbols, color),
+				package_prefix(package, symbols.ecosystem_emoji, color),
+				package.version,
+				package.registry,
 			);
 		}
 		PublishProgressEvent::PackageStarted(package) => {
-			output.push_str(start_symbol(interactive));
-			output.push(' ');
-			append_package_prefix(&mut output, package);
 			let _ = write!(
 				output,
-				" publishing {} to {}",
-				package.version, package.registry,
+				"{}{} publishing {} to {}",
+				activity_prefix(spinner_message, symbols, color),
+				package_prefix(package, symbols.ecosystem_emoji, color),
+				package.version,
+				package.registry,
 			);
 		}
 		PublishProgressEvent::PackageSkipped { package, message } => {
-			output.push_str("⏭️ ");
-			append_package_prefix(&mut output, package);
-			let _ = write!(output, " {message}");
-		}
-		PublishProgressEvent::PackagePlanned(package) => {
-			output.push_str("📝 ");
-			append_package_prefix(&mut output, package);
 			let _ = write!(
 				output,
-				" would publish {} to {}",
-				package.version, package.registry,
+				"{} {} {}",
+				paint_text(symbols.step_skip, Style::Muted, color),
+				package_prefix(package, symbols.ecosystem_emoji, color),
+				message,
+			);
+		}
+		PublishProgressEvent::PackagePlanned(package) => {
+			let _ = write!(
+				output,
+				"{} {} would publish {} to {}",
+				paint_text(symbols.step_skip, Style::Detail, color),
+				package_prefix(package, symbols.ecosystem_emoji, color),
+				package.version,
+				package.registry,
 			);
 		}
 		PublishProgressEvent::PackagePublished(package) => {
-			output.push_str("✅ ");
-			append_package_prefix(&mut output, package);
 			let _ = write!(
 				output,
-				" published {} to {}",
-				package.version, package.registry,
+				"{} {} published {} to {}",
+				paint_text(symbols.step_success, Style::Success, color),
+				package_prefix(package, symbols.ecosystem_emoji, color),
+				package.version,
+				package.registry,
 			);
 		}
 		PublishProgressEvent::PackageFailed { package, message } => {
-			output.push_str("❌ ");
-			append_package_prefix(&mut output, package);
-			let _ = write!(output, " failed: {message}");
+			let _ = write!(
+				output,
+				"{} {} {}",
+				paint_text(symbols.step_failure, Style::Error, color),
+				package_prefix(package, symbols.ecosystem_emoji, color),
+				paint_text(&format!("failed: {message}"), Style::Error, color),
+			);
 		}
 		PublishProgressEvent::RunFinished {
 			total,
@@ -1163,9 +1201,28 @@ fn render_publish_event(event: &PublishProgressEvent, interactive: bool) -> Stri
 			failed,
 			..
 		} => {
+			let mut counts = format!("{published} published");
+			if *failed > 0 {
+				let _ = write!(counts, ", {failed} failed");
+			}
+			if *skipped > 0 {
+				let _ = write!(counts, ", {skipped} skipped");
+			}
+			let not_attempted = total.saturating_sub(published + failed + skipped);
+			if not_attempted > 0 {
+				let _ = write!(counts, ", {not_attempted} not attempted");
+			}
+			let (symbol, style) = if *failed > 0 {
+				(symbols.step_failure, Style::Error)
+			} else if *published == 0 {
+				(symbols.bullet, Style::Muted)
+			} else {
+				(symbols.command_success, Style::Success)
+			};
 			let _ = write!(
 				output,
-				"◆ Publish complete: {total} expected, ✅ {published} succeeded, ❌ {failed} failed, ⏭️ {skipped} skipped",
+				"{} Publish complete: {counts}",
+				paint_text(symbol, style, color),
 			);
 		}
 	}
@@ -1266,27 +1323,39 @@ fn publish_package_json(package: &PublishProgressPackage) -> serde_json::Value {
 	})
 }
 
-fn start_symbol(interactive: bool) -> &'static str {
-	if interactive { "⠋" } else { "→" }
+/// Prefix for an activity line. The trailing separator is part of the prefix so
+/// a spinner message can omit the prefix entirely.
+fn activity_prefix(spinner_message: bool, symbols: &ProgressSymbols, color: bool) -> String {
+	if spinner_message {
+		String::new()
+	} else {
+		format!("{} ", paint_text(symbols.step_start, Style::Accent, color))
+	}
 }
 
-fn append_ecosystems(output: &mut String, ecosystems: &[monochange_core::Ecosystem]) {
+fn append_ecosystems(output: &mut String, ecosystems: &[monochange_core::Ecosystem], emoji: bool) {
 	for (index, ecosystem) in ecosystems.iter().enumerate() {
 		if index > 0 {
 			output.push_str(", ");
 		}
-		output.push_str(ecosystem.progress_emoji());
-		output.push(' ');
+		if emoji {
+			output.push_str(ecosystem.progress_emoji());
+			output.push(' ');
+		}
 		output.push_str(ecosystem.progress_label());
 	}
 }
 
-fn append_package_prefix(output: &mut String, package: &PublishProgressPackage) {
-	output.push_str(package.ecosystem.progress_emoji());
-	output.push(' ');
+fn package_prefix(package: &PublishProgressPackage, emoji: bool, color: bool) -> String {
+	let mut output = String::with_capacity(package.package_name.len() + 16);
+	if emoji {
+		output.push_str(package.ecosystem.progress_emoji());
+		output.push(' ');
+	}
 	output.push_str(package.ecosystem.progress_label());
 	output.push(' ');
-	output.push_str(&package.package_name);
+	output.push_str(&paint_text(&package.package_name, Style::Header, color));
+	output
 }
 
 impl Drop for ProgressReporter {
