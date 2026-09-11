@@ -103,6 +103,24 @@ monochange resolves the GitHub trust context from:
 
 If your workflow filename or environment cannot be inferred reliably, set them explicitly in `monochange.toml`.
 
+### Requiring or preferring trusted publishing
+
+`publish.trusted_publishing.mode` decides what happens when no verifiable CI/OIDC identity is available:
+
+- `mode = "required"` (default) — publishing must run from a verifiable CI identity. Local and manual runs fail before any registry mutation. Use this when trusted publishing is the only publishing path you want to allow.
+- `mode = "preferred"` — trusted publishing is used whenever a verifiable CI identity is detected, and publishing falls back to local/manual credentials otherwise. Detected CI identities are still verified against the configured repository, workflow, and environment, so a misconfigured CI context fails instead of silently publishing with a token.
+
+```toml
+[ecosystems.dart.publish.trusted_publishing]
+enabled = true
+mode = "preferred"
+repository = "acme/widgets"
+workflow = "publish.yml"
+environment = "publisher"
+```
+
+`preferred` fits repositories that publish from CI with OIDC trusted publishing but also let maintainers run `monochange run publish` locally with their own registry credentials. The mode only relaxes the identity requirement. It never disables the CI context verification, and `enabled = false` remains the explicit opt-out from trusted publishing entirely.
+
 ## Attestation and provenance policy
 
 Trusted publishing and attestations answer different questions:

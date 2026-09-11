@@ -63,6 +63,7 @@ use monochange_core::RegistryKind;
 use monochange_core::SourceCapabilities;
 use monochange_core::SourceConfiguration;
 use monochange_core::SourceProvider;
+use monochange_core::TrustedPublishingMode;
 use monochange_core::TrustedPublishingSettings;
 use monochange_core::VersionFormat;
 use monochange_core::VersionGroup;
@@ -510,6 +511,8 @@ pub(crate) enum RawTrustedPublishingSettings {
 pub(crate) struct RawTrustedPublishingDetails {
 	#[serde(default)]
 	enabled: Option<bool>,
+	#[serde(default)]
+	mode: Option<TrustedPublishingMode>,
 	#[serde(default)]
 	repository: Option<String>,
 	#[serde(default)]
@@ -1454,6 +1457,9 @@ fn normalize_trusted_publishing_settings(
 		Some(RawTrustedPublishingSettings::Detailed(details)) => {
 			if let Some(enabled) = details.enabled {
 				settings.enabled = enabled;
+			}
+			if let Some(mode) = details.mode {
+				settings.mode = mode;
 			}
 			if let Some(repository) = details.repository {
 				settings.repository = Some(repository);

@@ -2496,11 +2496,28 @@ fn default_publish_timeout_retries() -> u32 {
 	2
 }
 
+/// How strictly trusted publishing is enforced for a package publish.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TrustedPublishingMode {
+	/// Publishing must run from a verifiable CI/OIDC identity; local/manual
+	/// publishing fails before any registry mutation.
+	#[default]
+	Required,
+	/// Use trusted publishing when a verifiable CI/OIDC identity is available
+	/// and fall back to local/manual credentials otherwise. CI runs still
+	/// verify the configured repository, workflow, and environment.
+	Preferred,
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TrustedPublishingSettings {
 	#[serde(default = "default_true")]
 	pub enabled: bool,
+	#[serde(default)]
+	pub mode: TrustedPublishingMode,
 	#[serde(default)]
 	pub repository: Option<String>,
 	#[serde(default)]
@@ -2541,6 +2558,7 @@ impl Default for TrustedPublishingSettings {
 	fn default() -> Self {
 		Self {
 			enabled: true,
+			mode: TrustedPublishingMode::Required,
 			repository: None,
 			workflow: None,
 			environment: None,

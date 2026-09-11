@@ -20,6 +20,7 @@ use monochange_core::PublishState;
 use monochange_core::PublishTimeoutSettings;
 use monochange_core::ReleaseRecord;
 use monochange_core::SourceProvider;
+use monochange_core::TrustedPublishingMode;
 use monochange_core::TrustedPublishingSettings;
 use monochange_github::GITHUB_ACTIONS_ID_TOKEN_REQUEST_TOKEN;
 use monochange_github::GITHUB_ACTIONS_ID_TOKEN_REQUEST_URL;
@@ -219,6 +220,7 @@ fn sample_request(registry: RegistryKind) -> PublishRequest {
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings {
 			enabled: false,
+			mode: TrustedPublishingMode::Required,
 			repository: None,
 			workflow: None,
 			environment: None,
@@ -624,6 +626,7 @@ fn resolve_github_job_environment_returns_none_for_missing_inputs() {
 fn resolve_github_trust_context_prefers_explicit_settings() {
 	let trust = TrustedPublishingSettings {
 		enabled: true,
+		mode: TrustedPublishingMode::Required,
 		repository: Some("owner/repo".to_string()),
 		workflow: Some("publish.yml".to_string()),
 		environment: Some("publisher".to_string()),
@@ -648,6 +651,7 @@ fn resolve_github_trust_context_falls_back_to_source_and_environment() {
 		Some(&sample_source()),
 		&TrustedPublishingSettings {
 			enabled: true,
+			mode: TrustedPublishingMode::Required,
 			repository: None,
 			workflow: None,
 			environment: None,
@@ -673,6 +677,7 @@ fn resolve_github_trust_context_requires_repository_and_workflow() {
 		None,
 		&TrustedPublishingSettings {
 			enabled: true,
+			mode: TrustedPublishingMode::Required,
 			repository: None,
 			workflow: Some("publish.yml".to_string()),
 			environment: None,
@@ -691,6 +696,7 @@ fn resolve_github_trust_context_requires_repository_and_workflow() {
 		Some(&sample_source()),
 		&TrustedPublishingSettings {
 			enabled: true,
+			mode: TrustedPublishingMode::Required,
 			repository: None,
 			workflow: None,
 			environment: None,
@@ -920,6 +926,7 @@ fn build_publish_command_covers_all_supported_registries() {
 	let trusted_pnpm_request = PublishRequest {
 		trusted_publishing: TrustedPublishingSettings {
 			enabled: true,
+			mode: TrustedPublishingMode::Required,
 			repository: None,
 			workflow: None,
 			environment: None,
@@ -1014,6 +1021,7 @@ fn build_publish_command_covers_all_supported_registries() {
 	let pypi_release_request = PublishRequest {
 		trusted_publishing: TrustedPublishingSettings {
 			enabled: true,
+			mode: TrustedPublishingMode::Required,
 			..TrustedPublishingSettings::default()
 		},
 		..sample_request(RegistryKind::Pypi)
@@ -3290,6 +3298,77 @@ fn enforce_release_trust_prerequisites_rejects_unsupported_provider_registry_pai
 }
 
 #[test]
+fn enforce_release_trust_prerequisites_allows_local_publishing_in_preferred_mode() {
+	let root = workflow_root();
+	let mut local_request = trusted_request(RegistryKind::PubDev);
+	local_request.trusted_publishing.mode = TrustedPublishingMode::Preferred;
+
+	enforce_release_trust_prerequisites(
+		&local_request,
+		Some(&sample_source()),
+		root.path(),
+		&BTreeMap::new(),
+	)
+	.expect("preferred mode should allow local publishing without a CI identity:");
+
+	let circle_env = BTreeMap::from([
+		("CIRCLECI".to_string(), "true".to_string()),
+		(
+			"CIRCLE_PROJECT_USERNAME".to_string(),
+			"monochange".to_string(),
+		),
+		(
+			"CIRCLE_PROJECT_REPONAME".to_string(),
+			"monochange".to_string(),
+		),
+		("CIRCLE_WORKFLOW_ID".to_string(), "workflow".to_string()),
+	]);
+	let mut unsupported_request = trusted_request(RegistryKind::Npm);
+	unsupported_request.trusted_publishing.mode = TrustedPublishingMode::Preferred;
+
+	enforce_release_trust_prerequisites(
+		&unsupported_request,
+		Some(&sample_source()),
+		root.path(),
+		&circle_env,
+	)
+	.expect("preferred mode should fall back when the provider cannot verify trusted publishing:");
+}
+
+#[test]
+fn enforce_release_trust_prerequisites_verifies_detected_ci_identity_in_preferred_mode() {
+	let root = workflow_root();
+	let env_map = BTreeMap::from([
+		(
+			"GITHUB_REPOSITORY".to_string(),
+			"monochange/monochange".to_string(),
+		),
+		(
+			"GITHUB_WORKFLOW_REF".to_string(),
+			"monochange/monochange/.github/workflows/publish.yml@refs/heads/main".to_string(),
+		),
+		("GITHUB_JOB".to_string(), "release".to_string()),
+	]);
+	let mut request = trusted_request(RegistryKind::PubDev);
+	request.trusted_publishing.mode = TrustedPublishingMode::Preferred;
+	request.trusted_publishing.workflow = Some("release.yml".to_string());
+
+	let error = enforce_release_trust_prerequisites(
+		&request,
+		Some(&sample_source()),
+		root.path(),
+		&env_map,
+	)
+	.expect_err("preferred mode must still verify a detected CI identity");
+
+	assert!(
+		error
+			.to_string()
+			.contains("expected GitHub workflow `release.yml`, but detected `publish.yml`")
+	);
+}
+
+#[test]
 fn forbidden_npm_token_env_keys_detects_config_auth_tokens() {
 	let env_map = BTreeMap::from([
 		(
@@ -4978,6 +5057,7 @@ async fn try_run_publish_packages_with_publications_maps_publish_execution_failu
 		// Actions runner environment.
 		trusted_publishing: TrustedPublishingSettings {
 			enabled: false,
+			mode: TrustedPublishingMode::Required,
 			..TrustedPublishingSettings::default()
 		},
 		attestations: PublishAttestationSettings::default(),
