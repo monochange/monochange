@@ -1810,6 +1810,21 @@
 			],
 			"type": "string"
 		},
+		"TrustedPublishingMode": {
+			"description": "How strictly trusted publishing is enforced for a package publish.",
+			"oneOf": [
+				{
+					"const": "required",
+					"description": "Publishing must run from a verifiable CI/OIDC identity; local/manual\npublishing fails before any registry mutation.",
+					"type": "string"
+				},
+				{
+					"const": "preferred",
+					"description": "Use trusted publishing when a verifiable CI/OIDC identity is available\nand fall back to local/manual credentials otherwise. CI runs still\nverify the configured repository, workflow, and environment.",
+					"type": "string"
+				}
+			]
+		},
 		"VersionedFileDefinition": {
 			"additionalProperties": false,
 			"properties": {
@@ -2817,6 +2832,17 @@
 						"string",
 						"null"
 					]
+				},
+				"mode": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/TrustedPublishingMode"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
 				},
 				"repository": {
 					"default": null,
