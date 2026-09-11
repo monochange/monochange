@@ -507,6 +507,36 @@ async fn affected_packages_reports_missing_and_invalid_changeset_inputs() {
 	assert!(evaluation.comment.is_some());
 }
 
+#[test]
+fn check_changeset_bump_alignment_skips_missing_changesets_and_surfaces_warnings() {
+	let fixture = setup_fixture("monochange/changeset-policy-base");
+	let mut evaluation = empty_policy_evaluation();
+	evaluation.changeset_paths = vec![".changeset/missing.md".to_string()];
+
+	check_changeset_bump_alignment(fixture.path(), "main", &mut evaluation)
+		.unwrap_or_else(|error| panic!("check bump alignment: {error}"));
+
+	assert!(evaluation.warnings.iter().any(|warning| warning.contains(
+		"attached changeset `.changeset/missing.md` does not exist in the checked-out workspace and was skipped"
+	)));
+}
+
+#[test]
+fn check_changeset_bump_alignment_errors_on_invalid_changeset_coverage() {
+	let fixture = setup_fixture("monochange/changeset-policy-base");
+	fs::create_dir_all(fixture.path().join(".changeset"))
+		.unwrap_or_else(|error| panic!("create .changeset dir: {error}"));
+	fs::write(fixture.path().join(".changeset/invalid.md"), "---\ncore:\n")
+		.unwrap_or_else(|error| panic!("write invalid changeset: {error}"));
+	let mut evaluation = empty_policy_evaluation();
+	evaluation.changeset_paths = vec![".changeset/invalid.md".to_string()];
+
+	let error = check_changeset_bump_alignment(fixture.path(), "main", &mut evaluation)
+		.expect_err("invalid changeset coverage should fail");
+
+	assert!(error.to_string().contains("failed to parse") || error.to_string().contains("invalid"));
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn affected_packages_skips_release_pull_request_branches_on_detached_head() {
 	let fixture = setup_fixture("monochange/changeset-policy-base");
