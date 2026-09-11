@@ -158,15 +158,14 @@ The `monochange_classify_changes` MCP tool returns the same report under its `re
 
 Release comparison needs the relevant tags and history. A shallow checkout can make the latest release unavailable or produce an incomplete merge base. CI jobs that publish classification reports fetch the default branch and tags before running the command.
 
-Pull request comments from forked repositories can lack write permission. A classification job can always write the Markdown report to the job summary and expose it as an output even when the provider refuses the comment.
+Creating or updating the pull request comment needs the `pull-requests: write` scope. With only `issues: write` the API returns `403 Resource not accessible by integration`, and the action warns instead of publishing the comment; fork pull requests receive a read-only token, which produces the same warning. A classification job can always write the Markdown report to the job summary and expose it as an output even when the provider refuses the comment.
 
 The [`change-classification` GitHub Action](https://github.com/monochange/actions/tree/main/change-classification) runs the canonical JSON command, writes a job summary, and creates or updates one marker comment:
 
 ```yaml
 permissions:
   contents: read
-  issues: write
-  pull-requests: read
+  pull-requests: write
 
 steps:
   - uses: actions/checkout@v6

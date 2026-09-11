@@ -112,8 +112,7 @@ Use the `change-classification` action when a repository should publish the same
 ```yaml
 permissions:
   contents: read
-  issues: write
-  pull-requests: read
+  pull-requests: write
 
 steps:
   - uses: actions/checkout@v6
