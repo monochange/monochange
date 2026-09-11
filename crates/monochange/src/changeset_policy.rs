@@ -151,22 +151,19 @@ pub async fn affected_packages(
 	}
 
 	let mut covered_package_ids = BTreeSet::new();
+	let mut warnings = Vec::new();
 	let mut errors = Vec::new();
 	if !changeset_paths.is_empty() {
 		let config_packages = configuration_package_records(&configuration);
-		match covered_package_ids_from_changesets(
+		let coverage = covered_package_ids_from_changesets(
 			root,
 			&configuration,
 			&changeset_paths,
 			&config_packages,
-		) {
-			Ok(coverage) => {
-				covered_package_ids = coverage.covered_package_ids;
-			}
-			Err(policy_errors) => {
-				errors.extend(policy_errors);
-			}
-		}
+		);
+		covered_package_ids = coverage.covered_package_ids;
+		warnings.extend(coverage.warnings);
+		errors.extend(coverage.errors);
 	}
 
 	let uncovered_package_ids = affected_package_ids
@@ -180,7 +177,6 @@ pub async fn affected_packages(
 		));
 	}
 
-	let warnings = Vec::new();
 	let affected_package_ids = affected_package_ids.into_iter().collect::<Vec<_>>();
 	let covered_package_ids = covered_package_ids.into_iter().collect::<Vec<_>>();
 	let required =
@@ -261,7 +257,17 @@ async fn current_branch_matches_pull_request_branch_prefix(
 		return None;
 	}
 
-	let current_branch = git_current_branch(root).await.ok()?;
+	let current_branch = match git_current_branch(root).await {
+		Ok(branch) => branch,
+		// Pull-request CI checkouts are detached, so the branch name only
+		// exists in the runner's head-ref variable.
+		Err(_) => {
+			std::env::var("GITHUB_HEAD_REF")
+				.ok()
+				.map(|branch| branch.trim().to_string())
+				.filter(|branch| !branch.is_empty())?
+		}
+	};
 	current_branch
 		.starts_with(branch_prefix)
 		.then(|| (current_branch, branch_prefix.to_string()))
@@ -375,6 +381,8 @@ pub(crate) fn is_changeset_markdown_path(path: &str) -> bool {
 struct ChangesetCoverage {
 	covered_package_ids: BTreeSet<String>,
 	signals: Vec<ChangeSignal>,
+	warnings: Vec<String>,
+	errors: Vec<String>,
 }
 
 fn covered_package_ids_from_changesets(
@@ -382,18 +390,21 @@ fn covered_package_ids_from_changesets(
 	configuration: &WorkspaceConfiguration,
 	changeset_paths: &[String],
 	packages: &[PackageRecord],
-) -> Result<ChangesetCoverage, Vec<String>> {
+) -> ChangesetCoverage {
 	let changeset_load_context =
 		monochange_config::build_changeset_load_context(configuration, packages);
 	let mut covered_package_ids = BTreeSet::new();
 	let mut signals = Vec::new();
+	let mut warnings = Vec::new();
 	let mut errors = Vec::new();
 
 	for changeset_path in changeset_paths {
 		let absolute_path = root.join(changeset_path);
 		if !absolute_path.exists() {
-			errors.push(format!(
-				"attached changeset `{changeset_path}` does not exist in the checked-out workspace"
+			// The change itself deleted the changeset — a release consuming its
+			// files — so there is nothing left to load for coverage.
+			warnings.push(format!(
+				"attached changeset `{changeset_path}` does not exist in the checked-out workspace and was skipped"
 			));
 			continue;
 		}
@@ -411,13 +422,11 @@ fn covered_package_ids_from_changesets(
 		}
 	}
 
-	if errors.is_empty() {
-		Ok(ChangesetCoverage {
-			covered_package_ids,
-			signals,
-		})
-	} else {
-		Err(errors)
+	ChangesetCoverage {
+		covered_package_ids,
+		signals,
+		warnings,
+		errors,
 	}
 }
 
@@ -437,8 +446,11 @@ pub(crate) fn check_changeset_bump_alignment(
 		&configuration,
 		&evaluation.changeset_paths,
 		&packages,
-	)
-	.map_err(|errors| MonochangeError::Config(errors.join("\n")))?;
+	);
+	if !coverage.errors.is_empty() {
+		return Err(MonochangeError::Config(coverage.errors.join("\n")));
+	}
+	evaluation.warnings.extend(coverage.warnings);
 	let requested_bumps = requested_bumps_by_package(&coverage.signals);
 	// patch-coverage:ignore-start -- explicit-version-only changesets have no requested bump to compare against API classification.
 	if requested_bumps.is_empty() {
