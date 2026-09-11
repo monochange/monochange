@@ -11,6 +11,7 @@ use monochange_core::SourceProvider as ProviderKind;
 use monochange_core::VersionFormat;
 
 use super::*;
+use crate::tests::TEST_ENV_LOCK;
 
 fn empty_policy_evaluation() -> ChangesetPolicyEvaluation {
 	ChangesetPolicyEvaluation {
@@ -480,6 +481,14 @@ async fn affected_packages_reports_missing_and_invalid_changeset_inputs() {
 	assert_eq!(evaluation.status, ChangesetPolicyStatus::Failed);
 	assert!(
 		evaluation
+			.warnings
+			.iter()
+			.any(|warning| warning.contains(
+				"attached changeset `.changeset/missing.md` does not exist in the checked-out workspace and was skipped"
+			))
+	);
+	assert!(
+		!evaluation
 			.errors
 			.iter()
 			.any(|error| error.contains("does not exist in the checked-out workspace"))
@@ -496,6 +505,133 @@ async fn affected_packages_reports_missing_and_invalid_changeset_inputs() {
 		"changeset verification failed: attached changesets do not cover 1 changed package"
 	);
 	assert!(evaluation.comment.is_some());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn affected_packages_skips_release_pull_request_branches_on_detached_head() {
+	let fixture = setup_fixture("monochange/changeset-policy-base");
+	let config_path = fixture.path().join("monochange.toml");
+	let mut config = fs::read_to_string(&config_path)
+		.unwrap_or_else(|error| panic!("read monochange.toml: {error}"));
+	config.push_str(
+		"\n[source]\nprovider = \"github\"\nowner = \"monochange\"\nrepo = \"monochange\"\n\n[source.pull_requests]\nbranch_prefix = \"monochange/release\"\n",
+	);
+	fs::write(&config_path, config)
+		.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	git(fixture.path(), &["init", "-b", "main"]);
+	git(fixture.path(), &["config", "user.name", "monochange"]);
+	git(
+		fixture.path(),
+		&["config", "user.email", "monochange@example.com"],
+	);
+	git(fixture.path(), &["config", "commit.gpgsign", "false"]);
+	git(fixture.path(), &["add", "."]);
+	git(fixture.path(), &["commit", "-m", "initial"]);
+	git(fixture.path(), &["checkout", "--detach"]);
+
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
+		[("GITHUB_HEAD_REF", Some("monochange/release/affected"))],
+		async {
+			affected_packages(
+				fixture.path(),
+				&["crates/core/src/lib.rs".to_string()],
+				&Vec::new(),
+			)
+			.await
+			.unwrap_or_else(|error| panic!("evaluate affected packages: {error}"))
+		},
+	));
+
+	assert_eq!(evaluation.status, ChangesetPolicyStatus::Skipped);
+	assert!(!evaluation.required);
+	assert_eq!(
+		evaluation.summary,
+		"changeset verification skipped because current branch `monochange/release/affected` starts with release pull request branch prefix `monochange/release`"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn affected_packages_treats_deleted_changesets_as_consumed_without_release_branch() {
+	let fixture = setup_fixture("monochange/changeset-policy-base");
+	git(fixture.path(), &["init", "-b", "main"]);
+	git(fixture.path(), &["config", "user.name", "monochange"]);
+	git(
+		fixture.path(),
+		&["config", "user.email", "monochange@example.com"],
+	);
+	git(fixture.path(), &["config", "commit.gpgsign", "false"]);
+	git(fixture.path(), &["add", "."]);
+	git(fixture.path(), &["commit", "-m", "initial"]);
+	git(fixture.path(), &["checkout", "--detach"]);
+
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
+		[("GITHUB_HEAD_REF", None::<&str>)],
+		async {
+			affected_packages(
+				fixture.path(),
+				&[".changeset/consumed-release.md".to_string()],
+				&Vec::new(),
+			)
+			.await
+			.unwrap_or_else(|error| panic!("evaluate affected packages: {error}"))
+		},
+	));
+
+	assert_eq!(evaluation.status, ChangesetPolicyStatus::NotRequired);
+	assert!(evaluation.errors.is_empty());
+	assert!(
+		evaluation
+			.warnings
+			.iter()
+			.any(|warning| warning.contains(
+				"attached changeset `.changeset/consumed-release.md` does not exist in the checked-out workspace and was skipped"
+			))
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn affected_packages_ignores_non_release_head_branch_on_detached_head() {
+	let fixture = setup_fixture("monochange/changeset-policy-base");
+	git(fixture.path(), &["init", "-b", "main"]);
+	git(fixture.path(), &["config", "user.name", "monochange"]);
+	git(
+		fixture.path(),
+		&["config", "user.email", "monochange@example.com"],
+	);
+	git(fixture.path(), &["config", "commit.gpgsign", "false"]);
+	git(fixture.path(), &["add", "."]);
+	git(fixture.path(), &["commit", "-m", "initial"]);
+	git(fixture.path(), &["checkout", "--detach"]);
+
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
+		[("GITHUB_HEAD_REF", Some("feature/not-a-release"))],
+		async {
+			affected_packages(
+				fixture.path(),
+				&[".changeset/consumed-release.md".to_string()],
+				&Vec::new(),
+			)
+			.await
+			.unwrap_or_else(|error| panic!("evaluate affected packages: {error}"))
+		},
+	));
+
+	assert_eq!(evaluation.status, ChangesetPolicyStatus::NotRequired);
+	assert!(
+		!evaluation
+			.summary
+			.contains("release pull request branch prefix")
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
