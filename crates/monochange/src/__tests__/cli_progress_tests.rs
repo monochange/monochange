@@ -335,6 +335,38 @@ fn redirected_subprocess_output_strips_terminal_controls() {
 }
 
 #[test]
+fn command_output_renders_one_step_header_per_block() {
+	let (reporter, bytes) = recorded_reporter(ProgressFormat::Auto);
+	let step = named_command_step("format release files");
+	reporter.log_command_output(
+		0,
+		&step,
+		CommandStream::Stdout,
+		"line one\n\nansi \u{1b}[33mwarning\u{1b}[0m\n",
+	);
+	reporter.log_command_output(0, &step, CommandStream::Stderr, "warn line\n");
+	// A progress line ends the block, so later output re-establishes the header.
+	reporter.step_status(0, &step, "still running");
+	reporter.log_command_output(0, &step, CommandStream::Stdout, "line two");
+
+	let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
+	assert_eq!(
+		output,
+		concat!(
+			"monochange running `release`\n",
+			"  │ format release files\n",
+			"  │   line one\n",
+			"  │\n",
+			"  │   ansi warning\n",
+			"  │   warn line\n",
+			"▶ [1/1] format release files (Command) — still running\n",
+			"  │ format release files\n",
+			"  │   line two\n",
+		)
+	);
+}
+
+#[test]
 fn nested_workflow_and_publish_events_share_complete_lines() {
 	let (reporter, bytes) = recorded_reporter(ProgressFormat::Auto);
 	let step = named_command_step("publish packages");
@@ -379,7 +411,7 @@ fn nested_workflow_and_publish_events_share_complete_lines() {
 	assert!(
 		output
 			.lines()
-			.any(|line| line.contains("Publishing 1 packages"))
+			.any(|line| line.contains("Publishing 1 package (Release dry-run)"))
 	);
 	assert!(
 		output
@@ -445,9 +477,21 @@ fn publish_event_rendering_keeps_the_package_and_outcome_prominent() {
 	assert_eq!(
 		render_publish_event(
 			&PublishProgressEvent::PackageStarted(publish_package()),
+			&UNICODE_SYMBOLS,
+			false,
 			false,
 		),
-		"→ 🦀 cargo monochange publishing 1.2.3 to crates.io"
+		"▶ 🦀 cargo monochange publishing 1.2.3 to crates.io"
+	);
+	// The spinner supplies the activity frame, so the message must not repeat it.
+	assert_eq!(
+		render_publish_event(
+			&PublishProgressEvent::PackageStarted(publish_package()),
+			&UNICODE_SYMBOLS,
+			false,
+			true,
+		),
+		"🦀 cargo monochange publishing 1.2.3 to crates.io"
 	);
 	assert_eq!(
 		render_publish_event(
@@ -455,9 +499,11 @@ fn publish_event_rendering_keeps_the_package_and_outcome_prominent() {
 				package: publish_package(),
 				message: "registry rejected package".to_string(),
 			},
+			&ASCII_SYMBOLS,
+			false,
 			false,
 		),
-		"❌ 🦀 cargo monochange failed: registry rejected package"
+		"x cargo monochange failed: registry rejected package"
 	);
 }
 
@@ -598,24 +644,77 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 
 	let rendered = events
 		.iter()
-		.map(|event| render_publish_event(event, true))
+		.map(|event| render_publish_event(event, &UNICODE_SYMBOLS, false, false))
 		.collect::<Vec<_>>();
 	assert!(rendered[0].contains("across 🦀 cargo, 📦 npm"));
-	assert!(rendered[1].starts_with("⠋"));
+	assert_eq!(
+		rendered[1],
+		"▶ 🦀 cargo monochange checking 1.2.3 on crates.io"
+	);
 	assert!(rendered[3].contains("already exists"));
 	assert!(rendered[5].contains("published 1.2.3"));
-	assert!(rendered[7].contains("1 succeeded"));
+	assert_eq!(rendered[7], "✖ Publish complete: 1 published, 1 failed");
+	assert_eq!(
+		render_publish_event(
+			&PublishProgressEvent::RunFinished {
+				mode: PackagePublishRunMode::Release,
+				total: 5,
+				published: 1,
+				skipped: 0,
+				failed: 0,
+			},
+			&ASCII_SYMBOLS,
+			false,
+			false,
+		),
+		"+ Publish complete: 1 published, 4 not attempted"
+	);
+	// Nothing published is a neutral outcome, not a success or a failure.
+	assert_eq!(
+		render_publish_event(
+			&PublishProgressEvent::RunFinished {
+				mode: PackagePublishRunMode::Release,
+				total: 3,
+				published: 0,
+				skipped: 3,
+				failed: 0,
+			},
+			&UNICODE_SYMBOLS,
+			false,
+			false,
+		),
+		"· Publish complete: 0 published, 3 skipped"
+	);
+	assert_eq!(
+		render_publish_event(
+			&PublishProgressEvent::RunStarted {
+				mode: PackagePublishRunMode::Placeholder,
+				dry_run: false,
+				total: 1,
+				ecosystems: Vec::new(),
+			},
+			&UNICODE_SYMBOLS,
+			false,
+			false,
+		),
+		"▶ Publishing 1 package (Placeholder)"
+	);
 
 	let empty_run = render_publish_event(
 		&PublishProgressEvent::RunStarted {
 			mode: PackagePublishRunMode::Placeholder,
 			dry_run: true,
 			total: 0,
-			ecosystems: Vec::new(),
+			ecosystems: vec![Ecosystem::Npm],
 		},
+		&ASCII_SYMBOLS,
+		false,
 		false,
 	);
-	assert_eq!(empty_run, "◆ Publishing 0 packages (Placeholder dry-run)");
+	assert_eq!(
+		empty_run,
+		"> Publishing 0 packages (Placeholder dry-run) across npm"
+	);
 
 	let (reporter, bytes) = recorded_reporter(ProgressFormat::Json);
 	for event in events {
