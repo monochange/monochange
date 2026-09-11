@@ -25,6 +25,8 @@ It is especially useful for:
 
 The selected ref, or one of its first-parent ancestors, must contain a valid monochange release record embedded by `CommitRelease`.
 
+The record lives at `.monochange/releases/<id>/release.json` and must be committed. Only `.monochange/local/` may be gitignored; ignoring the whole `.monochange/` directory removes the record from git history and breaks `ReleaseRecord`, `publish-readiness`, and `tag-release`.
+
 ## Side effects and outputs
 
 `ReleaseRecord` is read-only. It fails loudly when a malformed release record block is found, because later tag and publish workflows depend on that record being trustworthy.

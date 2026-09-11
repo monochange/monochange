@@ -22,6 +22,7 @@ Agents should optimize for safety and traceability: inspect config first, prefer
 - Use dry-run or preview commands before mutating versions, committing, tagging, releasing, or publishing.
 - Gate CI on a dry-run publish check (`monochange step publish-packages --dry-run`), ideally also against a simulated release commit (`monochange run release --commit` without pushing), so changes that would break publication never merge; see [skills/multi-package-publishing.md](skills/multi-package-publishing.md).
 - Never publish with local credentials on behalf of a user unless they explicitly own that operation and the project rules allow it.
+- Gitignore only `.monochange/local/`. Never ignore the whole `.monochange/` directory: release records (`.monochange/releases/<id>/release.json`) and prerelease state are committed release state that publish, tag, and readiness steps read from git history, so ignoring them makes releases unpublishable.
 
 ## Fast workflow
 

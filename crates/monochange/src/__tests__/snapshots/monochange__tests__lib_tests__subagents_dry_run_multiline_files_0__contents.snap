@@ -28,7 +28,8 @@ When working on release planning, versioning, changesets, changelogs, or monocha
 6. Read `existingChangesets` and follow each package's `action` before creating another `.changeset/*.md` file.
 7. Run `<cli> changeset validate --api` and `<cli> step validate` after editing release intent.
 8. Do not run mutating release or publish commands unless the user explicitly asks.
-9. If monochange MCP tools are available, use `monochange_classify_changes` as a secondary structured fallback when the CLI is unavailable.
+9. Gitignore only `.monochange/local/`. Never add `.monochange/` as a whole to `.gitignore`: release records (`.monochange/releases/<id>/release.json`) and prerelease state are committed release state that publish, tag, and readiness steps read from git history, so ignoring them makes releases unpublishable.
+10. If monochange MCP tools are available, use `monochange_classify_changes` as a secondary structured fallback when the CLI is unavailable.
 
 Recommended workflow:
 - validate
