@@ -1,0 +1,7 @@
+---
+source: crates/monochange_integration_tests/tests/dart_trusted_publishing.rs
+expression: "String::from_utf8_lossy(&output.stderr).replace(&server.base_url,\n\"[mock-endpoints]\")"
+---
+error[workspace.discovery_failed]: package publishing did not complete: 1 total, 0 published, 1 failed, 0 blocked, 0 already existed, 0 not attempted, 0 planned; failed package dart_pkg 0.0.0: `dart_pkg` uses pub.dev trusted publishing, but this GitHub Actions run ref is `refs/heads/main`, not a tag. pub.dev trusted publishing only accepts runs whose OIDC token ref is `refs/tags/<tag-pattern>`, where `<tag-pattern>` is configured in the package's pub.dev admin and contains `{{version}}` matching the published version. The `Enable publishing from workflow_dispatch events` option on pub.dev only allows the event name; the run must still be dispatched on the tag ref (for example `gh workflow run <workflow>.yml --ref <tag>`), or the publish must run from the tag-push event. As a last resort, register a non-OIDC credential with `dart pub token add https://pub.dev --env-var PUB_TOKEN` before publishing.
+  command: monochange step placeholder-publish
+  help: Check the configured package paths and workspace manifests, then rerun the command.

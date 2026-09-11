@@ -2799,8 +2799,9 @@ fn publish_command_failure_message_includes_dart_guidance_for_timeout() {
 	request.timeout.retries = 2;
 	let message = publish_command_failure_message(&request, &timeout_error());
 	assert!(message.contains("timed out after 3 attempt(s)"));
-	assert!(message.contains("pub.dev protected publishing"));
+	assert!(message.contains("pub.dev trusted publishing"));
 	assert!(message.contains("workflow_dispatch"));
+	assert!(message.contains("refs/tags/<tag-pattern>"));
 }
 
 #[test]
@@ -2814,7 +2815,7 @@ fn publish_command_failure_message_omits_dart_guidance_for_non_timeout_errors() 
 }
 
 #[test]
-fn dart_protected_publishing_warning_warns_for_workflow_dispatch_without_pub_token() {
+fn pub_dev_trusted_publishing_ref_error_blocks_branch_ref_without_pub_token() {
 	let request = pub_dev_publish_request("pkg");
 	let env_map = BTreeMap::from([
 		("GITHUB_ACTIONS".to_string(), "true".to_string()),
@@ -2824,25 +2825,41 @@ fn dart_protected_publishing_warning_warns_for_workflow_dispatch_without_pub_tok
 		),
 		("GITHUB_REF".to_string(), "refs/heads/main".to_string()),
 	]);
-	let warning = dart_protected_publishing_warning(&request, &env_map)
-		.expect("workflow_dispatch without PUB_TOKEN should warn");
-	assert!(warning.contains("workflow_dispatch"));
-	assert!(warning.contains("PUB_TOKEN"));
+	let error = pub_dev_trusted_publishing_ref_error(&request, &env_map)
+		.expect("a branch-ref run must be blocked for pub.dev trusted publishing");
+	assert!(error.contains("refs/heads/main"));
+	assert!(error.contains("not a tag"));
+	assert!(error.contains("workflow_dispatch"));
+	assert!(error.contains("PUB_TOKEN"));
 }
 
 #[test]
-fn dart_protected_publishing_warning_returns_none_for_tag_push() {
+fn pub_dev_trusted_publishing_ref_error_blocks_non_tag_push_refs() {
+	let request = pub_dev_publish_request("pkg");
+	let env_map = BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		("GITHUB_EVENT_NAME".to_string(), "push".to_string()),
+		("GITHUB_REF".to_string(), "refs/heads/main".to_string()),
+	]);
+	assert!(
+		pub_dev_trusted_publishing_ref_error(&request, &env_map).is_some(),
+		"a push to a branch is not a tag ref and must be blocked"
+	);
+}
+
+#[test]
+fn pub_dev_trusted_publishing_ref_error_allows_tag_refs() {
 	let request = pub_dev_publish_request("pkg");
 	let env_map = BTreeMap::from([
 		("GITHUB_ACTIONS".to_string(), "true".to_string()),
 		("GITHUB_EVENT_NAME".to_string(), "push".to_string()),
 		("GITHUB_REF".to_string(), "refs/tags/v1.0.0".to_string()),
 	]);
-	assert!(dart_protected_publishing_warning(&request, &env_map).is_none());
+	assert!(pub_dev_trusted_publishing_ref_error(&request, &env_map).is_none());
 }
 
 #[test]
-fn dart_protected_publishing_warning_returns_none_when_pub_token_present() {
+fn pub_dev_trusted_publishing_ref_error_allows_runs_with_pub_token_fallback() {
 	let request = pub_dev_publish_request("pkg");
 	let env_map = BTreeMap::from([
 		("GITHUB_ACTIONS".to_string(), "true".to_string()),
@@ -2853,20 +2870,50 @@ fn dart_protected_publishing_warning_returns_none_when_pub_token_present() {
 		("GITHUB_REF".to_string(), "refs/heads/main".to_string()),
 		("PUB_TOKEN".to_string(), "secret".to_string()),
 	]);
-	assert!(dart_protected_publishing_warning(&request, &env_map).is_none());
+	assert!(pub_dev_trusted_publishing_ref_error(&request, &env_map).is_none());
 }
 
 #[test]
-fn dart_protected_publishing_warning_returns_none_for_non_dart_registries() {
+fn pub_dev_trusted_publishing_ref_error_ignores_non_pub_dev_registries() {
 	let request = publish_request("pkg");
 	let env_map = BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
 		(
 			"GITHUB_EVENT_NAME".to_string(),
 			"workflow_dispatch".to_string(),
 		),
 		("GITHUB_REF".to_string(), "refs/heads/main".to_string()),
 	]);
-	assert!(dart_protected_publishing_warning(&request, &env_map).is_none());
+	assert!(pub_dev_trusted_publishing_ref_error(&request, &env_map).is_none());
+}
+
+#[test]
+fn pub_dev_trusted_publishing_ref_error_ignores_runs_outside_github_actions() {
+	let request = pub_dev_publish_request("pkg");
+	let env_map = BTreeMap::from([("GITHUB_REF".to_string(), "refs/heads/main".to_string())]);
+	assert!(pub_dev_trusted_publishing_ref_error(&request, &env_map).is_none());
+}
+
+#[test]
+fn pub_dev_trusted_publishing_ref_error_ignores_missing_github_ref() {
+	let request = pub_dev_publish_request("pkg");
+	let env_map = BTreeMap::from([("GITHUB_ACTIONS".to_string(), "true".to_string())]);
+	assert!(pub_dev_trusted_publishing_ref_error(&request, &env_map).is_none());
+}
+
+#[test]
+fn pub_dev_trusted_publishing_ref_error_ignores_trusted_publishing_disabled() {
+	let mut request = pub_dev_publish_request("pkg");
+	request.trusted_publishing.enabled = false;
+	let env_map = BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		(
+			"GITHUB_EVENT_NAME".to_string(),
+			"workflow_dispatch".to_string(),
+		),
+		("GITHUB_REF".to_string(), "refs/heads/main".to_string()),
+	]);
+	assert!(pub_dev_trusted_publishing_ref_error(&request, &env_map).is_none());
 }
 
 #[test]
@@ -2921,7 +2968,7 @@ fn publish_command_timeout_uses_request_settings() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn dart_protected_publishing_warning_emitted_for_workflow_dispatch_publish() {
+async fn pub_dev_trusted_publishing_ref_error_fails_the_run_before_minting() {
 	let request = pub_dev_publish_request("pkg");
 	let listener = std::net::TcpListener::bind("127.0.0.1:0")
 		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
@@ -2954,6 +3001,69 @@ async fn dart_protected_publishing_warning_emitted_for_workflow_dispatch_publish
 	})]);
 	let mut endpoints = RegistryEndpoints::from_env();
 	endpoints.pub_dev_api = format!("http://{registry_address}");
+	let failure = try_execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		std::slice::from_ref(&request),
+		&registry_client().unwrap(),
+		&endpoints,
+		&env_map,
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&NoopPublishProgressReporter,
+	)
+	.await
+	.expect_err("a branch-ref trusted publish must fail the run");
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+	let report = failure.into_report();
+	assert_eq!(report.packages.len(), 1);
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Failed);
+	assert!(report.packages[0].message.contains("not a tag"));
+	assert!(
+		executor.commands.is_empty(),
+		"no dart command may run once the run ref is known to be rejected, got: {:#?}",
+		executor.commands
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dart_trusted_publishing_publishes_from_tag_ref_runs() {
+	let request = pub_dev_publish_request("pkg");
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
+	let registry_address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("registry address: {error}"));
+	let registry_thread = std::thread::spawn(move || {
+		let Ok((mut stream, _)) = listener.accept() else {
+			return;
+		};
+		let mut request = [0_u8; 2048];
+		let _ = std::io::Read::read(&mut stream, &mut request);
+		let _ = std::io::Write::write_all(
+			&mut stream,
+			b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+		);
+	});
+	let env_map = BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		("GITHUB_EVENT_NAME".to_string(), "push".to_string()),
+		("GITHUB_REF".to_string(), "refs/tags/v1.0.0".to_string()),
+	]);
+	let mut executor = SequencedCommandExecutor::new([Ok(CommandOutput {
+		success: true,
+		stdout: "published pkg".to_string(),
+		stderr: String::new(),
+	})]);
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.pub_dev_api = format!("http://{registry_address}");
 	let report = try_execute_publish_requests_with_progress(
 		Path::new("."),
 		None,
@@ -2976,6 +3086,7 @@ async fn dart_protected_publishing_warning_emitted_for_workflow_dispatch_publish
 		.join()
 		.unwrap_or_else(|_| panic!("test registry thread panicked"));
 	assert_eq!(report.packages.len(), 1);
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Published);
 	assert_eq!(executor.commands.len(), 1);
 	assert!(executor.commands[0].program.contains("dart"));
 }
