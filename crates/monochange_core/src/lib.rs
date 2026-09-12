@@ -2759,6 +2759,7 @@ pub struct PackageDefinition {
 	pub release: bool,
 	pub version_format: VersionFormat,
 	/// Where the package's current release version is read from.
+	#[serde(default)]
 	#[cfg_attr(feature = "schema", schemars(default))]
 	pub version_source: VersionSource,
 	/// Version used as the release baseline when `version_source = "tag"` and
@@ -2807,6 +2808,7 @@ pub struct GroupDefinition {
 	pub release: bool,
 	pub version_format: VersionFormat,
 	/// Where member packages read their current release version from.
+	#[serde(default)]
 	#[cfg_attr(feature = "schema", schemars(default))]
 	pub version_source: VersionSource,
 	/// Version used as the release baseline when `version_source = "tag"` and
@@ -6398,11 +6400,14 @@ pub struct EffectiveReleaseIdentity {
 	pub version_format: VersionFormat,
 	pub members: Vec<String>,
 	/// Where member packages read their current release version from.
+	#[serde(default)]
 	pub version_source: VersionSource,
 	/// Version used as the release baseline when `version_source` is `tag` and
 	/// no matching release tag exists yet.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub initial_version: Option<Version>,
 	/// Floating tag aliases moved to every non-prerelease release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
