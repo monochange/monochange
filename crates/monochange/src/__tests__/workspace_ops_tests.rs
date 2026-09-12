@@ -2499,3 +2499,87 @@ fn seed_versions_from_tag_list_ignores_manifest_version_source() {
 	assert!(discovery.packages[1].current_version.is_none());
 	assert!(discovery.warnings.is_empty());
 }
+
+fn github_actions_definition(id: &str, path: &str) -> monochange_core::PackageDefinition {
+	monochange_core::PackageDefinition {
+		id: id.to_string(),
+		path: std::path::PathBuf::from(path),
+		package_type: monochange_core::PackageType::GitHubActions,
+		changelog: None,
+		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		ignore_ecosystem_versioned_files: false,
+		ignored_paths: Vec::new(),
+		additional_paths: Vec::new(),
+		tag: true,
+		release: true,
+		version_format: monochange_core::VersionFormat::Primary,
+		version_source: monochange_core::VersionSource::Tag,
+		initial_version: None,
+		floating_tags: Vec::new(),
+		publish: monochange_core::PublishSettings::default(),
+	}
+}
+
+// -- github_actions package loading --
+
+#[test]
+fn load_configured_github_actions_package_prefers_action_yaml_and_stamps_config_id() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		fixture.path().join("action.yaml"),
+		"name: yaml-action\ndescription: test\n",
+	)
+	.unwrap_or_else(|error| panic!("write action.yaml: {error}"));
+	let definition = github_actions_definition("actions", ".");
+
+	let record =
+		load_configured_github_actions_package(fixture.path(), fixture.path(), &definition)
+			.unwrap_or_else(|error| panic!("load github actions package: {error}"));
+
+	assert_eq!(record.name, "actions");
+	assert!(record.current_version.is_none());
+	assert_eq!(
+		record.metadata.get("config_id").map(String::as_str),
+		Some("actions")
+	);
+	assert!(
+		record.manifest_path.ends_with("action.yaml"),
+		"expected action.yaml manifest, got {}",
+		record.manifest_path.display()
+	);
+}
+
+#[test]
+fn load_configured_github_actions_package_falls_back_to_action_yml() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(fixture.path().join("action.yml"), "name: yml-action\n")
+		.unwrap_or_else(|error| panic!("write action.yml: {error}"));
+	let definition = github_actions_definition("actions", ".");
+
+	let record =
+		load_configured_github_actions_package(fixture.path(), fixture.path(), &definition)
+			.unwrap_or_else(|error| panic!("load github actions package: {error}"));
+
+	assert!(record.manifest_path.ends_with("action.yml"));
+}
+
+#[test]
+fn load_configured_github_actions_package_errors_for_missing_directory() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let definition = github_actions_definition("actions", ".");
+
+	let error = load_configured_github_actions_package(
+		tempdir.path(),
+		&tempdir.path().join("missing"),
+		&definition,
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected discovery error"));
+
+	assert!(error.to_string().contains("does not exist"));
+}

@@ -387,13 +387,16 @@ pub(crate) async fn create_release_tags(
 		)));
 	}
 
-	let mut tag_results = Vec::new();
-	for target in discovery
+	let mut tag_targets = discovery
 		.record
 		.release_targets
 		.iter()
 		.filter(|target| target.tag)
-	{
+		.collect::<Vec<_>>();
+	tag_targets.sort_by(|left, right| left.tag_name.cmp(&right.tag_name));
+
+	let mut tag_results = Vec::new();
+	for target in &tag_targets {
 		let existing_commit = resolve_git_tag_commit(root, &target.tag_name).await.ok();
 		let operation = if existing_commit.as_deref() == Some(discovery.record_commit.as_str()) {
 			ReleaseTagOperation::AlreadyUpToDate
