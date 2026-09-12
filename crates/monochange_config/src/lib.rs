@@ -924,7 +924,7 @@ struct PackageTypePreset {
 	publish_enabled: Option<bool>,
 }
 
-fn package_type_preset(package_type: &PackageType) -> PackageTypePreset {
+fn package_type_preset(package_type: PackageType) -> PackageTypePreset {
 	match package_type {
 		PackageType::GitHubActions => {
 			PackageTypePreset {
@@ -1745,7 +1745,7 @@ fn build_package_definitions(
 					),
 				)
 			})?;
-			let preset = package_type_preset(&package_type);
+			let preset = package_type_preset(package_type);
 			let version_source = package.version_source.unwrap_or(preset.version_source.unwrap_or_default());
 			let initial_version = package.initial_version.or(preset.initial_version.clone());
 			let floating_tags = if package.floating_tags.is_empty() {
@@ -5898,8 +5898,7 @@ fn validate_floating_tag_templates(
 			return Err(config_diagnostic(
 				config_contents,
 				format!(
-					"{owner_kind} `{owner_id}` has an invalid `floating_tags` entry: {}",
-					error
+					"{owner_kind} `{owner_id}` has an invalid `floating_tags` entry: {error}"
 				),
 				vec![config_section_label(
 					config_contents,
