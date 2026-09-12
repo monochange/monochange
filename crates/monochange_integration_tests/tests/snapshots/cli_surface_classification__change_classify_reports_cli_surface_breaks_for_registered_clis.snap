@@ -1,5 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_surface_classification.rs
+assertion_line: 142
 expression: report
 ---
 {
@@ -141,7 +142,5 @@ expression: report
   ],
   "recommendation": "major",
   "schemaVersion": 4,
-  "warnings": [
-    "changed path `crates/plain/Cargo.toml` did not match any configured package"
-  ]
+  "warnings": []
 }
