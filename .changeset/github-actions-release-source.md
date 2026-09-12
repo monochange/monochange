@@ -3,6 +3,7 @@
 "monochange_core": major
 "monochange_config": major
 "monochange_go": minor
+"monochange_github": patch
 "monochange_schema": patch
 ---
 
