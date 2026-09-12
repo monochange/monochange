@@ -3,6 +3,7 @@
 "monochange_core": major
 "monochange_config": major
 "monochange_go": minor
+"monochange_schema": patch
 ---
 
 # Release GitHub Actions repositories and tag-versioned packages
@@ -13,6 +14,7 @@ Repositories that release by git tag plus provider release — GitHub Actions ab
 - New package and group fields: `version_source` (`manifest` default or `tag`), `initial_version` (baseline when no release tag exists yet), and `floating_tags` (moving tag aliases).
 - `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
 - `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
+- The committed JSON schema assets regenerate with the new fields.
 - New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
 
 ## Migration
