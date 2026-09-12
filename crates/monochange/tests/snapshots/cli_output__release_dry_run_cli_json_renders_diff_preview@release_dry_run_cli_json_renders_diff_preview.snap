@@ -123,6 +123,7 @@ expression: redacted
         "trusted_publishing": {
           "enabled": true,
           "environment": null,
+          "mode": "required",
           "repository": null,
           "workflow": null
         },
@@ -136,6 +137,7 @@ expression: redacted
         "trusted_publishing": {
           "enabled": true,
           "environment": null,
+          "mode": "required",
           "repository": null,
           "workflow": null
         },

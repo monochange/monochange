@@ -4177,9 +4177,34 @@ fn normalize_trusted_publishing_settings_supports_boolean_shorthand() {
 		Some(crate::RawTrustedPublishingSettings::Enabled(false)),
 	);
 	assert!(!settings.enabled);
+	assert_eq!(
+		settings.mode,
+		monochange_core::TrustedPublishingMode::Required
+	);
 	assert_eq!(settings.repository, None);
 	assert_eq!(settings.workflow, None);
 	assert_eq!(settings.environment, None);
+}
+
+#[test]
+fn normalize_trusted_publishing_settings_parses_preferred_mode() {
+	let settings = crate::normalize_trusted_publishing_settings(
+		None,
+		Some(crate::RawTrustedPublishingSettings::Detailed(
+			crate::RawTrustedPublishingDetails {
+				enabled: Some(true),
+				mode: Some(monochange_core::TrustedPublishingMode::Preferred),
+				repository: None,
+				workflow: None,
+				environment: None,
+			},
+		)),
+	);
+	assert!(settings.enabled);
+	assert_eq!(
+		settings.mode,
+		monochange_core::TrustedPublishingMode::Preferred
+	);
 }
 
 #[test]
