@@ -1,0 +1,5 @@
+name: test-action
+description: Fixture action for release planning.
+runs:
+  using: node24
+  main: dist/index.mjs

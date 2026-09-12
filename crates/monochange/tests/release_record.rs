@@ -333,6 +333,7 @@ fn tag_release_command_json_snapshots_entire_report() {
 		release: true,
 		tag_name: "cli/v2.0.0".to_string(),
 		members: Vec::new(),
+		floating_tags: Vec::new(),
 	});
 	commit_release_record(repo, &release_record);
 	git(repo, &["push", "-u", "origin", "HEAD:main"]);
@@ -835,6 +836,7 @@ fn sample_release_record() -> ReleaseRecord {
 			release: true,
 			tag_name: "v1.2.3".to_string(),
 			members: vec!["monochange".to_string(), "monochange_core".to_string()],
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec!["monochange".to_string(), "monochange_core".to_string()],
 		changed_files: vec![Path::new("Cargo.lock").to_path_buf()],

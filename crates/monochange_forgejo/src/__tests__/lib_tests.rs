@@ -1369,6 +1369,7 @@ fn sample_manifest() -> ReleaseManifest {
 			tag_name: "v1.2.0".to_string(),
 			rendered_title: "test title".to_string(),
 			rendered_changelog_title: "test changelog title".to_string(),
+			floating_tags: Vec::new(),
 			members: vec!["core".to_string(), "app".to_string()],
 		}],
 		package_publications: vec![],

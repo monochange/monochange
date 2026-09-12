@@ -9,6 +9,7 @@ use monochange_core::PackageDefinition;
 use monochange_core::PackageType;
 use monochange_core::SourceProvider as ProviderKind;
 use monochange_core::VersionFormat;
+use monochange_core::VersionSource;
 
 use super::*;
 use crate::tests::TEST_ENV_LOCK;
@@ -119,6 +120,9 @@ fn sample_package() -> PackageDefinition {
 		release: true,
 		publish: monochange_core::PublishSettings::default(),
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 	}
 }
 

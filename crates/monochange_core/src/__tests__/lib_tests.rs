@@ -82,6 +82,7 @@ use crate::ShellConfig;
 use crate::SourceConfiguration;
 use crate::SourceProvider;
 use crate::VersionFormat;
+use crate::VersionSource;
 use crate::VersionedFileDefinition;
 use crate::VersionedFileFormat;
 use crate::WorkspaceConfiguration;
@@ -95,7 +96,9 @@ use crate::git::git_current_branch;
 use crate::git::git_head_commit;
 use crate::git::git_push_branch_command;
 use crate::materialize_dependency_edges;
+use crate::render_floating_tag;
 use crate::render_release_notes;
+use crate::validate_floating_tag_template_variables;
 
 #[cfg(feature = "http")]
 fn install_rustls_ring_provider() {
@@ -3275,6 +3278,9 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				tag: false,
 				release: false,
 				version_format: VersionFormat::Namespaced,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 			},
 			PackageDefinition {
@@ -3298,6 +3304,9 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				tag: false,
 				release: false,
 				version_format: VersionFormat::Namespaced,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 			},
 			PackageDefinition {
@@ -3317,6 +3326,9 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				tag: false,
 				release: false,
 				version_format: VersionFormat::Namespaced,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 			},
 		],
@@ -3339,6 +3351,9 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 			tag: true,
 			release: true,
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			floating_tags: Vec::new(),
 		}],
 		cli: Vec::new(),
 		changesets: crate::ChangesetSettings::default(),
@@ -3825,6 +3840,7 @@ fn sample_release_record() -> ReleaseRecord {
 				"monochange_core".to_string(),
 				"monochange_config".to_string(),
 			],
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec![
 			"monochange".to_string(),
@@ -4089,6 +4105,7 @@ fn release_record_tag_helpers_deduplicate_tags() {
 		release: true,
 		tag_name: "v1.2.3".to_string(),
 		members: Vec::new(),
+		floating_tags: Vec::new(),
 	});
 
 	assert_eq!(crate::release_record_tag_names(&record), vec!["v1.2.3"]);
@@ -5011,4 +5028,41 @@ fn ecosystem_versions_from_tags_flags_go_only() {
 	assert!(!Ecosystem::Deno.versions_from_tags());
 	assert!(!Ecosystem::Dart.versions_from_tags());
 	assert!(!Ecosystem::Python.versions_from_tags());
+}
+
+#[test]
+fn render_floating_tag_expands_version_components() {
+	let version = Version::new(1, 2, 3);
+	assert_eq!(
+		render_floating_tag("v{{ major }}.{{ minor }}", &version, "cli", "cargo")
+			.unwrap_or_else(|error| panic!("render floating tag: {error}")),
+		"v1.2"
+	);
+	assert_eq!(
+		render_floating_tag("v{{major}}", &version, "cli", "cargo")
+			.unwrap_or_else(|error| panic!("render floating tag: {error}")),
+		"v1"
+	);
+	assert_eq!(
+		render_floating_tag("latest-{{ name }}", &version, "cli", "cargo")
+			.unwrap_or_else(|error| panic!("render floating tag: {error}")),
+		"latest-cli"
+	);
+}
+
+#[test]
+fn render_floating_tag_rejects_invalid_templates() {
+	let version = Version::new(1, 2, 3);
+	assert!(render_floating_tag("v{{ beta }}", &version, "cli", "cargo").is_err());
+	assert!(render_floating_tag("v{{", &version, "cli", "cargo").is_err());
+	// an alias that renders to the full release tag is invalid
+	assert!(render_floating_tag("v{{ version }}", &version, "cli", "cargo").is_err());
+}
+
+#[test]
+fn validate_floating_tag_template_variables_rejects_unknown_variables() {
+	assert!(validate_floating_tag_template_variables("v{{ major }}", "test").is_ok());
+	assert!(validate_floating_tag_template_variables("v{{ version }}", "test").is_ok());
+	assert!(validate_floating_tag_template_variables("v{{ beta }}", "test").is_err());
+	assert!(validate_floating_tag_template_variables("v{{", "test").is_err());
 }

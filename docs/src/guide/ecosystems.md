@@ -10,14 +10,15 @@ monochange uses ecosystem adapters to translate native package-manager files int
 
 ## Capability matrix
 
-| Ecosystem      | Package type      | Discovery sources                                                                       | Version and dependency updates                                                             | Lockfile behavior                                                                                                                                       | Built-in registry publishing |
-| -------------- | ----------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| Cargo          | `cargo`           | `Cargo.toml` workspaces and standalone crates                                           | `Cargo.toml` package versions and internal dependency requirements                         | Direct `Cargo.lock` rewrite by default; configure `cargo generate-lockfile`, `cargo check`, or another command when you need package-manager resolution | `crates.io`                  |
-| npm-family     | `npm`             | npm workspaces, pnpm workspaces, Bun workspaces, and standalone `package.json` packages | `package.json` versions and dependency ranges                                              | Direct `package-lock.json`, `pnpm-lock.yaml`, `bun.lock`, and `bun.lockb` updates by default; command overrides support package-manager refreshes       | `npm`                        |
-| Deno           | `deno`            | Deno workspaces and standalone `deno.json` / `deno.jsonc` packages                      | Deno manifest versions, exports/imports metadata, and dependency references                | Direct `deno.lock` update when possible; no inferred lockfile command                                                                                   | `jsr`                        |
-| Dart / Flutter | `dart`, `flutter` | Dart and Flutter workspaces plus standalone `pubspec.yaml` packages                     | `pubspec.yaml` versions and dependency ranges                                              | Direct `pubspec.lock` update by default; configure `dart pub get` or `flutter pub get` when you need full solver refreshes                              | `pub.dev`                    |
-| Python         | `python`          | uv workspaces, Poetry projects, and standalone `pyproject.toml` packages                | PEP 621 `[project]` and Poetry `[tool.poetry]` package versions plus dependency specifiers | Does not mutate `uv.lock` or `poetry.lock` directly; infers `uv lock` and `poetry lock --no-update` commands; unknown Python lockfiles are skipped      | `pypi`                       |
-| Go             | `go`              | Standalone `go.mod` modules                                                             | Internal `require` directives in `go.mod`; package versions stay in VCS tags               | Does not mutate `go.sum` directly; infers `go mod tidy` so the Go toolchain refreshes `go.mod` and checksum data                                        | Go module proxy via VCS tags |
+| Ecosystem      | Package type      | Discovery sources                                                                                      | Version and dependency updates                                                               | Lockfile behavior                                                                                                                                       | Built-in registry publishing                     |
+| -------------- | ----------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Cargo          | `cargo`           | `Cargo.toml` workspaces and standalone crates                                                          | `Cargo.toml` package versions and internal dependency requirements                           | Direct `Cargo.lock` rewrite by default; configure `cargo generate-lockfile`, `cargo check`, or another command when you need package-manager resolution | `crates.io`                                      |
+| npm-family     | `npm`             | npm workspaces, pnpm workspaces, Bun workspaces, and standalone `package.json` packages                | `package.json` versions and dependency ranges                                                | Direct `package-lock.json`, `pnpm-lock.yaml`, `bun.lock`, and `bun.lockb` updates by default; command overrides support package-manager refreshes       | `npm`                                            |
+| Deno           | `deno`            | Deno workspaces and standalone `deno.json` / `deno.jsonc` packages                                     | Deno manifest versions, exports/imports metadata, and dependency references                  | Direct `deno.lock` update when possible; no inferred lockfile command                                                                                   | `jsr`                                            |
+| Dart / Flutter | `dart`, `flutter` | Dart and Flutter workspaces plus standalone `pubspec.yaml` packages                                    | `pubspec.yaml` versions and dependency ranges                                                | Direct `pubspec.lock` update by default; configure `dart pub get` or `flutter pub get` when you need full solver refreshes                              | `pub.dev`                                        |
+| Python         | `python`          | uv workspaces, Poetry projects, and standalone `pyproject.toml` packages                               | PEP 621 `[project]` and Poetry `[tool.poetry]` package versions plus dependency specifiers   | Does not mutate `uv.lock` or `poetry.lock` directly; infers `uv lock` and `poetry lock --no-update` commands; unknown Python lockfiles are skipped      | `pypi`                                           |
+| Go             | `go`              | Standalone `go.mod` modules                                                                            | Internal `require` directives in `go.mod`; package versions stay in VCS tags                 | Does not mutate `go.sum` directly; infers `go mod tidy` so the Go toolchain refreshes `go.mod` and checksum data                                        | Go module proxy via VCS tags                     |
+| GitHub Actions | `github_actions`  | Configured `[package.<id>]` declarations with `action.yml` (or `action.yaml`) in the package directory | None: releases are git tags; a sibling `package.json` `version` field is synced when present | Not applicable — no lockfiles                                                                                                                           | None: the tag and GitHub release are the publish |
 
 The built-in publishing column is intentionally narrower than release planning. It lists only the canonical public registry for each supported ecosystem; private registries and custom publication flows should use `mode = "external"`.
 
@@ -231,6 +232,36 @@ trusted_publishing = false
 # Optional: override inferred tidy commands.
 lockfile_commands = [{ command = "go mod tidy", cwd = "services/api" }]
 ```
+
+## GitHub Actions
+
+`type = "github_actions"` targets repositories released as a git tag plus a provider release. GitHub Actions can be consumed as npm packages, Docker images, composites, or plain scripts, so there is no registry publish step: the tag and the GitHub release are the publish.
+
+Example configuration:
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+
+[source.releases]
+enabled = true
+source = "monochange"
+```
+
+GitHub Actions behavior:
+
+- the type preset implies `version_source = "tag"`, `tag = true`, `release = true`, `publish.enabled = false`, and `initial_version = "0.1.0"`; every field can be overridden explicitly
+- discovery reads the package directory and synthesizes the release identity from `action.yml` (or `action.yaml`); the manifest itself carries no version
+- a sibling `package.json` `version` field is synced to the released version when present; set `ignore_ecosystem_versioned_files = true` or declare explicit `versioned_files` to control this
+- release tags follow `version_format`; multi-action repos should keep the default `namespaced` format so tags look like `my-action/v1.2.3`
+- floating tag aliases (`floating_tags`) move to each release, reproducing the common `v1.2` / `v1` moving tags
 
 ## Choosing external publishing
 
