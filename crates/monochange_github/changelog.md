@@ -4,6 +4,64 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
+
+### 🚀 Feature
+
+#### Actually close the issues a release claims to close
+
+`step comment-released-issues --auto-close-issues` never closed anything on a real release run, so issues named in release pull request bodies stayed open after publish even though each one received a "Released in" comment.
+
+Three defects combined to hide that:
+
+- The fresh-comment path in `comment_released_issues_with_client` reported the `closed` outcome without ever sending the `PATCH /issues/{n}` request. The close request only existed on the idempotent re-run branch, which no first release ever reaches.
+- `build_issue_comment_results_for_source` accepted the caller's plans but re-planned internally through `HostedSourceAdapter::comment_released_issues`, silently discarding the `--auto-close-issues` decision. The flag only ever influenced dry-run output.
+- The plan polarity was inverted for the GitHub closing-keyword behavior: issues referenced through closing keywords were trusted to have been closed by the forge at merge time, while plain mentions were marked for closure. GitHub only links the first issue of a comma-separated `Closes #1, #2` list, so the remaining keyword issues were closed by nobody, and non-actionable mentions would have been force-closed.
+
+Closure now targets exactly the issues the release pull requests claim via closing keywords — including every entry of a comma-separated list — the close request is sent in the same run that posts the comment, and `--auto-close-issues` is honored in real runs instead of only dry runs. Plain mentions are never closed; add a closing keyword to a release pull request body when a mention should close with the release.
+
+`HostedSourceAdapter` gains `comment_released_issues_with_plans` so provider adapters can post comments for caller-supplied plans; the existing default `comment_released_issues` delegates to it.
+
+```toml
+[[cli.release-comments.steps]]
+type = "CommentReleasedIssues"
+inputs = { format = "json", "from-ref" = "HEAD", "auto-close-issues" = true }
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #697](https://github.com/monochange/monochange/pull/697) · _Closed issues:_ [#7](https://github.com/monochange/monochange/issues/7), [#8](https://github.com/monochange/monochange/issues/8) · _Related issues:_ [#341](https://github.com/monochange/monochange/issues/341), [#355](https://github.com/monochange/monochange/issues/355), [#9](https://github.com/monochange/monochange/issues/9)
+
+### 🐛 Fixed
+
+#### Release GitHub Actions repositories and tag-versioned packages
+
+Repositories that release by git tag plus provider release — GitHub Actions above all — could not be modeled: every package needed a registry ecosystem, and moving tag aliases had to be maintained by hand.
+
+- `PackageType` gains `github_actions` (aliases `github_actions` and `actions`). The type preset implies `version_source = "tag"`, `tag = true`, `release = true`, publishing disabled, and `initial_version = "0.1.0"`. Discovery accepts a package directory containing `action.yml` or `action.yaml` and syncs a sibling `package.json` version field when present.
+- New package and group fields: `version_source` (`manifest` default or `tag`), `initial_version` (baseline when no release tag exists yet), and `floating_tags` (moving tag aliases).
+- `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
+- `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
+- The committed JSON schema assets regenerate with the new fields.
+- New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
+
+##### Migration
+
+`PackageType`, `PackageDefinition`, `GroupDefinition`, `ReleaseTarget`, and the manifest/record target structs gained new fields. Code that constructs them with struct literals (rather than `..Default::default()`) must add the new fields; deserialization of existing configs and release records is unaffected because every field carries serde defaults.
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
 ## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
 
 ### 🐛 Fixed
