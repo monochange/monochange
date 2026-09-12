@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.1",
+  "kind": "cli-surface",
+  "tool": { "name": "demo", "version": "1.0.0" },
+  "provenance": { "extractor": "clap", "confidence": "high" },
+  "standard_entrypoints": { "help": {}, "version": {}, "snapshot": {} },
+  "global_options": [],
+  "commands": [
+    {
+      "path": ["check"],
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "options_must_precede_arguments": false,
+        "option_arg_separators": [" ", "="]
+      },
+      "options": [
+        {
+          "names": ["--format"],
+          "canonical_name": "--format",
+          "hidden": false,
+          "global": false,
+          "value": { "kind": "string", "required": false, "repeatable": false, "variadic": false }
+        },
+        {
+          "names": ["--verbose"],
+          "canonical_name": "--verbose",
+          "hidden": false,
+          "global": false,
+          "value": { "kind": "flag", "required": false, "repeatable": false, "variadic": false }
+        }
+      ],
+      "positionals": [],
+      "commands": []
+    }
+  ],
+  "output_contracts": []
+}

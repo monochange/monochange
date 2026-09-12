@@ -883,6 +883,7 @@ impl MonochangeMcpServer {
 			detection_level,
 			include_unchanged: params.include_unchanged,
 			strict: false,
+			skip_cli_snapshots: true,
 			format: crate::OutputFormat::Json,
 			output: None,
 			dependency_propagation,

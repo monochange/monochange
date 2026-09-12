@@ -154,6 +154,7 @@ fn sample_package_definition(config_id: &str) -> PackageDefinition {
 		version_source: monochange_core::VersionSource::Manifest,
 		initial_version: None,
 		floating_tags: Vec::new(),
+		cli: None,
 	}
 }
 

@@ -293,6 +293,7 @@ async fn classify_changes_matches_the_cli_report_with_public_dependency_propagat
 		detection_level: DetectionLevel::Signature,
 		include_unchanged: false,
 		strict: false,
+		skip_cli_snapshots: true,
 		format: crate::OutputFormat::Json,
 		output: None,
 		dependency_propagation: crate::change_classify::DependencyPropagation::Public,

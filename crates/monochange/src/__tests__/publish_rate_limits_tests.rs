@@ -787,6 +787,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				initial_version: None,
 				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings::default(),
+				cli: None,
 			},
 			monochange_core::PackageDefinition {
 				id: "private".to_string(),
@@ -809,6 +810,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				initial_version: None,
 				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings::default(),
+				cli: None,
 			},
 			monochange_core::PackageDefinition {
 				id: "docs".to_string(),
@@ -834,6 +836,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 					enabled: false,
 					..monochange_core::PublishSettings::default()
 				},
+				cli: None,
 			},
 		],
 		groups: Vec::new(),
@@ -1339,6 +1342,7 @@ async fn enforce_publish_rate_limits_returns_ok_when_enforcement_is_not_triggere
 			initial_version: None,
 			floating_tags: Vec::new(),
 			publish: monochange_core::PublishSettings::default(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -1460,6 +1464,7 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 						rate_limits: monochange_core::PublishRateLimitSettings { enforce: true },
 						..monochange_core::PublishSettings::default()
 					},
+					cli: None,
 				}
 			})
 			.collect(),

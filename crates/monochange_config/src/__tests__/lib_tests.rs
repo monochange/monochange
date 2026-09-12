@@ -5279,6 +5279,7 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		initial_version: None,
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
+		cli: None,
 	}
 }
 
@@ -7151,6 +7152,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		initial_version: None,
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
+		cli: None,
 	};
 	assert_eq!(
 		crate::find_matching_package_indices_for_definition(&packages, &root, &definition),
@@ -9311,4 +9313,176 @@ fn floating_tags_reject_unsupported_template_variables() {
 		.err()
 		.unwrap_or_else(|| panic!("expected config error"));
 	assert!(error.to_string().contains("floating_tags"), "{error}");
+}
+
+fn cli_registration_workspace(root: &Path, packages: &[(&str, &str)]) {
+	let mut config = String::new();
+	for (id, cli_line) in packages {
+		let package_dir = root.join("crates").join(id);
+		fs::create_dir_all(&package_dir)
+			.unwrap_or_else(|error| panic!("create package dir: {error}"));
+		fs::write(
+			package_dir.join("Cargo.toml"),
+			format!("[package]\nname = \"{id}\"\nversion = \"0.1.0\"\n"),
+		)
+		.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+		let _ = write!(
+			config,
+			"[package.{id}]\npath = \"crates/{id}\"\ntype = \"cargo\"\n"
+		);
+		if !cli_line.is_empty() {
+			config.push_str(cli_line);
+			config.push('\n');
+		}
+	}
+	fs::write(root.join("monochange.toml"), config)
+		.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+}
+
+#[test]
+fn load_workspace_configuration_parses_package_cli_snapshot_string() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[(
+			"demo",
+			"cli = { name = \"demo\", snapshot = \"demo snapshot --view index\" }",
+		)],
+	);
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let cli = configuration.packages[0]
+		.cli
+		.as_ref()
+		.unwrap_or_else(|| panic!("expected cli registration"));
+
+	assert_eq!(cli.name, "demo");
+	assert_eq!(cli.snapshot.command, "demo snapshot --view index");
+	assert_eq!(cli.snapshot.cwd, None);
+	assert_eq!(cli.snapshot.shell, ShellConfig::None);
+}
+
+#[test]
+fn load_workspace_configuration_parses_package_cli_snapshot_table() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[(
+			"demo",
+			"cli = { name = \"demo\", snapshot = { command = \"node scripts/emit-snapshot.mjs\", cwd = \"packages/demo\", shell = true } }",
+		)],
+	);
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let cli = configuration.packages[0]
+		.cli
+		.as_ref()
+		.unwrap_or_else(|| panic!("expected cli registration"));
+
+	assert_eq!(cli.name, "demo");
+	assert_eq!(cli.snapshot.command, "node scripts/emit-snapshot.mjs");
+	assert_eq!(cli.snapshot.cwd, Some(PathBuf::from("packages/demo")));
+	assert_eq!(cli.snapshot.shell, ShellConfig::Default);
+}
+
+#[test]
+fn load_workspace_configuration_omits_package_cli_when_unset() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(tempdir.path(), &[("demo", "")]);
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	assert!(configuration.packages[0].cli.is_none());
+}
+
+#[test]
+fn load_workspace_configuration_rejects_package_cli_unknown_fields() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[(
+			"demo",
+			"cli = { name = \"demo\", snapshot = \"demo snapshot\", binary = \"demo\" }",
+		)],
+	);
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error.to_string().contains("unknown field") || error.to_string().contains("`binary`"),
+		"{error}"
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_empty_package_cli_name() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[(
+			"demo",
+			"cli = { name = \"\", snapshot = \"demo snapshot\" }",
+		)],
+	);
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error
+			.to_string()
+			.contains("cli registration must provide a non-empty name"),
+		"{error}"
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_empty_package_cli_snapshot_command() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[("demo", "cli = { name = \"demo\", snapshot = \"   \" }")],
+	);
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error
+			.to_string()
+			.contains("must provide a non-empty snapshot command"),
+		"{error}"
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_duplicate_package_cli_names() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[
+			(
+				"first",
+				"cli = { name = \"shared\", snapshot = \"first snapshot\" }",
+			),
+			(
+				"second",
+				"cli = { name = \"shared\", snapshot = \"second snapshot\" }",
+			),
+		],
+	);
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error
+			.to_string()
+			.contains("cli name `shared` is registered by both `first` and `second`"),
+		"{error}"
+	);
 }
