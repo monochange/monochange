@@ -391,7 +391,9 @@ impl From<PackageType> for Ecosystem {
 			PackageType::Deno => Self::Deno,
 			PackageType::Dart => Self::Dart,
 			PackageType::Python => Self::Python,
-			PackageType::Go => Self::Go,
+			// GitHub Actions releases are tag-and-release only; the runtime
+			// behavior matches the tag-versioned Go ecosystem.
+			PackageType::Go | PackageType::GitHubActions => Self::Go,
 		}
 	}
 }
@@ -901,6 +903,10 @@ pub enum PackageType {
 	Dart,
 	Python,
 	Go,
+	/// GitHub Actions repositories. Versions are released as git tags and
+	/// provider releases; there is no registry publish target.
+	#[serde(alias = "github_actions", alias = "actions")]
+	GitHubActions,
 }
 
 impl PackageType {
@@ -914,9 +920,62 @@ impl PackageType {
 			Self::Dart => "dart",
 			Self::Python => "python",
 			Self::Go => "go",
+			Self::GitHubActions => "github_actions",
+		}
+	}
+
+	/// The manifest file that proves a directory hosts this package type.
+	///
+	/// Returns `None` for types that do not have a single version-bearing
+	/// manifest, such as GitHub Actions (an `action.yml` can exist but carries
+	/// no version).
+	#[must_use]
+	pub fn manifest_file_name(self) -> Option<&'static str> {
+		match self {
+			Self::Cargo => Some("Cargo.toml"),
+			Self::Npm => Some("package.json"),
+			Self::Deno => Some("deno.json"),
+			Self::Dart => Some("pubspec.yaml"),
+			Self::Python => Some("pyproject.toml"),
+			Self::Go => Some("go.mod"),
+			Self::GitHubActions => None,
 		}
 	}
 }
+
+/// Where a package's current release version is read from.
+///
+/// Defaults to `manifest` for ecosystems that store a version field in their
+/// manifest. `tag` reads the baseline from the latest reachable release tag
+/// matching the release owner's `version_format`, which suits GitHub Actions
+/// repositories and other tag-only release targets.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum VersionSource {
+	#[default]
+	Manifest,
+	Tag,
+}
+
+impl VersionSource {
+	/// Whether release planning resolves the current version from git tags.
+	#[must_use]
+	pub const fn reads_from_tags(self) -> bool {
+		matches!(self, Self::Tag)
+	}
+}
+
+/// Rendered template for one floating tag alias.
+///
+/// `v0.9.2` also moves `v0.9` when the alias template renders
+/// `v{{ major }}.{{ minor }}`. Templates may use `{{ major }}`, `{{ minor }}`,
+/// `{{ patch }}`, and `{{ version }}`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct FloatingTagFormat(pub String);
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "schema", schemars(with = "String"))]
@@ -1021,6 +1080,7 @@ pub fn validate_version_format_template(template: &str) -> MonochangeResult<()> 
 			"custom version_format must include the `{{ version }}` variable".to_string(),
 		));
 	}
+	validate_floating_tag_template_variables(template, "custom version_format")?;
 	let mut rest = template;
 	while let Some(start) = rest.find("{{") {
 		let after_start = &rest[start + 2..];
@@ -1082,6 +1142,75 @@ pub fn validate_version_format_tag(tag: &str) -> MonochangeResult<()> {
 		)));
 	}
 	Ok(())
+}
+
+/// Validate that a floating-tag alias template only uses supported variables.
+///
+/// Alias templates must not require `{{ version }}` — a floating alias derives
+/// from version *components* (`{{ major }}`, `{{ minor }}`, `{{ patch }}`) so it
+/// can stay stable across patch releases.
+pub fn validate_floating_tag_template_variables(
+	template: &str,
+	label: &str,
+) -> MonochangeResult<()> {
+	let mut rest = template;
+	while let Some(start) = rest.find("{{") {
+		let after_start = &rest[start + 2..];
+		let Some(end) = after_start.find("}}") else {
+			return Err(MonochangeError::Config(format!(
+				"{label} has an unterminated template variable"
+			)));
+		};
+		let variable = after_start[..end].trim();
+		if !matches!(
+			variable,
+			"major" | "minor" | "patch" | "version" | "name" | "ecosystem"
+		) {
+			return Err(MonochangeError::Config(format!(
+				"{label} uses unsupported variable `{{{{ {variable} }}}}`; supported variables are `{{{{ major }}}}`, `{{{{ minor }}}}`, `{{{{ patch }}}}`, `{{{{ version }}}}`, `{{{{ name }}}}`, and `{{{{ ecosystem }}}}`"
+			)));
+		}
+		rest = &after_start[end + 2..];
+	}
+	Ok(())
+}
+
+/// Render one floating-tag alias for `version`.
+///
+/// Supports `{{ major }}`, `{{ minor }}`, `{{ patch }}`, and the
+/// `version_format` variables (`{{ version }}`, `{{ name }}`,
+/// `{{ ecosystem }}`). Unlike release tags, the rendered alias must not
+/// include the full version — an alias that renders to the release tag itself
+/// is rejected.
+pub fn render_floating_tag(
+	template: &str,
+	version: &Version,
+	name: &str,
+	ecosystem: &str,
+) -> MonochangeResult<String> {
+	validate_floating_tag_template_variables(template, "floating tag template")?;
+	let version_string = version.to_string();
+	let rendered = template
+		.replace("{{ major }}", &version.major.to_string())
+		.replace("{{major}}", &version.major.to_string())
+		.replace("{{ minor }}", &version.minor.to_string())
+		.replace("{{minor}}", &version.minor.to_string())
+		.replace("{{ patch }}", &version.patch.to_string())
+		.replace("{{patch}}", &version.patch.to_string())
+		.replace("{{ version }}", &version_string)
+		.replace("{{version}}", &version_string)
+		.replace("{{ name }}", name)
+		.replace("{{name}}", name)
+		.replace("{{ ecosystem }}", ecosystem)
+		.replace("{{ecosystem}}", ecosystem);
+	validate_version_format_tag(&rendered)?;
+	let full_version_tags = [version_string.clone(), format!("v{version_string}")];
+	if full_version_tags.contains(&rendered) {
+		return Err(MonochangeError::Config(format!(
+			"floating tag template `{template}` renders the full version `{version_string}`; floating tags must move independently of release tags"
+		)));
+	}
+	Ok(rendered)
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -2646,6 +2775,23 @@ pub struct PackageDefinition {
 	pub tag: bool,
 	pub release: bool,
 	pub version_format: VersionFormat,
+	/// Where the package's current release version is read from.
+	#[serde(default)]
+	#[cfg_attr(feature = "schema", schemars(default))]
+	pub version_source: VersionSource,
+	/// Version used as the release baseline when `version_source = "tag"` and
+	/// no matching release tag exists yet.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[cfg_attr(feature = "schema", schemars(skip))]
+	pub initial_version: Option<Version>,
+	/// Floating tag aliases moved to every non-prerelease release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
+	/// CLI binary shipped by this package. Additive to `package_type`: the
+	/// package keeps its ecosystem surface and gains a command-surface
+	/// identity for change classification.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub cli: Option<PackageCliDefinition>,
 	#[serde(default)]
 	pub publish: PublishSettings,
 }
@@ -2683,6 +2829,18 @@ pub struct GroupDefinition {
 	pub tag: bool,
 	pub release: bool,
 	pub version_format: VersionFormat,
+	/// Where member packages read their current release version from.
+	#[serde(default)]
+	#[cfg_attr(feature = "schema", schemars(default))]
+	pub version_source: VersionSource,
+	/// Version used as the release baseline when `version_source = "tag"` and
+	/// no matching release tag exists yet.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[cfg_attr(feature = "schema", schemars(skip))]
+	pub initial_version: Option<Version>,
+	/// Floating tag aliases moved to every non-prerelease release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -2815,6 +2973,31 @@ pub struct PublishOrderSettings {
 pub struct LockfileCommandDefinition {
 	pub command: String,
 	#[serde(default)]
+	pub cwd: Option<PathBuf>,
+	#[serde(default)]
+	pub shell: ShellConfig,
+}
+
+/// Registration of a CLI binary shipped by a package. The package keeps its
+/// ecosystem type and public-API surface; `cli` adds a command-surface
+/// identity that change classification can reason about.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PackageCliDefinition {
+	/// Binary name as users invoke it. Also names the committed baseline file
+	/// under `.monochange/cli-snapshots/`.
+	pub name: String,
+	/// Command that prints a normalized command-surface snapshot JSON document
+	/// on stdout.
+	pub snapshot: CliSnapshotCommandDefinition,
+}
+
+/// How a package CLI's surface snapshot is captured.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CliSnapshotCommandDefinition {
+	pub command: String,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub cwd: Option<PathBuf>,
 	#[serde(default)]
 	pub shell: ShellConfig,
@@ -4807,6 +4990,9 @@ pub struct ReleaseManifestTarget {
 	pub rendered_title: String,
 	#[serde(default)]
 	pub rendered_changelog_title: String,
+	/// Floating tag aliases moved to this target's release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -5369,6 +5555,9 @@ pub struct ReleaseRecordTarget {
 	pub tag_name: String,
 	#[serde(default)]
 	pub members: Vec<String>,
+	/// Floating tag aliases moved to this target's release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -6271,6 +6460,16 @@ pub struct EffectiveReleaseIdentity {
 	pub release: bool,
 	pub version_format: VersionFormat,
 	pub members: Vec<String>,
+	/// Where member packages read their current release version from.
+	#[serde(default)]
+	pub version_source: VersionSource,
+	/// Version used as the release baseline when `version_source` is `tag` and
+	/// no matching release tag exists yet.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub initial_version: Option<Version>,
+	/// Floating tag aliases moved to every non-prerelease release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -6414,6 +6613,9 @@ impl WorkspaceConfiguration {
 				release: group.release,
 				version_format: group.version_format.clone(),
 				members: group.packages.clone(),
+				version_source: group.version_source,
+				initial_version: group.initial_version.clone(),
+				floating_tags: group.floating_tags.clone(),
 			});
 		}
 
@@ -6425,6 +6627,9 @@ impl WorkspaceConfiguration {
 			release: package.release,
 			version_format: package.version_format.clone(),
 			members: vec![package.id.clone()],
+			version_source: package.version_source,
+			initial_version: package.initial_version.clone(),
+			floating_tags: package.floating_tags.clone(),
 		})
 	}
 }

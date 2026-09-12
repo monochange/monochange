@@ -244,6 +244,23 @@ changelog_output = "user"
 
 A mobile repository can use `native` major changes to require a new store binary and `app_feature` minor changes for a patch delivery workflow. Agents should always derive that decision from the configured type and verify the dry-run manifest instead of guessing from file names.
 
+## Package CLI registration
+
+A package that ships a CLI binary can register it under `[package.<id>].cli`. Registration is additive to the package's ecosystem type: library or registry surface analysis continues unchanged, and change classification additionally diffs the CLI's command surface against a committed baseline.
+
+```toml
+[package.monochange]
+path = "crates/monochange"
+cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
+```
+
+- `name` is the binary name users invoke; it keys the committed baseline at `.monochange/cli-snapshots/<name>.json` and must be unique in the workspace.
+- `snapshot` is required: a command that prints a normalized command-surface snapshot JSON document on stdout. Use a string, or a table with `{ command, cwd, shell }` like `[ecosystems.*].lockfile_commands` entries. For foreign CLIs, commit a small emitter script that produces the JSON.
+- Refresh baselines in the release workflow: `monochange snapshot --package <id> --save`.
+- Inspect registrations with `monochange snapshot --list`.
+
+`monochange change classify` then reports command-surface breaks (removed options or commands propose `major`, additions propose `minor`) instead of unclassified package changes. Skip comparisons with `--skip-cli-snapshots` or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`.
+
 ## Custom CLI workflows
 
 `[cli.<name>]` creates `monochange run <name>` in that repository. These workflows are the maintainable place to compose built-in steps with local shell commands, input defaults, dry-run behavior, and CI-specific guards.

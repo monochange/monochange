@@ -22,6 +22,7 @@ use monochange_core::ReleaseRecord;
 use monochange_core::SourceProvider;
 use monochange_core::TrustedPublishingMode;
 use monochange_core::TrustedPublishingSettings;
+use monochange_core::VersionSource;
 use monochange_github::GITHUB_ACTIONS_ID_TOKEN_REQUEST_TOKEN;
 use monochange_github::GITHUB_ACTIONS_ID_TOKEN_REQUEST_URL;
 use monochange_github::GitHubTrustContext;
@@ -468,10 +469,14 @@ fn sample_configuration(
 					tag: true,
 					release: true,
 					version_format: monochange_core::VersionFormat::Primary,
+					version_source: VersionSource::default(),
+					initial_version: None,
+					floating_tags: Vec::new(),
 					publish: monochange_core::PublishSettings {
 						enabled: *enabled,
 						..monochange_core::PublishSettings::default()
 					},
+					cli: None,
 				}
 			})
 			.collect(),
@@ -506,6 +511,7 @@ fn commit_release_record(root: &Path, publications: Vec<PackagePublicationTarget
 			version_format: monochange_core::VersionFormat::Primary,
 			tag_name: "pkg-v1.2.3".to_string(),
 			members: Vec::new(),
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec!["pkg".to_string()],
 		changed_files: vec![PathBuf::from("tracked.txt")],

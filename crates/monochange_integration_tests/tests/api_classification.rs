@@ -166,7 +166,7 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 	);
 
 	assert_eq!(report["recommendation"], "major");
-	assert_eq!(report["schemaVersion"], 3);
+	assert_eq!(report["schemaVersion"], 4);
 	assert_package_recommendation(&report, "rust_core", "major");
 	assert_package_recommendation(&report, "ts_client", "minor");
 	assert_package_recommendation(&report, "js_utils", "patch");
@@ -476,7 +476,7 @@ fn change_classify_supports_global_jq_and_equals_options() {
 		],
 	);
 
-	assert_eq!(output, "3");
+	assert_eq!(output, "4");
 }
 
 #[test]
@@ -504,7 +504,7 @@ fn changeset_api_validation_writes_the_requested_report() {
 	assert_eq!(
 		serde_json::from_str::<Value>(&written)
 			.unwrap_or_else(|error| panic!("parse written report: {error}"))["schemaVersion"],
-		3
+		4
 	);
 }
 

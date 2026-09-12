@@ -324,6 +324,18 @@ pub(crate) struct ReleaseTagResult {
 	#[serde(default)]
 	pub existing_commit: Option<String>,
 	pub operation: ReleaseTagOperation,
+	/// Floating tag aliases moved alongside this release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_results: Vec<ReleaseFloatingTagResult>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) struct ReleaseFloatingTagResult {
+	pub tag_name: String,
+	/// Commit the alias pointed at before this release moved it.
+	#[serde(default)]
+	pub previous_commit: Option<String>,
 }
 
 #[allow(clippy::struct_excessive_bools)]
@@ -375,20 +387,59 @@ pub(crate) async fn create_release_tags(
 		)));
 	}
 
+	let mut tag_targets = discovery
+		.record
+		.release_targets
+		.iter()
+		.filter(|target| target.tag)
+		.collect::<Vec<_>>();
+	tag_targets.sort_by(|left, right| left.tag_name.cmp(&right.tag_name));
+
 	let mut tag_results = Vec::new();
-	for tag_name in release_record_tag_names(&discovery.record) {
-		let existing_commit = resolve_git_tag_commit(root, &tag_name).await.ok();
+	for target in &tag_targets {
+		let existing_commit = resolve_git_tag_commit(root, &target.tag_name).await.ok();
 		let operation = if existing_commit.as_deref() == Some(discovery.record_commit.as_str()) {
 			ReleaseTagOperation::AlreadyUpToDate
 		} else {
 			ReleaseTagOperation::Planned
 		};
 
+		let mut floating_results = Vec::new();
+		for floating_tag in &target.floating_tags {
+			let Ok(parsed_version) = semver::Version::parse(&target.version) else {
+				return Err(MonochangeError::Config(format!(
+					"release target `{}` has a non-semver version `{}`; floating tags require semver versions",
+					target.id, target.version,
+				)));
+			};
+			let ecosystem = target.kind.as_str();
+			let Ok(rendered) = monochange_core::render_floating_tag(
+				&floating_tag.0,
+				&parsed_version,
+				&target.id,
+				ecosystem,
+			) else {
+				return Err(MonochangeError::Config(format!(
+					"release target `{}` has an invalid `floating_tags` template `{}`",
+					target.id, floating_tag.0,
+				)));
+			};
+			if rendered == target.tag_name {
+				continue;
+			}
+			let previous_commit = resolve_git_tag_commit(root, &rendered).await.ok();
+			floating_results.push(ReleaseFloatingTagResult {
+				tag_name: rendered,
+				previous_commit,
+			});
+		}
+
 		tag_results.push(ReleaseTagResult {
-			tag_name,
+			tag_name: target.tag_name.clone(),
 			target_commit: discovery.record_commit.clone(),
 			existing_commit,
 			operation,
+			floating_results,
 		});
 	}
 
@@ -414,6 +465,15 @@ pub(crate) async fn create_release_tags(
 			tag_result.operation = ReleaseTagOperation::Created;
 		}
 
+		for tag_result in &tag_results {
+			if tag_result.operation == ReleaseTagOperation::AlreadyUpToDate {
+				continue;
+			}
+			for floating_result in &tag_result.floating_results {
+				move_git_tag(root, &floating_result.tag_name, &tag_result.target_commit).await?;
+			}
+		}
+
 		if push {
 			let tags_to_push = tag_results
 				.iter()
@@ -423,6 +483,18 @@ pub(crate) async fn create_release_tags(
 
 			if !tags_to_push.is_empty() {
 				push_git_tags_without_force(root, &tags_to_push).await?;
+			}
+			let floating_tags_to_push = tag_results
+				.iter()
+				.flat_map(|tag_result| {
+					tag_result
+						.floating_results
+						.iter()
+						.map(|floating| floating.tag_name.as_str())
+				})
+				.collect::<Vec<_>>();
+			if !floating_tags_to_push.is_empty() {
+				push_git_tags(root, &floating_tags_to_push).await?;
 			}
 		}
 	}
@@ -554,3 +626,7 @@ pub(crate) fn text_release_record_discovery(discovery: &ReleaseRecordDiscovery) 
 	}
 	lines.join("\n")
 }
+
+#[cfg(test)]
+#[path = "__tests__/release_record_tests.rs"]
+mod tests;

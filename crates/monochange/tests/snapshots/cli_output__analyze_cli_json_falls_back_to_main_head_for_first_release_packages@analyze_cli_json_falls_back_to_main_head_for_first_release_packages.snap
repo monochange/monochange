@@ -11,7 +11,6 @@ info:
   env:
     MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -36,7 +35,8 @@ exit_code: 0
     "members": [
       "core",
       "app"
-    ]
+    ],
+    "version_source": "manifest"
   },
   "first_release": true,
   "refs": {

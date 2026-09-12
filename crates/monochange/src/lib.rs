@@ -77,6 +77,7 @@ use monochange_core::DEFAULT_RELEASE_TITLE_NAMESPACED;
 use monochange_core::DEFAULT_RELEASE_TITLE_PRIMARY;
 use monochange_core::DiscoveryReport;
 use monochange_core::Ecosystem;
+use monochange_core::FloatingTagFormat;
 use monochange_core::HostedActorRef;
 use monochange_core::HostedActorSourceKind;
 use monochange_core::HostedCommitRef;
@@ -234,6 +235,7 @@ mod changeset_policy;
 mod changesets;
 mod cli;
 mod cli_runtime;
+mod cli_surface;
 mod cli_theme;
 mod command_wizard;
 mod git_support;
@@ -420,6 +422,9 @@ pub struct ReleaseTarget {
 	pub members: Vec<String>,
 	pub rendered_title: String,
 	pub rendered_changelog_title: String,
+	/// Floating tag aliases moved to this target's release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 /// Rendered changelog payload produced during release preparation.
@@ -1305,21 +1310,33 @@ async fn run_with_args_in_dir_with_progress(
 	}
 	let output = match matches.subcommand() {
 		Some(("snapshot", snapshot_matches)) => {
-			let view = snapshot_matches
-				.get_one::<String>("view")
-				.map_or(monochange_snapshot::SnapshotView::Full, |value| {
-					snapshot_view(value)
-				});
-			let path = snapshot_matches
-				.get_many::<String>("command")
-				.into_iter()
-				.flatten()
-				.cloned()
-				.collect();
-			render_snapshot_request(
-				&build_command_with_cli(bin_name, &cli),
-				&SnapshotRequest { path, view },
-			)
+			if snapshot_matches.get_flag("list") {
+				cli_surface::list_registered_clis(root)
+			} else if let Some(package_id) = snapshot_matches.get_one::<String>("package") {
+				let save = snapshot_matches.get_flag("save");
+				let view = snapshot_matches
+					.get_one::<String>("view")
+					.map_or(monochange_snapshot::SnapshotView::Full, |value| {
+						snapshot_view(value)
+					});
+				cli_surface::run_package_snapshot(root, package_id, save, view)
+			} else {
+				let view = snapshot_matches
+					.get_one::<String>("view")
+					.map_or(monochange_snapshot::SnapshotView::Full, |value| {
+						snapshot_view(value)
+					});
+				let path = snapshot_matches
+					.get_many::<String>("command")
+					.into_iter()
+					.flatten()
+					.cloned()
+					.collect();
+				render_snapshot_request(
+					&build_command_with_cli(bin_name, &cli),
+					&SnapshotRequest { path, view },
+				)
+			}
 		}
 		Some(("help", help_matches)) => {
 			let path = help_matches

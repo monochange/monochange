@@ -1,0 +1,952 @@
+{
+	"schema_version": "0.1",
+	"kind": "cli-surface",
+	"tool": {
+		"name": "monochange",
+		"version": "0.11.1"
+	},
+	"provenance": {
+		"extractor": "clap",
+		"confidence": "high"
+	},
+	"standard_entrypoints": {
+		"help": {
+			"commands": [
+				[
+					"help"
+				]
+			],
+			"flags": [
+				"--help",
+				"-h"
+			]
+		},
+		"version": {
+			"commands": [
+				[
+					"version"
+				]
+			],
+			"flags": [
+				"--version",
+				"-V"
+			]
+		},
+		"snapshot": {
+			"commands": [
+				[
+					"snapshot"
+				]
+			],
+			"flags": [
+				"--snapshot"
+			]
+		}
+	},
+	"commands": [
+		{
+			"path": [
+				"init"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"populate"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"command"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"skill"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"subagents"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"change"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"change",
+						"classify"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		},
+		{
+			"path": [
+				"api"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"api",
+						"diff"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		},
+		{
+			"path": [
+				"changeset"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"changeset",
+						"validate"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		},
+		{
+			"path": [
+				"analyze"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"notes"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"migrate"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"migrate",
+						"audit"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"migrate",
+						"release-records"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		},
+		{
+			"path": [
+				"lint"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"lint",
+						"list"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"lint",
+						"explain"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"lint",
+						"new"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		},
+		{
+			"path": [
+				"versions"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"versions",
+						"list"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"versions",
+						"sync"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		},
+		{
+			"path": [
+				"create"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"discover"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"config"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"preview"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"prepare"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"affected"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"diagnose"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"mcp"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"check"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"step"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"step",
+						"config"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"validate"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"discover"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"display-versions"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"create-change-file"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"prepare-release"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"commit-release"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"verify-release-branch"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"publish-release"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"placeholder-publish"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"publish-packages"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"plan-publish-rate-limits"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"open-release-request"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"comment-released-issues"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"affected-packages"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"diagnose-changesets"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"release-record"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"publish-readiness"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"tag-release"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"step",
+						"retarget-release"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		},
+		{
+			"path": [
+				"run"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"run",
+						"change"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"run",
+						"publish-check"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"run",
+						"release"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		}
+	]
+}

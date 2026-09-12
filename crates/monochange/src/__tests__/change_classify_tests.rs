@@ -11,6 +11,7 @@ use monochange_core::PublishState;
 use monochange_core::SemanticChange;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
+use monochange_core::VersionSource;
 use monochange_test_helpers::git;
 use tempfile::tempdir;
 
@@ -378,6 +379,9 @@ fn latest_release_tag_uses_effective_release_identity() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
 	};
 	assert_eq!(
@@ -778,6 +782,7 @@ fn public_dependency_propagation_preserves_an_existing_package_report() {
 		note: None,
 	};
 	let mut packages = vec![PackageClassification {
+		cli: None,
 		package_id: app_id.clone(),
 		package_name: "@acme/app".to_string(),
 		ecosystem: Ecosystem::Npm,
@@ -906,6 +911,9 @@ fn release_owner_reports_package_and_group_identity() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
 	};
 	let group = EffectiveReleaseIdentity {
@@ -1485,4 +1493,305 @@ fn report_with_one_breaking_change() -> ChangeClassificationReport {
 	};
 
 	classification_report(&analysis, DependencyPropagation::None)
+}
+
+fn sample_snapshot_change(
+	kind: monochange_snapshot::SnapshotChangeKind,
+	path: Vec<String>,
+	severity: monochange_snapshot::SnapshotSeverity,
+) -> monochange_snapshot::SnapshotChange {
+	monochange_snapshot::SnapshotChange {
+		severity,
+		path,
+		summary: format!("sample {kind:?} change"),
+		kind,
+	}
+}
+
+#[test]
+fn cli_surface_impact_maps_removals_and_narrowing_to_breaking() {
+	use monochange_snapshot::SnapshotChangeKind;
+
+	for kind in [
+		SnapshotChangeKind::CommandRemoved,
+		SnapshotChangeKind::OptionRemoved,
+		SnapshotChangeKind::PositionalRemoved,
+		SnapshotChangeKind::OptionValueNarrowed,
+	] {
+		assert_eq!(
+			cli_surface_impact(&kind),
+			CompatibilityImpact::Breaking,
+			"{kind:?} must be breaking"
+		);
+	}
+}
+
+#[test]
+fn cli_surface_impact_maps_additions_and_widening_to_additive() {
+	use monochange_snapshot::SnapshotChangeKind;
+
+	for kind in [
+		SnapshotChangeKind::CommandAdded,
+		SnapshotChangeKind::OptionAdded,
+		SnapshotChangeKind::PositionalAdded,
+		SnapshotChangeKind::OptionValueWidened,
+	] {
+		assert_eq!(
+			cli_surface_impact(&kind),
+			CompatibilityImpact::Additive,
+			"{kind:?} must be additive"
+		);
+	}
+}
+
+#[test]
+fn cli_surface_impact_maps_description_changes_to_compatible() {
+	use monochange_snapshot::SnapshotChangeKind;
+
+	for kind in [
+		SnapshotChangeKind::CommandDescriptionChanged,
+		SnapshotChangeKind::OptionDescriptionChanged,
+		SnapshotChangeKind::PositionalChanged,
+	] {
+		assert_eq!(
+			cli_surface_impact(&kind),
+			CompatibilityImpact::Compatible,
+			"{kind:?} must be compatible"
+		);
+	}
+}
+
+#[test]
+fn bump_for_snapshot_severity_matches_bump_severities() {
+	assert_eq!(
+		bump_for_snapshot_severity(monochange_snapshot::SnapshotSeverity::None),
+		BumpSeverity::None
+	);
+	assert_eq!(
+		bump_for_snapshot_severity(monochange_snapshot::SnapshotSeverity::Patch),
+		BumpSeverity::Patch
+	);
+	assert_eq!(
+		bump_for_snapshot_severity(monochange_snapshot::SnapshotSeverity::Minor),
+		BumpSeverity::Minor
+	);
+	assert_eq!(
+		bump_for_snapshot_severity(monochange_snapshot::SnapshotSeverity::Major),
+		BumpSeverity::Major
+	);
+}
+
+#[test]
+fn snapshot_change_kind_names_are_kebab_case_rule_ids() {
+	use monochange_snapshot::SnapshotChangeKind;
+
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::CommandAdded),
+		"command-added"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::CommandRemoved),
+		"command-removed"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::CommandDescriptionChanged),
+		"command-description-changed"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::OptionAdded),
+		"option-added"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::OptionRemoved),
+		"option-removed"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::OptionDescriptionChanged),
+		"option-description-changed"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::OptionValueWidened),
+		"option-value-widened"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::OptionValueNarrowed),
+		"option-value-narrowed"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::PositionalAdded),
+		"positional-added"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::PositionalRemoved),
+		"positional-removed"
+	);
+	assert_eq!(
+		snapshot_change_kind_name(&SnapshotChangeKind::PositionalChanged),
+		"positional-changed"
+	);
+}
+
+#[test]
+fn cli_surface_findings_use_unique_ids_with_complete_coverage() {
+	use monochange_snapshot::SnapshotChangeKind;
+	use monochange_snapshot::SnapshotSeverity;
+
+	let report = monochange_snapshot::SnapshotDiffReport {
+		recommendation: SnapshotSeverity::Major,
+		changes: vec![
+			sample_snapshot_change(
+				SnapshotChangeKind::OptionRemoved,
+				vec!["release".to_string()],
+				SnapshotSeverity::Major,
+			),
+			sample_snapshot_change(
+				SnapshotChangeKind::OptionRemoved,
+				vec!["release".to_string()],
+				SnapshotSeverity::Major,
+			),
+			sample_snapshot_change(
+				SnapshotChangeKind::CommandAdded,
+				vec!["migrate".to_string(), "audit".to_string()],
+				SnapshotSeverity::Minor,
+			),
+		],
+	};
+
+	let findings = cli_surface_findings(DetectionLevel::Signature, &report);
+
+	assert_eq!(findings.len(), 3);
+	assert_eq!(
+		findings[0].id,
+		"monochange/cli-surface/option-removed/release"
+	);
+	assert_eq!(
+		findings[1].id,
+		"monochange/cli-surface/option-removed/release/2"
+	);
+	assert_eq!(
+		findings[2].id,
+		"monochange/cli-surface/command-added/migrate/audit"
+	);
+	for finding in &findings {
+		assert_eq!(finding.surface, "cli");
+		assert_eq!(finding.analyzer.id, "monochange/cli-surface");
+		assert_eq!(finding.confidence, ClassificationConfidence::High);
+		assert_eq!(
+			finding.coverage.completeness,
+			AnalysisCompleteness::Complete
+		);
+		assert!(finding.comparisons.contains(&ComparisonKind::PullRequest));
+	}
+	assert_eq!(findings[0].impact, CompatibilityImpact::Breaking);
+	assert_eq!(findings[0].bump, BumpSeverity::Major);
+	assert_eq!(findings[2].impact, CompatibilityImpact::Additive);
+	assert_eq!(findings[2].bump, BumpSeverity::Minor);
+	assert_eq!(findings[2].location, PathBuf::from("migrate/audit"));
+}
+
+#[test]
+fn cli_classification_description_describes_every_status() {
+	let diffed = cli_classification_description(&PackageCliClassification {
+		name: "monochange".to_string(),
+		status: CliSnapshotStatus::Diffed,
+		recommendation: Some(BumpSeverity::Major),
+		finding_count: Some(2),
+		baseline: Some(".monochange/cli-snapshots/monochange.json".to_string()),
+	});
+	assert_eq!(
+		diffed,
+		"diffed against `.monochange/cli-snapshots/monochange.json`, recommendation `major`, 2 finding(s)"
+	);
+
+	let none_recommendation = cli_classification_description(&PackageCliClassification {
+		name: "monochange".to_string(),
+		status: CliSnapshotStatus::Diffed,
+		recommendation: Some(BumpSeverity::None),
+		finding_count: Some(0),
+		baseline: Some(".monochange/cli-snapshots/monochange.json".to_string()),
+	});
+	assert!(none_recommendation.contains("recommendation `none`"));
+
+	for (status, expected) in [
+		(CliSnapshotStatus::MissingBaseline, "no committed baseline"),
+		(CliSnapshotStatus::StaleBaseline, "stale or unparsable"),
+		(CliSnapshotStatus::Failed, "capture failed"),
+		(CliSnapshotStatus::Skipped, "capture skipped"),
+	] {
+		let description = cli_classification_description(&PackageCliClassification {
+			name: "monochange".to_string(),
+			status,
+			recommendation: None,
+			finding_count: None,
+			baseline: None,
+		});
+		assert!(description.contains(expected), "{status:?}: {description}");
+	}
+}
+
+#[test]
+fn skip_cli_snapshots_flag_and_env_are_combined() {
+	assert!(!skip_cli_snapshots_for(false, None));
+	assert!(skip_cli_snapshots_for(true, None));
+	assert!(skip_cli_snapshots_for(false, Some("1")));
+	assert!(skip_cli_snapshots_for(false, Some("true")));
+	assert!(!skip_cli_snapshots_for(false, Some("0")));
+	assert!(skip_cli_snapshots_for(true, Some("0")));
+}
+
+#[test]
+fn cli_surface_findings_fall_back_to_dot_for_empty_command_paths() {
+	use monochange_snapshot::SnapshotChangeKind;
+	use monochange_snapshot::SnapshotSeverity;
+
+	let report = monochange_snapshot::SnapshotDiffReport {
+		recommendation: SnapshotSeverity::Patch,
+		changes: vec![sample_snapshot_change(
+			SnapshotChangeKind::PositionalChanged,
+			Vec::new(),
+			SnapshotSeverity::Patch,
+		)],
+	};
+
+	let findings = cli_surface_findings(DetectionLevel::Signature, &report);
+
+	assert_eq!(findings.len(), 1);
+	assert_eq!(findings[0].location, PathBuf::from("."));
+}
+
+#[test]
+fn collect_cli_surface_classification_skips_unchanged_registered_clis() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let package_dir = tempdir.path().join("crates/demo");
+	fs::create_dir_all(&package_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	fs::write(
+		package_dir.join("Cargo.toml"),
+		"[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write manifest: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		"[package.demo]\npath = \"crates/demo\"\ntype = \"cargo\"\ncli = { name = \"demo\", snapshot = \"cat cli.json\" }\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let options = ClassifyOptions::default();
+	let mut findings = Vec::new();
+	let mut warnings = Vec::new();
+
+	let classification = collect_cli_surface_classification(
+		tempdir.path(),
+		&configuration,
+		"demo",
+		&[],
+		&options,
+		&mut findings,
+		&mut warnings,
+	);
+
+	assert_eq!(classification, None);
+	assert!(findings.is_empty());
+	assert!(warnings.is_empty());
 }

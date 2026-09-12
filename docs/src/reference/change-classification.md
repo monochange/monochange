@@ -49,6 +49,12 @@ monochange compares package manifests at both endpoints. Adding or removing a pa
 
 The built-in Cargo, JavaScript, Deno, and Dart source analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. Cargo packages can opt into a cargo-semver-checks matrix for stronger Rust evidence.
 
+## CLI command-surface findings
+
+Packages that register a CLI under `[package.<id>].cli` get their command surface classified automatically. monochange diffs the committed baseline in `.monochange/cli-snapshots/<name>.json` against a fresh capture from the configured snapshot command and appends findings with `surface: "cli"`. Removed commands, options, or positionals and value narrowing are breaking and propose `major`; additions are additive and propose `minor`; description-only changes are compatible. See [package CLI registration](package-cli-registration.md).
+
+Skip the comparison with `--skip-cli-snapshots` or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`.
+
 ### TypeScript declaration compatibility
 
 Use semantic detection when an npm package publishes TypeScript types:

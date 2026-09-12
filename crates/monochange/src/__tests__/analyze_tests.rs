@@ -2,6 +2,7 @@
 use std::path::Path;
 
 use monochange_core::VersionFormat;
+use monochange_core::VersionSource;
 use monochange_test_helpers::copy_directory;
 use monochange_test_helpers::fs::fixture_path_from;
 use monochange_test_helpers::git::git;
@@ -112,6 +113,9 @@ fn tag_prefix_for_identity_matches_primary_and_namespaced_tags() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
 	};
 	let primary = EffectiveReleaseIdentity {
@@ -121,6 +125,9 @@ fn tag_prefix_for_identity_matches_primary_and_namespaced_tags() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string(), "app".to_string()],
 	};
 
@@ -220,6 +227,9 @@ async fn default_branch_and_release_tag_resolution_cover_origin_head_and_missing
 		tag: false,
 		release: false,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
 	};
 	assert_eq!(
@@ -297,6 +307,9 @@ async fn latest_release_tag_and_text_rendering_cover_warning_branches() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
 	};
 	let tag_error = latest_release_tag_for_identity(missing_repo.path(), Some(&identity))

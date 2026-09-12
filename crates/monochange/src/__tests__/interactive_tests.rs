@@ -14,6 +14,7 @@ use monochange_core::PackageDefinition;
 use monochange_core::PackageType;
 use monochange_core::PublishSettings;
 use monochange_core::VersionFormat;
+use monochange_core::VersionSource;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::WorkspaceDefaults;
 use monochange_test_helpers::current_test_name;
@@ -305,6 +306,10 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				release: true,
 				publish: PublishSettings::default(),
 				version_format: VersionFormat::Primary,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
+				cli: None,
 			},
 			PackageDefinition {
 				id: "core".to_string(),
@@ -324,6 +329,10 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				release: true,
 				publish: PublishSettings::default(),
 				version_format: VersionFormat::Primary,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
+				cli: None,
 			},
 			PackageDefinition {
 				id: "web".to_string(),
@@ -343,6 +352,10 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				release: true,
 				publish: PublishSettings::default(),
 				version_format: VersionFormat::Primary,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
+				cli: None,
 			},
 		],
 		groups: vec![GroupDefinition {
@@ -360,6 +373,9 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 			tag: true,
 			release: true,
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			floating_tags: Vec::new(),
 		}],
 		cli: Vec::new(),
 		changesets: ChangesetSettings::default(),
@@ -442,6 +458,9 @@ fn build_selectable_targets_handles_group_with_empty_packages() {
 			tag: true,
 			release: true,
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			floating_tags: Vec::new(),
 		}],
 		cli: Vec::new(),
 		changesets: ChangesetSettings::default(),
@@ -487,6 +506,10 @@ fn build_selectable_targets_with_only_standalone_packages() {
 				release: true,
 				publish: PublishSettings::default(),
 				version_format: VersionFormat::Primary,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
+				cli: None,
 			},
 			PackageDefinition {
 				id: "beta".to_string(),
@@ -506,6 +529,10 @@ fn build_selectable_targets_with_only_standalone_packages() {
 				release: true,
 				publish: PublishSettings::default(),
 				version_format: VersionFormat::Primary,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
+				cli: None,
 			},
 		],
 		groups: Vec::new(),
@@ -596,6 +623,10 @@ fn build_selectable_targets_deduplicates_and_sorts_change_types() {
 			release: true,
 			publish: PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),

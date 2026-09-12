@@ -33,6 +33,9 @@ Compare a merge candidate with the default branch and each package's latest rele
       [93m--include-unchanged[0m
           Include packages without findings
 
+      [93m--skip-cli-snapshots[0m
+          Skip registered cli command-surface comparisons; MONOCHANGE_SKIP_CLI_SNAPSHOTS=1 also skips them
+
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
           Report format
 
