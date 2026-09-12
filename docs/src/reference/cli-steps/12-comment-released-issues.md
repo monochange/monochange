@@ -19,6 +19,12 @@ This is especially valuable when:
 ## Inputs
 
 - `format`: `text` or `json`
+- `from-ref`: git ref that contains the release record to publish
+- `auto-close-issues`: close issues that the release review requests claim via closing keywords after adding the release comment
+
+## Issue closure
+
+With `auto-close-issues` enabled, only issues referenced through closing keywords (`Closes #7`, `Fixes #8`, …) in the release review request bodies are closed, and closure is attempted even when the issue is already closed, because hosted forges only auto-close the first issue of a comma-separated `Closes #7, #8` list. Issues that are merely mentioned without a closing keyword are never closed; add a closing keyword to the release pull request body when a mention should close with the release.
 
 ## Step-level `when` condition
 

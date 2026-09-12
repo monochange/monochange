@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/comment_released_issues.rs
+expression: "String::from_utf8_lossy(&output.stdout)"
+---
+command `step comment-released-issues` completed

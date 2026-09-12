@@ -111,7 +111,7 @@ fn comment_released_issues_with_client_closes_skipped_existing_issues_when_plan_
 				r#"[{"html_url":"https://example.com/issues/7#comment-1","body":"Released in v1.2.0."}]"#,
 			);
 	});
-	let _close_issue_seven = server.mock(|when, then| {
+	let close_issue_seven = server.mock(|when, then| {
 		when.method(PATCH)
 			.path("/repos/ifiokjr/monochange/issues/7");
 		then.status(200)
@@ -144,8 +144,7 @@ fn comment_released_issues_with_client_closes_skipped_existing_issues_when_plan_
 			.unwrap_or_else(|error| panic!("comment released issues: {error}"))
 	});
 	list_issue_seven_comments.assert();
-	// Skip explicit close mock assert due to httpmock path-prefix overlap with comment endpoint.
-	// When the comment already exists, the operation is SkippedExisting even if close=true.
+	close_issue_seven.assert();
 	assert!(outcomes.iter().any(|outcome| {
 		outcome.issue_id == "#7"
 			&& outcome.operation == GitHubIssueCommentOperation::SkippedExisting
@@ -297,7 +296,7 @@ fn comment_released_issues_with_client_closes_issues_when_plan_close_is_true() {
 			.header("content-type", "application/json")
 			.body(r#"{"html_url":"https://example.com/issues/7#comment-1"}"#);
 	});
-	let _close_issue_seven = server.mock(|when, then| {
+	let close_issue_seven = server.mock(|when, then| {
 		when.method(PATCH)
 			.path("/repos/ifiokjr/monochange/issues/7");
 		then.status(200)
@@ -352,11 +351,70 @@ fn comment_released_issues_with_client_closes_issues_when_plan_close_is_true() {
 	});
 	list_issue_seven_comments.assert();
 	create_issue_seven_comment.assert();
-	// Skip explicit close mock assert — httpmock path prefix matching causes overlap between
-	// PATCH /repos/ifiokjr/monochange/issues/7 and GET /repos/ifiokjr/monochange/issues/7/comments.
-	// The presence of a Closed outcome proves the PATCH was sent and received a successful response.
+	close_issue_seven.assert();
 	assert!(outcomes.iter().any(|outcome| {
 		outcome.issue_id == "#7" && outcome.operation == GitHubIssueCommentOperation::Closed
+	}));
+}
+
+#[test]
+fn comment_released_issues_with_client_leaves_issue_open_when_plan_close_is_false() {
+	let server = MockServer::start();
+	let list_issue_seven_comments = server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/issues/7/comments");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body("[]");
+	});
+	let create_issue_seven_comment = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/ifiokjr/monochange/issues/7/comments");
+		then.status(201)
+			.header("content-type", "application/json")
+			.body(r#"{"html_url":"https://example.com/issues/7#comment-1"}"#);
+	});
+	let close_issue_seven = server.mock(|when, then| {
+		when.method(PATCH)
+			.path("/repos/ifiokjr/monochange/issues/7");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body(r#"{"state":"closed"}"#);
+	});
+	let github = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		host: None,
+		api_url: Some(server.base_url()),
+		owner: "ifiokjr".to_string(),
+		repo: "monochange".to_string(),
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	};
+	let plans = vec![GitHubIssueCommentPlan {
+		repository: "ifiokjr/monochange".to_string(),
+		issue_id: "#7".to_string(),
+		issue_url: Some("https://example.com/issues/7".to_string()),
+		body: "Released in v1.2.0.".to_string(),
+		close: false,
+	}];
+	let outcomes = temp_env::with_var("GITHUB_SERVER_URL", Some("https://example.com"), || {
+		github_runtime()
+			.unwrap_or_else(|error| panic!("runtime: {error}"))
+			.block_on(async {
+				let client = build_test_client(&server);
+				comment_released_issues_with_client(&client, &github, &plans).await
+			})
+			.unwrap_or_else(|error| panic!("comment released issues: {error}"))
+	});
+	list_issue_seven_comments.assert();
+	create_issue_seven_comment.assert();
+	assert_eq!(
+		close_issue_seven.calls(),
+		0,
+		"a close=false plan must never patch the issue state"
+	);
+	assert!(outcomes.iter().any(|outcome| {
+		outcome.issue_id == "#7" && outcome.operation == GitHubIssueCommentOperation::Created
 	}));
 }
 
@@ -376,6 +434,13 @@ async fn comment_released_issues_public_api_uses_source_configuration() {
 		then.status(201)
 			.header("content-type", "application/json")
 			.body("{\"html_url\":\"https://example.com/issues/7#comment-1\"}");
+	});
+	let close_issue_seven = server.mock(|when, then| {
+		when.method(PATCH)
+			.path("/repos/ifiokjr/monochange/issues/7");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body(r#"{"state":"closed"}"#);
 	});
 	let source = SourceConfiguration {
 		provider: SourceProvider::GitHub,
@@ -421,6 +486,7 @@ async fn comment_released_issues_public_api_uses_source_configuration() {
 
 	list_issue_comments.assert();
 	create_issue_comment.assert();
+	close_issue_seven.assert();
 	assert_eq!(outcomes.len(), 1);
 	assert_eq!(
 		outcomes
@@ -428,6 +494,13 @@ async fn comment_released_issues_public_api_uses_source_configuration() {
 			.unwrap_or_else(|| panic!("expected one issue comment outcome"))
 			.issue_id,
 		"#7"
+	);
+	assert_eq!(
+		outcomes
+			.first()
+			.unwrap_or_else(|| panic!("expected one issue comment outcome"))
+			.operation,
+		GitHubIssueCommentOperation::Closed
 	);
 }
 
@@ -447,6 +520,13 @@ async fn github_hosted_source_adapter_comments_released_issues() {
 		then.status(201)
 			.header("content-type", "application/json")
 			.body("{\"html_url\":\"https://example.com/issues/7#comment-1\"}");
+	});
+	let close_issue_seven = server.mock(|when, then| {
+		when.method(PATCH)
+			.path("/repos/ifiokjr/monochange/issues/7");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body(r#"{"state":"closed"}"#);
 	});
 	let source = SourceConfiguration {
 		provider: SourceProvider::GitHub,
@@ -492,13 +572,14 @@ async fn github_hosted_source_adapter_comments_released_issues() {
 
 	list_issue_comments.assert();
 	create_issue_comment.assert();
+	close_issue_seven.assert();
 	assert_eq!(outcomes.len(), 1);
 	assert_eq!(
 		outcomes
 			.first()
 			.unwrap_or_else(|| panic!("expected one issue comment outcome"))
 			.operation,
-		GitHubIssueCommentOperation::Created
+		GitHubIssueCommentOperation::Closed
 	);
 }
 
@@ -2817,6 +2898,41 @@ fn comment_released_issues_skips_existing_markers_and_posts_missing_comments() {
 				r#"[{"html_url":"https://example.com/issues/8#comment-1","body":"Released in v1.2.0.\n\n<!-- monochange:released-in:v1.2.0 -->"}]"#,
 			);
 	});
+	let close_issue_seven = server.mock(|when, then| {
+		when.method(PATCH)
+			.path("/repos/ifiokjr/monochange/issues/7");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body(r#"{"state":"closed"}"#);
+	});
+	let close_issue_eight = server.mock(|when, then| {
+		when.method(PATCH)
+			.path("/repos/ifiokjr/monochange/issues/8");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body(r#"{"state":"closed"}"#);
+	});
+	let list_issue_nine_comments = server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/issues/9/comments");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body("[]");
+	});
+	let create_issue_nine_comment = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/ifiokjr/monochange/issues/9/comments");
+		then.status(201)
+			.header("content-type", "application/json")
+			.body("{\"html_url\":\"https://example.com/issues/9#comment-1\"}");
+	});
+	let close_issue_nine = server.mock(|when, then| {
+		when.method(PATCH)
+			.path("/repos/ifiokjr/monochange/issues/9");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body(r#"{"state":"closed"}"#);
+	});
 	let github = SourceConfiguration {
 		provider: SourceProvider::GitHub,
 		host: None,
@@ -2855,17 +2971,35 @@ fn comment_released_issues_skips_existing_markers_and_posts_missing_comments() {
 					url: Some("https://example.com/issues/8".to_string()),
 					relationship: HostedIssueRelationshipKind::ClosedByReviewRequest,
 				},
+				HostedIssueRef {
+					provider: HostingProviderKind::GitHub,
+					host: Some("example.com".to_string()),
+					id: "#9".to_string(),
+					title: Some("Mentioned without a closing keyword".to_string()),
+					url: Some("https://example.com/issues/9".to_string()),
+					relationship: HostedIssueRelationshipKind::ReferencedByReviewRequest,
+				},
 			],
 		}),
 	}];
 
 	let plans = plan_released_issue_comments(&github, &manifest);
-	assert_eq!(plans.len(), 2);
+	assert_eq!(plans.len(), 3);
 	assert!(
 		plans
 			.iter()
 			.all(|plan| plan.body.contains("Released in v1.2.0."))
 	);
+	// Only closing-keyword issues are marked for closure; plain mentions
+	// stay open even when the release comment is posted.
+	for plan in &plans {
+		let expected_close = plan.issue_id != "#9";
+		assert_eq!(
+			plan.close, expected_close,
+			"unexpected close flag for {}",
+			plan.issue_id
+		);
+	}
 
 	let outcomes = temp_env::with_var("GITHUB_SERVER_URL", Some("https://example.com"), || {
 		github_runtime()
@@ -2880,12 +3014,24 @@ fn comment_released_issues_skips_existing_markers_and_posts_missing_comments() {
 	list_issue_seven_comments.assert();
 	create_issue_seven_comment.assert();
 	list_issue_eight_comments.assert();
+	list_issue_nine_comments.assert();
+	create_issue_nine_comment.assert();
+	close_issue_seven.assert();
+	close_issue_eight.assert();
+	assert_eq!(
+		close_issue_nine.calls(),
+		0,
+		"a plain issue mention must never be closed by the release"
+	);
 	assert!(outcomes.iter().any(|outcome| {
-		outcome.issue_id == "#7" && outcome.operation == GitHubIssueCommentOperation::Created
+		outcome.issue_id == "#7" && outcome.operation == GitHubIssueCommentOperation::Closed
 	}));
 	assert!(outcomes.iter().any(|outcome| {
 		outcome.issue_id == "#8"
 			&& outcome.operation == GitHubIssueCommentOperation::SkippedExisting
+	}));
+	assert!(outcomes.iter().any(|outcome| {
+		outcome.issue_id == "#9" && outcome.operation == GitHubIssueCommentOperation::Created
 	}));
 }
 

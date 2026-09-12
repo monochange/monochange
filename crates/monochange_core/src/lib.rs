@@ -4007,7 +4007,9 @@ fn step_input_help_text(name: &str) -> &'static str {
 		"write_empty_release_record" => "Write a release record even when no packages change",
 		"release_json" => "Write the prepared release record as JSON",
 		"from-ref" => "Git ref that contains the release record to publish",
-		"auto-close-issues" => "Close referenced issues after adding the release comment",
+		"auto-close-issues" => {
+			"Close issues that the release review requests claim via closing keywords after adding the release comment"
+		}
 		"draft" => "Create hosted releases as drafts",
 		"package" => "Limit the operation to one or more package ids",
 		"show-all" => "Include unchanged and skipped package details",
@@ -6122,6 +6124,18 @@ pub trait HostedSourceAdapter: Sync {
 		if plans.is_empty() {
 			return Ok(Vec::new());
 		}
+		self.comment_released_issues_with_plans(source, &plans)
+			.await
+	}
+
+	/// Post release comments for the given plans, honoring the `close` flag of
+	/// every plan as adjusted by the caller (for example via
+	/// `--auto-close-issues`).
+	async fn comment_released_issues_with_plans(
+		&self,
+		_source: &SourceConfiguration,
+		_plans: &[HostedIssueCommentPlan],
+	) -> MonochangeResult<Vec<HostedIssueCommentOutcome>> {
 		Err(MonochangeError::Config(format!(
 			"released issue comments are not yet supported for {}",
 			self.provider()

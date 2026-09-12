@@ -1,0 +1,88 @@
+{
+	"schemaVersion": "0.3",
+	"kind": "monochange.releaseRecord",
+	"createdAt": "2026-09-12T08:00:00Z",
+	"command": "release",
+	"version": "1.2.0",
+	"versions": {
+		"core": "1.2.0"
+	},
+	"releaseTargets": [
+		{
+			"id": "core",
+			"kind": "group",
+			"version": "1.2.0",
+			"versionFormat": "primary",
+			"tag": true,
+			"release": true,
+			"tagName": "v1.2.0",
+			"members": ["core"]
+		}
+	],
+	"releasedPackages": ["core"],
+	"changedFiles": [".changeset/fix-released-issue-closure.md"],
+	"packagePublications": [],
+	"updatedChangelogs": [],
+	"deletedChangesets": [],
+	"changesets": [
+		{
+			"path": ".changeset/fix-released-issue-closure.md",
+			"summary": "Close issues claimed by the release pull request",
+			"details": "The release pull request closed issues #7 and #8 with one comma-separated closing keyword, and mentioned #9 without a closing keyword.",
+			"targets": [
+				{
+					"id": "core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidenceRefs": [],
+					"changeType": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commitWebUrls": true,
+					"actorProfiles": true,
+					"reviewRequestLookup": true,
+					"relatedIssues": true,
+					"issueComments": true
+				},
+				"relatedIssues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#7",
+						"title": "First closing-keyword issue",
+						"url": "https://github.com/ifiokjr/monochange/issues/7",
+						"relationship": "closed_by_review_request"
+					},
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#8",
+						"title": "Second closing-keyword issue from the comma list",
+						"url": "https://github.com/ifiokjr/monochange/issues/8",
+						"relationship": "closed_by_review_request"
+					},
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#9",
+						"title": "Mentioned without a closing keyword",
+						"url": "https://github.com/ifiokjr/monochange/issues/9",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		}
+	],
+	"changelogs": [],
+	"provider": {
+		"kind": "github",
+		"owner": "ifiokjr",
+		"repo": "monochange",
+		"host": null
+	}
+}
