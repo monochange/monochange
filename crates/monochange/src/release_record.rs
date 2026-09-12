@@ -626,3 +626,7 @@ pub(crate) fn text_release_record_discovery(discovery: &ReleaseRecordDiscovery) 
 	}
 	lines.join("\n")
 }
+
+#[cfg(test)]
+#[path = "__tests__/release_record_tests.rs"]
+mod tests;
