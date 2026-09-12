@@ -21,7 +21,7 @@ fn setup_cli_fixture() -> TempDir {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 
 	copy_directory(&fixture_root.join("before"), tempdir.path());
-	git(tempdir.path(), &["init"]);
+	git(tempdir.path(), &["init", "--initial-branch", "main"]);
 	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
 	git(
 		tempdir.path(),
