@@ -211,6 +211,6 @@ expression: snapshot
     }
   ],
   "recommendation": "major",
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "warnings": []
 }

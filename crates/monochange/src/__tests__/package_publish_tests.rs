@@ -476,6 +476,7 @@ fn sample_configuration(
 						enabled: *enabled,
 						..monochange_core::PublishSettings::default()
 					},
+					cli: None,
 				}
 			})
 			.collect(),

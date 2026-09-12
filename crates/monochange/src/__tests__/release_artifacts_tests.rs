@@ -241,6 +241,7 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		floating_tags: Vec::new(),
+		cli: None,
 	}];
 	configuration.groups = vec![monochange_core::GroupDefinition {
 		id: "sdk".to_string(),
@@ -465,6 +466,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		},
 		PackageDefinition {
 			id: "web".to_string(),
@@ -491,6 +493,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		},
 		PackageDefinition {
 			id: "disabled".to_string(),
@@ -517,6 +520,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		},
 		PackageDefinition {
 			id: "private".to_string(),
@@ -542,6 +546,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		},
 	];
 

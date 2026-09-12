@@ -123,6 +123,7 @@ fn sample_package() -> PackageDefinition {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		floating_tags: Vec::new(),
+		cli: None,
 	}
 }
 

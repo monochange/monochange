@@ -263,6 +263,7 @@ fn sample_package_definition(
 		initial_version: None,
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
+		cli: None,
 	}
 }
 

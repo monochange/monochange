@@ -3282,6 +3282,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				initial_version: None,
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
+				cli: None,
 			},
 			PackageDefinition {
 				id: "monochange_core".to_string(),
@@ -3308,6 +3309,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				initial_version: None,
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
+				cli: None,
 			},
 			PackageDefinition {
 				id: "monochange_graph".to_string(),
@@ -3330,6 +3332,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				initial_version: None,
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
+				cli: None,
 			},
 		],
 		groups: vec![GroupDefinition {

@@ -34,6 +34,7 @@ use monochange_core::ChangesetTargetKind;
 use monochange_core::CliCommandDefinition;
 use monochange_core::CliInputDefinition;
 use monochange_core::CliInputKind;
+use monochange_core::CliSnapshotCommandDefinition;
 use monochange_core::CliStepDefinition;
 use monochange_core::CliStepInputValue;
 use monochange_core::DiscoveredPackage;
@@ -47,6 +48,7 @@ use monochange_core::GroupDefinition;
 use monochange_core::LockfileCommandDefinition;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+use monochange_core::PackageCliDefinition;
 use monochange_core::PackageDefinition;
 use monochange_core::PackageRecord;
 use monochange_core::PackageType;
@@ -61,6 +63,7 @@ use monochange_core::PublishOrderSettings;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishSettings;
 use monochange_core::RegistryKind;
+use monochange_core::ShellConfig;
 use monochange_core::SourceCapabilities;
 use monochange_core::SourceConfiguration;
 use monochange_core::SourceProvider;
@@ -99,6 +102,7 @@ pub const RESERVED_CLI_COMMAND_NAMES: &[&str] = &[
 	"mcp",
 	"skill",
 	"skills",
+	"snapshot",
 	"subagents",
 	"validate",
 	"version",
@@ -301,6 +305,45 @@ pub(crate) struct RawPackageDefinition {
 	floating_tags: Vec<FloatingTagFormat>,
 	#[serde(default)]
 	publish: RawPublishSettings,
+	#[serde(default)]
+	cli: Option<RawPackageCliDefinition>,
+}
+
+/// Raw `[package.<id>].cli` value: the binary name plus the command that
+/// captures its normalized surface snapshot.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "package_cli"))]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RawPackageCliDefinition {
+	name: String,
+	snapshot: RawCliSnapshotCommand,
+}
+
+/// Raw `cli.snapshot` value: a bare command string or a detailed definition
+/// mirroring `[ecosystems.*].lockfile_commands` entries.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "cli_snapshot_command"))]
+#[serde(untagged)]
+pub(crate) enum RawCliSnapshotCommand {
+	Command(String),
+	Detailed(RawCliSnapshotCommandDefinition),
+}
+
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(
+	feature = "schema",
+	schemars(rename = "cli_snapshot_command_definition")
+)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RawCliSnapshotCommandDefinition {
+	command: String,
+	#[serde(default)]
+	cwd: Option<PathBuf>,
+	#[serde(default)]
+	shell: ShellConfig,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1873,10 +1916,37 @@ fn build_package_definitions(
 				version_source,
 				initial_version,
 				floating_tags,
+				cli: normalize_package_cli(package.cli),
 				publish,
 			})
 		})
 		.collect::<Result<Vec<_>, _>>()
+}
+
+/// Normalize a raw `[package.<id>].cli` value, expanding the bare command
+/// string form into a detailed snapshot command definition.
+fn normalize_package_cli(cli: Option<RawPackageCliDefinition>) -> Option<PackageCliDefinition> {
+	let cli = cli?;
+	let snapshot = match cli.snapshot {
+		RawCliSnapshotCommand::Command(command) => {
+			CliSnapshotCommandDefinition {
+				command,
+				cwd: None,
+				shell: ShellConfig::default(),
+			}
+		}
+		RawCliSnapshotCommand::Detailed(definition) => {
+			CliSnapshotCommandDefinition {
+				command: definition.command,
+				cwd: definition.cwd,
+				shell: definition.shell,
+			}
+		}
+	};
+	Some(PackageCliDefinition {
+		name: cli.name,
+		snapshot,
+	})
 }
 
 fn normalize_group_packages(
@@ -2081,6 +2151,7 @@ fn discover_auto_packages(
 				version_source: VersionSource::Manifest,
 				initial_version: None,
 				floating_tags: Vec::new(),
+				cli: None,
 				publish: ecosystem_settings.publish.clone(),
 			});
 		}
@@ -2265,6 +2336,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		&declared_packages,
 		&mut versioned_file_cache,
 	)?;
+	validate_package_cli_definitions(&contents, &packages)?;
 	validate_cli_runtime_requirements(&cli, &changesets, source.as_ref())?;
 
 	let defaults_bump_propagation = resolve_bump_propagation(
@@ -4505,6 +4577,91 @@ fn validate_lockfile_commands(
 				"ecosystem `{ecosystem_id}` lockfile_commands cwd `{}` does not exist or is not a directory",
 				cwd.display()
 			)));
+		}
+	}
+	Ok(())
+}
+
+/// Validate `[package.<id>].cli` registrations: names and snapshot commands
+/// must be non-empty, and CLI names are unique across the workspace because
+/// they key the committed snapshot baselines under `.monochange/cli-snapshots/`.
+fn validate_package_cli_definitions(
+	config_contents: &str,
+	packages: &[PackageDefinition],
+) -> MonochangeResult<()> {
+	let mut names = BTreeMap::<&str, &str>::new();
+	for package in packages {
+		let Some(cli) = &package.cli else {
+			continue;
+		};
+		if cli.name.trim().is_empty() {
+			return Err(config_diagnostic(
+				config_contents,
+				format!(
+					"package `{}` cli registration must provide a non-empty name",
+					package.id
+				),
+				vec![config_field_label(
+					config_contents,
+					"package",
+					&package.id,
+					"cli",
+					"cli missing name",
+				)],
+				Some(
+					"set `cli = { name = \"<binary-name>\", snapshot = \"<command>\" }` with the binary name users invoke"
+						.to_string(),
+				),
+			));
+		}
+		if cli.snapshot.command.trim().is_empty() {
+			return Err(config_diagnostic(
+				config_contents,
+				format!(
+					"package `{}` cli `{}` must provide a non-empty snapshot command",
+					package.id, cli.name
+				),
+				vec![config_field_label(
+					config_contents,
+					"package",
+					&package.id,
+					"cli",
+					"cli missing snapshot command",
+				)],
+				Some(
+					"set `snapshot` to a command that prints a command-surface snapshot JSON document on stdout"
+						.to_string(),
+				),
+			));
+		}
+		if let Some(existing_id) = names.insert(cli.name.as_str(), package.id.as_str()) {
+			return Err(config_diagnostic(
+				config_contents,
+				format!(
+					"cli name `{}` is registered by both `{existing_id}` and `{}`",
+					cli.name, package.id
+				),
+				vec![
+					config_field_label(
+						config_contents,
+						"package",
+						existing_id,
+						"cli",
+						"first package registering this cli",
+					),
+					config_field_label(
+						config_contents,
+						"package",
+						&package.id,
+						"cli",
+						"conflicting cli registration",
+					),
+				],
+				Some(
+					"register each cli name exactly once; the name keys the committed snapshot baseline"
+						.to_string(),
+				),
+			));
 		}
 	}
 

@@ -2787,6 +2787,11 @@ pub struct PackageDefinition {
 	/// Floating tag aliases moved to every non-prerelease release tag.
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub floating_tags: Vec<FloatingTagFormat>,
+	/// CLI binary shipped by this package. Additive to `package_type`: the
+	/// package keeps its ecosystem surface and gains a command-surface
+	/// identity for change classification.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub cli: Option<PackageCliDefinition>,
 	#[serde(default)]
 	pub publish: PublishSettings,
 }
@@ -2968,6 +2973,31 @@ pub struct PublishOrderSettings {
 pub struct LockfileCommandDefinition {
 	pub command: String,
 	#[serde(default)]
+	pub cwd: Option<PathBuf>,
+	#[serde(default)]
+	pub shell: ShellConfig,
+}
+
+/// Registration of a CLI binary shipped by a package. The package keeps its
+/// ecosystem type and public-API surface; `cli` adds a command-surface
+/// identity that change classification can reason about.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PackageCliDefinition {
+	/// Binary name as users invoke it. Also names the committed baseline file
+	/// under `.monochange/cli-snapshots/`.
+	pub name: String,
+	/// Command that prints a normalized command-surface snapshot JSON document
+	/// on stdout.
+	pub snapshot: CliSnapshotCommandDefinition,
+}
+
+/// How a package CLI's surface snapshot is captured.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CliSnapshotCommandDefinition {
+	pub command: String,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub cwd: Option<PathBuf>,
 	#[serde(default)]
 	pub shell: ShellConfig,
