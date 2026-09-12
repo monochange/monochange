@@ -49,10 +49,10 @@ impl EcosystemAdapter for GoAdapter {
 
 	fn load_configured(
 		&self,
-		_root: &Path,
-		_package_path: &Path,
+		root: &Path,
+		package_path: &Path,
 	) -> MonochangeResult<Option<PackageRecord>> {
-		Ok(None)
+		load_configured_go_package(root, package_path)
 	}
 
 	fn supported_versioned_file_kind(&self, path: &Path) -> bool {
@@ -261,6 +261,22 @@ pub fn discover_go_modules(root: &Path) -> MonochangeResult<AdapterDiscovery> {
 	tracing::debug!(packages = packages.len(), "discovered go modules");
 
 	Ok(AdapterDiscovery { packages, warnings })
+}
+
+/// Load the package record for a configured Go module directory.
+///
+/// Go module versions live in VCS tags rather than the manifest, so the
+/// returned record carries no `current_version`; release planning resolves the
+/// baseline from release tags.
+pub fn load_configured_go_package(
+	root: &Path,
+	package_path: &Path,
+) -> MonochangeResult<Option<PackageRecord>> {
+	let go_mod_path = package_path.join(GO_MOD_FILE);
+	if !go_mod_path.is_file() {
+		return Ok(None);
+	}
+	parse_go_module(&go_mod_path, root)
 }
 
 fn parse_go_module(go_mod_path: &Path, root: &Path) -> MonochangeResult<Option<PackageRecord>> {

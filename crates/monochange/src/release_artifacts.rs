@@ -438,6 +438,29 @@ pub(crate) fn parse_tag_prefix_and_version(tag: &str) -> Option<(String, semver:
 	Some((prefix.to_string(), version))
 }
 
+/// Tag prefix that release tags for `owner_id` start with under `version_format`.
+///
+/// Matches the prefix produced by `render_tag_name` so tag-based version
+/// resolution reads exactly the tags release targets create.
+pub(crate) fn release_tag_prefix(owner_id: &str, version_format: &VersionFormat) -> String {
+	match version_format {
+		VersionFormat::Namespaced => format!("{owner_id}/v"),
+		_ => "v".to_string(),
+	}
+}
+
+/// Highest version among `sorted_tags` (descending version order) whose tag
+/// starts with `prefix`.
+pub(crate) fn latest_tag_version_with_prefix(
+	sorted_tags: &[String],
+	prefix: &str,
+) -> Option<semver::Version> {
+	sorted_tags.iter().find_map(|tag| {
+		let (tag_prefix, version) = parse_tag_prefix_and_version(tag)?;
+		(tag_prefix == prefix).then_some(version)
+	})
+}
+
 struct TitleRenderContext {
 	id: String,
 	version: String,

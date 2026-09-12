@@ -2214,3 +2214,170 @@ async fn prepare_release_execution_with_configuration_uses_passed_configuration(
 		"prerelease phases should run when the passed configuration enables prerelease"
 	);
 }
+
+// -- seed_versions_from_tag_list --
+
+fn go_release_configuration(root: &std::path::Path, body: &str) -> WorkspaceConfiguration {
+	std::fs::write(root.join("go.mod"), "module example.com/api\n\ngo 1.22\n")
+		.unwrap_or_else(|error| panic!("write go.mod: {error}"));
+	std::fs::write(root.join("monochange.toml"), body)
+		.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+	load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"))
+}
+
+fn go_release_record(config_id: Option<&str>) -> monochange_core::PackageRecord {
+	let mut record = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Go,
+		"api",
+		std::path::PathBuf::from("go.mod"),
+		std::path::PathBuf::from("."),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	if let Some(config_id) = config_id {
+		record
+			.metadata
+			.insert("config_id".to_string(), config_id.to_string());
+	}
+	record
+}
+
+fn discovery_with_packages(packages: Vec<monochange_core::PackageRecord>) -> DiscoveryReport {
+	DiscoveryReport {
+		workspace_root: std::path::PathBuf::from("."),
+		packages,
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	}
+}
+
+#[test]
+fn seed_versions_from_tag_list_seeds_matching_release_tags() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.api]\npath = \".\"\ntype = \"go\"\nversion_format = \"primary\"\ntag = true\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(
+		&configuration,
+		&mut discovery,
+		&["v1.2.3".to_string(), "v1.0.0".to_string()],
+	);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(1, 2, 3))
+	);
+	assert!(discovery.warnings.is_empty());
+}
+
+#[test]
+fn seed_versions_from_tag_list_uses_namespaced_prefix_from_version_format() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.api]\npath = \".\"\ntype = \"go\"\ntag = true\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(
+		&configuration,
+		&mut discovery,
+		&["api/v0.9.0".to_string(), "v1.2.3".to_string()],
+	);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(0, 9, 0))
+	);
+}
+
+#[test]
+fn seed_versions_from_tag_list_warns_when_no_tag_matches() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.\"go:go.mod\"]\npath = \".\"\ntype = \"go\"\nversion_format = \"primary\"\ntag = true\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(None)]);
+
+	seed_versions_from_tag_list(
+		&configuration,
+		&mut discovery,
+		&["other/v1.0.0".to_string()],
+	);
+
+	assert!(discovery.packages[0].current_version.is_none());
+	assert_eq!(discovery.warnings.len(), 1);
+	assert!(
+		discovery.warnings[0]
+			.contains("no release tag matching `v<version>` found for package `go:go.mod`")
+	);
+}
+
+#[test]
+fn seed_versions_from_tag_list_skips_packages_with_versions_or_other_ecosystems() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(fixture.path(), "");
+
+	let mut versioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"web",
+		std::path::PathBuf::from("package.json"),
+		std::path::PathBuf::from("."),
+		Some(semver::Version::new(0, 1, 0)),
+		monochange_core::PublishState::Public,
+	);
+	versioned
+		.metadata
+		.insert("config_id".to_string(), "web".to_string());
+	let unversioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"cli",
+		std::path::PathBuf::from("cli/package.json"),
+		std::path::PathBuf::from("."),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	let mut discovery = discovery_with_packages(vec![versioned, unversioned]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v9.9.9".to_string()]);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(0, 1, 0))
+	);
+	assert!(discovery.packages[1].current_version.is_none());
+	assert!(discovery.warnings.is_empty());
+}
+
+#[test]
+fn seed_versions_from_tag_list_skips_packages_without_release_identity() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(fixture.path(), "");
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v1.0.0".to_string()]);
+
+	assert!(discovery.packages[0].current_version.is_none());
+	assert!(discovery.warnings.is_empty());
+}
+
+#[test]
+fn seed_versions_from_tag_list_skips_packages_without_tagging() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.api]\npath = \".\"\ntype = \"go\"\nversion_format = \"primary\"\ntag = false\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v1.0.0".to_string()]);
+
+	assert!(discovery.packages[0].current_version.is_none());
+	assert!(discovery.warnings.is_empty());
+}
