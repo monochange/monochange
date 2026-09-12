@@ -293,6 +293,28 @@ pub(crate) fn build_command_with_cli(
 						.value_name("COMMAND")
 						.num_args(0..)
 						.help("Optional command path to render"),
+				)
+				.arg(
+					Arg::new("package")
+						.long("package")
+						.value_name("PACKAGE")
+						.help(
+							"Capture the configured cli snapshot for this package instead of the monochange surface",
+						),
+				)
+				.arg(
+					Arg::new("save")
+						.long("save")
+						.action(ArgAction::SetTrue)
+						.help(
+							"Write the captured snapshot as the committed baseline under .monochange/cli-snapshots/",
+						),
+				)
+				.arg(
+					Arg::new("list")
+						.long("list")
+						.action(ArgAction::SetTrue)
+						.help("List registered package clis and their baseline status"),
 				),
 		)
 		.subcommand(
@@ -392,6 +414,7 @@ fn build_classify_subcommand() -> Command {
 		.arg(classification_package_arg())
 		.arg(classification_detection_level_arg())
 		.arg(classification_include_unchanged_arg())
+		.arg(classification_skip_cli_snapshots_arg())
 		.arg(classification_format_arg())
 		.arg(classification_output_arg())
 		.arg(classification_dependency_propagation_arg())
@@ -421,6 +444,7 @@ pub(crate) fn build_api_subcommand() -> Command {
 				.arg(classification_package_arg())
 				.arg(classification_detection_level_arg())
 				.arg(classification_include_unchanged_arg())
+				.arg(classification_skip_cli_snapshots_arg())
 				.arg(classification_format_arg())
 				.arg(classification_output_arg())
 				.arg(classification_dependency_propagation_arg()),
@@ -458,6 +482,7 @@ pub(crate) fn build_changeset_subcommand() -> Command {
 				.arg(classification_package_arg())
 				.arg(classification_detection_level_arg())
 				.arg(classification_include_unchanged_arg())
+				.arg(classification_skip_cli_snapshots_arg())
 				.arg(
 					Arg::new("strict")
 						.long("strict")
@@ -499,6 +524,13 @@ fn classification_include_unchanged_arg() -> Arg {
 		.long("include-unchanged")
 		.action(ArgAction::SetTrue)
 		.help("Include packages without findings")
+}
+
+fn classification_skip_cli_snapshots_arg() -> Arg {
+	Arg::new("skip-cli-snapshots")
+		.long("skip-cli-snapshots")
+		.action(ArgAction::SetTrue)
+		.help("Skip registered cli command-surface comparisons; MONOCHANGE_SKIP_CLI_SNAPSHOTS=1 also skips them")
 }
 
 fn classification_output_arg() -> Arg {

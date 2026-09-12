@@ -12922,6 +12922,7 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: vec![monochange_core::GroupDefinition {
 			id: "sdk".to_string(),
@@ -13046,6 +13047,7 @@ fn apply_runtime_change_type_choices_updates_only_unconfigured_change_inputs() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),

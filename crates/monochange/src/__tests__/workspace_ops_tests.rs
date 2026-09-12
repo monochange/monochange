@@ -438,6 +438,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		..configuration
 	};
@@ -481,6 +482,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -536,6 +538,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -2522,6 +2525,7 @@ fn github_actions_definition(id: &str, path: &str) -> monochange_core::PackageDe
 		initial_version: None,
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
+		cli: None,
 	}
 }
 

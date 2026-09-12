@@ -309,6 +309,7 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				version_source: VersionSource::default(),
 				initial_version: None,
 				floating_tags: Vec::new(),
+				cli: None,
 			},
 			PackageDefinition {
 				id: "core".to_string(),
@@ -331,6 +332,7 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				version_source: VersionSource::default(),
 				initial_version: None,
 				floating_tags: Vec::new(),
+				cli: None,
 			},
 			PackageDefinition {
 				id: "web".to_string(),
@@ -353,6 +355,7 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				version_source: VersionSource::default(),
 				initial_version: None,
 				floating_tags: Vec::new(),
+				cli: None,
 			},
 		],
 		groups: vec![GroupDefinition {
@@ -506,6 +509,7 @@ fn build_selectable_targets_with_only_standalone_packages() {
 				version_source: VersionSource::default(),
 				initial_version: None,
 				floating_tags: Vec::new(),
+				cli: None,
 			},
 			PackageDefinition {
 				id: "beta".to_string(),
@@ -528,6 +532,7 @@ fn build_selectable_targets_with_only_standalone_packages() {
 				version_source: VersionSource::default(),
 				initial_version: None,
 				floating_tags: Vec::new(),
+				cli: None,
 			},
 		],
 		groups: Vec::new(),
@@ -621,6 +626,7 @@ fn build_selectable_targets_deduplicates_and_sorts_change_types() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),

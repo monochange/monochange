@@ -31,7 +31,9 @@ use serde::Serialize;
 use crate::OutputFormat;
 
 const DEFAULT_HEAD_REF: &str = "HEAD";
-const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 3;
+const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 4;
+pub(crate) const SKIP_CLI_SNAPSHOTS_ENV: &str = "MONOCHANGE_SKIP_CLI_SNAPSHOTS";
+pub(crate) const CLI_SURFACE_ANALYZER_ID: &str = "monochange/cli-surface";
 const ANALYZER_VERSION: &str = "1";
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -43,6 +45,7 @@ pub(crate) struct ClassifyOptions {
 	pub(crate) detection_level: DetectionLevel,
 	pub(crate) include_unchanged: bool,
 	pub(crate) strict: bool,
+	pub(crate) skip_cli_snapshots: bool,
 	pub(crate) format: OutputFormat,
 	pub(crate) output: Option<PathBuf>,
 	pub(crate) dependency_propagation: DependencyPropagation,
@@ -65,6 +68,7 @@ impl Default for ClassifyOptions {
 			detection_level: DetectionLevel::Signature,
 			include_unchanged: false,
 			strict: false,
+			skip_cli_snapshots: false,
 			format: OutputFormat::Text,
 			output: None,
 			dependency_propagation: DependencyPropagation::None,
@@ -234,6 +238,38 @@ pub(crate) struct PackageClassification {
 	pub(crate) existing_changesets: Vec<ExistingChangeset>,
 	pub(crate) action: ChangesetAction,
 	pub(crate) warnings: Vec<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub(crate) cli: Option<PackageCliClassification>,
+}
+
+/// Outcome of the CLI command-surface comparison for one package.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PackageCliClassification {
+	pub(crate) name: String,
+	pub(crate) status: CliSnapshotStatus,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub(crate) recommendation: Option<BumpSeverity>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub(crate) finding_count: Option<usize>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub(crate) baseline: Option<String>,
+}
+
+/// Why a CLI snapshot comparison did or did not produce findings.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum CliSnapshotStatus {
+	/// Baseline and candidate snapshot were captured and diffed.
+	Diffed,
+	/// No committed baseline exists for this CLI yet.
+	MissingBaseline,
+	/// The committed baseline could not be diffed (unparsable or schema mismatch).
+	StaleBaseline,
+	/// The configured snapshot command failed or printed an invalid document.
+	Failed,
+	/// CLI snapshot capture was disabled by flag or environment.
+	Skipped,
 }
 
 pub(crate) fn classify_options_from_matches(
@@ -273,6 +309,10 @@ pub(crate) fn classify_options_from_matches(
 			.flatten()
 			.copied()
 			.unwrap_or(false),
+		skip_cli_snapshots: skip_cli_snapshots_for(
+			matches.get_flag("skip-cli-snapshots"),
+			std::env::var(SKIP_CLI_SNAPSHOTS_ENV).ok().as_deref(),
+		),
 		format: match format {
 			"markdown" | "md" => OutputFormat::Markdown,
 			"json" => OutputFormat::Json,
@@ -603,6 +643,17 @@ pub(crate) fn build_change_classification_report(
 
 		let changed_files = pull_request_changed_files(&package_id, &pull_request);
 		let mut findings = collect_findings(&package_id, &evidence, options.detection_level);
+		let mut cli_warnings = Vec::new();
+		let cli_classification = collect_cli_surface_classification(
+			root,
+			&configuration,
+			&package_id,
+			&changed_files,
+			options,
+			&mut findings,
+			&mut cli_warnings,
+		);
+		warnings.extend(cli_warnings);
 		ensure_unclassified_finding(
 			&package_id,
 			package.ecosystem,
@@ -641,6 +692,7 @@ pub(crate) fn build_change_classification_report(
 			existing_changesets: package_changesets,
 			action,
 			warnings: package_warnings,
+			cli: cli_classification,
 		});
 	}
 
@@ -765,6 +817,7 @@ pub(crate) fn classification_report(
 			existing_changesets: Vec::new(),
 			action: ChangesetAction::Create,
 			warnings: package.warnings.clone(),
+			cli: None,
 		});
 	}
 
@@ -1581,6 +1634,211 @@ fn ensure_unclassified_finding(
 	});
 }
 
+/// Capture and diff the registered CLI command surface for one package.
+/// Findings are appended to `findings` before the recommendation is built so
+/// command-surface breaks participate in the proposed changeset bump.
+fn collect_cli_surface_classification(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	package_id: &str,
+	changed_files: &[PathBuf],
+	options: &ClassifyOptions,
+	findings: &mut Vec<ClassificationFinding>,
+	warnings: &mut Vec<String>,
+) -> Option<PackageCliClassification> {
+	let definition = configuration.package_by_id(package_id)?;
+	let cli = definition.cli.as_ref()?;
+	let baseline_path = crate::cli_surface::cli_snapshot_root_relative(root, &cli.name)
+		.display()
+		.to_string();
+	if options.skip_cli_snapshots {
+		return Some(PackageCliClassification {
+			name: cli.name.clone(),
+			status: CliSnapshotStatus::Skipped,
+			recommendation: None,
+			finding_count: None,
+			baseline: None,
+		});
+	}
+	if changed_files.is_empty() {
+		return None;
+	}
+
+	let captured = match crate::cli_surface::capture_cli_snapshot(root, package_id, cli) {
+		Ok(captured) => captured,
+		Err(error) => {
+			warnings.push(format!("cli snapshot for `{package_id}` failed: {error}"));
+			return Some(PackageCliClassification {
+				name: cli.name.clone(),
+				status: CliSnapshotStatus::Failed,
+				recommendation: None,
+				finding_count: None,
+				baseline: Some(baseline_path),
+			});
+		}
+	};
+
+	let baseline = crate::cli_surface::read_cli_snapshot_baseline(root, &cli.name);
+	let before = match &baseline {
+		crate::cli_surface::CliSnapshotBaseline::Current(snapshot) => snapshot,
+		other => {
+			warnings.push(format!(
+				"cli snapshot for `{package_id}` was not compared: {}",
+				crate::cli_surface::describe_cli_snapshot_baseline(other)
+			));
+			let status = match other {
+				crate::cli_surface::CliSnapshotBaseline::Missing => {
+					CliSnapshotStatus::MissingBaseline
+				}
+				_ => CliSnapshotStatus::StaleBaseline,
+			};
+			return Some(PackageCliClassification {
+				name: cli.name.clone(),
+				status,
+				recommendation: None,
+				finding_count: None,
+				baseline: Some(baseline_path),
+			});
+		}
+	};
+
+	let report = monochange_snapshot::diff_command_snapshots(before, &captured.snapshot);
+	let recommendation = report
+		.changes
+		.iter()
+		.map(|change| bump_for_snapshot_severity(change.severity))
+		.max()
+		.unwrap_or(BumpSeverity::None);
+	let finding_count = report.changes.len();
+	findings.extend(cli_surface_findings(options.detection_level, &report));
+	Some(PackageCliClassification {
+		name: cli.name.clone(),
+		status: CliSnapshotStatus::Diffed,
+		recommendation: Some(recommendation),
+		finding_count: Some(finding_count),
+		baseline: Some(baseline_path),
+	})
+}
+
+/// Convert a CLI snapshot diff into classification findings.
+fn cli_surface_findings(
+	detection_level: DetectionLevel,
+	report: &monochange_snapshot::SnapshotDiffReport,
+) -> Vec<ClassificationFinding> {
+	let mut id_counts = BTreeMap::<String, usize>::new();
+	report
+		.changes
+		.iter()
+		.map(|change| {
+			let kind_name = snapshot_change_kind_name(&change.kind);
+			let command_path = change.path.join("/");
+			let base_id = format!("{CLI_SURFACE_ANALYZER_ID}/{kind_name}/{command_path}");
+			let occurrence = id_counts.entry(base_id.clone()).or_insert(0);
+			*occurrence += 1;
+			let id = if *occurrence == 1 {
+				base_id
+			} else {
+				format!("{base_id}/{occurrence}")
+			};
+			let location = if change.path.is_empty() {
+				PathBuf::from(".")
+			} else {
+				PathBuf::from(&command_path)
+			};
+			ClassificationFinding {
+				id,
+				rule_id: format!("{CLI_SURFACE_ANALYZER_ID}/{kind_name}"),
+				surface: "cli".to_string(),
+				change: kind_name.to_string(),
+				impact: cli_surface_impact(&change.kind),
+				bump: bump_for_snapshot_severity(change.severity),
+				confidence: ClassificationConfidence::High,
+				analyzer: FindingAnalyzer {
+					id: CLI_SURFACE_ANALYZER_ID.to_string(),
+					engine: None,
+					version: ANALYZER_VERSION.to_string(),
+				},
+				coverage: FindingCoverage {
+					detection_level,
+					completeness: AnalysisCompleteness::Complete,
+					note: "command surface compared against the committed release baseline"
+						.to_string(),
+					fallback_reason: None,
+					checks: Vec::new(),
+				},
+				before: None,
+				after: None,
+				location,
+				comparisons: [ComparisonKind::PullRequest].into_iter().collect(),
+				summary: change.summary.clone(),
+			}
+		})
+		.collect()
+}
+
+fn cli_surface_impact(kind: &monochange_snapshot::SnapshotChangeKind) -> CompatibilityImpact {
+	use monochange_snapshot::SnapshotChangeKind;
+	match kind {
+		SnapshotChangeKind::CommandRemoved
+		| SnapshotChangeKind::OptionRemoved
+		| SnapshotChangeKind::PositionalRemoved
+		| SnapshotChangeKind::OptionValueNarrowed => CompatibilityImpact::Breaking,
+		SnapshotChangeKind::CommandAdded
+		| SnapshotChangeKind::OptionAdded
+		| SnapshotChangeKind::PositionalAdded
+		| SnapshotChangeKind::OptionValueWidened => CompatibilityImpact::Additive,
+		SnapshotChangeKind::CommandDescriptionChanged
+		| SnapshotChangeKind::OptionDescriptionChanged
+		| SnapshotChangeKind::PositionalChanged => CompatibilityImpact::Compatible,
+	}
+}
+
+fn bump_for_snapshot_severity(severity: monochange_snapshot::SnapshotSeverity) -> BumpSeverity {
+	match severity {
+		monochange_snapshot::SnapshotSeverity::None => BumpSeverity::None,
+		monochange_snapshot::SnapshotSeverity::Patch => BumpSeverity::Patch,
+		monochange_snapshot::SnapshotSeverity::Minor => BumpSeverity::Minor,
+		monochange_snapshot::SnapshotSeverity::Major => BumpSeverity::Major,
+	}
+}
+
+fn snapshot_change_kind_name(kind: &monochange_snapshot::SnapshotChangeKind) -> &'static str {
+	use monochange_snapshot::SnapshotChangeKind;
+	match kind {
+		SnapshotChangeKind::CommandAdded => "command-added",
+		SnapshotChangeKind::CommandRemoved => "command-removed",
+		SnapshotChangeKind::CommandDescriptionChanged => "command-description-changed",
+		SnapshotChangeKind::OptionAdded => "option-added",
+		SnapshotChangeKind::OptionRemoved => "option-removed",
+		SnapshotChangeKind::OptionDescriptionChanged => "option-description-changed",
+		SnapshotChangeKind::OptionValueWidened => "option-value-widened",
+		SnapshotChangeKind::OptionValueNarrowed => "option-value-narrowed",
+		SnapshotChangeKind::PositionalAdded => "positional-added",
+		SnapshotChangeKind::PositionalRemoved => "positional-removed",
+		SnapshotChangeKind::PositionalChanged => "positional-changed",
+	}
+}
+
+/// Human-readable summary of a CLI comparison block for the text and
+/// markdown report renderers.
+fn cli_classification_description(cli: &PackageCliClassification) -> String {
+	match cli.status {
+		CliSnapshotStatus::Diffed => {
+			format!(
+				"diffed against `{}`, recommendation `{}`, {} finding(s)",
+				cli.baseline.as_deref().unwrap_or("baseline"),
+				cli.recommendation
+					.map_or("none", |bump| bump_severity_name(bump)),
+				cli.finding_count.unwrap_or(0)
+			)
+		}
+		CliSnapshotStatus::MissingBaseline => "no committed baseline to diff against".to_string(),
+		CliSnapshotStatus::StaleBaseline => "committed baseline is stale or unparsable".to_string(),
+		CliSnapshotStatus::Failed => "snapshot capture failed".to_string(),
+		CliSnapshotStatus::Skipped => "snapshot capture skipped".to_string(),
+	}
+}
+
 fn build_recommendation(
 	findings: &[ClassificationFinding],
 	has_current_changes: bool,
@@ -1747,6 +2005,13 @@ fn package_warnings(package_id: &str, evidence: &[PackageEvidence<'_>]) -> Vec<S
 		.collect()
 }
 
+/// Decide whether CLI snapshot comparisons are skipped: the
+/// `--skip-cli-snapshots` flag wins, and `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`
+/// skips without unsetting the flag.
+fn skip_cli_snapshots_for(flag: bool, env_value: Option<&str>) -> bool {
+	flag || env_value.is_some_and(|value| value != "0")
+}
+
 fn parse_detection_level(value: &str) -> MonochangeResult<DetectionLevel> {
 	match value {
 		"basic" => Ok(DetectionLevel::Basic),
@@ -1860,6 +2125,7 @@ fn propagate_public_dependency_impacts(
 			existing_changesets: Vec::new(),
 			action: ChangesetAction::Create,
 			warnings: Vec::new(),
+			cli: None,
 		});
 		*recommendation = std::cmp::max(*recommendation, BumpSeverity::Patch);
 	}
@@ -1996,6 +2262,13 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 			));
 			lines.push(format!("- Changeset action: `{:?}`", package.action).to_lowercase());
 			lines.push(format!("- Summary: {}", package.summary));
+			if let Some(cli) = &package.cli {
+				lines.push(format!(
+					"- CLI: `{}` ({})",
+					cli.name,
+					cli_classification_description(cli)
+				));
+			}
 			if let Some(owner) = &package.release_owner {
 				lines.push(format!("- Release owner: `{}` `{}`", owner.kind, owner.id));
 				lines.push(format!(
@@ -2120,6 +2393,13 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 				"  Summary: {}",
 				plain_text_fragment(&package.summary)
 			));
+			if let Some(cli) = &package.cli {
+				lines.push(format!(
+					"  CLI: {} ({})",
+					cli.name,
+					cli_classification_description(cli)
+				));
+			}
 			if let Some(owner) = &package.release_owner {
 				lines.push(format!("  Release owner: {} {}", owner.kind, owner.id));
 				lines.push(format!(

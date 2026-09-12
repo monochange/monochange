@@ -1140,6 +1140,7 @@ fn collect_targets_populates_target_types_from_configuration() {
 			initial_version: None,
 			floating_tags: Vec::new(),
 			publish: monochange_core::PublishSettings::default(),
+			cli: None,
 		});
 	configuration.groups.push(monochange_core::GroupDefinition {
 		id: "group".to_string(),

@@ -34,6 +34,9 @@ Compare pending changesets with classified change severity
       [93m--include-unchanged[0m
           Include packages without findings
 
+      [93m--skip-cli-snapshots[0m
+          Skip registered cli command-surface comparisons; MONOCHANGE_SKIP_CLI_SNAPSHOTS=1 also skips them
+
       [93m--strict[0m
           Fail on any proposed bump mismatch, including incomplete evidence
 

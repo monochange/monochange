@@ -1,0 +1,147 @@
+---
+source: crates/monochange_integration_tests/tests/cli_surface_classification.rs
+expression: report
+---
+{
+  "candidate": "merge-tree:[SHA]",
+  "comparisons": [
+    {
+      "base": "HEAD~1",
+      "head": "merge-tree:[SHA]",
+      "kind": "pullRequest",
+      "note": null,
+      "status": "analyzed"
+    },
+    {
+      "base": "[SHA]",
+      "head": "HEAD",
+      "kind": "sourceDelta",
+      "note": null,
+      "status": "analyzed"
+    }
+  ],
+  "defaultBranch": "HEAD~1",
+  "packages": [
+    {
+      "action": "create",
+      "cli": {
+        "baseline": ".monochange/cli-snapshots/demo.json",
+        "findingCount": 2,
+        "name": "demo",
+        "recommendation": "major",
+        "status": "diffed"
+      },
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pullRequest",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "sourceDelta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "releaseToDefault",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        }
+      ],
+      "decision": {
+        "compatibilityImpact": "breaking",
+        "completeness": "complete",
+        "confidence": "high",
+        "enforceableMinimum": "major",
+        "findingIds": [
+          "monochange/cli-surface/option-removed/check"
+        ],
+        "proposedChangesetBump": "major",
+        "releaseFloor": "major",
+        "reviewRequired": false
+      },
+      "ecosystem": "cargo",
+      "existingChangesets": [],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "monochange/cli-surface",
+            "version": "1"
+          },
+          "before": null,
+          "bump": "major",
+          "change": "option-removed",
+          "comparisons": [
+            "pullRequest"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "completeness": "complete",
+            "detectionLevel": "signature",
+            "note": "command surface compared against the committed release baseline"
+          },
+          "id": "monochange/cli-surface/option-removed/check",
+          "impact": "breaking",
+          "location": "check",
+          "ruleId": "monochange/cli-surface/option-removed",
+          "summary": "option `--format` was removed from `check`",
+          "surface": "cli"
+        },
+        {
+          "after": null,
+          "analyzer": {
+            "id": "monochange/cli-surface",
+            "version": "1"
+          },
+          "before": null,
+          "bump": "minor",
+          "change": "command-added",
+          "comparisons": [
+            "pullRequest"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "completeness": "complete",
+            "detectionLevel": "signature",
+            "note": "command surface compared against the committed release baseline"
+          },
+          "id": "monochange/cli-surface/command-added/migrate",
+          "impact": "additive",
+          "location": "migrate",
+          "ruleId": "monochange/cli-surface/command-added",
+          "summary": "command `migrate` was added",
+          "surface": "cli"
+        }
+      ],
+      "packageId": "demo",
+      "packageName": "demo",
+      "recommendation": "major",
+      "releaseOwner": {
+        "id": "demo",
+        "kind": "package",
+        "latestRelease": null
+      },
+      "summary": "1 breaking finding(s) propose a major changeset",
+      "warnings": []
+    }
+  ],
+  "recommendation": "major",
+  "schemaVersion": 4,
+  "warnings": [
+    "changed path `crates/plain/Cargo.toml` did not match any configured package"
+  ]
+}

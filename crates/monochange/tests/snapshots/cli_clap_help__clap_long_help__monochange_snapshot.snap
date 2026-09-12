@@ -20,6 +20,15 @@ Print a normalized JSON snapshot of the CLI surface
           [default: full]
           [possible values: full, light, index]
 
+      [93m--package[0m[95m [0m[95m<PACKAGE>[0m
+          Capture the configured cli snapshot for this package instead of the monochange surface
+
+      [93m--save[0m
+          Write the captured snapshot as the committed baseline under .monochange/cli-snapshots/
+
+      [93m--list[0m
+          List registered package clis and their baseline status
+
   [93m-h[0m, [93m--help[0m
           Print help
 

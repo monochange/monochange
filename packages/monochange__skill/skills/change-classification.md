@@ -39,6 +39,10 @@ A `monochange/package-lifecycle` finding comes from manifest presence at both co
 
 `action` describes the pending changeset work: `create`, `update`, `keep`, `review`, or `no_changeset`. For `review`, determine whether the changeset intentionally describes a cross-package consumer effect; remove it only after confirming that the release intent is stale. Read `existingChangesets` before adding a file so you do not duplicate release intent.
 
+## Check the registered CLI surface
+
+For packages registered with `[package.<id>].cli`, the report includes a `cli` block and `monochange/cli-surface` findings from diffing the committed baseline under `.monochange/cli-snapshots/` against a fresh capture. Removed commands or options propose `major`; additions propose `minor`. If the status is `missing_baseline` or `stale_baseline`, capture one with `monochange snapshot --package <id> --save` during the next release preparation instead of raising the changeset severity by guesswork.
+
 ## Check ecosystem coverage
 
 Package lifecycle findings are high-confidence and complete. Built-in Cargo, JavaScript, Deno, and Dart source findings are medium-confidence and partial. The source analyzers model syntax and package metadata, but they do not prove every source-compatible behavior.
