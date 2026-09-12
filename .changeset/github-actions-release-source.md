@@ -1,7 +1,8 @@
 ---
-"monochange_core": minor
-"monochange_config": minor
-"monochange": minor
+"monochange": major
+"monochange_core": major
+"monochange_config": major
+"monochange_go": minor
 ---
 
 # Release GitHub Actions repositories and tag-versioned packages
@@ -13,3 +14,7 @@ Repositories that release by git tag plus provider release — GitHub Actions ab
 - `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
 - `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
 - New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
+
+## Migration
+
+`PackageType`, `PackageDefinition`, `GroupDefinition`, `ReleaseTarget`, and the manifest/record target structs gained new fields. Code that constructs them with struct literals (rather than `..Default::default()`) must add the new fields; deserialization of existing configs and release records is unaffected because every field carries serde defaults.
