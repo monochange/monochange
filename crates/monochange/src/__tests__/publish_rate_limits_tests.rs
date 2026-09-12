@@ -3,6 +3,7 @@ use monochange_core::PublishRateLimitBatch;
 use monochange_core::RateLimitConfidence;
 use monochange_core::RegistryRateLimitPolicy;
 use monochange_core::RegistryRateLimitWindowPlan;
+use monochange_core::VersionSource;
 use monochange_publish::RegistryEndpoints;
 use monochange_publish::filter_pending_publish_requests_with_transport;
 use monochange_test_helpers::install_rustls_ring_provider;
@@ -782,6 +783,9 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				tag: true,
 				release: true,
 				version_format: monochange_core::VersionFormat::Primary,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings::default(),
 			},
 			monochange_core::PackageDefinition {
@@ -801,6 +805,9 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				tag: true,
 				release: true,
 				version_format: monochange_core::VersionFormat::Primary,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings::default(),
 			},
 			monochange_core::PackageDefinition {
@@ -820,6 +827,9 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				tag: true,
 				release: true,
 				version_format: monochange_core::VersionFormat::Primary,
+				version_source: VersionSource::default(),
+				initial_version: None,
+				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings {
 					enabled: false,
 					..monochange_core::PublishSettings::default()
@@ -1325,6 +1335,9 @@ async fn enforce_publish_rate_limits_returns_ok_when_enforcement_is_not_triggere
 			tag: false,
 			release: false,
 			version_format: monochange_core::VersionFormat::default(),
+			version_source: VersionSource::default(),
+			initial_version: None,
+			floating_tags: Vec::new(),
 			publish: monochange_core::PublishSettings::default(),
 		}],
 		groups: Vec::new(),
@@ -1440,6 +1453,9 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 					tag: false,
 					release: false,
 					version_format: monochange_core::VersionFormat::default(),
+					version_source: VersionSource::default(),
+					initial_version: None,
+					floating_tags: Vec::new(),
 					publish: monochange_core::PublishSettings {
 						rate_limits: monochange_core::PublishRateLimitSettings { enforce: true },
 						..monochange_core::PublishSettings::default()

@@ -2,6 +2,7 @@ mod mutant_killers_tests;
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -22,10 +23,12 @@ use monochange_core::CliStepDefinition;
 use monochange_core::CliStepInputValue;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemType;
+use monochange_core::FloatingTagFormat;
 use monochange_core::GroupChangelogInclude;
 use monochange_core::GroupDefinition;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageRecord;
+use monochange_core::PackageType;
 use monochange_core::PrereleaseBase;
 use monochange_core::PrereleaseNumbering;
 use monochange_core::PublishMode;
@@ -34,6 +37,7 @@ use monochange_core::PublishState;
 use monochange_core::RegistryKind;
 use monochange_core::ShellConfig;
 use monochange_core::SourceProvider;
+use monochange_core::VersionSource;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::lint::ChangesetLintSettings;
 use monochange_core::lint::ChangesetScopedLintSettings;
@@ -3014,6 +3018,9 @@ fn changelog_output_and_provider_validation_accepts_only_compatible_destinations
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 	};
 	expect_config_error(
 		crate::validate_changelog_configuration(
@@ -5268,6 +5275,9 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 	}
 }
@@ -5718,6 +5728,9 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 	};
 	assert_eq!(
 		infer_group_bump_from_explicit_version(
@@ -5747,6 +5760,9 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 	};
 	let error = infer_group_bump_from_explicit_version(
 		&group_with_missing,
@@ -7132,6 +7148,9 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 	};
 	assert_eq!(
@@ -8932,6 +8951,9 @@ fn package_bump_propagations_resolves_precedence_package_group_default() {
 		tag: false,
 		release: false,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 	});
 
 	// packages: core (declares inherit+max minor), engine (group member, no
@@ -9008,6 +9030,9 @@ fn package_bump_propagations_skips_group_members_without_definitions() {
 		tag: false,
 		release: false,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 	});
 
 	let propagations = package_bump_propagations(&configuration, &[]);
@@ -9187,4 +9212,110 @@ fn relative_directory_is_treats_empty_directory_as_workspace_root() {
 		Path::new("services/api"),
 		None
 	));
+}
+
+#[test]
+fn github_actions_package_type_applies_preset_defaults() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(root.join("action.yml"), "name: my-action\n")
+		.unwrap_or_else(|error| panic!("write action.yml: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.actions]\npath = \".\"\ntype = \"github_actions\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("load config: {error}"));
+	let package = &configuration.packages[0];
+
+	assert_eq!(package.package_type, PackageType::GitHubActions);
+	assert_eq!(package.version_source, VersionSource::Tag);
+	assert_eq!(package.tag, true);
+	assert_eq!(package.release, true);
+	assert_eq!(package.publish.enabled, false);
+	assert_eq!(package.initial_version, Some(semver::Version::new(0, 1, 0)));
+	assert_eq!(
+		package.floating_tags,
+		vec![
+			FloatingTagFormat("v{{ major }}.{{ minor }}".to_string()),
+			FloatingTagFormat("v{{ major }}".to_string()),
+		]
+	);
+}
+
+#[test]
+fn github_actions_package_type_accepts_explicit_overrides() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(root.join("action.yml"), "name: my-action\n")
+		.unwrap_or_else(|error| panic!("write action.yml: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.actions]\npath = \".\"\ntype = \"github_actions\"\nversion_source = \"manifest\"\ntag = false\nrelease = false\ninitial_version = \"2.0.0\"\nfloating_tags = [\"v{{ major }}\"]\n\n[package.actions.publish]\nenabled = true\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("load config: {error}"));
+	let package = &configuration.packages[0];
+
+	assert_eq!(package.version_source, VersionSource::Manifest);
+	assert_eq!(package.tag, false);
+	assert_eq!(package.release, false);
+	assert_eq!(package.publish.enabled, true);
+	assert_eq!(package.initial_version, Some(semver::Version::new(2, 0, 0)));
+	assert_eq!(
+		package.floating_tags,
+		vec![FloatingTagFormat("v{{ major }}".to_string())]
+	);
+}
+
+#[test]
+fn version_source_and_floating_tags_round_trip_for_regular_types() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(
+		root.join("Cargo.toml"),
+		"[package]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.demo]\npath = \".\"\ntype = \"cargo\"\nversion_source = \"tag\"\ninitial_version = \"0.3.0\"\nfloating_tags = [\"v{{ major }}.{{ minor }}\"]\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("load config: {error}"));
+	let package = &configuration.packages[0];
+
+	assert_eq!(package.version_source, VersionSource::Tag);
+	assert_eq!(package.initial_version, Some(semver::Version::new(0, 3, 0)));
+	assert_eq!(
+		package.floating_tags,
+		vec![FloatingTagFormat("v{{ major }}.{{ minor }}".to_string())]
+	);
+}
+
+#[test]
+fn floating_tags_reject_unsupported_template_variables() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(
+		root.join("Cargo.toml"),
+		"[package]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.demo]\npath = \".\"\ntype = \"cargo\"\nfloating_tags = [\"v{{ beta }}\"]\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let error = load_workspace_configuration(root)
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(error.to_string().contains("floating_tags"), "{error}");
 }

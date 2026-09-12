@@ -77,6 +77,7 @@ use monochange_core::DEFAULT_RELEASE_TITLE_NAMESPACED;
 use monochange_core::DEFAULT_RELEASE_TITLE_PRIMARY;
 use monochange_core::DiscoveryReport;
 use monochange_core::Ecosystem;
+use monochange_core::FloatingTagFormat;
 use monochange_core::HostedActorRef;
 use monochange_core::HostedActorSourceKind;
 use monochange_core::HostedCommitRef;
@@ -420,6 +421,9 @@ pub struct ReleaseTarget {
 	pub members: Vec<String>,
 	pub rendered_title: String,
 	pub rendered_changelog_title: String,
+	/// Floating tag aliases moved to this target's release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 /// Rendered changelog payload produced during release preparation.

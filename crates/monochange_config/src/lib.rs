@@ -41,6 +41,7 @@ use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemSettings;
 use monochange_core::EcosystemType;
+use monochange_core::FloatingTagFormat;
 use monochange_core::GroupChangelogInclude;
 use monochange_core::GroupDefinition;
 use monochange_core::LockfileCommandDefinition;
@@ -66,6 +67,7 @@ use monochange_core::SourceProvider;
 use monochange_core::TrustedPublishingSettings;
 use monochange_core::VersionFormat;
 use monochange_core::VersionGroup;
+use monochange_core::VersionSource;
 use monochange_core::VersionedFileDefinition;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::WorkspaceDefaults;
@@ -284,11 +286,18 @@ pub(crate) struct RawPackageDefinition {
 	#[serde(default)]
 	additional_paths: Vec<String>,
 	#[serde(default)]
-	tag: bool,
+	tag: Option<bool>,
 	#[serde(default)]
-	release: bool,
+	release: Option<bool>,
 	#[serde(default)]
 	version_format: VersionFormat,
+	#[serde(default)]
+	version_source: Option<VersionSource>,
+	#[serde(default)]
+	#[cfg_attr(feature = "schema", schemars(skip))]
+	initial_version: Option<Version>,
+	#[serde(default)]
+	floating_tags: Vec<FloatingTagFormat>,
 	#[serde(default)]
 	publish: RawPublishSettings,
 }
@@ -341,11 +350,18 @@ pub(crate) struct RawGroupDefinition {
 	#[serde(default)]
 	versioned_files: Vec<RawVersionedFileDefinition>,
 	#[serde(default)]
-	tag: bool,
+	tag: Option<bool>,
 	#[serde(default)]
-	release: bool,
+	release: Option<bool>,
 	#[serde(default)]
 	version_format: VersionFormat,
+	#[serde(default)]
+	version_source: Option<VersionSource>,
+	#[serde(default)]
+	#[cfg_attr(feature = "schema", schemars(skip))]
+	initial_version: Option<Version>,
+	#[serde(default)]
+	floating_tags: Vec<FloatingTagFormat>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -888,7 +904,42 @@ fn package_type_to_ecosystem_type(package_type: PackageType) -> EcosystemType {
 		PackageType::Dart => EcosystemType::Dart,
 		PackageType::Python => EcosystemType::Python,
 		PackageType::Go => EcosystemType::Go,
+		// GitHub Actions has no registry or dependency metadata; the npm
+		// mapping only matters for the injected sibling `package.json`
+		// versioned file.
+		PackageType::GitHubActions => EcosystemType::Npm,
 		_ => EcosystemType::Cargo,
+	}
+}
+
+/// Release-behavior defaults a package type implies when config does not
+/// override them.
+#[derive(Debug, Clone, Default)]
+struct PackageTypePreset {
+	version_source: Option<VersionSource>,
+	initial_version: Option<Version>,
+	floating_tags: Vec<FloatingTagFormat>,
+	tag: Option<bool>,
+	release: Option<bool>,
+	publish_enabled: Option<bool>,
+}
+
+fn package_type_preset(package_type: &PackageType) -> PackageTypePreset {
+	match package_type {
+		PackageType::GitHubActions => {
+			PackageTypePreset {
+				version_source: Some(VersionSource::Tag),
+				initial_version: Some(Version::new(0, 1, 0)),
+				floating_tags: vec![
+					FloatingTagFormat("v{{ major }}.{{ minor }}".to_string()),
+					FloatingTagFormat("v{{ major }}".to_string()),
+				],
+				tag: Some(true),
+				release: Some(true),
+				publish_enabled: Some(false),
+			}
+		}
+		_ => PackageTypePreset::default(),
 	}
 }
 
@@ -1694,6 +1745,16 @@ fn build_package_definitions(
 					),
 				)
 			})?;
+			let preset = package_type_preset(&package_type);
+			let version_source = package.version_source.unwrap_or(preset.version_source.unwrap_or_default());
+			let initial_version = package.initial_version.or(preset.initial_version.clone());
+			let floating_tags = if package.floating_tags.is_empty() {
+				preset.floating_tags.clone()
+			} else {
+				package.floating_tags.clone()
+			};
+			let tag = package.tag.or(preset.tag).unwrap_or(false);
+			let release = package.release.or(preset.release).unwrap_or(false);
 			let changelog = package
 				.changelog
 				.as_ref()
@@ -1731,6 +1792,22 @@ fn build_package_definitions(
 			};
 			let mut versioned_files = default_versioned_files.to_vec();
 			versioned_files.extend(inherited_versioned_files);
+			if package_type == PackageType::GitHubActions && !package.ignore_ecosystem_versioned_files
+			{
+				// Sync the version field of a sibling package.json so the
+				// published action metadata and npm consumers can track the
+				// released tag. Skipped automatically when the file is absent.
+				versioned_files.push(VersionedFileDefinition {
+					path: "package.json".to_string(),
+					ecosystem_type: Some(EcosystemType::Npm),
+					format: None,
+					prefix: None,
+					fields: None,
+					name: None,
+					missing_field_behavior: monochange_core::MissingFieldBehavior::Ignore,
+					regex: None,
+				});
+			}
 			versioned_files.extend(normalize_versioned_files(
 				contents,
 				package.versioned_files,
@@ -1740,7 +1817,8 @@ fn build_package_definitions(
 				true,
 			)?);
 
-			let publish = normalize_publish_settings(
+			let package_publish_enabled = package.publish.enabled;
+			let mut publish = normalize_publish_settings(
 				contents,
 				Some(match inferred_ecosystem_type {
 					EcosystemType::Npm => &npm_ecosystem.publish,
@@ -1755,6 +1833,11 @@ fn build_package_definitions(
 				&id,
 				inferred_ecosystem_type,
 			)?;
+			if package_publish_enabled.is_none()
+				&& let Some(publish_enabled) = preset.publish_enabled
+			{
+				publish.enabled = publish_enabled;
+			}
 
 			let bump_propagation = resolve_bump_propagation(
 				contents,
@@ -1778,9 +1861,12 @@ fn build_package_definitions(
 				ignore_ecosystem_versioned_files: package.ignore_ecosystem_versioned_files,
 				ignored_paths: package.ignored_paths,
 				additional_paths: package.additional_paths,
-				tag: package.tag,
-				release: package.release,
+				tag,
+				release,
 				version_format: package.version_format,
+				version_source,
+				initial_version,
+				floating_tags,
 				publish,
 			})
 		})
@@ -1880,9 +1966,12 @@ fn build_group_definitions(
 					&id,
 					false,
 				)?,
-				tag: group.tag,
-				release: group.release,
+				tag: group.tag.unwrap_or(false),
+				release: group.release.unwrap_or(false),
 				version_format: group.version_format,
+				version_source: group.version_source.unwrap_or_default(),
+				initial_version: group.initial_version,
+				floating_tags: group.floating_tags,
 			})
 		})
 		.collect::<Result<Vec<_>, _>>()
@@ -1983,6 +2072,9 @@ fn discover_auto_packages(
 				tag,
 				release,
 				version_format,
+				version_source: VersionSource::Manifest,
+				initial_version: None,
+				floating_tags: Vec::new(),
 				publish: ecosystem_settings.publish.clone(),
 			});
 		}
@@ -3894,28 +3986,29 @@ fn validate_package_and_group_definitions_with_cache(
 				Some("declare each package path exactly once".to_string()),
 			));
 		}
-		let expected_manifest = resolved_path.join(expected_manifest_name(package.package_type));
-		if !expected_manifest.exists() {
-			return Err(config_diagnostic(
-				config_contents,
-				format!(
-					"package `{}` is missing expected {} manifest at {}",
-					package.id,
-					package.package_type.as_str(),
-					expected_manifest.display()
-				),
-				vec![config_section_label(
+		if let Some(manifest_name) = expected_manifest_name(package.package_type) {
+			let expected_manifest = resolved_path.join(manifest_name);
+			if !expected_manifest.exists() {
+				return Err(config_diagnostic(
 					config_contents,
-					"package",
-					&package.id,
-					"declared package",
-				)],
-				Some(format!(
-					"add `{}` under `{}` or change the package type",
-					expected_manifest_name(package.package_type),
-					package.path.display()
-				)),
-			));
+					format!(
+						"package `{}` is missing expected {} manifest at {}",
+						package.id,
+						package.package_type.as_str(),
+						expected_manifest.display()
+					),
+					vec![config_section_label(
+						config_contents,
+						"package",
+						&package.id,
+						"declared package",
+					)],
+					Some(format!(
+						"add `{manifest_name}` under `{}` or change the package type",
+						package.path.display()
+					)),
+				));
+			}
 		}
 		if package.version_format.is_primary() {
 			assign_primary_release_owner(config_contents, &mut primary_owner, &package.id)?;
@@ -3927,6 +4020,12 @@ fn validate_package_and_group_definitions_with_cache(
 			&package.id,
 			package.package_type.as_str(),
 			&package.version_format,
+		)?;
+		validate_floating_tag_templates(
+			config_contents,
+			"package",
+			&package.id,
+			&package.floating_tags,
 		)?;
 	}
 
@@ -3952,6 +4051,7 @@ fn validate_package_and_group_definitions_with_cache(
 			&group.id,
 			versioned_file_cache,
 		)?;
+		validate_floating_tag_templates(config_contents, "group", &group.id, &group.floating_tags)?;
 		if !ids.insert(group.id.clone()) {
 			return Err(config_diagnostic(
 				config_contents,
@@ -4406,16 +4506,8 @@ fn validate_lockfile_commands(
 }
 
 #[allow(clippy::match_same_arms)]
-fn expected_manifest_name(package_type: PackageType) -> &'static str {
-	match package_type {
-		PackageType::Cargo => "Cargo.toml",
-		PackageType::Npm => "package.json",
-		PackageType::Deno => "deno.json",
-		PackageType::Dart => "pubspec.yaml",
-		PackageType::Python => "pyproject.toml",
-		PackageType::Go => "go.mod",
-		_ => "Cargo.toml",
-	}
+fn expected_manifest_name(package_type: PackageType) -> Option<&'static str> {
+	package_type.manifest_file_name()
 }
 
 fn build_changelog_settings(raw: RawChangelogSettings) -> ChangelogSettings {
@@ -5788,6 +5880,40 @@ fn assign_primary_release_owner(
 
 	*primary_owner = Some(owner_id.to_string());
 
+	Ok(())
+}
+
+/// Validate floating-tag alias templates for a release owner.
+fn validate_floating_tag_templates(
+	config_contents: &str,
+	owner_kind: &str,
+	owner_id: &str,
+	floating_tags: &[FloatingTagFormat],
+) -> MonochangeResult<()> {
+	for floating_tag in floating_tags {
+		if let Err(error) = monochange_core::validate_floating_tag_template_variables(
+			&floating_tag.0,
+			"floating tag template",
+		) {
+			return Err(config_diagnostic(
+				config_contents,
+				format!(
+					"{owner_kind} `{owner_id}` has an invalid `floating_tags` entry: {}",
+					error
+				),
+				vec![config_section_label(
+					config_contents,
+					owner_kind,
+					owner_id,
+					"floating tag template",
+				)],
+				Some(
+					"supported variables are `{{{{ major }}}}`, `{{{{ minor }}}}`, `{{{{ patch }}}}`, `{{{{ version }}}}`, `{{{{ name }}}}`, and `{{{{ ecosystem }}}}`"
+						.to_string(),
+				),
+			));
+		}
+	}
 	Ok(())
 }
 

@@ -1345,6 +1345,10 @@
 			],
 			"type": "string"
 		},
+		"FloatingTagFormat": {
+			"description": "Rendered template for one floating tag alias.\n\n`v0.9.2` also moves `v0.9` when the alias template renders\n`v{{ major }}.{{ minor }}`. Templates may use `{{ major }}`, `{{ minor }}`,\n`{{ patch }}`, and `{{ version }}`.",
+			"type": "string"
+		},
 		"LockfileCommandDefinition": {
 			"additionalProperties": false,
 			"properties": {
@@ -1436,15 +1440,24 @@
 			]
 		},
 		"PackageType": {
-			"enum": [
-				"cargo",
-				"npm",
-				"deno",
-				"dart",
-				"python",
-				"go"
-			],
-			"type": "string"
+			"oneOf": [
+				{
+					"enum": [
+						"cargo",
+						"npm",
+						"deno",
+						"dart",
+						"python",
+						"go"
+					],
+					"type": "string"
+				},
+				{
+					"const": "git_hub_actions",
+					"description": "GitHub Actions repositories. Versions are released as git tags and\nprovider releases; there is no registry publish target.",
+					"type": "string"
+				}
+			]
 		},
 		"PrereleaseBase": {
 			"enum": [
@@ -1807,6 +1820,14 @@
 				"gitlab",
 				"gitea",
 				"forgejo"
+			],
+			"type": "string"
+		},
+		"VersionSource": {
+			"description": "Where a package's current release version is read from.\n\nDefaults to `manifest` for ecosystems that store a version field in their\nmanifest. `tag` reads the baseline from the latest reachable release tag\nmatching the release owner's `version_format`, which suits GitHub Actions\nrepositories and other tag-only release targets.",
+			"enum": [
+				"manifest",
+				"tag"
 			],
 			"type": "string"
 		},
@@ -2414,6 +2435,13 @@
 					},
 					"type": "array"
 				},
+				"floating_tags": {
+					"default": [],
+					"items": {
+						"$ref": "#/$defs/FloatingTagFormat"
+					},
+					"type": "array"
+				},
 				"packages": {
 					"items": {
 						"$ref": "#/$defs/group_package"
@@ -2421,8 +2449,11 @@
 					"type": "array"
 				},
 				"release": {
-					"default": false,
-					"type": "boolean"
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
 				},
 				"release_title": {
 					"default": null,
@@ -2432,12 +2463,26 @@
 					]
 				},
 				"tag": {
-					"default": false,
-					"type": "boolean"
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
 				},
 				"version_format": {
 					"default": "namespaced",
 					"type": "string"
+				},
+				"version_source": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/VersionSource"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
 				},
 				"versioned_files": {
 					"items": {
@@ -2542,6 +2587,13 @@
 					},
 					"type": "array"
 				},
+				"floating_tags": {
+					"default": [],
+					"items": {
+						"$ref": "#/$defs/FloatingTagFormat"
+					},
+					"type": "array"
+				},
 				"ignore_ecosystem_versioned_files": {
 					"default": false,
 					"type": "boolean"
@@ -2560,8 +2612,11 @@
 					"$ref": "#/$defs/publish_settings"
 				},
 				"release": {
-					"default": false,
-					"type": "boolean"
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
 				},
 				"release_title": {
 					"default": null,
@@ -2571,8 +2626,11 @@
 					]
 				},
 				"tag": {
-					"default": false,
-					"type": "boolean"
+					"default": null,
+					"type": [
+						"boolean",
+						"null"
+					]
 				},
 				"type": {
 					"anyOf": [
@@ -2587,6 +2645,17 @@
 				"version_format": {
 					"default": "namespaced",
 					"type": "string"
+				},
+				"version_source": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/VersionSource"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
 				},
 				"versioned_files": {
 					"items": {

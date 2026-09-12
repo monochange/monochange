@@ -148,6 +148,30 @@ version_format = "{{ ecosystem }}/{{ name }}/v{{ version }}"
 
 Custom formats must include `{{ version }}`, render to valid Git tag names without whitespace or other invalid ref characters, and must not collide with another release owner for the same sample version. If several packages share a custom format, include `{{ name }}` so the generated tags remain unique.
 
+`version_source` controls where release planning reads the package's current release version from. The default `manifest` reads the version field from the package manifest. Set `version_source = "tag"` to resolve the baseline from the latest reachable release tag matching the owner's `version_format` — useful when the manifest carries no version, such as GitHub Actions repositories, or when the tag is the release identity:
+
+```toml
+[package.web]
+path = "."
+type = "npm"
+version_source = "tag"
+initial_version = "0.1.0"
+```
+
+`initial_version` is the baseline used when no matching release tag exists yet; without it, a tag-versioned package with no tag produces a warning and no release target.
+
+`floating_tags` declares moving tag aliases that `tag-release` force-moves to every non-prerelease release tag — for example `v1.2`, `v1`, or `latest`:
+
+```toml
+[package.cli]
+path = "crates/cli"
+type = "cargo"
+version_format = "primary"
+floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
+```
+
+Alias templates support `{{ major }}`, `{{ minor }}`, `{{ patch }}`, and the `version_format` variables (`{{ version }}`, `{{ name }}`, `{{ ecosystem }}`). Floating tags are skipped for prereleases, never receive provider releases, and are excluded from baseline and previous-tag resolution.
+
 `changelog` accepts three forms on packages:
 
 - `true` → use `{{ path }}/CHANGELOG.md`

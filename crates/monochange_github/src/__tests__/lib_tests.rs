@@ -528,6 +528,7 @@ fn build_release_requests_fall_back_to_minimal_release_bodies() {
 			tag_name: "core/v1.0.1".to_string(),
 			rendered_title: "test title".to_string(),
 			rendered_changelog_title: "test changelog title".to_string(),
+			floating_tags: Vec::new(),
 			members: vec!["cargo:crates/core/Cargo.toml".to_string()],
 		}],
 		package_publications: vec![],
@@ -3037,6 +3038,7 @@ fn github_group_release_target(
 		tag_name: "sdk-v1.2.0".to_string(),
 		rendered_title: rendered_title.to_string(),
 		rendered_changelog_title: rendered_changelog_title.to_string(),
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string(), "cli".to_string()],
 	}
 }
@@ -3052,6 +3054,7 @@ fn github_package_release_target(id: &str) -> ReleaseManifestTarget {
 		tag_name: format!("{id}-v1.2.0"),
 		rendered_title: format!("{id} 1.2.0"),
 		rendered_changelog_title: format!("{id} 1.2.0"),
+		floating_tags: Vec::new(),
 		members: Vec::new(),
 	}
 }
@@ -3307,6 +3310,7 @@ fn release_body_ignores_github_member_changelogs_for_package_targets() {
 		tag_name: "core-v1.2.0".to_string(),
 		rendered_title: String::new(),
 		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
 		members: vec![],
 	};
 	let mut manifest = sample_manifest();
@@ -3361,6 +3365,7 @@ fn sample_manifest() -> ReleaseManifest {
 			tag_name: "v1.2.0".to_string(),
 			rendered_title: "test title".to_string(),
 			rendered_changelog_title: "test changelog title".to_string(),
+			floating_tags: Vec::new(),
 			members: vec![
 				"cargo:crates/core/Cargo.toml".to_string(),
 				"cargo:crates/app/Cargo.toml".to_string(),

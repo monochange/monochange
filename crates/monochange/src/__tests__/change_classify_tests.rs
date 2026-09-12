@@ -11,6 +11,7 @@ use monochange_core::PublishState;
 use monochange_core::SemanticChange;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
+use monochange_core::VersionSource;
 use monochange_test_helpers::git;
 use tempfile::tempdir;
 
@@ -378,6 +379,9 @@ fn latest_release_tag_uses_effective_release_identity() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
 	};
 	assert_eq!(
@@ -906,6 +910,9 @@ fn release_owner_reports_package_and_group_identity() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
 	};
 	let group = EffectiveReleaseIdentity {

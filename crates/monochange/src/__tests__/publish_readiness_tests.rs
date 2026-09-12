@@ -259,6 +259,9 @@ fn sample_package_definition(
 		tag: true,
 		release: true,
 		version_format: monochange_core::VersionFormat::default(),
+		version_source: monochange_core::VersionSource::default(),
+		initial_version: None,
+		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 	}
 }

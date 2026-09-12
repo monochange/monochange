@@ -18,6 +18,7 @@ use monochange_core::ShellConfig;
 use monochange_core::SourceConfiguration;
 use monochange_core::SourceProvider;
 use monochange_core::VersionFormat;
+use monochange_core::VersionSource;
 use monochange_core::WorkspaceConfiguration;
 use monochange_test_helpers::workspace_ops::collect_workspace_files;
 use monochange_test_helpers::workspace_ops::copy_workspace_file;
@@ -434,6 +435,9 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			release: true,
 			publish: monochange_core::PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			floating_tags: Vec::new(),
 		}],
 		..configuration
 	};
@@ -474,6 +478,9 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			release: true,
 			publish: monochange_core::PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			floating_tags: Vec::new(),
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -526,6 +533,9 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			release: true,
 			publish: monochange_core::PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			floating_tags: Vec::new(),
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -2379,5 +2389,113 @@ fn seed_versions_from_tag_list_skips_packages_without_tagging() {
 	seed_versions_from_tag_list(&configuration, &mut discovery, &["v1.0.0".to_string()]);
 
 	assert!(discovery.packages[0].current_version.is_none());
+	assert!(discovery.warnings.is_empty());
+}
+
+// -- version_source / initial_version seeding --
+
+#[test]
+fn seed_versions_from_tag_list_honors_version_source_tag_on_manifest_packages() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		fixture.path().join("package.json"),
+		"{\"name\": \"web\", \"version\": \"0.1.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.web]\npath = \".\"\ntype = \"npm\"\nversion_source = \"tag\"\nversion_format = \"primary\"\ntag = true\n",
+	);
+	// Simulate an ecosystem record whose manifest carries no version field;
+	// `version_source = "tag"` must still resolve the baseline from tags.
+	let mut versioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"web",
+		std::path::PathBuf::from("package.json"),
+		std::path::PathBuf::from("."),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	versioned
+		.metadata
+		.insert("config_id".to_string(), "web".to_string());
+	let mut discovery = discovery_with_packages(vec![versioned]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v1.5.0".to_string()]);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(1, 5, 0))
+	);
+}
+
+#[test]
+fn seed_versions_from_tag_list_uses_initial_version_without_tags() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.api]\npath = \".\"\ntype = \"go\"\nversion_format = \"primary\"\ntag = true\ninitial_version = \"0.4.0\"\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &[]);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(0, 4, 0))
+	);
+	assert!(discovery.warnings.is_empty());
+}
+
+#[test]
+fn seed_versions_from_tag_list_ignores_manifest_version_source() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		fixture.path().join("package.json"),
+		"{\"name\": \"web\", \"version\": \"0.1.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	std::fs::create_dir_all(fixture.path().join("other"))
+		.unwrap_or_else(|error| panic!("create other dir: {error}"));
+	std::fs::write(
+		fixture.path().join("other/package.json"),
+		"{\"name\": \"other\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write other manifest: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.web]\npath = \".\"\ntype = \"npm\"\nversion_source = \"manifest\"\ntag = true\n",
+	);
+	let mut versioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"web",
+		std::path::PathBuf::from("package.json"),
+		std::path::PathBuf::from("."),
+		Some(semver::Version::new(0, 1, 0)),
+		monochange_core::PublishState::Public,
+	);
+	versioned
+		.metadata
+		.insert("config_id".to_string(), "web".to_string());
+	let mut unversioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"other",
+		std::path::PathBuf::from("other/package.json"),
+		std::path::PathBuf::from("."),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	unversioned
+		.metadata
+		.insert("config_id".to_string(), "other".to_string());
+	let mut discovery = discovery_with_packages(vec![versioned, unversioned]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v9.9.9".to_string()]);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(0, 1, 0))
+	);
+	assert!(discovery.packages[1].current_version.is_none());
 	assert!(discovery.warnings.is_empty());
 }

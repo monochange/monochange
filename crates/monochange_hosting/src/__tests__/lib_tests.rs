@@ -88,6 +88,7 @@ fn minimal_target(id: &str) -> ReleaseManifestTarget {
 		members: vec![],
 		rendered_title: String::new(),
 		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
 	}
 }
 
@@ -219,6 +220,7 @@ fn minimal_release_body_includes_target_id_and_members() {
 		members: vec!["dep-a".to_string(), "dep-b".to_string()],
 		rendered_title: String::new(),
 		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
 	};
 	let body = minimal_release_body(&manifest, &target);
 	assert!(body.contains("my-pkg"));
@@ -313,6 +315,7 @@ fn release_pull_request_body_shows_no_outward_targets_when_none_release() {
 		members: vec![],
 		rendered_title: String::new(),
 		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
 	}];
 	let body = release_pull_request_body(&manifest);
 	assert!(body.contains("no outward release targets"));
@@ -1083,6 +1086,7 @@ fn release_pull_request_body_skips_empty_sections() {
 		members: vec![],
 		rendered_title: "title".to_string(),
 		rendered_changelog_title: "changelog".to_string(),
+		floating_tags: Vec::new(),
 	}];
 	manifest.changelogs = vec![ReleaseManifestChangelog {
 		owner_id: "sdk".to_string(),

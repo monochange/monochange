@@ -151,6 +151,9 @@ fn sample_package_definition(config_id: &str) -> PackageDefinition {
 		release: true,
 		publish: monochange_core::PublishSettings::default(),
 		version_format: VersionFormat::Namespaced,
+		version_source: monochange_core::VersionSource::Manifest,
+		initial_version: None,
+		floating_tags: Vec::new(),
 	}
 }
 
@@ -174,6 +177,9 @@ fn sample_group_definition(include: GroupChangelogInclude) -> GroupDefinition {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: monochange_core::VersionSource::Manifest,
+		initial_version: None,
+		floating_tags: Vec::new(),
 	}
 }
 
