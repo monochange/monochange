@@ -1,0 +1,26 @@
+[defaults]
+package_type = "cargo"
+changelog = "{{ path }}/CHANGELOG.md"
+
+[package.core]
+path = "crates/core"
+tag = true
+release = true
+
+[source]
+provider = "github"
+owner = "ifiokjr"
+repo = "monochange"
+
+[source.releases]
+enabled = true
+source = "monochange"
+branches = ["main"]
+
+[source.pull_requests]
+enabled = true
+base = "main"
+branch_prefix = "monochange/release"
+title = "chore(release): prepare release"
+labels = ["release", "automated"]
+auto_merge = false

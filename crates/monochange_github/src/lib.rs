@@ -192,6 +192,14 @@ impl HostedSourceAdapter for GitHubHostedSourceAdapter {
 		comment_released_issues(source, manifest).await
 	}
 
+	async fn comment_released_issues_with_plans(
+		&self,
+		source: &SourceConfiguration,
+		plans: &[HostedIssueCommentPlan],
+	) -> MonochangeResult<Vec<HostedIssueCommentOutcome>> {
+		comment_released_issues_with_plans(source, plans).await
+	}
+
 	async fn sync_retargeted_releases(
 		&self,
 		source: &SourceConfiguration,
@@ -946,7 +954,13 @@ fn extract_issue_numbers(text: &str, repository: Option<&str>) -> std::collectio
 		.collect()
 }
 
-/// Plan release comments for issues that are closed by the manifest's review requests.
+/// Plan release comments for issues that are linked to the manifest's review requests.
+///
+/// Only issues referenced through closing keywords are marked for closure:
+/// the author explicitly claimed them as resolved. Mere mentions stay open,
+/// and closure of the closing-keyword issues is attempted regardless of the
+/// merge-time state, because GitHub only links the first issue of a
+/// comma-separated `Closes` list — later entries are never auto-closed.
 #[must_use]
 pub fn plan_released_issue_comments(
 	source: &SourceConfiguration,
@@ -976,7 +990,7 @@ pub fn plan_released_issue_comments(
 				issue_id: issue.id.clone(),
 				issue_url: issue.url.clone(),
 				body: body.clone(),
-				close: issue.relationship != HostedIssueRelationshipKind::ClosedByReviewRequest,
+				close: issue.relationship == HostedIssueRelationshipKind::ClosedByReviewRequest,
 			}
 		});
 	}
@@ -995,8 +1009,23 @@ pub async fn comment_released_issues(
 	if plans.is_empty() {
 		return Ok(Vec::new());
 	}
+	comment_released_issues_with_plans(source, &plans).await
+}
+
+/// Create release comments for exactly the given plans, honoring each plan's
+/// `close` flag so CLI-level toggles such as `--auto-close-issues` apply.
+#[tracing::instrument(skip_all)]
+#[must_use = "the comment result must be checked"]
+#[allow(clippy::let_and_return, tail_expr_drop_order)]
+pub async fn comment_released_issues_with_plans(
+	source: &SourceConfiguration,
+	plans: &[GitHubIssueCommentPlan],
+) -> MonochangeResult<Vec<GitHubIssueCommentOutcome>> {
+	if plans.is_empty() {
+		return Ok(Vec::new());
+	}
 	let client = github_client_from_env(source).await?;
-	comment_released_issues_with_client(&client, source, &plans).await
+	comment_released_issues_with_client(&client, source, plans).await
 }
 
 async fn comment_released_issues_with_client(
@@ -1046,12 +1075,7 @@ async fn comment_released_issues_with_client(
 				url: plan.issue_url.clone(),
 			});
 			if plan.close {
-				let issue_path = format!(
-					"/repos/{}/{}/issues/{}",
-					source.owner, source.repo, issue_number
-				);
-				let _: serde_json::Value =
-					patch_json(client, &issue_path, &json!({ "state": "closed" })).await?;
+				close_issue(client, source, issue_number).await?;
 			}
 			continue;
 		}
@@ -1061,6 +1085,9 @@ async fn comment_released_issues_with_client(
 			&json!({ "body": plan.body }),
 		)
 		.await?;
+		if plan.close {
+			close_issue(client, source, issue_number).await?;
+		}
 		outcomes.push(GitHubIssueCommentOutcome {
 			repository: plan.repository.clone(),
 			issue_id: plan.issue_id.clone(),
@@ -1073,6 +1100,23 @@ async fn comment_released_issues_with_client(
 		});
 	}
 	Ok(outcomes)
+}
+
+/// Close a GitHub issue so release automation can finish what the review
+/// request claimed. Closing an already-closed issue is a no-op on the API, so
+/// this is safe to attempt for every release run.
+async fn close_issue(
+	client: &Octocrab,
+	source: &SourceConfiguration,
+	issue_number: u64,
+) -> MonochangeResult<()> {
+	let issue_path = format!(
+		"/repos/{}/{}/issues/{}",
+		source.owner, source.repo, issue_number
+	);
+	let _: serde_json::Value =
+		patch_json(client, &issue_path, &json!({ "state": "closed" })).await?;
+	Ok(())
 }
 
 fn release_comment_marker(release_tags: &[String]) -> String {
