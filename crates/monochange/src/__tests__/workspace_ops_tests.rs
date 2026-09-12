@@ -2583,3 +2583,16 @@ fn load_configured_github_actions_package_errors_for_missing_directory() {
 
 	assert!(error.to_string().contains("does not exist"));
 }
+
+#[test]
+fn load_configured_github_actions_package_defaults_manifest_name_without_action_file() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let definition = github_actions_definition("actions", ".");
+
+	let record =
+		load_configured_github_actions_package(fixture.path(), fixture.path(), &definition)
+			.unwrap_or_else(|error| panic!("load github actions package: {error}"));
+
+	assert!(record.manifest_path.ends_with("action.yml"));
+	assert_eq!(record.name, "actions");
+}

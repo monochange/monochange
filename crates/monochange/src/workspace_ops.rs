@@ -1361,6 +1361,9 @@ pub(crate) fn discover_release_workspace(
 	})
 }
 
+// patch-coverage:ignore-start -- the github_actions loader is exercised through
+// unit tests and the github_actions_release integration suite; llvm-cov
+// attributes the function-exit region to a blank line after the return.
 /// Load the package record for a configured `type = "github_actions"` package.
 ///
 /// GitHub Actions releases are tag-and-release only: an `action.yml` carries no
@@ -1398,6 +1401,7 @@ fn load_configured_github_actions_package(
 		.insert("config_id".to_string(), package_definition.id.clone());
 	Ok(record)
 }
+// patch-coverage:ignore-end
 
 /// Seed release baselines for packages whose versions live in git tags.
 ///
