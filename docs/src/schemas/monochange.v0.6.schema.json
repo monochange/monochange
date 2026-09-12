@@ -1823,6 +1823,21 @@
 			],
 			"type": "string"
 		},
+		"TrustedPublishingMode": {
+			"description": "How strictly trusted publishing is enforced for a package publish.",
+			"oneOf": [
+				{
+					"const": "required",
+					"description": "Publishing must run from a verifiable CI/OIDC identity; local/manual\npublishing fails before any registry mutation.",
+					"type": "string"
+				},
+				{
+					"const": "preferred",
+					"description": "Use trusted publishing when a verifiable CI/OIDC identity is available\nand fall back to local/manual credentials otherwise. CI runs still\nverify the configured repository, workflow, and environment.",
+					"type": "string"
+				}
+			]
+		},
 		"VersionSource": {
 			"description": "Where a package's current release version is read from.\n\nDefaults to `manifest` for ecosystems that store a version field in their\nmanifest. `tag` reads the baseline from the latest reachable release tag\nmatching the release owner's `version_format`, which suits GitHub Actions\nrepositories and other tag-only release targets.",
 			"enum": [
@@ -2947,6 +2962,17 @@
 						"string",
 						"null"
 					]
+				},
+				"mode": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/TrustedPublishingMode"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
 				},
 				"repository": {
 					"default": null,
