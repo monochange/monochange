@@ -391,10 +391,9 @@ impl From<PackageType> for Ecosystem {
 			PackageType::Deno => Self::Deno,
 			PackageType::Dart => Self::Dart,
 			PackageType::Python => Self::Python,
-			PackageType::Go => Self::Go,
 			// GitHub Actions releases are tag-and-release only; the runtime
 			// behavior matches the tag-versioned Go ecosystem.
-			PackageType::GitHubActions => Self::Go,
+			PackageType::Go | PackageType::GitHubActions => Self::Go,
 		}
 	}
 }
