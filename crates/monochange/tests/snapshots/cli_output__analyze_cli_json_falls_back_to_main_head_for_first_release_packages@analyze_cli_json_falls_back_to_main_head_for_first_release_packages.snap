@@ -36,9 +36,7 @@ exit_code: 0
       "core",
       "app"
     ],
-    "version_source": "manifest",
-    "initial_version": null,
-    "floating_tags": []
+    "version_source": "manifest"
   },
   "first_release": true,
   "refs": {
