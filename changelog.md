@@ -4,6 +4,504 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Release GitHub Actions repositories and tag-versioned packages
+
+_Packages:_ _monochange_, _monochange_config_, _monochange_core_
+
+Repositories that release by git tag plus provider release — GitHub Actions above all — could not be modeled: every package needed a registry ecosystem, and moving tag aliases had to be maintained by hand.
+
+- `PackageType` gains `github_actions` (aliases `github_actions` and `actions`). The type preset implies `version_source = "tag"`, `tag = true`, `release = true`, publishing disabled, and `initial_version = "0.1.0"`. Discovery accepts a package directory containing `action.yml` or `action.yaml` and syncs a sibling `package.json` version field when present.
+- New package and group fields: `version_source` (`manifest` default or `tag`), `initial_version` (baseline when no release tag exists yet), and `floating_tags` (moving tag aliases).
+- `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
+- `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
+- The committed JSON schema assets regenerate with the new fields.
+- New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
+
+##### Migration
+
+`PackageType`, `PackageDefinition`, `GroupDefinition`, `ReleaseTarget`, and the manifest/record target structs gained new fields. Code that constructs them with struct literals (rather than `..Default::default()`) must add the new fields; deserialization of existing configs and release records is unaffected because every field carries serde defaults.
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+#### Actually close the issues a release claims to close
+
+_Packages:_ _monochange_core_
+
+`step comment-released-issues --auto-close-issues` never closed anything on a real release run, so issues named in release pull request bodies stayed open after publish even though each one received a "Released in" comment.
+
+Three defects combined to hide that:
+
+- The fresh-comment path in `comment_released_issues_with_client` reported the `closed` outcome without ever sending the `PATCH /issues/{n}` request. The close request only existed on the idempotent re-run branch, which no first release ever reaches.
+- `build_issue_comment_results_for_source` accepted the caller's plans but re-planned internally through `HostedSourceAdapter::comment_released_issues`, silently discarding the `--auto-close-issues` decision. The flag only ever influenced dry-run output.
+- The plan polarity was inverted for the GitHub closing-keyword behavior: issues referenced through closing keywords were trusted to have been closed by the forge at merge time, while plain mentions were marked for closure. GitHub only links the first issue of a comma-separated `Closes #1, #2` list, so the remaining keyword issues were closed by nobody, and non-actionable mentions would have been force-closed.
+
+Closure now targets exactly the issues the release pull requests claim via closing keywords — including every entry of a comma-separated list — the close request is sent in the same run that posts the comment, and `--auto-close-issues` is honored in real runs instead of only dry runs. Plain mentions are never closed; add a closing keyword to a release pull request body when a mention should close with the release.
+
+`HostedSourceAdapter` gains `comment_released_issues_with_plans` so provider adapters can post comments for caller-supplied plans; the existing default `comment_released_issues` delegates to it.
+
+```toml
+[[cli.release-comments.steps]]
+type = "CommentReleasedIssues"
+inputs = { format = "json", "from-ref" = "HEAD", "auto-close-issues" = true }
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #697](https://github.com/monochange/monochange/pull/697) · _Closed issues:_ [#7](https://github.com/monochange/monochange/issues/7), [#8](https://github.com/monochange/monochange/issues/8) · _Related issues:_ [#341](https://github.com/monochange/monochange/issues/341), [#355](https://github.com/monochange/monochange/issues/355), [#9](https://github.com/monochange/monochange/issues/9)
+
+#### Allow local publishing alongside trusted publishing
+
+_Packages:_ _monochange_core_
+
+`publish.trusted_publishing` gains a `mode` setting so one configuration can support both publishing paths instead of forcing a choice between trusted publishing and local publishing. `mode = "required"` keeps the existing strict behavior: a verifiable CI/OIDC identity must be present and match the configured repository, workflow, and environment. `mode = "preferred"` verifies that same context whenever a CI identity is detected, and otherwise falls back to local credentials instead of failing before any registry mutation.
+
+```toml
+[ecosystems.dart.publish.trusted_publishing]
+enabled = true
+mode = "preferred"
+repository = "acme/widgets"
+workflow = "publish.yml"
+environment = "publisher"
+```
+
+Use `preferred` for repositories that publish with OIDC from CI but also let maintainers run `monochange run publish` locally with their own registry credentials. The mode only relaxes the identity requirement: CI context mismatches still fail, and `enabled = false` remains the explicit opt-out from trusted publishing entirely.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #691](https://github.com/monochange/monochange/pull/691)
+
+#### Replace the Dart protected-publishing warning helper with the pub.dev ref preflight
+
+_Packages:_ _monochange_publish_
+
+> **Breaking:** `dart_protected_publishing_warning` was removed from `monochange_publish`. Call `pub_dev_trusted_publishing_ref_error` instead. Both take `(&PublishRequest, &BTreeMap<String, String>)` and return `Option<String>`, but the new preflight detects every non-tag GitHub Actions run ref (not just `workflow_dispatch` events) and returns the message monochange fails the publish run with, so callers should surface it as an error rather than a warning.
+
+```rust
+// Before
+let warning = dart_protected_publishing_warning(&request, &env_map);
+
+// After
+let error = pub_dev_trusted_publishing_ref_error(&request, &env_map);
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #692](https://github.com/monochange/monochange/pull/692)
+
+### 🚀 Feature
+
+#### Recommend dry-run publish checks before any release merges
+
+_Packages:_ _@monochange/skill_
+
+The skill now treats the dry-run publish check as a first-class release safety practice, so agents and CI authors following monochange guidance stop avoidable partially-published releases: a multi-package publish that fails partway leaves earlier packages live on their registries while tags and hosted releases still have to be rolled back by hand.
+
+The multi-package publishing module documents two checkpoints and the exact commands:
+
+```bash
+# required CI job on every pull request
+monochange step publish-packages --dry-run
+
+# strongest pre-merge signal: simulate the release commit without pushing,
+# then validate the bumped tree
+monochange run release --commit
+monochange step publish-packages --dry-run
+```
+
+The skill's source-of-truth rules now tell agents to gate CI on the dry-run publish check, and the publishing guide recommends keeping the same check in the release workflow as a final gate so a late failure happens before tags and hosted releases exist.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #680](https://github.com/monochange/monochange/pull/680)
+
+#### Register package CLIs and classify command-surface breaks
+
+_Packages:_ _monochange_, _monochange_config_, _monochange_core_
+
+Change classification could not recognize that a package ships a CLI. Changes to a CLI's command surface — renamed commands, removed options, narrowed values — analyzed as unclassified package files and surfaced in pull request comments with an unknown compatibility impact and a review requirement, even when the break was obvious.
+
+Packages can now register the CLI they ship under `[package.<id>].cli`:
+
+```toml
+[package.monochange]
+path = "crates/monochange"
+cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
+```
+
+- `name` is the binary name users invoke. It keys the committed baseline at `.monochange/cli-snapshots/<name>.json` and must be unique across the workspace.
+- `snapshot` is required. It accepts a command string or a table with `{ command, cwd, shell }` shaped like `[ecosystems.*].lockfile_commands` entries. The command must print a normalized command-surface snapshot JSON document (`monochange_snapshot::CommandSnapshot`) on stdout; foreign CLIs can commit a small emitter script for this.
+
+`monochange change classify` diffs the committed baseline against a fresh capture for every classified package with a registered CLI and appends `monochange/cli-surface` findings: removed commands, options, positionals, and value narrowing propose `major`; additions and widening propose `minor`; description-only changes are compatible patches. The findings are high confidence with complete coverage, so they raise `enforceableMinimum` and clear the unknown-impact review requirement. Per-package reports gain an additive `cli` block with the comparison status (`diffed`, `missing_baseline`, `stale_baseline`, `failed`, `skipped`), and the classification report schema version bumps to 4.
+
+- `monochange snapshot --package <id>` captures a registered CLI's snapshot; `--save` writes the committed baseline; `--list` prints registered CLIs and baseline health.
+- `monochange change classify --skip-cli-snapshots` (or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`) skips the comparisons when the snapshot command cannot run.
+- The committed JSON schema assets regenerate with the new `package_cli` and `cli_snapshot_command` definitions, and `"snapshot"` joins `RESERVED_CLI_COMMAND_NAMES` so `[cli.*]` workflow commands cannot shadow the built-in.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+#### Allow local publishing alongside trusted publishing
+
+_Packages:_ _monochange_, _monochange_config_
+
+`publish.trusted_publishing` gains a `mode` setting so one configuration can support both publishing paths instead of forcing a choice between trusted publishing and local publishing. `mode = "required"` keeps the existing strict behavior: a verifiable CI/OIDC identity must be present and match the configured repository, workflow, and environment. `mode = "preferred"` verifies that same context whenever a CI identity is detected, and otherwise falls back to local credentials instead of failing before any registry mutation.
+
+```toml
+[ecosystems.dart.publish.trusted_publishing]
+enabled = true
+mode = "preferred"
+repository = "acme/widgets"
+workflow = "publish.yml"
+environment = "publisher"
+```
+
+Use `preferred` for repositories that publish with OIDC from CI but also let maintainers run `monochange run publish` locally with their own registry credentials. The mode only relaxes the identity requirement: CI context mismatches still fail, and `enabled = false` remains the explicit opt-out from trusted publishing entirely.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #691](https://github.com/monochange/monochange/pull/691)
+
+- _Packages:_ _monochange_core_, _monochange_go_ **Load configured Go modules as tag-versioned packages.** `Ecosystem::versions_from_tags` marks ecosystems whose released versions are identified by git tags instead of a manifest field, and the Go adapter now implements `load_configured` through the new public `load_configured_go_package(root, package_path)`. Configured `type = "go"` packages therefore resolve a `PackageRecord` with no `current_version`; release planning owns the tag-based baseline. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #693](https://github.com/monochange/monochange/pull/693)
+
+#### Actually close the issues a release claims to close
+
+_Packages:_ _monochange_github_
+
+`step comment-released-issues --auto-close-issues` never closed anything on a real release run, so issues named in release pull request bodies stayed open after publish even though each one received a "Released in" comment.
+
+Three defects combined to hide that:
+
+- The fresh-comment path in `comment_released_issues_with_client` reported the `closed` outcome without ever sending the `PATCH /issues/{n}` request. The close request only existed on the idempotent re-run branch, which no first release ever reaches.
+- `build_issue_comment_results_for_source` accepted the caller's plans but re-planned internally through `HostedSourceAdapter::comment_released_issues`, silently discarding the `--auto-close-issues` decision. The flag only ever influenced dry-run output.
+- The plan polarity was inverted for the GitHub closing-keyword behavior: issues referenced through closing keywords were trusted to have been closed by the forge at merge time, while plain mentions were marked for closure. GitHub only links the first issue of a comma-separated `Closes #1, #2` list, so the remaining keyword issues were closed by nobody, and non-actionable mentions would have been force-closed.
+
+Closure now targets exactly the issues the release pull requests claim via closing keywords — including every entry of a comma-separated list — the close request is sent in the same run that posts the comment, and `--auto-close-issues` is honored in real runs instead of only dry runs. Plain mentions are never closed; add a closing keyword to a release pull request body when a mention should close with the release.
+
+`HostedSourceAdapter` gains `comment_released_issues_with_plans` so provider adapters can post comments for caller-supplied plans; the existing default `comment_released_issues` delegates to it.
+
+```toml
+[[cli.release-comments.steps]]
+type = "CommentReleasedIssues"
+inputs = { format = "json", "from-ref" = "HEAD", "auto-close-issues" = true }
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #697](https://github.com/monochange/monochange/pull/697) · _Closed issues:_ [#7](https://github.com/monochange/monochange/issues/7), [#8](https://github.com/monochange/monochange/issues/8) · _Related issues:_ [#341](https://github.com/monochange/monochange/issues/341), [#355](https://github.com/monochange/monochange/issues/355), [#9](https://github.com/monochange/monochange/issues/9)
+
+#### Release GitHub Actions repositories and tag-versioned packages
+
+_Packages:_ _monochange_go_
+
+Repositories that release by git tag plus provider release — GitHub Actions above all — could not be modeled: every package needed a registry ecosystem, and moving tag aliases had to be maintained by hand.
+
+- `PackageType` gains `github_actions` (aliases `github_actions` and `actions`). The type preset implies `version_source = "tag"`, `tag = true`, `release = true`, publishing disabled, and `initial_version = "0.1.0"`. Discovery accepts a package directory containing `action.yml` or `action.yaml` and syncs a sibling `package.json` version field when present.
+- New package and group fields: `version_source` (`manifest` default or `tag`), `initial_version` (baseline when no release tag exists yet), and `floating_tags` (moving tag aliases).
+- `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
+- `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
+- The committed JSON schema assets regenerate with the new fields.
+- New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
+
+##### Migration
+
+`PackageType`, `PackageDefinition`, `GroupDefinition`, `ReleaseTarget`, and the manifest/record target structs gained new fields. Code that constructs them with struct literals (rather than `..Default::default()`) must add the new fields; deserialization of existing configs and release records is unaffected because every field carries serde defaults.
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+### 🐛 Fixed
+
+#### Register package CLIs and classify command-surface breaks
+
+_Packages:_ _@monochange/skill_
+
+Change classification could not recognize that a package ships a CLI. Changes to a CLI's command surface — renamed commands, removed options, narrowed values — analyzed as unclassified package files and surfaced in pull request comments with an unknown compatibility impact and a review requirement, even when the break was obvious.
+
+Packages can now register the CLI they ship under `[package.<id>].cli`:
+
+```toml
+[package.monochange]
+path = "crates/monochange"
+cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
+```
+
+- `name` is the binary name users invoke. It keys the committed baseline at `.monochange/cli-snapshots/<name>.json` and must be unique across the workspace.
+- `snapshot` is required. It accepts a command string or a table with `{ command, cwd, shell }` shaped like `[ecosystems.*].lockfile_commands` entries. The command must print a normalized command-surface snapshot JSON document (`monochange_snapshot::CommandSnapshot`) on stdout; foreign CLIs can commit a small emitter script for this.
+
+`monochange change classify` diffs the committed baseline against a fresh capture for every classified package with a registered CLI and appends `monochange/cli-surface` findings: removed commands, options, positionals, and value narrowing propose `major`; additions and widening propose `minor`; description-only changes are compatible patches. The findings are high confidence with complete coverage, so they raise `enforceableMinimum` and clear the unknown-impact review requirement. Per-package reports gain an additive `cli` block with the comparison status (`diffed`, `missing_baseline`, `stale_baseline`, `failed`, `skipped`), and the classification report schema version bumps to 4.
+
+- `monochange snapshot --package <id>` captures a registered CLI's snapshot; `--save` writes the committed baseline; `--list` prints registered CLIs and baseline health.
+- `monochange change classify --skip-cli-snapshots` (or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`) skips the comparisons when the snapshot command cannot run.
+- The committed JSON schema assets regenerate with the new `package_cli` and `cli_snapshot_command` definitions, and `"snapshot"` joins `RESERVED_CLI_COMMAND_NAMES` so `[cli.*]` workflow commands cannot shadow the built-in.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+#### Correct the permissions needed to publish the classification comment
+
+_Packages:_ _@monochange/skill_
+
+The bundled classification guidance told agents to request `issues: write` with `pull-requests: read`. That combination cannot create a pull request comment. The API answers `403 Resource not accessible by integration`, the action downgrades the error to a warning, and the job still passes, so the report never reaches the pull request.
+
+Request the pull requests write scope instead. Comment creation is governed by the scope of the resource that owns the comment, and a pull request comment belongs to the pull request:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+```
+
+Watching for the warning is the only signal that the comment was skipped; the job summary and action outputs are unaffected either way.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #689](https://github.com/monochange/monochange/pull/689)
+
+- **@monochange/skill**: **Document enforced changeset policy alignment.** The change classification skill now shows how the changeset-policy `from` ref rejects changesets that understate the classified change type, and notes that classification reports with any schema version 1 or newer are accepted. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #682](https://github.com/monochange/monochange/pull/682)
+- **@monochange/skill**: **Document the pub.dev tag-ref requirement for workflow_dispatch publishing.** The trusted-publishing skill now records that pub.dev requires every publish run — including `workflow_dispatch` runs — to carry a `refs/tags/<tag-pattern>` ref matching the published version, that the "Enable publishing from `workflow_dispatch` events" checkbox only relaxes the event name, and how to dispatch on a release tag with `gh workflow run <workflow>.yml --ref <tag>`. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #692](https://github.com/monochange/monochange/pull/692)
+
+#### Document version-prefix controls for internal dependencies
+
+_Packages:_ _@monochange/skill_
+
+Agents following the skill had no way to discover that internal dependency prefixes are configurable: the `prefix` entry option and the `dependency_version_prefix` ecosystem setting appeared only as bare keys in examples. The skill's configuration module and quick-start rules now state where prefixes come from and how to override them, so agents stop proposing `monochange versions sync --strategy tilde`-style invocations that do not exist and reach for the supported controls instead.
+
+`monochange versions sync --strategy` writes fixed per-ecosystem prefixes (`^` caret ranges, `>=` compatible ranges, bare exact versions, `v` for Go) and never writes `~` or `=`. Custom prefixes belong on typed `versioned_files` entries:
+
+```toml
+versioned_files = [
+	# write internal npm dependencies as tilde ranges, e.g. "~1.2.3"
+	{ path = "package.json", type = "npm", fields = ["dependencies"], prefix = "~" },
+]
+
+[ecosystems.npm]
+# fallback prefix for typed versioned files without their own prefix
+dependency_version_prefix = "^"
+```
+
+The entry `prefix` wins over `[ecosystems.<name>] dependency_version_prefix`, which wins over the ecosystem default; both affect internal dependency references only, while `format` and `regex` entries keep writing bare versions.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #686](https://github.com/monochange/monochange/pull/686)
+
+#### Stop failing release pull request checks on consumed changesets
+
+_Packages:_ _monochange_
+
+The changeset policy treated every changed `.changeset/*.md` path as an attached changeset it must find on disk, so a release pull request — whose whole point is deleting consumed changesets — failed with `attached changeset ... does not exist in the checked-out workspace`. The release-branch skip could not rescue it because pull-request CI runs on a detached checkout where the branch name is unknown.
+
+Two behavior changes:
+
+```bash
+# before: release PR checks failed on their own consumed changesets
+monochange step affected-packages
+# ✖ config error: attached changeset `.changeset/example.md` does not exist in the checked-out workspace
+
+# after: deleted changesets are reported as skipped warnings, not errors
+monochange step affected-packages
+# ✔ changeset verification passed: no configured packages were affected by the changed files
+```
+
+- When a changed changeset path no longer exists, the policy records a warning and moves on instead of failing. Coverage intent is still enforced: source changes without coverage still report `changed packages are not covered by attached changesets`.
+- When the checked-out HEAD is detached (the standard pull-request CI checkout), the release pull-request branch-prefix skip now falls back to the `GITHUB_HEAD_REF` environment variable, so branches such as `monochange/release/*` are skipped exactly as they are locally.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #687](https://github.com/monochange/monochange/pull/687)
+
+#### Actually close the issues a release claims to close
+
+_Packages:_ _monochange_
+
+`step comment-released-issues --auto-close-issues` never closed anything on a real release run, so issues named in release pull request bodies stayed open after publish even though each one received a "Released in" comment.
+
+Three defects combined to hide that:
+
+- The fresh-comment path in `comment_released_issues_with_client` reported the `closed` outcome without ever sending the `PATCH /issues/{n}` request. The close request only existed on the idempotent re-run branch, which no first release ever reaches.
+- `build_issue_comment_results_for_source` accepted the caller's plans but re-planned internally through `HostedSourceAdapter::comment_released_issues`, silently discarding the `--auto-close-issues` decision. The flag only ever influenced dry-run output.
+- The plan polarity was inverted for the GitHub closing-keyword behavior: issues referenced through closing keywords were trusted to have been closed by the forge at merge time, while plain mentions were marked for closure. GitHub only links the first issue of a comma-separated `Closes #1, #2` list, so the remaining keyword issues were closed by nobody, and non-actionable mentions would have been force-closed.
+
+Closure now targets exactly the issues the release pull requests claim via closing keywords — including every entry of a comma-separated list — the close request is sent in the same run that posts the comment, and `--auto-close-issues` is honored in real runs instead of only dry runs. Plain mentions are never closed; add a closing keyword to a release pull request body when a mention should close with the release.
+
+`HostedSourceAdapter` gains `comment_released_issues_with_plans` so provider adapters can post comments for caller-supplied plans; the existing default `comment_released_issues` delegates to it.
+
+```toml
+[[cli.release-comments.steps]]
+type = "CommentReleasedIssues"
+inputs = { format = "json", "from-ref" = "HEAD", "auto-close-issues" = true }
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #697](https://github.com/monochange/monochange/pull/697) · _Closed issues:_ [#7](https://github.com/monochange/monochange/issues/7), [#8](https://github.com/monochange/monochange/issues/8) · _Related issues:_ [#341](https://github.com/monochange/monochange/issues/341), [#355](https://github.com/monochange/monochange/issues/355), [#9](https://github.com/monochange/monochange/issues/9)
+
+#### Release Go modules from git tag baselines
+
+_Packages:_ _monochange_, _monochange_config_
+
+Configured `type = "go"` packages could not be released: release planning dropped any package whose version is not stored in a manifest, and root-level manifests never matched their package definitions.
+
+- `prepare-release` seeds the current version of tag-versioned ecosystems from the latest reachable tag matching the release owner's `version_format`, and warns when no matching tag exists instead of silently dropping the release.
+- A configured package whose manifest sits at the workspace root (`path = "."`) now matches its definition; root manifests normalized to an empty relative directory and never matched, which also broke config-id changeset references for root npm, Deno, and Dart packages.
+- Package definitions now match Python and Go discovery records, so version groups, changeset references, and release targets work for those ecosystems.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #693](https://github.com/monochange/monochange/pull/693)
+
+#### Stop repeating the step name on every captured output line
+
+_Packages:_ _monochange_
+
+Command output no longer carries a `[stdout]` or `[stderr]` tag and no longer repeats the step name as a per-line prefix. The step is named once as a block header, and every captured line is indented beneath it, so a chatty command reads as prose instead of a wall of labels.
+
+Before:
+
+```text
+│ format release files [stderr] • Validating lock
+│ format release files [stderr] • Validating lock in 2.35ms
+│ format release files [stdout] done
+```
+
+After:
+
+```text
+│ format release files
+│   • Validating lock
+│   • Validating lock in 2.35ms
+│   done
+```
+
+The block header is re-established after an interrupting progress line, such as the heartbeat that reports a still-running command. stdout and stderr interleave in arrival order in the human view; `--progress-format json` still reports each `command_output` event with its `stream` and `text` fields, so machine consumers lose nothing.
+
+Publish progress now uses the same symbol set, colors, and ASCII fallback as workflow progress. `--progress-format ascii` no longer emits emoji, outcomes such as `published` and `failed` are colored consistently with workflow steps, and the animated publish line no longer renders two spinner frames.
+
+The Publish complete summary lists only the outcomes that occurred, for example `✖ Publish complete: 2 published, 1 failed`. A run that published nothing uses a neutral marker instead of a success symbol.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #690](https://github.com/monochange/monochange/pull/690)
+
+#### Emphasize only the lead sentence of multi-sentence release-note summaries
+
+_Packages:_ _monochange_core_
+
+Grouped release notes used to render a changeset's whole first line in bold, so summaries that describe an entire change in one sentence-packed line became dense bold blocks in changelogs and release PR bodies. Readers lost the visual anchor that the bold lead was supposed to provide.
+
+Compact entries now emphasize only the first sentence; the remaining sentences keep the plain formatting they had in the changeset file. Expanded entries move those sentences out of the `####` heading into the first body paragraph. Sentence boundaries are detected conservatively: periods inside inline code spans, in abbreviations such as `e.g.`, in version numbers like `3.13.0`, and after single-letter initials never end a sentence, and punctuation followed directly by more text such as `Node.js` never splits.
+
+Multi-package compact entries also regain the missing space between the package list and the summary:
+
+**Before:**
+
+```text
+- _Packages:_ _core_, _app_**Add shared release note.**
+```
+
+**After:**
+
+```text
+- _Packages:_ _core_, _app_ **Add shared release note.**
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #684](https://github.com/monochange/monochange/pull/684)
+
+- **monochange_core**: **Sync monochange_core crate docs with mdt instead of include_str!** `monochange_core` embedded its crate-level docs from `src/crate_docs.md` through `include_str!`, so `cargo publish` failed whenever the markdown file was missing from the package tarball — the failure mode that aborted the 0.11.0 crates.io rollout at `monochange_core`. The crate-level docs now live in an mdt consumer block directly inside `src/lib.rs`, and `package.include` no longer lists `src/crate_docs.md`, so the published tarball compiles without a separate markdown file. Rustdoc output is unchanged apart from removing a duplicated example section and stray fragments that trailed the crate docs. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #680](https://github.com/monochange/monochange/pull/680)
+
+#### Release GitHub Actions repositories and tag-versioned packages
+
+_Packages:_ _monochange_github_
+
+Repositories that release by git tag plus provider release — GitHub Actions above all — could not be modeled: every package needed a registry ecosystem, and moving tag aliases had to be maintained by hand.
+
+- `PackageType` gains `github_actions` (aliases `github_actions` and `actions`). The type preset implies `version_source = "tag"`, `tag = true`, `release = true`, publishing disabled, and `initial_version = "0.1.0"`. Discovery accepts a package directory containing `action.yml` or `action.yaml` and syncs a sibling `package.json` version field when present.
+- New package and group fields: `version_source` (`manifest` default or `tag`), `initial_version` (baseline when no release tag exists yet), and `floating_tags` (moving tag aliases).
+- `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
+- `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
+- The committed JSON schema assets regenerate with the new fields.
+- New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
+
+##### Migration
+
+`PackageType`, `PackageDefinition`, `GroupDefinition`, `ReleaseTarget`, and the manifest/record target structs gained new fields. Code that constructs them with struct literals (rather than `..Default::default()`) must add the new fields; deserialization of existing configs and release records is unaffected because every field carries serde defaults.
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+#### Fail fast when pub.dev trusted publishing runs from a non-tag ref
+
+_Packages:_ _monochange_publish_
+
+pub.dev rejects trusted-publishing uploads from any GitHub Actions run whose ref is not `refs/tags/<tag-pattern>` matching the published version — including `workflow_dispatch` runs dispatched on a branch, even when "Enable publishing from `workflow_dispatch` events" is enabled on pub.dev. That checkbox only allows the event name; the tag-ref requirement stays in force for every event.
+
+Trusted pub.dev publishes from a non-tag run ref (`refs/heads/*`, `refs/pull/*`) used to log a warning and still mint a fresh OIDC token, so branch-ref dispatches failed late with an opaque registry authorization error after the token mint. They now fail before any token is minted or any dart command runs, with the working recipe: push the release tag, then `gh workflow run <workflow>.yml --ref <tag>` (or publish from the tag-push event). Runs that carry a real `PUB_TOKEN` credential keep publishing unchanged, and tag-ref runs are unaffected.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #692](https://github.com/monochange/monochange/pull/692)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### Gitignore only `.monochange/local/`
+
+_Packages:_ _@monochange/skill_, _monochange_
+
+The bundled skill and the instructions generated by `monochange subagents` now state that `.monochange/local/` is the only directory under `.monochange/` that may be gitignored. Release records and prerelease state are committed release state, so ignoring the whole directory hides them from git history and makes releases unpublishable because `publish-readiness`, `tag-release`, and provider release automation read those records from git.
+
+If a repository ignores the whole directory, narrow the rule and commit the release records it was hiding:
+
+**Before:**
+
+```gitignore
+.monochange/
+```
+
+**After:**
+
+```gitignore
+.monochange/local/
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #688](https://github.com/monochange/monochange/pull/688)
+
+#### Allow local publishing alongside trusted publishing
+
+_Packages:_ _@monochange/skill_
+
+`publish.trusted_publishing` gains a `mode` setting so one configuration can support both publishing paths instead of forcing a choice between trusted publishing and local publishing. `mode = "required"` keeps the existing strict behavior: a verifiable CI/OIDC identity must be present and match the configured repository, workflow, and environment. `mode = "preferred"` verifies that same context whenever a CI identity is detected, and otherwise falls back to local credentials instead of failing before any registry mutation.
+
+```toml
+[ecosystems.dart.publish.trusted_publishing]
+enabled = true
+mode = "preferred"
+repository = "acme/widgets"
+workflow = "publish.yml"
+environment = "publisher"
+```
+
+Use `preferred` for repositories that publish with OIDC from CI but also let maintainers run `monochange run publish` locally with their own registry credentials. The mode only relaxes the identity requirement: CI context mismatches still fail, and `enabled = false` remains the explicit opt-out from trusted publishing entirely.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #691](https://github.com/monochange/monochange/pull/691)
+
+</details>
+
 ## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
 
 Grouped release for `main`.

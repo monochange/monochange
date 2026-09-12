@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
+
+### 💥 Breaking Change
+
+#### Replace the Dart protected-publishing warning helper with the pub.dev ref preflight
+
+> **Breaking:** `dart_protected_publishing_warning` was removed from `monochange_publish`. Call `pub_dev_trusted_publishing_ref_error` instead. Both take `(&PublishRequest, &BTreeMap<String, String>)` and return `Option<String>`, but the new preflight detects every non-tag GitHub Actions run ref (not just `workflow_dispatch` events) and returns the message monochange fails the publish run with, so callers should surface it as an error rather than a warning.
+
+```rust
+// Before
+let warning = dart_protected_publishing_warning(&request, &env_map);
+
+// After
+let error = pub_dev_trusted_publishing_ref_error(&request, &env_map);
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #692](https://github.com/monochange/monochange/pull/692)
+
+### 🐛 Fixed
+
+#### Fail fast when pub.dev trusted publishing runs from a non-tag ref
+
+pub.dev rejects trusted-publishing uploads from any GitHub Actions run whose ref is not `refs/tags/<tag-pattern>` matching the published version — including `workflow_dispatch` runs dispatched on a branch, even when "Enable publishing from `workflow_dispatch` events" is enabled on pub.dev. That checkbox only allows the event name; the tag-ref requirement stays in force for every event.
+
+Trusted pub.dev publishes from a non-tag run ref (`refs/heads/*`, `refs/pull/*`) used to log a warning and still mint a fresh OIDC token, so branch-ref dispatches failed late with an opaque registry authorization error after the token mint. They now fail before any token is minted or any dart command runs, with the working recipe: push the release tag, then `gh workflow run <workflow>.yml --ref <tag>` (or publish from the tag-push event). Runs that carry a real `PUB_TOKEN` credential keep publishing unchanged, and tag-ref runs are unaffected.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #692](https://github.com/monochange/monochange/pull/692)
+
 ## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
 
 ### Changed

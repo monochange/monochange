@@ -950,3 +950,77 @@ commit_subject = "🔖 chore(release): prepare release"
 The override applies to the local `CommitRelease` step and to the commit that `OpenReleaseRequest` places on the release branch for GitHub, GitLab, Gitea, and Forgejo. The configuration schema gains the optional `commit_subject` property.
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #675](https://github.com/monochange/monochange/pull/675)
+
+## monochange_schema [0.6.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.6.2) (2026-09-12)
+
+### 🐛 Fixed
+
+#### Release GitHub Actions repositories and tag-versioned packages
+
+Repositories that release by git tag plus provider release — GitHub Actions above all — could not be modeled: every package needed a registry ecosystem, and moving tag aliases had to be maintained by hand.
+
+- `PackageType` gains `github_actions` (aliases `github_actions` and `actions`). The type preset implies `version_source = "tag"`, `tag = true`, `release = true`, publishing disabled, and `initial_version = "0.1.0"`. Discovery accepts a package directory containing `action.yml` or `action.yaml` and syncs a sibling `package.json` version field when present.
+- New package and group fields: `version_source` (`manifest` default or `tag`), `initial_version` (baseline when no release tag exists yet), and `floating_tags` (moving tag aliases).
+- `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
+- `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
+- The committed JSON schema assets regenerate with the new fields.
+- New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
+
+##### Migration
+
+`PackageType`, `PackageDefinition`, `GroupDefinition`, `ReleaseTarget`, and the manifest/record target structs gained new fields. Code that constructs them with struct literals (rather than `..Default::default()`) must add the new fields; deserialization of existing configs and release records is unaffected because every field carries serde defaults.
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+#### Register package CLIs and classify command-surface breaks
+
+Change classification could not recognize that a package ships a CLI. Changes to a CLI's command surface — renamed commands, removed options, narrowed values — analyzed as unclassified package files and surfaced in pull request comments with an unknown compatibility impact and a review requirement, even when the break was obvious.
+
+Packages can now register the CLI they ship under `[package.<id>].cli`:
+
+```toml
+[package.monochange]
+path = "crates/monochange"
+cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
+```
+
+- `name` is the binary name users invoke. It keys the committed baseline at `.monochange/cli-snapshots/<name>.json` and must be unique across the workspace.
+- `snapshot` is required. It accepts a command string or a table with `{ command, cwd, shell }` shaped like `[ecosystems.*].lockfile_commands` entries. The command must print a normalized command-surface snapshot JSON document (`monochange_snapshot::CommandSnapshot`) on stdout; foreign CLIs can commit a small emitter script for this.
+
+`monochange change classify` diffs the committed baseline against a fresh capture for every classified package with a registered CLI and appends `monochange/cli-surface` findings: removed commands, options, positionals, and value narrowing propose `major`; additions and widening propose `minor`; description-only changes are compatible patches. The findings are high confidence with complete coverage, so they raise `enforceableMinimum` and clear the unknown-impact review requirement. Per-package reports gain an additive `cli` block with the comparison status (`diffed`, `missing_baseline`, `stale_baseline`, `failed`, `skipped`), and the classification report schema version bumps to 4.
+
+- `monochange snapshot --package <id>` captures a registered CLI's snapshot; `--save` writes the committed baseline; `--list` prints registered CLIs and baseline health.
+- `monochange change classify --skip-cli-snapshots` (or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`) skips the comparisons when the snapshot command cannot run.
+- The committed JSON schema assets regenerate with the new `package_cli` and `cli_snapshot_command` definitions, and `"snapshot"` joins `RESERVED_CLI_COMMAND_NAMES` so `[cli.*]` workflow commands cannot shadow the built-in.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+#### Allow local publishing alongside trusted publishing
+
+`publish.trusted_publishing` gains a `mode` setting so one configuration can support both publishing paths instead of forcing a choice between trusted publishing and local publishing. `mode = "required"` keeps the existing strict behavior: a verifiable CI/OIDC identity must be present and match the configured repository, workflow, and environment. `mode = "preferred"` verifies that same context whenever a CI identity is detected, and otherwise falls back to local credentials instead of failing before any registry mutation.
+
+```toml
+[ecosystems.dart.publish.trusted_publishing]
+enabled = true
+mode = "preferred"
+repository = "acme/widgets"
+workflow = "publish.yml"
+environment = "publisher"
+```
+
+Use `preferred` for repositories that publish with OIDC from CI but also let maintainers run `monochange run publish` locally with their own registry credentials. The mode only relaxes the identity requirement: CI context mismatches still fail, and `enabled = false` remains the explicit opt-out from trusted publishing entirely.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #691](https://github.com/monochange/monochange/pull/691)
