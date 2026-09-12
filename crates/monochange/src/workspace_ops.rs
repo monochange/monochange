@@ -1332,7 +1332,7 @@ pub(crate) fn discover_release_workspace(
 		.par_iter()
 		.map(|package_definition| {
 			let path = root.join(&package_definition.path);
-			if package_definition.package_type == monochange_core::PackageType::GitHubActions {
+			if package_definition.package_type == PackageType::GitHubActions {
 				return load_configured_github_actions_package(root, &path, package_definition);
 			}
 			registry
