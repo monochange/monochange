@@ -138,8 +138,13 @@ fn change_classify_reports_cli_surface_breaks_for_registered_clis() {
 	assert_eq!(report["recommendation"], "major");
 	assert_eq!(report["schemaVersion"], 4);
 
+	// Unmatched-path advisories depend on how each platform canonicalizes the
+	// fixture tempdir, so snapshot the findings without them.
+	let mut projected = report.clone();
+	projected["warnings"] = serde_json::Value::Array(Vec::new());
+
 	snapshot_settings().bind(|| {
-		assert_json_snapshot!(report);
+		assert_json_snapshot!(projected);
 	});
 }
 
