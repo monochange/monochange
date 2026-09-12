@@ -2167,40 +2167,6 @@
 			},
 			"type": "object"
 		},
-		"cli_snapshot_command": {
-			"anyOf": [
-				{
-					"type": "string"
-				},
-				{
-					"$ref": "#/$defs/cli_snapshot_command_definition"
-				}
-			],
-			"description": "Raw `cli.snapshot` value: a bare command string or a detailed definition\nmirroring `[ecosystems.*].lockfile_commands` entries."
-		},
-		"cli_snapshot_command_definition": {
-			"additionalProperties": false,
-			"properties": {
-				"command": {
-					"type": "string"
-				},
-				"cwd": {
-					"default": null,
-					"type": [
-						"string",
-						"null"
-					]
-				},
-				"shell": {
-					"$ref": "#/$defs/ShellConfig",
-					"default": false
-				}
-			},
-			"required": [
-				"command"
-			],
-			"type": "object"
-		},
 		"defaults": {
 			"additionalProperties": false,
 			"properties": {
@@ -2556,23 +2522,6 @@
 			],
 			"type": "object"
 		},
-		"package_cli": {
-			"additionalProperties": false,
-			"description": "Raw `[package.<id>].cli` value: the binary name plus the command that\ncaptures its normalized surface snapshot.",
-			"properties": {
-				"name": {
-					"type": "string"
-				},
-				"snapshot": {
-					"$ref": "#/$defs/cli_snapshot_command"
-				}
-			},
-			"required": [
-				"name",
-				"snapshot"
-			],
-			"type": "object"
-		},
 		"package_definition": {
 			"additionalProperties": false,
 			"properties": {
@@ -2622,16 +2571,6 @@
 					"type": [
 						"string",
 						"null"
-					]
-				},
-				"cli": {
-					"anyOf": [
-						{
-							"$ref": "#/$defs/package_cli"
-						},
-						{
-							"type": "null"
-						}
 					]
 				},
 				"empty_update_message": {
