@@ -19,7 +19,7 @@ fn fixture_path(relative: &str) -> PathBuf {
 fn setup_actions_fixture(tempdir: &TempDir) {
 	let root = tempdir.path();
 	copy_directory(&fixture_path("github-actions-release"), root);
-	git(root, &["init"]);
+	git(root, &["init", "--initial-branch", "main"]);
 	git(root, &["config", "user.name", "monochange-tests"]);
 	git(
 		root,
