@@ -31,16 +31,16 @@ New crates that do not yet exist on their target registry must be placeholder-pu
 ## 4. CI workflow flow verification
 
 ```text
-push to main → ci.yml (release-pr) → merge release PR
-  → push to main → ci.yml (release-post-merge: tag + draft release)
-  → tag push → release.yml (cross-compile, upload assets, draft release)
-  → publish.yml (build npm packages, plan batches, publish cargo batches)
+push to main → ci.yml (release-pr: refresh release PR + dispatch publish dry run) → merge release PR
+  → push to main → ci.yml (release-post-merge: tag + draft release + dispatch publish.yml)
+  → publish.yml (cross-compile, upload assets, attest, publish cargo/npm batches, publish release)
 ```
 
 - [ ] Verify each step above is present and triggered by the correct event.
 - [ ] Confirm `monochange step release-record --from HEAD` correctly detects a release commit after merge (the `release-post-merge` job gates on this).
-- [ ] Confirm tag push triggers `release.yml` automatically (`on: push: tags: "v*"`).
-- [ ] Verify concurrency groups prevent duplicate runs without silently canceling important work.
+- [ ] Confirm the `release-pr` job dispatches a publish dry run against the `monochange/release/release` branch with `tag`, `checkout_ref`, and `dry_run=true` inputs whenever pending changesets exist. The dry run builds every release artifact for the exact release PR tree without tagging or publishing.
+- [ ] Confirm tag push triggers `publish.yml` automatically (`on: push: tags: "v*"`); `release-post-merge` dispatches it explicitly because `GITHUB_TOKEN` tag pushes do not trigger workflows.
+- [ ] Verify concurrency groups prevent duplicate runs without silently canceling important work (`publish.yml` must never cancel mid-publish).
 
 ## 5. npm publishing flow
 
@@ -72,7 +72,7 @@ npm packages are handled differently from cargo crates. Platform-specific npm pa
 
 ## 9. Asset build and attestation
 
-- [ ] `release.yml` cross-compiles for all targets in the matrix. Verify the target list matches what npm platform packages expect (`darwin-arm64`, `darwin-x64`, `linux-arm64-gnu`, `linux-arm64-musl`, `linux-x64-gnu`, `linux-x64-musl`, `win32-x64-msvc`, `win32-arm64-msvc`).
+- [ ] `publish.yml` cross-compiles for all targets in the matrix. Verify the target list matches what npm platform packages expect (`darwin-arm64`, `darwin-x64`, `linux-arm64-gnu`, `linux-arm64-musl`, `linux-x64-gnu`, `linux-x64-musl`, `win32-x64-msvc`, `win32-arm64-msvc`).
 - [ ] Verify `taiki-e/upload-rust-binary-action` is configured with `bin: monochange` and `archive: "monochange-$target-$tag"`: the download step in `publish.yml` matches this pattern (`monochange-*-${RELEASE_TAG}.tar.gz` / `.zip`) and cargo-binstall can find the package binary in each archive.
 - [ ] Build attestations (`actions/attest-build-provenance@v3`) and verification steps exist and pass.
 
