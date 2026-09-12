@@ -1,26 +1,262 @@
 name: "publish"
 
+# Single workflow that builds release artifacts, uploads them to the draft
+# release, attests their provenance, publishes packages to every registry, and
+# publishes the GitHub release. ci.yml's release-pr job dispatches dry runs
+# against the release PR branch, and ci.yml's release-post-merge job
+# dispatches the real publish after creating the tag and draft release. The
+# tag trigger remains as a fallback for tags created with credentials that are
+# not subject to GitHub's recursion guard.
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to publish (for example `v0.1.0`)."
+        description: "Release tag to publish (for example `v0.1.0`). Used by the automated release handoff and manual retries."
         required: true
         type: string
+      dry_run:
+        description: "Simulate the publish: build every artifact and validate the release, but publish nothing and keep the release a draft."
+        required: false
+        type: boolean
+        default: false
+      checkout_ref:
+        description: "Ref to check out instead of the tag. Dry runs against a release PR pass its branch here so the exact PR commit is validated."
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.tag || github.run_id }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ inputs.tag || github.ref_name }}
+  # Never cancel a publish mid-flight: a partial registry publish is worse
+  # than a queued run waiting its turn.
+  cancel-in-progress: false
+
+# On a tag push github.ref_name is the tag (e.g. v0.1.0); on a manual
+# workflow_dispatch retry inputs.tag is the tag.
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
+  upload_assets:
+    name: build ${{ matrix.target }}
+    if: >-
+      github.repository_owner == 'monochange' &&
+      startsWith(inputs.tag || github.ref_name, 'v')
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-apple-darwin
+            os: macos-14
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      # The release-post-merge job pushes the tag and then creates the draft
+      # release. Wait for that draft release to exist before uploading assets
+      # into it. A dry run never waits (and never uploads): no draft release
+      # is created for it.
+      - name: wait for draft release
+        if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Waiting for the draft release $RELEASE_TAG to be created by the ci.yml release-post-merge job..."
+          for attempt in $(seq 1 30); do
+            if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "Draft release $RELEASE_TAG exists after $attempt attempt(s)."
+              exit 0
+            fi
+            echo "  attempt $attempt/30: release not found yet; sleeping 10s"
+            sleep 10
+          done
+          echo "::error::Release $RELEASE_TAG was not created within the wait window. Check the ci.yml release-post-merge job." >&2
+          exit 1
+
+      - name: checkout release ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref || env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: verify tag checkout
+        if: inputs.dry_run != true
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_tag="${RELEASE_TAG}"
+          actual_commit=$(git rev-parse HEAD)
+          tag_commit=$(git rev-list -n1 "$expected_tag")
+          if [ "$actual_commit" != "$tag_commit" ]; then
+            echo "::error::Checked-out commit $actual_commit does not match tag $expected_tag ($tag_commit)" >&2
+            exit 1
+          fi
+
+          # Ensure the tag has been merged into main (prevents orphaned/release-branch tags)
+          if ! git merge-base --is-ancestor "$actual_commit" refs/remotes/origin/main 2>/dev/null; then
+            echo "::error::Tag $expected_tag ($actual_commit) is not on the main branch" >&2
+            exit 1
+          fi
+
+          echo "Verified: checked-out commit matches tag $expected_tag and is on main"
+
+      - name: install rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+
+      - name: setup cross toolchain
+        uses: taiki-e/setup-cross-toolchain-action@12b7ad4acfa95a1476779d6c06699b96ec1691f8 # v1.42.0
+        with:
+          target: ${{ matrix.target }}
+        if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
+
+      - name: install cross
+        uses: taiki-e/install-action@d438492cf8a250514fa2d34b30bc3c0dc37c65ff # v2.87.8
+        with:
+          tool: cross
+        if: contains(matrix.target, '-musl')
+
+      - name: set static crt linkage
+        shell: bash
+        run: echo "RUSTFLAGS=${RUSTFLAGS} -C target-feature=+crt-static" >> "${GITHUB_ENV}"
+        if: endsWith(matrix.target, 'windows-msvc')
+
+      - name: upload binaries
+        uses: taiki-e/upload-rust-binary-action@f0d45ae91ee7b8ee928de7a9d04d893a08bcbec6 # v1.30.2
+        with:
+          bin: monochange
+          manifest-path: crates/monochange/Cargo.toml
+          profile: dist
+          ref: ${{ inputs.checkout_ref || format('refs/tags/{0}', env.RELEASE_TAG) }}
+          archive: monochange-$target-${{ env.RELEASE_TAG }}
+          target: ${{ matrix.target }}
+          tar: all
+          zip: windows
+          # A dry run builds and archives every target without touching the
+          # draft release, so the exact release PR tree is validated.
+          dry-run: ${{ inputs.dry_run == true }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checksum: sha256,sha512
+
+  attest_assets:
+    name: attest release assets
+    # Require every asset-producing matrix job to succeed before the release
+    # archives are attested. Nothing was uploaded in a dry run, so there is
+    # nothing to attest.
+    if: >-
+      needs.upload_assets.result == 'success' &&
+      github.repository_owner == 'monochange' &&
+      startsWith(inputs.tag || github.ref_name, 'v') &&
+      (inputs.dry_run != true)
+    needs: upload_assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - name: download all release archives for attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          asset_dir="$RUNNER_TEMP/release-asset-attestations"
+          mkdir -p "$asset_dir"
+
+          echo "Downloading all release assets for attestation..."
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'monochange-*' \
+            --dir "$asset_dir"
+
+          # Verify we actually got files
+          shopt -s nullglob
+          archives=("$asset_dir"/*)
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "::error::No release archives downloaded for $RELEASE_TAG after 5 attempts" >&2
+            exit 1
+          fi
+
+          echo "Downloaded release archives for attestation:"
+          for archive in "$asset_dir"/*; do
+            echo "$archive"
+            sha256sum "$archive"
+          done
+
+      - name: attest all release archives
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/release-asset-attestations/*
+
+      - name: verify all release archive attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for archive in "$RUNNER_TEMP/release-asset-attestations"/*; do
+            echo "::group::Verify attestation for $(basename "$archive")"
+            verified=false
+            for attempt in 1 2 3 4 5; do
+              if gh attestation verify "$archive" --repo "$GITHUB_REPOSITORY"; then
+                verified=true
+                break
+              fi
+
+              echo "Attestation not available yet for $(basename "$archive") on attempt $attempt; retrying..."
+              sleep 10
+            done
+
+            if [ "$verified" != true ]; then
+              echo "Failed to verify attestation for $archive" >&2
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+
   publish:
+    name: publish packages and release
+    needs: attest_assets
     environment: publisher
     permissions:
       actions: read
-      contents: read
+      contents: write
       id-token: write
+    # Never publish unless every release asset was attested successfully. A
+    # dry run stops at the upload job: assets are built but nothing is
+    # uploaded, attested, published, or released, so the publisher environment
+    # is never requested for a dry run.
     if: >-
-      github.repository_owner == 'monochange'
+      needs.attest_assets.result == 'success' &&
+      github.repository_owner == 'monochange' &&
+      startsWith(inputs.tag || github.ref_name, 'v') &&
+      (inputs.dry_run != true)
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -29,7 +265,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG='${{ inputs.tag }}'
+          TAG="${RELEASE_TAG}"
 
           repo_url="https://github.com/${GITHUB_REPOSITORY}.git"
 
@@ -130,6 +366,9 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
+          # Keep the publish job free of restore-key caching: the runtime
+          # downloads must come from the release, not from a poisoned cache.
+          package-manager-cache: false
 
       - name: install pnpm for publish
         uses: pnpm/action-setup@d9184bf108216479bc5a137cc391f4d7b14c870b # v6.1.0
@@ -146,3 +385,10 @@ jobs:
           all: true
           stream-output: true
           output: ${{ runner.temp }}/publish-result.json
+
+      # Runs after registry publication so a failed publish never flips the
+      # release public with missing packages.
+      - name: publish draft release
+        run: gh release edit "$RELEASE_TAG" --draft=false --latest --repo "${{ github.repository }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
