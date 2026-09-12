@@ -9250,9 +9250,9 @@ fn github_actions_package_type_applies_preset_defaults() {
 
 	assert_eq!(package.package_type, PackageType::GitHubActions);
 	assert_eq!(package.version_source, VersionSource::Tag);
-	assert_eq!(package.tag, true);
-	assert_eq!(package.release, true);
-	assert_eq!(package.publish.enabled, false);
+	assert!(package.tag);
+	assert!(package.release);
+	assert!(!package.publish.enabled);
 	assert_eq!(package.initial_version, Some(Version::new(0, 1, 0)));
 	assert_eq!(
 		package.floating_tags,
@@ -9280,9 +9280,9 @@ fn github_actions_package_type_accepts_explicit_overrides() {
 	let package = &configuration.packages[0];
 
 	assert_eq!(package.version_source, VersionSource::Manifest);
-	assert_eq!(package.tag, false);
-	assert_eq!(package.release, false);
-	assert_eq!(package.publish.enabled, true);
+	assert!(!package.tag);
+	assert!(!package.release);
+	assert!(package.publish.enabled);
 	assert_eq!(package.initial_version, Some(Version::new(2, 0, 0)));
 	assert_eq!(
 		package.floating_tags,
