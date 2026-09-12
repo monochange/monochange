@@ -358,6 +358,16 @@ impl Ecosystem {
 			Self::Go => "go",
 		}
 	}
+
+	/// Whether released versions are identified by git tags instead of a
+	/// version field in the package manifest.
+	///
+	/// Release planning resolves the current version for these ecosystems from
+	/// the latest reachable release tag matching the owner's version format.
+	#[must_use]
+	pub const fn versions_from_tags(self) -> bool {
+		matches!(self, Self::Go)
+	}
 }
 
 impl From<EcosystemType> for Ecosystem {

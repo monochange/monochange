@@ -6292,8 +6292,20 @@ fn package_matches_definition(
 		return false;
 	};
 	let relative_directory = relative_to_root(root, directory);
-	relative_directory.as_deref() == Some(definition.path.as_path())
+	relative_directory_is(definition.path.as_path(), relative_directory.as_deref())
 		&& ecosystem_matches_package_type(package.ecosystem, definition.package_type)
+}
+
+/// Compare a configured package path with a discovered package directory.
+///
+/// A manifest at the workspace root normalizes to an empty relative directory,
+/// which is configured as `path = "."`.
+fn relative_directory_is(definition_path: &Path, relative_directory: Option<&Path>) -> bool {
+	match relative_directory {
+		Some(directory) if directory.as_os_str().is_empty() => definition_path == Path::new("."),
+		Some(directory) => directory == definition_path,
+		None => false,
+	}
 }
 
 fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageType) -> bool {
@@ -6303,6 +6315,8 @@ fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageTyp
 			| (Ecosystem::Npm, PackageType::Npm)
 			| (Ecosystem::Deno, PackageType::Deno)
 			| (Ecosystem::Dart, PackageType::Dart)
+			| (Ecosystem::Python, PackageType::Python)
+			| (Ecosystem::Go, PackageType::Go)
 	)
 }
 

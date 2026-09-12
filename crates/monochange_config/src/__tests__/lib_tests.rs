@@ -9132,3 +9132,59 @@ fn load_workspace_configuration_coerces_literal_defaults_in_cli_input_declaratio
 	assert_eq!(defaults.get("jobs"), Some(&Some("4".to_string())));
 	assert_eq!(defaults.get("ratio"), Some(&Some("2.5".to_string())));
 }
+
+#[test]
+fn ecosystem_matches_package_type_covers_every_ecosystem() {
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Cargo,
+		monochange_core::PackageType::Cargo
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Npm,
+		monochange_core::PackageType::Npm
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Deno,
+		monochange_core::PackageType::Deno
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Dart,
+		monochange_core::PackageType::Dart
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Python,
+		monochange_core::PackageType::Python
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Go,
+		monochange_core::PackageType::Go
+	));
+	assert!(!super::ecosystem_matches_package_type(
+		Ecosystem::Go,
+		monochange_core::PackageType::Npm
+	));
+}
+
+#[test]
+fn relative_directory_is_treats_empty_directory_as_workspace_root() {
+	assert!(super::relative_directory_is(
+		Path::new("."),
+		Some(Path::new(""))
+	));
+	assert!(super::relative_directory_is(
+		Path::new("."),
+		Some(Path::new("."))
+	));
+	assert!(super::relative_directory_is(
+		Path::new("services/api"),
+		Some(Path::new("services/api"))
+	));
+	assert!(!super::relative_directory_is(
+		Path::new("services/api"),
+		Some(Path::new(""))
+	));
+	assert!(!super::relative_directory_is(
+		Path::new("services/api"),
+		None
+	));
+}

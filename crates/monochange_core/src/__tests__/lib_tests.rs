@@ -5002,3 +5002,13 @@ fn bump_severity_min_severity_returns_the_smaller_severity() {
 		BumpSeverity::Minor
 	);
 }
+
+#[test]
+fn ecosystem_versions_from_tags_flags_go_only() {
+	assert!(Ecosystem::Go.versions_from_tags());
+	assert!(!Ecosystem::Cargo.versions_from_tags());
+	assert!(!Ecosystem::Npm.versions_from_tags());
+	assert!(!Ecosystem::Deno.versions_from_tags());
+	assert!(!Ecosystem::Dart.versions_from_tags());
+	assert!(!Ecosystem::Python.versions_from_tags());
+}

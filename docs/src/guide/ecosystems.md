@@ -207,6 +207,7 @@ Go behavior:
 - internal dependency ranges default to exact Go module versions with a leading `v`, matching Go module semantics
 - `require` directives participate in dependency updates, including grouped `require (...)` blocks
 - Go v2+ semantic import versioning remains encoded in module paths, not a separate manifest version field
+- release planning resolves each module's current version from its latest release tag, so `prepare` and `preview` can plan Go releases without a manifest version field
 - `go.sum` is treated as checksum data, not as a lockfile to patch directly
 - monochange infers `go mod tidy` when `go.mod` / `go.sum` changes need package-manager refreshes
 - built-in publishing creates VCS tags: root modules use `v1.2.3`, while submodules use path-prefixed tags such as `api/v1.2.3`

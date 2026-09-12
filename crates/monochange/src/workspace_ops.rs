@@ -1358,6 +1358,60 @@ pub(crate) fn discover_release_workspace(
 	})
 }
 
+/// Seed release baselines for packages whose versions live in git tags.
+///
+/// Tag-versioned ecosystems (currently Go) carry no version in their manifest,
+/// so without this pass release planning would silently drop them: their
+/// `current_version` stays `None` and no release target is built. The baseline
+/// is the highest existing tag matching the release owner's tag format — the
+/// same tags `tag-release` creates.
+async fn seed_versions_from_release_tags(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	discovery: &mut DiscoveryReport,
+) {
+	let needs_seeding = discovery
+		.packages
+		.iter()
+		.any(|package| package.current_version.is_none() && package.ecosystem.versions_from_tags());
+	if !needs_seeding {
+		return;
+	}
+	let sorted_tags = load_sorted_tags(root).await;
+	seed_versions_from_tag_list(configuration, discovery, &sorted_tags);
+}
+
+fn seed_versions_from_tag_list(
+	configuration: &monochange_core::WorkspaceConfiguration,
+	discovery: &mut DiscoveryReport,
+	sorted_tags: &[String],
+) {
+	for package in &mut discovery.packages {
+		if package.current_version.is_some() || !package.ecosystem.versions_from_tags() {
+			continue;
+		}
+		let config_id = package
+			.metadata
+			.get("config_id")
+			.cloned()
+			.unwrap_or_else(|| package.id.clone());
+		let Some(identity) = configuration.effective_release_identity(&config_id) else {
+			continue;
+		};
+		if !identity.tag {
+			continue;
+		}
+		let prefix = release_tag_prefix(&identity.owner_id, &identity.version_format);
+		let Some(version) = latest_tag_version_with_prefix(sorted_tags, &prefix) else {
+			discovery.warnings.push(format!(
+				"no release tag matching `{prefix}<version>` found for package `{config_id}`; tag an initial release so the version baseline can be resolved"
+			));
+			continue;
+		};
+		package.current_version = Some(version);
+	}
+}
+
 /// Parameters for creating a `.changeset/*.md` file through the library API.
 #[derive(Clone, Copy, Debug, TypedBuilder)]
 pub struct AddChangeFileRequest<'a> {
@@ -1826,10 +1880,11 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		"load workspace configuration",
 		Instant::now(),
 	);
-	let discovery =
+	let mut discovery =
 		measure_prepare_phase(&mut phase_timings, "discover release workspace", || {
 			discover_release_workspace(root, configuration)
 		})?;
+	seed_versions_from_release_tags(root, configuration, &mut discovery).await;
 	let previous_prerelease_state =
 		measure_prepare_phase(&mut phase_timings, "load prerelease state", || {
 			load_prerelease_state(root)

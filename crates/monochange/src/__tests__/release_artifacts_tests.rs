@@ -1330,3 +1330,45 @@ fn validate_release_record_file_fast_path_reports_error_for_unreadable_file() {
 	permissions.set_mode(0o644);
 	let _ = fs::set_permissions(&path, permissions);
 }
+
+#[test]
+fn release_tag_prefix_matches_rendered_tag_names() {
+	assert_eq!(
+		release_tag_prefix("api", &VersionFormat::Namespaced),
+		"api/v"
+	);
+	assert_eq!(release_tag_prefix("api", &VersionFormat::Primary), "v");
+}
+
+#[test]
+fn latest_tag_version_with_prefix_returns_highest_matching_tag() {
+	let sorted_tags = vec![
+		"v1.2.3".to_string(),
+		"api/v2.0.0".to_string(),
+		"v1.0.0".to_string(),
+	];
+
+	assert_eq!(
+		latest_tag_version_with_prefix(&sorted_tags, "v"),
+		Some(Version::new(1, 2, 3))
+	);
+	assert_eq!(
+		latest_tag_version_with_prefix(&sorted_tags, "api/v"),
+		Some(Version::new(2, 0, 0))
+	);
+	assert_eq!(
+		latest_tag_version_with_prefix(&sorted_tags, "other/v"),
+		None
+	);
+	assert_eq!(latest_tag_version_with_prefix(&[], "v"), None);
+}
+
+#[test]
+fn latest_tag_version_with_prefix_ignores_non_semver_tags() {
+	let sorted_tags = vec!["not-a-version".to_string(), "v0.2.0".to_string()];
+
+	assert_eq!(
+		latest_tag_version_with_prefix(&sorted_tags, "v"),
+		Some(Version::new(0, 2, 0))
+	);
+}
