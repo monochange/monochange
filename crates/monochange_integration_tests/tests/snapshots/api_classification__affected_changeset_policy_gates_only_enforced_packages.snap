@@ -1,0 +1,42 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+expression: evaluation
+---
+{
+  "affected_package_ids": [
+    "enforced",
+    "escaped",
+    "group_policy"
+  ],
+  "changed_paths": [
+    ".changeset/understated-patch.md",
+    "crates/enforced/src/lib.rs",
+    "crates/escaped/src/lib.rs",
+    "crates/group_policy/src/lib.rs"
+  ],
+  "changeset_paths": [
+    ".changeset/understated-patch.md"
+  ],
+  "comment": null,
+  "covered_package_ids": [
+    "enforced",
+    "escaped",
+    "group_policy"
+  ],
+  "enforce": false,
+  "errors": [
+    "changeset bump for `enforced` is insufficient: requested `patch`, API classification recommends `major`"
+  ],
+  "ignored_paths": [],
+  "labels": [],
+  "matched_paths": [
+    "crates/enforced/src/lib.rs",
+    "crates/escaped/src/lib.rs",
+    "crates/group_policy/src/lib.rs"
+  ],
+  "matched_skip_labels": [],
+  "required": true,
+  "status": "failed",
+  "summary": "changeset verification failed: one or more changeset bumps underestimate API impact",
+  "uncovered_package_ids": []
+}

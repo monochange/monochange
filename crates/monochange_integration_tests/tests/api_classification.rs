@@ -632,11 +632,12 @@ fn change_classify_resolves_escape_hatch_policy_per_package() {
 		],
 	);
 
-	// A member of an enforced group stays gated on the classified break.
+	// A member of an enforced group keeps the unclamped proposal, though the
+	// medium-confidence break stays below the non-strict enforceable minimum.
 	let enforced = package(&report, "enforced");
 	assert_eq!(enforced["decision"]["classificationEnforced"], true);
-	assert_eq!(enforced["decision"]["enforceableMinimum"], "major");
 	assert_eq!(enforced["decision"]["proposedChangesetBump"], "major");
+	assert_eq!(enforced["decision"]["enforceableMinimum"], "none");
 
 	// A package declaration overrides the group: the ceiling clamps the
 	// proposal and the opt-out clears the enforceable minimum.
@@ -707,6 +708,7 @@ fn changeset_api_validation_exempts_escaped_packages() {
 			"changeset",
 			"validate",
 			"--api",
+			"--strict",
 			"--base",
 			"HEAD~1",
 			"--head",
