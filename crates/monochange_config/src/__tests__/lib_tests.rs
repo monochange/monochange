@@ -3020,6 +3020,9 @@ fn changelog_output_and_provider_validation_accepts_only_compatible_destinations
 		version_format: VersionFormat::Namespaced,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	};
 	expect_config_error(
@@ -5302,6 +5305,9 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		version_format: VersionFormat::Namespaced,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 		cli: None,
@@ -5755,6 +5761,9 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		version_format: VersionFormat::Primary,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	};
 	assert_eq!(
@@ -5787,6 +5796,9 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		version_format: VersionFormat::Primary,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	};
 	let error = infer_group_bump_from_explicit_version(
@@ -7175,6 +7187,9 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		version_format: VersionFormat::Primary,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 		cli: None,
@@ -8973,6 +8988,9 @@ fn package_bump_propagations_resolves_precedence_package_group_default() {
 		version_format: VersionFormat::Namespaced,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	});
 
@@ -9052,6 +9070,9 @@ fn package_bump_propagations_skips_group_members_without_definitions() {
 		version_format: VersionFormat::Namespaced,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	});
 

@@ -383,6 +383,8 @@ fn latest_release_tag_uses_effective_release_identity() {
 		initial_version: None,
 		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
+		bump_ceiling: None,
+		classification_enforced: true,
 	};
 	assert_eq!(
 		latest_release_tag(root, "main", None, "cargo").unwrap(),
@@ -475,7 +477,7 @@ fn working_tree_evidence_does_not_inflate_the_net_pull_request_bump() {
 	}];
 
 	let findings = collect_findings("core", &evidence, DetectionLevel::Signature);
-	let decision = build_recommendation(&findings, false, false);
+	let decision = build_recommendation(&findings, false, false, None, true);
 
 	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::None);
 	assert_eq!(
@@ -575,7 +577,7 @@ fn release_floor_never_falls_below_the_net_pull_request_bump() {
 	);
 	release.comparisons.insert(ComparisonKind::Release);
 
-	let decision = build_recommendation(&[current, release], true, true);
+	let decision = build_recommendation(&[current, release], true, true, None, true);
 
 	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::Major);
 	assert_eq!(decision.release_floor, BumpSeverity::Major);
@@ -880,11 +882,11 @@ fn fallback_findings_and_summaries_make_uncertainty_explicit() {
 		CompatibilityImpact::Unknown
 	);
 
-	let patch = build_recommendation(&findings, true, false);
+	let patch = build_recommendation(&findings, true, false, None, true);
 	assert!(recommendation_summary(&patch, &findings).contains("unclassified"));
 	let mut compatible_findings = findings.clone();
 	compatible_findings[0].impact = CompatibilityImpact::Compatible;
-	let compatible_patch = build_recommendation(&compatible_findings, true, false);
+	let compatible_patch = build_recommendation(&compatible_findings, true, false, None, true);
 	assert!(recommendation_summary(&compatible_patch, &compatible_findings).contains("compatible"));
 
 	let no_change = no_change_recommendation();
@@ -915,6 +917,8 @@ fn release_owner_reports_package_and_group_identity() {
 		initial_version: None,
 		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
+		bump_ceiling: None,
+		classification_enforced: true,
 	};
 	let group = EffectiveReleaseIdentity {
 		owner_id: "workspace".to_string(),
@@ -1091,6 +1095,7 @@ fn no_change_recommendation() -> ChangeRecommendation {
 		completeness: AnalysisCompleteness::Complete,
 		review_required: false,
 		finding_ids: Vec::new(),
+		classification_enforced: true,
 	}
 }
 
@@ -1220,7 +1225,7 @@ fn semantic_finding_uses_explicit_analyzer_assessment() {
 	assert_eq!(finding.coverage.fallback_reason, None);
 	let mut current = finding;
 	current.comparisons.insert(ComparisonKind::PullRequest);
-	let decision = build_recommendation(&[current], true, false);
+	let decision = build_recommendation(&[current], true, false, None, true);
 	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::None);
 	assert_eq!(decision.completeness, AnalysisCompleteness::Complete);
 	assert!(!decision.review_required);
@@ -1438,13 +1443,13 @@ fn package_lifecycle_findings_are_complete_and_enforceable() {
 	assert_eq!(finding.surface, "package");
 	let mut finding = finding;
 	finding.comparisons.insert(ComparisonKind::PullRequest);
-	let decision = build_recommendation(&[finding.clone()], true, false);
+	let decision = build_recommendation(&[finding.clone()], true, false, None, true);
 	assert_eq!(decision.enforceable_minimum, BumpSeverity::Major);
 	assert_eq!(decision.completeness, AnalysisCompleteness::Complete);
 	assert!(!decision.review_required);
 
 	finding.coverage.completeness = AnalysisCompleteness::Partial;
-	let partial_decision = build_recommendation(&[finding], true, false);
+	let partial_decision = build_recommendation(&[finding], true, false, None, true);
 	assert_eq!(partial_decision.enforceable_minimum, BumpSeverity::Major);
 	assert_eq!(partial_decision.completeness, AnalysisCompleteness::Partial);
 	assert!(partial_decision.review_required);
@@ -1794,4 +1799,35 @@ fn collect_cli_surface_classification_skips_unchanged_registered_clis() {
 	assert_eq!(classification, None);
 	assert!(findings.is_empty());
 	assert!(warnings.is_empty());
+}
+
+#[test]
+fn default_classification_enforced_returns_true() {
+	assert!(default_classification_enforced());
+}
+
+#[test]
+fn apply_classification_policy_clamps_and_clears_enforceable_minimum() {
+	use monochange_core::BumpSeverity;
+
+	let severity = (
+		BumpSeverity::Major,
+		BumpSeverity::Minor,
+		BumpSeverity::Major,
+	);
+	let (proposed, enforceable, release_floor) =
+		apply_classification_policy(severity, Some(BumpSeverity::Patch), true);
+	assert_eq!(proposed, BumpSeverity::Patch);
+	assert_eq!(enforceable, BumpSeverity::Patch);
+	assert_eq!(release_floor, BumpSeverity::Patch);
+
+	let (proposed, enforceable, release_floor) = apply_classification_policy(severity, None, true);
+	assert_eq!(proposed, BumpSeverity::Major);
+	assert_eq!(enforceable, BumpSeverity::Minor);
+	assert_eq!(release_floor, BumpSeverity::Major);
+
+	let (proposed, enforceable, _) = apply_classification_policy(severity, None, false);
+	assert_eq!(proposed, BumpSeverity::Major);
+	assert_eq!(enforceable, BumpSeverity::None);
+	assert_eq!(release_floor, BumpSeverity::Major);
 }

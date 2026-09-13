@@ -169,6 +169,10 @@ pub(crate) struct ClassificationFinding {
 	pub(crate) summary: String,
 }
 
+fn default_classification_enforced() -> bool {
+	true
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ChangeRecommendation {
@@ -180,6 +184,9 @@ pub(crate) struct ChangeRecommendation {
 	pub(crate) completeness: AnalysisCompleteness,
 	pub(crate) review_required: bool,
 	pub(crate) finding_ids: Vec<String>,
+	/// Whether the changeset policy enforces classified bumps.
+	#[serde(default = "default_classification_enforced")]
+	pub(crate) classification_enforced: bool,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -378,6 +385,7 @@ fn changeset_validation_mismatches(
 	report
 		.packages
 		.iter()
+		.filter(|package| package.decision.classification_enforced)
 		.filter_map(|package| {
 			let required = if strict {
 				package.decision.proposed_changeset_bump
@@ -665,10 +673,18 @@ pub(crate) fn build_change_classification_report(
 			.get(&package_id)
 			.cloned()
 			.unwrap_or_default();
+		let bump_ceiling = release_identity
+			.as_ref()
+			.and_then(|identity| identity.bump_ceiling);
+		let classification_enforced = release_identity
+			.as_ref()
+			.is_none_or(|identity| identity.classification_enforced);
 		let mut decision = build_recommendation(
 			&findings,
 			!changed_files.is_empty(),
 			latest_release.is_some(),
+			bump_ceiling,
+			classification_enforced,
 		);
 		if changed_files.is_empty() && !package_changesets.is_empty() {
 			decision.compatibility_impact = CompatibilityImpact::Unknown;
@@ -794,7 +810,13 @@ pub(crate) fn classification_report(
 			&package.changed_files,
 			&mut findings,
 		);
-		let decision = build_recommendation(&findings, !package.changed_files.is_empty(), false);
+		let decision = build_recommendation(
+			&findings,
+			!package.changed_files.is_empty(),
+			false,
+			None,
+			true,
+		);
 		let package_recommendation = decision.proposed_changeset_bump;
 
 		if package_recommendation > recommendation {
@@ -1843,6 +1865,8 @@ fn build_recommendation(
 	findings: &[ClassificationFinding],
 	has_current_changes: bool,
 	has_release: bool,
+	bump_ceiling: Option<BumpSeverity>,
+	classification_enforced: bool,
 ) -> ChangeRecommendation {
 	let current = findings
 		.iter()
@@ -1900,6 +1924,12 @@ fn build_recommendation(
 		.map(|finding| finding.id.clone())
 		.collect();
 
+	let (proposed_changeset_bump, enforceable_minimum, release_floor) = apply_classification_policy(
+		(proposed_changeset_bump, enforceable_minimum, release_floor),
+		bump_ceiling,
+		classification_enforced,
+	);
+
 	ChangeRecommendation {
 		compatibility_impact,
 		proposed_changeset_bump,
@@ -1909,7 +1939,26 @@ fn build_recommendation(
 		completeness,
 		review_required,
 		finding_ids,
+		classification_enforced,
 	}
+}
+
+/// Clamp the classification outcome by the owner's `bump_ceiling` and drop
+/// the enforceable minimum when classification is advisory for the owner.
+fn apply_classification_policy(
+	severity: (BumpSeverity, BumpSeverity, BumpSeverity),
+	bump_ceiling: Option<BumpSeverity>,
+	classification_enforced: bool,
+) -> (BumpSeverity, BumpSeverity, BumpSeverity) {
+	let (proposed, enforceable, release_floor) = severity;
+	let clamp = |value: BumpSeverity| bump_ceiling.map_or(value, |ceiling| value.min(ceiling));
+	let proposed = clamp(proposed);
+	let mut enforceable = clamp(enforceable);
+	let release_floor = clamp(release_floor);
+	if !classification_enforced {
+		enforceable = BumpSeverity::None;
+	}
+	(proposed, enforceable, release_floor)
 }
 
 fn highest_compatibility_impact(findings: &[&ClassificationFinding]) -> CompatibilityImpact {
@@ -2109,6 +2158,7 @@ fn propagate_public_dependency_impacts(
 			completeness: AnalysisCompleteness::Partial,
 			review_required: true,
 			finding_ids: vec![finding_id],
+			classification_enforced: true,
 		};
 		packages.push(PackageClassification {
 			package_id: dependent_id,

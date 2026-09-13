@@ -308,6 +308,9 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				version_format: VersionFormat::Primary,
 				version_source: VersionSource::default(),
 				initial_version: None,
+				bump_ceiling: None,
+				classification_enforced: true,
+
 				floating_tags: Vec::new(),
 				cli: None,
 			},
@@ -331,6 +334,9 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				version_format: VersionFormat::Primary,
 				version_source: VersionSource::default(),
 				initial_version: None,
+				bump_ceiling: None,
+				classification_enforced: true,
+
 				floating_tags: Vec::new(),
 				cli: None,
 			},
@@ -354,6 +360,9 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 				version_format: VersionFormat::Primary,
 				version_source: VersionSource::default(),
 				initial_version: None,
+				bump_ceiling: None,
+				classification_enforced: true,
+
 				floating_tags: Vec::new(),
 				cli: None,
 			},
@@ -375,6 +384,9 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 		}],
 		cli: Vec::new(),
@@ -460,6 +472,9 @@ fn build_selectable_targets_handles_group_with_empty_packages() {
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 		}],
 		cli: Vec::new(),
@@ -508,6 +523,9 @@ fn build_selectable_targets_with_only_standalone_packages() {
 				version_format: VersionFormat::Primary,
 				version_source: VersionSource::default(),
 				initial_version: None,
+				bump_ceiling: None,
+				classification_enforced: true,
+
 				floating_tags: Vec::new(),
 				cli: None,
 			},
@@ -531,6 +549,9 @@ fn build_selectable_targets_with_only_standalone_packages() {
 				version_format: VersionFormat::Primary,
 				version_source: VersionSource::default(),
 				initial_version: None,
+				bump_ceiling: None,
+				classification_enforced: true,
+
 				floating_tags: Vec::new(),
 				cli: None,
 			},
@@ -625,6 +646,9 @@ fn build_selectable_targets_deduplicates_and_sorts_change_types() {
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 			cli: None,
 		}],

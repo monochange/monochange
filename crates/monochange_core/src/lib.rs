@@ -2750,6 +2750,7 @@ impl Default for PublishSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct PackageDefinition {
 	pub id: String,
 	pub path: PathBuf,
@@ -2787,6 +2788,12 @@ pub struct PackageDefinition {
 	/// Floating tag aliases moved to every non-prerelease release tag.
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub floating_tags: Vec<FloatingTagFormat>,
+	/// Cap for this package's classified release bump.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub bump_ceiling: Option<BumpSeverity>,
+	/// Whether the changeset policy enforces classified bumps for this package.
+	#[serde(default = "default_true")]
+	pub classification_enforced: bool,
 	/// CLI binary shipped by this package. Additive to `package_type`: the
 	/// package keeps its ecosystem surface and gains a command-surface
 	/// identity for change classification.
@@ -2807,6 +2814,7 @@ pub enum GroupChangelogInclude {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct GroupDefinition {
 	pub id: String,
 	pub packages: Vec<String>,
@@ -2841,6 +2849,12 @@ pub struct GroupDefinition {
 	/// Floating tag aliases moved to every non-prerelease release tag.
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub floating_tags: Vec<FloatingTagFormat>,
+	/// Cap for the group's classified release bump.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub bump_ceiling: Option<BumpSeverity>,
+	/// Whether the changeset policy enforces classified bumps for members.
+	#[serde(default = "default_true")]
+	pub classification_enforced: bool,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -6470,6 +6484,10 @@ pub struct EffectiveReleaseIdentity {
 	/// Floating tag aliases moved to every non-prerelease release tag.
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub floating_tags: Vec<FloatingTagFormat>,
+	/// Cap for classified release bumps across this identity.
+	pub bump_ceiling: Option<BumpSeverity>,
+	/// Whether the changeset policy enforces classified bumps.
+	pub classification_enforced: bool,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -6616,6 +6634,8 @@ impl WorkspaceConfiguration {
 				version_source: group.version_source,
 				initial_version: group.initial_version.clone(),
 				floating_tags: group.floating_tags.clone(),
+				bump_ceiling: group.bump_ceiling,
+				classification_enforced: group.classification_enforced,
 			});
 		}
 
@@ -6630,6 +6650,8 @@ impl WorkspaceConfiguration {
 			version_source: package.version_source,
 			initial_version: package.initial_version.clone(),
 			floating_tags: package.floating_tags.clone(),
+			bump_ceiling: package.bump_ceiling,
+			classification_enforced: package.classification_enforced,
 		})
 	}
 }

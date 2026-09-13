@@ -2429,6 +2429,17 @@
 		"group_definition": {
 			"additionalProperties": false,
 			"properties": {
+				"bump_ceiling": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
 				"bump_propagation": {
 					"anyOf": [
 						{
@@ -2467,6 +2478,13 @@
 					"default": null,
 					"type": [
 						"string",
+						"null"
+					]
+				},
+				"classification_enforced": {
+					"default": null,
+					"type": [
+						"boolean",
 						"null"
 					]
 				},
@@ -2598,6 +2616,17 @@
 					},
 					"type": "array"
 				},
+				"bump_ceiling": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
+				},
 				"bump_propagation": {
 					"anyOf": [
 						{
@@ -2636,6 +2665,13 @@
 					"default": null,
 					"type": [
 						"string",
+						"null"
+					]
+				},
+				"classification_enforced": {
+					"default": null,
+					"type": [
+						"boolean",
 						"null"
 					]
 				},

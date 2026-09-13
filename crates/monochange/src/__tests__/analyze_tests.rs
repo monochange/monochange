@@ -117,6 +117,8 @@ fn tag_prefix_for_identity_matches_primary_and_namespaced_tags() {
 		initial_version: None,
 		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
+		bump_ceiling: None,
+		classification_enforced: true,
 	};
 	let primary = EffectiveReleaseIdentity {
 		owner_id: "sdk".to_string(),
@@ -129,6 +131,8 @@ fn tag_prefix_for_identity_matches_primary_and_namespaced_tags() {
 		initial_version: None,
 		floating_tags: Vec::new(),
 		members: vec!["core".to_string(), "app".to_string()],
+		bump_ceiling: None,
+		classification_enforced: true,
 	};
 
 	assert_eq!(tag_prefix_for_identity(&namespaced), "core/v");
@@ -231,6 +235,8 @@ async fn default_branch_and_release_tag_resolution_cover_origin_head_and_missing
 		initial_version: None,
 		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
+		bump_ceiling: None,
+		classification_enforced: true,
 	};
 	assert_eq!(
 		latest_release_tag_for_identity(tempdir.path(), Some(&no_tag_identity))
@@ -311,6 +317,8 @@ async fn latest_release_tag_and_text_rendering_cover_warning_branches() {
 		initial_version: None,
 		floating_tags: Vec::new(),
 		members: vec!["core".to_string()],
+		bump_ceiling: None,
+		classification_enforced: true,
 	};
 	let tag_error = latest_release_tag_for_identity(missing_repo.path(), Some(&identity))
 		.await

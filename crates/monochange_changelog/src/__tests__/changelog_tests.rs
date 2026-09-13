@@ -153,6 +153,9 @@ fn sample_package_definition(config_id: &str) -> PackageDefinition {
 		version_format: VersionFormat::Namespaced,
 		version_source: monochange_core::VersionSource::Manifest,
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 		cli: None,
 	}
@@ -180,6 +183,9 @@ fn sample_group_definition(include: GroupChangelogInclude) -> GroupDefinition {
 		version_format: VersionFormat::Namespaced,
 		version_source: monochange_core::VersionSource::Manifest,
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	}
 }

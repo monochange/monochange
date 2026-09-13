@@ -471,6 +471,9 @@ fn sample_configuration(
 					version_format: monochange_core::VersionFormat::Primary,
 					version_source: VersionSource::default(),
 					initial_version: None,
+					bump_ceiling: None,
+					classification_enforced: true,
+
 					floating_tags: Vec::new(),
 					publish: monochange_core::PublishSettings {
 						enabled: *enabled,
