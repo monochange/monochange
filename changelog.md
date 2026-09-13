@@ -4,6 +4,52 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.13.0](https://github.com/monochange/monochange/releases/tag/v0.13.0) (2026-09-13)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Add per-package and per-group bump ceilings and classification enforcement flags
+
+_Packages:_ _monochange_core_
+
+- `bump_ceiling` clamps the classified proposed bump, enforceable minimum, and release floor for a package or group.
+- `classification_enforced = false` makes classification advisory for a package or group: the changeset-policy API gate never fails for it.
+- Both fields are group-aware via effective release identity (groups override member packages).
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_source = "tag"
+initial_version = "0.1.0"
+version_format = "primary"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #699](https://github.com/monochange/monochange/pull/699)
+
+### 🚀 Feature
+
+#### Add per-package and per-group bump ceilings and classification enforcement flags
+
+_Packages:_ _monochange_, _monochange_config_
+
+- `bump_ceiling` clamps the classified proposed bump, enforceable minimum, and release floor for a package or group.
+- `classification_enforced = false` makes classification advisory for a package or group: the changeset-policy API gate never fails for it.
+- Both fields are group-aware via effective release identity (groups override member packages).
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_source = "tag"
+initial_version = "0.1.0"
+version_format = "primary"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #699](https://github.com/monochange/monochange/pull/699)
+
 ## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
 
 Grouped release for `main`.

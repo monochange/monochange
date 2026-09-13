@@ -9,6 +9,12 @@
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 - Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
 
+## [0.13.0](https://github.com/monochange/monochange/releases/tag/v0.13.0) (2026-09-13)
+
+### Changed
+
+#### No package-specific changes were recorded; `@monochange/skill` was updated to 0.13.0 as part of group `main`.
+
 ## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
 
 ### 🚀 Feature
