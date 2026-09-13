@@ -1139,7 +1139,7 @@ fn collect_targets_populates_target_types_from_configuration() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			publish: monochange_core::PublishSettings::default(),
@@ -1163,7 +1163,7 @@ fn collect_targets_populates_target_types_from_configuration() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 	});

@@ -262,7 +262,7 @@ fn sample_package_definition(
 		version_source: monochange_core::VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),

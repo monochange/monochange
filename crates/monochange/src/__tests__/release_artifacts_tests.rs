@@ -241,7 +241,7 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 		cli: None,
@@ -264,7 +264,7 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 	}];
@@ -472,7 +472,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			cli: None,
@@ -502,7 +502,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			cli: None,
@@ -532,7 +532,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			cli: None,
@@ -561,7 +561,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			cli: None,

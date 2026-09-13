@@ -123,7 +123,7 @@ fn sample_package() -> PackageDefinition {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 		cli: None,

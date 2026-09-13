@@ -438,7 +438,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			cli: None,
@@ -485,7 +485,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			cli: None,
@@ -544,7 +544,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			cli: None,
@@ -2533,7 +2533,7 @@ fn github_actions_definition(id: &str, path: &str) -> monochange_core::PackageDe
 		version_source: monochange_core::VersionSource::Tag,
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),

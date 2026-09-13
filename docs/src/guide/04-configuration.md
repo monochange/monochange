@@ -129,7 +129,9 @@ Supported `type` values:
 Optional package fields:
 
 - `type`, when `[defaults].package_type` is set
+- `bump_ceiling`
 - `changelog`
+- `classification_enforced`
 - `empty_update_message`
 - `publish`
 - `versioned_files`
@@ -171,6 +173,28 @@ floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
 ```
 
 Alias templates support `{{ major }}`, `{{ minor }}`, `{{ patch }}`, and the `version_format` variables (`{{ version }}`, `{{ name }}`, `{{ ecosystem }}`). Floating tags are skipped for prereleases, never receive provider releases, and are excluded from baseline and previous-tag resolution.
+
+### Classification policy
+
+`bump_ceiling` and `classification_enforced` decouple change classification from what a package is allowed to release.
+
+- `bump_ceiling` caps the severity classification may propose for the package. It clamps the proposed changeset bump, the enforceable minimum, and the release floor to the ceiling, and never raises a smaller bump.
+- `classification_enforced = false` makes classification advisory for the package. The proposal still appears in reports and change-classification comments, but `monochange changeset validate --api` never fails on its behalf.
+
+Both fields resolve most-specific-first: a package declaration overrides its group's declaration, and a group declaration applies to members that do not declare their own. Set the policy on a group when a whole family of packages shares it.
+
+```toml
+[group.main]
+packages = ["cli", "docs-site"]
+
+[package.docs-site]
+path = "packages/docs-site"
+type = "npm"
+# Prose-only package: keep the advisory proposal at patch and never block a
+# release on classification.
+bump_ceiling = "patch"
+classification_enforced = false
+```
 
 `changelog` accepts three forms on packages:
 
