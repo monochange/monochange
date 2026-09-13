@@ -1,5 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/api_classification.rs
+assertion_line: 180
 expression: report
 ---
 {
@@ -55,6 +56,7 @@ expression: report
         }
       ],
       "decision": {
+        "classificationEnforced": true,
         "compatibilityImpact": "compatible",
         "completeness": "partial",
         "confidence": "medium",
@@ -140,6 +142,7 @@ expression: report
         }
       ],
       "decision": {
+        "classificationEnforced": true,
         "compatibilityImpact": "breaking",
         "completeness": "partial",
         "confidence": "medium",
@@ -225,6 +228,7 @@ expression: report
         }
       ],
       "decision": {
+        "classificationEnforced": true,
         "compatibilityImpact": "additive",
         "completeness": "partial",
         "confidence": "medium",

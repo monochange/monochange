@@ -240,6 +240,9 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		version_format: VersionFormat::Namespaced,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 		cli: None,
 	}];
@@ -260,6 +263,9 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		version_format: VersionFormat::Namespaced,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	}];
 	let package = sample_package(root, "pkg-a", PackageType::Cargo);
@@ -465,6 +471,9 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 			cli: None,
 		},
@@ -492,6 +501,9 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 			cli: None,
 		},
@@ -519,6 +531,9 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 			cli: None,
 		},
@@ -545,6 +560,9 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 			cli: None,
 		},

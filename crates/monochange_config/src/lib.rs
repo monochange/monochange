@@ -299,6 +299,10 @@ pub(crate) struct RawPackageDefinition {
 	#[serde(default)]
 	version_source: Option<VersionSource>,
 	#[serde(default)]
+	bump_ceiling: Option<BumpSeverity>,
+	#[serde(default)]
+	classification_enforced: Option<bool>,
+	#[serde(default)]
 	#[cfg_attr(feature = "schema", schemars(skip))]
 	initial_version: Option<Version>,
 	#[serde(default)]
@@ -401,6 +405,10 @@ pub(crate) struct RawGroupDefinition {
 	version_format: VersionFormat,
 	#[serde(default)]
 	version_source: Option<VersionSource>,
+	#[serde(default)]
+	bump_ceiling: Option<BumpSeverity>,
+	#[serde(default)]
+	classification_enforced: Option<bool>,
 	#[serde(default)]
 	#[cfg_attr(feature = "schema", schemars(skip))]
 	initial_version: Option<Version>,
@@ -1916,6 +1924,8 @@ fn build_package_definitions(
 				version_source,
 				initial_version,
 				floating_tags,
+				bump_ceiling: package.bump_ceiling,
+				classification_enforced: package.classification_enforced.unwrap_or(true),
 				cli: normalize_package_cli(package.cli),
 				publish,
 			})
@@ -2048,6 +2058,8 @@ fn build_group_definitions(
 				version_source: group.version_source.unwrap_or_default(),
 				initial_version: group.initial_version,
 				floating_tags: group.floating_tags,
+				bump_ceiling: group.bump_ceiling,
+				classification_enforced: group.classification_enforced.unwrap_or(true),
 			})
 		})
 		.collect::<Result<Vec<_>, _>>()
@@ -2151,6 +2163,8 @@ fn discover_auto_packages(
 				version_source: VersionSource::Manifest,
 				initial_version: None,
 				floating_tags: Vec::new(),
+				bump_ceiling: None,
+				classification_enforced: true,
 				cli: None,
 				publish: ecosystem_settings.publish.clone(),
 			});

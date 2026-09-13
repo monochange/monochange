@@ -36,7 +36,9 @@ exit_code: 0
       "core",
       "app"
     ],
-    "version_source": "manifest"
+    "version_source": "manifest",
+    "bump_ceiling": null,
+    "classification_enforced": true
   },
   "first_release": true,
   "refs": {

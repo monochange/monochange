@@ -1,5 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/api_classification.rs
+assertion_line: 251
 expression: snapshot
 ---
 {
@@ -55,6 +56,7 @@ expression: snapshot
         }
       ],
       "decision": {
+        "classificationEnforced": true,
         "compatibilityImpact": "breaking",
         "completeness": "complete",
         "confidence": "high",

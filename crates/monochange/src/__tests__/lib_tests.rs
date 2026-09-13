@@ -12878,6 +12878,9 @@ fn sample_group_definition(include: GroupChangelogInclude) -> monochange_core::G
 		version_format: VersionFormat::Namespaced,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	}
 }
@@ -12921,6 +12924,9 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 			cli: None,
 		}],
@@ -12941,6 +12947,9 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 		}],
 		cli: Vec::new(),
@@ -13046,6 +13055,9 @@ fn apply_runtime_change_type_choices_updates_only_unconfigured_change_inputs() {
 			version_format: VersionFormat::Primary,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 			cli: None,
 		}],

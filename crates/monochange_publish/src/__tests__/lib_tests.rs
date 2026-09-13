@@ -372,6 +372,8 @@ fn group_definition(id: &str, packages: &[&str]) -> GroupDefinition {
 		version_source: monochange_core::VersionSource::default(),
 		initial_version: None,
 		floating_tags: Vec::new(),
+		bump_ceiling: None,
+		classification_enforced: true,
 	}
 }
 

@@ -1138,6 +1138,9 @@ fn collect_targets_populates_target_types_from_configuration() {
 			version_format: monochange_core::VersionFormat::Namespaced,
 			version_source: VersionSource::default(),
 			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: true,
+
 			floating_tags: Vec::new(),
 			publish: monochange_core::PublishSettings::default(),
 			cli: None,
@@ -1159,6 +1162,9 @@ fn collect_targets_populates_target_types_from_configuration() {
 		version_format: monochange_core::VersionFormat::Namespaced,
 		version_source: VersionSource::default(),
 		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: true,
+
 		floating_tags: Vec::new(),
 	});
 
