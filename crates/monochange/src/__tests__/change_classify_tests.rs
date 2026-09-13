@@ -1800,3 +1800,34 @@ fn collect_cli_surface_classification_skips_unchanged_registered_clis() {
 	assert!(findings.is_empty());
 	assert!(warnings.is_empty());
 }
+
+#[test]
+fn default_classification_enforced_returns_true() {
+	assert!(default_classification_enforced());
+}
+
+#[test]
+fn apply_classification_policy_clamps_and_clears_enforceable_minimum() {
+	use monochange_core::BumpSeverity;
+
+	let severity = (
+		BumpSeverity::Major,
+		BumpSeverity::Minor,
+		BumpSeverity::Major,
+	);
+	let (proposed, enforceable, release_floor) =
+		apply_classification_policy(severity, Some(BumpSeverity::Patch), true);
+	assert_eq!(proposed, BumpSeverity::Patch);
+	assert_eq!(enforceable, BumpSeverity::Patch);
+	assert_eq!(release_floor, BumpSeverity::Patch);
+
+	let (proposed, enforceable, release_floor) = apply_classification_policy(severity, None, true);
+	assert_eq!(proposed, BumpSeverity::Major);
+	assert_eq!(enforceable, BumpSeverity::Minor);
+	assert_eq!(release_floor, BumpSeverity::Major);
+
+	let (proposed, enforceable, _) = apply_classification_policy(severity, None, false);
+	assert_eq!(proposed, BumpSeverity::Major);
+	assert_eq!(enforceable, BumpSeverity::None);
+	assert_eq!(release_floor, BumpSeverity::Major);
+}
