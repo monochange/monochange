@@ -1,0 +1,27 @@
+[defaults]
+package_type = "cargo"
+
+[changesets.affected]
+enabled = true
+required = true
+
+# The escaped package opts out per package; its sibling in the same group stays
+# enforced. The policy group declares the opt-out for every member instead.
+[package.enforced]
+path = "crates/enforced"
+
+[package.escaped]
+path = "crates/escaped"
+bump_ceiling = "patch"
+classification_enforced = false
+
+[package.group_policy]
+path = "crates/group_policy"
+
+[group.main]
+packages = ["enforced", "escaped"]
+
+[group.policy]
+packages = ["group_policy"]
+bump_ceiling = "patch"
+classification_enforced = false
