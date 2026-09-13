@@ -1,7 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/cli_surface_classification.rs
-assertion_line: 142
-expression: report
+expression: projected
 ---
 {
   "candidate": "merge-tree:[SHA]",
@@ -63,6 +62,7 @@ expression: report
         }
       ],
       "decision": {
+        "classificationEnforced": true,
         "compatibilityImpact": "breaking",
         "completeness": "complete",
         "confidence": "high",
