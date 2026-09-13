@@ -373,7 +373,7 @@ fn group_definition(id: &str, packages: &[&str]) -> GroupDefinition {
 		initial_version: None,
 		floating_tags: Vec::new(),
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 	}
 }
 

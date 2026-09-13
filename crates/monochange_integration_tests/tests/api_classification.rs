@@ -601,3 +601,137 @@ fn change_classify_reports_changeset_only_intent_for_review() {
 	assert_eq!(package["decision"]["reviewRequired"], true);
 	assert_eq!(package["existingChangesets"][0]["bump"], "minor");
 }
+
+fn run_mc_error(root: &Path, args: &[&str]) -> String {
+	let mut cli_args = vec![OsString::from("monochange")];
+	cli_args.extend(args.iter().map(OsString::from));
+
+	let runtime = tokio::runtime::Builder::new_current_thread()
+		.enable_all()
+		.build()
+		.unwrap_or_else(|error| panic!("tokio runtime: {error}"));
+
+	runtime
+		.block_on(monochange::run_with_args_in_dir(
+			"monochange",
+			cli_args,
+			root,
+		))
+		.expect_err("expected the command to fail")
+		.to_string()
+}
+
+#[test]
+fn change_classify_resolves_escape_hatch_policy_per_package() {
+	let fixture = setup_api_fixture("classification-escape-hatch");
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	// A member of an enforced group keeps the unclamped proposal, though the
+	// medium-confidence break stays below the non-strict enforceable minimum.
+	let enforced = package(&report, "enforced");
+	assert_eq!(enforced["decision"]["classificationEnforced"], true);
+	assert_eq!(enforced["decision"]["proposedChangesetBump"], "major");
+	assert_eq!(enforced["decision"]["enforceableMinimum"], "none");
+
+	// A package declaration overrides the group: the ceiling clamps the
+	// proposal and the opt-out clears the enforceable minimum.
+	let escaped = package(&report, "escaped");
+	assert_eq!(escaped["decision"]["classificationEnforced"], false);
+	assert_eq!(escaped["decision"]["enforceableMinimum"], "none");
+	assert_eq!(escaped["decision"]["proposedChangesetBump"], "patch");
+	assert_eq!(escaped["decision"]["releaseFloor"], "patch");
+
+	// A group declaration applies to members that declare nothing.
+	let group_policy = package(&report, "group_policy");
+	assert_eq!(group_policy["decision"]["classificationEnforced"], false);
+	assert_eq!(group_policy["decision"]["enforceableMinimum"], "none");
+	assert_eq!(group_policy["decision"]["proposedChangesetBump"], "patch");
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(report);
+	});
+}
+
+#[test]
+fn affected_changeset_policy_gates_only_enforced_packages() {
+	let fixture = setup_api_fixture("classification-escape-hatch");
+
+	let evaluation = run_json(
+		fixture.path(),
+		&[
+			"step",
+			"affected-packages",
+			"--from",
+			"HEAD~1",
+			"--format",
+			"json",
+		],
+	);
+
+	assert_eq!(evaluation["status"], "failed");
+	assert_eq!(
+		evaluation["covered_package_ids"],
+		serde_json::json!(["enforced", "escaped", "group_policy"])
+	);
+	let errors = evaluation["errors"]
+		.as_array()
+		.unwrap_or_else(|| panic!("errors should be an array: {evaluation:#}"));
+	assert!(errors.iter().any(|error| {
+		error.as_str().is_some_and(|error| {
+			error.contains("`enforced`") && error.contains("recommends `major`")
+		})
+	}));
+	assert!(!errors.iter().any(|error| {
+		error
+			.as_str()
+			.is_some_and(|error| error.contains("`escaped`") || error.contains("`group_policy`"))
+	}));
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(evaluation);
+	});
+}
+
+#[test]
+fn changeset_api_validation_exempts_escaped_packages() {
+	let fixture = setup_api_fixture("classification-escape-hatch");
+
+	let error = run_mc_error(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--strict",
+			"--base",
+			"HEAD~1",
+			"--head",
+			"HEAD",
+			"--format",
+			"json",
+		],
+	);
+
+	assert!(
+		error.contains("changeset severity does not satisfy classification"),
+		"unexpected error: {error}"
+	);
+	assert!(
+		error.contains("package `enforced`"),
+		"unexpected error: {error}"
+	);
+	assert!(
+		!error.contains("package `escaped`"),
+		"unexpected error: {error}"
+	);
+	assert!(
+		!error.contains("package `group_policy`"),
+		"unexpected error: {error}"
+	);
+}

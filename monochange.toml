@@ -214,6 +214,21 @@ perf = { bump = "none", section = "perf", description = "Performance and benchma
 #   bump_propagation_max    — clamp for "inherit" so dependents never exceed
 #                             the given severity (requires
 #                             bump_propagation = "inherit")
+#   bump_ceiling            — upper bound on the bump severity classification
+#                             may propose for this package:
+#                             "none"/"patch"/"minor"/"major". The ceiling also
+#                             clamps the enforceable minimum and release floor,
+#                             and never raises a smaller bump. A group-level
+#                             ceiling is the default for its members; a package
+#                             declaration overrides it
+#   classification_enforced — whether changeset-policy validation fails when
+#                             the declared changeset bump is below the bump
+#                             classification requires (default: true). Set
+#                             false to make classification advisory for this
+#                             package: the proposal still appears in reports,
+#                             but it never fails validation or blocks a release.
+#                             A group-level value is the default for its
+#                             members; a package declaration overrides it
 #   empty_update_message    — per-package fallback text for transitive bumps
 #   versioned_files         — additional files to update with the new version
 #                             package-scoped string entries infer the package ecosystem,
@@ -352,9 +367,20 @@ path = "crates/monochange_lint"
 [package.monochange_linting]
 path = "crates/monochange_linting"
 
+# The skill package ships prose: SKILL.md, reference guides, and examples.
+# Classification reads rewritten guidance as API impact because the wording of
+# a skill is its interface, so a documentation pass can be scored as a minor or
+# major change to an interface that has no callers. Opting out keeps the
+# proposal visible in classification reports while letting the released
+# changeset decide the bump, and the ceiling keeps the advisory proposal itself
+# at patch for a package that never ships code. Both settings are declared here
+# rather than on [group.main] because the skill is the only prose package in
+# the group; package declarations override group defaults.
 [package."@monochange/skill"]
 path = "packages/monochange__skill"
 type = "npm"
+bump_ceiling = "patch"
+classification_enforced = false
 
 [package."@monochange/cli"]
 path = "packages/monochange__cli"

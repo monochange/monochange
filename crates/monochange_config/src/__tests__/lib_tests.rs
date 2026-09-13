@@ -3021,7 +3021,7 @@ fn changelog_output_and_provider_validation_accepts_only_compatible_destinations
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 	};
@@ -5306,7 +5306,7 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
@@ -5762,7 +5762,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 	};
@@ -5797,7 +5797,7 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 	};
@@ -7188,7 +7188,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
@@ -8989,7 +8989,7 @@ fn package_bump_propagations_resolves_precedence_package_group_default() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 	});
@@ -9071,7 +9071,7 @@ fn package_bump_propagations_skips_group_members_without_definitions() {
 		version_source: VersionSource::default(),
 		initial_version: None,
 		bump_ceiling: None,
-		classification_enforced: true,
+		classification_enforced: None,
 
 		floating_tags: Vec::new(),
 	});

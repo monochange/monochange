@@ -3235,6 +3235,57 @@ fn workspace_configuration_uses_group_release_identity_for_group_members() {
 }
 
 #[test]
+fn workspace_configuration_group_classification_policy_applies_to_members() {
+	let mut configuration = sample_workspace_configuration();
+	let group = configuration
+		.groups
+		.iter_mut()
+		.find(|group| group.id == "workspace")
+		.unwrap_or_else(|| panic!("expected workspace group"));
+	group.bump_ceiling = Some(BumpSeverity::Major);
+	group.classification_enforced = Some(false);
+
+	for package_id in ["monochange", "monochange_core"] {
+		let identity = configuration
+			.effective_release_identity(package_id)
+			.unwrap_or_else(|| panic!("expected release identity for {package_id}"));
+		assert_eq!(identity.bump_ceiling, Some(BumpSeverity::Major));
+		assert!(!identity.classification_enforced);
+	}
+}
+
+#[test]
+fn workspace_configuration_package_classification_policy_overrides_group() {
+	let mut configuration = sample_workspace_configuration();
+	let group = configuration
+		.groups
+		.iter_mut()
+		.find(|group| group.id == "workspace")
+		.unwrap_or_else(|| panic!("expected workspace group"));
+	group.bump_ceiling = Some(BumpSeverity::Major);
+	group.classification_enforced = Some(true);
+	let package = configuration
+		.packages
+		.iter_mut()
+		.find(|package| package.id == "monochange")
+		.unwrap_or_else(|| panic!("expected monochange package"));
+	package.bump_ceiling = Some(BumpSeverity::Patch);
+	package.classification_enforced = Some(false);
+
+	let overridden = configuration
+		.effective_release_identity("monochange")
+		.unwrap_or_else(|| panic!("expected release identity"));
+	assert_eq!(overridden.bump_ceiling, Some(BumpSeverity::Patch));
+	assert!(!overridden.classification_enforced);
+
+	let inherited = configuration
+		.effective_release_identity("monochange_core")
+		.unwrap_or_else(|| panic!("expected release identity"));
+	assert_eq!(inherited.bump_ceiling, Some(BumpSeverity::Major));
+	assert!(inherited.classification_enforced);
+}
+
+#[test]
 fn workspace_configuration_uses_package_release_identity_when_not_grouped() {
 	let configuration = sample_workspace_configuration();
 	let identity = configuration
@@ -3248,6 +3299,8 @@ fn workspace_configuration_uses_package_release_identity_when_not_grouped() {
 	assert!(!identity.release);
 	assert_eq!(identity.version_format, VersionFormat::Namespaced);
 	assert_eq!(identity.members, vec!["monochange_graph"]);
+	assert_eq!(identity.bump_ceiling, None);
+	assert!(identity.classification_enforced);
 }
 
 fn sample_workspace_configuration() -> WorkspaceConfiguration {
@@ -3281,7 +3334,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				version_source: VersionSource::default(),
 				initial_version: None,
 				bump_ceiling: None,
-				classification_enforced: true,
+				classification_enforced: None,
 
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
@@ -3311,7 +3364,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				version_source: VersionSource::default(),
 				initial_version: None,
 				bump_ceiling: None,
-				classification_enforced: true,
+				classification_enforced: None,
 
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
@@ -3337,7 +3390,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				version_source: VersionSource::default(),
 				initial_version: None,
 				bump_ceiling: None,
-				classification_enforced: true,
+				classification_enforced: None,
 
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
@@ -3366,7 +3419,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 		}],

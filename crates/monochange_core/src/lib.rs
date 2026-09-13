@@ -2788,12 +2788,15 @@ pub struct PackageDefinition {
 	/// Floating tag aliases moved to every non-prerelease release tag.
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub floating_tags: Vec<FloatingTagFormat>,
-	/// Cap for this package's classified release bump.
+	/// Cap for this package's classified release bump. Overrides the group's
+	/// ceiling when the package declares one.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub bump_ceiling: Option<BumpSeverity>,
 	/// Whether the changeset policy enforces classified bumps for this package.
-	#[serde(default = "default_true")]
-	pub classification_enforced: bool,
+	/// Overrides the group's setting when the package declares one; `None` and
+	/// `Some(true)` both enforce.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub classification_enforced: Option<bool>,
 	/// CLI binary shipped by this package. Additive to `package_type`: the
 	/// package keeps its ecosystem surface and gains a command-surface
 	/// identity for change classification.
@@ -2849,12 +2852,14 @@ pub struct GroupDefinition {
 	/// Floating tag aliases moved to every non-prerelease release tag.
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub floating_tags: Vec<FloatingTagFormat>,
-	/// Cap for the group's classified release bump.
+	/// Cap for the group's classified release bump. Members that declare their
+	/// own ceiling override it.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub bump_ceiling: Option<BumpSeverity>,
-	/// Whether the changeset policy enforces classified bumps for members.
-	#[serde(default = "default_true")]
-	pub classification_enforced: bool,
+	/// Whether the changeset policy enforces classified bumps for members that
+	/// do not declare `classification_enforced` themselves.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub classification_enforced: Option<bool>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -6619,6 +6624,10 @@ impl WorkspaceConfiguration {
 	}
 
 	/// Resolve the effective outward release identity for a package.
+	///
+	/// Group-owned fields come from the group. Classification policy
+	/// (`bump_ceiling`, `classification_enforced`) is per package: the member's
+	/// own declaration wins, and the group's declaration is the fallback.
 	#[must_use]
 	pub fn effective_release_identity(&self, package_id: &str) -> Option<EffectiveReleaseIdentity> {
 		let package = self.package_by_id(package_id)?;
@@ -6634,8 +6643,11 @@ impl WorkspaceConfiguration {
 				version_source: group.version_source,
 				initial_version: group.initial_version.clone(),
 				floating_tags: group.floating_tags.clone(),
-				bump_ceiling: group.bump_ceiling,
-				classification_enforced: group.classification_enforced,
+				bump_ceiling: package.bump_ceiling.or(group.bump_ceiling),
+				classification_enforced: package
+					.classification_enforced
+					.or(group.classification_enforced)
+					.unwrap_or(true),
 			});
 		}
 
@@ -6651,7 +6663,7 @@ impl WorkspaceConfiguration {
 			initial_version: package.initial_version.clone(),
 			floating_tags: package.floating_tags.clone(),
 			bump_ceiling: package.bump_ceiling,
-			classification_enforced: package.classification_enforced,
+			classification_enforced: package.classification_enforced.unwrap_or(true),
 		})
 	}
 }

@@ -810,12 +810,22 @@ pub(crate) fn classification_report(
 			&package.changed_files,
 			&mut findings,
 		);
+		// The analysis resolved each package's release identity from the
+		// workspace configuration, so the gate applies the same
+		// `bump_ceiling` and `classification_enforced` policy as the report.
+		let release_identity = package.release_identity.clone();
+		let bump_ceiling = release_identity
+			.as_ref()
+			.and_then(|identity| identity.bump_ceiling);
+		let classification_enforced = release_identity
+			.as_ref()
+			.is_none_or(|identity| identity.classification_enforced);
 		let decision = build_recommendation(
 			&findings,
 			!package.changed_files.is_empty(),
 			false,
-			None,
-			true,
+			bump_ceiling,
+			classification_enforced,
 		);
 		let package_recommendation = decision.proposed_changeset_bump;
 

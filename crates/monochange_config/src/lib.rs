@@ -1925,7 +1925,7 @@ fn build_package_definitions(
 				initial_version,
 				floating_tags,
 				bump_ceiling: package.bump_ceiling,
-				classification_enforced: package.classification_enforced.unwrap_or(true),
+				classification_enforced: package.classification_enforced,
 				cli: normalize_package_cli(package.cli),
 				publish,
 			})
@@ -2059,7 +2059,7 @@ fn build_group_definitions(
 				initial_version: group.initial_version,
 				floating_tags: group.floating_tags,
 				bump_ceiling: group.bump_ceiling,
-				classification_enforced: group.classification_enforced.unwrap_or(true),
+				classification_enforced: group.classification_enforced,
 			})
 		})
 		.collect::<Result<Vec<_>, _>>()
@@ -2164,7 +2164,7 @@ fn discover_auto_packages(
 				initial_version: None,
 				floating_tags: Vec::new(),
 				bump_ceiling: None,
-				classification_enforced: true,
+				classification_enforced: None,
 				cli: None,
 				publish: ecosystem_settings.publish.clone(),
 			});

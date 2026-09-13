@@ -786,7 +786,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				version_source: VersionSource::default(),
 				initial_version: None,
 				bump_ceiling: None,
-				classification_enforced: true,
+				classification_enforced: None,
 
 				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings::default(),
@@ -812,7 +812,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				version_source: VersionSource::default(),
 				initial_version: None,
 				bump_ceiling: None,
-				classification_enforced: true,
+				classification_enforced: None,
 
 				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings::default(),
@@ -838,7 +838,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				version_source: VersionSource::default(),
 				initial_version: None,
 				bump_ceiling: None,
-				classification_enforced: true,
+				classification_enforced: None,
 
 				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings {
@@ -1350,7 +1350,7 @@ async fn enforce_publish_rate_limits_returns_ok_when_enforcement_is_not_triggere
 			version_source: VersionSource::default(),
 			initial_version: None,
 			bump_ceiling: None,
-			classification_enforced: true,
+			classification_enforced: None,
 
 			floating_tags: Vec::new(),
 			publish: monochange_core::PublishSettings::default(),
@@ -1472,7 +1472,7 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 					version_source: VersionSource::default(),
 					initial_version: None,
 					bump_ceiling: None,
-					classification_enforced: true,
+					classification_enforced: None,
 
 					floating_tags: Vec::new(),
 					publish: monochange_core::PublishSettings {
