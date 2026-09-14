@@ -23,6 +23,7 @@ serde_json = { workspace = true, default-features = true }
 
 [dev-dependencies]
 insta = { workspace = true, default-features = true }
+jsonschema = { workspace = true, default-features = true }
 
 [lints]
 workspace = true

@@ -2582,6 +2582,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "insta",
+ "jsonschema",
  "schemars",
  "serde",
  "serde_json",
