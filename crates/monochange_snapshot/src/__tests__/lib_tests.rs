@@ -28,6 +28,124 @@ fn snapshot_schema_version_tracks_package_major_minor() {
 	assert_eq!(SNAPSHOT_SCHEMA_VERSION, expected);
 }
 
+#[cfg(feature = "schema")]
+#[test]
+fn command_snapshot_schema_describes_the_wire_contract() {
+	let schema = schema::command_snapshot().to_value();
+
+	let required = schema
+		.pointer("/required")
+		.and_then(|value| value.as_array())
+		.unwrap_or_else(|| panic!("schema declares required fields"));
+	let required = required
+		.iter()
+		.filter_map(|value| value.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		required,
+		vec![
+			"schema_version",
+			"kind",
+			"tool",
+			"provenance",
+			"standard_entrypoints"
+		]
+	);
+
+	// Optional collections must stay optional so a minimal emitter can omit
+	// them, which is what the documented examples rely on.
+	assert!(!required.contains(&"commands"));
+	assert!(!required.contains(&"global_options"));
+	assert!(!required.contains(&"output_contracts"));
+
+	for definition in [
+		"CommandNode",
+		"CommandOption",
+		"CommandPositional",
+		"OptionValue",
+		"OutputContract",
+		"ParserBehavior",
+		"SnapshotProvenance",
+		"SnapshotTool",
+		"StandardEntrypoint",
+		"StandardEntrypoints",
+	] {
+		assert!(
+			schema
+				.pointer(&format!("/$defs/{definition}"))
+				.is_some_and(serde_json::Value::is_object),
+			"schema defines $defs/{definition}"
+		);
+	}
+
+	assert_eq!(
+		schema
+			.pointer("/$defs/SnapshotKind/enum")
+			.and_then(|value| value.as_array())
+			.map(|values| values.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>()),
+		Some(vec!["cli-surface"])
+	);
+	assert_eq!(
+		schema
+			.pointer("/$defs/ValueKind/enum")
+			.and_then(|value| value.as_array())
+			.map(|values| values.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>()),
+		Some(vec!["flag", "string", "enum", "counter"])
+	);
+	assert_eq!(
+		schema
+			.pointer("/$defs/SnapshotSeverity/enum")
+			.and_then(|value| value.as_array())
+			.map(|values| values.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>()),
+		Some(vec!["none", "patch", "minor", "major"])
+	);
+}
+
+#[cfg(feature = "schema")]
+#[test]
+fn command_snapshot_schema_accepts_a_minimal_emitted_document() {
+	let schema = schema::command_snapshot().to_value();
+	let minimal = serde_json::json!({
+		"schema_version": SNAPSHOT_SCHEMA_VERSION,
+		"kind": "cli-surface",
+		"tool": { "name": "demo", "version": null },
+		"provenance": { "extractor": "commander", "confidence": "high" },
+		"standard_entrypoints": {
+			"help": { "flags": ["--help", "-h"] },
+			"version": {},
+			"snapshot": {},
+		},
+	});
+	let validator = jsonschema_validator(&schema);
+	assert!(
+		validator.validate(&minimal).is_ok(),
+		"a minimal emitted document validates: {:?}",
+		validator.validate(&minimal).err()
+	);
+
+	let mut with_command = minimal.clone();
+	with_command["commands"] = serde_json::json!([{
+		"path": ["check"],
+		"hidden": false,
+		"max_bump": "major",
+		"parser": {
+			"flags_are_posix_noncompliant": false,
+			"options_must_precede_arguments": false,
+			"option_arg_separators": [" ", "="],
+		},
+	}]);
+	assert!(
+		validator.validate(&with_command).is_ok(),
+		"a document with a command node validates: {:?}",
+		validator.validate(&with_command).err()
+	);
+}
+
+#[cfg(feature = "schema")]
+fn jsonschema_validator(schema: &serde_json::Value) -> jsonschema::Validator {
+	jsonschema::validator_for(schema).unwrap_or_else(|error| panic!("compile schema: {error}"))
+}
+
 #[test]
 fn snapshot_from_clap_captures_command_options_and_positionals() {
 	let command = Command::new("demo")
