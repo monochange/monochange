@@ -365,3 +365,32 @@ fn package_path_matcher_applies_root_additional_and_ignored_paths() {
 		PackagePathMatch::Touched
 	);
 }
+
+#[test]
+fn package_path_matcher_treats_dot_path_as_the_repository_root() {
+	let matcher = PackagePathMatcher::new("actions", Path::new("."), &[], &["dist/**".to_string()]);
+
+	assert_eq!(
+		matcher.classify(Path::new("src/actions/merge/index.ts")),
+		PackagePathMatch::Touched
+	);
+	assert_eq!(
+		matcher.classify(Path::new("./src/actions/merge/index.ts")),
+		PackagePathMatch::Touched
+	);
+	assert_eq!(
+		matcher.classify(Path::new("action.yml")),
+		PackagePathMatch::Touched
+	);
+	assert_eq!(
+		matcher.classify(Path::new("dist/index.mjs")),
+		PackagePathMatch::Ignored
+	);
+
+	let dotted = PackagePathMatcher::new("dotted", Path::new("./"), &[], &[]);
+
+	assert_eq!(
+		dotted.classify(Path::new("src/main.rs")),
+		PackagePathMatch::Touched
+	);
+}
