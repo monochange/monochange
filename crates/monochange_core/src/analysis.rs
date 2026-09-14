@@ -86,7 +86,13 @@ impl PackagePathMatcher {
 fn normalize_repository_path(path: &str) -> String {
 	let normalized = path.trim().replace('\\', "/");
 	let normalized = normalized.trim_start_matches("./");
-	normalized.trim_matches('/').to_string()
+	let normalized = normalized.trim_matches('/').to_string();
+	// A repository-root package is configured as `path = "."`, which has to
+	// normalize to the empty prefix so every repository path matches it.
+	if normalized == "." {
+		return String::new();
+	}
+	normalized
 }
 
 fn compile_path_patterns(patterns: &[String]) -> Vec<Pattern> {
