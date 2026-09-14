@@ -12,8 +12,12 @@ repository = { workspace = true }
 rust-version = { workspace = true }
 description = "Normalized snapshots for monochange-compatible command and API surfaces"
 
+[features]
+schema = ["dep:schemars"]
+
 [dependencies]
 clap = { workspace = true, default-features = true }
+schemars = { workspace = true, optional = true, default-features = true }
 serde = { workspace = true }
 serde_json = { workspace = true, default-features = true }
 

@@ -28,7 +28,7 @@ cli = { name = "somecli", snapshot = { command = "node scripts/emit-cli-snapshot
 
 ## Snapshot contract
 
-The snapshot command must print one `CommandSnapshot` JSON document (see the `monochange_snapshot` crate). For CLIs built with clap in this repository, `monochange snapshot --view index` already emits it. For foreign CLIs, commit a small emitter script that maps the CLI's help or command metadata into the snapshot schema. monochange validates `schema_version` against its supported snapshot schema version and rejects stale or unparsable documents.
+The snapshot command must print one `CommandSnapshot` JSON document (see the `monochange_snapshot` crate). For CLIs built with clap in this repository, `monochange snapshot --view index` already emits it. For other ecosystems — TypeScript, Python, Go, Dart — see [CLI snapshot emitters](cli-snapshot-emitters.md), which documents the field-level contract and verified per-language examples. monochange validates `schema_version` against its supported snapshot schema version and rejects stale or unparsable documents.
 
 ## Baselines
 

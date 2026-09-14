@@ -255,9 +255,13 @@ cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
 ```
 
 - `name` is the binary name users invoke; it keys the committed baseline at `.monochange/cli-snapshots/<name>.json` and must be unique in the workspace.
-- `snapshot` is required: a command that prints a normalized command-surface snapshot JSON document on stdout. Use a string, or a table with `{ command, cwd, shell }` like `[ecosystems.*].lockfile_commands` entries. For foreign CLIs, commit a small emitter script that produces the JSON.
+- `snapshot` is required: a command that prints a normalized command-surface snapshot JSON document on stdout. Use a string, or a table with `{ command, cwd, shell }` like `[ecosystems.*].lockfile_commands` entries.
 - Refresh baselines in the release workflow: `monochange snapshot --package <id> --save`.
 - Inspect registrations with `monochange snapshot --list`.
+
+For Rust/clap CLIs, `monochange_snapshot::snapshot_from_clap` or `monochange snapshot --view index` already produces the document. For TypeScript, Python, Go, and Dart CLIs, an emitter script maps the framework's command metadata into the same shape. The published schema at <https://monochange.github.io/monochange/schemas/command-snapshot.schema.json> is the contract, and the [CLI snapshot emitters](https://monochange.github.io/monochange/reference/cli-snapshot-emitters.html) guide has verified per-language examples.
+
+Two values are fixed by the contract: `kind` is always `"cli-surface"` and `schema_version` must match the snapshot contract version this monochange build supports. Everything else is optional when empty, and the validator rejects unknown fields, so a misspelled field fails validation rather than silently dropping data. When a framework offers no structured metadata, help-text inference works but must be marked `"confidence": "low"`.
 
 `monochange change classify` then reports command-surface breaks (removed options or commands propose `major`, additions propose `minor`) instead of unclassified package changes. Skip comparisons with `--skip-cli-snapshots` or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`.
 
