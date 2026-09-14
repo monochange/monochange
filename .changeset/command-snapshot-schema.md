@@ -1,5 +1,5 @@
 ---
-"monochange_snapshot": patch
+"monochange_snapshot": minor
 ---
 
 # Publish a JSON Schema for command snapshots
