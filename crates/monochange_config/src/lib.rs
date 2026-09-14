@@ -1812,27 +1812,31 @@ fn build_package_definitions(
 			};
 			let tag = package.tag.or(preset.tag).unwrap_or(false);
 			let release = package.release.or(preset.release).unwrap_or(false);
-			let changelog = package
-				.changelog
-				.as_ref()
-				.and_then(|definition| {
-					definition.resolve_for_package(&package.path, false).map(|path| ChangelogTarget {
+			// An explicit `changelog = false` on the package must win over
+			// `[defaults.changelog]`. `resolve_for_package` returns `None` both
+			// for a disabled definition and for one it cannot resolve, so
+			// consult the disabled flag directly before falling back to the
+			// workspace default. Without this a package cannot opt out of a
+			// default changelog path pattern.
+			let changelog = match package.changelog.as_ref() {
+				Some(definition) if definition.is_disabled() => None,
+				Some(definition) => definition
+					.resolve_for_package(&package.path, false)
+					.map(|path| ChangelogTarget {
 						path,
 						format: definition.format().unwrap_or(default_changelog_format),
 						initial_header: definition
 							.initial_header()
 							.or_else(|| default_package_changelog.and_then(RawChangelogConfig::initial_header)),
+					}),
+				None => default_package_changelog.and_then(|definition| {
+					definition.resolve_for_package(&package.path, true).map(|path| ChangelogTarget {
+						path,
+						format: definition.format().unwrap_or(default_changelog_format),
+						initial_header: definition.initial_header(),
 					})
-				})
-				.or_else(|| {
-					default_package_changelog.and_then(|definition| {
-						definition.resolve_for_package(&package.path, true).map(|path| ChangelogTarget {
-							path,
-							format: definition.format().unwrap_or(default_changelog_format),
-							initial_header: definition.initial_header(),
-						})
-					})
-				});
+				}),
+			};
 			let inferred_ecosystem_type = package_type_to_ecosystem_type(package_type);
 			let inherited_versioned_files = if package.ignore_ecosystem_versioned_files {
 				Vec::new()
