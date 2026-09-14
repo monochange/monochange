@@ -54,7 +54,7 @@ runs:
     - name: cache cargo binaries
       id: cache-cargo-binaries
       continue-on-error: true
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      uses: actions/cache@v6.1.0 # v6
       with:
         path: ./.bin
         key: ${{ runner.os }}-cargo-bin-${{ inputs.cache-version }}-${{ env.RUSTUP_TOOLCHAIN }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.toml') }}
@@ -63,7 +63,7 @@ runs:
 
     - name: retry cache cargo binaries
       if: steps.cache-cargo-binaries.outcome != 'success'
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      uses: actions/cache@v6.1.0 # v6
       with:
         path: ./.bin
         key: ${{ runner.os }}-cargo-bin-${{ inputs.cache-version }}-${{ env.RUSTUP_TOOLCHAIN }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.toml') }}
@@ -73,13 +73,13 @@ runs:
     - name: install nix
       id: install-nix
       continue-on-error: true
-      uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      uses: cachix/install-nix-action@v31.11.1 # v31
       with:
         github_access_token: ${{ inputs.github-token }}
 
     - name: retry install nix
       if: steps.install-nix.outcome != 'success'
-      uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      uses: cachix/install-nix-action@v31.11.1 # v31
       with:
         github_access_token: ${{ inputs.github-token }}
 
