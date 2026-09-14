@@ -74,16 +74,8 @@ pub fn post_process_release(
 	}
 }
 
-/// Post-process a config schema by adding additionalProperties: false to all $defs objects.
-pub fn post_process_config(schema: &mut serde_json::Value, id: &str, title: &str) {
-	post_process(
-		schema,
-		id,
-		title,
-		"JSON Schema for monochange.toml workspace configuration files.",
-	);
-
-	// Walk $defs and add additionalProperties: false to all object definitions with properties
+/// Add `additionalProperties: false` to every object definition under `/$defs`.
+fn close_def_objects(schema: &mut serde_json::Value) {
 	#[allow(clippy::option_map_unit_fn)]
 	schema
 		.pointer_mut("/$defs")
@@ -100,6 +92,61 @@ pub fn post_process_config(schema: &mut serde_json::Value, id: &str, title: &str
 				}
 			}
 		});
+}
+
+/// Post-process a config schema by adding additionalProperties: false to all $defs objects.
+pub fn post_process_config(schema: &mut serde_json::Value, id: &str, title: &str) {
+	post_process(
+		schema,
+		id,
+		title,
+		"JSON Schema for monochange.toml workspace configuration files.",
+	);
+	close_def_objects(schema);
+}
+
+/// Post-process a command snapshot schema.
+///
+/// Snapshot documents are written by foreign CLIs, so the generated schema pins
+/// the two fields those emitters must reproduce exactly: the `schema_version`
+/// default and the `kind` discriminator.
+pub fn post_process_command_snapshot(schema: &mut serde_json::Value, id: &str, title: &str) {
+	post_process(
+		schema,
+		id,
+		title,
+		"JSON Schema for normalized CLI command surface snapshots read by monochange.",
+	);
+	close_def_objects(schema);
+	let Some(obj) = schema.as_object_mut() else {
+		return;
+	};
+	obj.insert(
+		"additionalProperties".to_string(),
+		serde_json::Value::Bool(false),
+	);
+	let Some(props) = schema
+		.pointer_mut("/properties")
+		.and_then(|value| value.as_object_mut())
+	else {
+		return;
+	};
+	if let Some(schema_version_obj) = props
+		.get_mut("schema_version")
+		.and_then(|schema_version| schema_version.as_object_mut())
+	{
+		schema_version_obj.insert(
+			"default".to_string(),
+			serde_json::Value::String(monochange_snapshot::SNAPSHOT_SCHEMA_VERSION.to_string()),
+		);
+	}
+	if let Some(kind_obj) = props.get_mut("kind").and_then(|kind| kind.as_object_mut()) {
+		kind_obj.remove("default");
+		kind_obj.insert(
+			"const".to_string(),
+			serde_json::Value::String("cli-surface".to_string()),
+		);
+	}
 }
 
 /// Generate current schema JSON strings and write them to disk (update_mode) or compare to disk (check mode).
@@ -281,8 +328,17 @@ fn schema_files(
 		"monochange configuration",
 	);
 
+	let command_snapshot_schema = monochange_snapshot::schema::command_snapshot();
+	let mut command_snapshot_value = command_snapshot_schema.to_value();
+	post_process_command_snapshot(
+		&mut command_snapshot_value,
+		"https://monochange.github.io/monochange/schemas/command-snapshot.schema.json",
+		"monochange command snapshot",
+	);
+
 	let release_json = serde_json::to_string_pretty(&release_value).unwrap();
 	let config_json = serde_json::to_string_pretty(&config_value).unwrap();
+	let command_snapshot_json = serde_json::to_string_pretty(&command_snapshot_value).unwrap();
 
 	let artifacts_dir = schemas_dir.join("artifacts");
 	let mut files = vec![
@@ -295,12 +351,20 @@ fn schema_files(
 			contents: config_json.clone(),
 		},
 		GeneratedFile {
+			path: schemas_dir.join("command-snapshot.schema.json"),
+			contents: command_snapshot_json.clone(),
+		},
+		GeneratedFile {
 			path: docs_schemas_dir.join("release-record.schema.json"),
 			contents: release_json,
 		},
 		GeneratedFile {
 			path: docs_schemas_dir.join("monochange.schema.json"),
 			contents: config_json,
+		},
+		GeneratedFile {
+			path: docs_schemas_dir.join("command-snapshot.schema.json"),
+			contents: command_snapshot_json,
 		},
 	];
 	files.extend(artifact_files(&artifacts_dir, "current", version));
@@ -312,6 +376,11 @@ fn schema_files(
 	if include_versioned {
 		let mut release_versioned_value = release_value.clone();
 		let mut config_versioned_value = config_value.clone();
+		// The command snapshot contract is versioned independently of
+		// `monochange_schema`, so its immutable copy follows the version that
+		// snapshot documents actually declare in `schema_version`.
+		let snapshot_version = monochange_snapshot::SNAPSHOT_SCHEMA_VERSION;
+		let mut command_snapshot_versioned_value = command_snapshot_value.clone();
 		post_process_release(
 			&mut release_versioned_value,
 			&format!(
@@ -327,6 +396,13 @@ fn schema_files(
 			),
 			"monochange configuration",
 		);
+		post_process_command_snapshot(
+			&mut command_snapshot_versioned_value,
+			&format!(
+				"https://monochange.github.io/monochange/schemas/command-snapshot.v{snapshot_version}.schema.json"
+			),
+			"monochange command snapshot",
+		);
 		files.extend(artifact_files(&artifacts_dir, version, version));
 		files.extend([
 			GeneratedFile {
@@ -336,6 +412,11 @@ fn schema_files(
 			GeneratedFile {
 				path: docs_schemas_dir.join(format!("monochange.v{version}.schema.json")),
 				contents: serde_json::to_string_pretty(&config_versioned_value).unwrap(),
+			},
+			GeneratedFile {
+				path: docs_schemas_dir
+					.join(format!("command-snapshot.v{snapshot_version}.schema.json")),
+				contents: serde_json::to_string_pretty(&command_snapshot_versioned_value).unwrap(),
 			},
 		]);
 	}

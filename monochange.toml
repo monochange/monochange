@@ -295,6 +295,23 @@ path = "crates/monochange_core"
 
 [package.monochange_snapshot]
 path = "crates/monochange_snapshot"
+# `monochange_snapshot` is the only member of [group.snapshot], and the group
+# changelog already renders this package's notes at
+# `crates/monochange_snapshot/changelog.md`. The package would otherwise
+# inherit `[defaults.changelog]`, whose `{{ path }}/changelog.md` pattern
+# resolves to that same file, and release planning rejects two owners for one
+# changelog path. Disable the package-level changelog so the group owns it.
+changelog = false
+# The Cargo analyzer compares whole token streams for public items, so an
+# attribute-only change such as adding `#[cfg_attr(feature = "schema",
+# derive(...))]` is classified as a breaking `modified` item. Adding an
+# opt-in feature is additive, and this crate's schema version is derived from
+# its package version, so letting the false positive stand would advance the
+# published command snapshot contract to 0.2 and stale every committed CLI
+# baseline without any wire change. Cap the proposal at `minor`; an explicit
+# `major` changeset still advances the contract when the wire format actually
+# breaks.
+bump_ceiling = "minor"
 
 [package.monochange_cargo]
 path = "crates/monochange_cargo"

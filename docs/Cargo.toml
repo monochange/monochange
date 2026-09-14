@@ -8,6 +8,7 @@ repository = { workspace = true }
 description = "Book and documentation for monochange"
 
 [dependencies]
+clap = { workspace = true, default-features = true }
 doc-comment = { workspace = true, default-features = true }
 monochange = { workspace = true }
 monochange_analysis = { workspace = true }
@@ -32,6 +33,7 @@ monochange_publish = { workspace = true }
 monochange_python = { workspace = true }
 monochange_schema = { workspace = true }
 monochange_semver = { workspace = true }
+monochange_snapshot = { workspace = true, features = ["schema"] }
 monochange_telemetry = { workspace = true }
 semver = { workspace = true, default-features = true }
 serde_json = { workspace = true, default-features = true }

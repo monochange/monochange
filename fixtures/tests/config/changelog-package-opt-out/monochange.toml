@@ -1,0 +1,10 @@
+[defaults]
+package_type = "cargo"
+changelog = "{{ path }}/changelog.md"
+
+[package.inherits]
+path = "crates/inherits"
+
+[package.opted-out]
+path = "crates/opted-out"
+changelog = false

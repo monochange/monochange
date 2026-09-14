@@ -13,6 +13,7 @@ clap = { workspace = true, features = ["std"], default-features = true }
 monochange_config = { workspace = true, features = ["schema"] }
 monochange_core = { workspace = true, features = ["schema"] }
 monochange_schema = { workspace = true }
+monochange_snapshot = { workspace = true, features = ["schema"] }
 proptest = { workspace = true, features = ["std"], default-features = true }
 schemars = { workspace = true, default-features = true }
 semver = { workspace = true, default-features = true }
@@ -20,4 +21,8 @@ serde_json = { workspace = true, default-features = true }
 tokio = { workspace = true, default-features = true }
 
 [features]
-schema = ["monochange_config/schema", "monochange_core/schema"]
+schema = [
+	"monochange_config/schema",
+	"monochange_core/schema",
+	"monochange_snapshot/schema",
+]

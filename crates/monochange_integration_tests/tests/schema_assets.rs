@@ -18,11 +18,86 @@ fn committed_schema_assets_are_json_and_hosted_copy_is_current() -> Result<(), B
 	parse_json(&paths.hosted_release_schema)?;
 	parse_json(&paths.versioned_release_schema)?;
 	parse_json(&paths.canonical_release_schema)?;
+	parse_json(&paths.command_snapshot_schema)?;
+	parse_json(&paths.canonical_command_snapshot_schema)?;
+	parse_json(&paths.versioned_command_snapshot_schema)?;
 
 	assert_eq!(
 		std::fs::read_to_string(&paths.canonical_release_schema)?,
 		std::fs::read_to_string(&paths.hosted_release_schema)?
 	);
+	assert_eq!(
+		std::fs::read_to_string(&paths.canonical_command_snapshot_schema)?,
+		std::fs::read_to_string(&paths.command_snapshot_schema)?
+	);
+
+	Ok(())
+}
+
+#[test]
+fn command_snapshot_schema_matches_the_emitted_snapshot_contract() -> Result<(), Box<dyn Error>> {
+	let paths = schema_asset_paths()?;
+	let schema = parse_json(&paths.command_snapshot_schema)?;
+
+	assert_eq!(
+		json_str(&schema, "/$id")?,
+		"https://monochange.github.io/monochange/schemas/command-snapshot.schema.json"
+	);
+	assert_eq!(
+		json_str(&schema, "/properties/schema_version/default")?,
+		monochange_snapshot::SNAPSHOT_SCHEMA_VERSION
+	);
+	assert_eq!(json_str(&schema, "/properties/kind/const")?, "cli-surface");
+	assert!(!json_bool(&schema, "/additionalProperties")?);
+	assert_eq!(
+		json_array(&schema, "/required")?,
+		vec![
+			json!("schema_version"),
+			json!("kind"),
+			json!("tool"),
+			json!("provenance"),
+			json!("standard_entrypoints"),
+		]
+	);
+
+	// Every object definition must be closed so a typo in a foreign emitter is a
+	// validation error rather than a silently ignored field.
+	for (name, def) in json_object(&schema, "/$defs")? {
+		if def.get("properties").is_some() {
+			assert_eq!(
+				def.get("additionalProperties"),
+				Some(&json!(false)),
+				"$defs/{name} should reject additional properties"
+			);
+		}
+	}
+
+	Ok(())
+}
+
+#[test]
+fn command_snapshot_schema_validates_the_committed_fixture_snapshots() -> Result<(), Box<dyn Error>>
+{
+	let paths = schema_asset_paths()?;
+	let schema = parse_json(&paths.command_snapshot_schema)?;
+	let validator = jsonschema::validator_for(&schema).map_err(|error| {
+		test_error(format!(
+			"compile command-snapshot schema {}: {error}",
+			paths.command_snapshot_schema.display()
+		))
+	})?;
+
+	let fixture_dir = paths.root.join("fixtures/tests/cli-snapshot-registration");
+	for relative in [
+		"before/crates/demo/cli.json",
+		"after/crates/demo/cli.json",
+		"before/.monochange/cli-snapshots/demo.json",
+		"after/.monochange/cli-snapshots/demo.json",
+	] {
+		let snapshot_path = fixture_dir.join(relative);
+		let snapshot = parse_json(&snapshot_path)?;
+		validate_json(&validator, &snapshot, &snapshot_path)?;
+	}
 
 	Ok(())
 }
@@ -204,6 +279,7 @@ fn release_preflight_schema_assets_are_aligned() -> Result<(), Box<dyn Error>> {
 	);
 	assert!(paths.versioned_release_schema.is_file());
 	assert!(paths.versioned_config_schema.is_file());
+	assert!(paths.versioned_command_snapshot_schema.is_file());
 
 	Ok(())
 }
@@ -436,6 +512,7 @@ fn schema_asset_inventory_matches_snapshot() -> Result<(), Box<dyn Error>> {
 	let paths = schema_asset_paths()?;
 	let release_schema = parse_json(&paths.canonical_release_schema)?;
 	let config_schema = parse_json(&paths.config_schema)?;
+	let command_snapshot_schema = parse_json(&paths.command_snapshot_schema)?;
 	let inventory = json!({
 		"current_schema_version": monochange_schema::CURRENT_SCHEMA_VERSION_TEXT,
 		"schemaCrateVersion": schema_crate_version(&paths)?,
@@ -449,6 +526,13 @@ fn schema_asset_inventory_matches_snapshot() -> Result<(), Box<dyn Error>> {
 			"schemaId": json_str(&config_schema, "/$id")?,
 			"dynamicTables": ["package", "group", "cli"],
 			"additionalProperties": json_bool(&config_schema, "/additionalProperties")?,
+		},
+		"commandSnapshot": {
+			"schemaVersion": monochange_snapshot::SNAPSHOT_SCHEMA_VERSION,
+			"schemaId": json_str(&command_snapshot_schema, "/$id")?,
+			"kind": json_str(&command_snapshot_schema, "/properties/kind/const")?,
+			"required": json_array(&command_snapshot_schema, "/required")?,
+			"additionalProperties": json_bool(&command_snapshot_schema, "/additionalProperties")?,
 		},
 	});
 
@@ -685,6 +769,9 @@ struct SchemaAssetPaths {
 	hosted_release_schema: PathBuf,
 	versioned_release_schema: PathBuf,
 	canonical_release_schema: PathBuf,
+	command_snapshot_schema: PathBuf,
+	canonical_command_snapshot_schema: PathBuf,
+	versioned_command_snapshot_schema: PathBuf,
 	schema_crate_manifest: PathBuf,
 	artifacts_dir: PathBuf,
 	current_artifacts_dir: PathBuf,
@@ -706,6 +793,13 @@ fn schema_asset_paths() -> Result<SchemaAssetPaths, Box<dyn Error>> {
 		)),
 		canonical_release_schema: root
 			.join("crates/monochange_schema/schemas/release-record.schema.json"),
+		command_snapshot_schema: root.join("docs/src/schemas/command-snapshot.schema.json"),
+		canonical_command_snapshot_schema: root
+			.join("crates/monochange_schema/schemas/command-snapshot.schema.json"),
+		versioned_command_snapshot_schema: root.join(format!(
+			"docs/src/schemas/command-snapshot.v{}.schema.json",
+			monochange_snapshot::SNAPSHOT_SCHEMA_VERSION
+		)),
 		schema_crate_manifest: root.join("crates/monochange_schema/Cargo.toml"),
 		artifacts_dir: root.join("crates/monochange_schema/schemas/artifacts"),
 		current_artifacts_dir: root.join("crates/monochange_schema/schemas/artifacts/current"),

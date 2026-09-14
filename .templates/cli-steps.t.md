@@ -26,7 +26,7 @@ The reference pages in this section document each built-in step with:
 <!-- {/cliStepReferenceOverview} -->
 
 <!-- {@cliStepExplicitInputInheritance} -->
-
+{% raw %}
 ## Explicit step input inheritance
 
 Config-defined workflow commands have two input layers:
@@ -101,7 +101,7 @@ monochange run publish --interactive
 Leave `interactive` unset (the default) for CI and scripted runs so those commands stay non-interactive. Interactive steps do not capture output: `steps.<id>.stdout` and `steps.<id>.stderr` are empty for them, so downstream steps cannot read what an interactive command printed.
 
 Built-in `monochange step <name>` commands are different: they are generated directly from the step schema, so their CLI flags map to that single step without a `[cli.*]` wrapper.
-
+{% endraw %}
 <!-- {/cliStepExplicitInputInheritance} -->
 
 <!-- {@cliStepReferenceChoosingGuide} -->
@@ -467,7 +467,7 @@ shell = true
 <!-- {/cliStepCommandExample} -->
 
 <!-- {@cliStepPrepareReleaseCommandCompositionExample} -->
-
+{% raw %}
 ```toml
 [cli.release-with-notes]
 help_text = "Prepare a release and print a custom summary"
@@ -487,11 +487,11 @@ type = "Command"
 command = "echo Releasing {{ release.version }} for {{ released_packages }}"
 shell = true
 ```
-
+{% endraw %}
 <!-- {/cliStepPrepareReleaseCommandCompositionExample} -->
 
 <!-- {@cliStepCommandStepOutputExample} -->
-
+{% raw %}
 ```toml
 [cli.release-with-generated-notes]
 help_text = "Prepare a release, generate notes, and upload them"
@@ -510,7 +510,7 @@ type = "Command"
 command = "printf '%s\n' '{{ steps.notes.stdout }}'"
 shell = true
 ```
-
+{% endraw %}
 <!-- {/cliStepCommandStepOutputExample} -->
 
 <!-- {@cliStepPlaceholderPublishExample} -->
@@ -592,7 +592,7 @@ inputs = ["format", "package", "group", "ecosystem", "resume", "output", "show-a
 <!-- {/cliStepPublishPackagesExample} -->
 
 <!-- {@cliStepRetargetCommandCompositionExample} -->
-
+{% raw %}
 ```toml
 [cli.repair-and-notify]
 help_text = "Repair a release and print the retarget result"
@@ -616,5 +616,5 @@ type = "Command"
 command = "echo moved {{ retarget.tags }} to {{ retarget.target }} with status {{ retarget.status }}"
 shell = true
 ```
-
+{% endraw %}
 <!-- {/cliStepRetargetCommandCompositionExample} -->

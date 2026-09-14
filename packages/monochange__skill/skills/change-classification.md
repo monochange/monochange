@@ -43,6 +43,8 @@ A `monochange/package-lifecycle` finding comes from manifest presence at both co
 
 For packages registered with `[package.<id>].cli`, the report includes a `cli` block and `monochange/cli-surface` findings from diffing the committed baseline under `.monochange/cli-snapshots/` against a fresh capture. Removed commands or options propose `major`; additions propose `minor`. If the status is `missing_baseline` or `stale_baseline`, capture one with `monochange snapshot --package <id> --save` during the next release preparation instead of raising the changeset severity by guesswork.
 
+A `failed` status means the configured snapshot command exited non-zero, printed unparsable JSON, or emitted a document that does not match the published command snapshot schema. Run `monochange snapshot --package <id>` to reproduce it and validate the output against <https://monochange.github.io/monochange/schemas/command-snapshot.schema.json>. Emitter code for TypeScript, Python, Go, and Dart CLIs is documented at [CLI snapshot emitters](https://monochange.github.io/monochange/reference/cli-snapshot-emitters.html).
+
 ## Check ecosystem coverage
 
 Package lifecycle findings are high-confidence and complete. Built-in Cargo, JavaScript, Deno, and Dart source findings are medium-confidence and partial. The source analyzers model syntax and package metadata, but they do not prove every source-compatible behavior.
