@@ -23,6 +23,7 @@ doc_comment::doctest!("../../crates/monochange_linting/readme.md");
 doc_comment::doctest!("../../crates/monochange_publish/readme.md");
 doc_comment::doctest!("../../crates/monochange_python/readme.md");
 doc_comment::doctest!("../../crates/monochange_schema/readme.md");
+doc_comment::doctest!("../../crates/monochange_snapshot/readme.md");
 doc_comment::doctest!("../../crates/monochange_telemetry/readme.md");
 
 doc_comment::doctest!("readme.md");

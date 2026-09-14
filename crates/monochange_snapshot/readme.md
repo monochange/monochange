@@ -58,6 +58,21 @@ assert_eq!(snapshot.provenance.extractor, "clap");
 - `ClapCommandSurfaceExtractor` extracts snapshots from clap command definitions.
 - `snapshot_from_clap` provides a convenience clap extraction function.
 - `diff_command_snapshots` classifies snapshot-to-snapshot CLI surface changes.
+- `schema::command_snapshot` renders the JSON Schema for snapshot documents when the `schema` feature is enabled.
+
+## JSON Schema
+
+The `schema` feature exposes the wire contract as JSON Schema so foreign emitters can validate their output locally. The emitted value is the raw schema; the published asset pins the `kind` discriminator and `schema_version` default on top of it.
+
+```rust
+use monochange_snapshot::schema::command_snapshot;
+
+let schema = command_snapshot().to_value();
+assert!(schema.pointer("/$defs/CommandNode").is_some());
+assert!(schema.pointer("/properties/standard_entrypoints").is_some());
+```
+
+The committed asset is published at <https://monochange.github.io/monochange/schemas/command-snapshot.schema.json>. See the [CLI snapshot emitters](https://monochange.github.io/monochange/reference/cli-snapshot-emitters.html) guide for per-language emitter examples.
 
 ## Scope
 
@@ -65,3 +80,4 @@ assert_eq!(snapshot.provenance.extractor, "clap");
 - deterministic JSON rendering for snapshot files
 - clap-based extraction
 - semver-oriented CLI surface diff classification
+- JSON Schema output for the snapshot wire contract
