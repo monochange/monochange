@@ -1,0 +1,30 @@
+---
+source: crates/monochange/tests/release_notes_and_propagation.rs
+expression: redacted
+---
+{
+  "bump": "major",
+  "change_type": "breaking",
+  "details_markdown": "[multiline text]",
+  "packages": [
+    {
+      "bump": "major",
+      "name": "core"
+    },
+    {
+      "bump": "minor",
+      "name": "app"
+    },
+    {
+      "bump": "none",
+      "name": "cli"
+    }
+  ],
+  "provenance": {
+    "changeset_path": ".changeset/split-fractional-features.md",
+    "source_path": ".changeset/split-fractional-features.md"
+  },
+  "stream": "default",
+  "style": "expanded",
+  "summary": "split floats and fixed, and source pods from pinapod"
+}

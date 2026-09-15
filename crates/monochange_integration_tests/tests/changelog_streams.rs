@@ -157,7 +157,7 @@ fn release_outputs_filter_changesets_by_stream() {
 	assert_json_snapshot!("user_group_release_notes", user_group);
 	assert_eq!(
 		user_group["sections"][0]["entries"][0]["packages"],
-		json!(["app"])
+		json!([{ "name": "app", "bump": "minor" }])
 	);
 	assert_snapshot!("developer_release_notes", developer_notes);
 	assert_snapshot!("developer_append_release_notes", developer_append);

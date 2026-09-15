@@ -1,0 +1,21 @@
+---
+source: crates/monochange/tests/release_notes_and_propagation.rs
+assertion_line: 281
+expression: group_changelog
+---
+# Changelog
+
+## 2.0.0 ([DATE])
+
+Grouped release for `sdk`.
+
+### Breaking changes
+
+#### split floats and fixed, and source pods from pinapod
+
+_Packages:_ _core_, _app_, _cli_
+
+The fractional-field support is now two independent features.
+
+This one changeset targets three packages with three different change types.
+It must render once, in the breaking section, listing all three packages.

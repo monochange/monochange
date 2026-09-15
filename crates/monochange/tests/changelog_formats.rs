@@ -116,7 +116,7 @@ fn release_filters_group_changelog_entries_to_selected_member_packages() {
 	assert!(core_changelog.contains("- **add cli feature.**"));
 	assert!(app_changelog.contains("- **document internal sync work.**"));
 	assert!(!group_changelog.contains("Changed members:"));
-	assert!(group_changelog.contains("- **core**: **add cli feature.**"));
+	assert!(group_changelog.contains("- 🟠 **core**: **add cli feature.**"));
 	assert!(!group_changelog.contains("document internal sync work"));
 }
 
@@ -142,7 +142,7 @@ fn release_renders_group_fallback_when_member_notes_are_filtered_out() {
 	assert!(!group_changelog.contains("Changed members:"));
 	assert!(!group_changelog.contains("Synchronized members:"));
 	assert!(group_changelog.contains("No group-facing notes were recorded for this release."));
-	assert!(!group_changelog.contains("- **core**: add hidden internal change"));
+	assert!(!group_changelog.contains("- 🟠 **core**: add hidden internal change"));
 }
 
 #[test]
