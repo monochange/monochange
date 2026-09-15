@@ -368,8 +368,8 @@ pub struct MonochangeMcpServer {
 
 #[tool_handler]
 impl ServerHandler for MonochangeMcpServer {
-	fn get_info(&self) -> ServerInfo {
-		let mut info = ServerInfo::default();
+	fn get_info(&self) -> ServerConfig {
+		let mut info = ServerConfig::default();
 		info.instructions = Some(
 			"monochange manages versions and releases across Cargo, npm, Deno, and Dart/Flutter \
 			 workspaces. Prefer validation and dry-run planning before mutating release state. \

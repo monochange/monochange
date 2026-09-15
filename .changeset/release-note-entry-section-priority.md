@@ -1,6 +1,7 @@
 ---
-monochange_core: minor
 monochange_changelog: minor
+monochange_core: major
+monochange_schema: minor
 ---
 
 # Render each changeset once with every affected package
@@ -19,13 +20,15 @@ let packages = vec![
 ];
 ```
 
+`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.
+
 The section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.
 
-`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain `package_bump_symbols`, which defaults to `true`. Package labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.
+Package labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.
 
 ```toml
 [changelog.style]
 package_bump_symbols = false
 ```
 
-The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.
+The committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.
