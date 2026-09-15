@@ -195,3 +195,52 @@ fn clap_rejects_unknown_dependency_propagation_modes() {
 
 	assert!(error.to_string().contains("transitive"));
 }
+
+#[test]
+fn classify_options_glue_propagates_invalid_dependency_propagation_errors() {
+	// Mirror the args the classification glue reads so the error branch is
+	// reachable without going through clap's value parsers.
+	let value = |name: &'static str| clap::Arg::new(name).long(name);
+	let flag = |name: &'static str| {
+		clap::Arg::new(name)
+			.long(name)
+			.action(clap::ArgAction::SetTrue)
+	};
+	let cmd = clap::Command::new("monochange").args([
+		value("format"),
+		value("dependency-propagation"),
+		value("base"),
+		value("head"),
+		value("release"),
+		value("output"),
+		flag("include-unchanged"),
+		flag("strict"),
+		flag("skip-cli-snapshots"),
+		clap::Arg::new("package")
+			.long("package")
+			.action(clap::ArgAction::Append),
+		clap::Arg::new("label")
+			.long("label")
+			.action(clap::ArgAction::Append),
+	]);
+	// plus the args the glue reads that the real CLI defines
+	let cmd = cmd.args([value("detection-level")]);
+
+	let matches = cmd
+		.try_get_matches_from([
+			"monochange",
+			"--dependency-propagation",
+			"transitive",
+			"--format",
+			"json",
+		])
+		.unwrap_or_else(|error| panic!("parse: {error}"));
+
+	let error = crate::cli::classify_options_from_matches(&matches).unwrap_err();
+
+	assert!(
+		error
+			.to_string()
+			.contains("unsupported dependency propagation `transitive`")
+	);
+}
