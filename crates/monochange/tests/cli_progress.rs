@@ -146,23 +146,54 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 	normalized
 }
 
+/// Reduce a raw pty capture to the text a terminal would leave on screen.
+///
+/// The animated spinner repaints its status line in place while a command
+/// streams, using `\r` to return to column 0 and `\x1b[2K` to erase the line,
+/// without ever emitting a newline. Dropping `\r` outright splices those
+/// repaints into the middle of a captured output block, so the block reads as
+/// corrupted on a loaded CI runner even though a terminal always renders it as
+/// a contiguous block.
 fn normalize_terminal_transcript(text: &str) -> String {
 	let mut normalized = String::with_capacity(text.len());
+	let mut pending: Vec<char> = Vec::new();
+	let mut cursor = 0;
 	let mut chars = text.chars().peekable();
 	while let Some(ch) = chars.next() {
-		if ch == '\u{1b}' && chars.peek() == Some(&'[') {
-			let _ = chars.next();
-			for escape_ch in chars.by_ref() {
-				if ('@'..='~').contains(&escape_ch) {
-					break;
+		match ch {
+			'\n' => {
+				normalized.extend(pending.drain(..));
+				normalized.push('\n');
+				cursor = 0;
+			}
+			// Move the cursor without erasing, so overwritten text is replaced.
+			'\r' => cursor = 0,
+			'\u{1b}' if chars.peek() == Some(&'[') => {
+				let _ = chars.next();
+				let mut sequence = String::new();
+				for escape_ch in chars.by_ref() {
+					sequence.push(escape_ch);
+					if ('@'..='~').contains(&escape_ch) {
+						break;
+					}
+				}
+				// Only line erasure changes what is on screen; the styling
+				// sequences the reporter emits leave the text alone.
+				if sequence == "2K" {
+					pending.clear();
 				}
 			}
-			continue;
-		}
-		if ch != '\r' {
-			normalized.push(ch);
+			ch => {
+				if let Some(slot) = pending.get_mut(cursor) {
+					*slot = ch;
+				} else {
+					pending.push(ch);
+				}
+				cursor += 1;
+			}
 		}
 	}
+	normalized.extend(pending);
 	normalized
 }
 
@@ -173,10 +204,10 @@ fn run_tty_command_result(workspace: &Path, command_name: &str) -> (i32, String)
 }
 
 #[cfg(unix)]
-fn run_tty_command(workspace: &Path, command_name: &str) -> String {
-	let (status, transcript) = run_tty_command_result(workspace, command_name);
+fn run_tty_command_with_env(workspace: &Path, command_name: &str, env: &[(&str, &str)]) -> String {
+	let (status, transcript) = run_in_tty_with_env(workspace, &[command_name], None, env, &[]);
 	assert_eq!(status, 0, "{transcript}");
-	transcript
+	normalize_terminal_transcript(&transcript)
 }
 
 #[cfg(unix)]
@@ -230,21 +261,26 @@ fn run_tty_interactive_change(workspace: &Path, output_path: &Path) -> (i32, Str
 	(status, normalize_terminal_transcript(&transcript))
 }
 
-#[cfg(not(unix))]
-fn run_tty_command(_workspace: &Path, _command_name: &str) -> String {
-	String::new()
-}
-
 #[test]
 #[cfg(unix)]
 fn release_progress_streams_named_steps_on_tty() {
 	let tempdir = setup_fixture("monochange/release-progress");
 
-	let transcript = run_tty_command(tempdir.path(), "progress-release");
+	// Force the spinner to animate so this exercises the in-place repaints that
+	// share a line with the captured output block. Without the animation the
+	// block is trivially contiguous and the case below never runs in the
+	// coverage job, which invokes the tests without a TTY.
+	let transcript = run_tty_command_with_env(
+		tempdir.path(),
+		"progress-release",
+		&[("INSTA_WORKSPACE_ROOT", "1"), ("TERM", "xterm-256color")],
+	);
 
 	assert!(transcript.contains("[1/2] plan release (PrepareRelease)"));
 	assert!(transcript.contains("[2/2] stream summary (Command)"));
-	// Captured output names its step once, then indents every line under it.
+	// Captured output names its step once, then indents every line under it. The
+	// spinner repaints its status line in place while these lines stream, so the
+	// block stays contiguous only if the transcript keeps the overwritten text.
 	assert!(
 		transcript.contains("  │ stream summary\n  │   streamed line 1\n  │   streamed line 2")
 	);
