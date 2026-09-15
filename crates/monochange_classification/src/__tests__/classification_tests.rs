@@ -1760,3 +1760,65 @@ fn apply_classification_policy_clamps_and_clears_enforceable_minimum() {
 	assert_eq!(enforceable, BumpSeverity::None);
 	assert_eq!(release_floor, BumpSeverity::Major);
 }
+
+#[test]
+fn classification_format_parse_covers_every_supported_value() {
+	assert_eq!(
+		ClassificationFormat::parse("markdown").unwrap(),
+		ClassificationFormat::Markdown
+	);
+	assert_eq!(
+		ClassificationFormat::parse("md").unwrap(),
+		ClassificationFormat::Markdown
+	);
+	assert_eq!(
+		ClassificationFormat::parse("json").unwrap(),
+		ClassificationFormat::Json
+	);
+	assert_eq!(
+		ClassificationFormat::parse("json-min").unwrap(),
+		ClassificationFormat::JsonMin
+	);
+	assert_eq!(
+		ClassificationFormat::parse("text").unwrap(),
+		ClassificationFormat::Text
+	);
+	assert!(ClassificationFormat::parse("yaml").is_err());
+}
+
+#[test]
+fn classification_format_renders_json_pretty_and_minified() {
+	#[derive(serde::Serialize)]
+	struct Value {
+		name: &'static str,
+	}
+
+	let value = Value { name: "demo" };
+
+	assert_eq!(
+		ClassificationFormat::Json
+			.render_json_value(&value, "classification report")
+			.unwrap(),
+		"{\n  \"name\": \"demo\"\n}"
+	);
+	assert_eq!(
+		ClassificationFormat::JsonMin
+			.render_json_value(&value, "classification report")
+			.unwrap(),
+		"{\"name\":\"demo\"}"
+	);
+}
+
+#[test]
+fn schema_module_generates_the_classification_report_schema() {
+	let schema = crate::schema::classification_report();
+
+	let json = serde_json::to_value(&schema)
+		.unwrap_or_else(|error| panic!("classification schema should serialize: {error}"));
+
+	// The `$id` is added by xtask post-processing; the generator itself only
+	// produces the schema body.
+	assert!(json["$id"].is_null() || json["$id"].as_str().is_none());
+	assert!(json["properties"]["schema_version"].is_object());
+	assert!(json["properties"]["packages"].is_object());
+}

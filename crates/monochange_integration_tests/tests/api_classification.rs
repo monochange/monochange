@@ -253,6 +253,33 @@ fn change_classify_detects_feature_gated_rust_breaks_in_the_configured_matrix() 
 }
 
 #[test]
+fn change_classify_reports_a_skipped_run_for_skip_labeled_pull_requests() {
+	let fixture = setup_api_fixture("mixed-api");
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--label", "release",
+			"--format", "json",
+		],
+	);
+
+	assert_eq!(report["skipped"], true);
+	assert_eq!(report["packages"].as_array().map(Vec::len), Some(0));
+	assert_eq!(report["recommendation"], "none");
+	assert_eq!(
+		report["matched_skip_labels"],
+		serde_json::json!(["release"])
+	);
+	assert!(
+		report["summary"]
+			.as_str()
+			.unwrap_or_default()
+			.contains("allowed label: release")
+	);
+}
+
+#[test]
 fn change_classify_detects_a_package_deleted_from_the_candidate() {
 	let fixture = setup_deleted_package_fixture();
 
