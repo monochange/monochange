@@ -21,6 +21,13 @@ tag = true
 release = true
 version_format = "primary"
 
+[changelog.outputs.group_json]
+stream = "default"
+format = "json"
+mode = "release"
+path = "release-notes/{{ id }}-{{ version }}.json"
+targets = ["sdk"]
+
 [ecosystems.cargo]
 enabled = true
 
