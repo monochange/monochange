@@ -2666,6 +2666,115 @@ fn structured_release_notes_render_data_without_markdown_leaking_into_text() {
 }
 
 #[test]
+fn text_entries_render_package_bumps_without_markdown_syntax() {
+	let entry = ReleaseNotesEntry {
+		summary: "Add the first thing".to_string(),
+		details_markdown: None,
+		packages: vec![
+			ReleaseNotePackage::new("core", BumpSeverity::Major),
+			ReleaseNotePackage::new("cli", BumpSeverity::None),
+		],
+		change_type: Some("feat".to_string()),
+		bump: BumpSeverity::Major,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Compact,
+		provenance: ReleaseNoteProvenance::default(),
+	};
+	let document = ReleaseNotesDocument {
+		title: "1.0.0".to_string(),
+		summary: Vec::new(),
+		sections: vec![ReleaseNotesSection {
+			title: "Features".to_string(),
+			collapsed: false,
+			entries: vec![entry],
+		}],
+	};
+
+	let text = crate::render_structured_release_notes(
+		ChangelogFormat::Text,
+		&document,
+		&ChangelogStyle::default(),
+	);
+	assert!(
+		text.contains("Packages: 🔴 core, ⚪ cli"),
+		"text output must name each package's bump: {text}"
+	);
+	assert!(!text.contains("**"));
+	assert!(!text.contains('_'));
+
+	let without_symbols = crate::render_structured_release_notes(
+		ChangelogFormat::Text,
+		&document,
+		&ChangelogStyle {
+			package_bump_symbols: false,
+			..ChangelogStyle::default()
+		},
+	);
+	assert!(
+		without_symbols.contains("Packages: core, cli"),
+		"the opt-out must fall back to bare package names: {without_symbols}"
+	);
+}
+
+#[test]
+fn compact_single_package_entries_drop_the_symbol_when_disabled() {
+	let entry = ReleaseNotesEntry {
+		summary: "Fix the thing".to_string(),
+		details_markdown: None,
+		packages: vec![ReleaseNotePackage::new("cli", BumpSeverity::Patch)],
+		change_type: Some("fix".to_string()),
+		bump: BumpSeverity::Patch,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Compact,
+		provenance: ReleaseNoteProvenance::default(),
+	};
+
+	let with_symbols =
+		crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
+	assert_eq!(with_symbols, "- 🟢 **cli**: **Fix the thing.**");
+
+	let without_symbols = crate::render_release_note_entry_markdown(
+		&entry,
+		&ChangelogStyle {
+			package_bump_symbols: false,
+			..ChangelogStyle::default()
+		},
+	);
+	assert_eq!(without_symbols, "- **cli**: **Fix the thing.**");
+}
+
+#[test]
+fn changelog_style_rules_report_the_bump_symbol_setting() {
+	let with_symbols = ChangelogStyle::default().rules();
+	assert!(
+		with_symbols.contains("🔴 major, 🟠 minor, 🟢 patch, ⚪ none"),
+		"the default rules must describe the symbol table: {with_symbols}"
+	);
+
+	let without_symbols = ChangelogStyle {
+		package_bump_symbols: false,
+		..ChangelogStyle::default()
+	}
+	.rules();
+	assert!(
+		without_symbols.contains("without a bump severity symbol"),
+		"the opt-out must be described: {without_symbols}"
+	);
+}
+
+#[test]
+fn release_note_bump_symbol_maps_every_severity() {
+	assert_eq!(crate::release_note_bump_symbol(BumpSeverity::Major), "🔴");
+	assert_eq!(crate::release_note_bump_symbol(BumpSeverity::Minor), "🟠");
+	assert_eq!(crate::release_note_bump_symbol(BumpSeverity::Patch), "🟢");
+	assert_eq!(crate::release_note_bump_symbol(BumpSeverity::None), "⚪");
+	assert_eq!(
+		ReleaseNotePackage::new("cli", BumpSeverity::Minor).symbol(),
+		"🟠"
+	);
+}
+
+#[test]
 fn split_release_note_summary_extracts_only_the_lead_sentence() {
 	let cases = [
 		("Add one thing", "Add one thing", ""),

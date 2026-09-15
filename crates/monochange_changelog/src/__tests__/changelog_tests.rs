@@ -2240,6 +2240,130 @@ fn a_lower_priority_target_does_not_move_a_change_out_of_its_section() {
 }
 
 #[test]
+fn a_later_target_may_raise_a_merged_package_bump() {
+	let settings = multi_target_settings();
+	// Order the shared changeset so the low-severity target is seen first.
+	let mut changes = shared_changeset_changes();
+	changes.reverse();
+
+	let sections = build_release_note_sections("sdk", &settings, &changes);
+	let entry = &sections[0].entries[0];
+	let bumps = entry
+		.packages
+		.iter()
+		.map(|package| (package.name.as_str(), package.bump))
+		.collect::<Vec<_>>();
+
+	assert_eq!(
+		bumps,
+		vec![
+			("pina_cli", BumpSeverity::None),
+			("pina_abi", BumpSeverity::Minor),
+			("pina", BumpSeverity::Major),
+		],
+		"first-seen order is preserved while later targets still raise the bump"
+	);
+	assert_eq!(entry.bump, BumpSeverity::Major);
+	assert_eq!(
+		sections[0].title, "Breaking changes",
+		"the section still follows priority, not input order"
+	);
+}
+
+#[test]
+fn template_rendered_entries_carry_bump_symbols_and_honor_the_opt_out() {
+	let mut settings = multi_target_settings();
+	settings.templates = vec!["- {{ package }}, {{ bump }}".to_string()];
+	let changes = shared_changeset_changes();
+
+	let document = build_release_notes_document("sdk", "1.0.0", Vec::new(), &settings, &changes);
+	let with_symbols = render_changelog_release_notes(
+		ChangelogFormat::Monochange,
+		&document,
+		&ChangelogStyle::default(),
+		&settings.templates,
+		"sdk",
+		"1.0.0",
+	);
+	assert!(
+		with_symbols.contains("_Packages:_ 🔴 _pina_, 🟠 _pina_abi_, ⚪ _pina_cli_"),
+		"the configured-template path must also label packages: {with_symbols}"
+	);
+
+	let without_symbols = render_changelog_release_notes(
+		ChangelogFormat::Monochange,
+		&document,
+		&ChangelogStyle {
+			package_bump_symbols: false,
+			..ChangelogStyle::default()
+		},
+		&settings.templates,
+		"sdk",
+		"1.0.0",
+	);
+	assert!(
+		without_symbols.contains("_Packages:_ _pina_, _pina_abi_, _pina_cli_"),
+		"the opt-out must apply to configured templates too: {without_symbols}"
+	);
+	assert!(!without_symbols.contains('🔴'));
+}
+
+#[test]
+fn compact_configured_template_labels_single_packages_with_the_symbol() {
+	let mut settings = multi_target_settings();
+	settings.templates = vec!["- {{ summary }}".to_string()];
+	let sections = build_release_note_sections(
+		"sdk",
+		&settings,
+		&[ReleaseNoteChange {
+			change_type: Some("fix".to_string()),
+			bump: BumpSeverity::Patch,
+			summary: "fix a bug".to_string(),
+			details: None,
+			..sample_change("pkg-a", "pkg-a", ".changeset/a.md")
+		}],
+	);
+	let entry = &sections[0].entries[0];
+
+	let with_symbols =
+		format_structured_labeled_entry(entry, "- fix a bug", &ChangelogStyle::default());
+	assert_eq!(with_symbols, "- 🟢 **pkg-a**: fix a bug");
+
+	let without_symbols = format_structured_labeled_entry(
+		entry,
+		"- fix a bug",
+		&ChangelogStyle {
+			package_bump_symbols: false,
+			..ChangelogStyle::default()
+		},
+	);
+	assert_eq!(without_symbols, "- **pkg-a**: fix a bug");
+}
+
+#[test]
+fn a_package_changelog_never_labels_the_package_it_belongs_to() {
+	let settings = multi_target_settings();
+	let sections = build_release_note_sections(
+		"pkg-a",
+		&settings,
+		&[ReleaseNoteChange {
+			change_type: Some("fix".to_string()),
+			bump: BumpSeverity::Patch,
+			summary: "fix a bug".to_string(),
+			..sample_change("pkg-a", "pkg-a", ".changeset/a.md")
+		}],
+	);
+	let entry = &sections[0].entries[0];
+	assert!(entry.packages.is_empty(), "a package omits its own label");
+
+	let markdown = render_release_note_entry_markdown(entry, &ChangelogStyle::default());
+	assert!(
+		!markdown.contains("_Packages:_"),
+		"the package's own changelog must stay label-free: {markdown}"
+	);
+}
+
+#[test]
 fn render_release_notes_document_includes_section_headings_in_markdown() {
 	let mut settings = ChangelogSettings {
 		templates: vec!["- {{ summary }}".to_string()],

@@ -1856,9 +1856,11 @@ fn merge_release_note_changes(
 			.find(|existing| existing.identity == identity)
 		{
 			Some(existing) => {
-				if priority.is_some_and(|priority| priority < existing.priority) {
+				if let Some(priority) = priority
+					&& priority < existing.priority
+				{
 					existing.section_key = section_key;
-					existing.priority = priority.unwrap_or(i8::MAX);
+					existing.priority = priority;
 					existing.entry.change_type.clone_from(&change.change_type);
 				}
 				merge_entry_packages(&mut existing.entry, entry);
@@ -1878,8 +1880,9 @@ fn merge_release_note_changes(
 
 /// Add `incoming` packages to `entry` without repeating a package already listed.
 ///
-/// The higher bump wins when the same package appears twice, because that is
-/// the severity the release actually applied.
+/// The identity that selected this merge already guarantees the two entries
+/// share a source, summary, and details, so only the package list and the
+/// severity still differ between targets of one changeset.
 fn merge_entry_packages(entry: &mut ReleaseNotesEntry, incoming: ReleaseNotesEntry) {
 	for package in incoming.packages {
 		match entry
@@ -1887,31 +1890,11 @@ fn merge_entry_packages(entry: &mut ReleaseNotesEntry, incoming: ReleaseNotesEnt
 			.iter_mut()
 			.find(|existing| existing.name == package.name)
 		{
-			Some(existing) => {
-				if package.bump > existing.bump {
-					existing.bump = package.bump;
-				}
-			}
+			Some(existing) => existing.bump = existing.bump.max(package.bump),
 			None => entry.packages.push(package),
 		}
 	}
-	if entry.details_markdown.is_none() {
-		entry.details_markdown = incoming.details_markdown;
-	}
-	if incoming.bump > entry.bump {
-		entry.bump = incoming.bump;
-	}
-	entry.style = release_note_entry_style_for(
-		entry.bump,
-		entry
-			.change_type
-			.as_deref()
-			.or(incoming.change_type.as_deref()),
-		entry.details_markdown.as_deref(),
-	);
-	if entry.change_type.is_none() {
-		entry.change_type = incoming.change_type;
-	}
+	entry.bump = entry.bump.max(incoming.bump);
 }
 
 fn release_notes_entry(change: &ReleaseNoteChange, target_id: &str) -> ReleaseNotesEntry {
