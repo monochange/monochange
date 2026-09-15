@@ -8,7 +8,6 @@ info:
     - "--help"
   env:
     NO_COLOR: "1"
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0

@@ -856,15 +856,6 @@ pub(crate) fn shared_group_version(plan: &ReleasePlan) -> Option<String> {
 	}
 }
 
-pub(crate) fn root_relative(root: &Path, path: &Path) -> PathBuf {
-	let relative = relative_to_root(root, path).unwrap_or_else(|| path.to_path_buf());
-	if relative.as_os_str().is_empty() {
-		PathBuf::from(".")
-	} else {
-		relative
-	}
-}
-
 pub(crate) fn render_discovery_report(
 	report: &DiscoveryReport,
 	format: OutputFormat,

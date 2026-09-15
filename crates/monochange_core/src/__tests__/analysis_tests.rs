@@ -61,13 +61,13 @@ fn semantic_change_assessment_serializes_analyzer_provenance_and_fallback() {
 		.unwrap_or_else(|error| panic!("serialize semantic assessment: {error}"));
 
 	assert_eq!(json["outcome"], "inconclusive");
-	assert_eq!(json["suggestedBump"], "patch");
-	assert_eq!(json["evidence"]["analyzerId"], "npm/typescript");
+	assert_eq!(json["suggested_bump"], "patch");
+	assert_eq!(json["evidence"]["analyzer_id"], "npm/typescript");
 	assert_eq!(json["evidence"]["engine"], "typescript");
 	assert_eq!(json["evidence"]["version"], "6.0.3");
 	assert_eq!(json["evidence"]["completeness"], "partial");
 	assert_eq!(
-		json["evidence"]["fallbackReason"],
+		json["evidence"]["fallback_reason"],
 		"tsconfig.json extends an unavailable file"
 	);
 }
@@ -104,7 +104,7 @@ fn semantic_analyzer_evidence_serializes_machine_readable_checks() {
 		.unwrap_or_else(|error| panic!("evidence should serialize: {error}"));
 
 	assert_eq!(json["checks"][0]["name"], "all-features");
-	assert_eq!(json["checks"][0]["suggestedBump"], "major");
+	assert_eq!(json["checks"][0]["suggested_bump"], "major");
 	assert_eq!(
 		json["checks"][0]["diagnostics"][0]["code"],
 		"struct_missing"

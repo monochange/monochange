@@ -5215,6 +5215,16 @@ fn validate_changesets_configuration(
 			"[changesets.affected].skip_labels must not include empty values".to_string(),
 		));
 	}
+	if changesets
+		.classification
+		.skip_labels
+		.iter()
+		.any(|label| label.trim().is_empty())
+	{
+		return Err(MonochangeError::Config(
+			"[changesets.classification].skip_labels must not include empty values".to_string(),
+		));
+	}
 	for (field, patterns) in [
 		(
 			"[changesets.affected].changed_paths",

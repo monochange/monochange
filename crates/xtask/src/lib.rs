@@ -102,41 +102,76 @@ pub fn post_process_config(schema: &mut serde_json::Value, id: &str, title: &str
 		});
 }
 
+/// Paths owned by one schema-versioned crate.
+#[derive(Clone, Debug)]
+pub struct SchemaCratePaths {
+	/// Directory holding the crate's generated schema assets.
+	pub schemas_dir: PathBuf,
+	/// File carrying the crate's published schema version.
+	pub schema_version_path: PathBuf,
+	/// Crate manifest used to derive the next published schema version.
+	pub manifest_path: PathBuf,
+	/// Changeset package name that advances this crate's schema version.
+	pub changeset_package: String,
+}
+
+/// One schema crate's resolved inputs for a pipeline run.
+pub struct SchemaCrateInput {
+	pub paths: SchemaCratePaths,
+	pub version: String,
+}
+
+fn workspace_dir() -> Result<PathBuf, String> {
+	let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+	Ok(crate_dir.parent().unwrap().parent().unwrap().to_path_buf())
+}
+
+fn schema_crate_paths(workspace_dir: &Path, crate_name: &str) -> SchemaCratePaths {
+	SchemaCratePaths {
+		schemas_dir: workspace_dir.join(format!("crates/{crate_name}/schemas")),
+		schema_version_path: workspace_dir.join(format!("crates/{crate_name}/SCHEMA_VERSION")),
+		manifest_path: workspace_dir.join(format!("crates/{crate_name}/Cargo.toml")),
+		changeset_package: crate_name.to_string(),
+	}
+}
+
+/// Every schema-versioned crate maintained by this pipeline.
+fn schema_crates(workspace_dir: &Path) -> Vec<SchemaCratePaths> {
+	vec![
+		schema_crate_paths(workspace_dir, "monochange_schema"),
+		schema_crate_paths(workspace_dir, "monochange_classification"),
+	]
+}
+
 /// Generate current schema JSON strings and write them to disk (update_mode) or compare to disk (check mode).
 ///
 /// Returns `Ok(())` on success, or an error message describing the mismatch.
 pub fn run(update_mode: bool) -> Result<(), String> {
-	let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-	let workspace_dir = crate_dir.parent().unwrap().parent().unwrap();
-	let schemas_dir = workspace_dir.join("crates/monochange_schema/schemas");
+	let workspace_dir = workspace_dir()?;
 	let docs_schemas_dir = workspace_dir.join("docs/src/schemas");
-	let schema_version_path = workspace_dir.join("crates/monochange_schema/SCHEMA_VERSION");
-	let version = current_schema_version(&schema_version_path)?;
-	run_with_paths(
-		update_mode,
-		SchemaMode::Current,
-		&schemas_dir,
-		&docs_schemas_dir,
-		&schema_version_path,
-		&version,
-	)
+	let mut inputs = Vec::new();
+	for paths in schema_crates(&workspace_dir) {
+		let version = current_schema_version(&paths.schema_version_path)?;
+		inputs.push(SchemaCrateInput { paths, version });
+	}
+	run_with_paths(update_mode, SchemaMode::Current, &docs_schemas_dir, &inputs)
 }
 
 /// Generate release schema JSON strings, including immutable versioned files.
 pub fn run_release(update_mode: bool, include_versioned: bool) -> Result<(), String> {
-	let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-	let workspace_dir = crate_dir.parent().unwrap().parent().unwrap();
-	let schemas_dir = workspace_dir.join("crates/monochange_schema/schemas");
+	let workspace_dir = workspace_dir()?;
 	let docs_schemas_dir = workspace_dir.join("docs/src/schemas");
-	let schema_version_path = workspace_dir.join("crates/monochange_schema/SCHEMA_VERSION");
-	let version = expected_schema_version(workspace_dir)?;
+	let mut inputs = Vec::new();
+	for paths in schema_crates(&workspace_dir) {
+		let version =
+			expected_schema_version_for(&workspace_dir, &paths, &paths.changeset_package)?;
+		inputs.push(SchemaCrateInput { paths, version });
+	}
 	run_with_paths(
 		update_mode,
 		SchemaMode::Release { include_versioned },
-		&schemas_dir,
 		&docs_schemas_dir,
-		&schema_version_path,
-		&version,
+		&inputs,
 	)
 }
 
@@ -206,36 +241,61 @@ struct ConfigVariant {
 }
 
 /// Core schema generation logic with configurable output directories.
+/// One schema crate's inputs for `run_with_paths`.
+pub struct SchemaCrateRunInput {
+	pub paths: SchemaCratePaths,
+	pub version: String,
+}
+
 pub fn run_with_paths(
 	update_mode: bool,
 	mode: SchemaMode,
-	schemas_dir: &Path,
 	docs_schemas_dir: &Path,
-	schema_version_path: &Path,
-	version: &str,
+	crates: &[SchemaCrateInput],
 ) -> Result<(), String> {
-	let generated_files = schema_files(schemas_dir, docs_schemas_dir, version, mode);
-	let schema_version_contents = schema_version_file_contents(version);
+	let mut generated_files = Vec::new();
+	let mut version_checks = Vec::new();
+	for input in crates {
+		generated_files.extend(schema_files(
+			&input.paths.schemas_dir,
+			docs_schemas_dir,
+			&input.version,
+			mode,
+			&input.paths.changeset_package,
+		));
+		version_checks.push((
+			input.paths.schema_version_path.clone(),
+			schema_version_file_contents(&input.version),
+		));
+	}
 
 	if update_mode {
-		if let Some(parent) = schema_version_path.parent() {
-			fs::create_dir_all(parent)
-				.map_err(|error| format!("Could not create {}: {error}", parent.display()))?;
+		for (schema_version_path, contents) in &version_checks {
+			if let Some(parent) = schema_version_path.parent() {
+				fs::create_dir_all(parent)
+					.map_err(|error| format!("Could not create {}: {error}", parent.display()))?;
+			}
+			fs::write(schema_version_path, contents).map_err(|error| {
+				format!("Could not write {}: {error}", schema_version_path.display())
+			})?;
 		}
-		fs::write(schema_version_path, schema_version_contents).map_err(|error| {
-			format!("Could not write {}: {error}", schema_version_path.display())
-		})?;
 		for generated_file in &generated_files {
 			write_generated_file(generated_file)?;
 		}
-		remove_stale_artifact_files(schemas_dir)?;
+		for input in crates {
+			remove_stale_artifact_files(&input.paths.schemas_dir)?;
+		}
 		println!("Schemas updated successfully.");
 		return Ok(());
 	}
 
 	let mut errors = Vec::new();
-	if let Err(error) = check_text_files(&[(schema_version_path, schema_version_contents.as_str())])
-	{
+	if let Err(error) = check_text_files(
+		&version_checks
+			.iter()
+			.map(|(path, contents)| (path.as_path(), contents.as_str()))
+			.collect::<Vec<_>>(),
+	) {
 		errors.push(error);
 	}
 
@@ -246,8 +306,10 @@ pub fn run_with_paths(
 	if let Err(error) = check_schemas(&schema_checks) {
 		errors.push(error);
 	}
-	if let Err(error) = check_stale_artifact_files_absent(schemas_dir) {
-		errors.push(error);
+	for input in crates {
+		if let Err(error) = check_stale_artifact_files_absent(&input.paths.schemas_dir) {
+			errors.push(error);
+		}
 	}
 
 	if errors.is_empty() {
@@ -259,6 +321,70 @@ pub fn run_with_paths(
 }
 
 fn schema_files(
+	schemas_dir: &Path,
+	docs_schemas_dir: &Path,
+	version: &str,
+	mode: SchemaMode,
+	crate_package: &str,
+) -> Vec<GeneratedFile> {
+	match crate_package {
+		"monochange_classification" => {
+			classification_schema_files(schemas_dir, docs_schemas_dir, version, mode)
+		}
+		_ => monochange_schema_files(schemas_dir, docs_schemas_dir, version, mode),
+	}
+}
+
+/// Generate the classification report schema assets.
+fn classification_schema_files(
+	schemas_dir: &Path,
+	docs_schemas_dir: &Path,
+	version: &str,
+	mode: SchemaMode,
+) -> Vec<GeneratedFile> {
+	let schema = monochange_classification::schema::classification_report();
+	let mut value = schema.clone().to_value();
+	post_process_config(
+		&mut value,
+		"https://monochange.github.io/monochange/schemas/classification.schema.json",
+		"monochange classification report",
+	);
+	let json = serde_json::to_string_pretty(&value).unwrap();
+
+	let mut files = vec![
+		GeneratedFile {
+			path: schemas_dir.join("classification.schema.json"),
+			contents: json.clone(),
+		},
+		GeneratedFile {
+			path: docs_schemas_dir.join("classification.schema.json"),
+			contents: json,
+		},
+	];
+
+	let include_versioned = match mode {
+		SchemaMode::Current => false,
+		SchemaMode::Release { include_versioned } => include_versioned,
+	};
+	if include_versioned {
+		let mut versioned_value = schema.clone().to_value();
+		post_process_config(
+			&mut versioned_value,
+			&format!(
+				"https://monochange.github.io/monochange/schemas/classification.v{version}.schema.json"
+			),
+			"monochange classification report",
+		);
+		files.push(GeneratedFile {
+			path: docs_schemas_dir.join(format!("classification.v{version}.schema.json")),
+			contents: serde_json::to_string_pretty(&versioned_value).unwrap(),
+		});
+	}
+
+	files
+}
+
+fn monochange_schema_files(
 	schemas_dir: &Path,
 	docs_schemas_dir: &Path,
 	version: &str,
@@ -1118,19 +1244,28 @@ fn schema_version_file_contents(version: &str) -> String {
 
 /// Derive the expected public schema version from the next `monochange_schema` release.
 pub fn expected_schema_version(workspace_dir: &Path) -> Result<String, String> {
-	let package_version = schema_package_manifest_version(workspace_dir)?;
+	let paths = schema_crate_paths(workspace_dir, "monochange_schema");
+	expected_schema_version_for(workspace_dir, &paths, &paths.changeset_package)
+}
+
+fn expected_schema_version_for(
+	workspace_dir: &Path,
+	paths: &SchemaCratePaths,
+	changeset_package: &str,
+) -> Result<String, String> {
+	let package_version = schema_package_manifest_version(&paths.manifest_path)?;
 	let current_version = semver::Version::parse(&package_version).map_err(|error| {
-		format!("Could not parse monochange_schema package version `{package_version}`: {error}")
+		format!("Could not parse {changeset_package} package version `{package_version}`: {error}")
 	})?;
-	let next_version = planned_schema_bump(workspace_dir)?.apply_to_version(&current_version);
+	let next_version =
+		planned_schema_bump(workspace_dir, changeset_package)?.apply_to_version(&current_version);
 	monochange_schema::SchemaVersion::from_package_version(&next_version.to_string())
 		.map(|schema_version| schema_version.to_string())
 		.map_err(|error| format!("Could not derive schema version from `{next_version}`: {error}"))
 }
 
-fn schema_package_manifest_version(workspace_dir: &Path) -> Result<String, String> {
-	let manifest_path = workspace_dir.join("crates/monochange_schema/Cargo.toml");
-	let manifest = fs::read_to_string(&manifest_path)
+fn schema_package_manifest_version(manifest_path: &Path) -> Result<String, String> {
+	let manifest = fs::read_to_string(manifest_path)
 		.map_err(|error| format!("Could not read {}: {error}", manifest_path.display()))?;
 	package_version_from_manifest(&manifest).ok_or_else(|| {
 		format!(
@@ -1165,7 +1300,10 @@ fn package_version_from_manifest(manifest: &str) -> Option<String> {
 	None
 }
 
-fn planned_schema_bump(workspace_dir: &Path) -> Result<BumpSeverity, String> {
+fn planned_schema_bump(
+	workspace_dir: &Path,
+	changeset_package: &str,
+) -> Result<BumpSeverity, String> {
 	let changeset_dir = workspace_dir.join(".changeset");
 	let Ok(entries) = fs::read_dir(&changeset_dir) else {
 		return Ok(BumpSeverity::None);
@@ -1184,7 +1322,7 @@ fn planned_schema_bump(workspace_dir: &Path) -> Result<BumpSeverity, String> {
 		}
 		let contents = fs::read_to_string(&path)
 			.map_err(|error| format!("Could not read {}: {error}", path.display()))?;
-		bump = bump.max(changeset_bump_for_package(&contents, "monochange_schema"));
+		bump = bump.max(changeset_bump_for_package(&contents, changeset_package));
 	}
 	Ok(bump)
 }

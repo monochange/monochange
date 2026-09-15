@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/api_classification.rs
-assertion_line: 180
 expression: report
 ---
 {
@@ -9,19 +8,19 @@ expression: report
     {
       "base": "HEAD~1",
       "head": "merge-tree:[SHA]",
-      "kind": "pullRequest",
+      "kind": "pull_request",
       "note": null,
       "status": "analyzed"
     },
     {
       "base": "[SHA]",
       "head": "HEAD",
-      "kind": "sourceDelta",
+      "kind": "source_delta",
       "note": null,
       "status": "analyzed"
     }
   ],
-  "defaultBranch": "HEAD~1",
+  "default_branch": "HEAD~1",
   "packages": [
     {
       "action": "create",
@@ -29,14 +28,14 @@ expression: report
         {
           "base": "HEAD~1",
           "head": "merge-tree:[SHA]",
-          "kind": "pullRequest",
+          "kind": "pull_request",
           "note": null,
           "status": "analyzed"
         },
         {
           "base": "[SHA]",
           "head": "HEAD",
-          "kind": "sourceDelta",
+          "kind": "source_delta",
           "note": null,
           "status": "analyzed"
         },
@@ -50,26 +49,26 @@ expression: report
         {
           "base": null,
           "head": "HEAD~1",
-          "kind": "releaseToDefault",
+          "kind": "release_to_default",
           "note": "no reachable release tag matched this package",
           "status": "unavailable"
         }
       ],
       "decision": {
-        "classificationEnforced": true,
-        "compatibilityImpact": "compatible",
+        "classification_enforced": true,
+        "compatibility_impact": "compatible",
         "completeness": "partial",
         "confidence": "medium",
-        "enforceableMinimum": "none",
-        "findingIds": [
+        "enforceable_minimum": "none",
+        "finding_ids": [
           "npm/package-json/metadata/modified/script/script.build"
         ],
-        "proposedChangesetBump": "patch",
-        "releaseFloor": "patch",
-        "reviewRequired": true
+        "proposed_changeset_bump": "patch",
+        "release_floor": "patch",
+        "review_required": true
       },
       "ecosystem": "npm",
-      "existingChangesets": [],
+      "existing_changesets": [],
       "findings": [
         {
           "after": "node scripts/build.js",
@@ -81,30 +80,30 @@ expression: report
           "bump": "patch",
           "change": "modified",
           "comparisons": [
-            "pullRequest",
-            "sourceDelta"
+            "pull_request",
+            "source_delta"
           ],
           "confidence": "medium",
           "coverage": {
             "completeness": "partial",
-            "detectionLevel": "signature",
+            "detection_level": "signature",
             "note": "package metadata and export syntax; entrypoint reachability and TypeScript assignability are not complete"
           },
           "id": "npm/package-json/metadata/modified/script/script.build",
           "impact": "compatible",
           "location": "package.json",
-          "ruleId": "npm/package-json/metadata/modified/script",
+          "rule_id": "npm/package-json/metadata/modified/script",
           "summary": "script `script.build` modified",
           "surface": "metadata"
         }
       ],
-      "packageId": "js_utils",
-      "packageName": "@demo/js-utils",
+      "package_id": "js_utils",
+      "package_name": "@demo/js-utils",
       "recommendation": "patch",
-      "releaseOwner": {
+      "release_owner": {
         "id": "js_utils",
         "kind": "package",
-        "latestRelease": null
+        "latest_release": null
       },
       "summary": "1 compatible finding(s) propose a patch changeset",
       "warnings": []
@@ -115,14 +114,14 @@ expression: report
         {
           "base": "HEAD~1",
           "head": "merge-tree:[SHA]",
-          "kind": "pullRequest",
+          "kind": "pull_request",
           "note": null,
           "status": "analyzed"
         },
         {
           "base": "[SHA]",
           "head": "HEAD",
-          "kind": "sourceDelta",
+          "kind": "source_delta",
           "note": null,
           "status": "analyzed"
         },
@@ -136,26 +135,26 @@ expression: report
         {
           "base": null,
           "head": "HEAD~1",
-          "kind": "releaseToDefault",
+          "kind": "release_to_default",
           "note": "no reachable release tag matched this package",
           "status": "unavailable"
         }
       ],
       "decision": {
-        "classificationEnforced": true,
-        "compatibilityImpact": "breaking",
+        "classification_enforced": true,
+        "compatibility_impact": "breaking",
         "completeness": "partial",
         "confidence": "medium",
-        "enforceableMinimum": "none",
-        "findingIds": [
+        "enforceable_minimum": "none",
+        "finding_ids": [
           "cargo/public-api/public_api/removed/function/removed_greeting"
         ],
-        "proposedChangesetBump": "major",
-        "releaseFloor": "major",
-        "reviewRequired": true
+        "proposed_changeset_bump": "major",
+        "release_floor": "major",
+        "review_required": true
       },
       "ecosystem": "cargo",
-      "existingChangesets": [],
+      "existing_changesets": [],
       "findings": [
         {
           "after": null,
@@ -167,30 +166,30 @@ expression: report
           "bump": "major",
           "change": "removed",
           "comparisons": [
-            "pullRequest",
-            "sourceDelta"
+            "pull_request",
+            "source_delta"
           ],
           "confidence": "medium",
           "coverage": {
             "completeness": "partial",
-            "detectionLevel": "signature",
+            "detection_level": "signature",
             "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
           },
           "id": "cargo/public-api/public_api/removed/function/removed_greeting",
           "impact": "breaking",
           "location": "src/lib.rs",
-          "ruleId": "cargo/public-api/public_api/removed/function",
+          "rule_id": "cargo/public-api/public_api/removed/function",
           "summary": "function `removed_greeting` removed",
           "surface": "public_api"
         }
       ],
-      "packageId": "rust_core",
-      "packageName": "rust-core",
+      "package_id": "rust_core",
+      "package_name": "rust-core",
       "recommendation": "major",
-      "releaseOwner": {
+      "release_owner": {
         "id": "rust_core",
         "kind": "package",
-        "latestRelease": null
+        "latest_release": null
       },
       "summary": "1 breaking finding(s) propose a major changeset",
       "warnings": []
@@ -201,14 +200,14 @@ expression: report
         {
           "base": "HEAD~1",
           "head": "merge-tree:[SHA]",
-          "kind": "pullRequest",
+          "kind": "pull_request",
           "note": null,
           "status": "analyzed"
         },
         {
           "base": "[SHA]",
           "head": "HEAD",
-          "kind": "sourceDelta",
+          "kind": "source_delta",
           "note": null,
           "status": "analyzed"
         },
@@ -222,26 +221,26 @@ expression: report
         {
           "base": null,
           "head": "HEAD~1",
-          "kind": "releaseToDefault",
+          "kind": "release_to_default",
           "note": "no reachable release tag matched this package",
           "status": "unavailable"
         }
       ],
       "decision": {
-        "classificationEnforced": true,
-        "compatibilityImpact": "additive",
+        "classification_enforced": true,
+        "compatibility_impact": "additive",
         "completeness": "partial",
         "confidence": "medium",
-        "enforceableMinimum": "none",
-        "findingIds": [
+        "enforceable_minimum": "none",
+        "finding_ids": [
           "npm/package-json/public_api/added/interface/AdminUser"
         ],
-        "proposedChangesetBump": "minor",
-        "releaseFloor": "minor",
-        "reviewRequired": true
+        "proposed_changeset_bump": "minor",
+        "release_floor": "minor",
+        "review_required": true
       },
       "ecosystem": "npm",
-      "existingChangesets": [],
+      "existing_changesets": [],
       "findings": [
         {
           "after": "export interface AdminUser extends User { role: string; }",
@@ -253,36 +252,37 @@ expression: report
           "bump": "minor",
           "change": "added",
           "comparisons": [
-            "pullRequest",
-            "sourceDelta"
+            "pull_request",
+            "source_delta"
           ],
           "confidence": "medium",
           "coverage": {
             "completeness": "partial",
-            "detectionLevel": "signature",
+            "detection_level": "signature",
             "note": "package metadata and export syntax; entrypoint reachability and TypeScript assignability are not complete"
           },
           "id": "npm/package-json/public_api/added/interface/AdminUser",
           "impact": "additive",
           "location": "src/index.ts",
-          "ruleId": "npm/package-json/public_api/added/interface",
+          "rule_id": "npm/package-json/public_api/added/interface",
           "summary": "interface `AdminUser` added",
           "surface": "public_api"
         }
       ],
-      "packageId": "ts_client",
-      "packageName": "@demo/ts-client",
+      "package_id": "ts_client",
+      "package_name": "@demo/ts-client",
       "recommendation": "minor",
-      "releaseOwner": {
+      "release_owner": {
         "id": "ts_client",
         "kind": "package",
-        "latestRelease": null
+        "latest_release": null
       },
       "summary": "1 additive finding(s) propose a minor changeset",
       "warnings": []
     }
   ],
   "recommendation": "major",
-  "schemaVersion": 4,
+  "schema_version": "[SCHEMA_VERSION]",
+  "skipped": false,
   "warnings": []
 }

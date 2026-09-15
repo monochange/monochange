@@ -5852,6 +5852,7 @@ fn validate_source_and_changeset_settings_reject_empty_values() {
 				skip_labels: vec![String::new()],
 				..Default::default()
 			},
+			..Default::default()
 		},
 		&[],
 	)
@@ -5863,12 +5864,30 @@ fn validate_source_and_changeset_settings_reject_empty_values() {
 			.contains("[changesets.affected].skip_labels must not include empty values")
 	);
 
+	let classification_error = crate::validate_changesets_configuration(
+		&monochange_core::ChangesetSettings {
+			classification: monochange_core::ChangesetClassificationSettings {
+				skip_labels: vec![" ".to_string()],
+			},
+			..Default::default()
+		},
+		&[],
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected classification validation error"));
+	assert!(
+		classification_error
+			.to_string()
+			.contains("[changesets.classification].skip_labels must not include empty values")
+	);
+
 	let affected_empty_path_error = crate::validate_changesets_configuration(
 		&monochange_core::ChangesetSettings {
 			affected: monochange_core::ChangesetAffectedSettings {
 				changed_paths: vec![" ".to_string()],
 				..Default::default()
 			},
+			..Default::default()
 		},
 		&[],
 	)
@@ -6336,6 +6355,7 @@ fn validate_cli_runtime_requirements_enforce_affected_package_inputs() {
 				enabled: false,
 				..Default::default()
 			},
+			..Default::default()
 		},
 		Some(&sample_source_configuration(SourceProvider::GitHub)),
 	)
@@ -6440,6 +6460,7 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 				changed_paths: vec!["[".to_string()],
 				..Default::default()
 			},
+			..Default::default()
 		},
 		&[],
 	)

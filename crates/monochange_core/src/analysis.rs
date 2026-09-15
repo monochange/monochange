@@ -126,6 +126,7 @@ fn matches_any_package_pattern(
 }
 
 /// Level of detail requested from semantic analyzers.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -461,6 +462,7 @@ pub enum SemanticChangeKind {
 }
 
 /// Compatibility outcome proven or inferred by a semantic analyzer.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -577,6 +579,7 @@ impl Default for CargoSemverChecksSettings {
 }
 
 /// Completion state for one analyzer sub-check.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -590,6 +593,7 @@ pub enum SemanticAnalyzerCheckStatus {
 }
 
 /// One stable diagnostic emitted by a semantic analyzer sub-check.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -623,8 +627,9 @@ impl SemanticAnalyzerDiagnostic {
 }
 
 /// Machine-readable result for one scope within an analyzer run.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub struct SemanticAnalyzerCheck {
 	/// Stable check name, such as a feature/target matrix cell id.
@@ -685,7 +690,7 @@ impl SemanticAnalyzerCheck {
 
 /// Provenance and coverage for one analyzer assessment.
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub struct SemanticAnalyzerEvidence {
 	/// Stable analyzer identifier, such as `npm/typescript`.
@@ -750,7 +755,7 @@ impl SemanticAnalyzerEvidence {
 
 /// Explicit compatibility and release recommendation from an analyzer.
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub struct SemanticChangeAssessment {
 	/// Compatibility outcome produced by the analyzer.

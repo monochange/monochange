@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/api_classification.rs
-assertion_line: 251
 expression: snapshot
 ---
 {
@@ -9,19 +8,19 @@ expression: snapshot
     {
       "base": "HEAD~1",
       "head": "merge-tree:[SHA]",
-      "kind": "pullRequest",
+      "kind": "pull_request",
       "note": null,
       "status": "analyzed"
     },
     {
       "base": "[SHA]",
       "head": "HEAD",
-      "kind": "sourceDelta",
+      "kind": "source_delta",
       "note": null,
       "status": "analyzed"
     }
   ],
-  "defaultBranch": "HEAD~1",
+  "default_branch": "HEAD~1",
   "packages": [
     {
       "action": "create",
@@ -29,14 +28,14 @@ expression: snapshot
         {
           "base": "HEAD~1",
           "head": "merge-tree:[SHA]",
-          "kind": "pullRequest",
+          "kind": "pull_request",
           "note": null,
           "status": "analyzed"
         },
         {
           "base": "[SHA]",
           "head": "HEAD",
-          "kind": "sourceDelta",
+          "kind": "source_delta",
           "note": null,
           "status": "analyzed"
         },
@@ -50,27 +49,27 @@ expression: snapshot
         {
           "base": null,
           "head": "HEAD~1",
-          "kind": "releaseToDefault",
+          "kind": "release_to_default",
           "note": "no reachable release tag matched this package",
           "status": "unavailable"
         }
       ],
       "decision": {
-        "classificationEnforced": true,
-        "compatibilityImpact": "breaking",
+        "classification_enforced": true,
+        "compatibility_impact": "breaking",
         "completeness": "complete",
         "confidence": "high",
-        "enforceableMinimum": "major",
-        "findingIds": [
+        "enforceable_minimum": "major",
+        "finding_ids": [
           "cargo/cargo-semver-checks/public_api/modified/compatibility_matrix/configured_matrix",
           "cargo/public-api/public_api/modified/trait/ExperimentalApi"
         ],
-        "proposedChangesetBump": "major",
-        "releaseFloor": "major",
-        "reviewRequired": false
+        "proposed_changeset_bump": "major",
+        "release_floor": "major",
+        "review_required": false
       },
       "ecosystem": "cargo",
-      "existingChangesets": [],
+      "existing_changesets": [],
       "findings": [
         {
           "after": null,
@@ -83,8 +82,8 @@ expression: snapshot
           "bump": "major",
           "change": "modified",
           "comparisons": [
-            "pullRequest",
-            "sourceDelta"
+            "pull_request",
+            "source_delta"
           ],
           "confidence": "high",
           "coverage": {
@@ -97,7 +96,7 @@ expression: snapshot
                 "name": "default",
                 "outcome": "compatible",
                 "status": "checked",
-                "suggestedBump": "none"
+                "suggested_bump": "none"
               },
               {
                 "configuration": {
@@ -107,7 +106,7 @@ expression: snapshot
                 "name": "no-default-features",
                 "outcome": "compatible",
                 "status": "checked",
-                "suggestedBump": "none"
+                "suggested_bump": "none"
               },
               {
                 "configuration": {
@@ -125,7 +124,7 @@ expression: snapshot
                 "name": "selected-experimental",
                 "outcome": "breaking",
                 "status": "checked",
-                "suggestedBump": "major"
+                "suggested_bump": "major"
               },
               {
                 "configuration": {
@@ -142,7 +141,7 @@ expression: snapshot
                 "name": "all-features",
                 "outcome": "breaking",
                 "status": "checked",
-                "suggestedBump": "major"
+                "suggested_bump": "major"
               },
               {
                 "configuration": {
@@ -159,17 +158,17 @@ expression: snapshot
                 "name": "host-target",
                 "outcome": "breaking",
                 "status": "checked",
-                "suggestedBump": "major"
+                "suggested_bump": "major"
               }
             ],
             "completeness": "complete",
-            "detectionLevel": "semantic",
+            "detection_level": "semantic",
             "note": "cargo-semver-checks active lints checked 5/5 configured feature/target cells; additive Rust exports remain syntax-derived"
           },
           "id": "cargo/cargo-semver-checks/public_api/modified/compatibility_matrix/configured_matrix",
           "impact": "breaking",
           "location": "Cargo.toml",
-          "ruleId": "cargo/cargo-semver-checks/public_api/modified/compatibility_matrix",
+          "rule_id": "cargo/cargo-semver-checks/public_api/modified/compatibility_matrix",
           "summary": "cargo-semver-checks found a breaking Rust API change in the configured matrix",
           "surface": "public_api"
         },
@@ -183,36 +182,37 @@ expression: snapshot
           "bump": "major",
           "change": "modified",
           "comparisons": [
-            "pullRequest",
-            "sourceDelta"
+            "pull_request",
+            "source_delta"
           ],
           "confidence": "medium",
           "coverage": {
             "completeness": "partial",
-            "detectionLevel": "semantic",
+            "detection_level": "semantic",
             "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
           },
           "id": "cargo/public-api/public_api/modified/trait/ExperimentalApi",
           "impact": "breaking",
           "location": "src/lib.rs",
-          "ruleId": "cargo/public-api/public_api/modified/trait",
+          "rule_id": "cargo/public-api/public_api/modified/trait",
           "summary": "trait `ExperimentalApi` modified",
           "surface": "public_api"
         }
       ],
-      "packageId": "rust_api",
-      "packageName": "rust-semver-matrix-fixture",
+      "package_id": "rust_api",
+      "package_name": "rust-semver-matrix-fixture",
       "recommendation": "major",
-      "releaseOwner": {
+      "release_owner": {
         "id": "rust_api",
         "kind": "package",
-        "latestRelease": null
+        "latest_release": null
       },
       "summary": "2 breaking finding(s) propose a major changeset",
       "warnings": []
     }
   ],
   "recommendation": "major",
-  "schemaVersion": 4,
+  "schema_version": "[SCHEMA_VERSION]",
+  "skipped": false,
   "warnings": []
 }

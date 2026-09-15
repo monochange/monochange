@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 clap = { workspace = true, features = ["std"], default-features = true }
+monochange_classification = { workspace = true, features = ["schema"] }
 monochange_config = { workspace = true, features = ["schema"] }
 monochange_core = { workspace = true, features = ["schema"] }
 monochange_schema = { workspace = true }

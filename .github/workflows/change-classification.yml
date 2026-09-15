@@ -33,7 +33,7 @@ jobs:
 
       - name: classify changes
         id: classify
-        uses: monochange/actions/change-classification@da3911fecf67478deb0ad60f717da5eca649caba # v0.9.1
+        uses: monochange/actions/change-classification@8e4573867551ab71b57fa6ed87f84c592ef57342 # main (labels input + skipped-run handling)
         with:
           setup-monochange: devenv shell monochange
           detection-level: signature

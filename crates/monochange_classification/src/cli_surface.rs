@@ -7,19 +7,18 @@ use monochange_core::CliSnapshotCommandDefinition;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageCliDefinition;
+use monochange_core::root_relative;
 use monochange_snapshot::CommandSnapshot;
 use monochange_snapshot::SNAPSHOT_SCHEMA_VERSION;
-
-use crate::release_artifacts::root_relative;
 
 /// Directory (relative to the workspace root) holding the committed
 /// command-surface baselines. The rest of `.monochange/` is committed release
 /// state, so baselines ride along with the release commit.
-pub(crate) const CLI_SNAPSHOT_BASELINE_DIR: &str = ".monochange/cli-snapshots";
+pub const CLI_SNAPSHOT_BASELINE_DIR: &str = ".monochange/cli-snapshots";
 
 /// How a CLI snapshot comparison ended for one package.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub(crate) enum CliSnapshotBaseline {
+pub enum CliSnapshotBaseline {
 	/// No baseline has been committed for this CLI yet.
 	Missing,
 	/// The baseline file exists but is not a valid snapshot document.
@@ -35,18 +34,18 @@ pub(crate) enum CliSnapshotBaseline {
 
 /// A captured CLI snapshot with the command that produced it.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub(crate) struct CapturedCliSnapshot {
+pub struct CapturedCliSnapshot {
 	pub snapshot: CommandSnapshot,
 }
 
 /// Return the workspace-relative baseline path for a registered CLI.
 #[must_use]
-pub(crate) fn cli_snapshot_baseline_path(name: &str) -> PathBuf {
+pub fn cli_snapshot_baseline_path(name: &str) -> PathBuf {
 	Path::new(CLI_SNAPSHOT_BASELINE_DIR).join(format!("{name}.json"))
 }
 
 /// Load and classify the committed baseline for a registered CLI.
-pub(crate) fn read_cli_snapshot_baseline(root: &Path, name: &str) -> CliSnapshotBaseline {
+pub fn read_cli_snapshot_baseline(root: &Path, name: &str) -> CliSnapshotBaseline {
 	let path = root.join(cli_snapshot_baseline_path(name));
 	let Ok(contents) = fs::read_to_string(&path) else {
 		return CliSnapshotBaseline::Missing;
@@ -66,7 +65,7 @@ pub(crate) fn read_cli_snapshot_baseline(root: &Path, name: &str) -> CliSnapshot
 }
 
 /// Write a captured snapshot as the committed baseline for `name`.
-pub(crate) fn save_cli_snapshot_baseline(
+pub fn save_cli_snapshot_baseline(
 	root: &Path,
 	name: &str,
 	snapshot: &CommandSnapshot,
@@ -92,7 +91,7 @@ pub(crate) fn save_cli_snapshot_baseline(
 
 /// Run the configured snapshot command for `cli` and parse its stdout as a
 /// normalized command-surface snapshot.
-pub(crate) fn capture_cli_snapshot(
+pub fn capture_cli_snapshot(
 	root: &Path,
 	package_id: &str,
 	cli: &PackageCliDefinition,
@@ -173,7 +172,7 @@ fn stderr_excerpt(stderr: &[u8]) -> String {
 }
 
 /// Render a human-readable reason for why a baseline cannot be diffed.
-pub(crate) fn describe_cli_snapshot_baseline(baseline: &CliSnapshotBaseline) -> String {
+pub fn describe_cli_snapshot_baseline(baseline: &CliSnapshotBaseline) -> String {
 	match baseline {
 		CliSnapshotBaseline::Missing => "no committed baseline; run `monochange snapshot --save` for this package during release".to_string(),
 		CliSnapshotBaseline::Invalid(error) => format!("committed baseline is not a valid snapshot document: {error}"),
@@ -188,13 +187,13 @@ pub(crate) fn describe_cli_snapshot_baseline(baseline: &CliSnapshotBaseline) -> 
 	}
 }
 
-pub(crate) fn cli_snapshot_root_relative(root: &Path, name: &str) -> PathBuf {
+pub fn cli_snapshot_root_relative(root: &Path, name: &str) -> PathBuf {
 	root_relative(root, &cli_snapshot_baseline_path(name))
 }
 
 /// `monochange snapshot --package <id> [--save]`: capture the configured
 /// package CLI snapshot, optionally persisting it as the committed baseline.
-pub(crate) fn run_package_snapshot(
+pub fn run_package_snapshot(
 	root: &Path,
 	package_id: &str,
 	save: bool,
@@ -227,7 +226,7 @@ pub(crate) fn run_package_snapshot(
 
 /// `monochange snapshot --list`: print every registered package CLI with its
 /// baseline status.
-pub(crate) fn list_registered_clis(root: &Path) -> MonochangeResult<String> {
+pub fn list_registered_clis(root: &Path) -> MonochangeResult<String> {
 	let configuration = monochange_config::load_workspace_configuration(root)?;
 	let mut lines = Vec::new();
 	for definition in &configuration.packages {

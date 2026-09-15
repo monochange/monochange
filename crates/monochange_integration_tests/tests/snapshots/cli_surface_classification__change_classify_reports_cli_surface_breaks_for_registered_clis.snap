@@ -8,25 +8,25 @@ expression: projected
     {
       "base": "HEAD~1",
       "head": "merge-tree:[SHA]",
-      "kind": "pullRequest",
+      "kind": "pull_request",
       "note": null,
       "status": "analyzed"
     },
     {
       "base": "[SHA]",
       "head": "HEAD",
-      "kind": "sourceDelta",
+      "kind": "source_delta",
       "note": null,
       "status": "analyzed"
     }
   ],
-  "defaultBranch": "HEAD~1",
+  "default_branch": "HEAD~1",
   "packages": [
     {
       "action": "create",
       "cli": {
         "baseline": ".monochange/cli-snapshots/demo.json",
-        "findingCount": 2,
+        "finding_count": 2,
         "name": "demo",
         "recommendation": "major",
         "status": "diffed"
@@ -35,14 +35,14 @@ expression: projected
         {
           "base": "HEAD~1",
           "head": "merge-tree:[SHA]",
-          "kind": "pullRequest",
+          "kind": "pull_request",
           "note": null,
           "status": "analyzed"
         },
         {
           "base": "[SHA]",
           "head": "HEAD",
-          "kind": "sourceDelta",
+          "kind": "source_delta",
           "note": null,
           "status": "analyzed"
         },
@@ -56,26 +56,26 @@ expression: projected
         {
           "base": null,
           "head": "HEAD~1",
-          "kind": "releaseToDefault",
+          "kind": "release_to_default",
           "note": "no reachable release tag matched this package",
           "status": "unavailable"
         }
       ],
       "decision": {
-        "classificationEnforced": true,
-        "compatibilityImpact": "breaking",
+        "classification_enforced": true,
+        "compatibility_impact": "breaking",
         "completeness": "complete",
         "confidence": "high",
-        "enforceableMinimum": "major",
-        "findingIds": [
+        "enforceable_minimum": "major",
+        "finding_ids": [
           "monochange/cli-surface/option-removed/check"
         ],
-        "proposedChangesetBump": "major",
-        "releaseFloor": "major",
-        "reviewRequired": false
+        "proposed_changeset_bump": "major",
+        "release_floor": "major",
+        "review_required": false
       },
       "ecosystem": "cargo",
-      "existingChangesets": [],
+      "existing_changesets": [],
       "findings": [
         {
           "after": null,
@@ -87,18 +87,18 @@ expression: projected
           "bump": "major",
           "change": "option-removed",
           "comparisons": [
-            "pullRequest"
+            "pull_request"
           ],
           "confidence": "high",
           "coverage": {
             "completeness": "complete",
-            "detectionLevel": "signature",
+            "detection_level": "signature",
             "note": "command surface compared against the committed release baseline"
           },
           "id": "monochange/cli-surface/option-removed/check",
           "impact": "breaking",
           "location": "check",
-          "ruleId": "monochange/cli-surface/option-removed",
+          "rule_id": "monochange/cli-surface/option-removed",
           "summary": "option `--format` was removed from `check`",
           "surface": "cli"
         },
@@ -112,35 +112,36 @@ expression: projected
           "bump": "minor",
           "change": "command-added",
           "comparisons": [
-            "pullRequest"
+            "pull_request"
           ],
           "confidence": "high",
           "coverage": {
             "completeness": "complete",
-            "detectionLevel": "signature",
+            "detection_level": "signature",
             "note": "command surface compared against the committed release baseline"
           },
           "id": "monochange/cli-surface/command-added/migrate",
           "impact": "additive",
           "location": "migrate",
-          "ruleId": "monochange/cli-surface/command-added",
+          "rule_id": "monochange/cli-surface/command-added",
           "summary": "command `migrate` was added",
           "surface": "cli"
         }
       ],
-      "packageId": "demo",
-      "packageName": "demo",
+      "package_id": "demo",
+      "package_name": "demo",
       "recommendation": "major",
-      "releaseOwner": {
+      "release_owner": {
         "id": "demo",
         "kind": "package",
-        "latestRelease": null
+        "latest_release": null
       },
       "summary": "1 breaking finding(s) propose a major changeset",
       "warnings": []
     }
   ],
   "recommendation": "major",
-  "schemaVersion": 4,
+  "schema_version": "[SCHEMA_VERSION]",
+  "skipped": false,
   "warnings": []
 }

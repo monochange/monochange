@@ -44,48 +44,10 @@ fn classify_options_defaults_are_safe_for_agent_use() {
 	assert_eq!(options.detection_level, DetectionLevel::Signature);
 	assert!(!options.include_unchanged);
 	assert!(!options.strict);
-	assert_eq!(options.format, OutputFormat::Text);
+	assert_eq!(options.format, ClassificationFormat::Text);
 	assert_eq!(options.output, None);
+	assert!(options.labels.is_empty());
 	assert_eq!(options.dependency_propagation, DependencyPropagation::None);
-}
-
-#[test]
-fn classify_options_cover_all_supported_formats_and_detection_levels() {
-	for (format, expected) in [
-		("markdown", OutputFormat::Markdown),
-		("md", OutputFormat::Markdown),
-		("json", OutputFormat::Json),
-		("json-min", OutputFormat::JsonMin),
-		("text", OutputFormat::Text),
-	] {
-		let matches = crate::cli::build_command_with_cli("monochange", &[])
-			.try_get_matches_from(["monochange", "change", "classify", "--format", format])
-			.unwrap_or_else(|error| panic!("parse {format}: {error}"));
-		let (_, change_matches) = matches.subcommand().unwrap();
-		let (_, classify_matches) = change_matches.subcommand().unwrap();
-		let options = classify_options_from_matches(classify_matches)
-			.unwrap_or_else(|error| panic!("extract {format}: {error}"));
-		assert_eq!(options.format, expected);
-	}
-
-	assert_eq!(
-		parse_detection_level("basic").unwrap(),
-		DetectionLevel::Basic
-	);
-	assert_eq!(
-		parse_detection_level("semantic").unwrap(),
-		DetectionLevel::Semantic
-	);
-	assert!(parse_detection_level("impossible").is_err());
-	assert_eq!(
-		parse_dependency_propagation("none").unwrap(),
-		DependencyPropagation::None
-	);
-	assert_eq!(
-		parse_dependency_propagation("public").unwrap(),
-		DependencyPropagation::Public
-	);
-	assert!(parse_dependency_propagation("transitive").is_err());
 }
 
 #[test]
@@ -203,8 +165,8 @@ fn selection_release_and_render_helpers_cover_every_supported_variant() {
 		"conflicted"
 	);
 	assert_eq!(
-		compatibility_impact_name(CompatibilityImpact::Unknown),
-		"unknown"
+		compatibility_impact_name(CompatibilityImpact::Unmodeled),
+		"unmodeled"
 	);
 	assert_eq!(
 		compatibility_impact_name(CompatibilityImpact::Compatible),
@@ -230,109 +192,6 @@ fn selection_release_and_render_helpers_cover_every_supported_variant() {
 		classification_confidence_name(ClassificationConfidence::High),
 		"high"
 	);
-}
-
-#[test]
-fn classify_options_from_matches_accepts_agent_workflow_shape() {
-	let matches = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"--jq",
-			".packages",
-			"change",
-			"classify",
-			"--base",
-			"origin/main",
-			"--format=json",
-			"--dependency-propagation",
-			"public",
-		])
-		.unwrap_or_else(|error| panic!("parse command: {error}"));
-	let (_, change_matches) = matches.subcommand().unwrap();
-	let (_, classify_matches) = change_matches.subcommand().unwrap();
-	let options = classify_options_from_matches(classify_matches)
-		.unwrap_or_else(|error| panic!("extract options: {error}"));
-
-	assert_eq!(options.base, Some("origin/main".to_string()));
-	assert_eq!(options.head, "HEAD");
-	assert_eq!(options.format, OutputFormat::Json);
-	assert_eq!(
-		options.dependency_propagation,
-		DependencyPropagation::Public
-	);
-}
-
-#[test]
-fn classify_options_from_matches_accepts_api_diff_shape() {
-	let matches = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"api",
-			"diff",
-			"--base",
-			"origin/main",
-			"--format",
-			"json",
-			"--dependency-propagation",
-			"public",
-		])
-		.unwrap_or_else(|error| panic!("parse command: {error}"));
-	let (_, api_matches) = matches.subcommand().unwrap();
-	let (_, diff_matches) = api_matches.subcommand().unwrap();
-	let options = classify_options_from_matches(diff_matches)
-		.unwrap_or_else(|error| panic!("extract options: {error}"));
-
-	assert_eq!(options.base, Some("origin/main".to_string()));
-	assert_eq!(options.format, OutputFormat::Json);
-	assert_eq!(
-		options.dependency_propagation,
-		DependencyPropagation::Public
-	);
-}
-
-#[test]
-fn classify_options_from_matches_accepts_changeset_validation_shape() {
-	let matches = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"changeset",
-			"validate",
-			"--api",
-			"--strict",
-			"--base",
-			"origin/main",
-			"--dependency-propagation",
-			"public",
-		])
-		.unwrap_or_else(|error| panic!("parse command: {error}"));
-	let (_, changeset_matches) = matches.subcommand().unwrap();
-	let (_, validate_matches) = changeset_matches.subcommand().unwrap();
-	let options = classify_options_from_matches(validate_matches)
-		.unwrap_or_else(|error| panic!("extract options: {error}"));
-
-	assert_eq!(options.base, Some("origin/main".to_string()));
-	assert_eq!(options.head, "HEAD");
-	assert_eq!(options.format, OutputFormat::Text);
-	assert!(options.strict);
-	assert_eq!(
-		options.dependency_propagation,
-		DependencyPropagation::Public
-	);
-}
-
-#[test]
-fn clap_rejects_unknown_dependency_propagation_modes() {
-	let error = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"change",
-			"classify",
-			"--dependency-propagation",
-			"transitive",
-		])
-		.expect_err("expected parse error");
-
-	assert!(error.to_string().contains("transitive"));
 }
 
 #[test]
@@ -861,7 +720,7 @@ fn fallback_findings_and_summaries_make_uncertainty_explicit() {
 		&mut findings,
 	);
 	assert_eq!(findings.len(), 1);
-	assert_eq!(findings[0].impact, CompatibilityImpact::Unknown);
+	assert_eq!(findings[0].impact, CompatibilityImpact::Unmodeled);
 	assert_eq!(findings[0].bump, BumpSeverity::Patch);
 	assert_eq!(findings[0].confidence, ClassificationConfidence::Low);
 
@@ -879,7 +738,7 @@ fn fallback_findings_and_summaries_make_uncertainty_explicit() {
 	);
 	assert_eq!(
 		highest_compatibility_impact(&[&findings[0]]),
-		CompatibilityImpact::Unknown
+		CompatibilityImpact::Unmodeled
 	);
 
 	let patch = build_recommendation(&findings, true, false, None, true);
@@ -1243,7 +1102,7 @@ fn semantic_assessment_mapping_covers_every_current_evidence_variant() {
 	);
 	assert_eq!(
 		compatibility_impact_from_outcome(monochange_core::SemanticAnalysisOutcome::Inconclusive),
-		CompatibilityImpact::Unknown
+		CompatibilityImpact::Unmodeled
 	);
 	assert_eq!(
 		classification_confidence(monochange_core::ApiConfidence::Medium),
@@ -1311,7 +1170,7 @@ fn semantic_finding_preserves_and_renders_matrix_checks() {
 		serde_json::to_value(&finding).unwrap_or_else(|error| panic!("serialize finding: {error}"));
 
 	assert_eq!(json["coverage"]["checks"][0]["name"], "all-features");
-	assert_eq!(json["coverage"]["checks"][0]["suggestedBump"], "major");
+	assert_eq!(json["coverage"]["checks"][0]["suggested_bump"], "major");
 	assert!(
 		finding_evidence(&finding).contains(
 			"all-features=checked/major [trait_method_missing: pub trait method removed]"
@@ -1807,6 +1666,76 @@ fn default_classification_enforced_returns_true() {
 }
 
 #[test]
+fn skipped_classification_matches_configured_labels() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		"[changesets.classification]\nskip_labels = [\"release\", \"automated\"]\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let mut options = ClassifyOptions {
+		base: Some("HEAD".to_string()),
+		..ClassifyOptions::default()
+	};
+
+	// No labels means classification proceeds normally.
+	let skipped = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"));
+	assert!(skipped.is_none());
+
+	// A configured label skips without analyzing any package.
+	options.labels = vec!["release".to_string()];
+	let report = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"))
+		.unwrap_or_else(|| panic!("release label should skip classification"));
+	assert!(report.skipped);
+	assert!(report.packages.is_empty());
+	assert_eq!(report.recommendation, BumpSeverity::None);
+	assert_eq!(report.matched_skip_labels, vec!["release"]);
+	assert!(report.summary.contains("release"));
+
+	// Several configured labels are reported together.
+	options.labels = vec!["release".to_string(), "automated".to_string()];
+	let report = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"))
+		.unwrap_or_else(|| panic!("configured labels should skip classification"));
+	assert_eq!(report.matched_skip_labels, vec!["release", "automated"]);
+
+	// Unrelated labels do not skip.
+	options.labels = vec!["dependencies".to_string()];
+	let skipped = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"));
+	assert!(skipped.is_none());
+}
+
+#[test]
+fn skipped_classification_defaults_to_skipping_the_release_label() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(tempdir.path().join("monochange.toml"), "")
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	assert_eq!(
+		configuration.changesets.classification.skip_labels,
+		vec!["release"]
+	);
+
+	let options = ClassifyOptions {
+		base: Some("HEAD".to_string()),
+		labels: vec!["release".to_string()],
+		..ClassifyOptions::default()
+	};
+	let report = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"))
+		.unwrap_or_else(|| panic!("the release label should skip by default"));
+	assert!(report.skipped);
+}
+
+#[test]
 fn apply_classification_policy_clamps_and_clears_enforceable_minimum() {
 	use monochange_core::BumpSeverity;
 
@@ -1830,4 +1759,66 @@ fn apply_classification_policy_clamps_and_clears_enforceable_minimum() {
 	assert_eq!(proposed, BumpSeverity::Major);
 	assert_eq!(enforceable, BumpSeverity::None);
 	assert_eq!(release_floor, BumpSeverity::Major);
+}
+
+#[test]
+fn classification_format_parse_covers_every_supported_value() {
+	assert_eq!(
+		ClassificationFormat::parse("markdown").unwrap(),
+		ClassificationFormat::Markdown
+	);
+	assert_eq!(
+		ClassificationFormat::parse("md").unwrap(),
+		ClassificationFormat::Markdown
+	);
+	assert_eq!(
+		ClassificationFormat::parse("json").unwrap(),
+		ClassificationFormat::Json
+	);
+	assert_eq!(
+		ClassificationFormat::parse("json-min").unwrap(),
+		ClassificationFormat::JsonMin
+	);
+	assert_eq!(
+		ClassificationFormat::parse("text").unwrap(),
+		ClassificationFormat::Text
+	);
+	assert!(ClassificationFormat::parse("yaml").is_err());
+}
+
+#[test]
+fn classification_format_renders_json_pretty_and_minified() {
+	#[derive(serde::Serialize)]
+	struct Value {
+		name: &'static str,
+	}
+
+	let value = Value { name: "demo" };
+
+	assert_eq!(
+		ClassificationFormat::Json
+			.render_json_value(&value, "classification report")
+			.unwrap(),
+		"{\n  \"name\": \"demo\"\n}"
+	);
+	assert_eq!(
+		ClassificationFormat::JsonMin
+			.render_json_value(&value, "classification report")
+			.unwrap(),
+		"{\"name\":\"demo\"}"
+	);
+}
+
+#[test]
+fn schema_module_generates_the_classification_report_schema() {
+	let schema = crate::schema::classification_report();
+
+	let json = serde_json::to_value(&schema)
+		.unwrap_or_else(|error| panic!("classification schema should serialize: {error}"));
+
+	// The `$id` is added by xtask post-processing; the generator itself only
+	// produces the schema body.
+	assert!(json["$id"].is_null() || json["$id"].as_str().is_none());
+	assert!(json["properties"]["schema_version"].is_object());
+	assert!(json["properties"]["packages"].is_object());
 }

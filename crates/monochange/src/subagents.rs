@@ -399,7 +399,7 @@ When working on release planning, versioning, changesets, changelogs, or monocha
    - `<cli> step diagnose-changesets --format json`
    - `<cli> change classify --format json --dependency-propagation public`
    - `<cli> step prepare-release --dry-run --format json`
-5. Before writing release intent, account for every package in the classification report. Use `decision.proposedChangesetBump` for the current change, trace its `findingIds`, and treat `reviewRequired: true` as a review task.
+5. Before writing release intent, account for every package in the classification report. Use `decision.proposed_changeset_bump` for the current change, trace its `finding_ids`, and treat `review_required: true` as a review task.
 6. Read `existingChangesets` and follow each package's `action` before creating another `.changeset/*.md` file.
 7. Run `<cli> changeset validate --api` and `<cli> step validate` after editing release intent.
 8. Do not run mutating release or publish commands unless the user explicitly asks.
@@ -431,7 +431,7 @@ fn shared_cursor_instructions() -> &'static str {
    - `<cli> step diagnose-changesets --format json`
    - `<cli> change classify --format json --dependency-propagation public`
    - `<cli> step prepare-release --dry-run --format json`
-5. Use `decision.proposedChangesetBump` for the current change. Trace `findingIds` and review every package with `reviewRequired: true`.
+5. Use `decision.proposed_changeset_bump` for the current change. Trace `finding_ids` and review every package with `review_required: true`.
 6. Read `existingChangesets` and follow each package's `action` before creating another `.changeset/*.md` file.
 7. Run `<cli> changeset validate --api` and `<cli> step validate` after editing release intent.
 8. Do not run mutating release or publish commands unless the user explicitly asks.
