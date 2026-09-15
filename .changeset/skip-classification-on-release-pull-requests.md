@@ -1,9 +1,11 @@
 ---
 "monochange": minor
-"monochange_core": minor
+"monochange_core": major
+"monochange_changelog": patch
 "monochange_config": minor
-monochange_schema: major
-monochange_classification: patch
+"monochange_schema": major
+"monochange_classification": minor
+"@monochange/skill": patch
 ---
 
 # Skip change classification on release pull requests and rename the `unknown` impact
