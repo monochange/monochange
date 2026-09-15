@@ -46,7 +46,29 @@ fn classify_options_defaults_are_safe_for_agent_use() {
 	assert!(!options.strict);
 	assert_eq!(options.format, OutputFormat::Text);
 	assert_eq!(options.output, None);
+	assert!(options.labels.is_empty());
 	assert_eq!(options.dependency_propagation, DependencyPropagation::None);
+}
+
+#[test]
+fn classify_options_parse_repeated_labels() {
+	let matches = crate::cli::build_command_with_cli("monochange", &[])
+		.try_get_matches_from([
+			"monochange",
+			"change",
+			"classify",
+			"--label",
+			"release",
+			"--label",
+			"automated",
+		])
+		.unwrap_or_else(|error| panic!("parse labels: {error}"));
+	let (_, change_matches) = matches.subcommand().unwrap();
+	let (_, classify_matches) = change_matches.subcommand().unwrap();
+	let options = classify_options_from_matches(classify_matches)
+		.unwrap_or_else(|error| panic!("options: {error}"));
+
+	assert_eq!(options.labels, vec!["release", "automated"]);
 }
 
 #[test]
@@ -203,8 +225,8 @@ fn selection_release_and_render_helpers_cover_every_supported_variant() {
 		"conflicted"
 	);
 	assert_eq!(
-		compatibility_impact_name(CompatibilityImpact::Unknown),
-		"unknown"
+		compatibility_impact_name(CompatibilityImpact::Unmodeled),
+		"unmodeled"
 	);
 	assert_eq!(
 		compatibility_impact_name(CompatibilityImpact::Compatible),
@@ -861,7 +883,7 @@ fn fallback_findings_and_summaries_make_uncertainty_explicit() {
 		&mut findings,
 	);
 	assert_eq!(findings.len(), 1);
-	assert_eq!(findings[0].impact, CompatibilityImpact::Unknown);
+	assert_eq!(findings[0].impact, CompatibilityImpact::Unmodeled);
 	assert_eq!(findings[0].bump, BumpSeverity::Patch);
 	assert_eq!(findings[0].confidence, ClassificationConfidence::Low);
 
@@ -879,7 +901,7 @@ fn fallback_findings_and_summaries_make_uncertainty_explicit() {
 	);
 	assert_eq!(
 		highest_compatibility_impact(&[&findings[0]]),
-		CompatibilityImpact::Unknown
+		CompatibilityImpact::Unmodeled
 	);
 
 	let patch = build_recommendation(&findings, true, false, None, true);
@@ -1243,7 +1265,7 @@ fn semantic_assessment_mapping_covers_every_current_evidence_variant() {
 	);
 	assert_eq!(
 		compatibility_impact_from_outcome(monochange_core::SemanticAnalysisOutcome::Inconclusive),
-		CompatibilityImpact::Unknown
+		CompatibilityImpact::Unmodeled
 	);
 	assert_eq!(
 		classification_confidence(monochange_core::ApiConfidence::Medium),
@@ -1804,6 +1826,76 @@ fn collect_cli_surface_classification_skips_unchanged_registered_clis() {
 #[test]
 fn default_classification_enforced_returns_true() {
 	assert!(default_classification_enforced());
+}
+
+#[test]
+fn skipped_classification_matches_configured_labels() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		"[changesets.classification]\nskip_labels = [\"release\", \"automated\"]\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let mut options = ClassifyOptions {
+		base: Some("HEAD".to_string()),
+		..ClassifyOptions::default()
+	};
+
+	// No labels means classification proceeds normally.
+	let skipped = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"));
+	assert!(skipped.is_none());
+
+	// A configured label skips without analyzing any package.
+	options.labels = vec!["release".to_string()];
+	let report = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"))
+		.unwrap_or_else(|| panic!("release label should skip classification"));
+	assert!(report.skipped);
+	assert!(report.packages.is_empty());
+	assert_eq!(report.recommendation, BumpSeverity::None);
+	assert_eq!(report.matched_skip_labels, vec!["release"]);
+	assert!(report.summary.contains("release"));
+
+	// Several configured labels are reported together.
+	options.labels = vec!["release".to_string(), "automated".to_string()];
+	let report = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"))
+		.unwrap_or_else(|| panic!("configured labels should skip classification"));
+	assert_eq!(report.matched_skip_labels, vec!["release", "automated"]);
+
+	// Unrelated labels do not skip.
+	options.labels = vec!["dependencies".to_string()];
+	let skipped = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"));
+	assert!(skipped.is_none());
+}
+
+#[test]
+fn skipped_classification_defaults_to_skipping_the_release_label() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(tempdir.path().join("monochange.toml"), "")
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+	let configuration = monochange_config::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	assert_eq!(
+		configuration.changesets.classification.skip_labels,
+		vec!["release"]
+	);
+
+	let options = ClassifyOptions {
+		base: Some("HEAD".to_string()),
+		labels: vec!["release".to_string()],
+		..ClassifyOptions::default()
+	};
+	let report = skipped_classification(tempdir.path(), &configuration, &options)
+		.unwrap_or_else(|error| panic!("skip check: {error}"))
+		.unwrap_or_else(|| panic!("the release label should skip by default"));
+	assert!(report.skipped);
 }
 
 #[test]

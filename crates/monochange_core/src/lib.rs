@@ -6167,11 +6167,43 @@ impl Default for ChangesetAffectedSettings {
 	}
 }
 
+/// Pull-request label policy for `monochange change classify`.
+///
+/// Classification describes the compatibility impact of pending work. A pull
+/// request that only bumps versions, such as the release request monochange
+/// opens itself, has no such pending work, so classifying it produces noise.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ChangesetClassificationSettings {
+	/// Pull-request labels that skip classification entirely. When any label on
+	/// the pull request matches an entry here, the command reports a skipped
+	/// result instead of analyzing packages.
+	///
+	/// Defaults to `["release"]` so the release pull request monochange opens is
+	/// not classified. Set this to `[]` to always classify.
+	#[serde(default = "default_classification_skip_labels")]
+	pub skip_labels: Vec<String>,
+}
+
+fn default_classification_skip_labels() -> Vec<String> {
+	vec!["release".to_string()]
+}
+
+impl Default for ChangesetClassificationSettings {
+	fn default() -> Self {
+		Self {
+			skip_labels: default_classification_skip_labels(),
+		}
+	}
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct ChangesetSettings {
 	#[serde(default)]
 	pub affected: ChangesetAffectedSettings,
+	#[serde(default)]
+	pub classification: ChangesetClassificationSettings,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]

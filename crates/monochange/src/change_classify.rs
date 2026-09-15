@@ -31,7 +31,7 @@ use serde::Serialize;
 use crate::OutputFormat;
 
 const DEFAULT_HEAD_REF: &str = "HEAD";
-const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 4;
+const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 5;
 pub(crate) const SKIP_CLI_SNAPSHOTS_ENV: &str = "MONOCHANGE_SKIP_CLI_SNAPSHOTS";
 pub(crate) const CLI_SURFACE_ANALYZER_ID: &str = "monochange/cli-surface";
 const ANALYZER_VERSION: &str = "1";
@@ -48,6 +48,10 @@ pub(crate) struct ClassifyOptions {
 	pub(crate) skip_cli_snapshots: bool,
 	pub(crate) format: OutputFormat,
 	pub(crate) output: Option<PathBuf>,
+	/// Pull request labels observed by the caller. Combined with
+	/// `[changesets.classification].skip_labels`, these decide whether
+	/// classification runs at all.
+	pub(crate) labels: Vec<String>,
 	pub(crate) dependency_propagation: DependencyPropagation,
 }
 
@@ -71,6 +75,7 @@ impl Default for ClassifyOptions {
 			skip_cli_snapshots: false,
 			format: OutputFormat::Text,
 			output: None,
+			labels: Vec::new(),
 			dependency_propagation: DependencyPropagation::None,
 		}
 	}
@@ -107,7 +112,10 @@ pub(crate) struct ResolvedComparison {
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum CompatibilityImpact {
-	Unknown,
+	/// The change is real, but it sits outside the public surface this analyzer
+	/// models, so no compatibility verdict applies. The package is supported;
+	/// only this particular file change is unmodeled.
+	Unmodeled,
 	Compatible,
 	Additive,
 	Breaking,
@@ -228,6 +236,13 @@ pub(crate) struct ChangeClassificationReport {
 	pub(crate) recommendation: BumpSeverity,
 	pub(crate) packages: Vec<PackageClassification>,
 	pub(crate) warnings: Vec<String>,
+	/// Whether classification was skipped before any package analysis ran.
+	pub(crate) skipped: bool,
+	#[serde(default, skip_serializing_if = "String::is_empty")]
+	pub(crate) summary: String,
+	/// Configured skip labels that matched labels on this pull request.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub(crate) matched_skip_labels: Vec<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -333,6 +348,16 @@ pub(crate) fn classify_options_from_matches(
 			} // patch-coverage:ignore-end
 		},
 		output: matches.get_one::<String>("output").map(PathBuf::from),
+		// Only the classification-producing subcommands declare `--label`;
+		// `changeset validate` shares this parser without the skip policy.
+		labels: matches
+			.try_get_many::<String>("label")
+			.ok()
+			.flatten()
+			.into_iter()
+			.flatten()
+			.cloned()
+			.collect(),
 		dependency_propagation: parse_dependency_propagation(dependency_propagation)?,
 	})
 }
@@ -464,6 +489,9 @@ pub(crate) fn build_change_classification_report(
 	options: &ClassifyOptions,
 ) -> MonochangeResult<ChangeClassificationReport> {
 	let configuration = monochange_config::load_workspace_configuration(root)?;
+	if let Some(skipped) = skipped_classification(root, &configuration, options)? {
+		return Ok(skipped);
+	}
 	let default_branch = options
 		.base
 		.clone()
@@ -687,7 +715,7 @@ pub(crate) fn build_change_classification_report(
 			classification_enforced,
 		);
 		if changed_files.is_empty() && !package_changesets.is_empty() {
-			decision.compatibility_impact = CompatibilityImpact::Unknown;
+			decision.compatibility_impact = CompatibilityImpact::Unmodeled;
 			decision.completeness = AnalysisCompleteness::Unsupported;
 			decision.review_required = true;
 		}
@@ -785,7 +813,56 @@ pub(crate) fn build_change_classification_report(
 		recommendation,
 		packages: package_reports,
 		warnings,
+		skipped: false,
+		summary: String::new(),
+		matched_skip_labels: Vec::new(),
 	})
+}
+
+/// Decide whether a pull request label exempts this change from
+/// classification.
+///
+/// Returns a complete report with `skipped: true` and no packages when a
+/// configured skip label is present. The release pull request monochange opens
+/// carries the `release` label by default, so it is reported as skipped rather
+/// than as a large set of unmodeled version-only changes.
+fn skipped_classification(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	options: &ClassifyOptions,
+) -> MonochangeResult<Option<ChangeClassificationReport>> {
+	let configured = &configuration.changesets.classification.skip_labels;
+	let matched = options
+		.labels
+		.iter()
+		.filter(|label| configured.iter().any(|candidate| candidate == *label))
+		.cloned()
+		.collect::<Vec<_>>();
+	if matched.is_empty() {
+		return Ok(None);
+	}
+
+	let default_branch = options
+		.base
+		.clone()
+		.map_or_else(|| resolve_default_branch_ref(root), Ok)?;
+	let summary = format!(
+		"change classification skipped because the pull request has an allowed label: {}",
+		matched.join(", ")
+	);
+
+	Ok(Some(ChangeClassificationReport {
+		schema_version: CHANGE_CLASSIFICATION_SCHEMA_VERSION,
+		default_branch,
+		candidate: options.head.clone(),
+		comparisons: Vec::new(),
+		recommendation: BumpSeverity::None,
+		packages: Vec::new(),
+		warnings: vec![summary.clone()],
+		skipped: true,
+		summary,
+		matched_skip_labels: matched,
+	}))
 }
 
 pub(crate) fn classification_report(
@@ -879,6 +956,9 @@ pub(crate) fn classification_report(
 		recommendation,
 		packages,
 		warnings,
+		skipped: false,
+		summary: String::new(),
+		matched_skip_labels: Vec::new(),
 	}
 }
 
@@ -1529,7 +1609,7 @@ fn compatibility_impact_from_outcome(outcome: SemanticAnalysisOutcome) -> Compat
 		SemanticAnalysisOutcome::Additive => CompatibilityImpact::Additive,
 		SemanticAnalysisOutcome::Breaking => CompatibilityImpact::Breaking,
 		// Includes inconclusive and future variants from this non-exhaustive external enum.
-		_ => CompatibilityImpact::Unknown,
+		_ => CompatibilityImpact::Unmodeled,
 	}
 }
 
@@ -1572,7 +1652,7 @@ fn compatibility_impact(
 			CompatibilityImpact::Compatible
 		}
 		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive semantic enums.
-		_ => CompatibilityImpact::Unknown,
+		_ => CompatibilityImpact::Unmodeled,
 		// patch-coverage:ignore-end
 	}
 }
@@ -1643,7 +1723,7 @@ fn ensure_unclassified_finding(
 		rule_id: "monochange/unclassified-source".to_string(),
 		surface: "source".to_string(),
 		change: "modified".to_string(),
-		impact: CompatibilityImpact::Unknown,
+		impact: CompatibilityImpact::Unmodeled,
 		bump: BumpSeverity::Patch,
 		confidence: ClassificationConfidence::Low,
 		analyzer: FindingAnalyzer {
@@ -1927,7 +2007,7 @@ fn build_recommendation(
 			AnalysisCompleteness::Partial
 		};
 	let review_required = completeness != AnalysisCompleteness::Complete
-		|| compatibility_impact == CompatibilityImpact::Unknown;
+		|| compatibility_impact == CompatibilityImpact::Unmodeled;
 	let finding_ids = current
 		.iter()
 		.filter(|finding| finding.bump == proposed_changeset_bump)
@@ -1986,9 +2066,9 @@ fn highest_compatibility_impact(findings: &[&ClassificationFinding]) -> Compatib
 	}
 	if findings
 		.iter()
-		.any(|finding| finding.impact == CompatibilityImpact::Unknown)
+		.any(|finding| finding.impact == CompatibilityImpact::Unmodeled)
 	{
-		return CompatibilityImpact::Unknown;
+		return CompatibilityImpact::Unmodeled;
 	}
 
 	CompatibilityImpact::Compatible
@@ -2032,7 +2112,7 @@ fn recommendation_summary(
 		BumpSeverity::Patch
 			if findings
 				.iter()
-				.any(|finding| finding.impact == CompatibilityImpact::Unknown) =>
+				.any(|finding| finding.impact == CompatibilityImpact::Unmodeled) =>
 		{
 			"unclassified package changes propose a patch changeset and require review".to_string()
 		}
@@ -2265,6 +2345,15 @@ fn preferred_report_package_id(package: &PackageRecord) -> String {
 #[coverage(off)]
 fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 	let mut lines = vec!["# Change classification".to_string(), String::new()];
+	if report.skipped {
+		lines.push(report.summary.clone());
+		lines.push(String::new());
+		lines.push(format!(
+			"Matched skip labels: {}",
+			report.matched_skip_labels.join(", ")
+		));
+		return lines.join("\n");
+	}
 	lines.push(format!("- Schema version: `{}`", report.schema_version));
 	lines.push(format!("- Default branch: `{}`", report.default_branch));
 	lines.push(format!("- Candidate: `{}`", report.candidate));
@@ -2394,6 +2483,15 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 #[coverage(off)]
 fn render_text_report(report: &ChangeClassificationReport) -> String {
 	let mut lines = vec!["Change classification".to_string(), String::new()];
+	if report.skipped {
+		lines.push(report.summary.clone());
+		lines.push(String::new());
+		lines.push(format!(
+			"Matched skip labels: {}",
+			report.matched_skip_labels.join(", ")
+		));
+		return lines.join("\n");
+	}
 	lines.push(format!("Schema version: {}", report.schema_version));
 	lines.push(format!("Default branch: {}", report.default_branch));
 	lines.push(format!("Candidate: {}", report.candidate));
@@ -2653,7 +2751,7 @@ fn comparison_status_name(status: ComparisonStatus) -> &'static str {
 
 fn compatibility_impact_name(impact: CompatibilityImpact) -> &'static str {
 	match impact {
-		CompatibilityImpact::Unknown => "unknown",
+		CompatibilityImpact::Unmodeled => "unmodeled",
 		CompatibilityImpact::Compatible => "compatible",
 		CompatibilityImpact::Additive => "additive",
 		CompatibilityImpact::Breaking => "breaking",

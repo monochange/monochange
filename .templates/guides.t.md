@@ -534,6 +534,10 @@ ignored_paths = [
 	"license",
 ]
 
+[changesets.classification]
+# Labels that skip `monochange change classify` for the pull request.
+skip_labels = ["release"]
+
 name = "production"
 trigger = "release_pr_merge"
 release_targets = ["sdk"]

@@ -412,6 +412,7 @@ fn build_classify_subcommand() -> Command {
 		)
 		.arg(classification_release_arg())
 		.arg(classification_package_arg())
+		.arg(classification_label_arg())
 		.arg(classification_detection_level_arg())
 		.arg(classification_include_unchanged_arg())
 		.arg(classification_skip_cli_snapshots_arg())
@@ -442,6 +443,7 @@ pub(crate) fn build_api_subcommand() -> Command {
 				)
 				.arg(classification_release_arg())
 				.arg(classification_package_arg())
+				.arg(classification_label_arg())
 				.arg(classification_detection_level_arg())
 				.arg(classification_include_unchanged_arg())
 				.arg(classification_skip_cli_snapshots_arg())
@@ -524,6 +526,14 @@ fn classification_include_unchanged_arg() -> Arg {
 		.long("include-unchanged")
 		.action(ArgAction::SetTrue)
 		.help("Include packages without findings")
+}
+
+fn classification_label_arg() -> Arg {
+	Arg::new("label")
+		.long("label")
+		.value_name("LABEL")
+		.action(ArgAction::Append)
+		.help("Pull request label to compare against [changesets.classification].skip_labels; repeat to pass several")
 }
 
 fn classification_skip_cli_snapshots_arg() -> Arg {

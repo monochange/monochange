@@ -296,6 +296,7 @@ async fn classify_changes_matches_the_cli_report_with_public_dependency_propagat
 		skip_cli_snapshots: true,
 		format: crate::OutputFormat::Json,
 		output: None,
+		labels: Vec::new(),
 		dependency_propagation: crate::change_classify::DependencyPropagation::Public,
 	};
 	let expected = crate::change_classify::render_change_classification(fixture.path(), &options)

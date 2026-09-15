@@ -909,7 +909,7 @@
 			"type": "array"
 		},
 		"schema_version": {
-			"default": "0.6",
+			"default": "0.7",
 			"type": "string"
 		},
 		"updated_changelogs": {

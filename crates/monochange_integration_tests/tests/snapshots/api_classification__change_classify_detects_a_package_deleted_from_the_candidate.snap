@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/api_classification.rs
-assertion_line: 309
 expression: report
 ---
 {
@@ -337,7 +336,8 @@ expression: report
     }
   ],
   "recommendation": "major",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
+  "skipped": false,
   "warnings": [
     "changed path `Cargo.toml` did not match any configured package",
     "changed path `monochange.toml` did not match any configured package"

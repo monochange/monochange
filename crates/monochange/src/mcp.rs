@@ -886,6 +886,7 @@ impl MonochangeMcpServer {
 			skip_cli_snapshots: true,
 			format: crate::OutputFormat::Json,
 			output: None,
+			labels: Vec::new(),
 			dependency_propagation,
 		};
 		let output = match crate::change_classify::render_change_classification(&root, &options) {

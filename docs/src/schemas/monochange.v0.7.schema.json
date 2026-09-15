@@ -288,11 +288,6 @@
 					"$ref": "#/$defs/MetadataStyle",
 					"default": "inline"
 				},
-				"package_bump_symbols": {
-					"default": true,
-					"description": "Prefix each package label with a colored symbol for its bump severity.\n\n🔴 major, 🟠 minor, 🟢 patch, ⚪ none. Enabled by default so a reader can\nsee which package was breaking when an entry merged several targets.",
-					"type": "boolean"
-				},
 				"package_label_placement": {
 					"$ref": "#/$defs/PackageLabelPlacement",
 					"default": "after_heading"
@@ -1764,13 +1759,6 @@
 					],
 					"default": null
 				},
-				"package_bump_symbols": {
-					"default": null,
-					"type": [
-						"boolean",
-						"null"
-					]
-				},
 				"package_label_placement": {
 					"anyOf": [
 						{
@@ -2061,7 +2049,6 @@
 					"default": {
 						"collapsed_section_style": null,
 						"metadata_style": null,
-						"package_bump_symbols": null,
 						"package_label_placement": null,
 						"package_label_style": null,
 						"section_separator": null
@@ -2093,7 +2080,6 @@
 					"default": {
 						"collapsed_section_style": "details",
 						"metadata_style": "inline",
-						"package_bump_symbols": true,
 						"package_label_placement": "after_heading",
 						"package_label_style": "inline",
 						"section_separator": "blank_line"
@@ -3087,7 +3073,7 @@
 			]
 		}
 	},
-	"$id": "https://monochange.github.io/monochange/schemas/monochange.schema.json",
+	"$id": "https://monochange.github.io/monochange/schemas/monochange.v0.7.schema.json",
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"additionalProperties": false,
 	"description": "JSON Schema for monochange.toml workspace configuration files.",

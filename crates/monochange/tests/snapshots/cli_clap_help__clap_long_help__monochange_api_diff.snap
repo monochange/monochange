@@ -22,6 +22,9 @@ Classify an explicit API diff
       [93m--package[0m[95m [0m[95m<PACKAGE>[0m
           Limit classification to a package id or name; repeat to select several
 
+      [93m--label[0m[95m [0m[95m<LABEL>[0m
+          Pull request label to compare against [changesets.classification].skip_labels; repeat to pass several
+
       [93m--detection-level[0m[95m [0m[95m<LEVEL>[0m
           Choose analyzer depth
 

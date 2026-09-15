@@ -141,6 +141,7 @@ expression: projected
     }
   ],
   "recommendation": "major",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
+  "skipped": false,
   "warnings": []
 }
