@@ -1902,6 +1902,51 @@ pub enum ReleaseNoteEntryStyle {
 	Expanded,
 }
 
+/// One package affected by a release-note entry, with the bump it received.
+///
+/// One changeset can target several packages with different change types, so
+/// an entry that merged those targets records each package's own bump rather
+/// than a single severity for the whole entry.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ReleaseNotePackage {
+	pub name: String,
+	pub bump: BumpSeverity,
+}
+
+impl ReleaseNotePackage {
+	#[must_use]
+	pub fn new(name: impl Into<String>, bump: BumpSeverity) -> Self {
+		Self {
+			name: name.into(),
+			bump,
+		}
+	}
+
+	/// The symbol representing this package's bump severity.
+	///
+	/// A reader can then tell which package was breaking and which was minor
+	/// without reading the section it was demoted out of.
+	#[must_use]
+	pub fn symbol(&self) -> &'static str {
+		release_note_bump_symbol(self.bump)
+	}
+}
+
+/// The colored hexagon shown for each bump severity in package labels.
+///
+/// Breaking changes stay red, minor changes are orange, patches are green, and
+/// entries without a version impact are uncolored.
+#[must_use]
+pub fn release_note_bump_symbol(bump: BumpSeverity) -> &'static str {
+	match bump {
+		BumpSeverity::Major => "🔴",
+		BumpSeverity::Minor => "🟠",
+		BumpSeverity::Patch => "🟢",
+		BumpSeverity::None => "⚪",
+	}
+}
+
 /// One release-note entry kept as data until its destination format is known.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -1910,7 +1955,7 @@ pub struct ReleaseNotesEntry {
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub details_markdown: Option<String>,
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
-	pub packages: Vec<String>,
+	pub packages: Vec<ReleaseNotePackage>,
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub change_type: Option<String>,
 	pub bump: BumpSeverity,
@@ -2094,7 +2139,6 @@ pub enum CollapsedSectionStyle {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "snake_case")]
-#[derive(Default)]
 pub struct ChangelogStyle {
 	#[serde(default)]
 	pub section_separator: SectionSeparator,
@@ -2106,6 +2150,29 @@ pub struct ChangelogStyle {
 	pub metadata_style: MetadataStyle,
 	#[serde(default)]
 	pub collapsed_section_style: CollapsedSectionStyle,
+	/// Prefix each package label with a colored symbol for its bump severity.
+	///
+	/// 🔴 major, 🟠 minor, 🟢 patch, ⚪ none. Enabled by default so a reader can
+	/// see which package was breaking when an entry merged several targets.
+	#[serde(default = "default_package_bump_symbols")]
+	pub package_bump_symbols: bool,
+}
+
+fn default_package_bump_symbols() -> bool {
+	true
+}
+
+impl Default for ChangelogStyle {
+	fn default() -> Self {
+		Self {
+			section_separator: SectionSeparator::default(),
+			package_label_style: PackageLabelStyle::default(),
+			package_label_placement: PackageLabelPlacement::default(),
+			metadata_style: MetadataStyle::default(),
+			collapsed_section_style: CollapsedSectionStyle::default(),
+			package_bump_symbols: default_package_bump_symbols(),
+		}
+	}
 }
 
 impl ChangelogStyle {
@@ -2126,6 +2193,9 @@ impl ChangelogStyle {
 			collapsed_section_style: overrides
 				.collapsed_section_style
 				.unwrap_or(self.collapsed_section_style),
+			package_bump_symbols: overrides
+				.package_bump_symbols
+				.unwrap_or(self.package_bump_symbols),
 		}
 	}
 
@@ -2177,13 +2247,19 @@ impl ChangelogStyle {
 				"Render collapsed sections as regular ### headings, no HTML collapse."
 			}
 		};
+		let symbol_rule = if self.package_bump_symbols {
+			"Prefix each package label with a symbol for its bump severity: 🔴 major, 🟠 minor, 🟢 patch, ⚪ none."
+		} else {
+			"Render package labels without a bump severity symbol."
+		};
 		format!(
 			"Changelog style rules:\n\
 			 - {separator_rule}\n\
 			 - {label_rule}\n\
 			 - {placement_rule}\n\
 			 - {metadata_rule}\n\
-			 - {collapsed_rule}"
+			 - {collapsed_rule}\n\
+			 - {symbol_rule}"
 		)
 	}
 
@@ -2206,6 +2282,7 @@ pub struct ReleaseNotesStyleOverrides {
 	pub package_label_placement: Option<PackageLabelPlacement>,
 	pub metadata_style: Option<MetadataStyle>,
 	pub collapsed_section_style: Option<CollapsedSectionStyle>,
+	pub package_bump_symbols: Option<bool>,
 }
 
 impl ReleaseNotesStyleOverrides {
@@ -4324,7 +4401,7 @@ pub fn render_structured_release_notes_with(
 				// patch-coverage:ignore-end
 			})
 		}
-		ChangelogFormat::Text => render_structured_text_release_notes(document),
+		ChangelogFormat::Text => render_structured_text_release_notes(document, style),
 	}
 }
 
@@ -4404,6 +4481,7 @@ fn push_structured_markdown_entries(
 
 fn render_structured_text_release_notes(
 	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
+	style: &ChangelogStyle,
 ) -> String {
 	let mut lines = vec![plain_markdown(&document.title)];
 	for paragraph in &document.summary {
@@ -4418,7 +4496,7 @@ fn render_structured_text_release_notes(
 		lines.push(plain_markdown(&section.title));
 		for entry in &section.entries {
 			lines.push(String::new());
-			lines.push(render_release_note_entry_text(entry));
+			lines.push(render_release_note_entry_text(entry, style));
 		}
 	}
 	lines.join("\n")
@@ -4441,7 +4519,8 @@ pub fn render_release_note_entry_markdown(
 		.as_deref()
 		.map(str::trim)
 		.filter(|details| !details.is_empty());
-	let package_label = markdown_package_label(entry, style.package_label_style);
+	let package_label =
+		markdown_package_label(entry, style.package_label_style, style.package_bump_symbols);
 	let metadata = markdown_release_note_metadata(&entry.provenance, style.metadata_style);
 
 	match entry.style {
@@ -4500,12 +4579,15 @@ pub fn render_release_note_entry_markdown(
 	}
 }
 
-fn render_release_note_entry_text(entry: &ReleaseNotesEntry) -> String {
+fn render_release_note_entry_text(entry: &ReleaseNotesEntry, style: &ChangelogStyle) -> String {
 	let mut lines = vec![plain_markdown(&sentence_case_release_note_summary(
 		&entry.summary,
 	))];
 	if !entry.packages.is_empty() {
-		lines.push(format!("  Packages: {}", entry.packages.join(", ")));
+		lines.push(format!(
+			"  Packages: {}",
+			render_release_note_packages_text(&entry.packages, style.package_bump_symbols)
+		));
 	}
 	if let Some(details) = entry
 		.details_markdown
@@ -4611,27 +4693,70 @@ fn push_release_note_chunk_separator(rendered: &mut String) {
 	}
 }
 
-fn markdown_package_label(entry: &ReleaseNotesEntry, style: PackageLabelStyle) -> String {
+/// Render one package label with its optional bump symbol.
+///
+/// The symbol is opt-out through `[changelog.style].package_bump_symbols`, so
+/// the returned text has no leading or trailing whitespace of its own.
+fn release_note_package_label(package: &ReleaseNotePackage, symbols: bool) -> String {
+	if symbols {
+		format!("{} {}", package.symbol(), package.name)
+	} else {
+		package.name.clone()
+	}
+}
+
+fn render_release_note_packages_text(packages: &[ReleaseNotePackage], symbols: bool) -> String {
+	packages
+		.iter()
+		.map(|package| release_note_package_label(package, symbols))
+		.collect::<Vec<_>>()
+		.join(", ")
+}
+
+fn markdown_package_label(
+	entry: &ReleaseNotesEntry,
+	style: PackageLabelStyle,
+	symbols: bool,
+) -> String {
 	if entry.packages.is_empty() || style == PackageLabelStyle::Omit {
 		return String::new();
 	}
 	if entry.style == ReleaseNoteEntryStyle::Compact
 		&& let [package] = entry.packages.as_slice()
 	{
-		return format!("**{package}**: ");
+		return format!(
+			"{}**{}**: ",
+			if symbols {
+				format!("{} ", package.symbol())
+			} else {
+				String::new()
+			},
+			package.name
+		);
 	}
 	let packages = entry
 		.packages
 		.iter()
-		.map(|package| {
-			match style {
-				PackageLabelStyle::Badge => format!("*{package}*"),
-				PackageLabelStyle::Inline | PackageLabelStyle::Omit => format!("_{package}_"),
-			}
-		})
+		.map(|package| markdown_package_name(package, style, symbols))
 		.collect::<Vec<_>>()
 		.join(", ");
 	format!("_Packages:_ {packages}")
+}
+
+fn markdown_package_name(
+	package: &ReleaseNotePackage,
+	style: PackageLabelStyle,
+	symbols: bool,
+) -> String {
+	let name = match style {
+		PackageLabelStyle::Badge => format!("*{}*", package.name),
+		PackageLabelStyle::Inline | PackageLabelStyle::Omit => format!("_{}_", package.name),
+	};
+	if symbols {
+		format!("{} {name}", package.symbol())
+	} else {
+		name
+	}
 }
 
 fn markdown_release_note_metadata(

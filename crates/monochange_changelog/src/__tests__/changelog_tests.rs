@@ -42,6 +42,7 @@ use monochange_core::ReleaseDecision;
 use monochange_core::VersionFormat;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::WorkspaceDefaults;
+use monochange_core::render_release_note_entry_markdown;
 use semver::Version;
 use tempfile::tempdir;
 
@@ -1186,7 +1187,10 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 			..ChangelogStyle::default()
 		},
 	);
-	assert!(block.contains("_Packages:_ *pkg-a*, *pkg-b*"));
+	assert!(
+		block.contains("_Packages:_ 🟠 *pkg-a*, 🟠 *pkg-b*"),
+		"block was: {block}"
+	);
 	assert_eq!(
 		format_structured_labeled_entry(
 			&multi_label_entry,
@@ -1197,7 +1201,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 				..ChangelogStyle::default()
 			}
 		),
-		"#### Summary\n\nMore\n_Packages:_ *pkg-a*, *pkg-b*"
+		"#### Summary\n\nMore\n_Packages:_ 🟠 *pkg-a*, 🟠 *pkg-b*"
 	);
 
 	let mut single_label_change = sample_change("pkg-a", "pkg-a", ".changeset/a.md");
@@ -1209,7 +1213,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 			"- Added release note support",
 			&ChangelogStyle::default()
 		),
-		"- **pkg-a**: Added release note support"
+		"- 🟠 **pkg-a**: Added release note support"
 	);
 	assert_eq!(
 		format_structured_labeled_entry(
@@ -1220,7 +1224,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 				..ChangelogStyle::default()
 			}
 		),
-		"- **pkg-a**: Added release note support"
+		"- 🟠 **pkg-a**: Added release note support"
 	);
 	assert_eq!(
 		format_structured_labeled_entry(
@@ -1960,6 +1964,281 @@ fn render_sections_collapse_and_ignore_by_priority_thresholds() {
 	assert!(!sections.iter().any(|section| section.title == "Internal"));
 }
 
+/// Build settings with `breaking` (10), `feat` (20), `fix` (30), and `docs` (40)
+/// sections so merge tests can assert which section wins.
+fn multi_target_settings() -> ChangelogSettings {
+	let mut settings = ChangelogSettings {
+		templates: vec!["- {{ summary }}".to_string()],
+		..ChangelogSettings::default()
+	};
+	for (key, heading, priority) in [
+		("breaking", "Breaking changes", 10_i8),
+		("feat", "Features", 20),
+		("fix", "Fixes", 30),
+		("docs", "Documentation", 40),
+	] {
+		settings.sections.insert(
+			key.to_string(),
+			ChangelogSectionDef {
+				heading: heading.to_string(),
+				description: None,
+				priority,
+			},
+		);
+	}
+	for (key, section, bump) in [
+		("breaking", "breaking", BumpSeverity::Major),
+		("feat", "feat", BumpSeverity::Minor),
+		("fix", "fix", BumpSeverity::Patch),
+		("docs", "docs", BumpSeverity::None),
+	] {
+		settings.types.insert(
+			key.to_string(),
+			ChangelogType {
+				bump,
+				section: section.to_string(),
+				description: None,
+			},
+		);
+	}
+	settings
+}
+
+/// One changeset that targets three packages with three different types.
+///
+/// Every target shares the summary and details, exactly as one changeset file
+/// does in a real workspace.
+fn shared_changeset_changes() -> Vec<ReleaseNoteChange> {
+	let shared = |package_id: &str, change_type: &str, bump: BumpSeverity| {
+		ReleaseNoteChange {
+			change_type: Some(change_type.to_string()),
+			bump,
+			summary: "split floats and fixed".to_string(),
+			details: Some("Shared explanation".to_string()),
+			..sample_change(package_id, package_id, ".changeset/shared.md")
+		}
+	};
+	vec![
+		shared("pina", "breaking", BumpSeverity::Major),
+		shared("pina_abi", "feat", BumpSeverity::Minor),
+		shared("pina_cli", "docs", BumpSeverity::None),
+	]
+}
+
+#[test]
+fn one_changeset_appears_once_in_its_highest_priority_section() {
+	let settings = multi_target_settings();
+	let sections = build_release_note_sections("sdk", &settings, &shared_changeset_changes());
+
+	assert_eq!(
+		sections
+			.iter()
+			.map(|section| section.title.as_str())
+			.collect::<Vec<_>>(),
+		vec!["Breaking changes"],
+		"the shared change must render once, in the lowest priority number"
+	);
+	assert_eq!(sections[0].entries.len(), 1);
+}
+
+#[test]
+fn merged_entry_lists_every_package_with_its_own_bump() {
+	let settings = multi_target_settings();
+	let sections = build_release_note_sections("sdk", &settings, &shared_changeset_changes());
+	let entry = &sections[0].entries[0];
+
+	assert_eq!(
+		entry
+			.packages
+			.iter()
+			.map(|package| (package.name.as_str(), package.bump))
+			.collect::<Vec<_>>(),
+		vec![
+			("pina", BumpSeverity::Major),
+			("pina_abi", BumpSeverity::Minor),
+			("pina_cli", BumpSeverity::None),
+		],
+		"every target must survive with the bump that package received"
+	);
+	assert_eq!(
+		entry.bump,
+		BumpSeverity::Major,
+		"the merged entry keeps the highest severity it merged"
+	);
+}
+
+#[test]
+fn merged_entry_symbols_name_each_package_bump() {
+	let settings = multi_target_settings();
+	let sections = build_release_note_sections("sdk", &settings, &shared_changeset_changes());
+	let entry = &sections[0].entries[0];
+	let markdown = render_release_note_entry_markdown(entry, &ChangelogStyle::default());
+
+	assert!(
+		markdown.contains("🔴 _pina_, 🟠 _pina_abi_, ⚪ _pina_cli_"),
+		"each package label must carry its bump symbol: {markdown}"
+	);
+}
+
+#[test]
+fn merged_entry_drops_symbols_when_the_style_disables_them() {
+	let settings = multi_target_settings();
+	let sections = build_release_note_sections("sdk", &settings, &shared_changeset_changes());
+	let entry = &sections[0].entries[0];
+	let style = ChangelogStyle {
+		package_bump_symbols: false,
+		..ChangelogStyle::default()
+	};
+	let markdown = render_release_note_entry_markdown(entry, &style);
+
+	assert!(
+		markdown.contains("_Packages:_ _pina_, _pina_abi_, _pina_cli_"),
+		"the opt-out must produce the pre-symbol label: {markdown}"
+	);
+	assert!(!markdown.contains('🔴'));
+}
+
+#[test]
+fn a_change_routed_to_an_omitted_section_still_merges_into_a_rendered_section() {
+	let mut settings = multi_target_settings();
+	// `docs` is omitted, so the docs-only target must ride along with the
+	// breaking target instead of disappearing with its own section.
+	settings.section_thresholds.ignored = 35;
+
+	let sections = build_release_note_sections("sdk", &settings, &shared_changeset_changes());
+
+	assert_eq!(
+		sections
+			.iter()
+			.map(|section| section.title.as_str())
+			.collect::<Vec<_>>(),
+		vec!["Breaking changes"],
+		"the omitted Documentation section must not render"
+	);
+	assert_eq!(
+		sections[0].entries[0].packages.len(),
+		3,
+		"a package from an omitted section must not lose its entry"
+	);
+}
+
+#[test]
+fn distinct_changesets_are_not_merged_even_when_they_share_a_summary() {
+	let settings = multi_target_settings();
+	let sections = build_release_note_sections(
+		"sdk",
+		&settings,
+		&[
+			ReleaseNoteChange {
+				change_type: Some("feat".to_string()),
+				bump: BumpSeverity::Minor,
+				summary: "add widget".to_string(),
+				..sample_change("pkg-a", "pkg-a", ".changeset/a.md")
+			},
+			ReleaseNoteChange {
+				change_type: Some("feat".to_string()),
+				bump: BumpSeverity::Minor,
+				summary: "add widget".to_string(),
+				..sample_change("pkg-b", "pkg-b", ".changeset/b.md")
+			},
+		],
+	);
+
+	assert_eq!(
+		sections[0].entries.len(),
+		2,
+		"a different source changeset is a different change"
+	);
+	assert_eq!(sections[0].entries[0].packages[0].name, "pkg-a");
+	assert_eq!(sections[0].entries[1].packages[0].name, "pkg-b");
+}
+
+#[test]
+fn synthesized_messages_for_different_packages_are_not_merged() {
+	let settings = multi_target_settings();
+	// Empty-update messages carry no source path, so identical text from two
+	// packages must stay separate rather than collapsing into one entry.
+	let synthesized = |package_id: &str| {
+		ReleaseNoteChange {
+			package_labels: Vec::new(),
+			source_path: None,
+			summary: "No package-specific changes were recorded".to_string(),
+			details: None,
+			change_type: None,
+			bump: BumpSeverity::Patch,
+			..sample_change(package_id, package_id, ".changeset/unused.md")
+		}
+	};
+	let sections = build_release_note_sections(
+		"sdk",
+		&settings,
+		&[synthesized("pkg-a"), synthesized("pkg-b")],
+	);
+
+	assert_eq!(sections[0].title, "Changed");
+	assert_eq!(sections[0].entries.len(), 2);
+}
+
+#[test]
+fn every_package_of_a_merged_change_keeps_a_single_label() {
+	let settings = multi_target_settings();
+	let sections = build_release_note_sections("sdk", &settings, &shared_changeset_changes());
+	let entry = &sections[0].entries[0];
+
+	let names = entry
+		.packages
+		.iter()
+		.map(|package| package.name.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		names,
+		vec!["pina", "pina_abi", "pina_cli"],
+		"first-seen order must stay stable so output is deterministic"
+	);
+}
+
+#[test]
+fn merged_entry_recomputes_its_style_without_losing_details() {
+	let settings = multi_target_settings();
+	let sections = build_release_note_sections("sdk", &settings, &shared_changeset_changes());
+	let entry = &sections[0].entries[0];
+
+	assert_eq!(
+		entry.style,
+		ReleaseNoteEntryStyle::Expanded,
+		"the merged entry is breaking, so it keeps the expanded layout"
+	);
+	assert_eq!(entry.summary, "split floats and fixed");
+	assert_eq!(
+		entry.details_markdown.as_deref(),
+		Some("Shared explanation")
+	);
+	assert_eq!(
+		entry.change_type.as_deref(),
+		Some("breaking"),
+		"the entry keeps the type of the section that won"
+	);
+}
+
+#[test]
+fn a_lower_priority_target_does_not_move_a_change_out_of_its_section() {
+	let mut settings = multi_target_settings();
+	settings.types.insert(
+		"feat".to_string(),
+		ChangelogType {
+			bump: BumpSeverity::Minor,
+			// Routing the feature type at a *higher* priority number must not
+			// override the breaking target, which sorts first.
+			section: "fix".to_string(),
+			description: None,
+		},
+	);
+
+	let sections = build_release_note_sections("sdk", &settings, &shared_changeset_changes());
+	assert_eq!(sections[0].title, "Breaking changes");
+	assert_eq!(sections[0].entries.len(), 1);
+}
+
 #[test]
 fn render_release_notes_document_includes_section_headings_in_markdown() {
 	let mut settings = ChangelogSettings {
@@ -2049,11 +2328,11 @@ fn render_release_notes_document_includes_section_headings_in_markdown() {
 		"rendered markdown should include ### Bug Fixes heading"
 	);
 	assert!(
-		markdown.contains("- **pkg-a**: add feature"),
+		markdown.contains("- 🟠 **pkg-a**: add feature"),
 		"rendered markdown should include labeled feat entry"
 	);
 	assert!(
-		markdown.contains("- **pkg-b**: fix bug"),
+		markdown.contains("- 🟢 **pkg-b**: fix bug"),
 		"rendered markdown should include labeled fix entry"
 	);
 
@@ -2148,7 +2427,7 @@ fn monochange_format_includes_heading_for_single_changed_section() {
 		"monochange format should include ### Changed heading for single default section"
 	);
 	assert!(
-		markdown.contains("- **pkg-a**: fix bug"),
+		markdown.contains("- 🟢 **pkg-a**: fix bug"),
 		"entry should appear after heading"
 	);
 }

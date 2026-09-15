@@ -33,6 +33,7 @@ use monochange_core::PackageRecord;
 use monochange_core::PreparedChangeset;
 use monochange_core::PreparedChangesetTarget;
 use monochange_core::ReleaseNoteEntryStyle;
+use monochange_core::ReleaseNotePackage;
 use monochange_core::ReleaseNoteProvenance;
 use monochange_core::ReleaseNoteReference;
 use monochange_core::ReleaseNotesDocument;
@@ -1685,6 +1686,51 @@ fn build_release_notes_document(
 	}
 }
 
+/// Identity shared by every entry a single changeset produces.
+///
+/// One changeset can target several packages with different change types, and
+/// every target renders the same summary and details. Two entries with the
+/// same identity describe one change and must be merged rather than repeated
+/// in whichever section each target happened to route to.
+///
+/// Entries without a source path are synthesized messages (empty-update and
+/// group-fallback text), so they are never merged: two packages legitimately
+/// produce similar synthesized text for unrelated releases.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+struct ReleaseNoteIdentity {
+	source_path: Option<String>,
+	summary: String,
+	details: Option<String>,
+}
+
+impl ReleaseNoteIdentity {
+	fn from_entry(entry: &ReleaseNotesEntry) -> Self {
+		Self {
+			source_path: entry.provenance.source_path.clone(),
+			summary: entry.summary.clone(),
+			details: entry.details_markdown.clone(),
+		}
+	}
+
+	/// Whether this identity identifies one specific changeset.
+	///
+	/// Only merged entries describe a known changeset; synthesized messages
+	/// have no source path and stay separate per package.
+	fn is_mergeable(&self) -> bool {
+		self.source_path.is_some()
+	}
+}
+
+/// Where one change should render, after merging its duplicate targets.
+struct RoutedReleaseNote {
+	identity: ReleaseNoteIdentity,
+	/// Configured section key, or `None` for an uncategorized change.
+	section_key: Option<String>,
+	/// Lowest priority value wins. Uncategorized changes rank last.
+	priority: i8,
+	entry: ReleaseNotesEntry,
+}
+
 fn build_release_note_sections(
 	target_id: &str,
 	changelog: &ChangelogSettings,
@@ -1701,18 +1747,19 @@ fn build_release_note_sections(
 	let collapse_threshold = changelog.section_thresholds.collapse;
 	let ignored_threshold = changelog.section_thresholds.ignored;
 
-	let mut section_entries: BTreeMap<&str, Vec<ReleaseNotesEntry>> = BTreeMap::new();
-	let mut uncategorized = Vec::<ReleaseNotesEntry>::new();
+	let routed = merge_release_note_changes(target_id, changelog, &sorted_sections, changes);
 
-	for change in changes {
-		let entry = release_notes_entry(change, target_id);
-		let change_type = change.change_type.as_deref().unwrap_or("");
-		if let Some(typ) = changelog.types.get(change_type) {
-			let section_key = typ.section.as_str();
-			let entries = section_entries.entry(section_key).or_default();
-			push_unique_release_note_entry(entries, entry);
-		} else {
-			push_unique_release_note_entry(&mut uncategorized, entry);
+	let mut section_entries: BTreeMap<String, Vec<ReleaseNotesEntry>> = BTreeMap::new();
+	let mut uncategorized = Vec::<ReleaseNotesEntry>::new();
+	for change in routed {
+		match change.section_key {
+			Some(section_key) => {
+				section_entries
+					.entry(section_key)
+					.or_default()
+					.push(change.entry);
+			}
+			None => uncategorized.push(change.entry),
 		}
 	}
 
@@ -1720,7 +1767,6 @@ fn build_release_note_sections(
 	let mut sections = Vec::new();
 	for (section_key, heading, priority) in &sorted_sections {
 		if *priority > ignored_threshold {
-			section_entries.remove(*section_key);
 			continue;
 		}
 		if let Some(entries) = section_entries.remove(*section_key)
@@ -1760,14 +1806,126 @@ fn build_release_note_sections(
 	sections
 }
 
+/// Route every change to one section, merging the duplicate targets a single
+/// changeset produced.
+///
+/// The winning entry keeps the section of its most important target and lists
+/// every package that changeset affected, so no package is lost when its own
+/// section loses. Changes routed to an omitted section still contribute their
+/// packages to a surviving entry instead of disappearing.
+fn merge_release_note_changes(
+	target_id: &str,
+	changelog: &ChangelogSettings,
+	sorted_sections: &[(&str, &str, i8)],
+	changes: &[ReleaseNoteChange],
+) -> Vec<RoutedReleaseNote> {
+	let priority_of = |section_key: &str| {
+		sorted_sections
+			.iter()
+			.find(|(key, ..)| key == &section_key)
+			.map(|(_, _, priority)| *priority)
+	};
+	let ignored_threshold = changelog.section_thresholds.ignored;
+
+	let mut routed = Vec::<RoutedReleaseNote>::new();
+	for change in changes {
+		let entry = release_notes_entry(change, target_id);
+		let identity = ReleaseNoteIdentity::from_entry(&entry);
+		if !identity.is_mergeable() {
+			routed.push(RoutedReleaseNote {
+				identity,
+				section_key: None,
+				priority: i8::MAX,
+				entry,
+			});
+			continue;
+		}
+		let section_key = changelog
+			.types
+			.get(change.change_type.as_deref().unwrap_or(""))
+			.map(|typ| typ.section.clone());
+		// An omitted section cannot host the change, so its packages must ride
+		// along with a section that still renders.
+		let priority = section_key
+			.as_deref()
+			.and_then(priority_of)
+			.filter(|priority| *priority <= ignored_threshold);
+
+		match routed
+			.iter_mut()
+			.find(|existing| existing.identity == identity)
+		{
+			Some(existing) => {
+				if priority.is_some_and(|priority| priority < existing.priority) {
+					existing.section_key = section_key;
+					existing.priority = priority.unwrap_or(i8::MAX);
+					existing.entry.change_type.clone_from(&change.change_type);
+				}
+				merge_entry_packages(&mut existing.entry, entry);
+			}
+			None => {
+				routed.push(RoutedReleaseNote {
+					identity,
+					section_key,
+					priority: priority.unwrap_or(i8::MAX),
+					entry,
+				});
+			}
+		}
+	}
+	routed
+}
+
+/// Add `incoming` packages to `entry` without repeating a package already listed.
+///
+/// The higher bump wins when the same package appears twice, because that is
+/// the severity the release actually applied.
+fn merge_entry_packages(entry: &mut ReleaseNotesEntry, incoming: ReleaseNotesEntry) {
+	for package in incoming.packages {
+		match entry
+			.packages
+			.iter_mut()
+			.find(|existing| existing.name == package.name)
+		{
+			Some(existing) => {
+				if package.bump > existing.bump {
+					existing.bump = package.bump;
+				}
+			}
+			None => entry.packages.push(package),
+		}
+	}
+	if entry.details_markdown.is_none() {
+		entry.details_markdown = incoming.details_markdown;
+	}
+	if incoming.bump > entry.bump {
+		entry.bump = incoming.bump;
+	}
+	entry.style = release_note_entry_style_for(
+		entry.bump,
+		entry
+			.change_type
+			.as_deref()
+			.or(incoming.change_type.as_deref()),
+		entry.details_markdown.as_deref(),
+	);
+	if entry.change_type.is_none() {
+		entry.change_type = incoming.change_type;
+	}
+}
+
 fn release_notes_entry(change: &ReleaseNoteChange, target_id: &str) -> ReleaseNotesEntry {
-	let packages = if change.package_name == target_id {
+	let labels = if change.package_name == target_id {
 		Vec::new()
 	} else if change.package_labels.is_empty() {
 		vec![change.package_name.clone()]
 	} else {
 		change.package_labels.clone()
 	};
+	let packages = labels
+		.into_iter()
+		.map(|name| ReleaseNotePackage::new(name, change.bump))
+		.collect();
 	ReleaseNotesEntry {
 		summary: change.summary.clone(),
 		details_markdown: change.details.clone(),
@@ -1781,12 +1939,21 @@ fn release_notes_entry(change: &ReleaseNoteChange, target_id: &str) -> ReleaseNo
 }
 
 fn release_note_entry_style(change: &ReleaseNoteChange) -> ReleaseNoteEntryStyle {
-	let is_breaking = change.bump == BumpSeverity::Major
-		|| change
-			.change_type
-			.as_deref()
-			.is_some_and(|change_type| matches!(change_type, "breaking" | "major"));
-	let details_need_space = change.details.as_deref().is_some_and(|details| {
+	release_note_entry_style_for(
+		change.bump,
+		change.change_type.as_deref(),
+		change.details.as_deref(),
+	)
+}
+
+fn release_note_entry_style_for(
+	bump: BumpSeverity,
+	change_type: Option<&str>,
+	details: Option<&str>,
+) -> ReleaseNoteEntryStyle {
+	let is_breaking = bump == BumpSeverity::Major
+		|| change_type.is_some_and(|change_type| matches!(change_type, "breaking" | "major"));
+	let details_need_space = details.is_some_and(|details| {
 		let lowercase = details.to_ascii_lowercase();
 		details.contains("```") || details.contains('\n') || lowercase.contains("migration")
 	});
@@ -1961,7 +2128,12 @@ fn apply_release_note_entry_template(
 		if entry.packages.is_empty() {
 			target_id.to_string()
 		} else {
-			entry.packages.join(", ")
+			entry
+				.packages
+				.iter()
+				.map(|package| package.name.clone())
+				.collect::<Vec<_>>()
+				.join(", ")
 		},
 	);
 	context.insert("version", version.to_string());
@@ -2154,9 +2326,16 @@ fn format_structured_labeled_entry(
 		.packages
 		.iter()
 		.map(|package| {
-			match style.package_label_style {
-				PackageLabelStyle::Badge => format!("*{package}*"),
-				PackageLabelStyle::Inline | PackageLabelStyle::Omit | _ => format!("_{package}_"),
+			let name = match style.package_label_style {
+				PackageLabelStyle::Badge => format!("*{}*", package.name),
+				PackageLabelStyle::Inline | PackageLabelStyle::Omit | _ => {
+					format!("_{}_", package.name)
+				}
+			};
+			if style.package_bump_symbols {
+				format!("{} {name}", package.symbol())
+			} else {
+				name
 			}
 		})
 		.collect::<Vec<_>>()
@@ -2174,7 +2353,15 @@ fn format_structured_labeled_entry(
 		&& !rendered.contains('\n')
 		&& let Some(item) = rendered.strip_prefix("- ")
 	{
-		return format!("- **{package}**: {item}");
+		return format!(
+			"- {}{}**: {item}",
+			if style.package_bump_symbols {
+				format!("{} **", package.symbol())
+			} else {
+				"**".to_string()
+			},
+			package.name
+		);
 	}
 	format!("{rendered}\n{label_line}")
 }
@@ -2199,12 +2386,6 @@ const DEFAULT_CONFIGURED_CHANGE_TEMPLATES: [&str; 4] = [
 	"#### {{ summary }}\n\n{{ details }}",
 	"- {{ summary }}",
 ];
-
-fn push_unique_release_note_entry<Entry: Eq>(entries: &mut Vec<Entry>, entry: Entry) {
-	if !entries.iter().any(|existing| existing == &entry) {
-		entries.push(entry);
-	}
-}
 
 #[cfg(test)]
 #[path = "__tests__/changelog_tests.rs"]

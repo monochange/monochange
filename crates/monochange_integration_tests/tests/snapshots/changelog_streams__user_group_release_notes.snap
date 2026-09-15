@@ -12,7 +12,10 @@ expression: user_group
           "change_type": "app_feature",
           "details_markdown": "Creators can review artwork and metadata before making a project live.",
           "packages": [
-            "app"
+            {
+              "bump": "minor",
+              "name": "app"
+            }
           ],
           "provenance": {
             "change_owner": {

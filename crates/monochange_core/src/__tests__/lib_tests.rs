@@ -59,6 +59,7 @@ use crate::ReleaseManifest;
 use crate::ReleaseManifestChangelog;
 use crate::ReleaseManifestPlan;
 use crate::ReleaseNoteEntryStyle;
+use crate::ReleaseNotePackage;
 use crate::ReleaseNoteProvenance;
 use crate::ReleaseNoteReference;
 use crate::ReleaseNotesDocument;
@@ -2608,7 +2609,10 @@ fn structured_release_notes_render_data_without_markdown_leaking_into_text() {
 				ReleaseNotesEntry {
 					summary: "Replace the release-note document".to_string(),
 					details_markdown: Some("Migrate callers to the typed entry API.".to_string()),
-					packages: vec!["monochange_core".to_string()],
+					packages: vec![ReleaseNotePackage::new(
+						"monochange_core",
+						BumpSeverity::Patch,
+					)],
 					change_type: Some("breaking".to_string()),
 					bump: BumpSeverity::Major,
 					stream: "default".to_string(),
@@ -2632,7 +2636,7 @@ fn structured_release_notes_render_data_without_markdown_leaking_into_text() {
 	);
 	assert!(markdown.contains("- **Keep JSON failures non-zero.**"));
 	assert!(markdown.contains("#### Replace the release-note document"));
-	assert!(markdown.contains("_Packages:_ _monochange_core_"));
+	assert!(markdown.contains("_Packages:_ 🟢 _monochange_core_"));
 
 	let text = crate::render_structured_release_notes(
 		ChangelogFormat::Text,
@@ -2729,7 +2733,10 @@ fn compact_entries_separate_multi_package_labels_from_the_summary() {
 	let entry = ReleaseNotesEntry {
 		summary: "add shared release note".to_string(),
 		details_markdown: None,
-		packages: vec!["core".to_string(), "app".to_string()],
+		packages: vec![
+			ReleaseNotePackage::new("core", BumpSeverity::Patch),
+			ReleaseNotePackage::new("app", BumpSeverity::Patch),
+		],
 		change_type: Some("feat".to_string()),
 		bump: BumpSeverity::Minor,
 		stream: "default".to_string(),
@@ -2739,7 +2746,7 @@ fn compact_entries_separate_multi_package_labels_from_the_summary() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"- _Packages:_ _core_, _app_ **add shared release note.**"
+		"- _Packages:_ 🟢 _core_, 🟢 _app_ **add shared release note.**"
 	);
 }
 
@@ -2748,7 +2755,7 @@ fn compact_entries_bold_only_the_first_sentence_of_a_long_summary() {
 	let entry = ReleaseNotesEntry {
 		summary: "Add the first thing. Preserve the rest as plain text".to_string(),
 		details_markdown: Some("Details stay plain.".to_string()),
-		packages: vec!["cli".to_string()],
+		packages: vec![ReleaseNotePackage::new("cli", BumpSeverity::Patch)],
 		change_type: Some("feat".to_string()),
 		bump: BumpSeverity::Minor,
 		stream: "default".to_string(),
@@ -2758,7 +2765,7 @@ fn compact_entries_bold_only_the_first_sentence_of_a_long_summary() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"- **cli**: **Add the first thing.** Preserve the rest as plain text Details stay plain."
+		"- 🟢 **cli**: **Add the first thing.** Preserve the rest as plain text Details stay plain."
 	);
 
 	let after_change = crate::render_release_note_entry_markdown(
@@ -2773,7 +2780,7 @@ fn compact_entries_bold_only_the_first_sentence_of_a_long_summary() {
 	);
 	assert_eq!(
 		after_change,
-		"- **Add the first thing.** Preserve the rest as plain text\n  **cli**:"
+		"- **Add the first thing.** Preserve the rest as plain text\n  🟢 **cli**:"
 	);
 }
 
@@ -2782,7 +2789,10 @@ fn compact_entries_render_details_without_a_summary() {
 	let entry = ReleaseNotesEntry {
 		summary: String::new(),
 		details_markdown: Some("Details carry the change.".to_string()),
-		packages: vec!["core".to_string(), "app".to_string()],
+		packages: vec![
+			ReleaseNotePackage::new("core", BumpSeverity::Patch),
+			ReleaseNotePackage::new("app", BumpSeverity::Patch),
+		],
 		change_type: Some("fix".to_string()),
 		bump: BumpSeverity::Patch,
 		stream: "default".to_string(),
@@ -2792,7 +2802,7 @@ fn compact_entries_render_details_without_a_summary() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"- _Packages:_ _core_, _app_ Details carry the change."
+		"- _Packages:_ 🟢 _core_, 🟢 _app_ Details carry the change."
 	);
 }
 
@@ -2801,7 +2811,7 @@ fn expanded_entries_move_the_summary_remainder_into_the_body() {
 	let entry = ReleaseNotesEntry {
 		summary: "Migrate the config format. Details follow the heading".to_string(),
 		details_markdown: Some("Existing `monochange.toml` files keep working.".to_string()),
-		packages: vec!["core".to_string()],
+		packages: vec![ReleaseNotePackage::new("core", BumpSeverity::Patch)],
 		change_type: Some("breaking".to_string()),
 		bump: BumpSeverity::Major,
 		stream: "default".to_string(),
@@ -2811,7 +2821,7 @@ fn expanded_entries_move_the_summary_remainder_into_the_body() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"#### Migrate the config format.\n\nDetails follow the heading\n\n_Packages:_ _core_\n\nExisting `monochange.toml` files keep working."
+		"#### Migrate the config format.\n\nDetails follow the heading\n\n_Packages:_ 🟢 _core_\n\nExisting `monochange.toml` files keep working."
 	);
 }
 
@@ -2853,7 +2863,10 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 		details_markdown: Some(
 			"Use [`new_api`](https://example.com/new).\n\n```rust\nnew_api();\n```".to_string(),
 		),
-		packages: vec!["core".to_string(), "cli".to_string()],
+		packages: vec![
+			ReleaseNotePackage::new("core", BumpSeverity::Patch),
+			ReleaseNotePackage::new("cli", BumpSeverity::Patch),
+		],
 		change_type: Some("breaking".to_string()),
 		bump: BumpSeverity::Major,
 		stream: "default".to_string(),
@@ -2863,7 +2876,7 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 	let compact_entry = ReleaseNotesEntry {
 		summary: "Tighten output?".to_string(),
 		details_markdown: Some("Keep `snake_case` names.".to_string()),
-		packages: vec!["cli".to_string()],
+		packages: vec![ReleaseNotePackage::new("cli", BumpSeverity::Patch)],
 		change_type: Some("fix".to_string()),
 		bump: BumpSeverity::Patch,
 		stream: "default".to_string(),
@@ -2901,6 +2914,7 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 		package_label_placement: PackageLabelPlacement::AfterChange,
 		metadata_style: MetadataStyle::Blockquote,
 		collapsed_section_style: CollapsedSectionStyle::Details,
+		package_bump_symbols: true,
 	};
 	let markdown = crate::render_structured_release_notes(
 		ChangelogFormat::KeepAChangelog,
@@ -2908,7 +2922,7 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 		&blockquote_style,
 	);
 	assert!(markdown.contains("<summary><strong>Breaking changes</strong></summary>"));
-	assert!(markdown.contains("_Packages:_ *core*, *cli*"));
+	assert!(markdown.contains("_Packages:_ 🟢 *core*, 🟢 *cli*"));
 	assert!(markdown.contains("> _Last updated in:_ def5678"));
 	assert!(markdown.contains("> _Closed issues:_ [#20](https://example.com/issues/20), #21"));
 	assert!(markdown.contains("\n---\n"));
@@ -2934,10 +2948,10 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 		..ChangelogStyle::default()
 	};
 	let expanded = crate::render_release_note_entry_markdown(&expanded_entry, &plain_style);
-	assert!(expanded.contains("_Packages:_ _core_, _cli_"));
+	assert!(expanded.contains("_Packages:_ 🟢 _core_, 🟢 _cli_"));
 	assert!(expanded.contains("_Related issues:_ #10"));
 	let compact = crate::render_release_note_entry_markdown(&compact_entry, &plain_style);
-	assert!(compact.contains("\n  **cli**:"));
+	assert!(compact.contains("\n  🟢 **cli**:"));
 
 	let omitted = crate::render_release_note_entry_markdown(
 		&expanded_entry,
@@ -3053,6 +3067,7 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 				package_label_placement: PackageLabelPlacement::AfterHeading,
 				metadata_style: MetadataStyle::Blockquote,
 				collapsed_section_style: CollapsedSectionStyle::Details,
+				package_bump_symbols: true,
 			},
 			[
 				"single blank line",
@@ -3069,6 +3084,7 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 				package_label_placement: PackageLabelPlacement::AfterHeading,
 				metadata_style: MetadataStyle::Plain,
 				collapsed_section_style: CollapsedSectionStyle::Plain,
+				package_bump_symbols: true,
 			},
 			[
 				"thematic break (---)",
@@ -3085,6 +3101,7 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 				package_label_placement: PackageLabelPlacement::AfterChange,
 				metadata_style: MetadataStyle::Omit,
 				collapsed_section_style: CollapsedSectionStyle::Details,
+				package_bump_symbols: true,
 			},
 			[
 				"Do not add any separator",
@@ -3115,6 +3132,7 @@ fn release_notes_style_overrides_only_replace_configured_fields() {
 		package_label_placement: PackageLabelPlacement::AfterHeading,
 		metadata_style: MetadataStyle::Inline,
 		collapsed_section_style: CollapsedSectionStyle::Details,
+		package_bump_symbols: true,
 	};
 	let overrides = ReleaseNotesStyleOverrides {
 		section_separator: Some(SectionSeparator::ThematicBreak),
@@ -3122,6 +3140,7 @@ fn release_notes_style_overrides_only_replace_configured_fields() {
 		package_label_placement: Some(PackageLabelPlacement::AfterChange),
 		metadata_style: Some(MetadataStyle::Omit),
 		collapsed_section_style: Some(CollapsedSectionStyle::Plain),
+		package_bump_symbols: None,
 	};
 
 	let resolved = base.with_release_notes_overrides(&overrides);
@@ -3177,6 +3196,7 @@ fn render_release_notes_applies_separator_and_plain_collapsed_styles() {
 		package_label_placement: PackageLabelPlacement::AfterHeading,
 		metadata_style: MetadataStyle::Plain,
 		collapsed_section_style: CollapsedSectionStyle::Plain,
+		package_bump_symbols: true,
 	};
 
 	let monochange = render_release_notes(ChangelogFormat::Monochange, &document, &style);
@@ -3197,6 +3217,7 @@ fn render_release_notes_applies_separator_and_plain_collapsed_styles() {
 		package_label_placement: PackageLabelPlacement::AfterHeading,
 		metadata_style: MetadataStyle::Plain,
 		collapsed_section_style: CollapsedSectionStyle::Details,
+		package_bump_symbols: true,
 	};
 	for compact_format in [ChangelogFormat::Monochange, ChangelogFormat::KeepAChangelog] {
 		let compact = render_release_notes(compact_format, &document, &compact_style);
@@ -3335,7 +3356,6 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				initial_version: None,
 				bump_ceiling: None,
 				classification_enforced: None,
-
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 				cli: None,
@@ -3365,7 +3385,6 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				initial_version: None,
 				bump_ceiling: None,
 				classification_enforced: None,
-
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 				cli: None,
@@ -3391,7 +3410,6 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				initial_version: None,
 				bump_ceiling: None,
 				classification_enforced: None,
-
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 				cli: None,

@@ -275,11 +275,14 @@ Use `[changelog.style]` to tune rendered release-note shape. `metadata_style` ac
 
 Routine entries use a compact bullet. Breaking entries and entries with migration guidance, code fences, or multiline details use an expanded heading and body. A package's own release notes omit the redundant package label; group and workspace notes keep package labels so readers can see what each entry affects.
 
+One changeset can target several packages with different change types. monochange renders that changeset once, in the section with the lowest `priority`, and lists every package it targeted. Each package label carries a colored symbol for the bump that package received: `🔴` major, `🟠` minor, `🟢` patch, and `⚪` none. Set `package_bump_symbols = false` to omit the symbols.
+
 Built-in section headings are plain text, such as `Features` and `Fixes`. Configure custom `[changelog.sections.<id>].heading` values when a project deliberately wants emoji or other decoration.
 
 ```toml
 [changelog.style]
 metadata_style = "inline"
+package_bump_symbols = true
 ```
 
 You can also customize release-note rendering with a workspace-wide `[changelog]` table plus per-package or per-group changelog overrides.

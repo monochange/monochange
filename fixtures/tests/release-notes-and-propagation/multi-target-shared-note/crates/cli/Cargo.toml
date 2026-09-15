@@ -1,0 +1,4 @@
+[package]
+name = "workflow-cli"
+version = { workspace = true }
+edition = "2021"
