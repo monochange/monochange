@@ -9,15 +9,15 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "low",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "partial",
           "coverage": "some typed entrypoints or inputs were not fully checked against isolated snapshots",
           "engine": "typescript",
-          "fallbackReason": "before: wildcard export ./features/* could not be enumerated conclusively; after: wildcard export ./features/* could not be enumerated conclusively",
+          "fallback_reason": "before: wildcard export ./features/* could not be enumerated conclusively; after: wildcard export ./features/* could not be enumerated conclusively",
           "version": "6.0.3"
         },
         "outcome": "inconclusive",
-        "suggestedBump": "patch"
+        "suggested_bump": "patch"
       },
       "category": "public_api",
       "filePath": "package.json",
@@ -30,14 +30,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "all explicit typed entrypoints emitted and compared",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "compatible",
-        "suggestedBump": "none"
+        "suggested_bump": "none"
       },
       "category": "public_api",
       "filePath": "package.json",

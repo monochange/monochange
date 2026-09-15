@@ -66,7 +66,7 @@ fn package<'a>(report: &'a Value, package_id: &str) -> &'a Value {
 		.as_array()
 		.unwrap_or_else(|| panic!("packages should be an array: {report:#}"))
 		.iter()
-		.find(|package| package["packageId"] == package_id)
+		.find(|package| package["package_id"] == package_id)
 		.unwrap_or_else(|| panic!("missing package {package_id}: {report:#}"))
 }
 
@@ -92,10 +92,10 @@ fn change_classify_reports_cli_surface_breaks_for_registered_clis() {
 
 	let demo = package(&report, "demo");
 	assert_eq!(demo["recommendation"], "major");
-	assert_eq!(demo["decision"]["proposedChangesetBump"], "major");
-	assert_eq!(demo["decision"]["enforceableMinimum"], "major");
-	assert_eq!(demo["decision"]["compatibilityImpact"], "breaking");
-	assert_eq!(demo["decision"]["reviewRequired"], false);
+	assert_eq!(demo["decision"]["proposed_changeset_bump"], "major");
+	assert_eq!(demo["decision"]["enforceable_minimum"], "major");
+	assert_eq!(demo["decision"]["compatibility_impact"], "breaking");
+	assert_eq!(demo["decision"]["review_required"], false);
 
 	assert_eq!(
 		demo["cli"]["name"], "demo",
@@ -103,7 +103,7 @@ fn change_classify_reports_cli_surface_breaks_for_registered_clis() {
 	);
 	assert_eq!(demo["cli"]["status"], "diffed");
 	assert_eq!(demo["cli"]["recommendation"], "major");
-	assert_eq!(demo["cli"]["findingCount"], 2);
+	assert_eq!(demo["cli"]["finding_count"], 2);
 	assert_eq!(
 		demo["cli"]["baseline"],
 		".monochange/cli-snapshots/demo.json"
@@ -131,12 +131,12 @@ fn change_classify_reports_cli_surface_breaks_for_registered_clis() {
 			.as_array()
 			.unwrap_or_else(|| panic!("findings array: {demo:#}"))
 			.iter()
-			.any(|finding| finding["ruleId"] == "monochange/unclassified-source"),
+			.any(|finding| finding["rule_id"] == "monochange/unclassified-source"),
 		"cli findings should replace the unclassified fallback: {demo:#}"
 	);
 
 	assert_eq!(report["recommendation"], "major");
-	assert_eq!(report["schemaVersion"], 5);
+	assert_eq!(report["schema_version"], "0.1");
 
 	// Unmatched-path advisories depend on how each platform canonicalizes the
 	// fixture tempdir, so snapshot the findings without them.
@@ -194,13 +194,13 @@ fn change_classify_reports_missing_cli_baselines_without_failing() {
 	assert_eq!(demo["cli"]["status"], "missing_baseline");
 	assert_eq!(demo["cli"]["recommendation"], Value::Null);
 	assert_eq!(demo["recommendation"], "patch");
-	assert_eq!(demo["decision"]["reviewRequired"], true);
+	assert_eq!(demo["decision"]["review_required"], true);
 	assert!(
 		demo["findings"]
 			.as_array()
 			.unwrap_or_else(|| panic!("findings array: {demo:#}"))
 			.iter()
-			.any(|finding| finding["ruleId"] == "monochange/unclassified-source"),
+			.any(|finding| finding["rule_id"] == "monochange/unclassified-source"),
 		"a missing baseline keeps the conservative unclassified fallback: {demo:#}"
 	);
 	assert!(
@@ -272,7 +272,7 @@ fn change_classify_reports_failed_cli_snapshot_capture() {
 	let demo = package(&report, "demo");
 	assert_eq!(demo["cli"]["status"], "failed");
 	assert_eq!(demo["recommendation"], "patch");
-	assert_eq!(demo["decision"]["reviewRequired"], true);
+	assert_eq!(demo["decision"]["review_required"], true);
 	assert!(
 		report["warnings"]
 			.as_array()
