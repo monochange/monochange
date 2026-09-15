@@ -347,6 +347,23 @@
 			},
 			"type": "object"
 		},
+		"ChangesetClassificationSettings": {
+			"additionalProperties": false,
+			"description": "Pull-request label policy for `monochange change classify`.\n\nClassification describes the compatibility impact of pending work. A pull\nrequest that only bumps versions, such as the release request monochange\nopens itself, has no such pending work, so classifying it produces noise.",
+			"properties": {
+				"skip_labels": {
+					"default": [
+						"release"
+					],
+					"description": "Pull-request labels that skip classification entirely. When any label on\nthe pull request matches an entry here, the command reports a skipped\nresult instead of analyzing packages.\n\nDefaults to `[\"release\"]` so the release pull request monochange opens is\nnot classified. Set this to `[]` to always classify.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				}
+			},
+			"type": "object"
+		},
 		"ChangesetSettings": {
 			"additionalProperties": false,
 			"properties": {
@@ -359,6 +376,14 @@
 						"ignored_paths": [],
 						"required": true,
 						"skip_labels": []
+					}
+				},
+				"classification": {
+					"$ref": "#/$defs/ChangesetClassificationSettings",
+					"default": {
+						"skip_labels": [
+							"release"
+						]
 					}
 				}
 			},
@@ -3080,6 +3105,11 @@
 					"ignored_paths": [],
 					"required": true,
 					"skip_labels": []
+				},
+				"classification": {
+					"skip_labels": [
+						"release"
+					]
 				}
 			}
 		},

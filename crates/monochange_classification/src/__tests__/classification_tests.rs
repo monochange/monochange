@@ -44,70 +44,10 @@ fn classify_options_defaults_are_safe_for_agent_use() {
 	assert_eq!(options.detection_level, DetectionLevel::Signature);
 	assert!(!options.include_unchanged);
 	assert!(!options.strict);
-	assert_eq!(options.format, OutputFormat::Text);
+	assert_eq!(options.format, ClassificationFormat::Text);
 	assert_eq!(options.output, None);
 	assert!(options.labels.is_empty());
 	assert_eq!(options.dependency_propagation, DependencyPropagation::None);
-}
-
-#[test]
-fn classify_options_parse_repeated_labels() {
-	let matches = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"change",
-			"classify",
-			"--label",
-			"release",
-			"--label",
-			"automated",
-		])
-		.unwrap_or_else(|error| panic!("parse labels: {error}"));
-	let (_, change_matches) = matches.subcommand().unwrap();
-	let (_, classify_matches) = change_matches.subcommand().unwrap();
-	let options = classify_options_from_matches(classify_matches)
-		.unwrap_or_else(|error| panic!("options: {error}"));
-
-	assert_eq!(options.labels, vec!["release", "automated"]);
-}
-
-#[test]
-fn classify_options_cover_all_supported_formats_and_detection_levels() {
-	for (format, expected) in [
-		("markdown", OutputFormat::Markdown),
-		("md", OutputFormat::Markdown),
-		("json", OutputFormat::Json),
-		("json-min", OutputFormat::JsonMin),
-		("text", OutputFormat::Text),
-	] {
-		let matches = crate::cli::build_command_with_cli("monochange", &[])
-			.try_get_matches_from(["monochange", "change", "classify", "--format", format])
-			.unwrap_or_else(|error| panic!("parse {format}: {error}"));
-		let (_, change_matches) = matches.subcommand().unwrap();
-		let (_, classify_matches) = change_matches.subcommand().unwrap();
-		let options = classify_options_from_matches(classify_matches)
-			.unwrap_or_else(|error| panic!("extract {format}: {error}"));
-		assert_eq!(options.format, expected);
-	}
-
-	assert_eq!(
-		parse_detection_level("basic").unwrap(),
-		DetectionLevel::Basic
-	);
-	assert_eq!(
-		parse_detection_level("semantic").unwrap(),
-		DetectionLevel::Semantic
-	);
-	assert!(parse_detection_level("impossible").is_err());
-	assert_eq!(
-		parse_dependency_propagation("none").unwrap(),
-		DependencyPropagation::None
-	);
-	assert_eq!(
-		parse_dependency_propagation("public").unwrap(),
-		DependencyPropagation::Public
-	);
-	assert!(parse_dependency_propagation("transitive").is_err());
 }
 
 #[test]
@@ -252,109 +192,6 @@ fn selection_release_and_render_helpers_cover_every_supported_variant() {
 		classification_confidence_name(ClassificationConfidence::High),
 		"high"
 	);
-}
-
-#[test]
-fn classify_options_from_matches_accepts_agent_workflow_shape() {
-	let matches = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"--jq",
-			".packages",
-			"change",
-			"classify",
-			"--base",
-			"origin/main",
-			"--format=json",
-			"--dependency-propagation",
-			"public",
-		])
-		.unwrap_or_else(|error| panic!("parse command: {error}"));
-	let (_, change_matches) = matches.subcommand().unwrap();
-	let (_, classify_matches) = change_matches.subcommand().unwrap();
-	let options = classify_options_from_matches(classify_matches)
-		.unwrap_or_else(|error| panic!("extract options: {error}"));
-
-	assert_eq!(options.base, Some("origin/main".to_string()));
-	assert_eq!(options.head, "HEAD");
-	assert_eq!(options.format, OutputFormat::Json);
-	assert_eq!(
-		options.dependency_propagation,
-		DependencyPropagation::Public
-	);
-}
-
-#[test]
-fn classify_options_from_matches_accepts_api_diff_shape() {
-	let matches = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"api",
-			"diff",
-			"--base",
-			"origin/main",
-			"--format",
-			"json",
-			"--dependency-propagation",
-			"public",
-		])
-		.unwrap_or_else(|error| panic!("parse command: {error}"));
-	let (_, api_matches) = matches.subcommand().unwrap();
-	let (_, diff_matches) = api_matches.subcommand().unwrap();
-	let options = classify_options_from_matches(diff_matches)
-		.unwrap_or_else(|error| panic!("extract options: {error}"));
-
-	assert_eq!(options.base, Some("origin/main".to_string()));
-	assert_eq!(options.format, OutputFormat::Json);
-	assert_eq!(
-		options.dependency_propagation,
-		DependencyPropagation::Public
-	);
-}
-
-#[test]
-fn classify_options_from_matches_accepts_changeset_validation_shape() {
-	let matches = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"changeset",
-			"validate",
-			"--api",
-			"--strict",
-			"--base",
-			"origin/main",
-			"--dependency-propagation",
-			"public",
-		])
-		.unwrap_or_else(|error| panic!("parse command: {error}"));
-	let (_, changeset_matches) = matches.subcommand().unwrap();
-	let (_, validate_matches) = changeset_matches.subcommand().unwrap();
-	let options = classify_options_from_matches(validate_matches)
-		.unwrap_or_else(|error| panic!("extract options: {error}"));
-
-	assert_eq!(options.base, Some("origin/main".to_string()));
-	assert_eq!(options.head, "HEAD");
-	assert_eq!(options.format, OutputFormat::Text);
-	assert!(options.strict);
-	assert_eq!(
-		options.dependency_propagation,
-		DependencyPropagation::Public
-	);
-}
-
-#[test]
-fn clap_rejects_unknown_dependency_propagation_modes() {
-	let error = crate::cli::build_command_with_cli("monochange", &[])
-		.try_get_matches_from([
-			"monochange",
-			"change",
-			"classify",
-			"--dependency-propagation",
-			"transitive",
-		])
-		.expect_err("expected parse error");
-
-	assert!(error.to_string().contains("transitive"));
 }
 
 #[test]
@@ -1333,7 +1170,7 @@ fn semantic_finding_preserves_and_renders_matrix_checks() {
 		serde_json::to_value(&finding).unwrap_or_else(|error| panic!("serialize finding: {error}"));
 
 	assert_eq!(json["coverage"]["checks"][0]["name"], "all-features");
-	assert_eq!(json["coverage"]["checks"][0]["suggestedBump"], "major");
+	assert_eq!(json["coverage"]["checks"][0]["suggested_bump"], "major");
 	assert!(
 		finding_evidence(&finding).contains(
 			"all-features=checked/major [trait_method_missing: pub trait method removed]"

@@ -569,6 +569,19 @@ pub fn relative_to_root(root: &Path, path: &Path) -> Option<PathBuf> {
 		.map(Path::to_path_buf)
 }
 
+/// Return `path` relative to `root`, falling back to `path` itself when it
+/// lies outside `root`. Paths inside `root` that normalize to nothing resolve
+/// to `.` so reports never print empty locations.
+#[must_use]
+pub fn root_relative(root: &Path, path: &Path) -> PathBuf {
+	let relative = relative_to_root(root, path).unwrap_or_else(|| path.to_path_buf());
+	if relative.as_os_str().is_empty() {
+		PathBuf::from(".")
+	} else {
+		relative
+	}
+}
+
 #[derive(Clone, Debug)]
 pub struct DiscoveryPathFilter {
 	root: PathBuf,

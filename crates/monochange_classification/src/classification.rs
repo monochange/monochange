@@ -28,35 +28,88 @@ use monochange_core::VersionFormat;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::OutputFormat;
+use crate::SCHEMA_VERSION;
 
 const DEFAULT_HEAD_REF: &str = "HEAD";
-const CHANGE_CLASSIFICATION_SCHEMA_VERSION: u16 = 5;
-pub(crate) const SKIP_CLI_SNAPSHOTS_ENV: &str = "MONOCHANGE_SKIP_CLI_SNAPSHOTS";
-pub(crate) const CLI_SURFACE_ANALYZER_ID: &str = "monochange/cli-surface";
+pub const SKIP_CLI_SNAPSHOTS_ENV: &str = "MONOCHANGE_SKIP_CLI_SNAPSHOTS";
+pub const CLI_SURFACE_ANALYZER_ID: &str = "monochange/cli-surface";
 const ANALYZER_VERSION: &str = "1";
 
+/// Output renderer for classification reports.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ClassificationFormat {
+	Text,
+	Markdown,
+	/// Pretty-printed JSON with no terminal styling.
+	Json,
+	/// Minified JSON with no whitespace and no terminal styling.
+	JsonMin,
+}
+
+impl ClassificationFormat {
+	/// Parse a [`ClassificationFormat`] from a CLI format value.
+	///
+	/// # Errors
+	///
+	/// Returns an error for values outside `markdown`, `md`, `json`,
+	/// `json-min`, and `text`.
+	pub fn parse(value: &str) -> Result<Self, String> {
+		match value {
+			"markdown" | "md" => Ok(Self::Markdown),
+			"json" => Ok(Self::Json),
+			"json-min" => Ok(Self::JsonMin),
+			"text" => Ok(Self::Text),
+			other => {
+				Err(format!(
+					"unsupported classification format `{other}`; expected markdown, json, json-min, or text"
+				))
+			}
+		}
+	}
+
+	/// Serialize a value as plain-text JSON for this output format.
+	///
+	/// [`ClassificationFormat::Json`] renders pretty-printed JSON while
+	/// [`ClassificationFormat::JsonMin`] renders the same value minified with
+	/// no whitespace. Neither variant injects colors or other terminal
+	/// styling.
+	///
+	/// # Errors
+	///
+	/// Returns an error when the value cannot be serialized to JSON.
+	pub fn render_json_value<T>(&self, value: &T, context: &str) -> Result<String, String>
+	where
+		T: Serialize,
+	{
+		match self {
+			Self::JsonMin => serde_json::to_string(value),
+			_ => serde_json::to_string_pretty(value),
+		}
+		.map_err(|error| format!("failed to render {context} as json: {error}"))
+	}
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub(crate) struct ClassifyOptions {
-	pub(crate) base: Option<String>,
-	pub(crate) head: String,
-	pub(crate) release: Option<String>,
-	pub(crate) packages: Vec<String>,
-	pub(crate) detection_level: DetectionLevel,
-	pub(crate) include_unchanged: bool,
-	pub(crate) strict: bool,
-	pub(crate) skip_cli_snapshots: bool,
-	pub(crate) format: OutputFormat,
-	pub(crate) output: Option<PathBuf>,
+pub struct ClassifyOptions {
+	pub base: Option<String>,
+	pub head: String,
+	pub release: Option<String>,
+	pub packages: Vec<String>,
+	pub detection_level: DetectionLevel,
+	pub include_unchanged: bool,
+	pub strict: bool,
+	pub skip_cli_snapshots: bool,
+	pub format: ClassificationFormat,
+	pub output: Option<PathBuf>,
 	/// Pull request labels observed by the caller. Combined with
 	/// `[changesets.classification].skip_labels`, these decide whether
 	/// classification runs at all.
-	pub(crate) labels: Vec<String>,
-	pub(crate) dependency_propagation: DependencyPropagation,
+	pub labels: Vec<String>,
+	pub dependency_propagation: DependencyPropagation,
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
-pub(crate) enum DependencyPropagation {
+pub enum DependencyPropagation {
 	#[default]
 	None,
 	Public,
@@ -73,7 +126,7 @@ impl Default for ClassifyOptions {
 			include_unchanged: false,
 			strict: false,
 			skip_cli_snapshots: false,
-			format: OutputFormat::Text,
+			format: ClassificationFormat::Text,
 			output: None,
 			labels: Vec::new(),
 			dependency_propagation: DependencyPropagation::None,
@@ -81,9 +134,10 @@ impl Default for ClassifyOptions {
 	}
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum ComparisonKind {
+#[serde(rename_all = "snake_case")]
+pub enum ComparisonKind {
 	PullRequest,
 	Release,
 	ReleaseToDefault,
@@ -91,27 +145,30 @@ pub(crate) enum ComparisonKind {
 	WorkingTree,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum ComparisonStatus {
+pub enum ComparisonStatus {
 	Analyzed,
 	Unavailable,
 	Conflicted,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ResolvedComparison {
-	pub(crate) kind: ComparisonKind,
-	pub(crate) base: Option<String>,
-	pub(crate) head: String,
-	pub(crate) status: ComparisonStatus,
-	pub(crate) note: Option<String>,
+#[serde(rename_all = "snake_case")]
+pub struct ResolvedComparison {
+	pub kind: ComparisonKind,
+	pub base: Option<String>,
+	pub head: String,
+	pub status: ComparisonStatus,
+	pub note: Option<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum CompatibilityImpact {
+pub enum CompatibilityImpact {
 	/// The change is real, but it sits outside the public surface this analyzer
 	/// models, so no compatibility verdict applies. The package is supported;
 	/// only this particular file change is unmodeled.
@@ -121,85 +178,92 @@ pub(crate) enum CompatibilityImpact {
 	Breaking,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum ClassificationConfidence {
+pub enum ClassificationConfidence {
 	Low,
 	Medium,
 	High,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum AnalysisCompleteness {
+pub enum AnalysisCompleteness {
 	Complete,
 	Partial,
 	Unsupported,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct FindingAnalyzer {
-	pub(crate) id: String,
+#[serde(rename_all = "snake_case")]
+pub struct FindingAnalyzer {
+	pub id: String,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub(crate) engine: Option<String>,
-	pub(crate) version: String,
+	pub engine: Option<String>,
+	pub version: String,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct FindingCoverage {
-	pub(crate) detection_level: DetectionLevel,
-	pub(crate) completeness: AnalysisCompleteness,
-	pub(crate) note: String,
+#[serde(rename_all = "snake_case")]
+pub struct FindingCoverage {
+	pub detection_level: DetectionLevel,
+	pub completeness: AnalysisCompleteness,
+	pub note: String,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub(crate) fallback_reason: Option<String>,
+	pub fallback_reason: Option<String>,
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
-	pub(crate) checks: Vec<SemanticAnalyzerCheck>,
+	pub checks: Vec<SemanticAnalyzerCheck>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ClassificationFinding {
-	pub(crate) id: String,
-	pub(crate) rule_id: String,
-	pub(crate) surface: String,
-	pub(crate) change: String,
-	pub(crate) impact: CompatibilityImpact,
-	pub(crate) bump: BumpSeverity,
-	pub(crate) confidence: ClassificationConfidence,
-	pub(crate) analyzer: FindingAnalyzer,
-	pub(crate) coverage: FindingCoverage,
-	pub(crate) before: Option<String>,
-	pub(crate) after: Option<String>,
-	pub(crate) location: PathBuf,
-	pub(crate) comparisons: BTreeSet<ComparisonKind>,
-	pub(crate) summary: String,
+#[serde(rename_all = "snake_case")]
+pub struct ClassificationFinding {
+	pub id: String,
+	pub rule_id: String,
+	pub surface: String,
+	pub change: String,
+	pub impact: CompatibilityImpact,
+	pub bump: BumpSeverity,
+	pub confidence: ClassificationConfidence,
+	pub analyzer: FindingAnalyzer,
+	pub coverage: FindingCoverage,
+	pub before: Option<String>,
+	pub after: Option<String>,
+	pub location: PathBuf,
+	pub comparisons: BTreeSet<ComparisonKind>,
+	pub summary: String,
 }
 
 fn default_classification_enforced() -> bool {
 	true
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ChangeRecommendation {
-	pub(crate) compatibility_impact: CompatibilityImpact,
-	pub(crate) proposed_changeset_bump: BumpSeverity,
-	pub(crate) enforceable_minimum: BumpSeverity,
-	pub(crate) release_floor: BumpSeverity,
-	pub(crate) confidence: ClassificationConfidence,
-	pub(crate) completeness: AnalysisCompleteness,
-	pub(crate) review_required: bool,
-	pub(crate) finding_ids: Vec<String>,
+#[serde(rename_all = "snake_case")]
+pub struct ChangeRecommendation {
+	pub compatibility_impact: CompatibilityImpact,
+	pub proposed_changeset_bump: BumpSeverity,
+	pub enforceable_minimum: BumpSeverity,
+	pub release_floor: BumpSeverity,
+	pub confidence: ClassificationConfidence,
+	pub completeness: AnalysisCompleteness,
+	pub review_required: bool,
+	pub finding_ids: Vec<String>,
 	/// Whether the changeset policy enforces classified bumps.
 	#[serde(default = "default_classification_enforced")]
-	pub(crate) classification_enforced: bool,
+	pub classification_enforced: bool,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum ChangesetAction {
+pub enum ChangesetAction {
 	Create,
 	Update,
 	Keep,
@@ -207,81 +271,87 @@ pub(crate) enum ChangesetAction {
 	NoChangeset,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ExistingChangeset {
-	pub(crate) path: PathBuf,
-	pub(crate) bump: Option<BumpSeverity>,
-	pub(crate) change_type: Option<String>,
+#[serde(rename_all = "snake_case")]
+pub struct ExistingChangeset {
+	pub path: PathBuf,
+	pub bump: Option<BumpSeverity>,
+	pub change_type: Option<String>,
 }
 
 type ExistingChangesetsByPackage = BTreeMap<String, Vec<ExistingChangeset>>;
 type ExistingChangesetInventory = (ExistingChangesetsByPackage, Vec<String>);
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ReleaseOwner {
-	pub(crate) kind: String,
-	pub(crate) id: String,
-	pub(crate) latest_release: Option<String>,
+#[serde(rename_all = "snake_case")]
+pub struct ReleaseOwner {
+	pub kind: String,
+	pub id: String,
+	pub latest_release: Option<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ChangeClassificationReport {
-	pub(crate) schema_version: u16,
-	pub(crate) default_branch: String,
-	pub(crate) candidate: String,
-	pub(crate) comparisons: Vec<ResolvedComparison>,
-	pub(crate) recommendation: BumpSeverity,
-	pub(crate) packages: Vec<PackageClassification>,
-	pub(crate) warnings: Vec<String>,
+#[serde(rename_all = "snake_case")]
+pub struct ChangeClassificationReport {
+	pub schema_version: String,
+	pub default_branch: String,
+	pub candidate: String,
+	pub comparisons: Vec<ResolvedComparison>,
+	pub recommendation: BumpSeverity,
+	pub packages: Vec<PackageClassification>,
+	pub warnings: Vec<String>,
 	/// Whether classification was skipped before any package analysis ran.
-	pub(crate) skipped: bool,
+	pub skipped: bool,
 	#[serde(default, skip_serializing_if = "String::is_empty")]
-	pub(crate) summary: String,
+	pub summary: String,
 	/// Configured skip labels that matched labels on this pull request.
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
-	pub(crate) matched_skip_labels: Vec<String>,
+	pub matched_skip_labels: Vec<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct PackageClassification {
-	pub(crate) package_id: String,
-	pub(crate) package_name: String,
-	pub(crate) ecosystem: monochange_core::Ecosystem,
-	pub(crate) release_owner: Option<ReleaseOwner>,
-	pub(crate) comparisons: Vec<ResolvedComparison>,
-	pub(crate) recommendation: BumpSeverity,
-	pub(crate) decision: ChangeRecommendation,
-	pub(crate) summary: String,
-	pub(crate) findings: Vec<ClassificationFinding>,
-	pub(crate) existing_changesets: Vec<ExistingChangeset>,
-	pub(crate) action: ChangesetAction,
-	pub(crate) warnings: Vec<String>,
+#[serde(rename_all = "snake_case")]
+pub struct PackageClassification {
+	pub package_id: String,
+	pub package_name: String,
+	pub ecosystem: monochange_core::Ecosystem,
+	pub release_owner: Option<ReleaseOwner>,
+	pub comparisons: Vec<ResolvedComparison>,
+	pub recommendation: BumpSeverity,
+	pub decision: ChangeRecommendation,
+	pub summary: String,
+	pub findings: Vec<ClassificationFinding>,
+	pub existing_changesets: Vec<ExistingChangeset>,
+	pub action: ChangesetAction,
+	pub warnings: Vec<String>,
 	#[serde(default, skip_serializing_if = "Option::is_none")]
-	pub(crate) cli: Option<PackageCliClassification>,
+	pub cli: Option<PackageCliClassification>,
 }
 
 /// Outcome of the CLI command-surface comparison for one package.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct PackageCliClassification {
-	pub(crate) name: String,
-	pub(crate) status: CliSnapshotStatus,
+#[serde(rename_all = "snake_case")]
+pub struct PackageCliClassification {
+	pub name: String,
+	pub status: CliSnapshotStatus,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub(crate) recommendation: Option<BumpSeverity>,
+	pub recommendation: Option<BumpSeverity>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub(crate) finding_count: Option<usize>,
+	pub finding_count: Option<usize>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub(crate) baseline: Option<String>,
+	pub baseline: Option<String>,
 }
 
 /// Why a CLI snapshot comparison did or did not produce findings.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum CliSnapshotStatus {
+pub enum CliSnapshotStatus {
 	/// Baseline and candidate snapshot were captured and diffed.
 	Diffed,
 	/// No committed baseline exists for this CLI yet.
@@ -294,76 +364,8 @@ pub(crate) enum CliSnapshotStatus {
 	Skipped,
 }
 
-pub(crate) fn classify_options_from_matches(
-	matches: &clap::ArgMatches,
-) -> MonochangeResult<ClassifyOptions> {
-	let format = matches
-		.get_one::<String>("format")
-		.map_or("text", String::as_str);
-	let dependency_propagation = matches
-		.get_one::<String>("dependency-propagation")
-		.map_or("none", String::as_str);
-
-	Ok(ClassifyOptions {
-		base: matches.get_one::<String>("base").cloned(),
-		head: matches
-			.get_one::<String>("head")
-			.cloned()
-			.unwrap_or_else(|| DEFAULT_HEAD_REF.to_string()),
-		release: matches.get_one::<String>("release").cloned(),
-		packages: matches
-			.get_many::<String>("package")
-			.into_iter()
-			.flatten()
-			.cloned()
-			.collect(),
-		// patch-coverage:ignore-start -- clap restricts this value before extraction; parser success and direct error paths are covered separately, while llvm-cov attributes the propagated `?` to this call site.
-		detection_level: parse_detection_level(
-			matches
-				.get_one::<String>("detection-level")
-				.map_or("signature", String::as_str),
-		)?,
-		// patch-coverage:ignore-end
-		include_unchanged: matches.get_flag("include-unchanged"),
-		strict: matches
-			.try_get_one::<bool>("strict")
-			.ok()
-			.flatten()
-			.copied()
-			.unwrap_or(false),
-		skip_cli_snapshots: skip_cli_snapshots_for(
-			matches.get_flag("skip-cli-snapshots"),
-			std::env::var(SKIP_CLI_SNAPSHOTS_ENV).ok().as_deref(),
-		),
-		format: match format {
-			"markdown" | "md" => OutputFormat::Markdown,
-			"json" => OutputFormat::Json,
-			"json-min" => OutputFormat::JsonMin,
-			"text" => OutputFormat::Text,
-			// patch-coverage:ignore-start -- Clap constrains this value before option extraction; direct parser tests cover accepted values.
-			other => {
-				return Err(MonochangeError::Config(format!(
-					"unsupported classification format `{other}`; expected markdown, json, json-min, or text"
-				)));
-			} // patch-coverage:ignore-end
-		},
-		output: matches.get_one::<String>("output").map(PathBuf::from),
-		// Only the classification-producing subcommands declare `--label`;
-		// `changeset validate` shares this parser without the skip policy.
-		labels: matches
-			.try_get_many::<String>("label")
-			.ok()
-			.flatten()
-			.into_iter()
-			.flatten()
-			.cloned()
-			.collect(),
-		dependency_propagation: parse_dependency_propagation(dependency_propagation)?,
-	})
-}
-
 #[coverage(off)]
-pub(crate) fn render_changeset_api_validation(
+pub fn render_changeset_api_validation(
 	root: &Path,
 	options: &ClassifyOptions,
 ) -> MonochangeResult<String> {
@@ -376,18 +378,19 @@ pub(crate) fn render_changeset_api_validation(
 		)));
 	}
 	let output = match options.format {
-		OutputFormat::Json | OutputFormat::JsonMin => {
+		ClassificationFormat::Json | ClassificationFormat::JsonMin => {
 			options
 				.format
-				.render_json_value(&report, "changeset API validation")?
+				.render_json_value(&report, "changeset API validation")
+				.map_err(MonochangeError::Config)?
 		}
-		OutputFormat::Markdown => {
+		ClassificationFormat::Markdown => {
 			format!(
 				"# Changeset API validation\n\nPending changesets satisfy the enforceable minimum. Medium- and low-confidence findings remain advisory unless `--strict` is set.\n\n{}",
 				render_markdown_report(&report)
 			)
 		}
-		OutputFormat::Text => {
+		ClassificationFormat::Text => {
 			format!(
 				"Changeset API validation\n\nPending changesets satisfy the enforceable minimum. Medium- and low-confidence findings remain advisory unless --strict is set.\n\n{}",
 				render_text_report(&report)
@@ -439,19 +442,20 @@ fn changeset_validation_mismatches(
 }
 
 #[coverage(off)]
-pub(crate) fn render_change_classification(
+pub fn render_change_classification(
 	root: &Path,
 	options: &ClassifyOptions,
 ) -> MonochangeResult<String> {
 	let report = build_change_classification_report(root, options)?;
 	let output = match options.format {
-		OutputFormat::Json | OutputFormat::JsonMin => {
+		ClassificationFormat::Json | ClassificationFormat::JsonMin => {
 			options
 				.format
-				.render_json_value(&report, "change classification")?
+				.render_json_value(&report, "change classification")
+				.map_err(MonochangeError::Config)?
 		}
-		OutputFormat::Markdown => render_markdown_report(&report),
-		OutputFormat::Text => render_text_report(&report),
+		ClassificationFormat::Markdown => render_markdown_report(&report),
+		ClassificationFormat::Text => render_text_report(&report),
 	};
 
 	if let Some(path) = &options.output {
@@ -484,7 +488,7 @@ struct PublicDependencyImpact {
 	upstream_name: String,
 }
 
-pub(crate) fn build_change_classification_report(
+pub fn build_change_classification_report(
 	root: &Path,
 	options: &ClassifyOptions,
 ) -> MonochangeResult<ChangeClassificationReport> {
@@ -806,7 +810,7 @@ pub(crate) fn build_change_classification_report(
 	warnings.dedup();
 
 	Ok(ChangeClassificationReport {
-		schema_version: CHANGE_CLASSIFICATION_SCHEMA_VERSION,
+		schema_version: SCHEMA_VERSION.to_string(),
 		default_branch,
 		candidate: candidate.display,
 		comparisons,
@@ -852,7 +856,7 @@ fn skipped_classification(
 	);
 
 	Ok(Some(ChangeClassificationReport {
-		schema_version: CHANGE_CLASSIFICATION_SCHEMA_VERSION,
+		schema_version: SCHEMA_VERSION.to_string(),
 		default_branch,
 		candidate: options.head.clone(),
 		comparisons: Vec::new(),
@@ -865,7 +869,7 @@ fn skipped_classification(
 	}))
 }
 
-pub(crate) fn classification_report(
+pub fn classification_report(
 	analysis: &ChangeAnalysis,
 	dependency_propagation: DependencyPropagation,
 ) -> ChangeClassificationReport {
@@ -935,7 +939,7 @@ pub(crate) fn classification_report(
 	}
 
 	ChangeClassificationReport {
-		schema_version: CHANGE_CLASSIFICATION_SCHEMA_VERSION,
+		schema_version: SCHEMA_VERSION.to_string(),
 		default_branch: analysis.frame.base_revision().unwrap_or("HEAD").to_string(),
 		candidate: analysis
 			.frame
@@ -2147,11 +2151,11 @@ fn package_warnings(package_id: &str, evidence: &[PackageEvidence<'_>]) -> Vec<S
 /// Decide whether CLI snapshot comparisons are skipped: the
 /// `--skip-cli-snapshots` flag wins, and `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`
 /// skips without unsetting the flag.
-fn skip_cli_snapshots_for(flag: bool, env_value: Option<&str>) -> bool {
+pub fn skip_cli_snapshots_for(flag: bool, env_value: Option<&str>) -> bool {
 	flag || env_value.is_some_and(|value| value != "0")
 }
 
-fn parse_detection_level(value: &str) -> MonochangeResult<DetectionLevel> {
+pub fn parse_detection_level(value: &str) -> MonochangeResult<DetectionLevel> {
 	match value {
 		"basic" => Ok(DetectionLevel::Basic),
 		"signature" => Ok(DetectionLevel::Signature),
@@ -2766,7 +2770,7 @@ fn classification_confidence_name(confidence: ClassificationConfidence) -> &'sta
 	}
 }
 
-fn parse_dependency_propagation(value: &str) -> MonochangeResult<DependencyPropagation> {
+pub fn parse_dependency_propagation(value: &str) -> MonochangeResult<DependencyPropagation> {
 	match value {
 		"none" => Ok(DependencyPropagation::None),
 		"public" => Ok(DependencyPropagation::Public),
@@ -2779,5 +2783,5 @@ fn parse_dependency_propagation(value: &str) -> MonochangeResult<DependencyPropa
 }
 
 #[cfg(test)]
-#[path = "__tests__/change_classify_tests.rs"]
+#[path = "__tests__/classification_tests.rs"]
 mod tests;

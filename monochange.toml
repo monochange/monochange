@@ -334,6 +334,11 @@ path = "crates/monochange_schema"
 release = true
 tag = true
 
+[package.monochange_classification]
+path = "crates/monochange_classification"
+release = true
+tag = true
+
 [package.monochange_semver]
 path = "crates/monochange_semver"
 

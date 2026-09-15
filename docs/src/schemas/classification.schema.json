@@ -1,0 +1,703 @@
+{
+	"$defs": {
+		"AnalysisCompleteness": {
+			"enum": [
+				"complete",
+				"partial",
+				"unsupported"
+			],
+			"type": "string"
+		},
+		"BumpSeverity": {
+			"enum": [
+				"none",
+				"patch",
+				"minor",
+				"major"
+			],
+			"type": "string"
+		},
+		"ChangeRecommendation": {
+			"additionalProperties": false,
+			"properties": {
+				"classification_enforced": {
+					"default": true,
+					"description": "Whether the changeset policy enforces classified bumps.",
+					"type": "boolean"
+				},
+				"compatibility_impact": {
+					"$ref": "#/$defs/CompatibilityImpact"
+				},
+				"completeness": {
+					"$ref": "#/$defs/AnalysisCompleteness"
+				},
+				"confidence": {
+					"$ref": "#/$defs/ClassificationConfidence"
+				},
+				"enforceable_minimum": {
+					"$ref": "#/$defs/BumpSeverity"
+				},
+				"finding_ids": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"proposed_changeset_bump": {
+					"$ref": "#/$defs/BumpSeverity"
+				},
+				"release_floor": {
+					"$ref": "#/$defs/BumpSeverity"
+				},
+				"review_required": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"compatibility_impact",
+				"proposed_changeset_bump",
+				"enforceable_minimum",
+				"release_floor",
+				"confidence",
+				"completeness",
+				"review_required",
+				"finding_ids"
+			],
+			"type": "object"
+		},
+		"ChangesetAction": {
+			"enum": [
+				"create",
+				"update",
+				"keep",
+				"review",
+				"no_changeset"
+			],
+			"type": "string"
+		},
+		"ClassificationConfidence": {
+			"enum": [
+				"low",
+				"medium",
+				"high"
+			],
+			"type": "string"
+		},
+		"ClassificationFinding": {
+			"additionalProperties": false,
+			"properties": {
+				"after": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"analyzer": {
+					"$ref": "#/$defs/FindingAnalyzer"
+				},
+				"before": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"bump": {
+					"$ref": "#/$defs/BumpSeverity"
+				},
+				"change": {
+					"type": "string"
+				},
+				"comparisons": {
+					"items": {
+						"$ref": "#/$defs/ComparisonKind"
+					},
+					"type": "array",
+					"uniqueItems": true
+				},
+				"confidence": {
+					"$ref": "#/$defs/ClassificationConfidence"
+				},
+				"coverage": {
+					"$ref": "#/$defs/FindingCoverage"
+				},
+				"id": {
+					"type": "string"
+				},
+				"impact": {
+					"$ref": "#/$defs/CompatibilityImpact"
+				},
+				"location": {
+					"type": "string"
+				},
+				"rule_id": {
+					"type": "string"
+				},
+				"summary": {
+					"type": "string"
+				},
+				"surface": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"rule_id",
+				"surface",
+				"change",
+				"impact",
+				"bump",
+				"confidence",
+				"analyzer",
+				"coverage",
+				"location",
+				"comparisons",
+				"summary"
+			],
+			"type": "object"
+		},
+		"CliSnapshotStatus": {
+			"description": "Why a CLI snapshot comparison did or did not produce findings.",
+			"oneOf": [
+				{
+					"const": "diffed",
+					"description": "Baseline and candidate snapshot were captured and diffed.",
+					"type": "string"
+				},
+				{
+					"const": "missing_baseline",
+					"description": "No committed baseline exists for this CLI yet.",
+					"type": "string"
+				},
+				{
+					"const": "stale_baseline",
+					"description": "The committed baseline could not be diffed (unparsable or schema mismatch).",
+					"type": "string"
+				},
+				{
+					"const": "failed",
+					"description": "The configured snapshot command failed or printed an invalid document.",
+					"type": "string"
+				},
+				{
+					"const": "skipped",
+					"description": "CLI snapshot capture was disabled by flag or environment.",
+					"type": "string"
+				}
+			]
+		},
+		"ComparisonKind": {
+			"enum": [
+				"pull_request",
+				"release",
+				"release_to_default",
+				"source_delta",
+				"working_tree"
+			],
+			"type": "string"
+		},
+		"ComparisonStatus": {
+			"enum": [
+				"analyzed",
+				"unavailable",
+				"conflicted"
+			],
+			"type": "string"
+		},
+		"CompatibilityImpact": {
+			"oneOf": [
+				{
+					"enum": [
+						"compatible",
+						"additive",
+						"breaking"
+					],
+					"type": "string"
+				},
+				{
+					"const": "unmodeled",
+					"description": "The change is real, but it sits outside the public surface this analyzer\nmodels, so no compatibility verdict applies. The package is supported;\nonly this particular file change is unmodeled.",
+					"type": "string"
+				}
+			]
+		},
+		"DetectionLevel": {
+			"description": "Level of detail requested from semantic analyzers.",
+			"oneOf": [
+				{
+					"const": "basic",
+					"description": "Fastest mode. Prefer lightweight structural extraction.",
+					"type": "string"
+				},
+				{
+					"const": "signature",
+					"description": "Extract before/after signatures when possible.",
+					"type": "string"
+				},
+				{
+					"const": "semantic",
+					"description": "Perform the richest semantic extraction available for the ecosystem.",
+					"type": "string"
+				}
+			]
+		},
+		"Ecosystem": {
+			"enum": [
+				"cargo",
+				"npm",
+				"deno",
+				"dart",
+				"python",
+				"go"
+			],
+			"type": "string"
+		},
+		"ExistingChangeset": {
+			"additionalProperties": false,
+			"properties": {
+				"bump": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"change_type": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"path": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"path"
+			],
+			"type": "object"
+		},
+		"FindingAnalyzer": {
+			"additionalProperties": false,
+			"properties": {
+				"engine": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"id": {
+					"type": "string"
+				},
+				"version": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"version"
+			],
+			"type": "object"
+		},
+		"FindingCoverage": {
+			"additionalProperties": false,
+			"properties": {
+				"checks": {
+					"items": {
+						"$ref": "#/$defs/SemanticAnalyzerCheck"
+					},
+					"type": "array"
+				},
+				"completeness": {
+					"$ref": "#/$defs/AnalysisCompleteness"
+				},
+				"detection_level": {
+					"$ref": "#/$defs/DetectionLevel"
+				},
+				"fallback_reason": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"note": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"detection_level",
+				"completeness",
+				"note"
+			],
+			"type": "object"
+		},
+		"PackageClassification": {
+			"additionalProperties": false,
+			"properties": {
+				"action": {
+					"$ref": "#/$defs/ChangesetAction"
+				},
+				"cli": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/PackageCliClassification"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"comparisons": {
+					"items": {
+						"$ref": "#/$defs/ResolvedComparison"
+					},
+					"type": "array"
+				},
+				"decision": {
+					"$ref": "#/$defs/ChangeRecommendation"
+				},
+				"ecosystem": {
+					"$ref": "#/$defs/Ecosystem"
+				},
+				"existing_changesets": {
+					"items": {
+						"$ref": "#/$defs/ExistingChangeset"
+					},
+					"type": "array"
+				},
+				"findings": {
+					"items": {
+						"$ref": "#/$defs/ClassificationFinding"
+					},
+					"type": "array"
+				},
+				"package_id": {
+					"type": "string"
+				},
+				"package_name": {
+					"type": "string"
+				},
+				"recommendation": {
+					"$ref": "#/$defs/BumpSeverity"
+				},
+				"release_owner": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/ReleaseOwner"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"summary": {
+					"type": "string"
+				},
+				"warnings": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				}
+			},
+			"required": [
+				"package_id",
+				"package_name",
+				"ecosystem",
+				"comparisons",
+				"recommendation",
+				"decision",
+				"summary",
+				"findings",
+				"existing_changesets",
+				"action",
+				"warnings"
+			],
+			"type": "object"
+		},
+		"PackageCliClassification": {
+			"additionalProperties": false,
+			"description": "Outcome of the CLI command-surface comparison for one package.",
+			"properties": {
+				"baseline": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"finding_count": {
+					"format": "uint",
+					"minimum": 0,
+					"type": [
+						"integer",
+						"null"
+					]
+				},
+				"name": {
+					"type": "string"
+				},
+				"recommendation": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"status": {
+					"$ref": "#/$defs/CliSnapshotStatus"
+				}
+			},
+			"required": [
+				"name",
+				"status"
+			],
+			"type": "object"
+		},
+		"ReleaseOwner": {
+			"additionalProperties": false,
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"kind": {
+					"type": "string"
+				},
+				"latest_release": {
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"kind",
+				"id"
+			],
+			"type": "object"
+		},
+		"ResolvedComparison": {
+			"additionalProperties": false,
+			"properties": {
+				"base": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"head": {
+					"type": "string"
+				},
+				"kind": {
+					"$ref": "#/$defs/ComparisonKind"
+				},
+				"note": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"status": {
+					"$ref": "#/$defs/ComparisonStatus"
+				}
+			},
+			"required": [
+				"kind",
+				"head",
+				"status"
+			],
+			"type": "object"
+		},
+		"SemanticAnalysisOutcome": {
+			"description": "Compatibility outcome proven or inferred by a semantic analyzer.",
+			"oneOf": [
+				{
+					"const": "inconclusive",
+					"description": "The analyzer could not reach a conclusive compatibility result.",
+					"type": "string"
+				},
+				{
+					"const": "compatible",
+					"description": "The public contract remains compatible.",
+					"type": "string"
+				},
+				{
+					"const": "additive",
+					"description": "The public contract gained compatible capability.",
+					"type": "string"
+				},
+				{
+					"const": "breaking",
+					"description": "The public contract is incompatible with existing consumers.",
+					"type": "string"
+				}
+			]
+		},
+		"SemanticAnalyzerCheck": {
+			"additionalProperties": false,
+			"description": "Machine-readable result for one scope within an analyzer run.",
+			"properties": {
+				"configuration": {
+					"additionalProperties": {
+						"type": "string"
+					},
+					"description": "Exact analyzer-specific inputs used for this check.",
+					"type": "object"
+				},
+				"diagnostics": {
+					"description": "Stable diagnostics that explain the result.",
+					"items": {
+						"$ref": "#/$defs/SemanticAnalyzerDiagnostic"
+					},
+					"type": "array"
+				},
+				"name": {
+					"description": "Stable check name, such as a feature/target matrix cell id.",
+					"type": "string"
+				},
+				"outcome": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/SemanticAnalysisOutcome"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"description": "Compatibility outcome for a completed check."
+				},
+				"status": {
+					"$ref": "#/$defs/SemanticAnalyzerCheckStatus",
+					"description": "Whether the check completed, was skipped, or failed."
+				},
+				"suggested_bump": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/BumpSeverity"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"description": "Minimum release bump reported by a completed check."
+				}
+			},
+			"required": [
+				"name",
+				"status"
+			],
+			"type": "object"
+		},
+		"SemanticAnalyzerCheckStatus": {
+			"description": "Completion state for one analyzer sub-check.",
+			"oneOf": [
+				{
+					"const": "checked",
+					"description": "The analyzer completed and returned a compatibility outcome.",
+					"type": "string"
+				},
+				{
+					"const": "skipped",
+					"description": "The analyzer deliberately skipped this scope because a prerequisite was unavailable.",
+					"type": "string"
+				},
+				{
+					"const": "failed",
+					"description": "The analyzer attempted this scope but did not produce trustworthy evidence.",
+					"type": "string"
+				}
+			]
+		},
+		"SemanticAnalyzerDiagnostic": {
+			"additionalProperties": false,
+			"description": "One stable diagnostic emitted by a semantic analyzer sub-check.",
+			"properties": {
+				"code": {
+					"description": "Stable tool-specific diagnostic code.",
+					"type": "string"
+				},
+				"message": {
+					"description": "Human-readable diagnostic title or summary.",
+					"type": "string"
+				},
+				"reference": {
+					"description": "Authoritative reference for the diagnostic, when available.",
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"code",
+				"message"
+			],
+			"type": "object"
+		}
+	},
+	"$id": "https://monochange.github.io/monochange/schemas/classification.schema.json",
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"description": "JSON Schema for monochange.toml workspace configuration files.",
+	"properties": {
+		"candidate": {
+			"type": "string"
+		},
+		"comparisons": {
+			"items": {
+				"$ref": "#/$defs/ResolvedComparison"
+			},
+			"type": "array"
+		},
+		"default_branch": {
+			"type": "string"
+		},
+		"matched_skip_labels": {
+			"description": "Configured skip labels that matched labels on this pull request.",
+			"items": {
+				"type": "string"
+			},
+			"type": "array"
+		},
+		"packages": {
+			"items": {
+				"$ref": "#/$defs/PackageClassification"
+			},
+			"type": "array"
+		},
+		"recommendation": {
+			"$ref": "#/$defs/BumpSeverity"
+		},
+		"schema_version": {
+			"type": "string"
+		},
+		"skipped": {
+			"description": "Whether classification was skipped before any package analysis ran.",
+			"type": "boolean"
+		},
+		"summary": {
+			"type": "string"
+		},
+		"warnings": {
+			"items": {
+				"type": "string"
+			},
+			"type": "array"
+		}
+	},
+	"required": [
+		"schema_version",
+		"default_branch",
+		"candidate",
+		"comparisons",
+		"recommendation",
+		"packages",
+		"warnings",
+		"skipped"
+	],
+	"title": "monochange classification report",
+	"type": "object"
+}

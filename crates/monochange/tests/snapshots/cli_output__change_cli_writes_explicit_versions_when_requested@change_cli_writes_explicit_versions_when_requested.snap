@@ -14,11 +14,10 @@ info:
     - "--reason"
     - promote to stable
     - "--output"
-    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpHehODR/versioned.md
+    - /var/folders/lm/90xr38kd5y52p5y6jj2ny_dr0000gn/T/.tmpYPkl8Q/versioned.md
   env:
     MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0

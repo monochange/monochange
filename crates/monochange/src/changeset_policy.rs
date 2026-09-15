@@ -463,9 +463,9 @@ pub(crate) fn check_changeset_bump_alignment(
 		head: "HEAD".to_string(),
 	};
 	let analysis = monochange_analysis::analyze_changes(root, &frame, &AnalysisConfig::default())?;
-	let report = crate::change_classify::classification_report(
+	let report = monochange_classification::classification_report(
 		&analysis,
-		crate::change_classify::DependencyPropagation::None,
+		monochange_classification::DependencyPropagation::None,
 	);
 	let mut recommended_bumps = BTreeMap::new();
 	// patch-coverage:ignore-start -- loop close is instrumented inconsistently while package-id and package-name inserts are covered.

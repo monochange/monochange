@@ -9,7 +9,6 @@ info:
   env:
     MONOCHANGE_NO_PROGRESS: "1"
     NO_COLOR: "1"
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0

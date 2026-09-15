@@ -2067,6 +2067,7 @@ dependencies = [
  "monochange_analysis",
  "monochange_cargo",
  "monochange_changelog",
+ "monochange_classification",
  "monochange_config",
  "monochange_core",
  "monochange_dart",
@@ -2209,6 +2210,25 @@ dependencies = [
  "tempfile",
  "tracing",
  "typed-builder",
+]
+
+[[package]]
+name = "monochange_classification"
+version = "0.1.0"
+dependencies = [
+ "insta",
+ "monochange_analysis",
+ "monochange_config",
+ "monochange_core",
+ "monochange_semver",
+ "monochange_snapshot",
+ "monochange_test_helpers",
+ "schemars",
+ "semver",
+ "serde",
+ "serde_json",
+ "shlex",
+ "tempfile",
 ]
 
 [[package]]
@@ -5233,6 +5253,7 @@ name = "xtask"
 version = "0.13.0"
 dependencies = [
  "clap",
+ "monochange_classification",
  "monochange_config",
  "monochange_core",
  "monochange_schema",

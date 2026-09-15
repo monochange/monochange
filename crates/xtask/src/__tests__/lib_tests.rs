@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
+use crate::SchemaCrateInput;
 use crate::SchemaMode;
 use crate::check_schemas;
 use crate::command_literals_from_cli_source;
@@ -254,10 +255,16 @@ fn run_cli_round_trip() {
 		run_with_paths(
 			true,
 			SchemaMode::Current,
-			&schemas,
 			&docs,
-			&schema_version_path,
-			version,
+			&[SchemaCrateInput {
+				paths: crate::SchemaCratePaths {
+					schemas_dir: schemas.clone(),
+					schema_version_path: schema_version_path.clone(),
+					manifest_path: PathBuf::new(),
+					changeset_package: "monochange_schema".to_string(),
+				},
+				version: version.to_string(),
+			}],
 		)
 		.is_ok()
 	);
@@ -265,10 +272,16 @@ fn run_cli_round_trip() {
 		run_with_paths(
 			false,
 			SchemaMode::Current,
-			&schemas,
 			&docs,
-			&schema_version_path,
-			version,
+			&[SchemaCrateInput {
+				paths: crate::SchemaCratePaths {
+					schemas_dir: schemas.clone(),
+					schema_version_path: schema_version_path.clone(),
+					manifest_path: PathBuf::new(),
+					changeset_package: "monochange_schema".to_string(),
+				},
+				version: version.to_string(),
+			}],
 		)
 		.is_ok()
 	);
@@ -317,10 +330,16 @@ fn run_cli_round_trip() {
 			SchemaMode::Release {
 				include_versioned: true,
 			},
-			&schemas,
 			&docs,
-			&schema_version_path,
-			version,
+			&[SchemaCrateInput {
+				paths: crate::SchemaCratePaths {
+					schemas_dir: schemas.clone(),
+					schema_version_path: schema_version_path.clone(),
+					manifest_path: PathBuf::new(),
+					changeset_package: "monochange_schema".to_string(),
+				},
+				version: version.to_string(),
+			}],
 		)
 		.is_ok()
 	);
@@ -330,10 +349,16 @@ fn run_cli_round_trip() {
 			SchemaMode::Release {
 				include_versioned: true,
 			},
-			&schemas,
 			&docs,
-			&schema_version_path,
-			version,
+			&[SchemaCrateInput {
+				paths: crate::SchemaCratePaths {
+					schemas_dir: schemas.clone(),
+					schema_version_path: schema_version_path.clone(),
+					manifest_path: PathBuf::new(),
+					changeset_package: "monochange_schema".to_string(),
+				},
+				version: version.to_string(),
+			}],
 		)
 		.is_ok()
 	);
