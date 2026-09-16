@@ -1087,6 +1087,33 @@ fn load_workspace_configuration_uses_defaults_changelog_pattern_when_package_cha
 }
 
 #[test]
+fn load_workspace_configuration_package_changelog_false_overrides_defaults_pattern() {
+	let root = fixture_path("config/changelog-package-opt-out");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let inherits = configuration
+		.package_by_id("inherits")
+		.unwrap_or_else(|| panic!("expected inherits package"));
+	let opted_out = configuration
+		.package_by_id("opted-out")
+		.unwrap_or_else(|| panic!("expected opted-out package"));
+
+	// The default pattern still applies to a package that does not declare a
+	// changelog of its own.
+	assert_eq!(
+		inherits.changelog,
+		Some(ChangelogTarget {
+			path: PathBuf::from("crates/inherits/changelog.md"),
+			format: ChangelogFormat::Monochange,
+			initial_header: None,
+		})
+	);
+	// An explicit `changelog = false` must win over the defaults pattern, or a
+	// package cannot opt out and two owners can claim one changelog path.
+	assert_eq!(opted_out.changelog, None);
+}
+
+#[test]
 fn load_workspace_configuration_supports_package_changelog_true_false_and_string() {
 	let root = fixture_path("config/changelog-variants");
 	let configuration = load_workspace_configuration(&root)

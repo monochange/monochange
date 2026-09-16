@@ -112,7 +112,7 @@ This single command generates:
 <!-- {/initProviderQuickStart} -->
 
 <!-- {@configurationDefaultsSnippet} -->
-
+{% raw %}
 ```toml
 [defaults]
 parent_bump = "patch"
@@ -125,11 +125,11 @@ package_type = "cargo"
 path = "{{ path }}/changelog.md"
 format = "keep_a_changelog"
 ```
-
+{% endraw %}
 <!-- {/configurationDefaultsSnippet} -->
 
 <!-- {@configurationVersionGroupsSnippet} -->
-
+{% raw %}
 ```toml
 [defaults]
 package_type = "cargo"
@@ -152,7 +152,7 @@ version_format = "namespaced"
 path = "crates/sdk_core/CHANGELOG.md"
 format = "monochange"
 ```
-
+{% endraw %}
 <!-- {/configurationVersionGroupsSnippet} -->
 
 <!-- {@configurationRegexVersionedFilesSnippet} -->
@@ -193,7 +193,7 @@ Key rules:
 <!-- {/configurationRegexVersionedFilesSnippet} -->
 
 <!-- {@configurationPackageOverridesSnippet} -->
-
+{% raw %}
 When `[defaults].package_type` is set, package entries may omit an explicit `type`.
 
 Existing package and group changelogs support two appendable Markdown formats:
@@ -314,7 +314,7 @@ Supported template variables include:
 | `{{ related_issue_links }}`      | markdown links to related issues that were referenced but not closed  | host support may vary                                                                                      |
 
 The `*_link` variants render markdown links when the hosting provider exposes URLs. By default `{{ context }}` renders the highest-value metadata for readers: owner, review request, introduced commit, last updated commit when different, and linked issues. It does not expose the transient `.changeset/*.md` path unless you explicitly reference `{{ changeset_path }}` in your template.
-
+{% endraw %}
 <!-- {/configurationPackageOverridesSnippet} -->
 
 <!-- {@configurationBumpPropagationSnippet} -->
@@ -359,7 +359,7 @@ Dependency-driven version bumps are declarative too. Packages and groups declare
 <!-- {/releaseBumpPropagationReadme} -->
 
 <!-- {@configurationWorkflowsSnippet} -->
-
+{% raw %}
 ```toml
 [changelog]
 templates = [
@@ -467,11 +467,11 @@ name = "evaluate affected packages"
 type = "AffectedPackages"
 inputs = ["format", "changed_paths", "label"]
 ```
-
+{% endraw %}
 <!-- {/configurationWorkflowsSnippet} -->
 
 <!-- {@configurationWorkflowVariables} -->
-
+{% raw %}
 - built-in command variables are available directly as `{{ version }}`, `{{ group_version }}`, `{{ released_packages }}`, `{{ changed_files }}`, and `{{ changesets }}`
 - command templates can read CLI inputs through `{{ inputs.name }}`
 - every step can override the inputs it receives with `inputs = { ... }`; direct references like `"{{ inputs.labels }}"` preserve list and boolean values when rebinding to built-in steps
@@ -482,7 +482,7 @@ inputs = ["format", "changed_paths", "label"]
 - `dry_run_command` on a `Command` step replaces `command` only when the CLI command is run with `--dry-run`
 - `dry_run = true` on a `[cli.<command>]` table forces the entire command to run in dry-run mode even when the user does not pass `--dry-run`
 - `shell = true` runs the command through the current shell; the default mode runs the executable directly after shell-style splitting
-
+{% endraw %}
 <!-- {/configurationWorkflowVariables} -->
 
 <!-- {@configurationGitHubSnippet} -->
@@ -612,7 +612,7 @@ Implementation notes:
 <!-- {/configurationCurrentStatus} -->
 
 <!-- {@versionGroupsExample} -->
-
+{% raw %}
 ```toml
 [package.sdk-core]
 path = "cargo/sdk-core"
@@ -630,7 +630,7 @@ version_format = "primary"
 ```
 
 Groups can also use `version_format = "namespaced"` or a custom tag template such as `version_format = "{{ name }}/v{{ version }}"`. Custom formats support `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`, must include `{{ version }}`, and must render unique valid Git tag names.
-
+{% endraw %}
 <!-- {/versionGroupsExample} -->
 
 <!-- {@versionGroupsBehavior} -->
@@ -702,7 +702,7 @@ When `version` is provided without `bump`, the bump is inferred from the current
 <!-- {/releaseExplicitVersionChangesetExample} -->
 
 <!-- {@releasePlanningRules} -->
-
+{% raw %}
 - `monochange run change` defaults `--bump` to `patch`; use `--bump none` when you want a type-only or version-only entry, and pass `--version` to pin an explicit release version
 - markdown change files use package/group ids as the only top-level frontmatter keys, with scalar shorthand for `none`/`patch`/`minor`/`major` or configured change types, plus object syntax for `bump`, `version`, `type`, and `caused_by`
 - when `version` is given without `bump`, the bump is inferred by comparing the current and target versions
@@ -723,7 +723,7 @@ When `version` is provided without `bump`, the bump is inferred from the current
 - `CommentReleasedIssues` can use linked changeset context metadata to add follow-up comments to closed issues after a release is published
 - `AffectedPackages` evaluates changed paths, skip labels, and changed `.changeset/*.md` files into reusable pass/skip/fail diagnostics and optional failure comments
 - CLI text and JSON output render workspace paths relative to the repository root for stable snapshots and automation
-
+{% endraw %}
 <!-- {/releasePlanningRules} -->
 
 <!-- {@releaseWorkflowBehavior} -->
@@ -758,7 +758,7 @@ A GitHub Actions check can pass changed paths and labels directly into a policy 
 <!-- {/releaseWorkflowBehavior} -->
 
 <!-- {@changesetPolicyGitHubActionWorkflow} -->
-
+{% raw %}
 ```yaml
 name: changeset-policy
 
@@ -818,7 +818,7 @@ jobs:
           awk 'BEGIN { capture = 0 } /^\{/ { capture = 1 } capture { print }' policy.raw > policy.json
           jq -e '.status != "failed"' policy.json >/dev/null
 ```
-
+{% endraw %}
 <!-- {/changesetPolicyGitHubActionWorkflow} -->
 
 <!-- {@githubAutomationOverview} -->
@@ -846,7 +846,7 @@ monochange step affected-packages --format json --verify --changed-paths crates/
 <!-- {/githubAutomationWorkflowCommands} -->
 
 <!-- {@githubAutomationReleaseConfigExample} -->
-
+{% raw %}
 ```toml
 [defaults.changelog]
 path = "{{ path }}/changelog.md"
@@ -924,7 +924,7 @@ inputs = ["format"]
 type = "OpenReleaseRequest"
 inputs = ["format"]
 ```
-
+{% endraw %}
 <!-- {/githubAutomationReleaseConfigExample} -->
 
 ```toml

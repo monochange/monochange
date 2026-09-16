@@ -566,7 +566,7 @@ jobs:
 
   release-records:
     if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'monochange/release')
-    timeout-minutes: 20
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository

@@ -22,6 +22,7 @@ use serde::Serialize;
 pub const SNAPSHOT_SCHEMA_VERSION: &str = env!("MONOCHANGE_SNAPSHOT_SCHEMA_VERSION");
 
 /// A framework-neutral command surface snapshot.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct CommandSnapshot {
@@ -39,6 +40,7 @@ pub struct CommandSnapshot {
 }
 
 /// Snapshot kind discriminator.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SnapshotKind {
@@ -46,6 +48,7 @@ pub enum SnapshotKind {
 }
 
 /// Tool identity captured in a snapshot.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SnapshotTool {
@@ -54,6 +57,7 @@ pub struct SnapshotTool {
 }
 
 /// Snapshot extraction provenance.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SnapshotProvenance {
@@ -62,6 +66,7 @@ pub struct SnapshotProvenance {
 }
 
 /// Extractor confidence level.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SnapshotConfidence {
@@ -71,6 +76,7 @@ pub enum SnapshotConfidence {
 }
 
 /// Standard CLI entrypoints normalized across spelling variants.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct StandardEntrypoints {
@@ -80,6 +86,7 @@ pub struct StandardEntrypoints {
 }
 
 /// Standard entrypoint spellings supported by a tool.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct StandardEntrypoint {
@@ -90,6 +97,7 @@ pub struct StandardEntrypoint {
 }
 
 /// One command in a command surface snapshot.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct CommandNode {
@@ -119,6 +127,7 @@ pub const fn default_max_bump() -> SnapshotSeverity {
 }
 
 /// Parser behavior that affects invocation compatibility.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ParserBehavior {
@@ -128,6 +137,7 @@ pub struct ParserBehavior {
 }
 
 /// A named command option.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct CommandOption {
@@ -143,6 +153,7 @@ pub struct CommandOption {
 }
 
 /// A positional command argument.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct CommandPositional {
@@ -156,6 +167,7 @@ pub struct CommandPositional {
 }
 
 /// Accepted value shape for an option or positional.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct OptionValue {
@@ -170,6 +182,7 @@ pub struct OptionValue {
 }
 
 /// CLI token value kind.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ValueKind {
@@ -180,6 +193,7 @@ pub enum ValueKind {
 }
 
 /// Stable output contract annotation for a command.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct OutputContract {
@@ -195,6 +209,7 @@ pub struct OutputContract {
 }
 
 /// Output stream covered by a command output contract.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum OutputStream {
@@ -203,6 +218,7 @@ pub enum OutputStream {
 }
 
 /// Machine-readable output format covered by a command output contract.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum OutputFormat {
@@ -557,6 +573,7 @@ fn unique(values: Vec<String>) -> Vec<String> {
 }
 
 /// Severity recommendation for snapshot changes.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SnapshotSeverity {
@@ -879,6 +896,14 @@ fn snapshot_change(
 		path: path.to_vec(),
 		kind,
 		summary,
+	}
+}
+
+#[cfg(feature = "schema")]
+pub mod schema {
+	/// Generate the JSON Schema for a command surface snapshot document.
+	pub fn command_snapshot() -> schemars::Schema {
+		schemars::schema_for!(super::CommandSnapshot)
 	}
 }
 

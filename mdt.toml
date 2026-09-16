@@ -8,3 +8,6 @@ after = 0
 [exclude]
 patterns = ["docs/book/"]
 markdown_codeblocks = true
+
+[data]
+schemaIndex = { command = "node scripts/schema-versions.ts", format = "text", watch = ["scripts/schema-versions.ts"] }

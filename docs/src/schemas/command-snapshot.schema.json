@@ -1,0 +1,428 @@
+{
+	"$defs": {
+		"CommandNode": {
+			"additionalProperties": false,
+			"description": "One command in a command surface snapshot.",
+			"properties": {
+				"aliases": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"commands": {
+					"items": {
+						"$ref": "#/$defs/CommandNode"
+					},
+					"type": "array"
+				},
+				"description": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"hidden": {
+					"type": "boolean"
+				},
+				"max_bump": {
+					"$ref": "#/$defs/SnapshotSeverity",
+					"default": "major"
+				},
+				"options": {
+					"items": {
+						"$ref": "#/$defs/CommandOption"
+					},
+					"type": "array"
+				},
+				"parser": {
+					"$ref": "#/$defs/ParserBehavior"
+				},
+				"path": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"positionals": {
+					"items": {
+						"$ref": "#/$defs/CommandPositional"
+					},
+					"type": "array"
+				},
+				"summary": {
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"path",
+				"hidden",
+				"parser"
+			],
+			"type": "object"
+		},
+		"CommandOption": {
+			"additionalProperties": false,
+			"description": "A named command option.",
+			"properties": {
+				"canonical_name": {
+					"type": "string"
+				},
+				"description": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"global": {
+					"type": "boolean"
+				},
+				"hidden": {
+					"type": "boolean"
+				},
+				"names": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"summary": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"value": {
+					"$ref": "#/$defs/OptionValue"
+				}
+			},
+			"required": [
+				"names",
+				"canonical_name",
+				"hidden",
+				"global",
+				"value"
+			],
+			"type": "object"
+		},
+		"CommandPositional": {
+			"additionalProperties": false,
+			"description": "A positional command argument.",
+			"properties": {
+				"description": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"hidden": {
+					"type": "boolean"
+				},
+				"name": {
+					"type": "string"
+				},
+				"summary": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"value": {
+					"$ref": "#/$defs/OptionValue"
+				}
+			},
+			"required": [
+				"name",
+				"hidden",
+				"value"
+			],
+			"type": "object"
+		},
+		"OptionValue": {
+			"additionalProperties": false,
+			"description": "Accepted value shape for an option or positional.",
+			"properties": {
+				"default": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"enum_values": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"kind": {
+					"$ref": "#/$defs/ValueKind"
+				},
+				"repeatable": {
+					"type": "boolean"
+				},
+				"required": {
+					"type": "boolean"
+				},
+				"variadic": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"kind",
+				"required",
+				"repeatable",
+				"variadic"
+			],
+			"type": "object"
+		},
+		"OutputContract": {
+			"additionalProperties": false,
+			"description": "Stable output contract annotation for a command.",
+			"properties": {
+				"command_path": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"exit_codes": {
+					"items": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"type": "array"
+				},
+				"format": {
+					"$ref": "#/$defs/OutputFormat"
+				},
+				"max_bump": {
+					"$ref": "#/$defs/SnapshotSeverity",
+					"default": "major"
+				},
+				"schema_ref": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"stream": {
+					"$ref": "#/$defs/OutputStream"
+				}
+			},
+			"required": [
+				"command_path",
+				"stream",
+				"format"
+			],
+			"type": "object"
+		},
+		"OutputFormat": {
+			"description": "Machine-readable output format covered by a command output contract.",
+			"enum": [
+				"json",
+				"text"
+			],
+			"type": "string"
+		},
+		"OutputStream": {
+			"description": "Output stream covered by a command output contract.",
+			"enum": [
+				"stdout",
+				"stderr"
+			],
+			"type": "string"
+		},
+		"ParserBehavior": {
+			"additionalProperties": false,
+			"description": "Parser behavior that affects invocation compatibility.",
+			"properties": {
+				"flags_are_posix_noncompliant": {
+					"type": "boolean"
+				},
+				"option_arg_separators": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"options_must_precede_arguments": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"flags_are_posix_noncompliant",
+				"options_must_precede_arguments",
+				"option_arg_separators"
+			],
+			"type": "object"
+		},
+		"SnapshotConfidence": {
+			"description": "Extractor confidence level.",
+			"enum": [
+				"high",
+				"medium",
+				"low"
+			],
+			"type": "string"
+		},
+		"SnapshotKind": {
+			"description": "Snapshot kind discriminator.",
+			"enum": [
+				"cli-surface"
+			],
+			"type": "string"
+		},
+		"SnapshotProvenance": {
+			"additionalProperties": false,
+			"description": "Snapshot extraction provenance.",
+			"properties": {
+				"confidence": {
+					"$ref": "#/$defs/SnapshotConfidence"
+				},
+				"extractor": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"extractor",
+				"confidence"
+			],
+			"type": "object"
+		},
+		"SnapshotSeverity": {
+			"description": "Severity recommendation for snapshot changes.",
+			"enum": [
+				"none",
+				"patch",
+				"minor",
+				"major"
+			],
+			"type": "string"
+		},
+		"SnapshotTool": {
+			"additionalProperties": false,
+			"description": "Tool identity captured in a snapshot.",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"version": {
+					"type": [
+						"string",
+						"null"
+					]
+				}
+			},
+			"required": [
+				"name"
+			],
+			"type": "object"
+		},
+		"StandardEntrypoint": {
+			"additionalProperties": false,
+			"description": "Standard entrypoint spellings supported by a tool.",
+			"properties": {
+				"commands": {
+					"items": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"type": "array"
+				},
+				"flags": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				}
+			},
+			"type": "object"
+		},
+		"StandardEntrypoints": {
+			"additionalProperties": false,
+			"description": "Standard CLI entrypoints normalized across spelling variants.",
+			"properties": {
+				"help": {
+					"$ref": "#/$defs/StandardEntrypoint"
+				},
+				"snapshot": {
+					"$ref": "#/$defs/StandardEntrypoint"
+				},
+				"version": {
+					"$ref": "#/$defs/StandardEntrypoint"
+				}
+			},
+			"required": [
+				"help",
+				"version",
+				"snapshot"
+			],
+			"type": "object"
+		},
+		"ValueKind": {
+			"description": "CLI token value kind.",
+			"enum": [
+				"flag",
+				"string",
+				"enum",
+				"counter"
+			],
+			"type": "string"
+		}
+	},
+	"$id": "https://monochange.github.io/monochange/schemas/command-snapshot.schema.json",
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"additionalProperties": false,
+	"description": "JSON Schema for normalized CLI command surface snapshots read by monochange.",
+	"properties": {
+		"commands": {
+			"items": {
+				"$ref": "#/$defs/CommandNode"
+			},
+			"type": "array"
+		},
+		"global_options": {
+			"items": {
+				"$ref": "#/$defs/CommandOption"
+			},
+			"type": "array"
+		},
+		"kind": {
+			"$ref": "#/$defs/SnapshotKind",
+			"const": "cli-surface"
+		},
+		"output_contracts": {
+			"items": {
+				"$ref": "#/$defs/OutputContract"
+			},
+			"type": "array"
+		},
+		"provenance": {
+			"$ref": "#/$defs/SnapshotProvenance"
+		},
+		"schema_version": {
+			"default": "0.1",
+			"type": "string"
+		},
+		"standard_entrypoints": {
+			"$ref": "#/$defs/StandardEntrypoints"
+		},
+		"tool": {
+			"$ref": "#/$defs/SnapshotTool"
+		}
+	},
+	"required": [
+		"schema_version",
+		"kind",
+		"tool",
+		"provenance",
+		"standard_entrypoints"
+	],
+	"title": "monochange command snapshot",
+	"type": "object"
+}
