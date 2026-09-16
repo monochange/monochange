@@ -691,7 +691,7 @@ jobs:
 
   release-pr:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository_owner == 'monochange'
-    timeout-minutes: 20
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     permissions:
       # Dispatch the publish dry run against the release PR branch.
