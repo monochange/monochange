@@ -297,9 +297,9 @@ dependencies = [
 
 [[package]]
 name = "camino"
-version = "1.2.5"
+version = "1.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb1307f12aa967b5a58416e87b3653360e0fd614a016b6e970db08fecbb1b80d"
+checksum = "bbbad30e4b4c14a39e3cc8aed085a12a327257c316619c93581e017bc52be591"
 dependencies = [
  "serde_core",
 ]
@@ -410,9 +410,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.6.6"
+version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "473c7e07f409a8d772161724aa8db6a765a2532a70f9667eeb7b49d3d02fbdca"
+checksum = "aa8876b300ab35ba921adea3dfd70157a46249b33f95c9084ae5709785478946"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -420,9 +420,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.6.6"
+version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b48fea5a88e9ae728a2dcbedbfc0e730f7d60da42e1cb049a83c9fb8b789889"
+checksum = "ec0797fb7aeb1406c84efac526901f7ec3ead2124f946b494e72879d4b54704d"
 dependencies = [
  "anstream",
  "anstyle",
@@ -432,9 +432,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.6.4"
+version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d012d2b9d65aca7f18f4d9878a045bc17899bba951561ba5ec3c2ba1eed9a061"
+checksum = "f9c751b79415d4e559e3d1fcf128e09e720eb673a06d26cf6f392d37d75b66e0"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -444,9 +444,9 @@ dependencies = [
 
 [[package]]
 name = "clap_lex"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
+checksum = "1c133bc6a41be0d194c306b5506d15e6feeea7b1d6604bd3f8310dfb2ca96486"
 
 [[package]]
 name = "cmake"
@@ -920,7 +920,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2051,7 +2051,7 @@ dependencies = [
 
 [[package]]
 name = "monochange"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "anstyle",
  "chrono",
@@ -2115,7 +2115,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_analysis"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_cargo",
@@ -2137,7 +2137,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_book"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "doc-comment",
  "monochange",
@@ -2170,7 +2170,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_cargo"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2199,7 +2199,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_changelog"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "minijinja",
@@ -2214,7 +2214,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_classification"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "insta",
  "monochange_analysis",
@@ -2233,7 +2233,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_config"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "glob",
  "ignore",
@@ -2258,7 +2258,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "async-trait",
  "glob",
@@ -2282,7 +2282,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_dart"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2304,7 +2304,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_deno"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2324,7 +2324,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_ecmascript"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "monochange_core",
  "oxc_allocator",
@@ -2335,7 +2335,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_forgejo"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "async-trait",
  "etest",
@@ -2356,7 +2356,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitea"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "async-trait",
  "etest",
@@ -2377,7 +2377,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "async-trait",
  "etest",
@@ -2403,7 +2403,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitlab"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "async-trait",
  "etest",
@@ -2424,7 +2424,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_go"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2441,7 +2441,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_graph"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2455,7 +2455,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "httpmock",
  "monochange_core",
@@ -2492,7 +2492,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_lint"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "glob",
  "ignore",
@@ -2505,14 +2505,14 @@ dependencies = [
 
 [[package]]
 name = "monochange_linting"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "monochange_core",
 ]
 
 [[package]]
 name = "monochange_npm"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2538,7 +2538,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_publish"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2554,7 +2554,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_python"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2573,7 +2573,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_schema"
-version = "0.6.3"
+version = "0.7.0"
 dependencies = [
  "insta",
  "serde",
@@ -2583,7 +2583,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_semver"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2605,7 +2605,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_telemetry"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "monochange_core",
  "monochange_test_helpers",
@@ -2619,7 +2619,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_test_helpers"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2771,12 +2771,11 @@ dependencies = [
 
 [[package]]
 name = "octocrab"
-version = "0.54.1"
+version = "0.54.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "432fad6f447c52acda76a7a0660f022b21f4c42f373bbdc29f04332ba19a89bf"
+checksum = "8486ecb1ba585c76dd91472320b5334e95d0d2e8b451a3f0a3fced4415ec3993"
 dependencies = [
  "arc-swap",
- "async-trait",
  "base64 0.22.1",
  "bytes",
  "cargo_metadata",
@@ -3756,7 +3755,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3814,7 +3813,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4406,13 +4405,13 @@ dependencies = [
 
 [[package]]
 name = "synstructure"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "728a70f3dbaf5bab7f0c4b1ac8d7ae5ea60a4b5549c8a5914361c99147a709d2"
+checksum = "901704edd0dfe137f1987838ee4f259e4e063c31371bdb423f7ae38ec6f77f02"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -4441,17 +4440,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
 name = "textwrap"
-version = "0.16.3"
+version = "0.16.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b81c0cb5fce14f53e49c1d4da0c508334ff12040221bb8ab01b2dabd91d04b6e"
+checksum = "6ecfad6c3abc80a577f2b91c1e412ee57e7a060d430b553c1b0c940974ebcd49"
 dependencies = [
  "icu_segmenter",
  "smawk",
@@ -5068,7 +5067,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5250,7 +5249,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xtask"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "clap",
  "monochange_classification",
@@ -5277,13 +5276,13 @@ dependencies = [
 
 [[package]]
 name = "yoke-derive"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de844c262c8848816172cef550288e7dc6c7b7814b4ee56b3e1553f275f1858e"
+checksum = "33811428bee40dbceb6d545e95754741d17a6aef9a4849f0fd62e2ba4f412a78"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.5",
  "synstructure",
 ]
 
@@ -5318,13 +5317,13 @@ dependencies = [
 
 [[package]]
 name = "zerofrom-derive"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11532158c46691caf0f2593ea8358fed6bbf68a0315e80aae9bd41fbade684a1"
+checksum = "f75b4683f6c7f45248d4d64056a24298c6281e0993356d7d1b4a1a962ef10d4a"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.5",
  "synstructure",
 ]
 

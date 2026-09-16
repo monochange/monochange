@@ -1,0 +1,2097 @@
+{
+	"schema_version": "0.7",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-09-15T23:55:35Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.14.0",
+		"monochange_classification": "0.1.1",
+		"monochange_schema": "0.7.0"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.14.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.14.0",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.1.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_classification/v0.1.1",
+			"members": [
+				"monochange_classification"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.7.0",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.7.0",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.1.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.14.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/mcp-server-config-rename.md",
+		".changeset/release-note-entry-section-priority.md",
+		".changeset/root-package-path-matching.md",
+		".changeset/skip-classification-on-release-pull-requests.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/mcp-server-config-rename.md",
+			"summary": "Follow the rmcp 3.4 rename from ServerInfo to ServerConfig",
+			"details": "The MCP server implements `ServerHandler::get_info` with the type alias `rmcp::model::ServerInfo`, which rmcp 3.4 deprecates in favor of `ServerConfig`. Because `monochange run release --commit` re-locks dependencies before the pre-merge lint, any prepared release now compiles against rmcp 3.4 and the deprecated alias failed `lint:clippy` under `-D warnings`.\n\nThe implementation and its test now name `ServerConfig` directly, which is the same type under the non-deprecated name. No MCP tool, response shape, or serialized field changed.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a8a1bca44e77a9005f82b8eaeb87911f5357cc04",
+						"short_sha": "a8a1bca",
+						"url": "https://github.com/monochange/monochange/commit/a8a1bca44e77a9005f82b8eaeb87911f5357cc04",
+						"authored_at": "2026-09-15T19:47:39+01:00",
+						"committed_at": "2026-09-15T19:47:39+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#708",
+						"title": "feat(release): render each changeset once with every affected package",
+						"url": "https://github.com/monochange/monochange/pull/708",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a8a1bca44e77a9005f82b8eaeb87911f5357cc04",
+						"short_sha": "a8a1bca",
+						"url": "https://github.com/monochange/monochange/commit/a8a1bca44e77a9005f82b8eaeb87911f5357cc04",
+						"authored_at": "2026-09-15T19:47:39+01:00",
+						"committed_at": "2026-09-15T19:47:39+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#708",
+						"title": "feat(release): render each changeset once with every affected package",
+						"url": "https://github.com/monochange/monochange/pull/708",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/release-note-entry-section-priority.md",
+			"summary": "Render each changeset once with every affected package",
+			"details": "One changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.",
+			"targets": [
+				{
+					"id": "monochange_changelog",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a8a1bca44e77a9005f82b8eaeb87911f5357cc04",
+						"short_sha": "a8a1bca",
+						"url": "https://github.com/monochange/monochange/commit/a8a1bca44e77a9005f82b8eaeb87911f5357cc04",
+						"authored_at": "2026-09-15T19:47:39+01:00",
+						"committed_at": "2026-09-15T19:47:39+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#708",
+						"title": "feat(release): render each changeset once with every affected package",
+						"url": "https://github.com/monochange/monochange/pull/708",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a8a1bca44e77a9005f82b8eaeb87911f5357cc04",
+						"short_sha": "a8a1bca",
+						"url": "https://github.com/monochange/monochange/commit/a8a1bca44e77a9005f82b8eaeb87911f5357cc04",
+						"authored_at": "2026-09-15T19:47:39+01:00",
+						"committed_at": "2026-09-15T19:47:39+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#708",
+						"title": "feat(release): render each changeset once with every affected package",
+						"url": "https://github.com/monochange/monochange/pull/708",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/root-package-path-matching.md",
+			"summary": "Match repository-root packages configured with a dot path",
+			"details": "A package declared as `path = \".\"` — the documented form for GitHub Actions repositories and other single-package repos — was never matched by `PackagePathMatcher`, so `monochange step affected-packages` reported no affected packages for changes inside it. Changeset policy therefore passed silently instead of requiring a changeset.\n\nThe matcher now normalizes a `\".\"` (and `\"./\"`) package path to the repository root prefix, so every repository path belongs to that package. Other package path forms are unaffected.\n\n```toml\n[package.actions]\npath = \".\"\ntype = \"github_actions\"\n```\n\nWith this fix, editing `src/actions/merge/index.ts` in that repository reports `actions` as affected and fails verification until a `.changeset/*.md` entry covers it.",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ae50cbc5f26309fd9133e5b1aeaa791ff6020834",
+						"short_sha": "ae50cbc",
+						"url": "https://github.com/monochange/monochange/commit/ae50cbc5f26309fd9133e5b1aeaa791ff6020834",
+						"authored_at": "2026-09-14T05:34:09+01:00",
+						"committed_at": "2026-09-14T05:34:09+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#703",
+						"title": "fix(core): match repository-root packages configured with a dot path",
+						"url": "https://github.com/monochange/monochange/pull/703",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ae50cbc5f26309fd9133e5b1aeaa791ff6020834",
+						"short_sha": "ae50cbc",
+						"url": "https://github.com/monochange/monochange/commit/ae50cbc5f26309fd9133e5b1aeaa791ff6020834",
+						"authored_at": "2026-09-14T05:34:09+01:00",
+						"committed_at": "2026-09-14T05:34:09+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#703",
+						"title": "fix(core): match repository-root packages configured with a dot path",
+						"url": "https://github.com/monochange/monochange/pull/703",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/skip-classification-on-release-pull-requests.md",
+			"summary": "Skip change classification on release pull requests and rename the `unknown` impact",
+			"details": "- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_changelog",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_classification",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "945195174bc3d3b0563b3795b5b36f26cf9d7206",
+						"short_sha": "9451951",
+						"url": "https://github.com/monochange/monochange/commit/945195174bc3d3b0563b3795b5b36f26cf9d7206",
+						"authored_at": "2026-09-16T00:46:05+01:00",
+						"committed_at": "2026-09-16T00:46:05+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#709",
+						"title": "feat(classification): skip release PRs, rename unknown to unmodeled, move to its own crate",
+						"url": "https://github.com/monochange/monochange/pull/709",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "945195174bc3d3b0563b3795b5b36f26cf9d7206",
+						"short_sha": "9451951",
+						"url": "https://github.com/monochange/monochange/commit/945195174bc3d3b0563b3795b5b36f26cf9d7206",
+						"authored_at": "2026-09-16T00:46:05+01:00",
+						"committed_at": "2026-09-16T00:46:05+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#709",
+						"title": "feat(classification): skip release PRs, rename unknown to unmodeled, move to its own crate",
+						"url": "https://github.com/monochange/monochange/pull/709",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Skip change classification on release pull requests and rename the `unknown` impact\n\n_Packages:_ 🟢 _@monochange/skill_, 🟢 _monochange_changelog_, 🟠 _monochange_, 🟠 _monochange_config_, 🔴 _monochange_core_\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)",
+							"#### Render each changeset once with every affected package\n\n_Packages:_ 🟠 _monochange_changelog_, 🔴 _monochange_core_\n\nOne changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Follow the rmcp 3.4 rename from ServerInfo to ServerConfig\n\n_Packages:_ 🟢 _monochange_\n\nThe MCP server implements `ServerHandler::get_info` with the type alias `rmcp::model::ServerInfo`, which rmcp 3.4 deprecates in favor of `ServerConfig`. Because `monochange run release --commit` re-locks dependencies before the pre-merge lint, any prepared release now compiles against rmcp 3.4 and the deprecated alias failed `lint:clippy` under `-D warnings`.\n\nThe implementation and its test now name `ServerConfig` directly, which is the same type under the non-deprecated name. No MCP tool, response shape, or serialized field changed.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)",
+							"#### Match repository-root packages configured with a dot path\n\n_Packages:_ 🟢 _monochange_core_\n\nA package declared as `path = \".\"` — the documented form for GitHub Actions repositories and other single-package repos — was never matched by `PackagePathMatcher`, so `monochange step affected-packages` reported no affected packages for changes inside it. Changeset policy therefore passed silently instead of requiring a changeset.\n\nThe matcher now normalizes a `\".\"` (and `\"./\"`) package path to the repository root prefix, so every repository path belongs to that package. Other package path forms are unaffected.\n\n```toml\n[package.actions]\npath = \".\"\ntype = \"github_actions\"\n```\n\nWith this fix, editing `src/actions/merge/index.ts` in that repository reports `actions` as affected and fails verification until a `.changeset/*.md` entry covers it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #703](https://github.com/monochange/monochange/pull/703)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\nGrouped release for `main`.\n\n### 💥 Breaking Change\n\n#### Skip change classification on release pull requests and rename the `unknown` impact\n\n_Packages:_ 🟢 _@monochange/skill_, 🟢 _monochange_changelog_, 🟠 _monochange_, 🟠 _monochange_config_, 🔴 _monochange_core_\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)\n\n#### Render each changeset once with every affected package\n\n_Packages:_ 🟠 _monochange_changelog_, 🔴 _monochange_core_\n\nOne changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)\n\n### 🐛 Fixed\n\n#### Follow the rmcp 3.4 rename from ServerInfo to ServerConfig\n\n_Packages:_ 🟢 _monochange_\n\nThe MCP server implements `ServerHandler::get_info` with the type alias `rmcp::model::ServerInfo`, which rmcp 3.4 deprecates in favor of `ServerConfig`. Because `monochange run release --commit` re-locks dependencies before the pre-merge lint, any prepared release now compiles against rmcp 3.4 and the deprecated alias failed `lint:clippy` under `-D warnings`.\n\nThe implementation and its test now name `ServerConfig` directly, which is the same type under the non-deprecated name. No MCP tool, response shape, or serialized field changed.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)\n\n#### Match repository-root packages configured with a dot path\n\n_Packages:_ 🟢 _monochange_core_\n\nA package declared as `path = \".\"` — the documented form for GitHub Actions repositories and other single-package repos — was never matched by `PackagePathMatcher`, so `monochange step affected-packages` reported no affected packages for changes inside it. Changeset policy therefore passed silently instead of requiring a changeset.\n\nThe matcher now normalizes a `\".\"` (and `\"./\"`) package path to the repository root prefix, so every repository path belongs to that package. Other package path forms are unaffected.\n\n```toml\n[package.actions]\npath = \".\"\ntype = \"github_actions\"\n```\n\nWith this fix, editing `src/actions/merge/index.ts` in that repository reports `actions` as affected and fails verification until a `.changeset/*.md` entry covers it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #703](https://github.com/monochange/monochange/pull/703)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Follow the rmcp 3.4 rename from ServerInfo to ServerConfig\n\nThe MCP server implements `ServerHandler::get_info` with the type alias `rmcp::model::ServerInfo`, which rmcp 3.4 deprecates in favor of `ServerConfig`. Because `monochange run release --commit` re-locks dependencies before the pre-merge lint, any prepared release now compiles against rmcp 3.4 and the deprecated alias failed `lint:clippy` under `-D warnings`.\n\nThe implementation and its test now name `ServerConfig` directly, which is the same type under the non-deprecated name. No MCP tool, response shape, or serialized field changed.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### 🚀 Feature\n\n#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)\n\n### 🐛 Fixed\n\n#### Follow the rmcp 3.4 rename from ServerInfo to ServerConfig\n\nThe MCP server implements `ServerHandler::get_info` with the type alias `rmcp::model::ServerInfo`, which rmcp 3.4 deprecates in favor of `ServerConfig`. Because `monochange run release --commit` re-locks dependencies before the pre-merge lint, any prepared release now compiles against rmcp 3.4 and the deprecated alias failed `lint:clippy` under `-D warnings`.\n\nThe implementation and its test now name `ServerConfig` directly, which is the same type under the non-deprecated name. No MCP tool, response shape, or serialized field changed.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Render each changeset once with every affected package\n\nOne changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### 🚀 Feature\n\n#### Render each changeset once with every affected package\n\nOne changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)\n\n### 🐛 Fixed\n\n#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.1.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.1.1) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.1.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.1.1) (2026-09-15)\n\n### 🚀 Feature\n\n#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### 🚀 Feature\n\n#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Render each changeset once with every affected package\n\nOne changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)",
+							"#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Match repository-root packages configured with a dot path\n\nA package declared as `path = \".\"` — the documented form for GitHub Actions repositories and other single-package repos — was never matched by `PackagePathMatcher`, so `monochange step affected-packages` reported no affected packages for changes inside it. Changeset policy therefore passed silently instead of requiring a changeset.\n\nThe matcher now normalizes a `\".\"` (and `\"./\"`) package path to the repository root prefix, so every repository path belongs to that package. Other package path forms are unaffected.\n\n```toml\n[package.actions]\npath = \".\"\ntype = \"github_actions\"\n```\n\nWith this fix, editing `src/actions/merge/index.ts` in that repository reports `actions` as affected and fails verification until a `.changeset/*.md` entry covers it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #703](https://github.com/monochange/monochange/pull/703)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### 💥 Breaking Change\n\n#### Render each changeset once with every affected package\n\nOne changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)\n\n#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)\n\n### 🐛 Fixed\n\n#### Match repository-root packages configured with a dot path\n\nA package declared as `path = \".\"` — the documented form for GitHub Actions repositories and other single-package repos — was never matched by `PackagePathMatcher`, so `monochange step affected-packages` reported no affected packages for changes inside it. Changeset policy therefore passed silently instead of requiring a changeset.\n\nThe matcher now normalizes a `\".\"` (and `\"./\"`) package path to the repository root prefix, so every repository path belongs to that package. Other package path forms are unaffected.\n\n```toml\n[package.actions]\npath = \".\"\ntype = \"github_actions\"\n```\n\nWith this fix, editing `src/actions/merge/index.ts` in that repository reports `actions` as affected and fails verification until a `.changeset/*.md` entry covers it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #703](https://github.com/monochange/monochange/pull/703)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_dart` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_dart` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_deno` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_deno` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_github` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_github` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_go` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_go` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_graph` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_graph` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_lint` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_lint` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_linting` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_linting` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_npm` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_npm` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_publish` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_publish` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_python` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_python` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.7.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.7.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Render each changeset once with every affected package\n\nOne changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.7.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.7.0) (2026-09-15)\n\n### 💥 Breaking Change\n\n#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)\n\n### 🚀 Feature\n\n#### Render each changeset once with every affected package\n\nOne changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.\n\n`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.\n\n```rust\nuse monochange_core::BumpSeverity;\nuse monochange_core::ReleaseNotePackage;\n\nlet packages = vec![\n\tReleaseNotePackage::new(\"core\", BumpSeverity::Major),\n\tReleaseNotePackage::new(\"cli\", BumpSeverity::None),\n];\n```\n\n`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.\n\nThe section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.\n\nPackage labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.\n\n```toml\n[changelog.style]\npackage_bump_symbols = false\n```\n\nThe committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_semver` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_semver` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.14.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.14.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-15)\n\n### 🐛 Fixed\n\n#### Skip change classification on release pull requests and rename the `unknown` impact\n\n- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.\n\n- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `[\"release\"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.\n- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.\n- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.\n\n```toml\n[changesets.classification]\n# Set to [] to classify every pull request.\nskip_labels = [\"release\"]\n```\n\n```bash\nmonochange change classify --format json --label release\n```\n\nThe published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
