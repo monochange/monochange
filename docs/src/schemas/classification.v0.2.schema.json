@@ -651,7 +651,7 @@
 			"type": "object"
 		}
 	},
-	"$id": "https://monochange.github.io/monochange/schemas/classification.schema.json",
+	"$id": "https://monochange.github.io/monochange/schemas/classification.v0.2.schema.json",
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"description": "JSON Schema for monochange.toml workspace configuration files.",
 	"properties": {

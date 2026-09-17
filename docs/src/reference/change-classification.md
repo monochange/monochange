@@ -22,18 +22,19 @@ The candidate is a tree object created by `git merge-tree --write-tree`. monocha
 
 Each package has a `decision` object with these fields:
 
-| Field                     | Meaning                                                                           |
-| ------------------------- | --------------------------------------------------------------------------------- |
-| `compatibility_impact`    | `breaking`, `additive`, `compatible`, or `unmodeled` for the current pull request |
-| `proposed_changeset_bump` | The highest current finding: `major`, `minor`, `patch`, or `none`                 |
-| `enforceable_minimum`     | The highest bump supported by high-confidence evidence                            |
-| `release_floor`           | The highest bump found between the latest release and the candidate               |
-| `confidence`              | Confidence of the finding that determines `proposed_changeset_bump`               |
-| `completeness`            | Whether the analyzer claims `complete`, `partial`, or `unsupported` coverage      |
-| `review_required`         | Whether the proposal needs human or agent review before it becomes release intent |
-| `finding_ids`             | Stable identifiers for the findings that determine the proposal                   |
+| Field                     | Meaning                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `compatibility_impact`    | `breaking`, `additive`, `compatible`, or `unmodeled` between the default branch and the candidate |
+| `release_impact`          | The same verdict between the latest release and the candidate; absent when no release tag matched |
+| `proposed_changeset_bump` | The highest current finding after the release cap: `major`, `minor`, `patch`, or `none`           |
+| `enforceable_minimum`     | The highest bump supported by high-confidence evidence, after the same release cap                |
+| `release_floor`           | The highest bump found between the latest release and the candidate                               |
+| `confidence`              | Confidence of the finding that determines `proposed_changeset_bump`                               |
+| `completeness`            | Whether the analyzer claims `complete`, `partial`, or `unsupported` coverage                      |
+| `review_required`         | Whether the proposal needs human or agent review before it becomes release intent                 |
+| `finding_ids`             | Stable identifiers for the findings that determine the proposal                                   |
 
-`proposed_changeset_bump` describes the current pull request. `release_floor` describes the complete unreleased interval. A pull request can propose `patch` while the release floor is `major` because an earlier merged pull request introduced the breaking change.
+`compatibility_impact` describes the default-branch comparison, so it also sees breaks against an API the default branch has not released yet. `release_impact` describes the same candidate against the package's latest release. When a release comparison is analyzed, a modeled finding cannot propose a bump higher than the release-relative bump for the package, because nobody holding the latest release can observe a break in an item that release never shipped. A pull request that refines an unreleased API therefore reports `compatibility_impact: breaking` with `release_impact: additive` and a `minor` proposal instead of an inflated `major`. Unmodeled findings stay uncapped: they are the review floor for surfaces the analyzers cannot model, and the release comparison cannot refute them. `release_floor` still reports the complete unreleased interval, so a pull request can propose `patch` while the release floor is `major` because an earlier merged pull request introduced the breaking change.
 
 `none` is conclusive only when `completeness` is `complete` and `review_required` is `false`. A changed package without modeled semantic evidence receives a low-confidence `patch` proposal instead of a false `none` result. A decision is also complete when every current finding is complete. A high-confidence `major` finding makes the bump decision complete even when another analyzer is partial because no unmodeled finding can require a higher bump.
 
@@ -166,8 +167,8 @@ monochange change classify --format markdown --dependency-propagation public
 
 JSON is the stable agent and automation interface. The top-level `schema_version` changes when the JSON contract changes:
 
-- **5** renames the `unknown` compatibility impact to `unmodeled` and adds the top-level `skipped`, `summary`, and `matched_skip_labels` fields.
-- **4** adds the release-aware decision fields described above.
+- **0.2** adds `decision.release_impact` and caps `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.release_floor` with the release comparison.
+- **0.1** is the first contract published by the `monochange_classification` crate: snake_case keys, `unmodeled` instead of `unknown`, and the top-level `skipped`, `summary`, and `matched_skip_labels` fields.
 
 ```bash
 monochange change classify --format json --dependency-propagation public
@@ -210,7 +211,7 @@ steps:
       dependency-propagation: public
 ```
 
-Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`. The action accepts every report with classification `schema_version` 1 or newer.
+Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`. The action accepts every report with classification `schema_version` `0.1` or newer. The evidence fields the action reads (packages, decisions, findings) are stable across those schema versions.
 
 For complete TypeScript evidence, install the repository dependencies before this step. For configured Rust target cells, install those targets before the action. Keep the workflow on `pull_request`; the analyzer may execute changed build scripts and procedural macros. Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary.
 

@@ -26,7 +26,8 @@
 					"type": "boolean"
 				},
 				"compatibility_impact": {
-					"$ref": "#/$defs/CompatibilityImpact"
+					"$ref": "#/$defs/CompatibilityImpact",
+					"description": "Compatibility impact measured between the default branch and the\ncandidate. This is what the pull request changed, including any break\nagainst an API the default branch has not released yet."
 				},
 				"completeness": {
 					"$ref": "#/$defs/AnalysisCompleteness"
@@ -48,6 +49,17 @@
 				},
 				"release_floor": {
 					"$ref": "#/$defs/BumpSeverity"
+				},
+				"release_impact": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/CompatibilityImpact"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"description": "Compatibility impact measured between the latest release and the\ncandidate. Absent when no reachable release tag matched the package."
 				},
 				"review_required": {
 					"type": "boolean"

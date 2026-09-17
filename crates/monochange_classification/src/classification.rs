@@ -247,7 +247,14 @@ fn default_classification_enforced() -> bool {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ChangeRecommendation {
+	/// Compatibility impact measured between the default branch and the
+	/// candidate. This is what the pull request changed, including any break
+	/// against an API the default branch has not released yet.
 	pub compatibility_impact: CompatibilityImpact,
+	/// Compatibility impact measured between the latest release and the
+	/// candidate. Absent when no reachable release tag matched the package.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub release_impact: Option<CompatibilityImpact>,
 	pub proposed_changeset_bump: BumpSeverity,
 	pub enforceable_minimum: BumpSeverity,
 	pub release_floor: BumpSeverity,
@@ -1966,21 +1973,37 @@ fn build_recommendation(
 		.iter()
 		.filter(|finding| finding.comparisons.contains(&ComparisonKind::PullRequest))
 		.collect::<Vec<_>>();
-	let proposed_changeset_bump = current
+	let release = findings
+		.iter()
+		.filter(|finding| finding.comparisons.contains(&ComparisonKind::Release))
+		.collect::<Vec<_>>();
+	let release_bump = release
 		.iter()
 		.map(|finding| finding.bump)
+		.max()
+		.unwrap_or(BumpSeverity::None);
+	// A pull request finding is measured against the default branch, so it also
+	// sees breaks in an API the default branch added after the latest release.
+	// Nobody can observe that break from the released version, so the release
+	// comparison caps what a modeled finding may propose. Unmodeled findings
+	// stay uncapped: they are the safety floor for a surface the analyzers
+	// cannot model, and the release comparison cannot refute them.
+	let effective_bump = |finding: &ClassificationFinding| {
+		if has_release && finding.impact != CompatibilityImpact::Unmodeled {
+			finding.bump.min(release_bump)
+		} else {
+			finding.bump
+		}
+	};
+	let proposed_changeset_bump = current
+		.iter()
+		.map(|finding| effective_bump(finding))
 		.max()
 		.unwrap_or(BumpSeverity::None);
 	let enforceable_minimum = current
 		.iter()
 		.filter(|finding| finding.confidence == ClassificationConfidence::High)
-		.map(|finding| finding.bump)
-		.max()
-		.unwrap_or(BumpSeverity::None);
-	let release_bump = findings
-		.iter()
-		.filter(|finding| finding.comparisons.contains(&ComparisonKind::Release))
-		.map(|finding| finding.bump)
+		.map(|finding| effective_bump(finding))
 		.max()
 		.unwrap_or(BumpSeverity::None);
 	let release_floor = if has_release {
@@ -1989,14 +2012,15 @@ fn build_recommendation(
 		proposed_changeset_bump
 	};
 	let compatibility_impact = highest_compatibility_impact(&current);
+	let release_impact = has_release.then(|| highest_compatibility_impact(&release));
 	let confidence = current
 		.iter()
-		.filter(|finding| finding.bump == proposed_changeset_bump)
+		.filter(|finding| effective_bump(finding) == proposed_changeset_bump)
 		.map(|finding| finding.confidence)
 		.max()
 		.unwrap_or(ClassificationConfidence::High);
 	let has_conclusive_major = current.iter().any(|finding| {
-		finding.bump == BumpSeverity::Major
+		effective_bump(finding) == BumpSeverity::Major
 			&& finding.confidence == ClassificationConfidence::High
 			&& finding.coverage.completeness == AnalysisCompleteness::Complete
 	});
@@ -2014,7 +2038,7 @@ fn build_recommendation(
 		|| compatibility_impact == CompatibilityImpact::Unmodeled;
 	let finding_ids = current
 		.iter()
-		.filter(|finding| finding.bump == proposed_changeset_bump)
+		.filter(|finding| effective_bump(finding) == proposed_changeset_bump)
 		.map(|finding| finding.id.clone())
 		.collect();
 
@@ -2026,6 +2050,7 @@ fn build_recommendation(
 
 	ChangeRecommendation {
 		compatibility_impact,
+		release_impact,
 		proposed_changeset_bump,
 		enforceable_minimum,
 		release_floor,
@@ -2110,9 +2135,25 @@ fn recommendation_summary(
 	findings: &[ClassificationFinding],
 ) -> String {
 	let count = decision.finding_ids.len();
+	// The default-branch comparison saw a break the release comparison never
+	// observed, so the proposal was capped and the summary must say why.
+	let release_cap_note = if decision.compatibility_impact == CompatibilityImpact::Breaking
+		&& decision
+			.release_impact
+			.is_some_and(|impact| impact != CompatibilityImpact::Breaking)
+	{
+		"; the break applies to the default branch, not the latest release"
+	} else {
+		""
+	};
 	match decision.proposed_changeset_bump {
 		BumpSeverity::Major => format!("{count} breaking finding(s) propose a major changeset"),
-		BumpSeverity::Minor => format!("{count} additive finding(s) propose a minor changeset"),
+		BumpSeverity::Minor if release_cap_note.is_empty() => {
+			format!("{count} additive finding(s) propose a minor changeset")
+		}
+		BumpSeverity::Minor => {
+			format!("{count} finding(s) propose a minor changeset{release_cap_note}")
+		}
 		BumpSeverity::Patch
 			if findings
 				.iter()
@@ -2120,12 +2161,16 @@ fn recommendation_summary(
 		{
 			"unclassified package changes propose a patch changeset and require review".to_string()
 		}
-		BumpSeverity::Patch => format!("{count} compatible finding(s) propose a patch changeset"),
+		BumpSeverity::Patch => {
+			format!("{count} compatible finding(s) propose a patch changeset{release_cap_note}")
+		}
 		BumpSeverity::None if decision.review_required => {
 			"pending changeset intent has no matching package change and requires review"
 				.to_string()
 		}
-		BumpSeverity::None => "no package change requires a changeset".to_string(),
+		BumpSeverity::None => {
+			format!("no package change requires a changeset{release_cap_note}")
+		}
 		// patch-coverage:ignore-start -- future-proof fallback for a non-exhaustive external bump enum.
 		_ => "the package change requires review".to_string(),
 		// patch-coverage:ignore-end
@@ -2245,6 +2290,7 @@ fn propagate_public_dependency_impacts(
 
 		let decision = ChangeRecommendation {
 			compatibility_impact: CompatibilityImpact::Compatible,
+			release_impact: None,
 			proposed_changeset_bump: BumpSeverity::Patch,
 			enforceable_minimum: BumpSeverity::None,
 			release_floor: BumpSeverity::Patch,
@@ -2405,6 +2451,9 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 				)
 				.to_lowercase(),
 			);
+			if let Some(release_impact) = package.decision.release_impact {
+				lines.push(format!("- Release impact: `{release_impact:?}`").to_lowercase());
+			}
 			lines.push(format!("- Confidence: `{:?}`", package.decision.confidence).to_lowercase());
 			lines.push(
 				format!("- Completeness: `{:?}`", package.decision.completeness).to_lowercase(),
@@ -2539,6 +2588,12 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 				"  Compatibility impact: {}",
 				compatibility_impact_name(package.decision.compatibility_impact)
 			));
+			if let Some(release_impact) = package.decision.release_impact {
+				lines.push(format!(
+					"  Release impact: {}",
+					compatibility_impact_name(release_impact)
+				));
+			}
 			lines.push(format!(
 				"  Confidence: {}",
 				classification_confidence_name(package.decision.confidence)
