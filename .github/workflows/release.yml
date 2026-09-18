@@ -101,7 +101,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
 
       - name: install cross
-        uses: taiki-e/install-action@v2.87.12 # v2
+        uses: taiki-e/install-action@v2.87.14 # v2
         with:
           tool: cross
         if: contains(matrix.target, '-musl')
