@@ -109,6 +109,40 @@ fn setup_deleted_package_fixture() -> TempDir {
 	tempdir
 }
 
+/// Build a repository where the default branch ships an API the latest release
+/// never contained, and the pull request changes that API again.
+///
+/// `released` is tagged `core/v0.1.0`, `default-branch` adds `refined()`, and
+/// `pull-request` changes the signature of `refined()` on a `feature` branch.
+fn setup_release_refined_fixture() -> TempDir {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/api-classification/release-refined-api");
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
+	copy_directory(&fixture_root.join("released"), tempdir.path());
+	git(tempdir.path(), &["init"]);
+	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
+	git(
+		tempdir.path(),
+		&["config", "user.email", "monochange-tests@example.com"],
+	);
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "release"]);
+	git(tempdir.path(), &["branch", "-M", "main"]);
+	git(tempdir.path(), &["tag", "core/v0.1.0"]);
+
+	copy_directory(&fixture_root.join("default-branch"), tempdir.path());
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "add refined"]);
+
+	git(tempdir.path(), &["checkout", "-b", "feature"]);
+	copy_directory(&fixture_root.join("pull-request"), tempdir.path());
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "refine refined"]);
+
+	tempdir
+}
+
 fn run_mc(root: &Path, args: &[&str]) -> String {
 	let mut cli_args = vec![OsString::from("monochange")];
 	cli_args.extend(args.iter().map(OsString::from));
@@ -166,7 +200,7 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 	);
 
 	assert_eq!(report["recommendation"], "major");
-	assert_eq!(report["schema_version"], "0.1");
+	assert_eq!(report["schema_version"], "0.2");
 	assert_package_recommendation(&report, "rust_core", "major");
 	assert_package_recommendation(&report, "ts_client", "minor");
 	assert_package_recommendation(&report, "js_utils", "patch");
@@ -393,6 +427,167 @@ fn change_classify_discovers_the_default_branch_and_latest_release_tag() {
 }
 
 #[test]
+fn change_classify_separates_a_break_against_main_from_the_release_verdict() {
+	let fixture = setup_release_refined_fixture();
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "main", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	let package = package(&report, "core");
+	assert_eq!(package["release_owner"]["latest_release"], "core/v0.1.0");
+	// The pull request comparison sees a breaking modification of `refined`.
+	assert_eq!(package["decision"]["compatibility_impact"], "breaking");
+	// The release comparison only sees an addition, because `refined` did not
+	// exist in `core/v0.1.0`, so nothing released can break.
+	assert_eq!(package["decision"]["release_impact"], "additive");
+	assert_eq!(package["decision"]["proposed_changeset_bump"], "minor");
+	assert_eq!(package["decision"]["release_floor"], "minor");
+	assert_eq!(package["recommendation"], "minor");
+	assert_eq!(report["recommendation"], "minor");
+
+	let findings = package["findings"]
+		.as_array()
+		.unwrap_or_else(|| panic!("findings should be an array: {package:#}"));
+	let seen_in = |finding: &Value, kind: &str| {
+		finding["comparisons"]
+			.as_array()
+			.is_some_and(|comparisons| comparisons.iter().any(|value| value == kind))
+	};
+	assert!(
+		findings.iter().any(|finding| {
+			seen_in(finding, "pull_request")
+				&& !seen_in(finding, "release")
+				&& finding["impact"] == "breaking"
+				&& finding["bump"] == "major"
+		}),
+		"expected a breaking finding the release comparison never observed: {package:#}"
+	);
+	assert!(
+		findings.iter().any(|finding| {
+			seen_in(finding, "release")
+				&& !seen_in(finding, "pull_request")
+				&& finding["impact"] == "additive"
+		}),
+		"expected an additive finding only the release comparison observed: {package:#}"
+	);
+
+	let markdown = run_mc(
+		fixture.path(),
+		&[
+			"change",
+			"classify",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"markdown",
+			"--skip-cli-snapshots",
+		],
+	);
+	assert!(
+		markdown.contains("- compatibility impact: `breaking`"),
+		"markdown should keep the default-branch verdict: {markdown}"
+	);
+	assert!(
+		markdown.contains("- release impact: `additive`"),
+		"markdown should report the release-relative verdict: {markdown}"
+	);
+	assert!(
+		markdown.contains(
+			"propose a minor changeset; the break applies to the default branch, not the latest release",
+		),
+		"markdown summary should explain the capped break: {markdown}"
+	);
+
+	let text = run_mc(
+		fixture.path(),
+		&[
+			"change",
+			"classify",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"text",
+			"--skip-cli-snapshots",
+		],
+	);
+	assert!(
+		text.contains("Release impact: additive"),
+		"text report should report the release-relative verdict: {text}"
+	);
+}
+
+#[test]
+fn changeset_api_validation_requires_only_the_release_relative_bump() {
+	let fixture = setup_release_refined_fixture();
+	std::fs::create_dir_all(fixture.path().join(".changeset"))
+		.unwrap_or_else(|error| panic!("create changeset dir: {error}"));
+	std::fs::write(
+		fixture.path().join(".changeset/refine.md"),
+		"---\ncore: patch\n---\n\nRefine the unreleased `refined` signature.\n",
+	)
+	.unwrap_or_else(|error| panic!("write changeset: {error}"));
+
+	// Strict validation demands the capped proposal: the pull request breaks
+	// `refined` against main, but `refined` never shipped, so `patch` fails only
+	// because it is below `minor` — not because a major changeset is required.
+	let error = run_mc_error(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--strict",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"json",
+		],
+	);
+	assert!(
+		error.contains("declares `patch`") && error.contains("requires at least `minor`"),
+		"strict validation should require the capped minor bump: {error}"
+	);
+
+	std::fs::write(
+		fixture.path().join(".changeset/refine.md"),
+		"---\ncore: minor\n---\n\nRefine the unreleased `refined` signature.\n",
+	)
+	.unwrap_or_else(|error| panic!("write changeset: {error}"));
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--strict",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"json",
+		],
+	);
+
+	let package = package(&report, "core");
+	assert_eq!(package["decision"]["compatibility_impact"], "breaking");
+	assert_eq!(package["decision"]["release_impact"], "additive");
+	assert_eq!(package["decision"]["proposed_changeset_bump"], "minor");
+	assert_eq!(package["action"], "keep");
+}
+
+#[test]
 fn change_classify_limits_the_report_to_selected_packages() {
 	let fixture = setup_api_fixture("mixed-api");
 
@@ -503,7 +698,7 @@ fn change_classify_supports_global_jq_and_equals_options() {
 		],
 	);
 
-	assert_eq!(output, "0.1");
+	assert_eq!(output, "0.2");
 }
 
 #[test]
@@ -531,7 +726,7 @@ fn changeset_api_validation_writes_the_requested_report() {
 	assert_eq!(
 		serde_json::from_str::<Value>(&written)
 			.unwrap_or_else(|error| panic!("parse written report: {error}"))["schema_version"],
-		"0.1"
+		"0.2"
 	);
 }
 

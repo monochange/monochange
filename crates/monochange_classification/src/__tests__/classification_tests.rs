@@ -420,7 +420,100 @@ fn findings_keep_distinct_signatures_for_each_comparison() {
 }
 
 #[test]
-fn release_floor_never_falls_below_the_net_pull_request_bump() {
+fn pull_request_break_against_an_unreleased_api_is_not_a_release_break() {
+	// The default branch added `refined` after the latest release and this pull
+	// request changed its signature. The pull request comparison sees a breaking
+	// modification, but nobody holding the release can observe the break.
+	let mut current = finding_from_semantic_change(
+		"current".to_string(),
+		"cargo/public-api",
+		&modified_api_change(),
+		DetectionLevel::Signature,
+	);
+	current.comparisons.insert(ComparisonKind::PullRequest);
+	current.confidence = ClassificationConfidence::High;
+	let mut release = finding_from_semantic_change(
+		"release".to_string(),
+		"cargo/public-api",
+		&added_api_change(),
+		DetectionLevel::Signature,
+	);
+	release.comparisons.insert(ComparisonKind::Release);
+
+	let decision =
+		build_recommendation(&[current.clone(), release.clone()], true, true, None, true);
+
+	assert_eq!(decision.compatibility_impact, CompatibilityImpact::Breaking);
+	assert_eq!(decision.release_impact, Some(CompatibilityImpact::Additive));
+	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::Minor);
+	assert_eq!(decision.enforceable_minimum, BumpSeverity::Minor);
+	assert_eq!(decision.release_floor, BumpSeverity::Minor);
+	// The capped pull-request finding still carries the evidence for the minor
+	// proposal, so its id stays in the decision.
+	assert_eq!(decision.finding_ids, vec!["current".to_string()]);
+	assert_eq!(decision.confidence, ClassificationConfidence::High);
+	assert!(
+		recommendation_summary(&decision, &[current.clone(), release.clone()])
+			.contains("the break applies to the default branch, not the latest release")
+	);
+}
+
+#[test]
+fn release_floor_keeps_a_break_an_earlier_merge_introduced() {
+	// The release comparison is breaking because of work already merged into the
+	// default branch. The pull request only adds an API, so its own changeset
+	// stays minor while the floor reports the accumulated break.
+	let mut current = finding_from_semantic_change(
+		"current".to_string(),
+		"cargo/public-api",
+		&added_api_change(),
+		DetectionLevel::Signature,
+	);
+	current.comparisons.insert(ComparisonKind::PullRequest);
+	current.confidence = ClassificationConfidence::High;
+	let mut release = finding_from_semantic_change(
+		"release".to_string(),
+		"cargo/public-api",
+		&removed_api_change(),
+		DetectionLevel::Signature,
+	);
+	release.comparisons.insert(ComparisonKind::Release);
+
+	let decision = build_recommendation(&[current, release], true, true, None, true);
+
+	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::Minor);
+	assert_eq!(decision.enforceable_minimum, BumpSeverity::Minor);
+	assert_eq!(decision.release_floor, BumpSeverity::Major);
+	assert_eq!(decision.release_impact, Some(CompatibilityImpact::Breaking));
+}
+
+#[test]
+fn unmodeled_findings_survive_the_release_cap() {
+	// An unmodeled finding is the safety floor for a surface the analyzers
+	// cannot model, so a release comparison that observed nothing must not
+	// erase the review signal.
+	let mut current = finding_from_semantic_change(
+		"current".to_string(),
+		"cargo/fallback",
+		&patch_dependency_change(),
+		DetectionLevel::Signature,
+	);
+	current.comparisons.insert(ComparisonKind::PullRequest);
+	current.impact = CompatibilityImpact::Unmodeled;
+	current.bump = BumpSeverity::Patch;
+
+	let decision = build_recommendation(&[current], true, true, None, true);
+
+	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::Patch);
+	assert_eq!(decision.release_floor, BumpSeverity::Patch);
+	assert_eq!(
+		decision.release_impact,
+		Some(CompatibilityImpact::Compatible)
+	);
+}
+
+#[test]
+fn a_package_without_a_release_keeps_its_pull_request_bump() {
 	let mut current = finding_from_semantic_change(
 		"current".to_string(),
 		"cargo/public-api",
@@ -428,17 +521,11 @@ fn release_floor_never_falls_below_the_net_pull_request_bump() {
 		DetectionLevel::Signature,
 	);
 	current.comparisons.insert(ComparisonKind::PullRequest);
-	let mut release = finding_from_semantic_change(
-		"release".to_string(),
-		"cargo/public-api",
-		&patch_dependency_change(),
-		DetectionLevel::Signature,
-	);
-	release.comparisons.insert(ComparisonKind::Release);
 
-	let decision = build_recommendation(&[current, release], true, true, None, true);
+	let decision = build_recommendation(&[current], true, false, None, true);
 
 	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::Major);
+	assert_eq!(decision.release_impact, None);
 	assert_eq!(decision.release_floor, BumpSeverity::Major);
 }
 
@@ -947,6 +1034,7 @@ fn dependency_on(name: &str, kind: DependencyKind) -> PackageDependency {
 fn no_change_recommendation() -> ChangeRecommendation {
 	ChangeRecommendation {
 		compatibility_impact: CompatibilityImpact::Compatible,
+		release_impact: None,
 		proposed_changeset_bump: BumpSeverity::None,
 		enforceable_minimum: BumpSeverity::None,
 		release_floor: BumpSeverity::None,
@@ -968,6 +1056,31 @@ fn removed_api_change() -> SemanticChange {
 		PathBuf::from("src/lib.rs"),
 	)
 	.with_before_signature("pub fn old()")
+}
+
+fn added_api_change() -> SemanticChange {
+	SemanticChange::new(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Added,
+		"function",
+		"crate::refined",
+		"added public function `crate::refined`",
+		PathBuf::from("src/lib.rs"),
+	)
+	.with_after_signature("pub fn refined()")
+}
+
+fn modified_api_change() -> SemanticChange {
+	SemanticChange::new(
+		SemanticChangeCategory::PublicApi,
+		SemanticChangeKind::Modified,
+		"function",
+		"crate::refined",
+		"modified public function `crate::refined`",
+		PathBuf::from("src/lib.rs"),
+	)
+	.with_before_signature("pub fn refined()")
+	.with_after_signature("pub fn refined(value: String)")
 }
 
 fn added_export_change() -> SemanticChange {

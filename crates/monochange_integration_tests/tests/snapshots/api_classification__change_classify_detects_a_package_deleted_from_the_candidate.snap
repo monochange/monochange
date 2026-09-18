@@ -66,6 +66,7 @@ expression: report
         ],
         "proposed_changeset_bump": "major",
         "release_floor": "major",
+        "release_impact": "breaking",
         "review_required": false
       },
       "ecosystem": "cargo",
@@ -209,6 +210,7 @@ expression: report
         ],
         "proposed_changeset_bump": "major",
         "release_floor": "major",
+        "release_impact": "breaking",
         "review_required": false
       },
       "ecosystem": "npm",

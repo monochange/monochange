@@ -136,7 +136,7 @@ fn change_classify_reports_cli_surface_breaks_for_registered_clis() {
 	);
 
 	assert_eq!(report["recommendation"], "major");
-	assert_eq!(report["schema_version"], "0.1");
+	assert_eq!(report["schema_version"], "0.2");
 
 	// Unmatched-path advisories depend on how each platform canonicalizes the
 	// fixture tempdir, so snapshot the findings without them.

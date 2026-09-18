@@ -20,18 +20,18 @@ With the default `--head HEAD`, monochange materializes committed, staged, unsta
 
 ## Read the decision
 
-Use `decision.proposed_changeset_bump` as the starting bump for the current pull request. Use `decision.release_floor` to understand all unreleased changes since the latest release. Do not copy `release_floor` into the current changeset when an earlier merged change caused it.
+Use `decision.proposed_changeset_bump` as the starting bump for the current pull request. It is already capped by the release comparison: a modeled finding never proposes more than the release-relative bump for the package, because nobody holding the latest release can observe a break in an API the release never shipped. Use `decision.release_impact` to read that release-relative verdict, and `decision.release_floor` to understand all unreleased changes since the latest release. Do not copy `release_floor` into the current changeset when an earlier merged change caused it.
 
 Trace `decision.finding_ids` into `findings`. Confirm the source location, before and after signatures, and `comparisons` for each finding that determines a `major` or `minor` proposal.
 
-The same item can have separate comparison-qualified findings when its signatures differ between the pull request and release intervals. Use only findings that include `pullRequest` when choosing the current changeset; use `release` findings to explain the accumulated release floor.
+The same item can have separate comparison-qualified findings when its signatures differ between the pull request and release intervals. A finding that includes `pullRequest` but not `release` describes a break against the default branch only; the decision has already accounted for it, so write the changeset the decision proposes and describe the refinement in the changeset body. Use `release` findings to explain the accumulated release floor.
 
 Interpret the remaining fields together:
 
-- `compatibility_impact: breaking` means a caller can require migration. Write a dedicated major changeset with the old and new usage.
+- `compatibility_impact: breaking` means a caller of the default branch can require migration. Check `release_impact` before choosing the bump: when it is not `breaking`, the break applies only to unreleased work, so keep the capped `proposed_changeset_bump` instead of writing a major changeset. When both are `breaking`, write a dedicated major changeset with the old and new usage.
 - `compatibility_impact: additive` means the public surface grew compatibly. Start with a minor changeset.
 - `compatibility_impact: compatible` means the modeled public contract remains compatible. Use `proposed_changeset_bump`: `none` means no declaration-driven bump, while a future analyzer may still recommend `patch` for compatible behavior.
-- `compatibility_impact: unmodeled` means the built-in analyzer could not classify the surface. Inspect the diff before choosing a bump.
+- `compatibility_impact: unmodeled` means the built-in analyzer could not classify the surface. Inspect the diff before choosing a bump; unmodeled findings are never capped by the release comparison.
 - `review_required: true` means the recommendation is advisory. Keep the proposed bump unless repository policy or stronger evidence justifies another choice.
 - `completeness: complete` with `proposed_changeset_bump: none` supports no release intent. A warning, unavailable comparison, or partial result requires review.
 
