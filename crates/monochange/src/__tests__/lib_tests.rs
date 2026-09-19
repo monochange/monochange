@@ -4754,8 +4754,8 @@ fn configuration_guide_calls_out_current_implementation_limits() {
 		.unwrap_or_else(|error| panic!("configuration guide: {error}"));
 
 	for expected in [
-		"`defaults.include_private`",
-		"`[ecosystems.*].enabled/roots/exclude`",
+		"- `[defaults].include_private` is parsed and validated, but discovery reports private packages either way",
+		"- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated, but discovery still scans every supported ecosystem",
 		"`PrepareRelease`",
 		"`RetargetRelease`",
 		"`Command`",

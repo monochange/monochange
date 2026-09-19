@@ -276,11 +276,6 @@ ignored_paths = [
 	"license",
 ]
 
-name = "production"
-trigger = "release_pr_merge"
-release_targets = ["sdk"]
-requires = ["main"]
-
 [cli.discover]
 help_text = "Discover packages across supported ecosystems"
 

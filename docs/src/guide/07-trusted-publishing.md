@@ -107,8 +107,8 @@ If your workflow filename or environment cannot be inferred reliably, set them e
 
 `publish.trusted_publishing.mode` decides what happens when no verifiable CI/OIDC identity is available:
 
-- `mode = "required"` (default) — publishing must run from a verifiable CI identity. Local and manual runs fail before any registry mutation. Use this when trusted publishing is the only publishing path you want to allow.
-- `mode = "preferred"` — trusted publishing is used whenever a verifiable CI identity is detected, and publishing falls back to local/manual credentials otherwise. Detected CI identities are still verified against the configured repository, workflow, and environment, so a misconfigured CI context fails instead of silently publishing with a token.
+- `mode = "required"` (default). Publishing must run from a verifiable CI identity. Local and manual runs fail before any registry mutation. Use this when trusted publishing is the only publishing path you want to allow.
+- `mode = "preferred"`. Trusted publishing is used whenever a verifiable CI identity is detected, and publishing falls back to local/manual credentials otherwise. Detected CI identities are still verified against the configured repository, workflow, and environment, so a misconfigured CI context fails instead of silently publishing with a token.
 
 ```toml
 [ecosystems.dart.publish.trusted_publishing]

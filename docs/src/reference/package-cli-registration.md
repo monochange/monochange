@@ -28,7 +28,7 @@ cli = { name = "somecli", snapshot = { command = "node scripts/emit-cli-snapshot
 
 ## Snapshot contract
 
-The snapshot command must print one `CommandSnapshot` JSON document (see the `monochange_snapshot` crate). For CLIs built with clap in this repository, `monochange snapshot --view index` already emits it. For other ecosystems — TypeScript, Python, Go, Dart — see [CLI snapshot emitters](cli-snapshot-emitters.md), which documents the field-level contract and verified per-language examples. monochange validates `schema_version` against its supported snapshot schema version and rejects stale or unparsable documents.
+The snapshot command must print one `CommandSnapshot` JSON document (see the `monochange_snapshot` crate). For CLIs built with clap in this repository, `monochange snapshot --view index` already emits it. For other ecosystems such as TypeScript, Python, Go, and Dart, see [CLI snapshot emitters](cli-snapshot-emitters.md), which documents the field-level contract and verified per-language examples. monochange validates `schema_version` against its supported snapshot schema version and rejects stale or unparsable documents.
 
 ## Baselines
 
@@ -45,10 +45,10 @@ The diff compares command surface only and ignores `tool.version`, so baselines 
 
 Useful commands:
 
-- `monochange snapshot` — print monochange's own surface (unchanged behavior).
-- `monochange snapshot --package <id>` — run that package's configured snapshot command and print the document.
-- `monochange snapshot --package <id> --save` — write or update the committed baseline.
-- `monochange snapshot --list` — list registered CLIs and baseline status.
+- `monochange snapshot`: print monochange's own surface (unchanged behavior).
+- `monochange snapshot --package <id>`: run that package's configured snapshot command and print the document.
+- `monochange snapshot --package <id> --save`: write or update the committed baseline.
+- `monochange snapshot --list`: list registered CLIs and baseline status.
 
 ## Classification integration
 

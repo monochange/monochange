@@ -75,7 +75,7 @@ Confidence is advisory metadata today; it does not currently change classificati
 
 `standard_entrypoints` normalizes help, version, and snapshot discovery across spelling variants, so `--help` and a `help` subcommand compare as the same capability. Each entrypoint takes `commands` (a list of command paths, each itself a list of segments) and `flags`. Omit what the tool does not support. It is recorded for documentation and agent discovery; the current diff does not compare it.
 
-`commands` is a flat list of command nodes. Nested subcommands use the full path: a `get` command under `config` is one node with `"path": ["config", "get"]`, optionally also mirrored as a nested child. The diff keys on the path — nested children are flattened, and a node in `commands` and the same path nested under its parent are the same command. Always emit the complete path.
+`commands` is a flat list of command nodes. Nested subcommands use the full path: a `get` command under `config` is one node with `"path": ["config", "get"]`, optionally also mirrored as a nested child. The diff keys on the path, so nested children are flattened and a node in `commands` and the same path nested under its parent are the same command. Always emit the complete path.
 
 Note that `global_options` is recorded but not diffed, so put options that participate in a command's contract on that command's `options` list.
 
@@ -102,11 +102,11 @@ Note that `global_options` is recorded but not diffed, so put options that parti
 
 Getting these right matters more than completeness, because they are what produce findings:
 
-- **Command paths** — a missing path reads as a removed command (`major`).
-- **`options[].names`** — dropping a spelling reads as a removed option; adding one reads as additive.
-- **`value.kind` and `value.enum_values`** — narrowing (`string` to `enum`, or removing an enum value) proposes `major`; widening proposes `minor`.
-- **`value.required`** — an optional argument becoming required is breaking.
-- **`max_bump`** — caps the severity proposed for that command.
+- **Command paths.** A missing path reads as a removed command (`major`).
+- **`options[].names`.** Dropping a spelling reads as a removed option; adding one reads as additive.
+- **`value.kind` and `value.enum_values`.** Narrowing (`string` to `enum`, or removing an enum value) proposes `major`; widening proposes `minor`.
+- **`value.required`.** An optional argument becoming required is breaking.
+- **`max_bump`.** Caps the severity proposed for that command.
 
 Descriptions (`summary`, `description`) only ever produce compatible patches, so you can refine wording freely. Conversely, omitting a real option is not harmless: the baseline records it, so the next capture looks like a removal.
 
@@ -507,7 +507,7 @@ When no structured metadata exists, parse `--help` output. Treat this as a last 
 mycli --help > help.txt
 ```
 
-Mark these snapshots `"confidence": "low"` so the record shows how the document was derived. Be aware that `provenance.confidence` is currently recorded metadata only: `monochange change classify` reports command-surface findings at high confidence regardless of it, so a help-text snapshot carries the same enforcement weight as a clap-extracted one. That is the main reason to prefer structured extraction — a wrong guess about a value kind becomes a real `major` finding rather than a hedged one.
+Mark these snapshots `"confidence": "low"` so the record shows how the document was derived. Be aware that `provenance.confidence` is currently recorded metadata only: `monochange change classify` reports command-surface findings at high confidence regardless of it, so a help-text snapshot carries the same enforcement weight as a clap-extracted one. That is the main reason to prefer structured extraction, because a wrong guess about a value kind becomes a real `major` finding rather than a hedged one.
 
 ## Recommended pattern: a hidden or explicit snapshot subcommand
 
@@ -561,7 +561,7 @@ Reusing one emitter across repositories is tempting, but the tradeoff is differe
 
 That makes any adapter a **runtime** dependency of the CLI, shipped in the published artifact even though it only matters at release time. Weigh that against what an adapter saves: the mapping code above is roughly 60 lines, and each command framework needs its own version because commander, yargs, and oclif expose different introspection APIs. An adapter package therefore costs a runtime dependency plus a per-framework maintenance surface, and repays it only if you maintain several Node CLIs that share one framework.
 
-A narrower helper avoids the runtime cost: ship a schema-driven **validator** rather than an emitter. Validation runs in CI on an already-emitted file, so it can be a dev dependency, covers every framework at once, and catches the failure that actually matters — a snapshot that does not match the contract. Combined with the per-language examples on this page, that covers most of the value without imposing on the CLI's runtime dependencies.
+A narrower helper avoids the runtime cost: ship a schema-driven **validator** rather than an emitter. Validation runs in CI on an already-emitted file, so it can be a dev dependency, covers every framework at once, and catches the failure that actually matters, which is a snapshot that does not match the contract. Combined with the per-language examples on this page, that covers most of the value without imposing on the CLI's runtime dependencies.
 
 If a shared emitter is still worth it for your organization, keep it a thin wrapper that emits the document shape and let callers pass in already-extracted command data. That keeps framework-specific introspection out of the shared package and lets it stay a dev dependency when the CLI structure is generated at build time rather than read at runtime.
 
@@ -580,12 +580,12 @@ A snapshot captured with a version monochange does not support is rejected and r
 
 `stale_baseline` means the committed baseline uses a different `schema_version` than this monochange build supports. Regenerate the baseline.
 
-`failed` means the snapshot command returned a non-zero exit, printed unparsable JSON, or emitted a document that does not match the schema. Run the configured command by hand — `monochange snapshot --package <id>` does exactly that and prints the output — and validate it against the schema.
+`failed` means the snapshot command returned a non-zero exit, printed unparsable JSON, or emitted a document that does not match the schema. Run the configured command by hand with `monochange snapshot --package <id>`, which prints the output, and validate it against the schema.
 
 A capture that needs a build unavailable in a given environment can be skipped with `--skip-cli-snapshots` or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`. Prefer fixing the environment: skipped comparisons mean command-surface breaks are reported as unclassified changes again.
 
 ## Related pages
 
-- [Package CLI registration](package-cli-registration.md) — registering a binary and committing baselines.
-- [Schema reference](schemas.md) — hosted schema URLs and versioning.
-- [Change classification](change-classification.md) — how findings reach the pull request.
+- [Package CLI registration](package-cli-registration.md): registering a binary and committing baselines.
+- [Schema reference](schemas.md): hosted schema URLs and versioning.
+- [Change classification](change-classification.md): how findings reach the pull request.

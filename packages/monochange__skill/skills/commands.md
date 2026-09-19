@@ -12,35 +12,43 @@ Do not describe a workflow command as built in unless it appears in the built-in
 
 ## CLI migration rules for agents
 
-When updating an older repository, apply these command-path rewrites:
+Older repositories use three command layouts that no longer work. Rewrite them as follows.
+
+Built-in step commands moved under `step`. Colon-delimited top-level tokens are gone:
 
 ```sh
-# Built-in step commands
+# Before
+monochange:validate
+monochange:prepare-release --dry-run --format json
+
+# After
 monochange step validate
 monochange step prepare-release --dry-run --format json
-
-# become
-monochange step validate
-monochange step prepare-release --dry-run --format json
 ```
 
-```sh
-# User-defined commands from [cli.<name>]
-monochange run release-pr --dry-run
+Commands defined in `[cli.<name>]` moved under `run`:
 
-# become
+```sh
+# Before: `release-pr` is a [cli.release-pr] table
+monochange release-pr --dry-run
+
+# After
 monochange run release-pr --dry-run
 ```
 
-```sh
-# Removed executable alias
-monochange check
+The packaged `mc` alias was removed:
 
-# becomes
+```sh
+# Before
+mc check
+mc versions list --format json
+
+# After
 monochange check
+monochange versions list --format json
 ```
 
-Only add `run` for commands defined by `[cli.<name>]` in `monochange.toml`. Keep built-ins such as `monochange check`, `monochange versions --format json`, and `monochange step validate` as built-in invocations.
+Only add `run` for commands defined by `[cli.<name>]` in that repository's `monochange.toml`. Built-ins such as `monochange check`, `monochange versions`, and `monochange step validate` stay as they are. See [Upgrading to 0.9](https://monochange.github.io/monochange/guide/migrations/0.9-cli-command-api.html) for the full checklist.
 
 When deciding what to run, prefer the most repository-native command that is still safe for the task. Use configured workflows for normal maintainer flows, step commands for portable automation or debugging, and built-in commands for global operations such as validation, MCP, lint catalog, release-record inspection, and publish readiness.
 

@@ -45,7 +45,7 @@ The JSON result includes whether changes were applied, the selected strategy, ch
 - `caret` writes a caret constraint, such as `^1.2.3`, for ecosystems that use caret ranges.
 - `compatible` writes a compatible-range constraint, such as `>=1.2.3`.
 
-Passing `--strategy` overrides the built-in style for the whole command. `monochange.toml` cannot currently change the style `versions sync` uses — `--strategy` is the only override — and the command always writes the same prefix for a given strategy and ecosystem. The `dependency_version_prefix` ecosystem setting affects versioned-file writes (see [Versioned files](../guide/04-configuration.md#versioned-files)), not `versions sync`.
+Passing `--strategy` overrides the built-in style for the whole command. `monochange.toml` cannot currently change the style `versions sync` uses, and `--strategy` is the only override. The command always writes the same prefix for a given strategy and ecosystem. The `dependency_version_prefix` ecosystem setting affects versioned-file writes (see [Versioned files](../guide/04-configuration.md#versioned-files)), not `versions sync`.
 
 What each ecosystem receives for an internal dependency on a package at `1.2.3`:
 

@@ -1,6 +1,6 @@
 # monochange reference
 
-monochange is a CLI/tool harness for producing versioned packages from a monorepo. It connects package discovery, changeset intent, version planning, changelog rendering, versioned file updates, release records, source-provider releases, and package publishing workflows.
+monochange produces versioned packages from a monorepo. It connects package discovery, changeset intent, version planning, changelog rendering, versioned file updates, release records, source-provider releases, and package publishing workflows.
 
 ## Operating model
 
