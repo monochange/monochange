@@ -1,0 +1,40 @@
+---
+source: crates/monochange_integration_tests/tests/prerelease_workflow.rs
+expression: "json!({\n    \"release_targets\": third[\"release_targets\"], \"covered_changesets\":\n    read_state(root)[\"release_note_changesets\"],\n})"
+---
+{
+  "covered_changesets": [
+    ".changeset/first.md",
+    ".changeset/second.md"
+  ],
+  "release_targets": [
+    {
+      "id": "app",
+      "kind": "package",
+      "members": [
+        "app"
+      ],
+      "release": true,
+      "rendered_changelog_title": "app [1.0.1-alpha.2](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.1-alpha.2) (2026-04-07)",
+      "rendered_title": "app 1.0.1-alpha.2 (2026-04-07)",
+      "tag": false,
+      "tag_name": "app/v1.0.1-alpha.2",
+      "version": "1.0.1-alpha.2",
+      "version_format": "namespaced"
+    },
+    {
+      "id": "core",
+      "kind": "package",
+      "members": [
+        "core"
+      ],
+      "release": true,
+      "rendered_changelog_title": "core [1.1.0-alpha.2](https://github.com/ifiokjr/monochange/releases/tag/core/v1.1.0-alpha.2) (2026-04-07)",
+      "rendered_title": "core 1.1.0-alpha.2 (2026-04-07)",
+      "tag": true,
+      "tag_name": "core/v1.1.0-alpha.2",
+      "version": "1.1.0-alpha.2",
+      "version_format": "namespaced"
+    }
+  ]
+}

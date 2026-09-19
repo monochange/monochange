@@ -21,6 +21,7 @@ expression: "serde_json::json!({\n    \"first_release_targets\": first[\"release
         "planned_stable_version": "1.0.0"
       }
     },
+    "release_note_changesets": [],
     "schema_version": 1,
     "updated_at": "[timestamp]"
   },
@@ -72,6 +73,7 @@ expression: "serde_json::json!({\n    \"first_release_targets\": first[\"release
         "planned_stable_version": "1.0.0"
       }
     },
+    "release_note_changesets": [],
     "schema_version": 1,
     "updated_at": "[timestamp]"
   },

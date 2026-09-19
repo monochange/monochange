@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/prerelease_workflow.rs
+expression: third_notes
+---
+## core [1.1.0-alpha.2](https://github.com/ifiokjr/monochange/releases/tag/core/v1.1.0-alpha.2) (2026-04-07)
+
+### Fixes
+
+- **fix a follow-up bug.**
+  _Owner:_ monochange-tests · _Introduced in:_ [commit]

@@ -136,7 +136,7 @@ not current manifest version
   - [x] `increment`
   - [x] `date`
   - [x] `datetime`
-- [ ] Reset increment sequence when package/group, stable base, or channel changes.
+- [x] Reset increment sequence when package/group, stable base, or channel changes. (Channel and stable-base resets implemented; a package/group entering the series already starts from its own absent latest version.)
 - [x] Support prerelease planning when no changesets exist by synthesizing release decisions from discovered packages/version groups and the configured base strategy.
 - [x] Ensure no-changeset prerelease `planned` mode uses current/original stable as the base instead of failing for an empty release plan.
 
@@ -145,7 +145,7 @@ not current manifest version
 - [x] Write prerelease versions into manifests/versioned files when `write_manifests = true`.
 - [x] Preserve changesets by default when prerelease mode is enabled.
 - [x] Skip changelog file updates by default when prerelease mode is enabled.
-- [ ] Keep hosted release notes available when `release_notes = true`.
+- [x] Keep hosted release notes available when `release_notes = true`. (Notes render for each prerelease and report only the changesets added since the previous prerelease.)
 - [x] Prevent package publishing by default when prerelease mode is enabled.
 - [ ] Mark source-host releases as prereleases when supported.
 - [x] Delete prerelease state during the final stable release after successful preparation.
