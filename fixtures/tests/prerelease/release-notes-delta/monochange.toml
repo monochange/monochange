@@ -1,0 +1,45 @@
+[defaults]
+parent_bump = "patch"
+package_type = "cargo"
+
+[package.core]
+path = "crates/core"
+tag = true
+release = true
+
+[package.app]
+path = "crates/app"
+release = true
+
+[source]
+provider = "github"
+owner = "ifiokjr"
+repo = "monochange"
+
+[changelog]
+# A release-mode output renders standalone notes instead of appending them to a
+# tracked changelog file, which is how prerelease notes are consumed.
+[changelog.outputs.release]
+stream = "default"
+path = "release-notes/{{ id }}.md"
+mode = "release"
+format = "monochange"
+targets = ["core", "app"]
+
+[ecosystems.cargo]
+enabled = true
+
+[[cli.release-pr.steps]]
+type = "PrepareRelease"
+
+[[cli.release-pr.steps]]
+type = "OpenReleaseRequest"
+
+[prerelease]
+enabled = true
+channel = "alpha"
+numbering = "increment"
+base = "planned"
+keep_changesets = true
+changelog = false
+release_notes = true

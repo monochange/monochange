@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/prerelease_workflow.rs
+expression: "json!({\n    \"channel\": alpha_state[\"channel\"], \"latest\":\n    alpha_state[\"packages\"][\"cargo:crates/core/Cargo.toml\"][\"latest_prerelease_version\"],\n})"
+---
+{
+  "channel": "alpha",
+  "latest": "1.1.0-alpha.0"
+}

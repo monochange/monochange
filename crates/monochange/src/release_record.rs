@@ -405,33 +405,39 @@ pub(crate) async fn create_release_tags(
 		};
 
 		let mut floating_results = Vec::new();
-		for floating_tag in &target.floating_tags {
+		if !target.floating_tags.is_empty() {
 			let Ok(parsed_version) = semver::Version::parse(&target.version) else {
 				return Err(MonochangeError::Config(format!(
 					"release target `{}` has a non-semver version `{}`; floating tags require semver versions",
 					target.id, target.version,
 				)));
 			};
-			let ecosystem = target.kind.as_str();
-			let Ok(rendered) = monochange_core::render_floating_tag(
-				&floating_tag.0,
-				&parsed_version,
-				&target.id,
-				ecosystem,
-			) else {
-				return Err(MonochangeError::Config(format!(
-					"release target `{}` has an invalid `floating_tags` template `{}`",
-					target.id, floating_tag.0,
-				)));
-			};
-			if rendered == target.tag_name {
-				continue;
+			// Floating aliases such as `v1` or `latest` must keep pointing at the
+			// newest stable release, so a prerelease never repoints them.
+			if parsed_version.pre.is_empty() {
+				let ecosystem = target.kind.as_str();
+				for floating_tag in &target.floating_tags {
+					let Ok(rendered) = monochange_core::render_floating_tag(
+						&floating_tag.0,
+						&parsed_version,
+						&target.id,
+						ecosystem,
+					) else {
+						return Err(MonochangeError::Config(format!(
+							"release target `{}` has an invalid `floating_tags` template `{}`",
+							target.id, floating_tag.0,
+						)));
+					};
+					if rendered == target.tag_name {
+						continue;
+					}
+					let previous_commit = resolve_git_tag_commit(root, &rendered).await.ok();
+					floating_results.push(ReleaseFloatingTagResult {
+						tag_name: rendered,
+						previous_commit,
+					});
+				}
 			}
-			let previous_commit = resolve_git_tag_commit(root, &rendered).await.ok();
-			floating_results.push(ReleaseFloatingTagResult {
-				tag_name: rendered,
-				previous_commit,
-			});
 		}
 
 		tag_results.push(ReleaseTagResult {

@@ -314,6 +314,25 @@ Base strategies:
 
 When no changesets exist, prerelease mode still synthesizes release decisions from discovered packages and version groups. Repeated prerelease runs persist state in `.monochange/prerelease-state.json` so a series advances from `alpha.0` to `alpha.1` without repeatedly reapplying the same stable bump. Set `branches` when prerelease tag/publish workflow steps should be allowed from a different branch set than stable releases. Disable prerelease mode for the final stable release; successful stable preparation removes the state file. If prerelease mode is disabled and `.monochange/prerelease-state.json` is still present, validation/check fails so stale prerelease state is not ignored.
 
+### Prerelease release notes
+
+`release_notes = true` (the default) renders hosted release notes for each prerelease even though `changelog = false` skips changelog _file_ updates. Notes come from the same configured `[changelog.outputs]` artifacts that stable releases use, so `[source.releases].changelog_output` selects the prerelease body too.
+
+Because `keep_changesets = true` leaves earlier changeset files in place, each prerelease reports only the changesets that were **added since the previous prerelease**. A changeset already covered by an earlier prerelease in the same series is omitted from later notes, and editing the body of an already reported changeset does not make it reappear. The already reported changesets are tracked in `.monochange/prerelease-state.json` under `release_note_changesets`.
+
+Two situations restart the series and present every pending change again:
+
+- Changing `channel`, so the first `beta` prerelease does not look like an empty delta after a series of `alpha` prereleases.
+- Removing `.monochange/prerelease-state.json`, which makes the next prerelease the first of a new series.
+
+`keep_changesets = false` consumes the changesets instead, so the delta is naturally empty after the first prerelease and `release_notes` has nothing left to report.
+
+### Prerelease versions and floating tags
+
+A prerelease version never moves a `floating_tags` alias. Aliases such as `v1` or `latest` keep pointing at the newest stable release commit while a prerelease series is active, and only a stable release repoints them.
+
+Switching `channel` also restarts the increment sequence. With `numbering = "increment"`, a series at `1.1.0-alpha.4` becomes `1.1.0-beta.0` after switching to `beta` rather than continuing at `beta.5`.
+
 ## Rust semantic compatibility
 
 Rust packages can opt into cargo-semver-checks when `change classify` runs at the semantic detection level:
