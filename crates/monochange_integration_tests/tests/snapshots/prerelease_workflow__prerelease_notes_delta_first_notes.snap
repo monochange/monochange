@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/prerelease_workflow.rs
+expression: first_notes
+---
+## core [1.1.0-alpha.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.1.0-alpha.0) (2026-04-07)
+
+### Features
+
+- **add the first feature.**
+  _Owner:_ monochange-tests · _Introduced in:_ [commit]

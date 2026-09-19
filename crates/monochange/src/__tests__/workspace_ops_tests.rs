@@ -1685,6 +1685,7 @@ fn prerelease_planned_mode_reuses_original_stable_from_state() {
 		updated_at: "2026-05-22T00:00:00Z".to_string(),
 		packages: std::collections::BTreeMap::new(),
 		groups: std::collections::BTreeMap::new(),
+		..Default::default()
 	};
 	previous.packages.insert(
 		"cargo:crates/core/Cargo.toml".to_string(),
@@ -1750,6 +1751,7 @@ fn prerelease_versions_increment_within_stable_base() {
 		updated_at: "2026-05-22T00:00:00Z".to_string(),
 		packages: std::collections::BTreeMap::new(),
 		groups: std::collections::BTreeMap::new(),
+		..Default::default()
 	};
 	previous.packages.insert(
 		"cargo:crates/core/Cargo.toml".to_string(),
@@ -1933,6 +1935,144 @@ fn prerelease_identifier_covers_numbering_and_mismatched_latest_base() {
 }
 
 #[test]
+fn prerelease_identifier_restarts_the_counter_when_the_channel_changes() {
+	let stable = semver::Version::parse("2.0.0").unwrap();
+	let previous_alpha = semver::Version::parse("2.0.0-alpha.4").unwrap();
+	let config = |channel: &str| {
+		monochange_core::PrereleaseConfiguration {
+			enabled: true,
+			channel: channel.to_string(),
+			..Default::default()
+		}
+	};
+
+	// Same channel keeps counting.
+	assert_eq!(
+		prerelease_identifier(&config("alpha"), &stable, Some(&previous_alpha)),
+		"alpha.5"
+	);
+	// A channel switch starts a fresh sequence instead of continuing alpha's.
+	assert_eq!(
+		prerelease_identifier(&config("beta"), &stable, Some(&previous_alpha)),
+		"beta.0"
+	);
+	// Channel comparison is case-insensitive because the identifier lowercases it.
+	assert_eq!(
+		prerelease_identifier(&config("ALPHA"), &stable, Some(&previous_alpha)),
+		"alpha.5"
+	);
+	// A different stable base still restarts the sequence.
+	assert_eq!(
+		prerelease_identifier(
+			&config("alpha"),
+			&semver::Version::parse("3.0.0").unwrap(),
+			Some(&previous_alpha)
+		),
+		"alpha.0"
+	);
+}
+
+#[test]
+fn prerelease_release_note_signals_report_only_changes_added_since_the_last_prerelease() {
+	let root = std::path::PathBuf::from("/workspace");
+	let signal = |path: &str| {
+		monochange_core::ChangeSignal {
+			package_id: "cargo:crates/core/Cargo.toml".to_string(),
+			requested_bump: Some(monochange_core::BumpSeverity::Minor),
+			explicit_version: None,
+			change_origin: "changeset".to_string(),
+			evidence_refs: Vec::new(),
+			notes: Some("a note".to_string()),
+			details: None,
+			change_type: Some("feat".to_string()),
+			caused_by: Vec::new(),
+			source_path: root.join(path),
+		}
+	};
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		release_notes: true,
+		..Default::default()
+	};
+	let signals = vec![
+		signal(".changeset/reported.md"),
+		signal(".changeset/new.md"),
+	];
+	let mut previous = PrereleaseState {
+		channel: "alpha".to_string(),
+		..Default::default()
+	};
+	previous
+		.release_note_changesets
+		.insert(".changeset/reported.md".to_string());
+
+	let filtered =
+		prerelease_release_note_signals(&root, signals.clone(), Some(&previous), &config);
+
+	assert_eq!(
+		filtered
+			.iter()
+			.map(|signal| signal.source_path.display().to_string())
+			.collect::<Vec<_>>(),
+		vec!["/workspace/.changeset/new.md"]
+	);
+}
+
+#[test]
+fn prerelease_release_note_signals_restart_after_a_channel_switch_or_when_disabled() {
+	let root = std::path::PathBuf::from("/workspace");
+	let signals = vec![monochange_core::ChangeSignal {
+		package_id: "cargo:crates/core/Cargo.toml".to_string(),
+		requested_bump: Some(monochange_core::BumpSeverity::Minor),
+		explicit_version: None,
+		change_origin: "changeset".to_string(),
+		evidence_refs: Vec::new(),
+		notes: Some("a note".to_string()),
+		details: None,
+		change_type: Some("feat".to_string()),
+		caused_by: Vec::new(),
+		source_path: root.join(".changeset/reported.md"),
+	}];
+	let mut previous = PrereleaseState {
+		channel: "alpha".to_string(),
+		..Default::default()
+	};
+	previous
+		.release_note_changesets
+		.insert(".changeset/reported.md".to_string());
+	let config = |channel: &str| {
+		monochange_core::PrereleaseConfiguration {
+			enabled: true,
+			channel: channel.to_string(),
+			release_notes: true,
+			..Default::default()
+		}
+	};
+
+	// A new channel presents every pending change again.
+	assert_eq!(
+		prerelease_release_note_signals(&root, signals.clone(), Some(&previous), &config("beta"))
+			.len(),
+		1
+	);
+	// No previous state means this is the first prerelease of the series.
+	assert_eq!(
+		prerelease_release_note_signals(&root, signals.clone(), None, &config("alpha")).len(),
+		1
+	);
+	// Disabling release notes drops the signals entirely.
+	let disabled = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		release_notes: false,
+		..Default::default()
+	};
+	assert!(
+		prerelease_release_note_signals(&root, signals.clone(), Some(&previous), &disabled)
+			.is_empty()
+	);
+}
+
+#[test]
 fn grouped_no_changeset_prerelease_plan_updates_group_and_state() {
 	let root = std::path::PathBuf::from("/workspace");
 	let mut member = test_package(&root, "member", "1.2.3");
@@ -1967,7 +2107,8 @@ fn grouped_no_changeset_prerelease_plan_updates_group_and_state() {
 		plan.groups[0].planned_version
 	);
 
-	let prepared = build_prerelease_state_update(&root, &plan, &discovery, None, &config).unwrap();
+	let prepared =
+		build_prerelease_state_update(&root, &plan, &discovery, None, &config, &[]).unwrap();
 	let state: serde_json::Value = serde_json::from_slice(&prepared.state_update.content).unwrap();
 	assert_eq!(
 		state["groups"]["suite"]["latest_prerelease_version"],
@@ -2147,7 +2288,8 @@ fn prerelease_state_skips_unplanned_and_unknown_entries() {
 		..Default::default()
 	};
 
-	let prepared = build_prerelease_state_update(&root, &plan, &discovery, None, &config).unwrap();
+	let prepared =
+		build_prerelease_state_update(&root, &plan, &discovery, None, &config, &[]).unwrap();
 	let state: serde_json::Value = serde_json::from_slice(&prepared.state_update.content).unwrap();
 
 	assert_eq!(state["packages"].as_object().unwrap().len(), 0);

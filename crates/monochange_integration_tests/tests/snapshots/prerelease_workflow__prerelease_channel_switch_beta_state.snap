@@ -1,0 +1,38 @@
+---
+source: crates/monochange_integration_tests/tests/prerelease_workflow.rs
+expression: "json!({\n    \"channel\": beta_state[\"channel\"], \"release_targets\":\n    beta[\"release_targets\"], \"latest\":\n    beta_state[\"packages\"][\"cargo:crates/core/Cargo.toml\"][\"latest_prerelease_version\"],\n})"
+---
+{
+  "channel": "beta",
+  "latest": "1.1.0-beta.0",
+  "release_targets": [
+    {
+      "id": "app",
+      "kind": "package",
+      "members": [
+        "app"
+      ],
+      "release": true,
+      "rendered_changelog_title": "app [1.0.1-beta.0](https://github.com/ifiokjr/monochange/releases/tag/app/v1.0.1-beta.0) (2026-04-07)",
+      "rendered_title": "app 1.0.1-beta.0 (2026-04-07)",
+      "tag": false,
+      "tag_name": "app/v1.0.1-beta.0",
+      "version": "1.0.1-beta.0",
+      "version_format": "namespaced"
+    },
+    {
+      "id": "core",
+      "kind": "package",
+      "members": [
+        "core"
+      ],
+      "release": true,
+      "rendered_changelog_title": "core [1.1.0-beta.0](https://github.com/ifiokjr/monochange/releases/tag/core/v1.1.0-beta.0) (2026-04-07)",
+      "rendered_title": "core 1.1.0-beta.0 (2026-04-07)",
+      "tag": true,
+      "tag_name": "core/v1.1.0-beta.0",
+      "version": "1.1.0-beta.0",
+      "version_format": "namespaced"
+    }
+  ]
+}
