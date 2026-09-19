@@ -244,6 +244,42 @@ changelog_output = "user"
 
 This example makes `native` a major bump in the default stream and `app_feature` a minor bump in the user stream. A mobile app can use that distinction to require an app-store/native release for `native` changes while allowing an `app_feature` release through a patch system such as Shorebird.
 
+### Configured sections and types extend the built-in set
+
+`[changelog.sections]` and `[changelog.types]` add to the built-in vocabulary. A declared key overrides the built-in entry of the same name; every other built-in key stays available.
+
+The built-in types include the semantic aliases and the stream types:
+
+| Type       | Bump    | Section    |
+| ---------- | ------- | ---------- |
+| `major`    | `major` | `breaking` |
+| `breaking` | `major` | `breaking` |
+| `minor`    | `minor` | `feat`     |
+| `feat`     | `minor` | `feat`     |
+| `change`   | `minor` | `change`   |
+| `patch`    | `patch` | `fix`      |
+| `fix`      | `patch` | `fix`      |
+| `refactor` | `patch` | `refactor` |
+| `none`     | `none`  | `none`     |
+| `docs`     | `none`  | `docs`     |
+| `security` | `none`  | `security` |
+| `test`     | `none`  | `test`     |
+
+Adding one custom type therefore does not remove the aliases:
+
+```toml
+[changelog.types.app_feature]
+bump = "minor"
+section = "app_features"
+```
+
+With that table, `app_feature` is added while `minor`, `patch`, `fix`, and every other built-in type still resolve. To narrow the vocabulary for one target, use `excluded_changelog_types` on that package or group:
+
+```toml
+[package.core]
+excluded_changelog_types = ["docs"]
+```
+
 Named `[changelog.outputs.<id>]` tables support:
 
 | Field            | Meaning                                                                                             |

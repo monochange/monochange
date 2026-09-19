@@ -163,6 +163,10 @@ templates = [
 metadata_style = "inline"
 
 [changelog.sections]
+# Declaring sections and types adds to the built-in set; a declared key wins on
+# a collision, and every other built-in key stays available. To narrow the
+# vocabulary for one target, use `excluded_changelog_types` on that package or
+# group rather than leaving keys out here.
 breaking = { heading = "💥 Breaking Change", description = "Breaking changes that require consumer updates or migration", priority = 10 }
 feat = { heading = "🚀 Feature", description = "New features, enhancements, and additions", priority = 20 }
 change = { heading = "📝 Changed", description = "Changes to existing behavior, functionality, or API semantics", priority = 25 }
@@ -179,6 +183,10 @@ collapse = 40
 ignored = 45
 
 [changelog.types]
+# Built-in types include the semantic aliases (`major`, `minor`, `patch`) and
+# the stream types (`breaking`, `feat`, `fix`, `change`, `refactor`, `test`,
+# `docs`, `security`, `none`). A declared entry overrides the built-in entry of
+# the same name and never removes the rest.
 major = { bump = "major", section = "breaking", description = "Major version bump including breaking API changes requiring migration" }
 breaking = { bump = "major", section = "breaking", description = "Breaking changes that require consumers to update their code" }
 minor = { bump = "minor", section = "feat", description = "Minor version bump including new features and enhancements" }

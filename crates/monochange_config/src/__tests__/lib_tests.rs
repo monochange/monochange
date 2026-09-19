@@ -3200,7 +3200,7 @@ bump = "minor"
 }
 
 #[test]
-fn load_change_signals_rejects_bump_named_scalar_when_type_is_not_configured() {
+fn load_change_signals_inherits_built_in_types_under_configured_sections_and_types() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	fs::create_dir_all(root.join("crates/core"))
@@ -3236,6 +3236,8 @@ bump = "patch"
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 	let change_path = root.join("change.md");
+	// `patch` is not in the declared table, but it is a built-in semantic alias
+	// and must keep working when a repository configures other types.
 	fs::write(&change_path, "---\ncore: patch\n---\n\nPatch change.\n")
 		.unwrap_or_else(|error| panic!("write changeset: {error}"));
 
@@ -3250,12 +3252,28 @@ bump = "patch"
 		PublishState::Public,
 	)];
 
+	let signals = load_change_signals(&change_path, &configuration, &packages)
+		.unwrap_or_else(|error| panic!("change signals: {error}"));
+	let signal = signals.first().unwrap_or_else(|| panic!("expected signal"));
+	assert_eq!(signal.requested_bump, Some(BumpSeverity::Patch));
+	assert_eq!(signal.change_type.as_deref(), Some("patch"));
+
+	// A key declared by the repository still wins over the built-in entry, and a
+	// genuinely unknown type still fails with the merged vocabulary in the help.
+	assert_eq!(
+		configuration.changelog.types["docs"].section,
+		"documentation"
+	);
+	assert_eq!(configuration.changelog.types["fix"].section, "fix");
+
+	fs::write(&change_path, "---\ncore: nope\n---\n\nUnknown change.\n")
+		.unwrap_or_else(|error| panic!("write unknown changeset: {error}"));
 	let error = load_change_signals(&change_path, &configuration, &packages)
 		.err()
 		.unwrap_or_else(|| panic!("expected parse error"));
 	let rendered = error.to_string();
-	assert!(rendered.contains("invalid scalar change type `patch`"));
-	assert!(rendered.contains("valid types: docs, test"));
+	assert!(rendered.contains("invalid scalar change type `nope`"));
+	assert!(rendered.contains("valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security, test"));
 }
 
 #[test]
@@ -3451,6 +3469,20 @@ fn load_change_signals_reports_no_configured_scalar_types() {
 [package.core]
 path = "crates/core"
 type = "cargo"
+excluded_changelog_types = [
+	"breaking",
+	"change",
+	"docs",
+	"feat",
+	"fix",
+	"major",
+	"minor",
+	"none",
+	"patch",
+	"refactor",
+	"security",
+	"test",
+]
 
 [changelog.sections.misc]
 heading = "Miscellaneous"
@@ -3473,6 +3505,10 @@ priority = 90
 		PublishState::Public,
 	)];
 
+	// A target that excludes every inherited type has an empty vocabulary, so
+	// the help falls back to naming that state. This is the surviving way to
+	// reach the branch now that a configured section no longer drops the
+	// inherited types.
 	let error = load_change_signals(&change_path, &configuration, &packages)
 		.err()
 		.unwrap_or_else(|| panic!("expected scalar type error"));
@@ -3560,7 +3596,8 @@ fn load_change_signals_reject_unknown_scalar_type_with_valid_types_help() {
 		.unwrap_or_else(|| panic!("expected parse error"));
 	let rendered = error.to_string();
 	assert!(rendered.contains("invalid scalar change type `nope`"));
-	assert!(rendered.contains("valid types: docs, test"));
+	// Declared types inherit the built-in vocabulary, so the help lists both.
+	assert!(rendered.contains("valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security, test"));
 }
 
 #[test]
@@ -3582,7 +3619,7 @@ fn load_change_signals_reject_unknown_object_type_with_valid_types_help() {
 		.unwrap_or_else(|| panic!("expected parse error"));
 	let rendered = error.to_string();
 	assert!(rendered.contains("invalid type `nope`"));
-	assert!(rendered.contains("valid types: security"));
+	assert!(rendered.contains("valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security, test"));
 }
 
 #[test]
@@ -3641,8 +3678,9 @@ fn load_change_signals_reject_unknown_group_object_type_with_valid_types_help() 
 		.err()
 		.unwrap_or_else(|| panic!("expected parse error"));
 	let rendered = error.to_string();
-	assert!(rendered.contains("target `sdk` has invalid type `docs`"));
-	assert!(rendered.contains("valid types: test"));
+	assert!(rendered.contains("target `sdk` has invalid type `nope`"));
+	// A group inherits the built-in vocabulary underneath its own types.
+	assert!(rendered.contains("valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security, test"));
 }
 
 #[test]
@@ -3719,7 +3757,11 @@ fn validate_configured_change_type_rejects_package_excluded_type() {
 	.err()
 	.unwrap_or_else(|| panic!("expected invalid type error"));
 	assert!(error.to_string().contains("invalid type `test`"));
-	assert!(error.to_string().contains("valid types: feat, fix"));
+	// `core` excludes `test`; every other inherited and declared type stays
+	// available, which is what keeps exclusion the narrowing mechanism.
+	assert!(error.to_string().contains(
+		"valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security"
+	));
 
 	let scalar = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("test")
 		.unwrap_or_else(|error| panic!("yaml parse: {error}"));
@@ -3736,7 +3778,9 @@ fn validate_configured_change_type_rejects_package_excluded_type() {
 			.to_string()
 			.contains("invalid scalar change type `test`")
 	);
-	assert!(scalar_error.to_string().contains("valid types: feat, fix"));
+	assert!(scalar_error.to_string().contains(
+		"valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security"
+	));
 }
 
 #[test]
@@ -6555,7 +6599,10 @@ fn parse_markdown_change_target_and_validation_helpers_cover_remaining_error_pat
 	let configuration = load_workspace_configuration(&root)
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 
-	let invalid_scalar = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("docs")
+	// The workspace configures `security` and `test`; `docs` is neither declared
+	// there nor unknown to monochange, because the built-in vocabulary is
+	// inherited. Use a key that exists nowhere.
+	let invalid_scalar = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("nope")
 		.unwrap_or_else(|error| panic!("yaml parse: {error}"));
 	let scalar_error = crate::parse_markdown_change_target(
 		&invalid_scalar,
@@ -6568,7 +6615,7 @@ fn parse_markdown_change_target_and_validation_helpers_cover_remaining_error_pat
 	assert!(
 		scalar_error
 			.to_string()
-			.contains("invalid scalar change type `docs`")
+			.contains("invalid scalar change type `nope`")
 	);
 	assert!(scalar_error.to_string().contains("valid types"));
 

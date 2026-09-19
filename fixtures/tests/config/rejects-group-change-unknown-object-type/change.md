@@ -1,6 +1,6 @@
 ---
 sdk:
-  type: docs
+  type: nope
 ---
 
 # invalid group object type
