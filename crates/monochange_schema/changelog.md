@@ -1052,3 +1052,74 @@ classification_enforced = false
 ```
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #699](https://github.com/monochange/monochange/pull/699)
+
+## monochange_schema [0.7.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.7.0) (2026-09-19)
+
+### 💥 Breaking Change
+
+#### Skip change classification on release pull requests and rename the `unknown` impact
+
+- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.
+
+- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `["release"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.
+- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.
+- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.
+
+```toml
+[changesets.classification]
+# Set to [] to classify every pull request.
+skip_labels = ["release"]
+```
+
+```bash
+monochange change classify --format json --label release
+```
+
+The published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)
+
+### 🚀 Feature
+
+#### Render each changeset once with every affected package
+
+One changeset can list several targets, and each target carries its own change type. Because every target shares the changeset body, a file that targeted one package as `breaking`, another as `feat`, and a third as `docs` previously wrote the same paragraph into all three sections. Each copy also listed only the packages that happened to route to that section, so no copy showed the whole change.
+
+`ReleaseNotesEntry.packages` is now `Vec<ReleaseNotePackage>` instead of `Vec<String>`. Each value pairs a package name with the `BumpSeverity` that package received, so a merged entry can report which package was major and which was minor. Construct the list with `ReleaseNotePackage::new(name, bump)`.
+
+```rust
+use monochange_core::BumpSeverity;
+use monochange_core::ReleaseNotePackage;
+
+let packages = vec![
+	ReleaseNotePackage::new("core", BumpSeverity::Major),
+	ReleaseNotePackage::new("cli", BumpSeverity::None),
+];
+```
+
+`ChangelogStyle` and `ReleaseNotesStyleOverrides` gain a `package_bump_symbols` field, so struct literals must add it.
+
+The section builder now merges entries that share a source changeset, summary, and details, keeps the entry in the configured section with the lowest `[changelog.sections.<id>].priority`, and appends every package to it. A change routed to a section above `[changelog.section_thresholds].ignored` still contributes its packages instead of disappearing. Entries without a source path are synthesized empty-update messages and are never merged, because two packages legitimately produce similar text.
+
+Package labels are prefixed with `🔴` major, `🟠` minor, `🟢` patch, or `⚪` none. `ChangelogStyle::rules()` reports the active setting.
+
+```toml
+[changelog.style]
+package_bump_symbols = false
+```
+
+The committed `monochange.schema.json` gains the `package_bump_symbols` and `packages` definitions. The durable `ReleaseNotesDocument<String>` artifact shape is unchanged, so providers that read release records and compare rendered entries keep working.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)
+
+### 🐛 Fixed
+
+#### Commit the command snapshot schema asset
+
+The generated schema asset set now includes `command-snapshot.schema.json` in both the canonical `crates/monochange_schema/schemas/` directory and the hosted `docs/src/schemas/` copy, plus a versioned `command-snapshot.v0.1.schema.json` during release preparation.
+
+`cargo xtask schema update`, `schema:check`, `schema:release:update`, and `schema:release:check` all maintain the new asset, and its `$id` is <https://monochange.github.io/monochange/schemas/command-snapshot.schema.json>.
+
+The asset is generated from the `monochange_snapshot` wire types, so it cannot drift from the document shape monochange accepts. Committed artifact fixtures and the schema asset inventory snapshot continue to describe the existing configuration and release-record kinds.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #705](https://github.com/monochange/monochange/pull/705) · _Related issues:_ [#707](https://github.com/monochange/monochange/issues/707), [#709](https://github.com/monochange/monochange/issues/709)
