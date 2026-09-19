@@ -44,7 +44,7 @@ jobs:
           echo "Resolved release tag: $TAG"
 
       - name: checkout current monochange cli
-        uses: actions/checkout@v7.0.1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.release_tag.outputs.tag }}
           fetch-depth: 0
@@ -82,7 +82,7 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
       - name: get crates oidc auth token
-        uses: rust-lang/crates-io-auth-action@v1.0.5 # v1
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
         id: crates-oidc
 
       - name: download release assets
@@ -112,7 +112,7 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
       - name: check publish readiness
-        uses: monochange/actions@v0.9.3 # v0
+        uses: monochange/actions@f78efec0be4a6bb96e2e859ed494ae5fa409c5f3 # v0.9.3
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
@@ -127,7 +127,7 @@ jobs:
           toolchain: stable
 
       - name: setup node for publish
-        uses: actions/setup-node@v7.0.0 # v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
 
@@ -137,7 +137,7 @@ jobs:
           version: 10
 
       - name: publish packages
-        uses: monochange/actions@v0.9.3 # v0
+        uses: monochange/actions@f78efec0be4a6bb96e2e859ed494ae5fa409c5f3 # v0.9.3
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:

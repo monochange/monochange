@@ -23,7 +23,7 @@ jobs:
       pull-requests: read
     steps:
       - name: checkout repository
-        uses: actions/checkout@v7.0.1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -34,7 +34,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: run changeset policy
-        uses: monochange/actions/changeset-policy@v0.9.3 # v0
+        uses: monochange/actions/changeset-policy@f78efec0be4a6bb96e2e859ed494ae5fa409c5f3 # v0.9.3
         with:
           setup-monochange: devenv shell monochange
           from: origin/main
