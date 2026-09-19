@@ -31,14 +31,23 @@ When you edit a template such as `.templates/cli-steps.t.md`, the changes propag
 
 ```toml
 [defaults]
+# Severity added to a dependent package when this package changes.
+# `bump_propagation` on a package or group overrides this floor.
 parent_bump = "patch"
+# Parsed and validated, but discovery reports private packages either way.
 include_private = false
+# Warn when group members carry different current versions.
 warn_on_group_mismatch = true
+# Conflicting explicit `version` entries across changesets: warn and pick the
+# highest (false, the default) or fail planning outright (true).
 strict_version_conflicts = false
+# Ecosystem for [package.*] tables that omit `type`.
 package_type = "cargo"
 
 [defaults.changelog]
+# `{{ path }}` is replaced with each package path.
 path = "{{ path }}/changelog.md"
+# `keep_a_changelog` or `monochange`.
 format = "keep_a_changelog"
 ```
 
@@ -61,14 +70,21 @@ format = "keep_a_changelog"
 [package.sdk-core]
 path = "crates/sdk_core"
 versioned_files = [
+	# A bare string infers the package ecosystem (`cargo` here).
 	"Cargo.toml",
+	# An explicit entry names the ecosystem, and can update another package's
+	# manifest when `name` identifies it.
 	{ path = "crates/sdk_core/extra.toml", type = "cargo" },
 ]
+# Skip the Git tag for this package.
 tag = false
+# Skip the provider release for this package.
 release = false
+# Default tag shape, rendering `sdk-core/v1.2.3`.
 version_format = "namespaced"
 
 [package.sdk-core.changelog]
+# Override the default changelog path and format for this package only.
 path = "crates/sdk_core/CHANGELOG.md"
 format = "monochange"
 ```
@@ -150,7 +166,7 @@ version_format = "{{ ecosystem }}/{{ name }}/v{{ version }}"
 
 Custom formats must include `{{ version }}`, render to valid Git tag names without whitespace or other invalid ref characters, and must not collide with another release owner for the same sample version. If several packages share a custom format, include `{{ name }}` so the generated tags remain unique.
 
-`version_source` controls where release planning reads the package's current release version from. The default `manifest` reads the version field from the package manifest. Set `version_source = "tag"` to resolve the baseline from the latest reachable release tag matching the owner's `version_format` — useful when the manifest carries no version, such as GitHub Actions repositories, or when the tag is the release identity:
+`version_source` controls where release planning reads the package's current release version from. The default `manifest` reads the version field from the package manifest. Set `version_source = "tag"` to resolve the baseline from the latest reachable release tag matching the owner's `version_format`. This is useful when the manifest carries no version, such as GitHub Actions repositories, or when the tag is the release identity:
 
 ```toml
 [package.web]
@@ -162,7 +178,7 @@ initial_version = "0.1.0"
 
 `initial_version` is the baseline used when no matching release tag exists yet; without it, a tag-versioned package with no tag produces a warning and no release target.
 
-`floating_tags` declares moving tag aliases that `tag-release` force-moves to every non-prerelease release tag — for example `v1.2`, `v1`, or `latest`:
+`floating_tags` declares moving tag aliases that `tag-release` force-moves to every non-prerelease release tag, such as `v1.2`, `v1`, or `latest`:
 
 ```toml
 [package.cli]
@@ -590,7 +606,7 @@ Typed manifest entries can update dependency sections and arbitrary string field
 
 ### Dependency prefixes
 
-Typed entries write internal dependency references with a range prefix. Set `prefix` on an entry to control it exactly — `"^"`, `"~"`, `">="`, `"="`, `"v"`, or `""` for a bare version:
+Typed entries write internal dependency references with a range prefix. Set `prefix` on an entry to control it exactly. Accepted values are `"^"`, `"~"`, `">="`, `"="`, `"v"`, or `""` for a bare version:
 
 ```toml
 versioned_files = [
@@ -605,7 +621,7 @@ Resolution order for the prefix:
 2. `[ecosystems.<type>] dependency_version_prefix` (see the `[ecosystems.*]` reference in [Ecosystems](ecosystems.md))
 3. the ecosystem default: `^` for npm, deno, and dart; `>=` for python; `v` for go; empty for cargo
 
-The prefix applies to internal dependency references only — the package's own `version` field is written without it. `format` entries ignore `prefix` and always write the bare version, and `regex` entries cannot set `prefix`. `monochange versions sync --strategy` uses its own fixed per-ecosystem prefixes and ignores `dependency_version_prefix`; see [Internal dependency versions](../reference/versions.md) for that table.
+The prefix applies to internal dependency references only. The package's own `version` field is written without it. `format` entries ignore `prefix` and always write the bare version, and `regex` entries cannot set `prefix`. `monochange versions sync --strategy` uses its own fixed per-ecosystem prefixes and ignores `dependency_version_prefix`; see [Internal dependency versions](../reference/versions.md) for that table.
 
 ### Format versioned files
 
@@ -926,43 +942,54 @@ Use `[source]` plus `[source.releases]` when you want command steps such as `Pub
 
 <!-- {=configurationGitHubSnippet} -->
 
-The `[source]` section configures provider integration for releases, pull requests, and changeset enforcement.
+The `[source]` section configures provider integration for releases, pull requests, and changeset enforcement. GitHub is the default provider when `provider` is omitted.
 
-For self-hosted instances, set `api_url` or `host` to your server's URL. These fields **must** use `https://`; insecure `http://` schemes are rejected because API tokens would be transmitted in cleartext.
+For self-hosted instances, set `api_url` or `host` to your server's URL. These fields must use `https://`. Insecure `http://` schemes are rejected because API tokens would be transmitted in cleartext.
 
 ```toml
 [source]
 provider = "github"
 owner = "ifiokjr"
 repo = "monochange"
-# api_url = "https://github.company.com/api/v3"  # optional: for GitHub Enterprise
+# Optional: GitHub Enterprise or a self-hosted instance.
+# api_url = "https://github.company.com/api/v3"
 
 [source.releases]
 enabled = true
+# Create the provider release as a draft.
 draft = false
+# Mark the provider release as a prerelease.
 prerelease = false
+# Render the release body from monochange notes.
 source = "monochange"
+# Restrict tag and publish operations to commits reachable from these branches.
 branches = ["main", "release/*"]
+# Refuse to tag from a non-matching branch.
 enforce_for_tags = true
+# Refuse to publish from a non-matching branch.
 enforce_for_publish = true
+# Allow release commits from any branch.
 enforce_for_commit = false
 changeset_context_timeout_seconds = 120
 
 [source.pull_requests]
 enabled = true
+# Head branch for the release PR.
 branch_prefix = "monochange/release"
 base = "main"
 title = "chore(release): prepare release"
 # Optional: override the release commit subject while keeping `title` for the
 # release PR title. When omitted, the commit subject falls back to `title`.
-# commit_subject = "🔖 chore(release): prepare release"
+# commit_subject = "chore(release): prepare release"
 labels = ["release", "automated"]
 auto_merge = false
 
 [changesets.affected]
 enabled = true
+# Fail the check when coverage is missing.
 required = true
 skip_labels = ["no-changeset-required"]
+# Explain the failure on the pull request.
 comment_on_failure = true
 changed_paths = ["crates/**", "packages/**", "npm/**", "skills/**"]
 ignored_paths = [
@@ -976,11 +1003,6 @@ ignored_paths = [
 [changesets.classification]
 # Labels that skip `monochange change classify` for the pull request.
 skip_labels = ["release"]
-
-name = "production"
-trigger = "release_pr_merge"
-release_targets = ["sdk"]
-requires = ["main"]
 ```
 
 <!-- {/configurationGitHubSnippet} -->
@@ -991,11 +1013,18 @@ These settings are parsed from config and document intended control points for d
 
 <!-- {=configurationEcosystemSettingsSnippet} -->
 
+Each key below is parsed and validated. `enabled`, `roots`, and `exclude` do not currently filter discovery, so treat them as declared intent rather than an active filter.
+
 ```toml
 [ecosystems.cargo]
 enabled = true
 roots = ["crates/*"]
 exclude = ["crates/experimental/*"]
+# Range operator written into internal Cargo dependency references.
+dependency_version_prefix = "^"
+# Extra files to version-stamp in matching packages.
+versioned_files = ["Cargo.toml"]
+# Configuring this replaces the built-in direct lockfile rewrite for Cargo.
 lockfile_commands = [{ command = "cargo generate-lockfile" }]
 
 [ecosystems.npm]
@@ -1005,6 +1034,7 @@ exclude = ["packages/legacy/*"]
 dependency_version_prefix = "^"
 versioned_files = ["**/packages/*/package.json"]
 lockfile_commands = [
+	# `cwd` is relative to the workspace root.
 	{ command = "pnpm install --lockfile-only", cwd = "packages/web" },
 ]
 
@@ -1018,11 +1048,13 @@ lockfile_commands = [{ command = "flutter pub get", cwd = "packages/mobile" }]
 
 [ecosystems.python]
 enabled = true
+# Without an explicit command, `uv.lock` uses `uv lock` and `poetry.lock` uses
+# `poetry lock --no-update`. Other lockfile names are skipped.
 lockfile_commands = [{ command = "uv lock" }]
 
 [ecosystems.go]
 enabled = true
-# monochange infers `go mod tidy` for go.mod / go.sum refreshes.
+# monochange infers `go mod tidy` for go.mod and go.sum refreshes.
 lockfile_commands = [{ command = "go mod tidy" }]
 ```
 
@@ -1053,6 +1085,8 @@ description = "Product release notes for app users"
 
 [changelog.sections.native]
 heading = "Native releases"
+# Lower priority renders first and wins when one changeset targets several
+# packages with different types.
 priority = 5
 
 [changelog.sections.app_features]
@@ -1066,6 +1100,7 @@ section = "native"
 [changelog.types.app_feature]
 bump = "minor"
 section = "app_features"
+# Routes every changeset using this type into the `user` stream.
 stream = "user"
 
 [changelog.outputs.user]
@@ -1077,10 +1112,11 @@ targets = ["app"]
 
 [source.releases]
 source = "monochange"
+# Publish the `user` output as the hosted release body.
 changelog_output = "user"
 ```
 
-This example makes `native` a major bump in the default stream and `app_feature` a minor bump in the user stream. A mobile app can use that distinction to require an app-store/native release for `native` changes while allowing an `app_feature` release through a patch system such as Shorebird.
+This example makes `native` a major bump in the default stream and `app_feature` a minor bump in the user stream. A mobile app can use that distinction to require an app-store release for `native` changes while letting an `app_feature` release ship through a patch system such as Shorebird.
 
 ### Configured sections and types extend the built-in set
 
@@ -1155,8 +1191,16 @@ Built-in section headings are plain text, such as `Features` and `Fixes`. Config
 
 ```toml
 [changelog.style]
+# `inline` (default), `blockquote`, `plain`, or `omit`.
 metadata_style = "inline"
+# Prefix each package label with a colored bump symbol.
 package_bump_symbols = true
+# `after_heading` (default) or `after_change`.
+package_label_placement = "after_heading"
+# `inline` (default), `badge`, or `omit`.
+package_label_style = "inline"
+# `blank_line` (default), `thematic_break`, or `none`.
+section_separator = "blank_line"
 ```
 
 You can also customize release-note rendering with a workspace-wide `[changelog]` table plus per-package or per-group changelog overrides.
@@ -1209,15 +1253,15 @@ Use a group id only when the change is intentionally owned by the whole group an
 
 Implementation notes:
 
-- `defaults.include_private` is parsed, but discovery behavior is still centered on the supported fixture-driven CLI commands documented here
-- `[ecosystems.*].enabled/roots/exclude` are parsed, but discovery still scans all supported ecosystems regardless of those settings
-- `defaults.strict_version_conflicts` controls whether conflicting explicit `version` entries across changesets warn-and-pick-highest (default) or fail planning outright
-- source automation expects `[source]` with provider release settings and release branch policy under `[source.releases]`, pull request settings under `[source.pull_requests]`, and affected-package policy settings under `[changesets.affected]`; GitHub remains the default provider
-- live GitHub release and release-request publishing uses `octocrab` with `GITHUB_TOKEN` / `GH_TOKEN`, falling back to the authenticated GitHub CLI credential via `gh auth token` when neither variable is set; GitLab and Gitea use direct HTTP APIs
-- release-request publishing still uses local `git` for branch, commit, and push operations before provider API updates when not in dry-run mode
-- changeset policy commands apply only to the GitHub provider and expect `[changesets.affected]`, a `changed_paths` command input, and reusable diagnostics for GitHub Actions consumption
-- supported `[[cli.<command>.steps]]` types are `Config`, `Validate`, `Discover`, `DisplayVersions`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `VerifyReleaseBranch`, `PublishRelease`, `PlaceholderPublish`, `PublishPackages`, `PlanPublishRateLimits`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, `ReleaseRecord`, `PublishReadiness`, `TagRelease`, and `Command`
-- see the [CLI step reference](../reference/cli-steps/00-index.md) for detailed per-step guidance, prerequisites, and composition examples
+- `[defaults].include_private` is parsed and validated, but discovery reports private packages either way. Rely on `include_private` only for release planning, not for filtering what `step discover` prints.
+- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated, but discovery still scans every supported ecosystem. A package found by discovery appears regardless of those settings.
+- `[defaults].strict_version_conflicts` controls conflicting explicit `version` entries across changesets. The default warns and picks the highest; setting it to `true` fails planning instead.
+- Source automation reads `[source]`, provider release settings under `[source.releases]`, pull request settings under `[source.pull_requests]`, and affected-package policy under `[changesets.affected]`. GitHub is the default provider.
+- Live GitHub release and release-request publishing uses `octocrab` with `GITHUB_TOKEN` or `GH_TOKEN`, falling back to the authenticated GitHub CLI credential from `gh auth token` when neither variable is set. GitLab and Gitea use direct HTTP APIs.
+- Release-request publishing uses local `git` for branch, commit, and push operations before provider API updates when not in dry-run mode.
+- Changeset policy commands apply only to the GitHub provider and expect `[changesets.affected]`, a `changed_paths` command input, and diagnostics formatted for GitHub Actions.
+- Supported `[[cli.<command>.steps]]` types are `Config`, `Validate`, `Discover`, `DisplayVersions`, `CreateChangeFile`, `PrepareRelease`, `CommitRelease`, `VerifyReleaseBranch`, `PublishRelease`, `PlaceholderPublish`, `PublishPackages`, `PlanPublishRateLimits`, `OpenReleaseRequest`, `CommentReleasedIssues`, `AffectedPackages`, `DiagnoseChangesets`, `RetargetRelease`, `ReleaseRecord`, `PublishReadiness`, `TagRelease`, and `Command`.
+- See the [CLI step reference](../reference/cli-steps/00-index.md) for per-step guidance, prerequisites, and composition examples.
 
 <!-- {/configurationCurrentStatus} -->
 
