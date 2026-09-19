@@ -3578,6 +3578,69 @@ fn validate_changelog_configuration_reports_invalid_toml_when_types_need_raw_fie
 }
 
 #[test]
+fn validate_changelog_configuration_rejects_unknown_excluded_types_for_packages_and_groups() {
+	let settings = raw_changelog_settings();
+	let package = |excluded: &[&str]| {
+		let mut package = package_definition("core", "crates/core");
+		package.excluded_changelog_types = excluded.iter().map(ToString::to_string).collect();
+		package
+	};
+	let group = |excluded: &[&str]| {
+		GroupDefinition {
+			id: "sdk".to_string(),
+			packages: vec!["core".to_string()],
+			package_max_bumps: BTreeMap::new(),
+			bump_propagation: None,
+			changelog: None,
+			changelog_include: GroupChangelogInclude::All,
+			excluded_changelog_types: excluded.iter().map(ToString::to_string).collect(),
+			empty_update_message: None,
+			release_title: None,
+			changelog_version_title: None,
+			versioned_files: Vec::new(),
+			tag: true,
+			release: true,
+			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+			floating_tags: Vec::new(),
+		}
+	};
+
+	// An inherited built-in type stays excludable even though the config never
+	// restates it, so neither target is rejected here.
+	crate::validate_changelog_configuration(
+		"",
+		&settings,
+		&[package(&["minor"])],
+		&[group(&["patch"])],
+	)
+	.unwrap_or_else(|error| panic!("inherited types must be excludable: {error}"));
+
+	let package_error =
+		crate::validate_changelog_configuration("", &settings, &[package(&["nope"])], &[])
+			.err()
+			.unwrap_or_else(|| panic!("expected package exclusion error"));
+	assert!(
+		package_error
+			.to_string()
+			.contains("package `core` excludes changelog type `nope`")
+	);
+
+	let group_error =
+		crate::validate_changelog_configuration("", &settings, &[], &[group(&["nope"])])
+			.err()
+			.unwrap_or_else(|| panic!("expected group exclusion error"));
+	assert!(
+		group_error
+			.to_string()
+			.contains("group `sdk` excludes changelog type `nope`")
+	);
+}
+
+#[test]
 fn load_change_signals_reject_unknown_scalar_type_with_valid_types_help() {
 	let root = fixture_path("config/rejects-change-unknown-type-configured");
 	let configuration = load_workspace_configuration(&root)
