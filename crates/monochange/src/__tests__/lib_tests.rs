@@ -2693,9 +2693,24 @@ fn change_command_sources_type_choices_from_workspace_configuration() {
 		.iter()
 		.find(|i| i.name == "type")
 		.unwrap_or_else(|| panic!("expected type input"));
+	// Declared types inherit the built-in vocabulary, so the CLI offers the
+	// merged, sorted set.
 	assert_eq!(
 		type_input.choices,
-		vec!["docs".to_string(), "test".to_string()]
+		vec![
+			"breaking".to_string(),
+			"change".to_string(),
+			"docs".to_string(),
+			"feat".to_string(),
+			"fix".to_string(),
+			"major".to_string(),
+			"minor".to_string(),
+			"none".to_string(),
+			"patch".to_string(),
+			"refactor".to_string(),
+			"security".to_string(),
+			"test".to_string(),
+		]
 	);
 
 	let error = Command::new("monochange")
@@ -2709,14 +2724,17 @@ fn change_command_sources_type_choices_from_workspace_configuration() {
 			OsString::from("--package"),
 			OsString::from("core"),
 			OsString::from("--type"),
-			OsString::from("security"),
+			OsString::from("nope"),
 			OsString::from("--reason"),
 			OsString::from("clarify migration guide"),
 		])
 		.expect_err("unknown configured type should be rejected by clap choices");
 	let rendered = error.to_string();
-	assert!(rendered.contains("invalid value 'security'"));
-	assert!(rendered.contains("[possible values: docs, test]"));
+	assert!(rendered.contains("invalid value 'nope'"));
+	assert!(rendered.contains(
+		"[possible values: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, \
+		 security, test]"
+	));
 }
 
 #[test]
@@ -3064,14 +3082,14 @@ fn add_change_file_rejects_unknown_change_type() {
 			.package_refs(&["core".to_string()])
 			.bump(BumpSeverity::Patch)
 			.reason("unknown type")
-			.change_type(Some("docs"))
+			.change_type(Some("nope"))
 			.build(),
 	)
 	.expect_err("unknown type should fail");
 	assert!(
 		error
 			.to_string()
-			.contains("uses unknown change type `docs`")
+			.contains("uses unknown change type `nope`")
 	);
 }
 

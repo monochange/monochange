@@ -103,7 +103,7 @@ fn change_cli_rejects_unknown_change_type_for_configured_target() {
 		.arg("--package")
 		.arg("core")
 		.arg("--type")
-		.arg("security")
+		.arg("nope")
 		.arg("--reason")
 		.arg("should fail")
 		.output()
@@ -111,10 +111,14 @@ fn change_cli_rejects_unknown_change_type_for_configured_target() {
 	assert!(!output.status.success());
 	let stderr = String::from_utf8_lossy(&output.stderr);
 	assert!(
-		stderr.contains("invalid value 'security'"),
+		stderr.contains("invalid value 'nope'"),
 		"unexpected stderr: {stderr}"
 	);
-	assert!(stderr.contains("[possible values: docs, test]"));
+	// Declared types inherit the built-in vocabulary.
+	assert!(stderr.contains(
+		"[possible values: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, \
+		 security, test]"
+	));
 }
 
 #[test]

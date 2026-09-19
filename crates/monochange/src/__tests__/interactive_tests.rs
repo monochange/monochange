@@ -274,9 +274,24 @@ fn build_selectable_targets_collects_configured_change_types_per_target() {
 		.find(|target| target.id == "core")
 		.unwrap_or_else(|| panic!("expected core target"));
 	assert_eq!(core.kind, TargetKind::Package);
+	// Declared types inherit the built-in vocabulary, so the prompt offers the
+	// merged, sorted set.
 	assert_eq!(
 		core.configured_types,
-		vec!["docs".to_string(), "test".to_string()]
+		vec![
+			"breaking".to_string(),
+			"change".to_string(),
+			"docs".to_string(),
+			"feat".to_string(),
+			"fix".to_string(),
+			"major".to_string(),
+			"minor".to_string(),
+			"none".to_string(),
+			"patch".to_string(),
+			"refactor".to_string(),
+			"security".to_string(),
+			"test".to_string(),
+		]
 	);
 }
 

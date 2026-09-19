@@ -4694,7 +4694,7 @@ fn expected_manifest_name(package_type: PackageType) -> Option<&'static str> {
 fn build_changelog_settings(raw: RawChangelogSettings) -> ChangelogSettings {
 	let RawChangelogSettings {
 		templates,
-		sections,
+		mut sections,
 		section_thresholds,
 		types: raw_types,
 		mut streams,
@@ -4725,27 +4725,50 @@ fn build_changelog_settings(raw: RawChangelogSettings) -> ChangelogSettings {
 		.entry(monochange_core::DEFAULT_CHANGELOG_STREAM.to_string())
 		.or_default();
 
-	if sections.is_empty() && types.is_empty() && templates.is_empty() {
-		let mut defaults = ChangelogSettings::defaults();
-		defaults.section_thresholds = section_thresholds;
-		defaults.streams = streams;
-		defaults.type_streams = type_streams;
-		defaults.outputs = outputs;
-		defaults.style = style;
-		defaults.release_notes = release_notes;
-		defaults
+	// A repository that declares any `[changelog.sections]` or
+	// `[changelog.types]` entry inherits the built-in sections and types
+	// underneath its own entries, with the declared entry winning on a key
+	// collision. Replacing the whole set instead silently drops the semantic
+	// aliases (`major`, `minor`, `patch`) and the stream types (`breaking`,
+	// `feat`, `fix`, and the rest) the moment a project customizes a single
+	// heading, which is not what adding one section or type implies. A package
+	// or group that genuinely needs a narrower vocabulary restricts it with
+	// `excluded_changelog_types`.
+	//
+	// `templates` stays replace-only: it is an ordered preference list, so a
+	// declared list has to win outright rather than append to the built-in one.
+	let defaults = ChangelogSettings::defaults();
+
+	// Sections merge first because a declared type may reference either its own
+	// section or a built-in one.
+	let sections = if sections.is_empty() {
+		defaults.sections.clone()
 	} else {
-		ChangelogSettings {
-			templates,
-			sections,
-			section_thresholds,
-			types,
-			streams,
-			type_streams,
-			outputs,
-			style,
-			release_notes,
-		}
+		let mut merged = defaults.sections.clone();
+		merged.append(&mut sections);
+		merged
+	};
+
+	ChangelogSettings {
+		templates: if templates.is_empty() {
+			defaults.templates
+		} else {
+			templates
+		},
+		sections,
+		section_thresholds,
+		types: if types.is_empty() {
+			defaults.types
+		} else {
+			let mut merged = defaults.types;
+			merged.extend(types);
+			merged
+		},
+		streams,
+		type_streams,
+		outputs,
+		style,
+		release_notes,
 	}
 }
 
@@ -4791,6 +4814,10 @@ fn validate_changelog_configuration(
 			MonochangeError::Config(format!("failed to parse monochange.toml: {error}"))
 		})?)
 	};
+	// Types and sections inherit the built-in set, so a declared type may name
+	// either a section it declares itself or a built-in one.
+	let built_in_sections = ChangelogSettings::defaults().sections;
+	let built_in_types = ChangelogSettings::defaults().types;
 	// Validate that each type declares a semantic bump and references an existing section
 	for (type_key, typ) in &changelog.types {
 		if config_document
@@ -4801,7 +4828,9 @@ fn validate_changelog_configuration(
 				"[changelog].types.{type_key} must declare a `bump` default (`none`, `patch`, `minor`, or `major`)"
 			)));
 		}
-		if !changelog.sections.contains_key(&typ.section) {
+		if !changelog.sections.contains_key(&typ.section)
+			&& !built_in_sections.contains_key(&typ.section)
+		{
 			return Err(MonochangeError::Config(format!(
 				"[changelog].types.{type_key} references section `{}` which does not exist in [changelog.sections]",
 				typ.section
@@ -4889,14 +4918,16 @@ fn validate_changelog_configuration(
 			)));
 		}
 	}
-	// Validate excluded_changelog_types reference existing type keys
+	// Validate excluded_changelog_types reference existing type keys. The
+	// vocabulary a target may exclude from is the merged set, so a built-in type
+	// stays excludable even when the repository never restates it.
 	for package in packages {
 		validate_append_changelog_format(
 			&format!("package `{}`", package.id),
 			package.changelog.as_ref(),
 		)?;
 		for excluded in &package.excluded_changelog_types {
-			if !changelog.types.contains_key(excluded) {
+			if !changelog.types.contains_key(excluded) && !built_in_types.contains_key(excluded) {
 				return Err(MonochangeError::Config(format!(
 					"package `{}` excludes changelog type `{}` which does not exist in [changelog.types]",
 					package.id, excluded
@@ -4910,7 +4941,7 @@ fn validate_changelog_configuration(
 			group.changelog.as_ref(),
 		)?;
 		for excluded in &group.excluded_changelog_types {
-			if !changelog.types.contains_key(excluded) {
+			if !changelog.types.contains_key(excluded) && !built_in_types.contains_key(excluded) {
 				return Err(MonochangeError::Config(format!(
 					"group `{}` excludes changelog type `{}` which does not exist in [changelog.types]",
 					group.id, excluded
