@@ -28,7 +28,10 @@ fn setup_fixture(relative: &str) -> TempDir {
 	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	copy_directory(&fixture_path(relative), root);
-	git(root, &["init"]);
+	// `tag-release` verifies the ref is reachable from a configured release
+	// branch, so the branch name must be pinned rather than inherited from the
+	// machine's `init.defaultBranch`.
+	git(root, &["init", "--initial-branch", "main"]);
 	git(root, &["config", "user.name", "monochange-tests"]);
 	git(
 		root,
