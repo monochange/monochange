@@ -4,6 +4,117 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
+
+### 🚀 Feature
+
+#### Report a break against main separately from the release verdict
+
+- `decision.release_impact` reports the compatibility impact measured between the package's latest release and the candidate. A pull request that only changes an API the latest release never contained now reads `compatibility_impact: breaking` with `release_impact: additive`.
+- `decision.proposed_changeset_bump` and `decision.enforceable_minimum` are capped by the release comparison, so a modeled finding can no longer propose a bump higher than the release-relative bump for the same package. Nobody holding the latest release can observe a break in an item that the release comparison does not show as changed.
+- Unmodeled findings stay uncapped. They are the safety floor for a surface the analyzers cannot model, and the release comparison cannot refute them.
+- `decision.release_floor` reports the accumulated unreleased bump without inheriting a break that only exists against the default branch.
+- The classification report contract advances to `schema_version` `0.2`: `decision.release_impact` is new, and `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.release_floor` can be lower than in `0.1` for the same pull request.
+
+```json
+{
+	"compatibility_impact": "breaking",
+	"release_impact": "additive",
+	"proposed_changeset_bump": "minor",
+	"release_floor": "minor"
+}
+```
+
+No configuration change is required. Re-run `monochange change classify` to pick up the release-relative verdict.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #712](https://github.com/monochange/monochange/pull/712)
+
+#### Skip change classification on release pull requests and rename the `unknown` impact
+
+- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.
+
+- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `["release"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.
+- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.
+- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.
+
+```toml
+[changesets.classification]
+# Set to [] to classify every pull request.
+skip_labels = ["release"]
+```
+
+```bash
+monochange change classify --format json --label release
+```
+
+The published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)
+
+### 🐛 Fixed
+
+#### Generate the schema version list on the docs reference page
+
+`docs/src/reference/schemas.md` listed the current and versioned schema URLs by hand, so every new contract version needed a manual edit and the page could drift from what is actually hosted.
+
+The version list is now generated from the committed versioned schema assets. `scripts/schema-versions.ts` reads `docs/src/schemas/`, groups the assets by family, and keeps only versions on the breaking axis: while a family's major version is `0` every minor bump may break consumers, so each `0.N` is published, and from `1.0` onward only `N.0` is. Git tags are deliberately not the source: not every schema family is tagged, and CI checks out shallowly where tags are absent entirely.
+
+The script is wired into the docs through an `[data]` entry in `mdt.toml`, so `mdt update` and `docs:update` regenerate the page and `mdt check` fails if it drifts.
+
+Two supporting changes were needed to keep `mdt check` green after `dprint fmt`:
+
+- `.templates/` is excluded from dprint. dprint's markdown formatter treats jinja tags as ordinary prose, reflowing them onto adjacent lines and inserting blank lines after them, which mdt then renders into consumer blocks.
+- Provider blocks that document literal `{{ ... }}` or GitHub Actions `${{ ... }}` syntax are wrapped in `{% raw %}...{% endraw %}`. Adding any `[data]` entry turns on template rendering for every provider block, so without the wrapper minijinja renders those documented examples down to empty strings, and `mdt check` still passes on the emptied result. The wrappers are byte-neutral, so no rendered page content changed.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #705](https://github.com/monochange/monochange/pull/705) · _Related issues:_ [#707](https://github.com/monochange/monochange/issues/707), [#709](https://github.com/monochange/monochange/issues/709)
+
+#### Follow the rmcp 3.4 rename from ServerInfo to ServerConfig
+
+The MCP server implements `ServerHandler::get_info` with the type alias `rmcp::model::ServerInfo`, which rmcp 3.4 deprecates in favor of `ServerConfig`. Because `monochange run release --commit` re-locks dependencies before the pre-merge lint, any prepared release now compiles against rmcp 3.4 and the deprecated alias failed `lint:clippy` under `-D warnings`.
+
+The implementation and its test now name `ServerConfig` directly, which is the same type under the non-deprecated name. No MCP tool, response shape, or serialized field changed.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #708](https://github.com/monochange/monochange/pull/708)
+
+#### Update rustls to clear RUSTSEC-2026-0285
+
+`cargo deny check` began failing with a newly published advisory against the HTTP client stack:
+
+```text
+error[vulnerability]: TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries
+    ID: RUSTSEC-2026-0285
+    Solution: Upgrade to >=0.23.45
+```
+
+`rustls` is reached through `hyper-rustls` and `octocrab`, which monochange uses for source-provider API calls. The lockfile now pins the patched release. No monochange code changes; this is a dependency update only.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #705](https://github.com/monochange/monochange/pull/705) · _Related issues:_ [#707](https://github.com/monochange/monochange/issues/707), [#709](https://github.com/monochange/monochange/issues/709)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### Correct invalid configuration examples and tighten documentation prose
+
+Several documented configuration examples did not parse, and the skill's migration guidance showed before-and-after commands that were identical to each other.
+
+Examples that were wrong and are now corrected:
+
+- `[ecosystems.*].lockfile_commands` was documented as a list of bare strings in the skill's `configuration.md`, `examples/quickstart.md`, and `examples/migration.md`. Every entry is a table with a `command` field, so the documented form failed with `invalid type: string, expected struct LockfileCommandDefinition`. The skill examples now use the table form.
+- The GitHub automation example ended with an orphaned `name`, `trigger`, `release_targets`, and `requires` fragment after `[changesets.classification]`. None of those keys exist in `monochange.toml`, and the fragment silently parsed as nothing because it sat under the wrong table. It is removed from the shared template and from every generated copy.
+- The changelog section threshold field was documented as `collapsed`; the real key is `collapse`, and `ignored` must be at least as large as it.
+- The changelog style guide listed `heading`, `rule`, `inline`, and `plain` as `section_separator`, `package_label_placement`, and `package_label_style` values. The real values are `blank_line`, `thematic_break`, `none`, `after_heading`, `after_change`, `badge`, and `omit`.
+- The publishing example set `trusted_publishing = true` and then opened `[ecosystems.npm.publish.trusted_publishing]` in the same document, which is a duplicate key. `trusted_publishing` is a boolean or a table, so the examples now show each form separately.
+- The publish workflow example bound `format`, `mode`, `package`, `ci`, `group`, and `ecosystem` inputs that the command never declared, which failed validation with `inherits input ... but the command does not declare it`.
+- The release PR example used `OpenReleaseRequest` without configuring `[source]`, which validation rejects.
+
+Prose changes: prose em dashes are gone from the book, the skill, and the repository readmes; `commands.md` now shows real command-path migrations instead of no-op examples; and the configuration reference gained annotated examples for package fields, version formats, floating tags, versioned files, changelog style, group filters, and publish policy.
+
+`[ecosystems.*].enabled`, `roots`, and `exclude` are still parsed without filtering discovery, and `[defaults].include_private` still does not filter what `step discover` reports. Those notes are now stated as observed behavior rather than left ambiguous.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #716](https://github.com/monochange/monochange/pull/716)
+
+</details>
+
 ## [0.13.0](https://github.com/monochange/monochange/releases/tag/v0.13.0) (2026-09-13)
 
 ### 🚀 Feature
