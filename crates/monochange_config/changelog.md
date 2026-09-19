@@ -4,6 +4,92 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
+
+### 🚀 Feature
+
+#### Skip change classification on release pull requests and rename the `unknown` impact
+
+- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.
+
+- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `["release"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.
+- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.
+- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.
+
+```toml
+[changesets.classification]
+# Set to [] to classify every pull request.
+skip_labels = ["release"]
+```
+
+```bash
+monochange change classify --format json --label release
+```
+
+The published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)
+
+### 🐛 Fixed
+
+#### Honor `changelog = false` on a package that also inherits a changelog default
+
+A package-level `changelog = false` was ignored whenever `[defaults.changelog]` configured a path pattern such as `"{{ path }}/changelog.md"`. `resolve_for_package` returns `None` both for a disabled definition and for one it cannot resolve, and the package resolver treated every `None` as "fall back to the default", so the inherited pattern was applied anyway:
+
+```toml
+[defaults]
+package_type = "cargo"
+changelog = "{{ path }}/changelog.md"
+
+[package.opted-out]
+path = "crates/opted-out"
+changelog = false # previously ignored
+```
+
+This made a package unable to opt out of an inherited changelog. In a repository where a version group also renders its changelog to that package's default path, the two owners collided and release planning failed with:
+
+```text
+changelog outputs `default` and `default` both render to `crates/opted-out/changelog.md`; configure unique output paths
+```
+
+The resolver now consults the existing disabled check before falling back to the workspace default, matching how group changelog definitions are already resolved. `changelog = false` on a package disables its changelog even when a defaults pattern is configured, and the default still applies to packages that do not declare their own changelog.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #705](https://github.com/monochange/monochange/pull/705) · _Related issues:_ [#707](https://github.com/monochange/monochange/issues/707), [#709](https://github.com/monochange/monochange/issues/709)
+
+#### Inherit built-in changelog types under configured sections and types
+
+Declaring any `[changelog.sections]` or `[changelog.types]` entry replaced monochange's built-in section and type set outright instead of extending it. A repository that customized a single heading silently lost `minor`, `patch`, and every stream type it did not restate:
+
+```toml
+[changelog.types.app_feature]
+bump = "minor"
+section = "app_features"
+```
+
+With that table, the built-in `fix` type stopped resolving, so a changeset written as `core: fix` failed with a message listing only `app_feature`:
+
+```text
+config error: failed to parse .changeset/change.md: target `core` has invalid scalar change type `fix`; valid types: app_feature
+```
+
+The message made `fix` look like something monochange had never supported, rather than a key the merge had dropped. Configuring sections alone was worse: a repository that declared only `[changelog.sections]` had no types at all and every changeset failed with `no configured types are available for this target`.
+
+##### After
+
+`[changelog.sections]` and `[changelog.types]` add to the built-in vocabulary. A declared key overrides the built-in entry of the same name and every other built-in key stays available:
+
+```toml
+[changelog.types.app_feature]
+bump = "minor"
+section = "app_features"
+```
+
+`core: fix` still resolves under that table, the CLI and interactive prompts offer the merged set, and a type may reference either a declared section or a built-in one. Per-package and per-group `excluded_changelog_types` remain the way to narrow the vocabulary for a target, including for inherited types.
+
+`[changelog.templates]` is unchanged: it stays an ordered preference list, so declaring templates replaces the built-in list rather than appending to it.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #715](https://github.com/monochange/monochange/pull/715) · _Closed issues:_ [#714](https://github.com/monochange/monochange/issues/714)
+
 ## [0.13.0](https://github.com/monochange/monochange/releases/tag/v0.13.0) (2026-09-13)
 
 ### 🚀 Feature
