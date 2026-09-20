@@ -12,7 +12,7 @@
 
 <!-- {=releaseBumpPropagationReadme} -->
 
-Dependency-driven version bumps are declarative too. Packages and groups declare what their own changes mean for dependents with `bump_propagation`: `"inherit"` matches the source's bump (optionally clamped by `bump_propagation_max`), and fixed severities (`none`/`patch`/`minor`/`major`) act as floors. Resolution is most-specific-first (package beats group beats defaults), so one kit core package can bring breaking changes to every dependent the moment upstream does — without hand-authoring dependent bumps.
+Dependency-driven version bumps are declarative too. Packages and groups declare what their own changes mean for dependents with `bump_propagation`: `"inherit"` matches the source's bump (optionally clamped by `bump_propagation_max`), and fixed severities (`none`/`patch`/`minor`/`major`) act as floors. Resolution is most-specific-first (package beats group beats defaults), so a breaking change in one core package can reach every dependent without hand-authoring a dependent bump.
 
 <!-- {/releaseBumpPropagationReadme} -->
 

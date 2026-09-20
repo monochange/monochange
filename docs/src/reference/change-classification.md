@@ -22,32 +22,58 @@ The candidate is a tree object created by `git merge-tree --write-tree`. monocha
 
 Each package has a `decision` object with these fields:
 
-| Field                   | Meaning                                                                           |
-| ----------------------- | --------------------------------------------------------------------------------- |
-| `compatibilityImpact`   | `breaking`, `additive`, `compatible`, or `unknown` for the current pull request   |
-| `proposedChangesetBump` | The highest current finding: `major`, `minor`, `patch`, or `none`                 |
-| `enforceableMinimum`    | The highest bump supported by high-confidence evidence                            |
-| `releaseFloor`          | The highest bump found between the latest release and the candidate               |
-| `confidence`            | Confidence of the finding that determines `proposedChangesetBump`                 |
-| `completeness`          | Whether the analyzer claims `complete`, `partial`, or `unsupported` coverage      |
-| `reviewRequired`        | Whether the proposal needs human or agent review before it becomes release intent |
-| `findingIds`            | Stable identifiers for the findings that determine the proposal                   |
+| Field                     | Meaning                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `compatibility_impact`    | `breaking`, `additive`, `compatible`, or `unmodeled` between the default branch and the candidate |
+| `release_impact`          | The same verdict between the latest release and the candidate; absent when no release tag matched |
+| `proposed_changeset_bump` | The highest current finding after the release cap: `major`, `minor`, `patch`, or `none`           |
+| `enforceable_minimum`     | The highest bump supported by high-confidence evidence, after the same release cap                |
+| `release_floor`           | The highest bump found between the latest release and the candidate                               |
+| `confidence`              | Confidence of the finding that determines `proposed_changeset_bump`                               |
+| `completeness`            | Whether the analyzer claims `complete`, `partial`, or `unsupported` coverage                      |
+| `review_required`         | Whether the proposal needs human or agent review before it becomes release intent                 |
+| `finding_ids`             | Stable identifiers for the findings that determine the proposal                                   |
 
-`proposedChangesetBump` describes the current pull request. `releaseFloor` describes the complete unreleased interval. A pull request can propose `patch` while the release floor is `major` because an earlier merged pull request introduced the breaking change.
+`compatibility_impact` describes the default-branch comparison, so it also sees breaks against an API the default branch has not released yet. `release_impact` describes the same candidate against the package's latest release. When a release comparison is analyzed, a modeled finding cannot propose a bump higher than the release-relative bump for the package, because nobody holding the latest release can observe a break in an item that release never shipped. A pull request that refines an unreleased API therefore reports `compatibility_impact: breaking` with `release_impact: additive` and a `minor` proposal instead of an inflated `major`. Unmodeled findings stay uncapped: they are the review floor for surfaces the analyzers cannot model, and the release comparison cannot refute them. `release_floor` still reports the complete unreleased interval, so a pull request can propose `patch` while the release floor is `major` because an earlier merged pull request introduced the breaking change.
 
-`none` is conclusive only when `completeness` is `complete` and `reviewRequired` is `false`. A changed package without modeled semantic evidence receives a low-confidence `patch` proposal instead of a false `none` result. A decision is also complete when every current finding is complete. A high-confidence `major` finding makes the bump decision complete even when another analyzer is partial because no unmodeled finding can require a higher bump.
+`none` is conclusive only when `completeness` is `complete` and `review_required` is `false`. A changed package without modeled semantic evidence receives a low-confidence `patch` proposal instead of a false `none` result. A decision is also complete when every current finding is complete. A high-confidence `major` finding makes the bump decision complete even when another analyzer is partial because no unmodeled finding can require a higher bump.
 
 The package-level `action` is `create`, `update`, `keep`, `review`, or `no_changeset`. The report includes packages targeted only by a pending changeset and marks them `review`; a changeset can intentionally describe a consumer-facing effect implemented in another package, so monochange does not assume that unmatched intent is stale. Public dependency propagation retains the dependent package's release owner, comparisons, and existing changesets.
 
+## Skipping a pull request
+
+Some pull requests have no pending work to classify. The release pull request monochange opens only bumps versions and deletes consumed changesets, so every package would report the `unmodeled` fallback and bury the real signal.
+
+Configure `[changesets.classification].skip_labels` and pass the pull request labels with `--label`:
+
+```toml
+[changesets.classification]
+skip_labels = ["release"]
+```
+
+```bash
+monochange change classify --format json --label release
+```
+
+When any configured label is present, the report sets `skipped: true`, analyzes no packages, names the matched labels in `matched_skip_labels`, and exits successfully. The recommended bump is `none`. Set `skip_labels = []` to classify every pull request.
+
 ## Findings
 
-Each finding records its `ruleId`, API surface, change kind, compatibility impact, bump, confidence, analyzer id, engine and version, coverage note, optional fallback reason, source location, before and after signatures, and comparison membership. Markdown and text reports print the evidence directly below each finding so pull request comments retain the same provenance as JSON.
+Each finding records its `rule_id`, API surface, change kind, compatibility impact, bump, confidence, analyzer id, engine and version, coverage note, optional fallback reason, source location, before and after signatures, and comparison membership. Markdown and text reports print the evidence directly below each finding so pull request comments retain the same provenance as JSON.
+
+`unmodeled` means the change is real but sits outside the public surface the analyzer models, so no compatibility verdict applies. The package is supported; only that file change is outside the model. A changed package with no modeled finding receives the low-confidence `monochange/unclassified-source` fallback, which proposes `patch` and requires review because no analyzer can rule out a break.
 
 Identical evidence found in several comparisons shares one finding and lists every comparison. If the same item has different before or after signatures across the pull-request and release intervals, monochange emits distinct comparison-qualified finding ids so that an agent never applies one interval's signature evidence to another interval.
 
 monochange compares package manifests at both endpoints. Adding or removing a package produces a `monochange/package-lifecycle` finding with `complete` coverage and high confidence. Removing a package proposes `major`, even when the package has no modeled public symbols. Adding one proposes `minor`.
 
 The built-in Cargo, JavaScript, Deno, and Dart source analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. Cargo packages can opt into a cargo-semver-checks matrix for stronger Rust evidence.
+
+## CLI command-surface findings
+
+Packages that register a CLI under `[package.<id>].cli` get their command surface classified automatically. monochange diffs the committed baseline in `.monochange/cli-snapshots/<name>.json` against a fresh capture from the configured snapshot command and appends findings with `surface: "cli"`. Removed commands, options, or positionals and value narrowing are breaking and propose `major`; additions are additive and propose `minor`; description-only changes are compatible. See [package CLI registration](package-cli-registration.md).
+
+Skip the comparison with `--skip-cli-snapshots` or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`.
 
 ### TypeScript declaration compatibility
 
@@ -69,7 +95,7 @@ The analyzer classifies evidence as follows:
 | Removed entrypoint, export, or non-assignable consumer contract          | `breaking`   | `major`       |
 | Added entrypoint/export, overload, optional member, or input capability  | `additive`   | `minor`       |
 | Changed source with an equivalent or consumer-compatible declaration API | `compatible` | `none`        |
-| Unresolved config, wildcard export, generic/nominal identity, or failure | `unknown`    | `patch`       |
+| Unresolved config, wildcard export, generic/nominal identity, or failure | `unmodeled`  | `patch`       |
 
 Complete TypeScript evidence requires `node` and a locally resolvable `typescript` package. Install TypeScript and the package's dependencies in the workspace before classification. monochange reports the exact compiler version in `finding.analyzer.version`.
 
@@ -139,13 +165,16 @@ Markdown output is intended for terminal output, pull request comments, and job 
 monochange change classify --format markdown --dependency-propagation public
 ```
 
-JSON is the stable agent and automation interface. The top-level `schemaVersion` changes when the JSON contract changes:
+JSON is the stable agent and automation interface. The top-level `schema_version` changes when the JSON contract changes:
+
+- **0.2** adds `decision.release_impact` and caps `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.release_floor` with the release comparison.
+- **0.1** is the first contract published by the `monochange_classification` crate: snake_case keys, `unmodeled` instead of `unknown`, and the top-level `skipped`, `summary`, and `matched_skip_labels` fields.
 
 ```bash
 monochange change classify --format json --dependency-propagation public
 ```
 
-`monochange changeset validate --api` fails only when a pending changeset is lower than `enforceableMinimum`. `--strict` compares pending changesets with `proposedChangesetBump`, including partial and medium-confidence evidence.
+`monochange changeset validate --api` fails only when a pending changeset is lower than `enforceable_minimum`. `--strict` compares pending changesets with `proposed_changeset_bump`, including partial and medium-confidence evidence.
 
 ```bash
 monochange changeset validate --api --format markdown
@@ -158,15 +187,14 @@ The `monochange_classify_changes` MCP tool returns the same report under its `re
 
 Release comparison needs the relevant tags and history. A shallow checkout can make the latest release unavailable or produce an incomplete merge base. CI jobs that publish classification reports fetch the default branch and tags before running the command.
 
-Pull request comments from forked repositories can lack write permission. A classification job can always write the Markdown report to the job summary and expose it as an output even when the provider refuses the comment.
+Creating or updating the pull request comment needs the `pull-requests: write` scope. With only `issues: write` the API returns `403 Resource not accessible by integration`, and the action warns instead of publishing the comment; fork pull requests receive a read-only token, which produces the same warning. A classification job can always write the Markdown report to the job summary and expose it as an output even when the provider refuses the comment.
 
 The [`change-classification` GitHub Action](https://github.com/monochange/actions/tree/main/change-classification) runs the canonical JSON command, writes a job summary, and creates or updates one marker comment:
 
 ```yaml
 permissions:
   contents: read
-  issues: write
-  pull-requests: read
+  pull-requests: write
 
 steps:
   - uses: actions/checkout@v6
@@ -183,7 +211,7 @@ steps:
       dependency-propagation: public
 ```
 
-Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`. The action accepts every report with classification `schemaVersion` 1 or newer.
+Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`. The action accepts every report with classification `schema_version` `0.1` or newer. The evidence fields the action reads (packages, decisions, findings) are stable across those schema versions.
 
 For complete TypeScript evidence, install the repository dependencies before this step. For configured Rust target cells, install those targets before the action. Keep the workflow on `pull_request`; the analyzer may execute changed build scripts and procedural macros. Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary.
 

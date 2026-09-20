@@ -22,10 +22,22 @@ The human renderer is designed for interactive terminal runs:
 - configuration loading and validation report their active phase before work begins
 - step labels use each step's `name = "..."` value when present, then fall back to the built-in step kind
 - long-running steps show a delayed spinner so short steps do not flicker
-- command stdout and stderr stream live under the active step
+- command stdout and stderr stream under the active step: the step name is written once as a block header, then every captured line is indented beneath it
+- stdout and stderr interleave in arrival order without stream tags; use `--progress-format json` when a consumer must tell the two streams apart
 - completed `PrepareRelease` and `DisplayVersions` steps print per-phase timings so slow phases are visible without a separate trace
 
-The same events become complete, newline-terminated records when stderr is captured or monochange runs in CI. Lint and publish operations share the workflow reporter, so a nested operation cannot create a second spinner or append text to an active line.
+Captured command output looks like this, with the step named once instead of on every line:
+
+```text
+▶ [2/7] format release files (Command)
+▶ [2/7] format release files (Command) — running command `devenv tasks run format`
+  │ format release files
+  │   • Validating lock
+  │   • Validating lock in 2.35ms
+✔ [2/7] format release files (Command) 398ms
+```
+
+The same events become complete, newline-terminated records when stderr is captured or monochange runs in CI. Lint and publish operations share the workflow reporter, so a nested operation cannot create a second spinner or append text to an active line. Publish progress uses the same symbols, colors, and ASCII fallback as workflow progress.
 
 Built-in commands already attach descriptive step names such as `prepare release`, `publish release`, and `open release request`. Custom commands can override those names per step.
 

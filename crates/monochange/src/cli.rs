@@ -293,6 +293,28 @@ pub(crate) fn build_command_with_cli(
 						.value_name("COMMAND")
 						.num_args(0..)
 						.help("Optional command path to render"),
+				)
+				.arg(
+					Arg::new("package")
+						.long("package")
+						.value_name("PACKAGE")
+						.help(
+							"Capture the configured cli snapshot for this package instead of the monochange surface",
+						),
+				)
+				.arg(
+					Arg::new("save")
+						.long("save")
+						.action(ArgAction::SetTrue)
+						.help(
+							"Write the captured snapshot as the committed baseline under .monochange/cli-snapshots/",
+						),
+				)
+				.arg(
+					Arg::new("list")
+						.long("list")
+						.action(ArgAction::SetTrue)
+						.help("List registered package clis and their baseline status"),
 				),
 		)
 		.subcommand(
@@ -390,8 +412,10 @@ fn build_classify_subcommand() -> Command {
 		)
 		.arg(classification_release_arg())
 		.arg(classification_package_arg())
+		.arg(classification_label_arg())
 		.arg(classification_detection_level_arg())
 		.arg(classification_include_unchanged_arg())
+		.arg(classification_skip_cli_snapshots_arg())
 		.arg(classification_format_arg())
 		.arg(classification_output_arg())
 		.arg(classification_dependency_propagation_arg())
@@ -419,8 +443,10 @@ pub(crate) fn build_api_subcommand() -> Command {
 				)
 				.arg(classification_release_arg())
 				.arg(classification_package_arg())
+				.arg(classification_label_arg())
 				.arg(classification_detection_level_arg())
 				.arg(classification_include_unchanged_arg())
+				.arg(classification_skip_cli_snapshots_arg())
 				.arg(classification_format_arg())
 				.arg(classification_output_arg())
 				.arg(classification_dependency_propagation_arg()),
@@ -458,6 +484,7 @@ pub(crate) fn build_changeset_subcommand() -> Command {
 				.arg(classification_package_arg())
 				.arg(classification_detection_level_arg())
 				.arg(classification_include_unchanged_arg())
+				.arg(classification_skip_cli_snapshots_arg())
 				.arg(
 					Arg::new("strict")
 						.long("strict")
@@ -499,6 +526,21 @@ fn classification_include_unchanged_arg() -> Arg {
 		.long("include-unchanged")
 		.action(ArgAction::SetTrue)
 		.help("Include packages without findings")
+}
+
+fn classification_label_arg() -> Arg {
+	Arg::new("label")
+		.long("label")
+		.value_name("LABEL")
+		.action(ArgAction::Append)
+		.help("Pull request label to compare against [changesets.classification].skip_labels; repeat to pass several")
+}
+
+fn classification_skip_cli_snapshots_arg() -> Arg {
+	Arg::new("skip-cli-snapshots")
+		.long("skip-cli-snapshots")
+		.action(ArgAction::SetTrue)
+		.help("Skip registered cli command-surface comparisons; MONOCHANGE_SKIP_CLI_SNAPSHOTS=1 also skips them")
 }
 
 fn classification_output_arg() -> Arg {
@@ -1456,6 +1498,75 @@ package config first, then ecosystem config, then the ecosystem default. Use \
 
 pub(crate) fn current_dir_or_dot() -> PathBuf {
 	std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+}
+
+/// Build classification options from the parsed `change classify`,
+/// `api diff`, or `changeset validate --api` arguments.
+///
+/// # Errors
+///
+/// Returns an error for unsupported format, detection-level, or
+/// dependency-propagation values.
+pub fn classify_options_from_matches(
+	matches: &clap::ArgMatches,
+) -> monochange_core::MonochangeResult<monochange_classification::ClassifyOptions> {
+	let format = matches
+		.get_one::<String>("format")
+		.map_or("text", String::as_str);
+	let dependency_propagation = matches
+		.get_one::<String>("dependency-propagation")
+		.map_or("none", String::as_str);
+
+	Ok(monochange_classification::ClassifyOptions {
+		base: matches.get_one::<String>("base").cloned(),
+		head: matches
+			.get_one::<String>("head")
+			.cloned()
+			.unwrap_or_else(|| "HEAD".to_string()),
+		release: matches.get_one::<String>("release").cloned(),
+		packages: matches
+			.get_many::<String>("package")
+			.into_iter()
+			.flatten()
+			.cloned()
+			.collect(),
+		// patch-coverage:ignore-start -- clap restricts this value before extraction; parser success and direct error paths are covered separately, while llvm-cov attributes the propagated `?` to this call site.
+		detection_level: monochange_classification::parse_detection_level(
+			matches
+				.get_one::<String>("detection-level")
+				.map_or("signature", String::as_str),
+		)?,
+		// patch-coverage:ignore-end
+		include_unchanged: matches.get_flag("include-unchanged"),
+		strict: matches
+			.try_get_one::<bool>("strict")
+			.ok()
+			.flatten()
+			.copied()
+			.unwrap_or(false),
+		skip_cli_snapshots: monochange_classification::skip_cli_snapshots_for(
+			matches.get_flag("skip-cli-snapshots"),
+			std::env::var(monochange_classification::SKIP_CLI_SNAPSHOTS_ENV)
+				.ok()
+				.as_deref(),
+		),
+		format: monochange_classification::ClassificationFormat::parse(format)
+			.map_err(monochange_core::MonochangeError::Config)?,
+		output: matches.get_one::<String>("output").map(PathBuf::from),
+		// Only the classification-producing subcommands declare `--label`;
+		// `changeset validate` shares this parser without the skip policy.
+		labels: matches
+			.try_get_many::<String>("label")
+			.ok()
+			.flatten()
+			.into_iter()
+			.flatten()
+			.cloned()
+			.collect(),
+		dependency_propagation: monochange_classification::parse_dependency_propagation(
+			dependency_propagation,
+		)?,
+	})
 }
 
 #[cfg(test)]

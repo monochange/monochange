@@ -173,7 +173,7 @@ These are common commands for repositories using monochange. With the current CL
 <!-- {/projectCapabilityMatrix} -->
 
 <!-- {@projectGitHubAutomationOverview} -->
-
+{% raw %}
 monochange can promote one prepared release into several source-provider automation flows without changing the underlying release-plan model.
 
 - `monochange run release --dry-run --format json` refreshes the cached manifest and shows downstream automation data, including authored changesets plus linked release context metadata
@@ -186,11 +186,11 @@ monochange can promote one prepared release into several source-provider automat
 - changelog templates can render linked change owners, review requests, commits, and closed issues through `{{ context }}` or fine-grained metadata variables
 - `monochange step affected-packages --format json --verify --changed-paths ...` evaluates pull-request changeset policy from CI-supplied paths and labels without requiring a config-defined wrapper command
 - `monochange step diagnose-changesets --format json` shows all discovered changeset context or restricts to explicit inputs
-
+{% endraw %}
 <!-- {/projectGitHubAutomationOverview} -->
 
 <!-- {@projectTagReleaseJsonTagsMap} -->
-
+{% raw %}
 When a post-merge workflow needs to trigger follow-up release work, prefer `monochange step tag-release --from HEAD --format json` and read the release tag by package or group id from the top-level `tags` object:
 
 ```json
@@ -223,7 +223,7 @@ gh workflow run release.yml --ref "$tag" -f tag="$tag"
 ```
 
 Avoid indexing `tagResults[0]` for workflow control. `tagResults` remains the audit log of tag operations, while `tags` is the stable id-addressable map for automation.
-
+{% endraw %}
 <!-- {/projectTagReleaseJsonTagsMap} -->
 
 <!-- {@repoDevEnvironmentSetupCode} -->
@@ -289,7 +289,7 @@ build:book
 <!-- {/contributingCoreCommands} -->
 
 <!-- {@projectSetupConfig} -->
-
+{% raw %}
 ```toml
 [defaults]
 parent_bump = "patch"
@@ -359,11 +359,6 @@ ignored_paths = [
 	"CONTRIBUTING.md",
 	"license",
 ]
-
-name = "production"
-trigger = "release_pr_merge"
-release_targets = ["sdk"]
-requires = ["main"]
 
 [cli.discover]
 help_text = "Discover packages across supported ecosystems"
@@ -497,7 +492,7 @@ name = "evaluate affected packages"
 type = "AffectedPackages"
 inputs = ["format", "changed_paths", "label"]
 ```
-
+{% endraw %}
 <!-- {/projectSetupConfig} -->
 
 <!-- {@projectSetupConfigNote} -->
@@ -629,3 +624,9 @@ This first run is safe: nothing is published. Stop here until you are ready to p
 When you are ready to prepare the release locally, run `monochange run release`.
 
 <!-- {/projectCoreWorkflow} -->
+
+<!-- {@projectSchemaAssetIndex} -->
+
+{{ schemaIndex }}
+
+<!-- {/projectSchemaAssetIndex} -->

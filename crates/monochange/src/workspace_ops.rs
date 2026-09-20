@@ -94,6 +94,13 @@ struct PrereleaseState {
 	packages: BTreeMap<String, PrereleaseStateEntry>,
 	#[serde(default)]
 	groups: BTreeMap<String, PrereleaseStateEntry>,
+	/// Workspace-relative changeset paths already covered by a prerelease.
+	///
+	/// Prerelease release notes describe only what is new since the previous
+	/// prerelease, so a changeset recorded here is omitted from later notes even
+	/// while `keep_changesets` leaves the file in the working tree.
+	#[serde(default)]
+	release_note_changesets: BTreeSet<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -197,11 +204,16 @@ fn prerelease_identifier(
 		PrereleaseNumbering::Increment => {
 			let next = latest
 				.and_then(|version| {
-					if stable_version(version) == *stable_base {
-						version.pre.as_str().rsplit_once('.')?.1.parse::<u64>().ok()
-					} else {
-						None
+					if stable_version(version) != *stable_base {
+						return None;
 					}
+					let (previous_channel, counter) = version.pre.as_str().rsplit_once('.')?;
+					// A channel switch starts a fresh sequence, so `alpha.4` must not
+					// become `beta.5` when the configured channel changes.
+					if !previous_channel.eq_ignore_ascii_case(&channel) {
+						return None;
+					}
+					counter.parse::<u64>().ok()
 				})
 				.map_or(0, |value| value + 1);
 			format!("{channel}.{next}")
@@ -224,6 +236,39 @@ fn append_prerelease(
 			))
 		})?;
 	Ok(version)
+}
+
+/// Keep only the change signals that the previous prerelease has not reported.
+///
+/// Prerelease mode preserves changesets by default, so every run rediscovers the
+/// same files. Release notes for a prerelease describe what changed since the
+/// previous prerelease, which means previously reported changesets are dropped
+/// and edits to an already reported changeset are ignored on purpose.
+fn prerelease_release_note_signals(
+	root: &Path,
+	signals: Vec<ChangeSignal>,
+	previous: Option<&PrereleaseState>,
+	config: &PrereleaseConfiguration,
+) -> Vec<ChangeSignal> {
+	if !config.release_notes {
+		return Vec::new();
+	}
+	let Some(state) = previous.filter(|state| {
+		// A channel switch starts a new series, so the first release of the new
+		// channel reports every pending change again.
+		state.channel.eq_ignore_ascii_case(&config.channel)
+	}) else {
+		return signals;
+	};
+	signals
+		.into_iter()
+		.filter(|signal| {
+			let path = root_relative(root, &signal.source_path)
+				.display()
+				.to_string();
+			!state.release_note_changesets.contains(&path)
+		})
+		.collect()
 }
 
 fn apply_prerelease_versions_to_plan(
@@ -354,6 +399,7 @@ fn build_prerelease_state_update(
 	discovery: &DiscoveryReport,
 	previous: Option<&PrereleaseState>,
 	config: &PrereleaseConfiguration,
+	changeset_paths: &[PathBuf],
 ) -> MonochangeResult<PrereleasePreparedState> {
 	let now = Utc::now().to_rfc3339();
 	let mut state = PrereleaseState {
@@ -365,7 +411,19 @@ fn build_prerelease_state_update(
 		updated_at: now,
 		packages: BTreeMap::new(),
 		groups: BTreeMap::new(),
+		// Switching channel starts a new series, so the first release of the new
+		// channel presents every pending change instead of only the delta since a
+		// prerelease on the previous channel.
+		release_note_changesets: previous
+			.filter(|state| state.channel.eq_ignore_ascii_case(&config.channel))
+			.map(|state| state.release_note_changesets.clone())
+			.unwrap_or_default(),
 	};
+	state.release_note_changesets.extend(
+		changeset_paths
+			.iter()
+			.map(|path| root_relative(root, path).display().to_string()),
+	);
 	let package_by_id = discovery
 		.packages
 		.iter()
@@ -1332,6 +1390,9 @@ pub(crate) fn discover_release_workspace(
 		.par_iter()
 		.map(|package_definition| {
 			let path = root.join(&package_definition.path);
+			if package_definition.package_type == PackageType::GitHubActions {
+				return load_configured_github_actions_package(root, &path, package_definition);
+			}
 			registry
 				.load_configured(root, &path, package_definition.package_type.into())?
 				.ok_or_else(|| {
@@ -1356,6 +1417,125 @@ pub(crate) fn discover_release_workspace(
 		version_groups,
 		warnings,
 	})
+}
+
+// patch-coverage:ignore-start -- the github_actions loader is exercised through
+// unit tests and the github_actions_release integration suite; llvm-cov
+// attributes the function-exit region to a blank line after the return.
+/// Load the package record for a configured `type = "github_actions"` package.
+///
+/// GitHub Actions releases are tag-and-release only: an `action.yml` carries no
+/// version field, so the record synthesizes a manifest id from the action
+/// manifest (or the package directory when none exists) and leaves
+/// `current_version` to the tag-based seeding pass.
+fn load_configured_github_actions_package(
+	root: &Path,
+	package_path: &Path,
+	package_definition: &monochange_core::PackageDefinition,
+) -> MonochangeResult<PackageRecord> {
+	if !package_path.is_dir() {
+		return Err(MonochangeError::Discovery(format!(
+			"configured package `{}` at {} does not exist",
+			package_definition.id,
+			package_definition.path.display()
+		)));
+	}
+	let manifest_path = ["action.yml", "action.yaml"]
+		.iter()
+		.map(|name| package_path.join(name))
+		.find(|path| path.is_file())
+		.unwrap_or_else(|| package_path.join("action.yml"));
+	let name = package_definition.id.clone();
+	let mut record = PackageRecord::new(
+		monochange_core::Ecosystem::Go,
+		&name,
+		monochange_core::normalize_path(&manifest_path),
+		monochange_core::normalize_path(root),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	record
+		.metadata
+		.insert("config_id".to_string(), package_definition.id.clone());
+	Ok(record)
+}
+// patch-coverage:ignore-end
+
+/// Seed release baselines for packages whose versions live in git tags.
+///
+/// Tag-versioned ecosystems (currently Go) and `version_source = "tag"`
+/// packages carry no version in their manifest, so without this pass release
+/// planning would silently drop them: their `current_version` stays `None` and
+/// no release target is built. The baseline is the highest existing tag
+/// matching the release owner's tag format — the same tags `tag-release`
+/// creates — falling back to the configured `initial_version` when no tag
+/// exists yet.
+async fn seed_versions_from_release_tags(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	discovery: &mut DiscoveryReport,
+) {
+	let needs_seeding = discovery.packages.iter().any(|package| {
+		package.current_version.is_none() && package_reads_version_from_tags(package, configuration)
+	});
+	if !needs_seeding {
+		return;
+	}
+	let sorted_tags = load_sorted_tags(root).await;
+	seed_versions_from_tag_list(configuration, discovery, &sorted_tags);
+}
+
+/// Whether release planning resolves `package`'s baseline from git tags.
+fn package_reads_version_from_tags(
+	package: &PackageRecord,
+	configuration: &monochange_core::WorkspaceConfiguration,
+) -> bool {
+	let config_id = package
+		.metadata
+		.get("config_id")
+		.cloned()
+		.unwrap_or_else(|| package.id.clone());
+	configuration
+		.effective_release_identity(&config_id)
+		.is_some_and(|identity| identity.version_source.reads_from_tags())
+		|| package.ecosystem.versions_from_tags()
+}
+
+fn seed_versions_from_tag_list(
+	configuration: &monochange_core::WorkspaceConfiguration,
+	discovery: &mut DiscoveryReport,
+	sorted_tags: &[String],
+) {
+	for package in &mut discovery.packages {
+		if package.current_version.is_some()
+			|| !package_reads_version_from_tags(package, configuration)
+		{
+			continue;
+		}
+		let config_id = package
+			.metadata
+			.get("config_id")
+			.cloned()
+			.unwrap_or_else(|| package.id.clone());
+		let Some(identity) = configuration.effective_release_identity(&config_id) else {
+			continue;
+		};
+		if !identity.tag {
+			continue;
+		}
+		let prefix = release_tag_prefix(&identity.owner_id, &identity.version_format);
+		let Some(version) = latest_tag_version_with_prefix(sorted_tags, &prefix) else {
+			if let Some(initial_version) = identity.initial_version.as_ref() {
+				package.current_version = Some(initial_version.clone());
+				continue;
+			}
+			discovery.warnings.push(format!(
+				"no release tag matching `{prefix}<version>` found for package `{config_id}`; tag an initial release or set `initial_version` so the version baseline can be resolved"
+			));
+			continue;
+		};
+		package.current_version = Some(version);
+	}
 }
 
 /// Parameters for creating a `.changeset/*.md` file through the library API.
@@ -1826,10 +2006,11 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		"load workspace configuration",
 		Instant::now(),
 	);
-	let discovery =
+	let mut discovery =
 		measure_prepare_phase(&mut phase_timings, "discover release workspace", || {
 			discover_release_workspace(root, configuration)
 		})?;
+	seed_versions_from_release_tags(root, configuration, &mut discovery).await;
 	let previous_prerelease_state =
 		measure_prepare_phase(&mut phase_timings, "load prerelease state", || {
 			load_prerelease_state(root)
@@ -2082,8 +2263,21 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			}
 		})
 		.collect::<Vec<_>>();
+	// Prerelease mode reports only the changes added since the previous
+	// prerelease. `keep_changesets` leaves earlier changeset files in place, so
+	// the delta is what the hosted release notes should describe.
+	let release_note_signals = if configuration.prerelease.enabled {
+		prerelease_release_note_signals(
+			root,
+			change_signals.clone(),
+			previous_prerelease_state.as_ref(),
+			&configuration.prerelease,
+		)
+	} else {
+		change_signals.clone()
+	};
 	let changelog_updates =
-		if configuration.prerelease.enabled && !configuration.prerelease.changelog {
+		if configuration.prerelease.enabled && !configuration.prerelease.release_notes {
 			Vec::new()
 		} else {
 			measure_prepare_phase(&mut phase_timings, "build changelog updates", || {
@@ -2093,7 +2287,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 						.configuration(configuration)
 						.packages(&discovery.packages)
 						.plan(&plan)
-						.change_signals(&change_signals)
+						.change_signals(&release_note_signals)
 						.changesets(&changesets)
 						.changelog_targets(&changelog_targets)
 						.release_targets(&changelog_release_targets)
@@ -2101,15 +2295,24 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 				)
 			})?
 		};
-	let changelog_file_updates = changelog_updates
-		.iter()
-		.map(|update| {
-			FileUpdate {
-				path: update.file.path.clone(),
-				content: update.file.content.clone(),
-			}
-		})
-		.collect::<Vec<_>>();
+	// Prerelease mode publishes hosted release notes without rewriting changelog
+	// files unless `changelog = true`, so the rendered artifacts and the files
+	// written to disk are tracked separately.
+	let write_changelog_files =
+		!configuration.prerelease.enabled || configuration.prerelease.changelog;
+	let changelog_file_updates = if write_changelog_files {
+		changelog_updates
+			.iter()
+			.map(|update| {
+				FileUpdate {
+					path: update.file.path.clone(),
+					content: update.file.content.clone(),
+				}
+			})
+			.collect::<Vec<_>>()
+	} else {
+		Vec::new()
+	};
 	let prerelease_prepared_state = if configuration.prerelease.enabled {
 		Some(build_prerelease_state_update(
 			root,
@@ -2117,6 +2320,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			&planning_discovery,
 			previous_prerelease_state.as_ref(),
 			&configuration.prerelease,
+			&changeset_paths,
 		)?)
 	} else {
 		None
@@ -2181,9 +2385,11 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			}
 		})
 		.collect::<Vec<_>>();
-	let updated_changelogs = changelogs
+	// `updated_changelogs` records files the release actually rewrites, so a
+	// prerelease that only publishes notes does not claim to have changed them.
+	let updated_changelogs = changelog_file_updates
 		.iter()
-		.map(|update| update.path.clone())
+		.map(|update| root_relative(root, &update.path))
 		.collect::<Vec<_>>();
 	// Diff rendering is far more expensive than preparing the release itself on
 	// large workspaces because unified diffs need to read and compare every

@@ -239,6 +239,7 @@ fn release_record_rust_migration_edges_are_explicit_and_ordered() {
 			(SchemaVersion::new(0, 3), SchemaVersion::new(0, 4)),
 			(SchemaVersion::new(0, 4), SchemaVersion::new(0, 5)),
 			(SchemaVersion::new(0, 5), SchemaVersion::new(0, 6)),
+			(SchemaVersion::new(0, 6), SchemaVersion::new(0, 7)),
 		]
 	);
 }
@@ -275,7 +276,10 @@ fn release_record_v0_4_migration_adds_default_output_identity() {
 	}))
 	.unwrap_or_else(|error| panic!("migrate v0.4 release record: {error}"));
 
-	assert_eq!(migrated["schema_version"], json!("0.6"));
+	assert_eq!(
+		migrated["schema_version"],
+		json!(CURRENT_SCHEMA_VERSION_TEXT)
+	);
 	assert_eq!(migrated["changelogs"][0]["output"], json!("default"));
 	assert_eq!(migrated["changelogs"][0]["stream"], json!("default"));
 	assert_eq!(migrated["changelogs"][1]["output"], json!("user"));
@@ -285,14 +289,17 @@ fn release_record_v0_4_migration_adds_default_output_identity() {
 
 #[test]
 fn release_record_rust_migration_edges_reject_missing_paths() {
+	let current =
+		current_schema_version().unwrap_or_else(|error| panic!("current schema version: {error}"));
+	let (major, minor) = (current.major(), current.minor());
 	let mut value = json!({
 		"kind": release_record::KIND,
-		"schema_version": "0.6"
+		"schema_version": CURRENT_SCHEMA_VERSION_TEXT
 	});
 	let error = migrations::apply_release_record_edges(
 		&mut value,
-		SchemaVersion::new(0, 6),
-		SchemaVersion::new(0, 7),
+		SchemaVersion::new(major, minor),
+		SchemaVersion::new(major, minor + 1),
 	)
 	.err()
 	.unwrap_or_else(|| panic!("expected missing migration path error"));
@@ -301,9 +308,12 @@ fn release_record_rust_migration_edges_reject_missing_paths() {
 		error,
 		SchemaError::MissingMigrationPath {
 			artifact: release_record::KIND,
-			from: SchemaVersion { major: 0, minor: 6 },
-			to: SchemaVersion { major: 0, minor: 7 },
-		}
+			from: SchemaVersion { major: found_major, minor: found_minor },
+			to: SchemaVersion { major: target_major, minor: target_minor },
+		} if found_major == major
+			&& found_minor == minor
+			&& target_major == major
+			&& target_minor == minor + 1
 	));
 }
 

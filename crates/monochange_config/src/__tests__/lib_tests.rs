@@ -2,6 +2,7 @@ mod mutant_killers_tests;
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -22,10 +23,12 @@ use monochange_core::CliStepDefinition;
 use monochange_core::CliStepInputValue;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemType;
+use monochange_core::FloatingTagFormat;
 use monochange_core::GroupChangelogInclude;
 use monochange_core::GroupDefinition;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageRecord;
+use monochange_core::PackageType;
 use monochange_core::PrereleaseBase;
 use monochange_core::PrereleaseNumbering;
 use monochange_core::PublishMode;
@@ -34,6 +37,7 @@ use monochange_core::PublishState;
 use monochange_core::RegistryKind;
 use monochange_core::ShellConfig;
 use monochange_core::SourceProvider;
+use monochange_core::VersionSource;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::lint::ChangesetLintSettings;
 use monochange_core::lint::ChangesetScopedLintSettings;
@@ -291,14 +295,14 @@ fn shared_fs_test_support_helpers_cover_plain_and_case_names_and_fixture_copying
 
 	let copied_fixture = setup_fixture("test-support/setup-fixture");
 	assert_eq!(
-		std::fs::read_to_string(copied_fixture.path().join("root.txt"))
+		fs::read_to_string(copied_fixture.path().join("root.txt"))
 			.unwrap_or_else(|error| panic!("read copied fixture: {error}")),
 		"root fixture\n"
 	);
 
 	let scenario = setup_scenario_workspace("test-support/scenario-root");
 	assert_eq!(
-		std::fs::read_to_string(scenario.path().join("root-only.txt"))
+		fs::read_to_string(scenario.path().join("root-only.txt"))
 			.unwrap_or_else(|error| panic!("read copied scenario: {error}")),
 		"root scenario\n"
 	);
@@ -334,7 +338,7 @@ fn load_workspace_configuration_uses_defaults_when_file_is_missing() {
 #[test]
 fn load_workspace_configuration_parses_prerelease_settings() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		"[prerelease]\nenabled = true\nchannel = \"rc\"\nnumbering = \"datetime\"\nbranches = [\"next\", \"prerelease/*\"]\nbase = \"fixed\"\nbase_version = \"0.0.0\"\nkeep_changesets = false\nchangelog = true\nrelease_notes = false\npublish_packages = true\nwrite_manifests = false\n",
 	)
@@ -374,7 +378,7 @@ fn load_workspace_configuration_parses_prerelease_settings() {
 #[test]
 fn load_workspace_configuration_applies_prerelease_defaults() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		"[prerelease]\nenabled = true\n",
 	)
@@ -400,8 +404,8 @@ fn load_workspace_configuration_applies_prerelease_defaults() {
 fn validate_workspace_rejects_stale_prerelease_state_when_disabled() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let state_dir = tempdir.path().join(".monochange");
-	std::fs::create_dir_all(&state_dir).unwrap_or_else(|error| panic!("state dir: {error}"));
-	std::fs::write(state_dir.join("prerelease-state.json"), b"{}")
+	fs::create_dir_all(&state_dir).unwrap_or_else(|error| panic!("state dir: {error}"));
+	fs::write(state_dir.join("prerelease-state.json"), b"{}")
 		.unwrap_or_else(|error| panic!("state file: {error}"));
 
 	let error = validate_workspace(tempdir.path())
@@ -499,7 +503,7 @@ fn load_workspace_configuration_supports_retarget_release_cli_command_definition
 #[test]
 fn load_workspace_configuration_rejects_invalid_boolean_input_defaults() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [cli.repair-release]
@@ -527,7 +531,7 @@ type = "RetargetRelease"
 #[test]
 fn load_workspace_configuration_rejects_empty_when_conditions() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [cli.announce]
@@ -572,7 +576,7 @@ fn load_workspace_configuration_supports_boolean_input_default_values() {
 #[test]
 fn load_workspace_configuration_supports_numeric_input_default_values() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [cli.deploy]
@@ -623,7 +627,7 @@ fn load_workspace_configuration_parses_package_group_and_cli_command_declaration
 	assert!(!configuration.defaults.strict_version_conflicts);
 	assert_eq!(
 		configuration.defaults.package_type,
-		Some(monochange_core::PackageType::Cargo)
+		Some(PackageType::Cargo)
 	);
 	assert_eq!(
 		configuration.defaults.changelog,
@@ -787,7 +791,7 @@ fn load_workspace_configuration_parses_github_release_settings() {
 #[test]
 fn load_workspace_configuration_parses_release_branch_policy() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [source]
@@ -821,7 +825,7 @@ changeset_context_timeout_seconds = 9
 #[test]
 fn load_workspace_configuration_rejects_zero_changeset_context_timeout() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [source]
@@ -849,7 +853,7 @@ changeset_context_timeout_seconds = 0
 #[test]
 fn load_workspace_configuration_rejects_blank_release_branch_policy_values() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [source]
@@ -877,7 +881,7 @@ branches = ["main", " "]
 #[test]
 fn load_workspace_configuration_rejects_empty_release_branch_policy() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [source]
@@ -1053,7 +1057,7 @@ fn load_workspace_configuration_uses_defaults_package_type_when_type_is_omitted(
 		.packages
 		.first()
 		.unwrap_or_else(|| panic!("expected package"));
-	assert_eq!(package.package_type, monochange_core::PackageType::Cargo);
+	assert_eq!(package.package_type, PackageType::Cargo);
 }
 
 #[test]
@@ -1080,6 +1084,33 @@ fn load_workspace_configuration_uses_defaults_changelog_pattern_when_package_cha
 			initial_header: None,
 		})
 	);
+}
+
+#[test]
+fn load_workspace_configuration_package_changelog_false_overrides_defaults_pattern() {
+	let root = fixture_path("config/changelog-package-opt-out");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let inherits = configuration
+		.package_by_id("inherits")
+		.unwrap_or_else(|| panic!("expected inherits package"));
+	let opted_out = configuration
+		.package_by_id("opted-out")
+		.unwrap_or_else(|| panic!("expected opted-out package"));
+
+	// The default pattern still applies to a package that does not declare a
+	// changelog of its own.
+	assert_eq!(
+		inherits.changelog,
+		Some(ChangelogTarget {
+			path: PathBuf::from("crates/inherits/changelog.md"),
+			format: ChangelogFormat::Monochange,
+			initial_header: None,
+		})
+	);
+	// An explicit `changelog = false` must win over the defaults pattern, or a
+	// package cannot opt out and two owners can claim one changelog path.
+	assert_eq!(opted_out.changelog, None);
 }
 
 #[test]
@@ -1506,21 +1537,21 @@ fn load_workspace_configuration_inherits_ecosystem_versioned_files_unless_packag
 fn load_workspace_configuration_inherits_default_versioned_files() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("packages/core"))
+	fs::create_dir_all(root.join("packages/core"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::create_dir_all(root.join("packages/utils"))
+	fs::create_dir_all(root.join("packages/utils"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/core/pubspec.yaml"),
 		"name: core\nversion: 1.0.0\n",
 	)
 	.unwrap_or_else(|error| panic!("write pubspec: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/utils/pubspec.yaml"),
 		"name: utils\nversion: 1.0.0\n",
 	)
 	.unwrap_or_else(|error| panic!("write pubspec: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"[defaults]
 package_type = "dart"
@@ -1603,14 +1634,14 @@ fn load_workspace_configuration_inherits_ecosystem_versioned_files_for_cargo_den
 fn load_workspace_configuration_inherits_python_ecosystem_defaults() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("packages/app"))
+	fs::create_dir_all(root.join("packages/app"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/app/pyproject.toml"),
 		"[project]\nname = \"python-app\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write pyproject: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"[ecosystems.python]
 dependency_version_prefix = "~="
@@ -1634,7 +1665,7 @@ type = "python"
 		.iter()
 		.find(|package| package.id == "app")
 		.unwrap_or_else(|| panic!("expected app package"));
-	assert_eq!(package.package_type, monochange_core::PackageType::Python);
+	assert_eq!(package.package_type, PackageType::Python);
 	assert_eq!(
 		package
 			.versioned_files
@@ -1659,14 +1690,14 @@ type = "python"
 fn load_workspace_configuration_normalizes_go_ecosystem_settings() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("packages/api"))
+	fs::create_dir_all(root.join("packages/api"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/api/go.mod"),
 		"module github.com/example/repo/api\n\ngo 1.22\n",
 	)
 	.unwrap_or_else(|error| panic!("write go.mod: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"[ecosystems.go]
 dependency_version_prefix = "v"
@@ -1694,7 +1725,7 @@ type = "go"
 		.find(|package| package.id == "api")
 		.unwrap_or_else(|| panic!("expected api package"));
 
-	assert_eq!(package.package_type, monochange_core::PackageType::Go);
+	assert_eq!(package.package_type, PackageType::Go);
 	assert_eq!(
 		package
 			.versioned_files
@@ -1719,7 +1750,7 @@ type = "go"
 fn load_workspace_configuration_reports_python_ecosystem_normalization_errors() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"[ecosystems.python.publish]
 registry = "https://example.com/simple"
@@ -1740,16 +1771,16 @@ registry = "https://example.com/simple"
 fn load_workspace_configuration_rejects_python_versioned_file_glob_unsupported_files() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("packages/app"))
+	fs::create_dir_all(root.join("packages/app"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/app/pyproject.toml"),
 		"[project]\nname = \"python-app\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write pyproject: {error}"));
-	std::fs::write(root.join("packages/app/unsupported.json"), "{}")
+	fs::write(root.join("packages/app/unsupported.json"), "{}")
 		.unwrap_or_else(|error| panic!("write unsupported: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"[package.app]
 path = "packages/app"
@@ -1876,20 +1907,20 @@ fn load_workspace_configuration_rejects_globs_that_match_unsupported_files_for_a
 fn load_workspace_configuration_ignores_gitignored_versioned_file_glob_matches() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("packages/app"))
+	fs::create_dir_all(root.join("packages/app"))
 		.unwrap_or_else(|error| panic!("create package: {error}"));
-	std::fs::create_dir_all(root.join("generated"))
+	fs::create_dir_all(root.join("generated"))
 		.unwrap_or_else(|error| panic!("create generated: {error}"));
-	std::fs::write(root.join(".gitignore"), "generated/\n")
+	fs::write(root.join(".gitignore"), "generated/\n")
 		.unwrap_or_else(|error| panic!("write gitignore: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/app/pubspec.yaml"),
 		"name: app\nversion: 1.0.0\n",
 	)
 	.unwrap_or_else(|error| panic!("write pubspec: {error}"));
-	std::fs::write(root.join("generated/not-a-pubspec.yaml"), "not: dart\n")
+	fs::write(root.join("generated/not-a-pubspec.yaml"), "not: dart\n")
 		.unwrap_or_else(|error| panic!("write ignored yaml: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"[ecosystems.dart]
 versioned_files = [{ path = "./**/*.yaml", type = "dart" }]
@@ -1916,19 +1947,19 @@ fn collect_workspace_files_reports_walk_errors() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	let unreadable_dir = root.join("unreadable");
-	std::fs::create_dir(&unreadable_dir)
+	fs::create_dir(&unreadable_dir)
 		.unwrap_or_else(|error| panic!("create unreadable dir: {error}"));
 
 	use std::os::unix::fs::PermissionsExt;
-	let readable_permissions = std::fs::metadata(&unreadable_dir)
+	let readable_permissions = fs::metadata(&unreadable_dir)
 		.unwrap_or_else(|error| panic!("read permissions: {error}"))
 		.permissions();
-	std::fs::set_permissions(&unreadable_dir, std::fs::Permissions::from_mode(0o000))
+	fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o000))
 		.unwrap_or_else(|error| panic!("make unreadable: {error}"));
 
 	let result = crate::collect_workspace_files(root);
 
-	std::fs::set_permissions(&unreadable_dir, readable_permissions)
+	fs::set_permissions(&unreadable_dir, readable_permissions)
 		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
 	let error = result.expect_err("unreadable directories should report walk errors");
 	assert!(
@@ -1941,20 +1972,20 @@ fn collect_workspace_files_reports_walk_errors() {
 fn versioned_file_validation_cache_matches_workspace_files_once() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("packages/web"))
+	fs::create_dir_all(root.join("packages/web"))
 		.unwrap_or_else(|error| panic!("create package: {error}"));
-	std::fs::create_dir_all(root.join("generated"))
+	fs::create_dir_all(root.join("generated"))
 		.unwrap_or_else(|error| panic!("create generated: {error}"));
-	std::fs::write(root.join(".gitignore"), "generated/\n")
+	fs::write(root.join(".gitignore"), "generated/\n")
 		.unwrap_or_else(|error| panic!("write gitignore: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/web/package.json"),
 		"{\"version\":\"1.0.0\"}\n",
 	)
 	.unwrap_or_else(|error| panic!("write package: {error}"));
-	std::fs::write(root.join("packages/web/README.md"), "# web\n")
+	fs::write(root.join("packages/web/README.md"), "# web\n")
 		.unwrap_or_else(|error| panic!("write readme: {error}"));
-	std::fs::write(root.join("generated/README.md"), "# generated\n")
+	fs::write(root.join("generated/README.md"), "# generated\n")
 		.unwrap_or_else(|error| panic!("write generated: {error}"));
 
 	assert_eq!(
@@ -3014,6 +3045,12 @@ fn changelog_output_and_provider_validation_accepts_only_compatible_destinations
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 	};
 	expect_config_error(
 		crate::validate_changelog_configuration(
@@ -3114,14 +3151,14 @@ fn load_workspace_configuration_rejects_changelog_type_without_default_bump() {
 fn load_change_signals_treats_bump_named_scalar_as_configured_type() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("crates/core"))
+	fs::create_dir_all(root.join("crates/core"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write manifest: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [package.core]
@@ -3138,7 +3175,7 @@ bump = "minor"
 "#,
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("change.md"),
 		"---\ncore: patch\n---\n\nFix a parser bug.\n",
 	)
@@ -3163,17 +3200,17 @@ bump = "minor"
 }
 
 #[test]
-fn load_change_signals_rejects_bump_named_scalar_when_type_is_not_configured() {
+fn load_change_signals_inherits_built_in_types_under_configured_sections_and_types() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("crates/core"))
+	fs::create_dir_all(root.join("crates/core"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write manifest: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [package.core]
@@ -3199,7 +3236,9 @@ bump = "patch"
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 	let change_path = root.join("change.md");
-	std::fs::write(&change_path, "---\ncore: patch\n---\n\nPatch change.\n")
+	// `patch` is not in the declared table, but it is a built-in semantic alias
+	// and must keep working when a repository configures other types.
+	fs::write(&change_path, "---\ncore: patch\n---\n\nPatch change.\n")
 		.unwrap_or_else(|error| panic!("write changeset: {error}"));
 
 	let configuration =
@@ -3213,26 +3252,42 @@ bump = "patch"
 		PublishState::Public,
 	)];
 
+	let signals = load_change_signals(&change_path, &configuration, &packages)
+		.unwrap_or_else(|error| panic!("change signals: {error}"));
+	let signal = signals.first().unwrap_or_else(|| panic!("expected signal"));
+	assert_eq!(signal.requested_bump, Some(BumpSeverity::Patch));
+	assert_eq!(signal.change_type.as_deref(), Some("patch"));
+
+	// A key declared by the repository still wins over the built-in entry, and a
+	// genuinely unknown type still fails with the merged vocabulary in the help.
+	assert_eq!(
+		configuration.changelog.types["docs"].section,
+		"documentation"
+	);
+	assert_eq!(configuration.changelog.types["fix"].section, "fix");
+
+	fs::write(&change_path, "---\ncore: nope\n---\n\nUnknown change.\n")
+		.unwrap_or_else(|error| panic!("write unknown changeset: {error}"));
 	let error = load_change_signals(&change_path, &configuration, &packages)
 		.err()
 		.unwrap_or_else(|| panic!("expected parse error"));
 	let rendered = error.to_string();
-	assert!(rendered.contains("invalid scalar change type `patch`"));
-	assert!(rendered.contains("valid types: docs, test"));
+	assert!(rendered.contains("invalid scalar change type `nope`"));
+	assert!(rendered.contains("valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security, test"));
 }
 
 #[test]
 fn load_change_signals_allows_object_bump_without_configured_type() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("crates/core"))
+	fs::create_dir_all(root.join("crates/core"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write manifest: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [package.core]
@@ -3242,7 +3297,7 @@ type = "cargo"
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 	let change_path = root.join("change.md");
-	std::fs::write(
+	fs::write(
 		&change_path,
 		"---\ncore:\n  bump: patch\n---\n\nPatch change.\n",
 	)
@@ -3293,7 +3348,7 @@ fn load_change_signals_applies_toml_type_defaults_and_validates_context_types() 
 		.unwrap_or_else(|error| panic!("version groups: {error}"));
 
 	let type_path = tempdir.path().join("type-only.toml");
-	std::fs::write(
+	fs::write(
 		&type_path,
 		r#"[[changes]]
 package = "sdk"
@@ -3318,7 +3373,7 @@ reason = "Exercise a group TOML type default."
 	}));
 
 	let version_path = tempdir.path().join("version-only.toml");
-	std::fs::write(
+	fs::write(
 		&version_path,
 		r#"[[changes]]
 package = "sdk"
@@ -3361,7 +3416,7 @@ reason = "Exercise group version inference."
 	);
 
 	let invalid_group_path = tempdir.path().join("invalid-group-type.toml");
-	std::fs::write(
+	fs::write(
 		&invalid_group_path,
 		r#"[[changes]]
 package = "sdk"
@@ -3379,7 +3434,7 @@ type = "nope"
 	);
 
 	let invalid_package_path = tempdir.path().join("invalid-package-type.toml");
-	std::fs::write(
+	fs::write(
 		&invalid_package_path,
 		r#"[[changes]]
 package = "core"
@@ -3401,19 +3456,33 @@ type = "nope"
 fn load_change_signals_reports_no_configured_scalar_types() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("crates/core"))
+	fs::create_dir_all(root.join("crates/core"))
 		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write manifest: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [package.core]
 path = "crates/core"
 type = "cargo"
+excluded_changelog_types = [
+	"breaking",
+	"change",
+	"docs",
+	"feat",
+	"fix",
+	"major",
+	"minor",
+	"none",
+	"patch",
+	"refactor",
+	"security",
+	"test",
+]
 
 [changelog.sections.misc]
 heading = "Miscellaneous"
@@ -3422,7 +3491,7 @@ priority = 90
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
 	let change_path = root.join("change.md");
-	std::fs::write(&change_path, "---\ncore: docs\n---\n\n# docs\n")
+	fs::write(&change_path, "---\ncore: docs\n---\n\n# docs\n")
 		.unwrap_or_else(|error| panic!("write changeset: {error}"));
 
 	let configuration =
@@ -3436,6 +3505,10 @@ priority = 90
 		PublishState::Public,
 	)];
 
+	// A target that excludes every inherited type has an empty vocabulary, so
+	// the help falls back to naming that state. This is the surviving way to
+	// reach the branch now that a configured section no longer drops the
+	// inherited types.
 	let error = load_change_signals(&change_path, &configuration, &packages)
 		.err()
 		.unwrap_or_else(|| panic!("expected scalar type error"));
@@ -3505,6 +3578,69 @@ fn validate_changelog_configuration_reports_invalid_toml_when_types_need_raw_fie
 }
 
 #[test]
+fn validate_changelog_configuration_rejects_unknown_excluded_types_for_packages_and_groups() {
+	let settings = raw_changelog_settings();
+	let package = |excluded: &[&str]| {
+		let mut package = package_definition("core", "crates/core");
+		package.excluded_changelog_types = excluded.iter().map(ToString::to_string).collect();
+		package
+	};
+	let group = |excluded: &[&str]| {
+		GroupDefinition {
+			id: "sdk".to_string(),
+			packages: vec!["core".to_string()],
+			package_max_bumps: BTreeMap::new(),
+			bump_propagation: None,
+			changelog: None,
+			changelog_include: GroupChangelogInclude::All,
+			excluded_changelog_types: excluded.iter().map(ToString::to_string).collect(),
+			empty_update_message: None,
+			release_title: None,
+			changelog_version_title: None,
+			versioned_files: Vec::new(),
+			tag: true,
+			release: true,
+			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+			floating_tags: Vec::new(),
+		}
+	};
+
+	// An inherited built-in type stays excludable even though the config never
+	// restates it, so neither target is rejected here.
+	crate::validate_changelog_configuration(
+		"",
+		&settings,
+		&[package(&["minor"])],
+		&[group(&["patch"])],
+	)
+	.unwrap_or_else(|error| panic!("inherited types must be excludable: {error}"));
+
+	let package_error =
+		crate::validate_changelog_configuration("", &settings, &[package(&["nope"])], &[])
+			.err()
+			.unwrap_or_else(|| panic!("expected package exclusion error"));
+	assert!(
+		package_error
+			.to_string()
+			.contains("package `core` excludes changelog type `nope`")
+	);
+
+	let group_error =
+		crate::validate_changelog_configuration("", &settings, &[], &[group(&["nope"])])
+			.err()
+			.unwrap_or_else(|| panic!("expected group exclusion error"));
+	assert!(
+		group_error
+			.to_string()
+			.contains("group `sdk` excludes changelog type `nope`")
+	);
+}
+
+#[test]
 fn load_change_signals_reject_unknown_scalar_type_with_valid_types_help() {
 	let root = fixture_path("config/rejects-change-unknown-type-configured");
 	let configuration = load_workspace_configuration(&root)
@@ -3523,7 +3659,8 @@ fn load_change_signals_reject_unknown_scalar_type_with_valid_types_help() {
 		.unwrap_or_else(|| panic!("expected parse error"));
 	let rendered = error.to_string();
 	assert!(rendered.contains("invalid scalar change type `nope`"));
-	assert!(rendered.contains("valid types: docs, test"));
+	// Declared types inherit the built-in vocabulary, so the help lists both.
+	assert!(rendered.contains("valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security, test"));
 }
 
 #[test]
@@ -3545,7 +3682,7 @@ fn load_change_signals_reject_unknown_object_type_with_valid_types_help() {
 		.unwrap_or_else(|| panic!("expected parse error"));
 	let rendered = error.to_string();
 	assert!(rendered.contains("invalid type `nope`"));
-	assert!(rendered.contains("valid types: security"));
+	assert!(rendered.contains("valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security, test"));
 }
 
 #[test]
@@ -3604,8 +3741,9 @@ fn load_change_signals_reject_unknown_group_object_type_with_valid_types_help() 
 		.err()
 		.unwrap_or_else(|| panic!("expected parse error"));
 	let rendered = error.to_string();
-	assert!(rendered.contains("target `sdk` has invalid type `docs`"));
-	assert!(rendered.contains("valid types: test"));
+	assert!(rendered.contains("target `sdk` has invalid type `nope`"));
+	// A group inherits the built-in vocabulary underneath its own types.
+	assert!(rendered.contains("valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security, test"));
 }
 
 #[test]
@@ -3682,7 +3820,11 @@ fn validate_configured_change_type_rejects_package_excluded_type() {
 	.err()
 	.unwrap_or_else(|| panic!("expected invalid type error"));
 	assert!(error.to_string().contains("invalid type `test`"));
-	assert!(error.to_string().contains("valid types: feat, fix"));
+	// `core` excludes `test`; every other inherited and declared type stays
+	// available, which is what keeps exclusion the narrowing mechanism.
+	assert!(error.to_string().contains(
+		"valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security"
+	));
 
 	let scalar = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("test")
 		.unwrap_or_else(|error| panic!("yaml parse: {error}"));
@@ -3699,7 +3841,9 @@ fn validate_configured_change_type_rejects_package_excluded_type() {
 			.to_string()
 			.contains("invalid scalar change type `test`")
 	);
-	assert!(scalar_error.to_string().contains("valid types: feat, fix"));
+	assert!(scalar_error.to_string().contains(
+		"valid types: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, security"
+	));
 }
 
 #[test]
@@ -4177,9 +4321,34 @@ fn normalize_trusted_publishing_settings_supports_boolean_shorthand() {
 		Some(crate::RawTrustedPublishingSettings::Enabled(false)),
 	);
 	assert!(!settings.enabled);
+	assert_eq!(
+		settings.mode,
+		monochange_core::TrustedPublishingMode::Required
+	);
 	assert_eq!(settings.repository, None);
 	assert_eq!(settings.workflow, None);
 	assert_eq!(settings.environment, None);
+}
+
+#[test]
+fn normalize_trusted_publishing_settings_parses_preferred_mode() {
+	let settings = crate::normalize_trusted_publishing_settings(
+		None,
+		Some(crate::RawTrustedPublishingSettings::Detailed(
+			crate::RawTrustedPublishingDetails {
+				enabled: Some(true),
+				mode: Some(monochange_core::TrustedPublishingMode::Preferred),
+				repository: None,
+				workflow: None,
+				environment: None,
+			},
+		)),
+	);
+	assert!(settings.enabled);
+	assert_eq!(
+		settings.mode,
+		monochange_core::TrustedPublishingMode::Preferred
+	);
 }
 
 #[test]
@@ -4312,21 +4481,21 @@ retries = 3
 fn load_workspace_configuration_inherits_ecosystem_publish_trusted_publishing_defaults() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("packages/web"))
+	fs::create_dir_all(root.join("packages/web"))
 		.unwrap_or_else(|error| panic!("create web package: {error}"));
-	std::fs::create_dir_all(root.join("packages/legacy"))
+	fs::create_dir_all(root.join("packages/legacy"))
 		.unwrap_or_else(|error| panic!("create legacy package: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/web/package.json"),
 		r#"{ "name": "web", "version": "1.0.0" }"#,
 	)
 	.unwrap_or_else(|error| panic!("write web manifest: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/legacy/package.json"),
 		r#"{ "name": "legacy", "version": "1.0.0" }"#,
 	)
 	.unwrap_or_else(|error| panic!("write legacy manifest: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [ecosystems.npm.publish.trusted_publishing]
@@ -4382,21 +4551,21 @@ trusted_publishing = false
 fn load_workspace_configuration_inherits_publish_attestation_policy() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("packages/web"))
+	fs::create_dir_all(root.join("packages/web"))
 		.unwrap_or_else(|error| panic!("create web package: {error}"));
-	std::fs::create_dir_all(root.join("packages/legacy"))
+	fs::create_dir_all(root.join("packages/legacy"))
 		.unwrap_or_else(|error| panic!("create legacy package: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/web/package.json"),
 		r#"{ "name": "web", "version": "1.0.0" }"#,
 	)
 	.unwrap_or_else(|error| panic!("write web manifest: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("packages/legacy/package.json"),
 		r#"{ "name": "legacy", "version": "1.0.0" }"#,
 	)
 	.unwrap_or_else(|error| panic!("write legacy manifest: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [ecosystems.npm.publish.attestations]
@@ -4434,7 +4603,7 @@ require_registry_provenance = false
 fn load_workspace_configuration_rejects_github_release_attestations_for_other_sources() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [source]
@@ -4460,7 +4629,7 @@ require_github_artifact_attestations = true
 fn load_workspace_configuration_parses_release_attestation_policy() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [source]
@@ -4982,14 +5151,14 @@ fn load_change_signals_rejects_unknown_package_references_with_diagnostic_help()
 #[test]
 fn load_change_signals_reports_pretty_frontmatter_parse_errors_with_fix_hint() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		"[package.\"@monochange/skill\"]\npath = \"crates/core\"\ntype = \"cargo\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write config: {error}"));
-	std::fs::create_dir_all(tempdir.path().join("crates/core"))
+	fs::create_dir_all(tempdir.path().join("crates/core"))
 		.unwrap_or_else(|error| panic!("mkdir crate: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\nedition = \"2024\"\n",
 	)
@@ -4997,7 +5166,7 @@ fn load_change_signals_reports_pretty_frontmatter_parse_errors_with_fix_hint() {
 	let configuration = load_workspace_configuration(tempdir.path())
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 	let change_path = tempdir.path().join("change.md");
-	std::fs::write(
+	fs::write(
 		&change_path,
 		"---\n@monochange/skill: patch\n---\n\n# broken\n",
 	)
@@ -5254,7 +5423,7 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 	monochange_core::PackageDefinition {
 		id: id.to_string(),
 		path: PathBuf::from(path),
-		package_type: monochange_core::PackageType::Cargo,
+		package_type: PackageType::Cargo,
 		changelog: None,
 		excluded_changelog_types: Vec::new(),
 		bump_propagation: None,
@@ -5268,7 +5437,14 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
+		cli: None,
 	}
 }
 
@@ -5373,8 +5549,7 @@ fn load_changeset_file_reports_io_and_toml_parse_errors() {
 	assert!(missing.to_string().contains("failed to read"));
 
 	let invalid = tempdir.path().join("invalid.toml");
-	std::fs::write(&invalid, "changes = [")
-		.unwrap_or_else(|error| panic!("write invalid: {error}"));
+	fs::write(&invalid, "changes = [").unwrap_or_else(|error| panic!("write invalid: {error}"));
 	let parse_error = load_changeset_file(&invalid, &configuration, &[])
 		.err()
 		.unwrap_or_else(|| panic!("expected parse error"));
@@ -5421,14 +5596,14 @@ fn resolve_package_reference_reports_missing_and_ambiguous_matches() {
 fn load_workspace_configuration_rejects_empty_step_name() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("crates/core"))
+	fs::create_dir_all(root.join("crates/core"))
 		.unwrap_or_else(|error| panic!("mkdir core: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write cargo: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"[defaults]
 package_type = "cargo"
@@ -5454,14 +5629,14 @@ name = "   "
 fn load_workspace_configuration_rejects_duplicate_step_names() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::create_dir_all(root.join("crates/core"))
+	fs::create_dir_all(root.join("crates/core"))
 		.unwrap_or_else(|error| panic!("mkdir core: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write cargo: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"[defaults]
 package_type = "cargo"
@@ -5580,7 +5755,7 @@ fn validate_ecosystem_version_readable_reports_missing_json_and_yaml_string_fiel
 	let pubspec = root.join("pubspec.yaml");
 	let npm_fields = vec!["releaseVersion".to_string()];
 
-	std::fs::write(&package_json, "{\"releaseVersion\":1}")
+	fs::write(&package_json, "{\"releaseVersion\":1}")
 		.unwrap_or_else(|error| panic!("write package.json {}: {error}", package_json.display()));
 	let npm_error = crate::validate_ecosystem_version_readable(
 		&package_json,
@@ -5598,7 +5773,7 @@ fn validate_ecosystem_version_readable_reports_missing_json_and_yaml_string_fiel
 			.contains("does not contain a `releaseVersion` string field")
 	);
 
-	std::fs::write(&pubspec, "name: app\nversion: 1\n")
+	fs::write(&pubspec, "name: app\nversion: 1\n")
 		.unwrap_or_else(|error| panic!("write pubspec {}: {error}", pubspec.display()));
 	let dart_error = crate::validate_ecosystem_version_readable(
 		&pubspec,
@@ -5617,7 +5792,7 @@ fn validate_ecosystem_version_readable_reports_missing_json_and_yaml_string_fiel
 	);
 
 	let deno_json = root.join("deno.json");
-	std::fs::write(&deno_json, "{\"name\":\"app\"}")
+	fs::write(&deno_json, "{\"name\":\"app\"}")
 		.unwrap_or_else(|error| panic!("write deno.json {}: {error}", deno_json.display()));
 	let deno_error = crate::validate_ecosystem_version_readable(
 		&deno_json,
@@ -5634,7 +5809,7 @@ fn validate_ecosystem_version_readable_reports_missing_json_and_yaml_string_fiel
 	));
 
 	let pyproject = root.join("pyproject.toml");
-	std::fs::write(&pyproject, "[project]\nname = \"app\"\n")
+	fs::write(&pyproject, "[project]\nname = \"app\"\n")
 		.unwrap_or_else(|error| panic!("write pyproject {}: {error}", pyproject.display()));
 	crate::validate_ecosystem_version_readable(
 		&pyproject,
@@ -5647,7 +5822,7 @@ fn validate_ecosystem_version_readable_reports_missing_json_and_yaml_string_fiel
 	.unwrap_or_else(|error| panic!("expected python validation to be a no-op: {error}"));
 
 	let go_mod = root.join("go.mod");
-	std::fs::write(&go_mod, "module example.com/app\n")
+	fs::write(&go_mod, "module example.com/app\n")
 		.unwrap_or_else(|error| panic!("write go.mod {}: {error}", go_mod.display()));
 	crate::validate_ecosystem_version_readable(
 		&go_mod,
@@ -5718,6 +5893,12 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 	};
 	assert_eq!(
 		infer_group_bump_from_explicit_version(
@@ -5747,6 +5928,12 @@ fn infer_bump_helpers_cover_major_minor_patch_and_none() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 	};
 	let error = infer_group_bump_from_explicit_version(
 		&group_with_missing,
@@ -5799,6 +5986,7 @@ fn validate_source_and_changeset_settings_reject_empty_values() {
 				skip_labels: vec![String::new()],
 				..Default::default()
 			},
+			..Default::default()
 		},
 		&[],
 	)
@@ -5810,12 +5998,30 @@ fn validate_source_and_changeset_settings_reject_empty_values() {
 			.contains("[changesets.affected].skip_labels must not include empty values")
 	);
 
+	let classification_error = crate::validate_changesets_configuration(
+		&monochange_core::ChangesetSettings {
+			classification: monochange_core::ChangesetClassificationSettings {
+				skip_labels: vec![" ".to_string()],
+			},
+			..Default::default()
+		},
+		&[],
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected classification validation error"));
+	assert!(
+		classification_error
+			.to_string()
+			.contains("[changesets.classification].skip_labels must not include empty values")
+	);
+
 	let affected_empty_path_error = crate::validate_changesets_configuration(
 		&monochange_core::ChangesetSettings {
 			affected: monochange_core::ChangesetAffectedSettings {
 				changed_paths: vec![" ".to_string()],
 				..Default::default()
 			},
+			..Default::default()
 		},
 		&[],
 	)
@@ -6283,6 +6489,7 @@ fn validate_cli_runtime_requirements_enforce_affected_package_inputs() {
 				enabled: false,
 				..Default::default()
 			},
+			..Default::default()
 		},
 		Some(&sample_source_configuration(SourceProvider::GitHub)),
 	)
@@ -6387,6 +6594,7 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 				changed_paths: vec!["[".to_string()],
 				..Default::default()
 			},
+			..Default::default()
 		},
 		&[],
 	)
@@ -6431,7 +6639,7 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 	);
 
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::create_dir_all(tempdir.path().join("crates/core"))
+	fs::create_dir_all(tempdir.path().join("crates/core"))
 		.unwrap_or_else(|error| panic!("mkdir core dir: {error}"));
 	let missing_manifest_error = validate_package_and_group_definitions_for_test(
 		tempdir.path(),
@@ -6454,7 +6662,10 @@ fn parse_markdown_change_target_and_validation_helpers_cover_remaining_error_pat
 	let configuration = load_workspace_configuration(&root)
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 
-	let invalid_scalar = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("docs")
+	// The workspace configures `security` and `test`; `docs` is neither declared
+	// there nor unknown to monochange, because the built-in vocabulary is
+	// inherited. Use a key that exists nowhere.
+	let invalid_scalar = serde_yaml_ng::from_str::<serde_yaml_ng::Value>("nope")
 		.unwrap_or_else(|error| panic!("yaml parse: {error}"));
 	let scalar_error = crate::parse_markdown_change_target(
 		&invalid_scalar,
@@ -6467,7 +6678,7 @@ fn parse_markdown_change_target_and_validation_helpers_cover_remaining_error_pat
 	assert!(
 		scalar_error
 			.to_string()
-			.contains("invalid scalar change type `docs`")
+			.contains("invalid scalar change type `nope`")
 	);
 	assert!(scalar_error.to_string().contains("valid types"));
 
@@ -6572,14 +6783,14 @@ fn parse_markdown_change_target_and_validation_helpers_cover_remaining_error_pat
 	);
 
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::create_dir_all(tempdir.path().join("crates/core"))
+	fs::create_dir_all(tempdir.path().join("crates/core"))
 		.unwrap_or_else(|error| panic!("mkdir core: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		"[package.core]\npath = \"crates/core\"\ntype = \"cargo\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
@@ -6681,7 +6892,7 @@ fn parse_markdown_change_target_covers_caused_by_scalar_and_error_paths() {
 fn load_change_signals_covers_configured_type_and_caused_by_context_paths() {
 	let _guard = snapshot_settings().bind_to_scope();
 	let tempdir = setup_fixture("changeset-target-metadata/render-workspace");
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("change.md"),
 		"---\ncore: security\napp:\n  bump: none\n  caused_by: sdk\n---\n\n# follow-up\n",
 	)
@@ -6728,7 +6939,7 @@ fn load_change_signals_covers_configured_type_and_caused_by_context_paths() {
 	assert_eq!(app_signal.requested_bump, Some(BumpSeverity::None));
 	assert_eq!(app_signal.caused_by, vec!["sdk".to_string()]);
 
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("invalid-change.md"),
 		"---\ncore:\n  - invalid\n---\n\n# invalid\n",
 	)
@@ -6745,7 +6956,7 @@ fn load_change_signals_covers_configured_type_and_caused_by_context_paths() {
 		error.to_string()
 	);
 
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("unknown-target.md"),
 		"---\nunknown: note\n---\n\n# unknown\n",
 	)
@@ -6766,7 +6977,7 @@ fn load_change_signals_covers_configured_type_and_caused_by_context_paths() {
 #[test]
 fn load_change_signals_applies_default_bump_for_object_type_with_context() {
 	let tempdir = setup_fixture("changeset-target-metadata/render-workspace");
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("object-type.md"),
 		"---\nsdk:\n  type: test\n---\n\n# grouped object type\n",
 	)
@@ -6868,9 +7079,9 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 	);
 
 	let duplicate_glob_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::create_dir_all(duplicate_glob_dir.path().join("packages/web"))
+	fs::create_dir_all(duplicate_glob_dir.path().join("packages/web"))
 		.unwrap_or_else(|error| panic!("mkdir duplicate glob fixture: {error}"));
-	std::fs::write(
+	fs::write(
 		duplicate_glob_dir.path().join("packages/web/package.json"),
 		"{\"name\":\"web\",\"version\":\"1.0.0\"}\n",
 	)
@@ -6896,9 +7107,9 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 	.unwrap_or_else(|error| panic!("duplicate glob validation should be cached: {error}"));
 
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::create_dir_all(tempdir.path().join("packages/web"))
+	fs::create_dir_all(tempdir.path().join("packages/web"))
 		.unwrap_or_else(|error| panic!("mkdir web package: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("packages/web/package.json"),
 		"{\"name\":\"web\",\"version\":\"1.0.0\"}\n",
 	)
@@ -7118,7 +7329,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 	let definition = monochange_core::PackageDefinition {
 		id: "web".to_string(),
 		path: PathBuf::from("packages/web"),
-		package_type: monochange_core::PackageType::Npm,
+		package_type: PackageType::Npm,
 		changelog: None,
 		excluded_changelog_types: Vec::new(),
 		bump_propagation: None,
@@ -7132,7 +7343,14 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Primary,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
+		cli: None,
 	};
 	assert_eq!(
 		crate::find_matching_package_indices_for_definition(&packages, &root, &definition),
@@ -7146,7 +7364,7 @@ fn matching_package_helpers_cover_references_and_definitions() {
 	));
 	assert!(crate::ecosystem_matches_package_type(
 		Ecosystem::Dart,
-		monochange_core::PackageType::Dart
+		PackageType::Dart
 	));
 }
 
@@ -7250,16 +7468,15 @@ fn changeset_files_with_crlf_line_endings_parse_correctly() {
 	let root = tempdir.path();
 
 	// Write a minimal monochange.toml.
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		"[defaults]\npackage_type = \"cargo\"\n\n[package.core]\npath = \"crates/core\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write toml: {error}"));
 
 	// Create the package manifest.
-	std::fs::create_dir_all(root.join("crates/core"))
-		.unwrap_or_else(|error| panic!("mkdir: {error}"));
-	std::fs::write(
+	fs::create_dir_all(root.join("crates/core")).unwrap_or_else(|error| panic!("mkdir: {error}"));
+	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
@@ -7267,9 +7484,9 @@ fn changeset_files_with_crlf_line_endings_parse_correctly() {
 
 	// Write a changeset file with CRLF line endings.
 	let crlf_changeset = "---\r\ncore: patch\r\n---\r\n\r\nFix a bug with CRLF endings.\r\n";
-	std::fs::create_dir_all(root.join(".changeset"))
+	fs::create_dir_all(root.join(".changeset"))
 		.unwrap_or_else(|error| panic!("mkdir changeset: {error}"));
-	std::fs::write(root.join(".changeset/crlf-test.md"), crlf_changeset)
+	fs::write(root.join(".changeset/crlf-test.md"), crlf_changeset)
 		.unwrap_or_else(|error| panic!("write changeset: {error}"));
 
 	let configuration =
@@ -7303,14 +7520,13 @@ fn changeset_files_with_bare_cr_line_endings_parse_correctly() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		"[defaults]\npackage_type = \"cargo\"\n\n[package.core]\npath = \"crates/core\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write toml: {error}"));
-	std::fs::create_dir_all(root.join("crates/core"))
-		.unwrap_or_else(|error| panic!("mkdir: {error}"));
-	std::fs::write(
+	fs::create_dir_all(root.join("crates/core")).unwrap_or_else(|error| panic!("mkdir: {error}"));
+	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
@@ -7318,9 +7534,8 @@ fn changeset_files_with_bare_cr_line_endings_parse_correctly() {
 
 	// Bare carriage return (old Mac style) line endings.
 	let bare_cr = "---\rcore: patch\r---\r\rFix with bare CR.\r";
-	std::fs::create_dir_all(root.join(".changeset"))
-		.unwrap_or_else(|error| panic!("mkdir: {error}"));
-	std::fs::write(root.join(".changeset/bare-cr.md"), bare_cr)
+	fs::create_dir_all(root.join(".changeset")).unwrap_or_else(|error| panic!("mkdir: {error}"));
+	fs::write(root.join(".changeset/bare-cr.md"), bare_cr)
 		.unwrap_or_else(|error| panic!("write: {error}"));
 
 	let configuration =
@@ -7397,7 +7612,7 @@ use crate::render_changelog_path_template;
 #[test]
 fn package_type_cargo_maps_to_ecosystem_type_cargo() {
 	assert_eq!(
-		package_type_to_ecosystem_type(monochange_core::PackageType::Cargo),
+		package_type_to_ecosystem_type(PackageType::Cargo),
 		EcosystemType::Cargo
 	);
 }
@@ -7405,7 +7620,7 @@ fn package_type_cargo_maps_to_ecosystem_type_cargo() {
 #[test]
 fn package_type_npm_maps_to_ecosystem_type_npm() {
 	assert_eq!(
-		package_type_to_ecosystem_type(monochange_core::PackageType::Npm),
+		package_type_to_ecosystem_type(PackageType::Npm),
 		EcosystemType::Npm
 	);
 }
@@ -7413,7 +7628,7 @@ fn package_type_npm_maps_to_ecosystem_type_npm() {
 #[test]
 fn package_type_deno_maps_to_ecosystem_type_deno() {
 	assert_eq!(
-		package_type_to_ecosystem_type(monochange_core::PackageType::Deno),
+		package_type_to_ecosystem_type(PackageType::Deno),
 		EcosystemType::Deno
 	);
 }
@@ -7421,7 +7636,7 @@ fn package_type_deno_maps_to_ecosystem_type_deno() {
 #[test]
 fn package_type_dart_maps_to_ecosystem_type_dart() {
 	assert_eq!(
-		package_type_to_ecosystem_type(monochange_core::PackageType::Dart),
+		package_type_to_ecosystem_type(PackageType::Dart),
 		EcosystemType::Dart
 	);
 }
@@ -7429,7 +7644,7 @@ fn package_type_dart_maps_to_ecosystem_type_dart() {
 #[test]
 fn package_type_flutter_maps_to_ecosystem_type_dart() {
 	assert_eq!(
-		package_type_to_ecosystem_type(monochange_core::PackageType::Dart),
+		package_type_to_ecosystem_type(PackageType::Dart),
 		EcosystemType::Dart
 	);
 }
@@ -7566,7 +7781,7 @@ proptest! {
 #[test]
 fn load_workspace_configuration_parses_dry_run_on_cli_command() {
 	let root = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		root.path().join("monochange.toml"),
 		br#"
 [defaults]
@@ -7585,9 +7800,9 @@ steps = [
 "#,
 	)
 	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
-	std::fs::create_dir_all(root.path().join("crates/core"))
+	fs::create_dir_all(root.path().join("crates/core"))
 		.unwrap_or_else(|error| panic!("create crates/core: {error}"));
-	std::fs::write(
+	fs::write(
 		root.path().join("crates/core/Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
@@ -7669,7 +7884,7 @@ fn source_provider_capabilities_reject_unsupported_settings() {
 fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	let root = tempdir().unwrap();
 	let unsupported = root.path().join("package.txt");
-	std::fs::write(&unsupported, "version = \"1.0.0\"").unwrap();
+	fs::write(&unsupported, "version = \"1.0.0\"").unwrap();
 	let error = crate::validate_ecosystem_version_readable(
 		&unsupported,
 		"package.txt",
@@ -7694,7 +7909,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	assert!(error.to_string().contains("failed to read"));
 
 	let bad_json = root.path().join("package.json");
-	std::fs::write(&bad_json, "{").unwrap();
+	fs::write(&bad_json, "{").unwrap();
 	let error = crate::validate_ecosystem_version_readable(
 		&bad_json,
 		"package.json",
@@ -7706,7 +7921,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	.unwrap_err();
 	assert!(error.to_string().contains("is not valid JSON"));
 
-	std::fs::write(&bad_json, "{\"version\":\"1.0.0\"}").unwrap();
+	fs::write(&bad_json, "{\"version\":\"1.0.0\"}").unwrap();
 	crate::validate_ecosystem_version_readable(
 		&bad_json,
 		"package.json",
@@ -7717,7 +7932,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	)
 	.unwrap();
 
-	std::fs::write(&bad_json, "{\"name\":\"pkg\"}").unwrap();
+	fs::write(&bad_json, "{\"name\":\"pkg\"}").unwrap();
 	let error = crate::validate_ecosystem_version_readable(
 		&bad_json,
 		"package.json",
@@ -7734,7 +7949,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	);
 
 	let bad_yaml = root.path().join("pubspec.yaml");
-	std::fs::write(&bad_yaml, ": bad").unwrap();
+	fs::write(&bad_yaml, ": bad").unwrap();
 	let error = crate::validate_ecosystem_version_readable(
 		&bad_yaml,
 		"pubspec.yaml",
@@ -7746,7 +7961,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	.unwrap_err();
 	assert!(error.to_string().contains("is not valid YAML"));
 
-	std::fs::write(&bad_yaml, "version: 1.0.0\n").unwrap();
+	fs::write(&bad_yaml, "version: 1.0.0\n").unwrap();
 	crate::validate_ecosystem_version_readable(
 		&bad_yaml,
 		"pubspec.yaml",
@@ -7757,7 +7972,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	)
 	.unwrap();
 
-	std::fs::write(&bad_yaml, "name: pkg\n").unwrap();
+	fs::write(&bad_yaml, "name: pkg\n").unwrap();
 	let error = crate::validate_ecosystem_version_readable(
 		&bad_yaml,
 		"pubspec.yaml",
@@ -7774,7 +7989,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	);
 
 	let go_mod = root.path().join("go.mod");
-	std::fs::write(&go_mod, "module example.com/pkg\n").unwrap();
+	fs::write(&go_mod, "module example.com/pkg\n").unwrap();
 	crate::validate_ecosystem_version_readable(
 		&go_mod,
 		"go.mod",
@@ -7786,7 +8001,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	.unwrap();
 
 	let bad_toml = root.path().join("Cargo.toml");
-	std::fs::write(&bad_toml, "[").unwrap();
+	fs::write(&bad_toml, "[").unwrap();
 	let error = crate::validate_ecosystem_version_readable(
 		&bad_toml,
 		"Cargo.toml",
@@ -7798,7 +8013,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	.unwrap_err();
 	assert!(error.to_string().contains("is not valid TOML"));
 
-	std::fs::write(
+	fs::write(
 		&bad_toml,
 		"[package]\nname = \"pkg\"\nversion = \"1.0.0\"\n",
 	)
@@ -7814,7 +8029,7 @@ fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
 	)
 	.unwrap();
 
-	std::fs::write(&bad_toml, "[package]\nname = \"pkg\"\n").unwrap();
+	fs::write(&bad_toml, "[package]\nname = \"pkg\"\n").unwrap();
 	let error = crate::validate_ecosystem_version_readable(
 		&bad_toml,
 		"Cargo.toml",
@@ -7862,7 +8077,7 @@ fn load_workspace_configuration_rejects_invalid_prerelease_settings() {
 
 	for (config, expected) in cases {
 		let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-		std::fs::write(tempdir.path().join("monochange.toml"), config)
+		fs::write(tempdir.path().join("monochange.toml"), config)
 			.unwrap_or_else(|error| panic!("write config: {error}"));
 
 		let error = load_workspace_configuration(tempdir.path())
@@ -7878,12 +8093,12 @@ fn load_workspace_configuration_rejects_invalid_prerelease_settings() {
 fn validate_workspace_configuration_rejects_leftover_prerelease_state_when_disabled() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::write(root.join("monochange.toml"), "")
+	fs::write(root.join("monochange.toml"), "")
 		.unwrap_or_else(|error| panic!("write config: {error}"));
 	let state_path = root.join(".monochange/prerelease-state.json");
-	std::fs::create_dir_all(state_path.parent().unwrap())
+	fs::create_dir_all(state_path.parent().unwrap())
 		.unwrap_or_else(|error| panic!("state dir: {error}"));
-	std::fs::write(&state_path, b"{}").unwrap_or_else(|error| panic!("state: {error}"));
+	fs::write(&state_path, b"{}").unwrap_or_else(|error| panic!("state: {error}"));
 
 	let error = validate_workspace(root).expect_err("leftover state should fail");
 	assert!(
@@ -8005,7 +8220,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 #[test]
 fn load_cli_commands_skips_package_and_versioned_file_validation() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [cli.custom]
@@ -8137,7 +8352,7 @@ fn literal_auto_discover_walk_root_stops_before_first_glob_component() {
 fn discover_packages_from_ecosystem_handles_root_glob_and_missing_literal_root() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::write(
+	fs::write(
 		root.join("package.json"),
 		r#"{"name":"root-package","version":"1.0.0"}"#,
 	)
@@ -8161,8 +8376,8 @@ fn discover_packages_from_ecosystem_finds_cargo_packages() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let crates_dir = tempdir.path().join("crates");
 	let core_dir = crates_dir.join("core");
-	std::fs::create_dir_all(&core_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
-	std::fs::write(
+	fs::create_dir_all(&core_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	fs::write(
 		core_dir.join("Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"0.1.0\"\n",
 	)
@@ -8192,8 +8407,8 @@ fn discover_packages_from_ecosystem_finds_cargo_packages() {
 fn discover_packages_from_ecosystem_uses_custom_path_id_template() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let pkg_dir = tempdir.path().join("packages").join("my-app");
-	std::fs::create_dir_all(&pkg_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
-	std::fs::write(
+	fs::create_dir_all(&pkg_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	fs::write(
 		pkg_dir.join("package.json"),
 		"{\"name\": \"@scope/my-app\", \"version\": \"1.0.0\"}",
 	)
@@ -8220,14 +8435,14 @@ fn discover_packages_from_ecosystem_respects_exclude_patterns() {
 	let crates_dir = tempdir.path().join("crates");
 	let core_dir = crates_dir.join("core");
 	let utils_dir = crates_dir.join("utils");
-	std::fs::create_dir_all(&core_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
-	std::fs::create_dir_all(&utils_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
-	std::fs::write(
+	fs::create_dir_all(&core_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	fs::create_dir_all(&utils_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	fs::write(
 		core_dir.join("Cargo.toml"),
 		"[package]\nname = \"core\"\nversion = \"0.1.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
-	std::fs::write(
+	fs::write(
 		utils_dir.join("Cargo.toml"),
 		"[package]\nname = \"utils\"\nversion = \"0.1.0\"\n",
 	)
@@ -8317,8 +8532,8 @@ fn normalize_auto_discover_settings_converts_defaults() {
 fn discover_packages_from_ecosystem_falls_back_to_path_id_when_name_is_missing() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let service_dir = tempdir.path().join("services").join("billing-api");
-	std::fs::create_dir_all(&service_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
-	std::fs::write(service_dir.join("go.mod"), "module example.com/billing\n")
+	fs::create_dir_all(&service_dir).unwrap_or_else(|error| panic!("create dir: {error}"));
+	fs::write(service_dir.join("go.mod"), "module example.com/billing\n")
 		.unwrap_or_else(|error| panic!("write go.mod: {error}"));
 
 	let auto_discover = AutoDiscoverSettings {
@@ -8348,16 +8563,16 @@ fn load_workspace_configuration_auto_discovers_cargo_packages_and_explicit_overr
 		("crates/ignored", "ignored-lib", "3.0.0"),
 	] {
 		let package_dir = root.join(path);
-		std::fs::create_dir_all(&package_dir)
+		fs::create_dir_all(&package_dir)
 			.unwrap_or_else(|error| panic!("create package dir: {error}"));
-		std::fs::write(
+		fs::write(
 			package_dir.join("Cargo.toml"),
 			format!("[package]\nname = \"{name}\"\nversion = \"{version}\"\n"),
 		)
 		.unwrap_or_else(|error| panic!("write manifest: {error}"));
 	}
 
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [defaults]
@@ -8426,7 +8641,7 @@ version_format = "primary"
 #[test]
 fn load_workspace_configuration_parses_cargo_semver_matrix() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [ecosystems.cargo.semver_checks]
@@ -8466,7 +8681,7 @@ target = "wasm32-unknown-unknown"
 #[test]
 fn load_workspace_configuration_rejects_duplicate_semver_matrix_names() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r#"
 [ecosystems.cargo.semver_checks]
@@ -8494,7 +8709,7 @@ name = "default"
 #[test]
 fn load_workspace_configuration_rejects_semver_checks_for_non_cargo_ecosystems() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
+	fs::write(
 		tempdir.path().join("monochange.toml"),
 		r"
 [ecosystems.npm.semver_checks]
@@ -8552,7 +8767,7 @@ fn load_workspace_configuration_validates_semver_matrix_bounds_and_values() {
 
 	for (contents, expected) in cases {
 		let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-		std::fs::write(tempdir.path().join("monochange.toml"), contents)
+		fs::write(tempdir.path().join("monochange.toml"), contents)
 			.unwrap_or_else(|error| panic!("write config: {error}"));
 		let error = load_workspace_configuration(tempdir.path())
 			.expect_err("invalid semver matrix should fail");
@@ -8568,9 +8783,8 @@ fn load_workspace_configuration_auto_discovers_npm_packages_with_primary_version
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	let package_dir = root.join("packages").join("web-app");
-	std::fs::create_dir_all(&package_dir)
-		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(
+	fs::create_dir_all(&package_dir).unwrap_or_else(|error| panic!("create package dir: {error}"));
+	fs::write(
 		package_dir.join("package.json"),
 		r#"{
 	"name": "@scope/web-app",
@@ -8579,7 +8793,7 @@ fn load_workspace_configuration_auto_discovers_npm_packages_with_primary_version
 "#,
 	)
 	.unwrap_or_else(|error| panic!("write package.json: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [defaults]
@@ -8600,7 +8814,7 @@ include = ["packages/*"]
 		.unwrap_or_else(|| panic!("missing auto-discovered package"));
 
 	assert_eq!(configuration.packages.len(), 1);
-	assert_eq!(package.package_type, monochange_core::PackageType::Npm);
+	assert_eq!(package.package_type, PackageType::Npm);
 	assert_eq!(package.path, PathBuf::from("packages/web-app"));
 	assert!(package.versioned_files.is_empty());
 	assert_eq!(package.version_format, VersionFormat::Primary);
@@ -8666,14 +8880,14 @@ fn discover_packages_from_ecosystem_handles_empty_and_duplicate_manifest_cases()
 
 	let deno_dir = root.join("apps").join("edge");
 	let empty_dir = root.join("apps").join("empty");
-	std::fs::create_dir_all(&deno_dir).unwrap_or_else(|error| panic!("create deno dir: {error}"));
-	std::fs::create_dir_all(&empty_dir).unwrap_or_else(|error| panic!("create empty dir: {error}"));
-	std::fs::write(
+	fs::create_dir_all(&deno_dir).unwrap_or_else(|error| panic!("create deno dir: {error}"));
+	fs::create_dir_all(&empty_dir).unwrap_or_else(|error| panic!("create empty dir: {error}"));
+	fs::write(
 		deno_dir.join("deno.json"),
 		"{\n  \"name\": \"edge-json\"\n}\n",
 	)
 	.unwrap_or_else(|error| panic!("write deno.json: {error}"));
-	std::fs::write(
+	fs::write(
 		deno_dir.join("deno.jsonc"),
 		"{\n  \"name\": \"edge-jsonc\"\n}\n",
 	)
@@ -8700,19 +8914,18 @@ fn discover_packages_from_ecosystem_reports_manifest_read_errors() {
 
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let package_dir = tempdir.path().join("crates").join("private");
-	std::fs::create_dir_all(&package_dir)
-		.unwrap_or_else(|error| panic!("create package dir: {error}"));
+	fs::create_dir_all(&package_dir).unwrap_or_else(|error| panic!("create package dir: {error}"));
 	let manifest = package_dir.join("Cargo.toml");
-	std::fs::write(
+	fs::write(
 		&manifest,
 		"[package]\nname = \"private\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write manifest: {error}"));
-	let mut permissions = std::fs::metadata(&manifest)
+	let mut permissions = fs::metadata(&manifest)
 		.unwrap_or_else(|error| panic!("metadata: {error}"))
 		.permissions();
 	permissions.set_mode(0o000);
-	std::fs::set_permissions(&manifest, permissions)
+	fs::set_permissions(&manifest, permissions)
 		.unwrap_or_else(|error| panic!("set permissions: {error}"));
 
 	let settings = AutoDiscoverSettings {
@@ -8726,11 +8939,11 @@ fn discover_packages_from_ecosystem_reports_manifest_read_errors() {
 			.err()
 			.unwrap_or_else(|| panic!("expected manifest read error"));
 
-	let mut restored = std::fs::metadata(&manifest)
+	let mut restored = fs::metadata(&manifest)
 		.unwrap_or_else(|metadata_error| panic!("metadata restore: {metadata_error}"))
 		.permissions();
 	restored.set_mode(0o644);
-	std::fs::set_permissions(&manifest, restored)
+	fs::set_permissions(&manifest, restored)
 		.unwrap_or_else(|permission_error| panic!("restore permissions: {permission_error}"));
 	assert!(error.to_string().contains("Cargo.toml"));
 }
@@ -8739,23 +8952,23 @@ fn discover_packages_from_ecosystem_reports_manifest_read_errors() {
 fn ecosystem_type_to_package_type_covers_all_auto_discover_ecosystems() {
 	assert_eq!(
 		crate::ecosystem_type_to_package_type(EcosystemType::Cargo),
-		monochange_core::PackageType::Cargo
+		PackageType::Cargo
 	);
 	assert_eq!(
 		crate::ecosystem_type_to_package_type(EcosystemType::Deno),
-		monochange_core::PackageType::Deno
+		PackageType::Deno
 	);
 	assert_eq!(
 		crate::ecosystem_type_to_package_type(EcosystemType::Dart),
-		monochange_core::PackageType::Dart
+		PackageType::Dart
 	);
 	assert_eq!(
 		crate::ecosystem_type_to_package_type(EcosystemType::Python),
-		monochange_core::PackageType::Python
+		PackageType::Python
 	);
 	assert_eq!(
 		crate::ecosystem_type_to_package_type(EcosystemType::Go),
-		monochange_core::PackageType::Go
+		PackageType::Go
 	);
 }
 
@@ -8764,11 +8977,10 @@ fn load_workspace_configuration_auto_discovers_go_packages() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	let package_dir = root.join("modules").join("service");
-	std::fs::create_dir_all(&package_dir)
-		.unwrap_or_else(|error| panic!("create package dir: {error}"));
-	std::fs::write(package_dir.join("go.mod"), "module example.com/service\n")
+	fs::create_dir_all(&package_dir).unwrap_or_else(|error| panic!("create package dir: {error}"));
+	fs::write(package_dir.join("go.mod"), "module example.com/service\n")
 		.unwrap_or_else(|error| panic!("write go.mod: {error}"));
-	std::fs::write(
+	fs::write(
 		root.join("monochange.toml"),
 		r#"
 [ecosystems.go.auto_discover]
@@ -8785,7 +8997,7 @@ include = ["modules/*"]
 		.find(|package| package.id == "service")
 		.unwrap_or_else(|| panic!("missing auto-discovered go package"));
 
-	assert_eq!(package.package_type, monochange_core::PackageType::Go);
+	assert_eq!(package.package_type, PackageType::Go);
 	assert_eq!(package.path, PathBuf::from("modules/service"));
 }
 
@@ -8932,6 +9144,12 @@ fn package_bump_propagations_resolves_precedence_package_group_default() {
 		tag: false,
 		release: false,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 	});
 
 	// packages: core (declares inherit+max minor), engine (group member, no
@@ -9008,6 +9226,12 @@ fn package_bump_propagations_skips_group_members_without_definitions() {
 		tag: false,
 		release: false,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 	});
 
 	let propagations = package_bump_propagations(&configuration, &[]);
@@ -9059,7 +9283,7 @@ fn load_workspace_configuration_rejects_group_bump_propagation_max_without_inher
 
 fn load_workspace_configuration_from_toml(contents: &str) -> WorkspaceConfiguration {
 	let temp_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(temp_dir.path().join("monochange.toml"), contents)
+	fs::write(temp_dir.path().join("monochange.toml"), contents)
 		.unwrap_or_else(|error| panic!("write config: {error}"));
 	load_workspace_configuration(temp_dir.path())
 		.unwrap_or_else(|error| panic!("configuration: {error}"))
@@ -9131,4 +9355,338 @@ fn load_workspace_configuration_coerces_literal_defaults_in_cli_input_declaratio
 	assert_eq!(defaults.get("draft"), Some(&Some("true".to_string())));
 	assert_eq!(defaults.get("jobs"), Some(&Some("4".to_string())));
 	assert_eq!(defaults.get("ratio"), Some(&Some("2.5".to_string())));
+}
+
+#[test]
+fn ecosystem_matches_package_type_covers_every_ecosystem() {
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Cargo,
+		PackageType::Cargo
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Npm,
+		PackageType::Npm
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Deno,
+		PackageType::Deno
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Dart,
+		PackageType::Dart
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Python,
+		PackageType::Python
+	));
+	assert!(super::ecosystem_matches_package_type(
+		Ecosystem::Go,
+		PackageType::Go
+	));
+	assert!(!super::ecosystem_matches_package_type(
+		Ecosystem::Go,
+		PackageType::Npm
+	));
+}
+
+#[test]
+fn relative_directory_is_treats_empty_directory_as_workspace_root() {
+	assert!(super::relative_directory_is(
+		Path::new("."),
+		Some(Path::new(""))
+	));
+	assert!(super::relative_directory_is(
+		Path::new("."),
+		Some(Path::new("."))
+	));
+	assert!(super::relative_directory_is(
+		Path::new("services/api"),
+		Some(Path::new("services/api"))
+	));
+	assert!(!super::relative_directory_is(
+		Path::new("services/api"),
+		Some(Path::new(""))
+	));
+	assert!(!super::relative_directory_is(
+		Path::new("services/api"),
+		None
+	));
+}
+
+#[test]
+fn github_actions_package_type_applies_preset_defaults() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(root.join("action.yml"), "name: my-action\n")
+		.unwrap_or_else(|error| panic!("write action.yml: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.actions]\npath = \".\"\ntype = \"github_actions\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("load config: {error}"));
+	let package = &configuration.packages[0];
+
+	assert_eq!(package.package_type, PackageType::GitHubActions);
+	assert_eq!(package.version_source, VersionSource::Tag);
+	assert!(package.tag);
+	assert!(package.release);
+	assert!(!package.publish.enabled);
+	assert_eq!(package.initial_version, Some(Version::new(0, 1, 0)));
+	assert_eq!(
+		package.floating_tags,
+		vec![
+			FloatingTagFormat("v{{ major }}.{{ minor }}".to_string()),
+			FloatingTagFormat("v{{ major }}".to_string()),
+		]
+	);
+}
+
+#[test]
+fn github_actions_package_type_accepts_explicit_overrides() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(root.join("action.yml"), "name: my-action\n")
+		.unwrap_or_else(|error| panic!("write action.yml: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.actions]\npath = \".\"\ntype = \"github_actions\"\nversion_source = \"manifest\"\ntag = false\nrelease = false\ninitial_version = \"2.0.0\"\nfloating_tags = [\"v{{ major }}\"]\n\n[package.actions.publish]\nenabled = true\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("load config: {error}"));
+	let package = &configuration.packages[0];
+
+	assert_eq!(package.version_source, VersionSource::Manifest);
+	assert!(!package.tag);
+	assert!(!package.release);
+	assert!(package.publish.enabled);
+	assert_eq!(package.initial_version, Some(Version::new(2, 0, 0)));
+	assert_eq!(
+		package.floating_tags,
+		vec![FloatingTagFormat("v{{ major }}".to_string())]
+	);
+}
+
+#[test]
+fn version_source_and_floating_tags_round_trip_for_regular_types() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(
+		root.join("Cargo.toml"),
+		"[package]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.demo]\npath = \".\"\ntype = \"cargo\"\nversion_source = \"tag\"\ninitial_version = \"0.3.0\"\nfloating_tags = [\"v{{ major }}.{{ minor }}\"]\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("load config: {error}"));
+	let package = &configuration.packages[0];
+
+	assert_eq!(package.version_source, VersionSource::Tag);
+	assert_eq!(package.initial_version, Some(Version::new(0, 3, 0)));
+	assert_eq!(
+		package.floating_tags,
+		vec![FloatingTagFormat("v{{ major }}.{{ minor }}".to_string())]
+	);
+}
+
+#[test]
+fn floating_tags_reject_unsupported_template_variables() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(
+		root.join("Cargo.toml"),
+		"[package]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		"[package.demo]\npath = \".\"\ntype = \"cargo\"\nfloating_tags = [\"v{{ beta }}\"]\n",
+	)
+	.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+
+	let error = load_workspace_configuration(root)
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(error.to_string().contains("floating_tags"), "{error}");
+}
+
+fn cli_registration_workspace(root: &Path, packages: &[(&str, &str)]) {
+	let mut config = String::new();
+	for (id, cli_line) in packages {
+		let package_dir = root.join("crates").join(id);
+		fs::create_dir_all(&package_dir)
+			.unwrap_or_else(|error| panic!("create package dir: {error}"));
+		fs::write(
+			package_dir.join("Cargo.toml"),
+			format!("[package]\nname = \"{id}\"\nversion = \"0.1.0\"\n"),
+		)
+		.unwrap_or_else(|error| panic!("write Cargo.toml: {error}"));
+		let _ = write!(
+			config,
+			"[package.{id}]\npath = \"crates/{id}\"\ntype = \"cargo\"\n"
+		);
+		if !cli_line.is_empty() {
+			config.push_str(cli_line);
+			config.push('\n');
+		}
+	}
+	fs::write(root.join("monochange.toml"), config)
+		.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+}
+
+#[test]
+fn load_workspace_configuration_parses_package_cli_snapshot_string() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[(
+			"demo",
+			"cli = { name = \"demo\", snapshot = \"demo snapshot --view index\" }",
+		)],
+	);
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let cli = configuration.packages[0]
+		.cli
+		.as_ref()
+		.unwrap_or_else(|| panic!("expected cli registration"));
+
+	assert_eq!(cli.name, "demo");
+	assert_eq!(cli.snapshot.command, "demo snapshot --view index");
+	assert_eq!(cli.snapshot.cwd, None);
+	assert_eq!(cli.snapshot.shell, ShellConfig::None);
+}
+
+#[test]
+fn load_workspace_configuration_parses_package_cli_snapshot_table() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[(
+			"demo",
+			"cli = { name = \"demo\", snapshot = { command = \"node scripts/emit-snapshot.mjs\", cwd = \"packages/demo\", shell = true } }",
+		)],
+	);
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let cli = configuration.packages[0]
+		.cli
+		.as_ref()
+		.unwrap_or_else(|| panic!("expected cli registration"));
+
+	assert_eq!(cli.name, "demo");
+	assert_eq!(cli.snapshot.command, "node scripts/emit-snapshot.mjs");
+	assert_eq!(cli.snapshot.cwd, Some(PathBuf::from("packages/demo")));
+	assert_eq!(cli.snapshot.shell, ShellConfig::Default);
+}
+
+#[test]
+fn load_workspace_configuration_omits_package_cli_when_unset() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(tempdir.path(), &[("demo", "")]);
+
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	assert!(configuration.packages[0].cli.is_none());
+}
+
+#[test]
+fn load_workspace_configuration_rejects_package_cli_unknown_fields() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[(
+			"demo",
+			"cli = { name = \"demo\", snapshot = \"demo snapshot\", binary = \"demo\" }",
+		)],
+	);
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error.to_string().contains("unknown field") || error.to_string().contains("`binary`"),
+		"{error}"
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_empty_package_cli_name() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[(
+			"demo",
+			"cli = { name = \"\", snapshot = \"demo snapshot\" }",
+		)],
+	);
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error
+			.to_string()
+			.contains("cli registration must provide a non-empty name"),
+		"{error}"
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_empty_package_cli_snapshot_command() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[("demo", "cli = { name = \"demo\", snapshot = \"   \" }")],
+	);
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error
+			.to_string()
+			.contains("must provide a non-empty snapshot command"),
+		"{error}"
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_duplicate_package_cli_names() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	cli_registration_workspace(
+		tempdir.path(),
+		&[
+			(
+				"first",
+				"cli = { name = \"shared\", snapshot = \"first snapshot\" }",
+			),
+			(
+				"second",
+				"cli = { name = \"shared\", snapshot = \"second snapshot\" }",
+			),
+		],
+	);
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected config error"));
+	assert!(
+		error
+			.to_string()
+			.contains("cli name `shared` is registered by both `first` and `second`"),
+		"{error}"
+	);
 }

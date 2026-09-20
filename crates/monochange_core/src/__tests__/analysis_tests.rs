@@ -61,13 +61,13 @@ fn semantic_change_assessment_serializes_analyzer_provenance_and_fallback() {
 		.unwrap_or_else(|error| panic!("serialize semantic assessment: {error}"));
 
 	assert_eq!(json["outcome"], "inconclusive");
-	assert_eq!(json["suggestedBump"], "patch");
-	assert_eq!(json["evidence"]["analyzerId"], "npm/typescript");
+	assert_eq!(json["suggested_bump"], "patch");
+	assert_eq!(json["evidence"]["analyzer_id"], "npm/typescript");
 	assert_eq!(json["evidence"]["engine"], "typescript");
 	assert_eq!(json["evidence"]["version"], "6.0.3");
 	assert_eq!(json["evidence"]["completeness"], "partial");
 	assert_eq!(
-		json["evidence"]["fallbackReason"],
+		json["evidence"]["fallback_reason"],
 		"tsconfig.json extends an unavailable file"
 	);
 }
@@ -104,7 +104,7 @@ fn semantic_analyzer_evidence_serializes_machine_readable_checks() {
 		.unwrap_or_else(|error| panic!("evidence should serialize: {error}"));
 
 	assert_eq!(json["checks"][0]["name"], "all-features");
-	assert_eq!(json["checks"][0]["suggestedBump"], "major");
+	assert_eq!(json["checks"][0]["suggested_bump"], "major");
 	assert_eq!(
 		json["checks"][0]["diagnostics"][0]["code"],
 		"struct_missing"
@@ -362,6 +362,35 @@ fn package_path_matcher_applies_root_additional_and_ignored_paths() {
 	);
 	assert_eq!(
 		workspace_matcher.classify(Path::new("README.md")),
+		PackagePathMatch::Touched
+	);
+}
+
+#[test]
+fn package_path_matcher_treats_dot_path_as_the_repository_root() {
+	let matcher = PackagePathMatcher::new("actions", Path::new("."), &[], &["dist/**".to_string()]);
+
+	assert_eq!(
+		matcher.classify(Path::new("src/actions/merge/index.ts")),
+		PackagePathMatch::Touched
+	);
+	assert_eq!(
+		matcher.classify(Path::new("./src/actions/merge/index.ts")),
+		PackagePathMatch::Touched
+	);
+	assert_eq!(
+		matcher.classify(Path::new("action.yml")),
+		PackagePathMatch::Touched
+	);
+	assert_eq!(
+		matcher.classify(Path::new("dist/index.mjs")),
+		PackagePathMatch::Ignored
+	);
+
+	let dotted = PackagePathMatcher::new("dotted", Path::new("./"), &[], &[]);
+
+	assert_eq!(
+		dotted.classify(Path::new("src/main.rs")),
 		PackagePathMatch::Touched
 	);
 }

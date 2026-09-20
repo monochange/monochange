@@ -16,6 +16,7 @@ use crate::adapter;
 use crate::derive_module_name;
 use crate::discover_go_modules;
 use crate::is_major_version_suffix;
+use crate::load_configured_go_package;
 use crate::parse_go_version;
 use crate::parse_module_path;
 use crate::parse_require_directives;
@@ -623,4 +624,63 @@ fn validate_versioned_file_returns_ok_for_missing_file() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let path = tempdir.path().join("missing.mod");
 	assert!(super::validate_versioned_file(&path, "missing.mod", None).is_ok());
+}
+
+// -- load_configured --
+
+#[test]
+fn load_configured_go_package_loads_module_record() {
+	let root = fixture_path("go/single-module");
+	let record = load_configured_go_package(&root, &root)
+		.unwrap_or_else(|error| panic!("load configured go package: {error}"))
+		.expect("go module record");
+
+	assert_eq!(record.name, "myapp");
+	assert_eq!(record.ecosystem, Ecosystem::Go);
+	assert_eq!(
+		record.manifest_path,
+		monochange_core::normalize_path(&root).join("go.mod")
+	);
+	assert_eq!(record.publish_state, PublishState::Public);
+	assert!(record.current_version.is_none());
+	assert_eq!(
+		record.metadata.get("module_path").map(String::as_str),
+		Some("github.com/example/myapp")
+	);
+}
+
+#[test]
+fn adapter_load_configured_delegates_to_go_module_loader() {
+	let root = fixture_path("go/single-module");
+	let record = GoAdapter
+		.load_configured(&root, &root)
+		.unwrap_or_else(|error| panic!("load configured go package: {error}"))
+		.expect("go module record");
+
+	assert_eq!(record.name, "myapp");
+	assert!(record.current_version.is_none());
+}
+
+#[test]
+fn load_configured_go_package_returns_none_without_go_mod() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+
+	let record = load_configured_go_package(root, root)
+		.unwrap_or_else(|error| panic!("load configured go package: {error}"));
+
+	assert!(record.is_none());
+}
+
+#[test]
+fn load_configured_go_package_returns_none_without_module_directive() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::write(root.join("go.mod"), "go 1.22\n")
+		.unwrap_or_else(|error| panic!("write go.mod: {error}"));
+
+	let record = load_configured_go_package(root, root)
+		.unwrap_or_else(|error| panic!("load configured go package: {error}"));
+
+	assert!(record.is_none());
 }

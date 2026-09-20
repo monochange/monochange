@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
-assertion_line: 434
 expression: object_form
 ---
 ---

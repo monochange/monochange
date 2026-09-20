@@ -172,7 +172,7 @@ Reach for this crate when you want to scan Cargo workspaces into normalized `mon
 <!-- {/monochangeCargoCrateDocs} -->
 
 <!-- {@monochangeConfigCrateDocs} -->
-
+{% raw %}
 `monochange_config` parses and validates the inputs that drive planning and release commands.
 
 Reach for this crate when you need to load `monochange.toml`, resolve package references, or turn `.changeset/*.md` files into validated change signals for the planner.
@@ -242,7 +242,7 @@ assert_eq!(package.changelog.as_ref().unwrap().path, std::path::PathBuf::from("c
 
 let _ = std::fs::remove_dir_all(&root);
 ```
-
+{% endraw %}
 <!-- {/monochangeConfigCrateDocs} -->
 
 <!-- {@monochangeGraphCrateDocs} -->
@@ -332,6 +332,7 @@ let manifest = ReleaseManifest {
         members: vec!["core".to_string(), "app".to_string()],
         rendered_title: "1.2.0 (2026-04-06)".to_string(),
         rendered_changelog_title: "[1.2.0](https://example.com) (2026-04-06)".to_string(),
+        floating_tags: Vec::new(),
     }],
     released_packages: vec!["workflow-core".to_string(), "workflow-app".to_string()],
     package_publications: Vec::new(),

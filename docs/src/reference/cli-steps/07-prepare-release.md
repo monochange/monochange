@@ -153,9 +153,11 @@ monochange step prepare-release
 monochange step open-release-request --dry-run
 ```
 
-The first `PrepareRelease` step stores prepared state in `.monochange/prepared-release-cache.json`, and later commands with a `PrepareRelease` step reuse it when the git `HEAD`, workspace status, tracked release inputs, and relevant configuration still match.
+The first `PrepareRelease` step stores prepared state in `.monochange/local/prepared-release-cache.json`, and later commands with a `PrepareRelease` step reuse it when the git `HEAD`, workspace status, tracked release inputs, and relevant configuration still match.
 
-That `.monochange/` directory is meant for local monochange artifacts. Keep it gitignored so reusable prepared state, the cached release manifest, and other local release metadata do not pollute reviewable commits.
+`.monochange/local/` is the only directory under `.monochange/` that should be gitignored. monochange adds it to `.git/info/exclude` automatically, so reusable prepared state, the cached release manifest, and other local release metadata do not pollute reviewable commits.
+
+Never add `.monochange/` as a whole to `.gitignore`. Release records under `.monochange/releases/<id>/release.json` and `.monochange/prerelease-state.json` are committed state that `CommitRelease`, `publish-readiness`, `tag-release`, and provider release automation read from git history. Ignoring them makes releases unpublishable.
 
 If your configured workflow exposes a `prepared_release` input and you need to pass the artifact between explicit jobs or custom commands, wire that input to `PrepareRelease` and pass the artifact path:
 

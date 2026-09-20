@@ -1409,13 +1409,23 @@ pub async fn try_execute_publish_requests_with_progress(
 			progress.report(PublishProgressEvent::PackageStarted(
 				publish_progress_package(request),
 			));
-			if let Some(warning) = dart_protected_publishing_warning(request, env_map) {
-				tracing::warn!(
+			if let Some(blocker) = pub_dev_trusted_publishing_ref_error(request, env_map) {
+				tracing::error!(
 					package_name = request.package_name,
 					version = %request.version,
 					registry = %request.registry,
-					"{warning}"
+					"{blocker}"
 				);
+				primary_error = Some(MonochangeError::Config(blocker.clone()));
+				append_publish_failure_outcomes(
+					&mut outcomes,
+					remaining_requests,
+					mode,
+					request,
+					blocker,
+					progress,
+				);
+				break;
 			}
 			if request.registry == RegistryKind::PubDev
 				&& request.trusted_publishing.enabled
@@ -2112,38 +2122,47 @@ fn publish_command_failure_message(request: &PublishRequest, error: &MonochangeE
 	error.render()
 }
 
-/// Explanatory guidance appended to Dart/pub.dev publish failures and timeouts
-/// explaining that protected (trusted) publishing may require publishing from a
-/// pushed tag rather than a `workflow_dispatch` event.
+/// Explanatory guidance for Dart/pub.dev trusted-publishing failures and
+/// timeouts describing pub.dev's run-ref requirement.
 pub fn dart_protected_publishing_guidance() -> &'static str {
-	"pub.dev protected publishing may require publishing directly from a pushed tag rather than a `workflow_dispatch` event. If the publish hangs or fails non-interactively, verify the pub.dev automated publishing publisher is configured for the tag push event (not `workflow_dispatch`), or provide a `PUB_TOKEN` fallback with `dart pub token add https://pub.dev --env-var PUB_TOKEN` before publishing."
+	"pub.dev trusted publishing only accepts runs whose OIDC token ref is `refs/tags/<tag-pattern>`, where `<tag-pattern>` is configured in the package's pub.dev admin and contains `{{version}}` matching the published version. The `Enable publishing from workflow_dispatch events` option on pub.dev only allows the event name; the run must still be dispatched on the tag ref (for example `gh workflow run <workflow>.yml --ref <tag>`), or the publish must run from the tag-push event. As a last resort, register a non-OIDC credential with `dart pub token add https://pub.dev --env-var PUB_TOKEN` before publishing."
 }
 
-/// Returns a warning when a Dart package uses protected (trusted) publishing
-/// from a GitHub Actions `workflow_dispatch` event without a `PUB_TOKEN`
-/// fallback, which pub.dev automated publishing commonly rejects.
+/// Returns an error message when a Dart package uses trusted publishing from a
+/// GitHub Actions run that is not on a tag ref, which pub.dev rejects before
+/// the upload is attempted.
+///
+/// pub.dev validates the `ref_type` and `ref` OIDC claims for both `push` and
+/// `workflow_dispatch` events: the run ref must be `refs/tags/<tag-pattern>`
+/// with `{{version}}` matching the published version. A `workflow_dispatch`
+/// run dispatched on a branch carries a `refs/heads/*` ref and is always
+/// rejected, so the run fails fast here with the dispatch recipe instead of
+/// surfacing an opaque registry authorization error after minting a token.
 #[must_use]
-pub fn dart_protected_publishing_warning(
+pub fn pub_dev_trusted_publishing_ref_error(
 	request: &PublishRequest,
 	env_map: &BTreeMap<String, String>,
 ) -> Option<String> {
 	if request.registry != RegistryKind::PubDev || !request.trusted_publishing.enabled {
 		return None;
 	}
-	let event_is_workflow_dispatch = env_map
-		.get("GITHUB_EVENT_NAME")
-		.is_some_and(|event| event == "workflow_dispatch")
-		|| env_map
-			.get("GITHUB_REF")
-			.is_some_and(|reference| reference.starts_with("refs/heads/"));
-	if !event_is_workflow_dispatch {
+	if env_map
+		.get("GITHUB_ACTIONS")
+		.is_none_or(|value| value != "true")
+	{
 		return None;
 	}
-	if env_map.contains_key("PUB_TOKEN") {
+	let github_ref = env_map.get("GITHUB_REF").map(String::as_str)?;
+	if github_ref.starts_with("refs/tags/") {
+		return None;
+	}
+	if env_map.contains_key(PUB_TOKEN_ENV_VAR) {
+		// A real registry credential bypasses trusted publishing entirely, so
+		// the tag-ref policy does not apply.
 		return None;
 	}
 	Some(format!(
-		"`{}` uses pub.dev protected publishing from a `workflow_dispatch` event without a `PUB_TOKEN` fallback. {}",
+		"`{}` uses pub.dev trusted publishing, but this GitHub Actions run ref is `{github_ref}`, not a tag. {}",
 		request.package_name,
 		dart_protected_publishing_guidance()
 	))
@@ -2360,7 +2379,7 @@ fn is_pub_dev_auth_error(output: &CommandOutput, request: &PublishRequest) -> bo
 }
 
 fn pub_dev_trusted_publishing_recovery_message() -> &'static str {
-	"pub.dev publishing could not authenticate non-interactively. If this package uses trusted publishing, verify the GitHub workflow has `id-token: write`, runs with the GitHub Actions environment configured on pub.dev, matches the package repository and tag/event policy, and runs `dart-lang/setup-dart` before `dart pub publish`. If using a token fallback, add it before publishing with `dart pub token add https://pub.dev --env-var PUB_TOKEN`."
+	"pub.dev publishing could not authenticate non-interactively. If this package uses trusted publishing, verify the GitHub workflow has `id-token: write`, runs with the GitHub Actions environment configured on pub.dev, matches the package repository, and runs from a `refs/tags/*` ref matching the tag pattern configured on pub.dev (the tag must contain the published version). If using a token fallback, add it before publishing with `dart pub token add https://pub.dev --env-var PUB_TOKEN`."
 }
 
 pub fn build_publish_command(

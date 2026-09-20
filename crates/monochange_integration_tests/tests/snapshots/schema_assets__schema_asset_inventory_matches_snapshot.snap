@@ -3,6 +3,19 @@ source: crates/monochange_integration_tests/tests/schema_assets.rs
 expression: inventory
 ---
 {
+  "commandSnapshot": {
+    "additionalProperties": false,
+    "kind": "cli-surface",
+    "required": [
+      "schema_version",
+      "kind",
+      "tool",
+      "provenance",
+      "standard_entrypoints"
+    ],
+    "schemaId": "https://monochange.github.io/monochange/schemas/command-snapshot.schema.json",
+    "schemaVersion": "0.1"
+  },
   "configuration": {
     "additionalProperties": false,
     "dynamicTables": [

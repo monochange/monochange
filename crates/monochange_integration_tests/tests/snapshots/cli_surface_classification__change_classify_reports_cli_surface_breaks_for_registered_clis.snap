@@ -1,0 +1,147 @@
+---
+source: crates/monochange_integration_tests/tests/cli_surface_classification.rs
+expression: projected
+---
+{
+  "candidate": "merge-tree:[SHA]",
+  "comparisons": [
+    {
+      "base": "HEAD~1",
+      "head": "merge-tree:[SHA]",
+      "kind": "pull_request",
+      "note": null,
+      "status": "analyzed"
+    },
+    {
+      "base": "[SHA]",
+      "head": "HEAD",
+      "kind": "source_delta",
+      "note": null,
+      "status": "analyzed"
+    }
+  ],
+  "default_branch": "HEAD~1",
+  "packages": [
+    {
+      "action": "create",
+      "cli": {
+        "baseline": ".monochange/cli-snapshots/demo.json",
+        "finding_count": 2,
+        "name": "demo",
+        "recommendation": "major",
+        "status": "diffed"
+      },
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pull_request",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "source_delta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "release_to_default",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        }
+      ],
+      "decision": {
+        "classification_enforced": true,
+        "compatibility_impact": "breaking",
+        "completeness": "complete",
+        "confidence": "high",
+        "enforceable_minimum": "major",
+        "finding_ids": [
+          "monochange/cli-surface/option-removed/check"
+        ],
+        "proposed_changeset_bump": "major",
+        "release_floor": "major",
+        "review_required": false
+      },
+      "ecosystem": "cargo",
+      "existing_changesets": [],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "monochange/cli-surface",
+            "version": "1"
+          },
+          "before": null,
+          "bump": "major",
+          "change": "option-removed",
+          "comparisons": [
+            "pull_request"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "completeness": "complete",
+            "detection_level": "signature",
+            "note": "command surface compared against the committed release baseline"
+          },
+          "id": "monochange/cli-surface/option-removed/check",
+          "impact": "breaking",
+          "location": "check",
+          "rule_id": "monochange/cli-surface/option-removed",
+          "summary": "option `--format` was removed from `check`",
+          "surface": "cli"
+        },
+        {
+          "after": null,
+          "analyzer": {
+            "id": "monochange/cli-surface",
+            "version": "1"
+          },
+          "before": null,
+          "bump": "minor",
+          "change": "command-added",
+          "comparisons": [
+            "pull_request"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "completeness": "complete",
+            "detection_level": "signature",
+            "note": "command surface compared against the committed release baseline"
+          },
+          "id": "monochange/cli-surface/command-added/migrate",
+          "impact": "additive",
+          "location": "migrate",
+          "rule_id": "monochange/cli-surface/command-added",
+          "summary": "command `migrate` was added",
+          "surface": "cli"
+        }
+      ],
+      "package_id": "demo",
+      "package_name": "demo",
+      "recommendation": "major",
+      "release_owner": {
+        "id": "demo",
+        "kind": "package",
+        "latest_release": null
+      },
+      "summary": "1 breaking finding(s) propose a major changeset",
+      "warnings": []
+    }
+  ],
+  "recommendation": "major",
+  "schema_version": "[SCHEMA_VERSION]",
+  "skipped": false,
+  "warnings": []
+}

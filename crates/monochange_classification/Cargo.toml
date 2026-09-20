@@ -1,0 +1,32 @@
+[package]
+name = "monochange_classification"
+version = "0.2.0"
+edition = { workspace = true }
+license = { workspace = true }
+readme = "readme.md"
+repository = { workspace = true }
+rust-version = { workspace = true }
+description = "Change classification for monochange: compatibility findings and the report contract"
+
+[dependencies]
+monochange_analysis = { workspace = true }
+monochange_config = { workspace = true }
+monochange_core = { workspace = true }
+monochange_semver = { workspace = true }
+monochange_snapshot = { workspace = true }
+schemars = { workspace = true, default-features = true, optional = true }
+semver = { workspace = true }
+serde = { workspace = true, default-features = true }
+serde_json = { workspace = true, default-features = true }
+shlex = { workspace = true }
+tempfile = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true, default-features = true }
+monochange_test_helpers = { workspace = true }
+
+[features]
+schema = ["dep:schemars", "monochange_core/schema"]
+
+[lints]
+workspace = true

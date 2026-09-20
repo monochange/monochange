@@ -52,6 +52,7 @@ expression: "Value::Object(outputs)"
           "planned_stable_version": "1.0.0"
         }
       },
+      "release_note_changesets": [],
       "schema_version": 1,
       "updated_at": "[timestamp]"
     }
@@ -105,6 +106,7 @@ expression: "Value::Object(outputs)"
           "planned_stable_version": "0.0.0"
         }
       },
+      "release_note_changesets": [],
       "schema_version": 1,
       "updated_at": "[timestamp]"
     }
@@ -158,6 +160,7 @@ expression: "Value::Object(outputs)"
           "planned_stable_version": "1.0.0"
         }
       },
+      "release_note_changesets": [],
       "schema_version": 1,
       "updated_at": "[timestamp]"
     }

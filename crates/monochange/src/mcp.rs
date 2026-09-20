@@ -368,8 +368,8 @@ pub struct MonochangeMcpServer {
 
 #[tool_handler]
 impl ServerHandler for MonochangeMcpServer {
-	fn get_info(&self) -> ServerInfo {
-		let mut info = ServerInfo::default();
+	fn get_info(&self) -> ServerConfig {
+		let mut info = ServerConfig::default();
 		info.instructions = Some(
 			"monochange manages versions and releases across Cargo, npm, Deno, and Dart/Flutter \
 			 workspaces. Prefer validation and dry-run planning before mutating release state. \
@@ -862,8 +862,8 @@ impl MonochangeMcpServer {
 			}
 		};
 		let dependency_propagation = match params.dependency_propagation.as_deref() {
-			None | Some("none") => crate::change_classify::DependencyPropagation::None,
-			Some("public") => crate::change_classify::DependencyPropagation::Public,
+			None | Some("none") => monochange_classification::DependencyPropagation::None,
+			Some("public") => monochange_classification::DependencyPropagation::Public,
 			Some(other) => {
 				return Ok(json_error_result(json!({
 					"ok": false,
@@ -875,7 +875,7 @@ impl MonochangeMcpServer {
 				})));
 			}
 		};
-		let options = crate::change_classify::ClassifyOptions {
+		let options = monochange_classification::ClassifyOptions {
 			base: params.base,
 			head: params.head.unwrap_or_else(|| "HEAD".to_string()),
 			release: params.release,
@@ -883,11 +883,14 @@ impl MonochangeMcpServer {
 			detection_level,
 			include_unchanged: params.include_unchanged,
 			strict: false,
-			format: crate::OutputFormat::Json,
+			skip_cli_snapshots: true,
+			format: monochange_classification::ClassificationFormat::Json,
 			output: None,
+			labels: Vec::new(),
 			dependency_propagation,
 		};
-		let output = match crate::change_classify::render_change_classification(&root, &options) {
+		let output = match monochange_classification::render_change_classification(&root, &options)
+		{
 			Ok(output) => output,
 			Err(error) => {
 				return Ok(json_error_result(json!({

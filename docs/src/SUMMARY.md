@@ -31,6 +31,9 @@
 # Reference
 
 - [Change classification](reference/change-classification.md)
+- [Package CLI registration](reference/package-cli-registration.md)
+- [CLI snapshot emitters](reference/cli-snapshot-emitters.md)
+- [JSON Schema reference](reference/schemas.md)
 - [Manifest linting with `monochange check`](reference/linting.md)
 - [Internal dependency versions with `monochange versions sync`](reference/versions.md)
 - [Progress output](reference/progress-output.md)

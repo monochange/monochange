@@ -197,6 +197,7 @@ pub(crate) async fn build_release_targets(
 					members: group.packages.clone(),
 					rendered_title: ctx.render(rt),
 					rendered_changelog_title: ctx.render(ct),
+					floating_tags: group.floating_tags.clone(),
 				}
 			})
 		})
@@ -221,26 +222,35 @@ pub(crate) async fn build_release_targets(
 		else {
 			continue;
 		};
-		let (owner_id, owner_kind, tag_enabled, release_enabled, version_format, members) =
-			if let Some(group) = group_by_package_id.get(config_id.as_str()).copied() {
-				(
-					&group.id,
-					ReleaseOwnerKind::Group,
-					group.tag,
-					group.release,
-					group.version_format.clone(),
-					group.packages.clone(),
-				)
-			} else {
-				(
-					&package_definition.id,
-					ReleaseOwnerKind::Package,
-					package_definition.tag,
-					package_definition.release,
-					package_definition.version_format.clone(),
-					vec![package_definition.id.clone()],
-				)
-			};
+		let (
+			owner_id,
+			owner_kind,
+			tag_enabled,
+			release_enabled,
+			version_format,
+			members,
+			floating_tags_for_release_target,
+		) = if let Some(group) = group_by_package_id.get(config_id.as_str()).copied() {
+			(
+				&group.id,
+				ReleaseOwnerKind::Group,
+				group.tag,
+				group.release,
+				group.version_format.clone(),
+				group.packages.clone(),
+				group.floating_tags.clone(),
+			)
+		} else {
+			(
+				&package_definition.id,
+				ReleaseOwnerKind::Package,
+				package_definition.tag,
+				package_definition.release,
+				package_definition.version_format.clone(),
+				vec![package_definition.id.clone()],
+				package_definition.floating_tags.clone(),
+			)
+		};
 		let vs = version.to_string();
 		let tag = render_tag_name(
 			owner_id,
@@ -272,6 +282,7 @@ pub(crate) async fn build_release_targets(
 			members,
 			rendered_title: ctx.render(rt),
 			rendered_changelog_title: ctx.render(ct),
+			floating_tags: floating_tags_for_release_target,
 		});
 	}
 	release_targets.sort_by(|left, right| left.id.cmp(&right.id));
@@ -436,6 +447,29 @@ pub(crate) fn parse_tag_prefix_and_version(tag: &str) -> Option<(String, semver:
 	let version_str = &tag[v_pos + 1..];
 	let version = semver::Version::parse(version_str).ok()?;
 	Some((prefix.to_string(), version))
+}
+
+/// Tag prefix that release tags for `owner_id` start with under `version_format`.
+///
+/// Matches the prefix produced by `render_tag_name` so tag-based version
+/// resolution reads exactly the tags release targets create.
+pub(crate) fn release_tag_prefix(owner_id: &str, version_format: &VersionFormat) -> String {
+	match version_format {
+		VersionFormat::Namespaced => format!("{owner_id}/v"),
+		_ => "v".to_string(),
+	}
+}
+
+/// Highest version among `sorted_tags` (descending version order) whose tag
+/// starts with `prefix`.
+pub(crate) fn latest_tag_version_with_prefix(
+	sorted_tags: &[String],
+	prefix: &str,
+) -> Option<semver::Version> {
+	sorted_tags.iter().find_map(|tag| {
+		let (tag_prefix, version) = parse_tag_prefix_and_version(tag)?;
+		(tag_prefix == prefix).then_some(version)
+	})
 }
 
 struct TitleRenderContext {
@@ -822,15 +856,6 @@ pub(crate) fn shared_group_version(plan: &ReleasePlan) -> Option<String> {
 	}
 }
 
-pub(crate) fn root_relative(root: &Path, path: &Path) -> PathBuf {
-	let relative = relative_to_root(root, path).unwrap_or_else(|| path.to_path_buf());
-	if relative.as_os_str().is_empty() {
-		PathBuf::from(".")
-	} else {
-		relative
-	}
-}
-
 pub(crate) fn render_discovery_report(
 	report: &DiscoveryReport,
 	format: OutputFormat,
@@ -868,6 +893,7 @@ pub(crate) fn build_release_manifest(
 					members: target.members.clone(),
 					rendered_title: target.rendered_title.clone(),
 					rendered_changelog_title: target.rendered_changelog_title.clone(),
+					floating_tags: target.floating_tags.clone(),
 				}
 			})
 			.collect(),
@@ -964,6 +990,7 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 					members: target.members.clone(),
 					rendered_title: String::new(),
 					rendered_changelog_title: String::new(),
+					floating_tags: target.floating_tags.clone(),
 				}
 			})
 			.collect(),
@@ -1040,6 +1067,7 @@ pub(crate) fn build_release_record(
 					release: target.release,
 					tag_name: target.tag_name.clone(),
 					members: target.members.clone(),
+					floating_tags: target.floating_tags.clone(),
 				}
 			})
 			.collect(),

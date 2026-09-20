@@ -27,7 +27,7 @@ Run the built-in comment-released-issues release workflow step
           Git ref that contains the release record to publish
 
       [93m--auto-close-issues[0m
-          Close referenced issues after adding the release comment
+          Close issues that the release review requests claim via closing keywords after adding the release comment
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m

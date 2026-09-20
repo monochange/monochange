@@ -109,6 +109,40 @@ fn setup_deleted_package_fixture() -> TempDir {
 	tempdir
 }
 
+/// Build a repository where the default branch ships an API the latest release
+/// never contained, and the pull request changes that API again.
+///
+/// `released` is tagged `core/v0.1.0`, `default-branch` adds `refined()`, and
+/// `pull-request` changes the signature of `refined()` on a `feature` branch.
+fn setup_release_refined_fixture() -> TempDir {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/api-classification/release-refined-api");
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
+	copy_directory(&fixture_root.join("released"), tempdir.path());
+	git(tempdir.path(), &["init"]);
+	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
+	git(
+		tempdir.path(),
+		&["config", "user.email", "monochange-tests@example.com"],
+	);
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "release"]);
+	git(tempdir.path(), &["branch", "-M", "main"]);
+	git(tempdir.path(), &["tag", "core/v0.1.0"]);
+
+	copy_directory(&fixture_root.join("default-branch"), tempdir.path());
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "add refined"]);
+
+	git(tempdir.path(), &["checkout", "-b", "feature"]);
+	copy_directory(&fixture_root.join("pull-request"), tempdir.path());
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "refine refined"]);
+
+	tempdir
+}
+
 fn run_mc(root: &Path, args: &[&str]) -> String {
 	let mut cli_args = vec![OsString::from("monochange")];
 	cli_args.extend(args.iter().map(OsString::from));
@@ -138,14 +172,14 @@ fn package<'a>(report: &'a Value, package_id: &str) -> &'a Value {
 		.as_array()
 		.unwrap_or_else(|| panic!("packages should be an array: {report:#}"))
 		.iter()
-		.find(|package| package["packageId"] == package_id)
+		.find(|package| package["package_id"] == package_id)
 		.unwrap_or_else(|| panic!("missing package {package_id}: {report:#}"))
 }
 
 fn assert_package_recommendation(report: &Value, package_id: &str, expected: &str) {
 	let package = package(report, package_id);
 	assert_eq!(package["recommendation"], expected);
-	assert_eq!(package["decision"]["proposedChangesetBump"], expected);
+	assert_eq!(package["decision"]["proposed_changeset_bump"], expected);
 	assert!(
 		package["findings"]
 			.as_array()
@@ -166,14 +200,14 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 	);
 
 	assert_eq!(report["recommendation"], "major");
-	assert_eq!(report["schemaVersion"], 3);
+	assert_eq!(report["schema_version"], "0.2");
 	assert_package_recommendation(&report, "rust_core", "major");
 	assert_package_recommendation(&report, "ts_client", "minor");
 	assert_package_recommendation(&report, "js_utils", "patch");
 	assert!(report["comparisons"].as_array().is_some_and(|comparisons| {
 		comparisons
 			.iter()
-			.any(|comparison| comparison["kind"] == "pullRequest")
+			.any(|comparison| comparison["kind"] == "pull_request")
 	}));
 
 	snapshot_settings().bind(|| {
@@ -210,7 +244,7 @@ fn change_classify_detects_feature_gated_rust_breaks_in_the_configured_matrix() 
 						.is_some_and(|comparisons| {
 							comparisons
 								.iter()
-								.any(|comparison| comparison == "pullRequest")
+								.any(|comparison| comparison == "pull_request")
 						})
 			})
 		})
@@ -222,7 +256,7 @@ fn change_classify_detects_feature_gated_rust_breaks_in_the_configured_matrix() 
 		checks
 			.iter()
 			.find(|check| check["name"] == name)
-			.map(|check| check["suggestedBump"].clone())
+			.map(|check| check["suggested_bump"].clone())
 	};
 
 	assert_eq!(rust_api["recommendation"], "major");
@@ -253,6 +287,33 @@ fn change_classify_detects_feature_gated_rust_breaks_in_the_configured_matrix() 
 }
 
 #[test]
+fn change_classify_reports_a_skipped_run_for_skip_labeled_pull_requests() {
+	let fixture = setup_api_fixture("mixed-api");
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--label", "release",
+			"--format", "json",
+		],
+	);
+
+	assert_eq!(report["skipped"], true);
+	assert_eq!(report["packages"].as_array().map(Vec::len), Some(0));
+	assert_eq!(report["recommendation"], "none");
+	assert_eq!(
+		report["matched_skip_labels"],
+		serde_json::json!(["release"])
+	);
+	assert!(
+		report["summary"]
+			.as_str()
+			.unwrap_or_default()
+			.contains("allowed label: release")
+	);
+}
+
+#[test]
 fn change_classify_detects_a_package_deleted_from_the_candidate() {
 	let fixture = setup_deleted_package_fixture();
 
@@ -267,8 +328,8 @@ fn change_classify_detects_a_package_deleted_from_the_candidate() {
 	assert_package_recommendation(&report, "retired", "major");
 	assert_package_recommendation(&report, "retired_js", "major");
 	let retired = package(&report, "retired");
-	assert_eq!(retired["releaseOwner"]["id"], "retired");
-	assert_eq!(retired["releaseOwner"]["latestRelease"], "retired/v1.0.0");
+	assert_eq!(retired["release_owner"]["id"], "retired");
+	assert_eq!(retired["release_owner"]["latest_release"], "retired/v1.0.0");
 	assert!(retired["findings"].as_array().is_some_and(|findings| {
 		let removed_public_api = findings.iter().any(|finding| {
 			finding["change"] == "removed"
@@ -277,7 +338,7 @@ fn change_classify_detects_a_package_deleted_from_the_candidate() {
 				&& finding["location"] == "src/lib.rs"
 		});
 		let removed_package = findings.iter().any(|finding| {
-			finding["ruleId"] == "monochange/package-lifecycle/package/removed/package"
+			finding["rule_id"] == "monochange/package-lifecycle/package/removed/package"
 				&& finding["confidence"] == "high"
 				&& finding["coverage"]["completeness"] == "complete"
 				&& finding["location"] == "Cargo.toml"
@@ -285,9 +346,9 @@ fn change_classify_detects_a_package_deleted_from_the_candidate() {
 		removed_public_api && removed_package
 	}));
 	let retired_js = package(&report, "retired_js");
-	assert_eq!(retired_js["releaseOwner"]["id"], "retired_js");
+	assert_eq!(retired_js["release_owner"]["id"], "retired_js");
 	assert_eq!(
-		retired_js["releaseOwner"]["latestRelease"],
+		retired_js["release_owner"]["latest_release"],
 		"retired_js/v2.0.0"
 	);
 	assert!(retired_js["findings"].as_array().is_some_and(|findings| {
@@ -297,7 +358,7 @@ fn change_classify_detects_a_package_deleted_from_the_candidate() {
 				&& finding["location"] == "src/index.ts"
 		});
 		let removed_package = findings.iter().any(|finding| {
-			finding["ruleId"] == "monochange/package-lifecycle/package/removed/package"
+			finding["rule_id"] == "monochange/package-lifecycle/package/removed/package"
 				&& finding["confidence"] == "high"
 				&& finding["coverage"]["completeness"] == "complete"
 				&& finding["location"] == "package.json"
@@ -340,7 +401,7 @@ fn change_classify_compares_an_explicit_release_with_the_candidate_and_default_b
 				&& comparison["status"] == "analyzed"
 		}));
 		assert!(comparisons.iter().any(|comparison| {
-			comparison["kind"] == "releaseToDefault" && comparison["base"] == "HEAD~1"
+			comparison["kind"] == "release_to_default" && comparison["base"] == "HEAD~1"
 		}));
 	}
 }
@@ -357,12 +418,173 @@ fn change_classify_discovers_the_default_branch_and_latest_release_tag() {
 		&["change", "classify", "--head", "HEAD", "--format", "json"],
 	);
 
-	assert_eq!(report["defaultBranch"], "main");
+	assert_eq!(report["default_branch"], "main");
 	assert!(report["packages"].as_array().is_some_and(|packages| {
 		packages
 			.iter()
-			.all(|package| package["releaseOwner"]["latestRelease"].is_string())
+			.all(|package| package["release_owner"]["latest_release"].is_string())
 	}));
+}
+
+#[test]
+fn change_classify_separates_a_break_against_main_from_the_release_verdict() {
+	let fixture = setup_release_refined_fixture();
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "main", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	let package = package(&report, "core");
+	assert_eq!(package["release_owner"]["latest_release"], "core/v0.1.0");
+	// The pull request comparison sees a breaking modification of `refined`.
+	assert_eq!(package["decision"]["compatibility_impact"], "breaking");
+	// The release comparison only sees an addition, because `refined` did not
+	// exist in `core/v0.1.0`, so nothing released can break.
+	assert_eq!(package["decision"]["release_impact"], "additive");
+	assert_eq!(package["decision"]["proposed_changeset_bump"], "minor");
+	assert_eq!(package["decision"]["release_floor"], "minor");
+	assert_eq!(package["recommendation"], "minor");
+	assert_eq!(report["recommendation"], "minor");
+
+	let findings = package["findings"]
+		.as_array()
+		.unwrap_or_else(|| panic!("findings should be an array: {package:#}"));
+	let seen_in = |finding: &Value, kind: &str| {
+		finding["comparisons"]
+			.as_array()
+			.is_some_and(|comparisons| comparisons.iter().any(|value| value == kind))
+	};
+	assert!(
+		findings.iter().any(|finding| {
+			seen_in(finding, "pull_request")
+				&& !seen_in(finding, "release")
+				&& finding["impact"] == "breaking"
+				&& finding["bump"] == "major"
+		}),
+		"expected a breaking finding the release comparison never observed: {package:#}"
+	);
+	assert!(
+		findings.iter().any(|finding| {
+			seen_in(finding, "release")
+				&& !seen_in(finding, "pull_request")
+				&& finding["impact"] == "additive"
+		}),
+		"expected an additive finding only the release comparison observed: {package:#}"
+	);
+
+	let markdown = run_mc(
+		fixture.path(),
+		&[
+			"change",
+			"classify",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"markdown",
+			"--skip-cli-snapshots",
+		],
+	);
+	assert!(
+		markdown.contains("- compatibility impact: `breaking`"),
+		"markdown should keep the default-branch verdict: {markdown}"
+	);
+	assert!(
+		markdown.contains("- release impact: `additive`"),
+		"markdown should report the release-relative verdict: {markdown}"
+	);
+	assert!(
+		markdown.contains(
+			"propose a minor changeset; the break applies to the default branch, not the latest release",
+		),
+		"markdown summary should explain the capped break: {markdown}"
+	);
+
+	let text = run_mc(
+		fixture.path(),
+		&[
+			"change",
+			"classify",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"text",
+			"--skip-cli-snapshots",
+		],
+	);
+	assert!(
+		text.contains("Release impact: additive"),
+		"text report should report the release-relative verdict: {text}"
+	);
+}
+
+#[test]
+fn changeset_api_validation_requires_only_the_release_relative_bump() {
+	let fixture = setup_release_refined_fixture();
+	std::fs::create_dir_all(fixture.path().join(".changeset"))
+		.unwrap_or_else(|error| panic!("create changeset dir: {error}"));
+	std::fs::write(
+		fixture.path().join(".changeset/refine.md"),
+		"---\ncore: patch\n---\n\nRefine the unreleased `refined` signature.\n",
+	)
+	.unwrap_or_else(|error| panic!("write changeset: {error}"));
+
+	// Strict validation demands the capped proposal: the pull request breaks
+	// `refined` against main, but `refined` never shipped, so `patch` fails only
+	// because it is below `minor` — not because a major changeset is required.
+	let error = run_mc_error(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--strict",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"json",
+		],
+	);
+	assert!(
+		error.contains("declares `patch`") && error.contains("requires at least `minor`"),
+		"strict validation should require the capped minor bump: {error}"
+	);
+
+	std::fs::write(
+		fixture.path().join(".changeset/refine.md"),
+		"---\ncore: minor\n---\n\nRefine the unreleased `refined` signature.\n",
+	)
+	.unwrap_or_else(|error| panic!("write changeset: {error}"));
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--strict",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"json",
+		],
+	);
+
+	let package = package(&report, "core");
+	assert_eq!(package["decision"]["compatibility_impact"], "breaking");
+	assert_eq!(package["decision"]["release_impact"], "additive");
+	assert_eq!(package["decision"]["proposed_changeset_bump"], "minor");
+	assert_eq!(package["action"], "keep");
 }
 
 #[test]
@@ -384,7 +606,7 @@ fn change_classify_limits_the_report_to_selected_packages() {
 	);
 
 	assert_eq!(report["packages"].as_array().map(Vec::len), Some(1));
-	assert_eq!(report["packages"][0]["packageId"], "rust_core");
+	assert_eq!(report["packages"][0]["package_id"], "rust_core");
 }
 
 #[test]
@@ -447,11 +669,11 @@ fn change_classify_uses_the_net_candidate_when_local_edits_revert_the_branch() {
 	let package = package(&report, "core");
 	assert_eq!(package["recommendation"], "none");
 	assert_eq!(package["action"], "review");
-	assert_eq!(package["decision"]["reviewRequired"], true);
-	assert_eq!(package["existingChangesets"][0]["bump"], "major");
+	assert_eq!(package["decision"]["review_required"], true);
+	assert_eq!(package["existing_changesets"][0]["bump"], "major");
 	assert!(report["comparisons"].as_array().is_some_and(|comparisons| {
 		comparisons.iter().any(|comparison| {
-			comparison["kind"] == "workingTree"
+			comparison["kind"] == "working_tree"
 				&& comparison["note"]
 					.as_str()
 					.is_some_and(|note| note.contains("final candidate"))
@@ -467,7 +689,7 @@ fn change_classify_supports_global_jq_and_equals_options() {
 		fixture.path(),
 		&[
 			"--jq",
-			".schemaVersion",
+			".schema_version",
 			"change",
 			"classify",
 			"--base=HEAD~1",
@@ -476,7 +698,7 @@ fn change_classify_supports_global_jq_and_equals_options() {
 		],
 	);
 
-	assert_eq!(output, "3");
+	assert_eq!(output, "0.2");
 }
 
 #[test]
@@ -503,8 +725,8 @@ fn changeset_api_validation_writes_the_requested_report() {
 	assert_eq!(written, output);
 	assert_eq!(
 		serde_json::from_str::<Value>(&written)
-			.unwrap_or_else(|error| panic!("parse written report: {error}"))["schemaVersion"],
-		3
+			.unwrap_or_else(|error| panic!("parse written report: {error}"))["schema_version"],
+		"0.2"
 	);
 }
 
@@ -596,8 +818,142 @@ fn change_classify_reports_changeset_only_intent_for_review() {
 
 	assert_eq!(package["recommendation"], "none");
 	assert_eq!(package["action"], "review");
-	assert_eq!(package["decision"]["compatibilityImpact"], "unknown");
+	assert_eq!(package["decision"]["compatibility_impact"], "unmodeled");
 	assert_eq!(package["decision"]["completeness"], "unsupported");
-	assert_eq!(package["decision"]["reviewRequired"], true);
-	assert_eq!(package["existingChangesets"][0]["bump"], "minor");
+	assert_eq!(package["decision"]["review_required"], true);
+	assert_eq!(package["existing_changesets"][0]["bump"], "minor");
+}
+
+fn run_mc_error(root: &Path, args: &[&str]) -> String {
+	let mut cli_args = vec![OsString::from("monochange")];
+	cli_args.extend(args.iter().map(OsString::from));
+
+	let runtime = tokio::runtime::Builder::new_current_thread()
+		.enable_all()
+		.build()
+		.unwrap_or_else(|error| panic!("tokio runtime: {error}"));
+
+	runtime
+		.block_on(monochange::run_with_args_in_dir(
+			"monochange",
+			cli_args,
+			root,
+		))
+		.expect_err("expected the command to fail")
+		.to_string()
+}
+
+#[test]
+fn change_classify_resolves_escape_hatch_policy_per_package() {
+	let fixture = setup_api_fixture("classification-escape-hatch");
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	// A member of an enforced group keeps the unclamped proposal, though the
+	// medium-confidence break stays below the non-strict enforceable minimum.
+	let enforced = package(&report, "enforced");
+	assert_eq!(enforced["decision"]["classification_enforced"], true);
+	assert_eq!(enforced["decision"]["proposed_changeset_bump"], "major");
+	assert_eq!(enforced["decision"]["enforceable_minimum"], "none");
+
+	// A package declaration overrides the group: the ceiling clamps the
+	// proposal and the opt-out clears the enforceable minimum.
+	let escaped = package(&report, "escaped");
+	assert_eq!(escaped["decision"]["classification_enforced"], false);
+	assert_eq!(escaped["decision"]["enforceable_minimum"], "none");
+	assert_eq!(escaped["decision"]["proposed_changeset_bump"], "patch");
+	assert_eq!(escaped["decision"]["release_floor"], "patch");
+
+	// A group declaration applies to members that declare nothing.
+	let group_policy = package(&report, "group_policy");
+	assert_eq!(group_policy["decision"]["classification_enforced"], false);
+	assert_eq!(group_policy["decision"]["enforceable_minimum"], "none");
+	assert_eq!(group_policy["decision"]["proposed_changeset_bump"], "patch");
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(report);
+	});
+}
+
+#[test]
+fn affected_changeset_policy_gates_only_enforced_packages() {
+	let fixture = setup_api_fixture("classification-escape-hatch");
+
+	let evaluation = run_json(
+		fixture.path(),
+		&[
+			"step",
+			"affected-packages",
+			"--from",
+			"HEAD~1",
+			"--format",
+			"json",
+		],
+	);
+
+	assert_eq!(evaluation["status"], "failed");
+	assert_eq!(
+		evaluation["covered_package_ids"],
+		serde_json::json!(["enforced", "escaped", "group_policy"])
+	);
+	let errors = evaluation["errors"]
+		.as_array()
+		.unwrap_or_else(|| panic!("errors should be an array: {evaluation:#}"));
+	assert!(errors.iter().any(|error| {
+		error.as_str().is_some_and(|error| {
+			error.contains("`enforced`") && error.contains("recommends `major`")
+		})
+	}));
+	assert!(!errors.iter().any(|error| {
+		error
+			.as_str()
+			.is_some_and(|error| error.contains("`escaped`") || error.contains("`group_policy`"))
+	}));
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(evaluation);
+	});
+}
+
+#[test]
+fn changeset_api_validation_exempts_escaped_packages() {
+	let fixture = setup_api_fixture("classification-escape-hatch");
+
+	let error = run_mc_error(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--strict",
+			"--base",
+			"HEAD~1",
+			"--head",
+			"HEAD",
+			"--format",
+			"json",
+		],
+	);
+
+	assert!(
+		error.contains("changeset severity does not satisfy classification"),
+		"unexpected error: {error}"
+	);
+	assert!(
+		error.contains("package `enforced`"),
+		"unexpected error: {error}"
+	);
+	assert!(
+		!error.contains("package `escaped`"),
+		"unexpected error: {error}"
+	);
+	assert!(
+		!error.contains("package `group_policy`"),
+		"unexpected error: {error}"
+	);
 }

@@ -65,6 +65,7 @@ let manifest = ReleaseManifest {
         members: vec!["core".to_string(), "app".to_string()],
         rendered_title: "1.2.0 (2026-04-06)".to_string(),
         rendered_changelog_title: "[1.2.0](https://example.com) (2026-04-06)".to_string(),
+        floating_tags: Vec::new(),
     }],
     released_packages: vec!["workflow-core".to_string(), "workflow-app".to_string()],
     package_publications: Vec::new(),

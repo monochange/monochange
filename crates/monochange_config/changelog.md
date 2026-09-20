@@ -4,6 +4,208 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
+
+### 🚀 Feature
+
+#### Skip change classification on release pull requests and rename the `unknown` impact
+
+- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.
+
+- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `["release"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.
+- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.
+- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.
+
+```toml
+[changesets.classification]
+# Set to [] to classify every pull request.
+skip_labels = ["release"]
+```
+
+```bash
+monochange change classify --format json --label release
+```
+
+The published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)
+
+### 🐛 Fixed
+
+#### Honor `changelog = false` on a package that also inherits a changelog default
+
+A package-level `changelog = false` was ignored whenever `[defaults.changelog]` configured a path pattern such as `"{{ path }}/changelog.md"`. `resolve_for_package` returns `None` both for a disabled definition and for one it cannot resolve, and the package resolver treated every `None` as "fall back to the default", so the inherited pattern was applied anyway:
+
+```toml
+[defaults]
+package_type = "cargo"
+changelog = "{{ path }}/changelog.md"
+
+[package.opted-out]
+path = "crates/opted-out"
+changelog = false # previously ignored
+```
+
+This made a package unable to opt out of an inherited changelog. In a repository where a version group also renders its changelog to that package's default path, the two owners collided and release planning failed with:
+
+```text
+changelog outputs `default` and `default` both render to `crates/opted-out/changelog.md`; configure unique output paths
+```
+
+The resolver now consults the existing disabled check before falling back to the workspace default, matching how group changelog definitions are already resolved. `changelog = false` on a package disables its changelog even when a defaults pattern is configured, and the default still applies to packages that do not declare their own changelog.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #705](https://github.com/monochange/monochange/pull/705) · _Related issues:_ [#707](https://github.com/monochange/monochange/issues/707), [#709](https://github.com/monochange/monochange/issues/709)
+
+#### Inherit built-in changelog types under configured sections and types
+
+Declaring any `[changelog.sections]` or `[changelog.types]` entry replaced monochange's built-in section and type set outright instead of extending it. A repository that customized a single heading silently lost `minor`, `patch`, and every stream type it did not restate:
+
+```toml
+[changelog.types.app_feature]
+bump = "minor"
+section = "app_features"
+```
+
+With that table, the built-in `fix` type stopped resolving, so a changeset written as `core: fix` failed with a message listing only `app_feature`:
+
+```text
+config error: failed to parse .changeset/change.md: target `core` has invalid scalar change type `fix`; valid types: app_feature
+```
+
+The message made `fix` look like something monochange had never supported, rather than a key the merge had dropped. Configuring sections alone was worse: a repository that declared only `[changelog.sections]` had no types at all and every changeset failed with `no configured types are available for this target`.
+
+##### After
+
+`[changelog.sections]` and `[changelog.types]` add to the built-in vocabulary. A declared key overrides the built-in entry of the same name and every other built-in key stays available:
+
+```toml
+[changelog.types.app_feature]
+bump = "minor"
+section = "app_features"
+```
+
+`core: fix` still resolves under that table, the CLI and interactive prompts offer the merged set, and a type may reference either a declared section or a built-in one. Per-package and per-group `excluded_changelog_types` remain the way to narrow the vocabulary for a target, including for inherited types.
+
+`[changelog.templates]` is unchanged: it stays an ordered preference list, so declaring templates replaces the built-in list rather than appending to it.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #715](https://github.com/monochange/monochange/pull/715) · _Closed issues:_ [#714](https://github.com/monochange/monochange/issues/714)
+
+## [0.13.0](https://github.com/monochange/monochange/releases/tag/v0.13.0) (2026-09-13)
+
+### 🚀 Feature
+
+#### Add per-package and per-group bump ceilings and classification enforcement flags
+
+Repositories can now set versioning policy per package instead of per repository. A prose-only package such as an agent skill can ship wording changes without a semantic-versioning gate demanding a minor or major bump, while crates that expose real APIs keep the gate.
+
+- `bump_ceiling` clamps the classified proposed bump, enforceable minimum, and release floor for a package or group, and never raises a smaller bump.
+- `classification_enforced = false` makes classification advisory for a package or group: the proposal still appears in reports, but the changeset-policy API gate never fails for it.
+- Both fields resolve most-specific-first: a package declaration overrides its group's declaration, and a group declaration applies to members that do not declare their own. Grouped packages can therefore opt out while the rest of their group stays enforced, and a group can set one policy for every member.
+- `monochange step affected-packages` compares changeset bumps against the configured policy instead of an unconfigured default, so escape-hatched packages no longer fail the CI changeset check with "classification recommends" errors.
+- `PackageDefinition` and `GroupDefinition` expose the unset state as `Option`, so consumers constructing those structs pass `Some(..)` for an explicit declaration and `None` to inherit the group default or the built-in `true`. `EffectiveReleaseIdentity` keeps carrying the resolved value.
+
+```toml
+[group.main]
+packages = ["cli", "docs-site"]
+
+[package.docs-site]
+path = "packages/docs-site"
+type = "npm"
+# Advisory only, and never propose more than a patch for prose.
+bump_ceiling = "patch"
+classification_enforced = false
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #699](https://github.com/monochange/monochange/pull/699)
+
+## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
+
+### 💥 Breaking Change
+
+#### Release GitHub Actions repositories and tag-versioned packages
+
+Repositories that release by git tag plus provider release — GitHub Actions above all — could not be modeled: every package needed a registry ecosystem, and moving tag aliases had to be maintained by hand.
+
+- `PackageType` gains `github_actions` (aliases `github_actions` and `actions`). The type preset implies `version_source = "tag"`, `tag = true`, `release = true`, publishing disabled, and `initial_version = "0.1.0"`. Discovery accepts a package directory containing `action.yml` or `action.yaml` and syncs a sibling `package.json` version field when present.
+- New package and group fields: `version_source` (`manifest` default or `tag`), `initial_version` (baseline when no release tag exists yet), and `floating_tags` (moving tag aliases).
+- `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
+- `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
+- The committed JSON schema assets regenerate with the new fields.
+- New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
+
+##### Migration
+
+`PackageType`, `PackageDefinition`, `GroupDefinition`, `ReleaseTarget`, and the manifest/record target structs gained new fields. Code that constructs them with struct literals (rather than `..Default::default()`) must add the new fields; deserialization of existing configs and release records is unaffected because every field carries serde defaults.
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+### 🚀 Feature
+
+#### Register package CLIs and classify command-surface breaks
+
+Change classification could not recognize that a package ships a CLI. Changes to a CLI's command surface — renamed commands, removed options, narrowed values — analyzed as unclassified package files and surfaced in pull request comments with an unknown compatibility impact and a review requirement, even when the break was obvious.
+
+Packages can now register the CLI they ship under `[package.<id>].cli`:
+
+```toml
+[package.monochange]
+path = "crates/monochange"
+cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
+```
+
+- `name` is the binary name users invoke. It keys the committed baseline at `.monochange/cli-snapshots/<name>.json` and must be unique across the workspace.
+- `snapshot` is required. It accepts a command string or a table with `{ command, cwd, shell }` shaped like `[ecosystems.*].lockfile_commands` entries. The command must print a normalized command-surface snapshot JSON document (`monochange_snapshot::CommandSnapshot`) on stdout; foreign CLIs can commit a small emitter script for this.
+
+`monochange change classify` diffs the committed baseline against a fresh capture for every classified package with a registered CLI and appends `monochange/cli-surface` findings: removed commands, options, positionals, and value narrowing propose `major`; additions and widening propose `minor`; description-only changes are compatible patches. The findings are high confidence with complete coverage, so they raise `enforceableMinimum` and clear the unknown-impact review requirement. Per-package reports gain an additive `cli` block with the comparison status (`diffed`, `missing_baseline`, `stale_baseline`, `failed`, `skipped`), and the classification report schema version bumps to 4.
+
+- `monochange snapshot --package <id>` captures a registered CLI's snapshot; `--save` writes the committed baseline; `--list` prints registered CLIs and baseline health.
+- `monochange change classify --skip-cli-snapshots` (or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`) skips the comparisons when the snapshot command cannot run.
+- The committed JSON schema assets regenerate with the new `package_cli` and `cli_snapshot_command` definitions, and `"snapshot"` joins `RESERVED_CLI_COMMAND_NAMES` so `[cli.*]` workflow commands cannot shadow the built-in.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+#### Allow local publishing alongside trusted publishing
+
+`publish.trusted_publishing` gains a `mode` setting so one configuration can support both publishing paths instead of forcing a choice between trusted publishing and local publishing. `mode = "required"` keeps the existing strict behavior: a verifiable CI/OIDC identity must be present and match the configured repository, workflow, and environment. `mode = "preferred"` verifies that same context whenever a CI identity is detected, and otherwise falls back to local credentials instead of failing before any registry mutation.
+
+```toml
+[ecosystems.dart.publish.trusted_publishing]
+enabled = true
+mode = "preferred"
+repository = "acme/widgets"
+workflow = "publish.yml"
+environment = "publisher"
+```
+
+Use `preferred` for repositories that publish with OIDC from CI but also let maintainers run `monochange run publish` locally with their own registry credentials. The mode only relaxes the identity requirement: CI context mismatches still fail, and `enabled = false` remains the explicit opt-out from trusted publishing entirely.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #691](https://github.com/monochange/monochange/pull/691)
+
+### 🐛 Fixed
+
+#### Release Go modules from git tag baselines
+
+Configured `type = "go"` packages could not be released: release planning dropped any package whose version is not stored in a manifest, and root-level manifests never matched their package definitions.
+
+- `prepare-release` seeds the current version of tag-versioned ecosystems from the latest reachable tag matching the release owner's `version_format`, and warns when no matching tag exists instead of silently dropping the release.
+- A configured package whose manifest sits at the workspace root (`path = "."`) now matches its definition; root manifests normalized to an empty relative directory and never matched, which also broke config-id changeset references for root npm, Deno, and Dart packages.
+- Package definitions now match Python and Go discovery records, so version groups, changeset references, and release targets work for those ecosystems.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #693](https://github.com/monochange/monochange/pull/693)
+
 ## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
 
 ### 🐛 Fixed

@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_semver` was updated to 0.14.0 as part of group `main`.
+
+## [0.13.0](https://github.com/monochange/monochange/releases/tag/v0.13.0) (2026-09-13)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_semver` was updated to 0.13.0 as part of group `main`.
+
+## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_semver` was updated to 0.12.0 as part of group `main`.
+
 ## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
 
 ### 🐛 Fixed

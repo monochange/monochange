@@ -18,6 +18,7 @@ use monochange_core::ShellConfig;
 use monochange_core::SourceConfiguration;
 use monochange_core::SourceProvider;
 use monochange_core::VersionFormat;
+use monochange_core::VersionSource;
 use monochange_core::WorkspaceConfiguration;
 use monochange_test_helpers::workspace_ops::collect_workspace_files;
 use monochange_test_helpers::workspace_ops::copy_workspace_file;
@@ -434,6 +435,13 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			release: true,
 			publish: monochange_core::PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		..configuration
 	};
@@ -474,6 +482,13 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			release: true,
 			publish: monochange_core::PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -526,6 +541,13 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 			release: true,
 			publish: monochange_core::PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -1663,6 +1685,7 @@ fn prerelease_planned_mode_reuses_original_stable_from_state() {
 		updated_at: "2026-05-22T00:00:00Z".to_string(),
 		packages: std::collections::BTreeMap::new(),
 		groups: std::collections::BTreeMap::new(),
+		..Default::default()
 	};
 	previous.packages.insert(
 		"cargo:crates/core/Cargo.toml".to_string(),
@@ -1728,6 +1751,7 @@ fn prerelease_versions_increment_within_stable_base() {
 		updated_at: "2026-05-22T00:00:00Z".to_string(),
 		packages: std::collections::BTreeMap::new(),
 		groups: std::collections::BTreeMap::new(),
+		..Default::default()
 	};
 	previous.packages.insert(
 		"cargo:crates/core/Cargo.toml".to_string(),
@@ -1911,6 +1935,144 @@ fn prerelease_identifier_covers_numbering_and_mismatched_latest_base() {
 }
 
 #[test]
+fn prerelease_identifier_restarts_the_counter_when_the_channel_changes() {
+	let stable = semver::Version::parse("2.0.0").unwrap();
+	let previous_alpha = semver::Version::parse("2.0.0-alpha.4").unwrap();
+	let config = |channel: &str| {
+		monochange_core::PrereleaseConfiguration {
+			enabled: true,
+			channel: channel.to_string(),
+			..Default::default()
+		}
+	};
+
+	// Same channel keeps counting.
+	assert_eq!(
+		prerelease_identifier(&config("alpha"), &stable, Some(&previous_alpha)),
+		"alpha.5"
+	);
+	// A channel switch starts a fresh sequence instead of continuing alpha's.
+	assert_eq!(
+		prerelease_identifier(&config("beta"), &stable, Some(&previous_alpha)),
+		"beta.0"
+	);
+	// Channel comparison is case-insensitive because the identifier lowercases it.
+	assert_eq!(
+		prerelease_identifier(&config("ALPHA"), &stable, Some(&previous_alpha)),
+		"alpha.5"
+	);
+	// A different stable base still restarts the sequence.
+	assert_eq!(
+		prerelease_identifier(
+			&config("alpha"),
+			&semver::Version::parse("3.0.0").unwrap(),
+			Some(&previous_alpha)
+		),
+		"alpha.0"
+	);
+}
+
+#[test]
+fn prerelease_release_note_signals_report_only_changes_added_since_the_last_prerelease() {
+	let root = std::path::PathBuf::from("/workspace");
+	let signal = |path: &str| {
+		monochange_core::ChangeSignal {
+			package_id: "cargo:crates/core/Cargo.toml".to_string(),
+			requested_bump: Some(monochange_core::BumpSeverity::Minor),
+			explicit_version: None,
+			change_origin: "changeset".to_string(),
+			evidence_refs: Vec::new(),
+			notes: Some("a note".to_string()),
+			details: None,
+			change_type: Some("feat".to_string()),
+			caused_by: Vec::new(),
+			source_path: root.join(path),
+		}
+	};
+	let config = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		release_notes: true,
+		..Default::default()
+	};
+	let signals = vec![
+		signal(".changeset/reported.md"),
+		signal(".changeset/new.md"),
+	];
+	let mut previous = PrereleaseState {
+		channel: "alpha".to_string(),
+		..Default::default()
+	};
+	previous
+		.release_note_changesets
+		.insert(".changeset/reported.md".to_string());
+
+	let filtered =
+		prerelease_release_note_signals(&root, signals.clone(), Some(&previous), &config);
+
+	assert_eq!(
+		filtered
+			.iter()
+			.map(|signal| signal.source_path.display().to_string())
+			.collect::<Vec<_>>(),
+		vec!["/workspace/.changeset/new.md"]
+	);
+}
+
+#[test]
+fn prerelease_release_note_signals_restart_after_a_channel_switch_or_when_disabled() {
+	let root = std::path::PathBuf::from("/workspace");
+	let signals = vec![monochange_core::ChangeSignal {
+		package_id: "cargo:crates/core/Cargo.toml".to_string(),
+		requested_bump: Some(monochange_core::BumpSeverity::Minor),
+		explicit_version: None,
+		change_origin: "changeset".to_string(),
+		evidence_refs: Vec::new(),
+		notes: Some("a note".to_string()),
+		details: None,
+		change_type: Some("feat".to_string()),
+		caused_by: Vec::new(),
+		source_path: root.join(".changeset/reported.md"),
+	}];
+	let mut previous = PrereleaseState {
+		channel: "alpha".to_string(),
+		..Default::default()
+	};
+	previous
+		.release_note_changesets
+		.insert(".changeset/reported.md".to_string());
+	let config = |channel: &str| {
+		monochange_core::PrereleaseConfiguration {
+			enabled: true,
+			channel: channel.to_string(),
+			release_notes: true,
+			..Default::default()
+		}
+	};
+
+	// A new channel presents every pending change again.
+	assert_eq!(
+		prerelease_release_note_signals(&root, signals.clone(), Some(&previous), &config("beta"))
+			.len(),
+		1
+	);
+	// No previous state means this is the first prerelease of the series.
+	assert_eq!(
+		prerelease_release_note_signals(&root, signals.clone(), None, &config("alpha")).len(),
+		1
+	);
+	// Disabling release notes drops the signals entirely.
+	let disabled = monochange_core::PrereleaseConfiguration {
+		enabled: true,
+		release_notes: false,
+		..Default::default()
+	};
+	assert!(
+		prerelease_release_note_signals(&root, signals.clone(), Some(&previous), &disabled)
+			.is_empty()
+	);
+}
+
+#[test]
 fn grouped_no_changeset_prerelease_plan_updates_group_and_state() {
 	let root = std::path::PathBuf::from("/workspace");
 	let mut member = test_package(&root, "member", "1.2.3");
@@ -1945,7 +2107,8 @@ fn grouped_no_changeset_prerelease_plan_updates_group_and_state() {
 		plan.groups[0].planned_version
 	);
 
-	let prepared = build_prerelease_state_update(&root, &plan, &discovery, None, &config).unwrap();
+	let prepared =
+		build_prerelease_state_update(&root, &plan, &discovery, None, &config, &[]).unwrap();
 	let state: serde_json::Value = serde_json::from_slice(&prepared.state_update.content).unwrap();
 	assert_eq!(
 		state["groups"]["suite"]["latest_prerelease_version"],
@@ -2125,7 +2288,8 @@ fn prerelease_state_skips_unplanned_and_unknown_entries() {
 		..Default::default()
 	};
 
-	let prepared = build_prerelease_state_update(&root, &plan, &discovery, None, &config).unwrap();
+	let prepared =
+		build_prerelease_state_update(&root, &plan, &discovery, None, &config, &[]).unwrap();
 	let state: serde_json::Value = serde_json::from_slice(&prepared.state_update.content).unwrap();
 
 	assert_eq!(state["packages"].as_object().unwrap().len(), 0);
@@ -2213,4 +2377,380 @@ async fn prepare_release_execution_with_configuration_uses_passed_configuration(
 			.any(|phase| phase.label == "apply prerelease versions"),
 		"prerelease phases should run when the passed configuration enables prerelease"
 	);
+}
+
+// -- seed_versions_from_tag_list --
+
+fn go_release_configuration(root: &std::path::Path, body: &str) -> WorkspaceConfiguration {
+	std::fs::write(root.join("go.mod"), "module example.com/api\n\ngo 1.22\n")
+		.unwrap_or_else(|error| panic!("write go.mod: {error}"));
+	std::fs::write(root.join("monochange.toml"), body)
+		.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+	load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"))
+}
+
+fn go_release_record(config_id: Option<&str>) -> monochange_core::PackageRecord {
+	let mut record = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Go,
+		"api",
+		std::path::PathBuf::from("go.mod"),
+		std::path::PathBuf::from("."),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	if let Some(config_id) = config_id {
+		record
+			.metadata
+			.insert("config_id".to_string(), config_id.to_string());
+	}
+	record
+}
+
+fn discovery_with_packages(packages: Vec<monochange_core::PackageRecord>) -> DiscoveryReport {
+	DiscoveryReport {
+		workspace_root: std::path::PathBuf::from("."),
+		packages,
+		dependencies: Vec::new(),
+		version_groups: Vec::new(),
+		warnings: Vec::new(),
+	}
+}
+
+#[test]
+fn seed_versions_from_tag_list_seeds_matching_release_tags() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.api]\npath = \".\"\ntype = \"go\"\nversion_format = \"primary\"\ntag = true\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(
+		&configuration,
+		&mut discovery,
+		&["v1.2.3".to_string(), "v1.0.0".to_string()],
+	);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(1, 2, 3))
+	);
+	assert!(discovery.warnings.is_empty());
+}
+
+#[test]
+fn seed_versions_from_tag_list_uses_namespaced_prefix_from_version_format() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.api]\npath = \".\"\ntype = \"go\"\ntag = true\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(
+		&configuration,
+		&mut discovery,
+		&["api/v0.9.0".to_string(), "v1.2.3".to_string()],
+	);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(0, 9, 0))
+	);
+}
+
+#[test]
+fn seed_versions_from_tag_list_warns_when_no_tag_matches() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.\"go:go.mod\"]\npath = \".\"\ntype = \"go\"\nversion_format = \"primary\"\ntag = true\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(None)]);
+
+	seed_versions_from_tag_list(
+		&configuration,
+		&mut discovery,
+		&["other/v1.0.0".to_string()],
+	);
+
+	assert!(discovery.packages[0].current_version.is_none());
+	assert_eq!(discovery.warnings.len(), 1);
+	assert!(
+		discovery.warnings[0]
+			.contains("no release tag matching `v<version>` found for package `go:go.mod`")
+	);
+}
+
+#[test]
+fn seed_versions_from_tag_list_skips_packages_with_versions_or_other_ecosystems() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(fixture.path(), "");
+
+	let mut versioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"web",
+		std::path::PathBuf::from("package.json"),
+		std::path::PathBuf::from("."),
+		Some(semver::Version::new(0, 1, 0)),
+		monochange_core::PublishState::Public,
+	);
+	versioned
+		.metadata
+		.insert("config_id".to_string(), "web".to_string());
+	let unversioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"cli",
+		std::path::PathBuf::from("cli/package.json"),
+		std::path::PathBuf::from("."),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	let mut discovery = discovery_with_packages(vec![versioned, unversioned]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v9.9.9".to_string()]);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(0, 1, 0))
+	);
+	assert!(discovery.packages[1].current_version.is_none());
+	assert!(discovery.warnings.is_empty());
+}
+
+#[test]
+fn seed_versions_from_tag_list_skips_packages_without_release_identity() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(fixture.path(), "");
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v1.0.0".to_string()]);
+
+	assert!(discovery.packages[0].current_version.is_none());
+	assert!(discovery.warnings.is_empty());
+}
+
+#[test]
+fn seed_versions_from_tag_list_skips_packages_without_tagging() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.api]\npath = \".\"\ntype = \"go\"\nversion_format = \"primary\"\ntag = false\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v1.0.0".to_string()]);
+
+	assert!(discovery.packages[0].current_version.is_none());
+	assert!(discovery.warnings.is_empty());
+}
+
+// -- version_source / initial_version seeding --
+
+#[test]
+fn seed_versions_from_tag_list_honors_version_source_tag_on_manifest_packages() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		fixture.path().join("package.json"),
+		"{\"name\": \"web\", \"version\": \"0.1.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.web]\npath = \".\"\ntype = \"npm\"\nversion_source = \"tag\"\nversion_format = \"primary\"\ntag = true\n",
+	);
+	// Simulate an ecosystem record whose manifest carries no version field;
+	// `version_source = "tag"` must still resolve the baseline from tags.
+	let mut versioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"web",
+		std::path::PathBuf::from("package.json"),
+		std::path::PathBuf::from("."),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	versioned
+		.metadata
+		.insert("config_id".to_string(), "web".to_string());
+	let mut discovery = discovery_with_packages(vec![versioned]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v1.5.0".to_string()]);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(1, 5, 0))
+	);
+}
+
+#[test]
+fn seed_versions_from_tag_list_uses_initial_version_without_tags() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.api]\npath = \".\"\ntype = \"go\"\nversion_format = \"primary\"\ntag = true\ninitial_version = \"0.4.0\"\n",
+	);
+	let mut discovery = discovery_with_packages(vec![go_release_record(Some("api"))]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &[]);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(0, 4, 0))
+	);
+	assert!(discovery.warnings.is_empty());
+}
+
+#[test]
+fn seed_versions_from_tag_list_ignores_manifest_version_source() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	std::fs::write(
+		fixture.path().join("package.json"),
+		"{\"name\": \"web\", \"version\": \"0.1.0\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+	std::fs::create_dir_all(fixture.path().join("other"))
+		.unwrap_or_else(|error| panic!("create other dir: {error}"));
+	std::fs::write(
+		fixture.path().join("other/package.json"),
+		"{\"name\": \"other\"}\n",
+	)
+	.unwrap_or_else(|error| panic!("write other manifest: {error}"));
+	let configuration = go_release_configuration(
+		fixture.path(),
+		"[package.web]\npath = \".\"\ntype = \"npm\"\nversion_source = \"manifest\"\ntag = true\n",
+	);
+	let mut versioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"web",
+		std::path::PathBuf::from("package.json"),
+		std::path::PathBuf::from("."),
+		Some(semver::Version::new(0, 1, 0)),
+		monochange_core::PublishState::Public,
+	);
+	versioned
+		.metadata
+		.insert("config_id".to_string(), "web".to_string());
+	let mut unversioned = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"other",
+		std::path::PathBuf::from("other/package.json"),
+		std::path::PathBuf::from("."),
+		None,
+		monochange_core::PublishState::Public,
+	);
+	unversioned
+		.metadata
+		.insert("config_id".to_string(), "other".to_string());
+	let mut discovery = discovery_with_packages(vec![versioned, unversioned]);
+
+	seed_versions_from_tag_list(&configuration, &mut discovery, &["v9.9.9".to_string()]);
+
+	assert_eq!(
+		discovery.packages[0].current_version,
+		Some(semver::Version::new(0, 1, 0))
+	);
+	assert!(discovery.packages[1].current_version.is_none());
+	assert!(discovery.warnings.is_empty());
+}
+
+fn github_actions_definition(id: &str, path: &str) -> monochange_core::PackageDefinition {
+	monochange_core::PackageDefinition {
+		id: id.to_string(),
+		path: std::path::PathBuf::from(path),
+		package_type: monochange_core::PackageType::GitHubActions,
+		changelog: None,
+		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		ignore_ecosystem_versioned_files: false,
+		ignored_paths: Vec::new(),
+		additional_paths: Vec::new(),
+		tag: true,
+		release: true,
+		version_format: monochange_core::VersionFormat::Primary,
+		version_source: monochange_core::VersionSource::Tag,
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
+		publish: monochange_core::PublishSettings::default(),
+		cli: None,
+	}
+}
+
+// -- github_actions package loading --
+
+#[test]
+fn load_configured_github_actions_package_prefers_action_yaml_and_stamps_config_id() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		fixture.path().join("action.yaml"),
+		"name: yaml-action\ndescription: test\n",
+	)
+	.unwrap_or_else(|error| panic!("write action.yaml: {error}"));
+	let definition = github_actions_definition("actions", ".");
+
+	let record =
+		load_configured_github_actions_package(fixture.path(), fixture.path(), &definition)
+			.unwrap_or_else(|error| panic!("load github actions package: {error}"));
+
+	assert_eq!(record.name, "actions");
+	assert!(record.current_version.is_none());
+	assert_eq!(
+		record.metadata.get("config_id").map(String::as_str),
+		Some("actions")
+	);
+	assert!(
+		record.manifest_path.ends_with("action.yaml"),
+		"expected action.yaml manifest, got {}",
+		record.manifest_path.display()
+	);
+}
+
+#[test]
+fn load_configured_github_actions_package_falls_back_to_action_yml() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(fixture.path().join("action.yml"), "name: yml-action\n")
+		.unwrap_or_else(|error| panic!("write action.yml: {error}"));
+	let definition = github_actions_definition("actions", ".");
+
+	let record =
+		load_configured_github_actions_package(fixture.path(), fixture.path(), &definition)
+			.unwrap_or_else(|error| panic!("load github actions package: {error}"));
+
+	assert!(record.manifest_path.ends_with("action.yml"));
+}
+
+#[test]
+fn load_configured_github_actions_package_errors_for_missing_directory() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let definition = github_actions_definition("actions", ".");
+
+	let error = load_configured_github_actions_package(
+		tempdir.path(),
+		&tempdir.path().join("missing"),
+		&definition,
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected discovery error"));
+
+	assert!(error.to_string().contains("does not exist"));
+}
+
+#[test]
+fn load_configured_github_actions_package_defaults_manifest_name_without_action_file() {
+	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let definition = github_actions_definition("actions", ".");
+
+	let record =
+		load_configured_github_actions_package(fixture.path(), fixture.path(), &definition)
+			.unwrap_or_else(|error| panic!("load github actions package: {error}"));
+
+	assert!(record.manifest_path.ends_with("action.yml"));
+	assert_eq!(record.name, "actions");
 }

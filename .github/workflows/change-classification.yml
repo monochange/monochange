@@ -17,8 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
-      pull-requests: read
+      pull-requests: write
     steps:
       - name: checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,7 +33,7 @@ jobs:
 
       - name: classify changes
         id: classify
-        uses: monochange/actions/change-classification@da3911fecf67478deb0ad60f717da5eca649caba # v0.9.1
+        uses: monochange/actions/change-classification@0225509ace4550429775bffc89239ffafb0edf5c # v0.9.4
         with:
           setup-monochange: devenv shell monochange
           detection-level: signature

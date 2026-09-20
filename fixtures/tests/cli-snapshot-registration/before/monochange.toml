@@ -1,0 +1,8 @@
+[package.demo]
+path = "crates/demo"
+type = "cargo"
+cli = { name = "demo", snapshot = { command = "cat cli.json", cwd = "crates/demo", shell = false } }
+
+[package.plain]
+path = "crates/plain"
+type = "cargo"

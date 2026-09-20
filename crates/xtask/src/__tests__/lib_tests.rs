@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
+use crate::SchemaCrateInput;
 use crate::SchemaMode;
 use crate::check_schemas;
 use crate::command_literals_from_cli_source;
@@ -254,10 +255,16 @@ fn run_cli_round_trip() {
 		run_with_paths(
 			true,
 			SchemaMode::Current,
-			&schemas,
 			&docs,
-			&schema_version_path,
-			version,
+			&[SchemaCrateInput {
+				paths: crate::SchemaCratePaths {
+					schemas_dir: schemas.clone(),
+					schema_version_path: schema_version_path.clone(),
+					manifest_path: PathBuf::new(),
+					changeset_package: "monochange_schema".to_string(),
+				},
+				version: version.to_string(),
+			}],
 		)
 		.is_ok()
 	);
@@ -265,10 +272,16 @@ fn run_cli_round_trip() {
 		run_with_paths(
 			false,
 			SchemaMode::Current,
-			&schemas,
 			&docs,
-			&schema_version_path,
-			version,
+			&[SchemaCrateInput {
+				paths: crate::SchemaCratePaths {
+					schemas_dir: schemas.clone(),
+					schema_version_path: schema_version_path.clone(),
+					manifest_path: PathBuf::new(),
+					changeset_package: "monochange_schema".to_string(),
+				},
+				version: version.to_string(),
+			}],
 		)
 		.is_ok()
 	);
@@ -294,6 +307,7 @@ fn run_cli_round_trip() {
 	assert!(!artifacts.join(version).join("monochange/01.json").exists());
 	assert!(docs.join("release-record.schema.json").exists());
 	assert!(docs.join("monochange.schema.json").exists());
+	assert!(docs.join("command-snapshot.schema.json").exists());
 	assert!(
 		!docs
 			.join(format!("release-record.v{version}.schema.json"))
@@ -302,6 +316,14 @@ fn run_cli_round_trip() {
 	assert!(
 		!docs
 			.join(format!("monochange.v{version}.schema.json"))
+			.exists()
+	);
+	assert!(
+		!docs
+			.join(format!(
+				"command-snapshot.v{}.schema.json",
+				monochange_snapshot::SNAPSHOT_SCHEMA_VERSION
+			))
 			.exists()
 	);
 
@@ -317,10 +339,16 @@ fn run_cli_round_trip() {
 			SchemaMode::Release {
 				include_versioned: true,
 			},
-			&schemas,
 			&docs,
-			&schema_version_path,
-			version,
+			&[SchemaCrateInput {
+				paths: crate::SchemaCratePaths {
+					schemas_dir: schemas.clone(),
+					schema_version_path: schema_version_path.clone(),
+					manifest_path: PathBuf::new(),
+					changeset_package: "monochange_schema".to_string(),
+				},
+				version: version.to_string(),
+			}],
 		)
 		.is_ok()
 	);
@@ -330,10 +358,16 @@ fn run_cli_round_trip() {
 			SchemaMode::Release {
 				include_versioned: true,
 			},
-			&schemas,
 			&docs,
-			&schema_version_path,
-			version,
+			&[SchemaCrateInput {
+				paths: crate::SchemaCratePaths {
+					schemas_dir: schemas.clone(),
+					schema_version_path: schema_version_path.clone(),
+					manifest_path: PathBuf::new(),
+					changeset_package: "monochange_schema".to_string(),
+				},
+				version: version.to_string(),
+			}],
 		)
 		.is_ok()
 	);
@@ -353,6 +387,27 @@ fn run_cli_round_trip() {
 	assert!(
 		docs.join(format!("monochange.v{version}.schema.json"))
 			.exists()
+	);
+	// The command snapshot contract versions independently, so its immutable copy
+	// is named after the snapshot schema version rather than the monochange one.
+	let snapshot_versioned = docs.join(format!(
+		"command-snapshot.v{}.schema.json",
+		monochange_snapshot::SNAPSHOT_SCHEMA_VERSION
+	));
+	assert!(snapshot_versioned.exists());
+	let snapshot_versioned_value: serde_json::Value =
+		serde_json::from_str(&fs::read_to_string(&snapshot_versioned).unwrap()).unwrap();
+	assert_eq!(
+		snapshot_versioned_value
+			.pointer("/$id")
+			.and_then(|id| id.as_str()),
+		Some(
+			format!(
+				"https://monochange.github.io/monochange/schemas/command-snapshot.v{}.schema.json",
+				monochange_snapshot::SNAPSHOT_SCHEMA_VERSION
+			)
+			.as_str()
+		)
 	);
 
 	let _ = fs::remove_dir_all(&schemas);

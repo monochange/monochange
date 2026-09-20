@@ -9,15 +9,15 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "low",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "partial",
           "coverage": "the declaration was emitted but could not be compared conclusively",
           "engine": "typescript",
-          "fallbackReason": "generic declaration identity prevents a conclusive cross-snapshot comparison",
+          "fallback_reason": "generic declaration identity prevents a conclusive cross-snapshot comparison",
           "version": "6.0.3"
         },
         "outcome": "inconclusive",
-        "suggestedBump": "patch"
+        "suggested_bump": "patch"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -30,14 +30,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript checked value assignability in both directions",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "additive",
-        "suggestedBump": "minor"
+        "suggested_bump": "minor"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -50,14 +50,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript proved a consumer-visible assignability failure",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "breaking",
-        "suggestedBump": "major"
+        "suggested_bump": "major"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -70,14 +70,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript checked value assignability in both directions",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "additive",
-        "suggestedBump": "minor"
+        "suggested_bump": "minor"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -90,14 +90,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript proved a consumer-visible assignability failure",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "breaking",
-        "suggestedBump": "major"
+        "suggested_bump": "major"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -110,14 +110,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript proved a consumer-visible assignability failure",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "breaking",
-        "suggestedBump": "major"
+        "suggested_bump": "major"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -130,14 +130,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript proved a consumer-visible assignability failure",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "breaking",
-        "suggestedBump": "major"
+        "suggested_bump": "major"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -150,14 +150,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript checked consumer-visible assignability in both directions",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "compatible",
-        "suggestedBump": "none"
+        "suggested_bump": "none"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -170,14 +170,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript checked value assignability in both directions",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "additive",
-        "suggestedBump": "minor"
+        "suggested_bump": "minor"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -190,14 +190,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript proved a consumer-visible assignability failure",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "breaking",
-        "suggestedBump": "major"
+        "suggested_bump": "major"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",
@@ -210,14 +210,14 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "high",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "complete",
           "coverage": "TypeScript checked value assignability in both directions",
           "engine": "typescript",
           "version": "6.0.3"
         },
         "outcome": "additive",
-        "suggestedBump": "minor"
+        "suggested_bump": "minor"
       },
       "category": "public_api",
       "filePath": "dist/index.d.ts",

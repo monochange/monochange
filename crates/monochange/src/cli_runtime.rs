@@ -532,7 +532,6 @@ pub(crate) fn build_issue_comment_results(
 async fn build_issue_comment_results_for_source(
 	dry_run: bool,
 	source: &SourceConfiguration,
-	manifest: &ReleaseManifest,
 	plans: &[HostedIssueCommentPlan],
 ) -> MonochangeResult<Vec<String>> {
 	if dry_run {
@@ -541,7 +540,7 @@ async fn build_issue_comment_results_for_source(
 
 	let adapter = hosted_sources::configured_hosted_source_adapter(source);
 	Ok(adapter
-		.comment_released_issues(source, manifest)
+		.comment_released_issues_with_plans(source, plans)
 		.await?
 		.into_iter()
 		.map(|result| {
@@ -1290,7 +1289,6 @@ pub(crate) async fn execute_cli_command_with_options(
 					let results = build_issue_comment_results_for_source(
 						dry_run,
 						&source,
-						&manifest,
 						&issue_comment_plans,
 					)
 					.await?;

@@ -1,0 +1,9 @@
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"

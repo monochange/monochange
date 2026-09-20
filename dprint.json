@@ -36,6 +36,7 @@
 		"textWrap": "never"
 	},
 	"excludes": [
+		".templates/**",
 		"**/dist",
 		"docs/book",
 		".devenv/**",

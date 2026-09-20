@@ -196,9 +196,12 @@ fn base_command(root: &std::path::Path, pub_dev_base_url: &str) -> Command {
 		"GITHUB_WORKFLOW",
 		"GITHUB_WORKFLOW_REF",
 		"GITHUB_ENVIRONMENT",
+		"GITHUB_EVENT_NAME",
 		"GITHUB_JOB",
 		"GITHUB_RUN_ID",
+		"GITHUB_REF",
 		"GITHUB_REF_NAME",
+		"GITHUB_REF_TYPE",
 		"MONOCHANGE_TRUSTED_PUBLISHING_ENVIRONMENT",
 		"ACTIONS_ID_TOKEN_REQUEST_URL",
 		"ACTIONS_ID_TOKEN_REQUEST_TOKEN",
@@ -390,6 +393,42 @@ fn dart_placeholder_publish_fails_fast_when_the_oidc_token_cannot_be_minted() {
 	);
 	// No dart command may run when minting fails; the stub log is only created
 	// by the stub itself, which test 3 installs.
+	assert!(!dart_stub_log_path(&workspace).exists());
+	assert_snapshot!(
+		String::from_utf8_lossy(&output.stderr).replace(&server.base_url, "[mock-endpoints]")
+	);
+}
+
+#[test]
+fn dart_trusted_publishing_fails_fast_from_a_branch_ref_workflow_dispatch() {
+	let server = spawn_endpoint_server(None);
+	let workspace = fixture_workspace();
+	let mut command = placeholder_publish_command(
+		workspace.path(),
+		&server.base_url,
+		Some(&server.base_url),
+		false,
+	);
+	command.env("GITHUB_ACTIONS", "true");
+	command.env("GITHUB_EVENT_NAME", "workflow_dispatch");
+	command.env("GITHUB_REF", "refs/heads/main");
+	let output = command
+		.output()
+		.unwrap_or_else(|error| panic!("run trusted placeholder publish: {error}"));
+
+	assert!(
+		!output.status.success(),
+		"a branch-ref workflow_dispatch run must fail before publishing\nstdout:\n{}\nstderr:\n{}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr),
+	);
+	assert!(
+		String::from_utf8_lossy(&output.stdout).trim().is_empty(),
+		"blocked placeholder publishes must not emit a report on stdout"
+	);
+	// pub.dev rejects any non-tag run ref, so monochange must fail before
+	// minting a token or spawning dart at all.
+	assert_eq!(server.request_count(OIDC_ROUTE), 0);
 	assert!(!dart_stub_log_path(&workspace).exists());
 	assert_snapshot!(
 		String::from_utf8_lossy(&output.stderr).replace(&server.base_url, "[mock-endpoints]")

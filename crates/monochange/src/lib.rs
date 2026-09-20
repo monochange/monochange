@@ -23,12 +23,13 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use analyze::render_analyze_report;
-use change_classify::classify_options_from_matches;
-use change_classify::render_change_classification;
-use change_classify::render_changeset_api_validation;
 pub(crate) use monochange_changelog::ChangelogBuildContext;
 pub(crate) use monochange_changelog::build_changelog_updates;
 pub(crate) use monochange_changelog::render_jinja_template;
+use monochange_classification::render_change_classification;
+use monochange_classification::render_changeset_api_validation;
+
+use crate::cli::classify_options_from_matches;
 pub mod changelog {
 	pub use monochange_changelog::render_message_template;
 }
@@ -77,6 +78,7 @@ use monochange_core::DEFAULT_RELEASE_TITLE_NAMESPACED;
 use monochange_core::DEFAULT_RELEASE_TITLE_PRIMARY;
 use monochange_core::DiscoveryReport;
 use monochange_core::Ecosystem;
+use monochange_core::FloatingTagFormat;
 use monochange_core::HostedActorRef;
 use monochange_core::HostedActorSourceKind;
 use monochange_core::HostedCommitRef;
@@ -119,6 +121,7 @@ use monochange_core::VersionFormat;
 use monochange_core::VersionedFileDefinition;
 use monochange_core::materialize_dependency_edges;
 use monochange_core::relative_to_root;
+pub(crate) use monochange_core::root_relative;
 #[cfg(feature = "forgejo")]
 use monochange_forgejo as forgejo_provider;
 #[cfg(feature = "gitea")]
@@ -229,11 +232,12 @@ pub(crate) fn synthetic_step_command_definition(
 }
 
 mod analyze;
-mod change_classify;
+
 mod changeset_policy;
 mod changesets;
 mod cli;
 mod cli_runtime;
+
 mod cli_theme;
 mod command_wizard;
 mod git_support;
@@ -420,6 +424,9 @@ pub struct ReleaseTarget {
 	pub members: Vec<String>,
 	pub rendered_title: String,
 	pub rendered_changelog_title: String,
+	/// Floating tag aliases moved to this target's release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 /// Rendered changelog payload produced during release preparation.
@@ -1305,21 +1312,35 @@ async fn run_with_args_in_dir_with_progress(
 	}
 	let output = match matches.subcommand() {
 		Some(("snapshot", snapshot_matches)) => {
-			let view = snapshot_matches
-				.get_one::<String>("view")
-				.map_or(monochange_snapshot::SnapshotView::Full, |value| {
-					snapshot_view(value)
-				});
-			let path = snapshot_matches
-				.get_many::<String>("command")
-				.into_iter()
-				.flatten()
-				.cloned()
-				.collect();
-			render_snapshot_request(
-				&build_command_with_cli(bin_name, &cli),
-				&SnapshotRequest { path, view },
-			)
+			if snapshot_matches.get_flag("list") {
+				monochange_classification::cli_surface::list_registered_clis(root)
+			} else if let Some(package_id) = snapshot_matches.get_one::<String>("package") {
+				let save = snapshot_matches.get_flag("save");
+				let view = snapshot_matches
+					.get_one::<String>("view")
+					.map_or(monochange_snapshot::SnapshotView::Full, |value| {
+						snapshot_view(value)
+					});
+				monochange_classification::cli_surface::run_package_snapshot(
+					root, package_id, save, view,
+				)
+			} else {
+				let view = snapshot_matches
+					.get_one::<String>("view")
+					.map_or(monochange_snapshot::SnapshotView::Full, |value| {
+						snapshot_view(value)
+					});
+				let path = snapshot_matches
+					.get_many::<String>("command")
+					.into_iter()
+					.flatten()
+					.cloned()
+					.collect();
+				render_snapshot_request(
+					&build_command_with_cli(bin_name, &cli),
+					&SnapshotRequest { path, view },
+				)
+			}
 		}
 		Some(("help", help_matches)) => {
 			let path = help_matches

@@ -1,0 +1,308 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+expression: report
+---
+{
+  "candidate": "merge-tree:[SHA]",
+  "comparisons": [
+    {
+      "base": "HEAD~1",
+      "head": "merge-tree:[SHA]",
+      "kind": "pull_request",
+      "note": null,
+      "status": "analyzed"
+    },
+    {
+      "base": "[SHA]",
+      "head": "HEAD",
+      "kind": "source_delta",
+      "note": null,
+      "status": "analyzed"
+    }
+  ],
+  "default_branch": "HEAD~1",
+  "packages": [
+    {
+      "action": "update",
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pull_request",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "source_delta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "release_to_default",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        }
+      ],
+      "decision": {
+        "classification_enforced": true,
+        "compatibility_impact": "breaking",
+        "completeness": "partial",
+        "confidence": "medium",
+        "enforceable_minimum": "none",
+        "finding_ids": [
+          "cargo/public-api/public_api/removed/function/removed_greeting"
+        ],
+        "proposed_changeset_bump": "major",
+        "release_floor": "major",
+        "review_required": true
+      },
+      "ecosystem": "cargo",
+      "existing_changesets": [
+        {
+          "bump": "patch",
+          "change_type": "patch",
+          "path": ".changeset/understated-patch.md"
+        }
+      ],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "fn removed_greeting () -> & 'static str",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pull_request",
+            "source_delta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detection_level": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/removed/function/removed_greeting",
+          "impact": "breaking",
+          "location": "src/lib.rs",
+          "rule_id": "cargo/public-api/public_api/removed/function",
+          "summary": "function `removed_greeting` removed",
+          "surface": "public_api"
+        }
+      ],
+      "package_id": "enforced",
+      "package_name": "enforced",
+      "recommendation": "major",
+      "release_owner": {
+        "id": "main",
+        "kind": "group",
+        "latest_release": null
+      },
+      "summary": "1 breaking finding(s) propose a major changeset",
+      "warnings": []
+    },
+    {
+      "action": "keep",
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pull_request",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "source_delta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "release_to_default",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        }
+      ],
+      "decision": {
+        "classification_enforced": false,
+        "compatibility_impact": "breaking",
+        "completeness": "partial",
+        "confidence": "medium",
+        "enforceable_minimum": "none",
+        "finding_ids": [
+          "cargo/public-api/public_api/removed/function/removed_greeting"
+        ],
+        "proposed_changeset_bump": "patch",
+        "release_floor": "patch",
+        "review_required": true
+      },
+      "ecosystem": "cargo",
+      "existing_changesets": [
+        {
+          "bump": "patch",
+          "change_type": "patch",
+          "path": ".changeset/understated-patch.md"
+        }
+      ],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "fn removed_greeting () -> & 'static str",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pull_request",
+            "source_delta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detection_level": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/removed/function/removed_greeting",
+          "impact": "breaking",
+          "location": "src/lib.rs",
+          "rule_id": "cargo/public-api/public_api/removed/function",
+          "summary": "function `removed_greeting` removed",
+          "surface": "public_api"
+        }
+      ],
+      "package_id": "escaped",
+      "package_name": "escaped",
+      "recommendation": "patch",
+      "release_owner": {
+        "id": "main",
+        "kind": "group",
+        "latest_release": null
+      },
+      "summary": "1 compatible finding(s) propose a patch changeset",
+      "warnings": []
+    },
+    {
+      "action": "keep",
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pull_request",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "source_delta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "release_to_default",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        }
+      ],
+      "decision": {
+        "classification_enforced": false,
+        "compatibility_impact": "breaking",
+        "completeness": "partial",
+        "confidence": "medium",
+        "enforceable_minimum": "none",
+        "finding_ids": [
+          "cargo/public-api/public_api/removed/function/removed_greeting"
+        ],
+        "proposed_changeset_bump": "patch",
+        "release_floor": "patch",
+        "review_required": true
+      },
+      "ecosystem": "cargo",
+      "existing_changesets": [
+        {
+          "bump": "patch",
+          "change_type": "patch",
+          "path": ".changeset/understated-patch.md"
+        }
+      ],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "fn removed_greeting () -> & 'static str",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "pull_request",
+            "source_delta"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detection_level": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/removed/function/removed_greeting",
+          "impact": "breaking",
+          "location": "src/lib.rs",
+          "rule_id": "cargo/public-api/public_api/removed/function",
+          "summary": "function `removed_greeting` removed",
+          "surface": "public_api"
+        }
+      ],
+      "package_id": "group_policy",
+      "package_name": "group_policy",
+      "recommendation": "patch",
+      "release_owner": {
+        "id": "policy",
+        "kind": "group",
+        "latest_release": null
+      },
+      "summary": "1 compatible finding(s) propose a patch changeset",
+      "warnings": []
+    }
+  ],
+  "recommendation": "major",
+  "schema_version": "[SCHEMA_VERSION]",
+  "skipped": false,
+  "warnings": [
+    "changed path `.changeset/understated-patch.md` did not match any configured package"
+  ]
+}

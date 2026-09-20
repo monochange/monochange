@@ -18,6 +18,6 @@ A version gets a guide when its release contains at least one change that breaks
 
 - [Upgrading to 0.11](0.11.md)
 - [Upgrading to 0.9: the nested command API](0.9-cli-command-api.md)
-- [Migrating from knope](from-knope.md) — for repositories coming from the knope release tool rather than upgrading monochange.
+- [Migrating from knope](from-knope.md): for repositories coming from the knope release tool rather than upgrading monochange.
 
 Versions older than 0.9 predate the migration-guide convention; their breaking changes are documented in the changelog.

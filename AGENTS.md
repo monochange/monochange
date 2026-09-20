@@ -36,6 +36,12 @@
 - Never change `commit.gpgsign` in local, global, or workspace git config.
 - The only allowed exception is during `git rebase` workflows when a rebase continuation or amend step would otherwise block on hooks/editor behavior.
 
+## Repository artifacts
+
+- Only `.monochange/local/` may be gitignored. Never add `.monochange/` as a whole to `.gitignore`, and never add a broader pattern that also matches `.monochange/releases/`.
+- The rest of `.monochange/` is committed release state. `.monochange/releases/<id>/release.json` release records and `.monochange/prerelease-state.json` are read from git history by `CommitRelease`, `publish-readiness`, `tag-release`, and provider release automation, so ignoring them makes releases unpublishable.
+- `.monochange/local/` is the only home for local artifacts. monochange adds it to `.git/info/exclude` automatically; do not fix local noise by ignoring the parent directory.
+
 ## Agent authority limits
 
 These operations are **strictly prohibited** for the agent and must only be performed by a human maintainer:

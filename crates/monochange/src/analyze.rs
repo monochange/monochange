@@ -13,7 +13,6 @@ use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageRecord;
 use monochange_core::ReleaseOwnerKind;
-use monochange_core::VersionFormat;
 use serde::Serialize;
 
 use crate::OutputFormat;
@@ -21,6 +20,7 @@ use crate::discover_workspace;
 use crate::git_support::resolve_git_commit_ref;
 use crate::git_support::run_git_capture;
 use crate::release_artifacts::parse_tag_prefix_and_version;
+use crate::release_artifacts::release_tag_prefix;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -290,10 +290,7 @@ async fn latest_release_tag_for_identity(
 }
 
 fn tag_prefix_for_identity(release_identity: &EffectiveReleaseIdentity) -> String {
-	match release_identity.version_format {
-		VersionFormat::Namespaced => format!("{}/v", release_identity.owner_id),
-		_ => "v".to_string(),
-	}
+	release_tag_prefix(&release_identity.owner_id, &release_identity.version_format)
 }
 
 fn first_release_warning(

@@ -163,6 +163,10 @@ templates = [
 metadata_style = "inline"
 
 [changelog.sections]
+# Declaring sections and types adds to the built-in set; a declared key wins on
+# a collision, and every other built-in key stays available. To narrow the
+# vocabulary for one target, use `excluded_changelog_types` on that package or
+# group rather than leaving keys out here.
 breaking = { heading = "💥 Breaking Change", description = "Breaking changes that require consumer updates or migration", priority = 10 }
 feat = { heading = "🚀 Feature", description = "New features, enhancements, and additions", priority = 20 }
 change = { heading = "📝 Changed", description = "Changes to existing behavior, functionality, or API semantics", priority = 25 }
@@ -179,6 +183,10 @@ collapse = 40
 ignored = 45
 
 [changelog.types]
+# Built-in types include the semantic aliases (`major`, `minor`, `patch`) and
+# the stream types (`breaking`, `feat`, `fix`, `change`, `refactor`, `test`,
+# `docs`, `security`, `none`). A declared entry overrides the built-in entry of
+# the same name and never removes the rest.
 major = { bump = "major", section = "breaking", description = "Major version bump including breaking API changes requiring migration" }
 breaking = { bump = "major", section = "breaking", description = "Breaking changes that require consumers to update their code" }
 minor = { bump = "minor", section = "feat", description = "Minor version bump including new features and enhancements" }
@@ -214,6 +222,21 @@ perf = { bump = "none", section = "perf", description = "Performance and benchma
 #   bump_propagation_max    — clamp for "inherit" so dependents never exceed
 #                             the given severity (requires
 #                             bump_propagation = "inherit")
+#   bump_ceiling            — upper bound on the bump severity classification
+#                             may propose for this package:
+#                             "none"/"patch"/"minor"/"major". The ceiling also
+#                             clamps the enforceable minimum and release floor,
+#                             and never raises a smaller bump. A group-level
+#                             ceiling is the default for its members; a package
+#                             declaration overrides it
+#   classification_enforced — whether changeset-policy validation fails when
+#                             the declared changeset bump is below the bump
+#                             classification requires (default: true). Set
+#                             false to make classification advisory for this
+#                             package: the proposal still appears in reports,
+#                             but it never fails validation or blocks a release.
+#                             A group-level value is the default for its
+#                             members; a package declaration overrides it
 #   empty_update_message    — per-package fallback text for transitive bumps
 #   versioned_files         — additional files to update with the new version
 #                             package-scoped string entries infer the package ecosystem,
@@ -259,15 +282,44 @@ perf = { bump = "none", section = "perf", description = "Performance and benchma
 #   version_format          — "namespaced" (default: "pkg/v1.0.0") or
 #                             "primary" (just "v1.0.0"); only one package/group
 #                             may use "primary"
+#   cli                     — register a CLI binary shipped by this package:
+#                             { name = "<binary>", snapshot = "<command>" }
+#                             `name` is the command name users invoke and keys
+#                             the committed baseline at
+#                             .monochange/cli-snapshots/<name>.json;
+#                             `snapshot` is a command that prints a normalized
+#                             command-surface snapshot JSON document on stdout
+#                             (string, or a table with { command, cwd, shell }).
+#                             Change classification diffs the baseline against
+#                             a fresh capture and reports command-surface
+#                             breaks instead of "unknown" package changes
 
 [package.monochange]
 path = "crates/monochange"
+cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
 
 [package.monochange_core]
 path = "crates/monochange_core"
 
 [package.monochange_snapshot]
 path = "crates/monochange_snapshot"
+# `monochange_snapshot` is the only member of [group.snapshot], and the group
+# changelog already renders this package's notes at
+# `crates/monochange_snapshot/changelog.md`. The package would otherwise
+# inherit `[defaults.changelog]`, whose `{{ path }}/changelog.md` pattern
+# resolves to that same file, and release planning rejects two owners for one
+# changelog path. Disable the package-level changelog so the group owns it.
+changelog = false
+# The Cargo analyzer compares whole token streams for public items, so an
+# attribute-only change such as adding `#[cfg_attr(feature = "schema",
+# derive(...))]` is classified as a breaking `modified` item. Adding an
+# opt-in feature is additive, and this crate's schema version is derived from
+# its package version, so letting the false positive stand would advance the
+# published command snapshot contract to 0.2 and stale every committed CLI
+# baseline without any wire change. Cap the proposal at `minor`; an explicit
+# `major` changeset still advances the contract when the wire format actually
+# breaks.
+bump_ceiling = "minor"
 
 [package.monochange_cargo]
 path = "crates/monochange_cargo"
@@ -307,6 +359,11 @@ path = "crates/monochange_schema"
 release = true
 tag = true
 
+[package.monochange_classification]
+path = "crates/monochange_classification"
+release = true
+tag = true
+
 [package.monochange_semver]
 path = "crates/monochange_semver"
 
@@ -340,9 +397,20 @@ path = "crates/monochange_lint"
 [package.monochange_linting]
 path = "crates/monochange_linting"
 
+# The skill package ships prose: SKILL.md, reference guides, and examples.
+# Classification reads rewritten guidance as API impact because the wording of
+# a skill is its interface, so a documentation pass can be scored as a minor or
+# major change to an interface that has no callers. Opting out keeps the
+# proposal visible in classification reports while letting the released
+# changeset decide the bump, and the ceiling keeps the advisory proposal itself
+# at patch for a package that never ships code. Both settings are declared here
+# rather than on [group.main] because the skill is the only prose package in
+# the group; package declarations override group defaults.
 [package."@monochange/skill"]
 path = "packages/monochange__skill"
 type = "npm"
+bump_ceiling = "patch"
+classification_enforced = false
 
 [package."@monochange/cli"]
 path = "packages/monochange__cli"
@@ -795,6 +863,7 @@ steps = [
 	{ type = "Command", name = "generate cargo lockfile", when = "{{ number_of_changesets > 0 }}", command = "cargo generate-lockfile" },
 	{ type = "Command", name = "generate pnpm lockfile", when = "{{ number_of_changesets > 0 }}", command = "pnpm install --lockfile-only --no-frozen-lockfile --link-workspace-packages" },
 	{ type = "Command", name = "update json schemas", when = "{{ number_of_changesets > 0 }}", command = "cargo xtask schema release update --versioned" },
+	{ type = "Command", name = "capture cli snapshot", when = "{{ number_of_changesets > 0 }}", command = "monochange snapshot --package monochange --save" },
 	{ type = "Command", name = "format changed files", when = "{{ number_of_changesets > 0 }}", command = "dprint fmt --allow-no-files" },
 	{ type = "Command", name = "stage schema assets", when = "{{ number_of_changesets > 0 }}", command = "git add crates/monochange_schema/SCHEMA_VERSION crates/monochange_schema/schemas docs/src/schemas" },
 	{ type = "CommitRelease", name = "create release commit", when = "{{ number_of_changesets > 0 && inputs.commit }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },

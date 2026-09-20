@@ -26,6 +26,7 @@ use monochange_core::ReleaseNotesSection;
 use monochange_core::SourceChangeRequest;
 use monochange_core::SourceConfiguration;
 use monochange_core::SourceProvider;
+use monochange_core::VersionSource;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::WorkspaceDefaults;
 use semver::Version;
@@ -48,6 +49,7 @@ fn minimal_manifest_with_target(id: &str, version: &str) -> ReleaseManifest {
 			members: vec![],
 			rendered_title: format!("Release {id} {version}"),
 			rendered_changelog_title: format!("{id} {version}"),
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec![],
 		changed_files: vec![],
@@ -122,6 +124,7 @@ fn sample_manifest() -> ReleaseManifest {
 			members: vec!["pkg-a".to_string(), "pkg-b".to_string()],
 			rendered_title: "Release sdk v2.0.0".to_string(),
 			rendered_changelog_title: "sdk v2.0.0".to_string(),
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec!["pkg-a".to_string(), "pkg-b".to_string()],
 		changed_files: vec![
@@ -235,6 +238,13 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		release: true,
 		publish: PublishSettings::default(),
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
+		cli: None,
 	}];
 	configuration.groups = vec![monochange_core::GroupDefinition {
 		id: "sdk".to_string(),
@@ -251,6 +261,12 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		tag: true,
 		release: true,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 	}];
 	let package = sample_package(root, "pkg-a", PackageType::Cargo);
 	let sorted_tags = vec![
@@ -453,6 +469,13 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				..PublishSettings::default()
 			},
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		},
 		PackageDefinition {
 			id: "web".to_string(),
@@ -476,6 +499,13 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				..PublishSettings::default()
 			},
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		},
 		PackageDefinition {
 			id: "disabled".to_string(),
@@ -499,6 +529,13 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				..PublishSettings::default()
 			},
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		},
 		PackageDefinition {
 			id: "private".to_string(),
@@ -521,6 +558,13 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				..PublishSettings::default()
 			},
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		},
 	];
 
@@ -855,6 +899,7 @@ fn release_paths_from_manifest_computes_hash_relative_and_absolute() {
 			members: vec![],
 			rendered_title: "1.0.0".to_string(),
 			rendered_changelog_title: "[1.0.0]".to_string(),
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec![],
 		changed_files: vec![],
@@ -901,6 +946,7 @@ fn release_paths_from_record_produces_same_hash_as_from_manifest() {
 			members: vec![],
 			rendered_title: "1.0.0".to_string(),
 			rendered_changelog_title: "[1.0.0]".to_string(),
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec![],
 		changed_files: vec![],
@@ -994,6 +1040,7 @@ fn deduplicate_uses_persistent_index_to_skip_scan() {
 		release: true,
 		tag_name: "v2.0.0".to_string(),
 		members: vec![],
+		floating_tags: Vec::new(),
 	};
 	let result = deduplicate_overlapping_release_records(
 		root,
@@ -1020,6 +1067,7 @@ fn deduplicate_skips_current_record_dir_during_overlap_scan() {
 		release: true,
 		tag_name: "v1.2.3".to_string(),
 		members: vec![],
+		floating_tags: Vec::new(),
 	};
 
 	let result = deduplicate_overlapping_release_records(root, &[target], &current_record_dir);
@@ -1329,4 +1377,46 @@ fn validate_release_record_file_fast_path_reports_error_for_unreadable_file() {
 	// Cleanup.
 	permissions.set_mode(0o644);
 	let _ = fs::set_permissions(&path, permissions);
+}
+
+#[test]
+fn release_tag_prefix_matches_rendered_tag_names() {
+	assert_eq!(
+		release_tag_prefix("api", &VersionFormat::Namespaced),
+		"api/v"
+	);
+	assert_eq!(release_tag_prefix("api", &VersionFormat::Primary), "v");
+}
+
+#[test]
+fn latest_tag_version_with_prefix_returns_highest_matching_tag() {
+	let sorted_tags = vec![
+		"v1.2.3".to_string(),
+		"api/v2.0.0".to_string(),
+		"v1.0.0".to_string(),
+	];
+
+	assert_eq!(
+		latest_tag_version_with_prefix(&sorted_tags, "v"),
+		Some(Version::new(1, 2, 3))
+	);
+	assert_eq!(
+		latest_tag_version_with_prefix(&sorted_tags, "api/v"),
+		Some(Version::new(2, 0, 0))
+	);
+	assert_eq!(
+		latest_tag_version_with_prefix(&sorted_tags, "other/v"),
+		None
+	);
+	assert_eq!(latest_tag_version_with_prefix(&[], "v"), None);
+}
+
+#[test]
+fn latest_tag_version_with_prefix_ignores_non_semver_tags() {
+	let sorted_tags = vec!["not-a-version".to_string(), "v0.2.0".to_string()];
+
+	assert_eq!(
+		latest_tag_version_with_prefix(&sorted_tags, "v"),
+		Some(Version::new(0, 2, 0))
+	);
 }

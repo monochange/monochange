@@ -1,0 +1,6 @@
+[package.api]
+path = "."
+type = "go"
+version_format = "primary"
+tag = true
+changelog = true

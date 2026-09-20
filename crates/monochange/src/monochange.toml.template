@@ -810,6 +810,28 @@ changed_paths = []
 ignored_paths = []
 
 # =============================================================================
+# [changesets.classification] - change classification settings
+# =============================================================================
+#
+# Controls `monochange change classify`, which describes the compatibility
+# impact of pending work. A pull request that only bumps versions has no
+# pending work to classify, so it is skipped rather than reported as a large
+# set of unmodeled changes.
+#
+# This section works independently of any source provider.
+
+[changesets.classification]
+# Pull-request labels that skip classification entirely. When any label on the
+# pull request matches an entry here, the command reports a skipped result and
+# analyzes no packages.
+#
+# The release pull request monochange opens carries the "release" label, so the
+# default keeps classification off that pull request. Set this to [] to always
+# classify.
+# Default: ["release"]
+skip_labels = ["release"]
+
+# =============================================================================
 # [cli.*] - optional user-defined CLI commands
 # =============================================================================
 #

@@ -12,6 +12,7 @@ use monochange_core::PackagePublicationTarget;
 use monochange_core::PublishRegistry;
 use monochange_core::RegistryKind;
 use monochange_core::SourceConfiguration;
+use monochange_core::TrustedPublishingMode;
 use monochange_core::WorkspaceConfiguration;
 use monochange_dart::write_dart_placeholder_manifest;
 use monochange_deno::write_jsr_placeholder_manifest;
@@ -592,18 +593,25 @@ fn enforce_release_trust_prerequisites(
 	let registry = PublishRegistry::Builtin(request.registry);
 	let identity = detect_trusted_publishing_identity(env_map);
 	let capability_message = trusted_publishing_capability_message(&registry, &identity);
+	let preferred = request.trusted_publishing.mode == TrustedPublishingMode::Preferred;
 
 	if !identity.is_verifiable_by_env() {
+		if preferred {
+			return Ok(());
+		}
 		return Err(MonochangeError::Config(format!(
-			"`{}` requires trusted publishing from a verifiable CI/OIDC identity before built-in release publishing can continue; local/manual publishing is not allowed when `publish.trusted_publishing = true`. {capability_message} Run `monochange step publish-packages` from the configured CI workflow or set `publish.trusted_publishing = false` to opt out.",
+			"`{}` requires trusted publishing from a verifiable CI/OIDC identity before built-in release publishing can continue; local/manual publishing is not allowed when `publish.trusted_publishing = true`. {capability_message} Run `monochange step publish-packages` from the configured CI workflow, set `publish.trusted_publishing.mode = \"preferred\"` to fall back to local credentials when no CI identity is available, or set `publish.trusted_publishing = false` to opt out.",
 			request.package_id,
 		)));
 	}
 
 	let capability = provider_registry_trust_capability(&registry, identity.provider());
 	if !capability.trusted_publishing || !capability.ci_identity_verifiable {
+		if preferred {
+			return Ok(());
+		}
 		return Err(MonochangeError::Config(format!(
-			"`{}` cannot enforce trusted publishing for {} from {}. {capability_message} Set `publish.trusted_publishing = false` to opt out for unsupported registries/providers.",
+			"`{}` cannot enforce trusted publishing for {} from {}. {capability_message} Set `publish.trusted_publishing.mode = \"preferred\"` to fall back to standard credentials, or `publish.trusted_publishing = false` to opt out for unsupported registries/providers.",
 			request.package_id,
 			request.registry,
 			identity.provider().label(),

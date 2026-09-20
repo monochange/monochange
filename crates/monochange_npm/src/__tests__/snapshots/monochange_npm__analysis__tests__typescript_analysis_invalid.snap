@@ -9,15 +9,15 @@ expression: "serde_json::json!({\n    \"analyzerId\": result.analyzer_id, \"chan
       "assessment": {
         "confidence": "low",
         "evidence": {
-          "analyzerId": "npm/typescript",
+          "analyzer_id": "npm/typescript",
           "completeness": "partial",
           "coverage": "syntax fallback; TypeScript declaration compatibility was not completed",
           "engine": "typescript",
-          "fallbackReason": "after: TS5083: Cannot read file 'virtual/missing-config.json'.",
+          "fallback_reason": "after: TS5083: Cannot read file 'virtual/missing-config.json'.",
           "version": "6.0.3"
         },
         "outcome": "inconclusive",
-        "suggestedBump": "patch"
+        "suggested_bump": "patch"
       },
       "category": "public_api",
       "filePath": "package.json",

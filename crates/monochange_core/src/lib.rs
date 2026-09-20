@@ -358,6 +358,16 @@ impl Ecosystem {
 			Self::Go => "go",
 		}
 	}
+
+	/// Whether released versions are identified by git tags instead of a
+	/// version field in the package manifest.
+	///
+	/// Release planning resolves the current version for these ecosystems from
+	/// the latest reachable release tag matching the owner's version format.
+	#[must_use]
+	pub const fn versions_from_tags(self) -> bool {
+		matches!(self, Self::Go)
+	}
 }
 
 impl From<EcosystemType> for Ecosystem {
@@ -381,7 +391,9 @@ impl From<PackageType> for Ecosystem {
 			PackageType::Deno => Self::Deno,
 			PackageType::Dart => Self::Dart,
 			PackageType::Python => Self::Python,
-			PackageType::Go => Self::Go,
+			// GitHub Actions releases are tag-and-release only; the runtime
+			// behavior matches the tag-versioned Go ecosystem.
+			PackageType::Go | PackageType::GitHubActions => Self::Go,
 		}
 	}
 }
@@ -555,6 +567,19 @@ pub fn relative_to_root(root: &Path, path: &Path) -> Option<PathBuf> {
 		.strip_prefix(&normalized_root)
 		.ok()
 		.map(Path::to_path_buf)
+}
+
+/// Return `path` relative to `root`, falling back to `path` itself when it
+/// lies outside `root`. Paths inside `root` that normalize to nothing resolve
+/// to `.` so reports never print empty locations.
+#[must_use]
+pub fn root_relative(root: &Path, path: &Path) -> PathBuf {
+	let relative = relative_to_root(root, path).unwrap_or_else(|| path.to_path_buf());
+	if relative.as_os_str().is_empty() {
+		PathBuf::from(".")
+	} else {
+		relative
+	}
 }
 
 #[derive(Clone, Debug)]
@@ -891,6 +916,10 @@ pub enum PackageType {
 	Dart,
 	Python,
 	Go,
+	/// GitHub Actions repositories. Versions are released as git tags and
+	/// provider releases; there is no registry publish target.
+	#[serde(alias = "github_actions", alias = "actions")]
+	GitHubActions,
 }
 
 impl PackageType {
@@ -904,9 +933,62 @@ impl PackageType {
 			Self::Dart => "dart",
 			Self::Python => "python",
 			Self::Go => "go",
+			Self::GitHubActions => "github_actions",
+		}
+	}
+
+	/// The manifest file that proves a directory hosts this package type.
+	///
+	/// Returns `None` for types that do not have a single version-bearing
+	/// manifest, such as GitHub Actions (an `action.yml` can exist but carries
+	/// no version).
+	#[must_use]
+	pub fn manifest_file_name(self) -> Option<&'static str> {
+		match self {
+			Self::Cargo => Some("Cargo.toml"),
+			Self::Npm => Some("package.json"),
+			Self::Deno => Some("deno.json"),
+			Self::Dart => Some("pubspec.yaml"),
+			Self::Python => Some("pyproject.toml"),
+			Self::Go => Some("go.mod"),
+			Self::GitHubActions => None,
 		}
 	}
 }
+
+/// Where a package's current release version is read from.
+///
+/// Defaults to `manifest` for ecosystems that store a version field in their
+/// manifest. `tag` reads the baseline from the latest reachable release tag
+/// matching the release owner's `version_format`, which suits GitHub Actions
+/// repositories and other tag-only release targets.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum VersionSource {
+	#[default]
+	Manifest,
+	Tag,
+}
+
+impl VersionSource {
+	/// Whether release planning resolves the current version from git tags.
+	#[must_use]
+	pub const fn reads_from_tags(self) -> bool {
+		matches!(self, Self::Tag)
+	}
+}
+
+/// Rendered template for one floating tag alias.
+///
+/// `v0.9.2` also moves `v0.9` when the alias template renders
+/// `v{{ major }}.{{ minor }}`. Templates may use `{{ major }}`, `{{ minor }}`,
+/// `{{ patch }}`, and `{{ version }}`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct FloatingTagFormat(pub String);
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "schema", schemars(with = "String"))]
@@ -1011,6 +1093,7 @@ pub fn validate_version_format_template(template: &str) -> MonochangeResult<()> 
 			"custom version_format must include the `{{ version }}` variable".to_string(),
 		));
 	}
+	validate_floating_tag_template_variables(template, "custom version_format")?;
 	let mut rest = template;
 	while let Some(start) = rest.find("{{") {
 		let after_start = &rest[start + 2..];
@@ -1072,6 +1155,75 @@ pub fn validate_version_format_tag(tag: &str) -> MonochangeResult<()> {
 		)));
 	}
 	Ok(())
+}
+
+/// Validate that a floating-tag alias template only uses supported variables.
+///
+/// Alias templates must not require `{{ version }}` — a floating alias derives
+/// from version *components* (`{{ major }}`, `{{ minor }}`, `{{ patch }}`) so it
+/// can stay stable across patch releases.
+pub fn validate_floating_tag_template_variables(
+	template: &str,
+	label: &str,
+) -> MonochangeResult<()> {
+	let mut rest = template;
+	while let Some(start) = rest.find("{{") {
+		let after_start = &rest[start + 2..];
+		let Some(end) = after_start.find("}}") else {
+			return Err(MonochangeError::Config(format!(
+				"{label} has an unterminated template variable"
+			)));
+		};
+		let variable = after_start[..end].trim();
+		if !matches!(
+			variable,
+			"major" | "minor" | "patch" | "version" | "name" | "ecosystem"
+		) {
+			return Err(MonochangeError::Config(format!(
+				"{label} uses unsupported variable `{{{{ {variable} }}}}`; supported variables are `{{{{ major }}}}`, `{{{{ minor }}}}`, `{{{{ patch }}}}`, `{{{{ version }}}}`, `{{{{ name }}}}`, and `{{{{ ecosystem }}}}`"
+			)));
+		}
+		rest = &after_start[end + 2..];
+	}
+	Ok(())
+}
+
+/// Render one floating-tag alias for `version`.
+///
+/// Supports `{{ major }}`, `{{ minor }}`, `{{ patch }}`, and the
+/// `version_format` variables (`{{ version }}`, `{{ name }}`,
+/// `{{ ecosystem }}`). Unlike release tags, the rendered alias must not
+/// include the full version — an alias that renders to the release tag itself
+/// is rejected.
+pub fn render_floating_tag(
+	template: &str,
+	version: &Version,
+	name: &str,
+	ecosystem: &str,
+) -> MonochangeResult<String> {
+	validate_floating_tag_template_variables(template, "floating tag template")?;
+	let version_string = version.to_string();
+	let rendered = template
+		.replace("{{ major }}", &version.major.to_string())
+		.replace("{{major}}", &version.major.to_string())
+		.replace("{{ minor }}", &version.minor.to_string())
+		.replace("{{minor}}", &version.minor.to_string())
+		.replace("{{ patch }}", &version.patch.to_string())
+		.replace("{{patch}}", &version.patch.to_string())
+		.replace("{{ version }}", &version_string)
+		.replace("{{version}}", &version_string)
+		.replace("{{ name }}", name)
+		.replace("{{name}}", name)
+		.replace("{{ ecosystem }}", ecosystem)
+		.replace("{{ecosystem}}", ecosystem);
+	validate_version_format_tag(&rendered)?;
+	let full_version_tags = [version_string.clone(), format!("v{version_string}")];
+	if full_version_tags.contains(&rendered) {
+		return Err(MonochangeError::Config(format!(
+			"floating tag template `{template}` renders the full version `{version_string}`; floating tags must move independently of release tags"
+		)));
+	}
+	Ok(rendered)
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1763,6 +1915,51 @@ pub enum ReleaseNoteEntryStyle {
 	Expanded,
 }
 
+/// One package affected by a release-note entry, with the bump it received.
+///
+/// One changeset can target several packages with different change types, so
+/// an entry that merged those targets records each package's own bump rather
+/// than a single severity for the whole entry.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ReleaseNotePackage {
+	pub name: String,
+	pub bump: BumpSeverity,
+}
+
+impl ReleaseNotePackage {
+	#[must_use]
+	pub fn new(name: impl Into<String>, bump: BumpSeverity) -> Self {
+		Self {
+			name: name.into(),
+			bump,
+		}
+	}
+
+	/// The symbol representing this package's bump severity.
+	///
+	/// A reader can then tell which package was breaking and which was minor
+	/// without reading the section it was demoted out of.
+	#[must_use]
+	pub fn symbol(&self) -> &'static str {
+		release_note_bump_symbol(self.bump)
+	}
+}
+
+/// The colored hexagon shown for each bump severity in package labels.
+///
+/// Breaking changes stay red, minor changes are orange, patches are green, and
+/// entries without a version impact are uncolored.
+#[must_use]
+pub fn release_note_bump_symbol(bump: BumpSeverity) -> &'static str {
+	match bump {
+		BumpSeverity::Major => "🔴",
+		BumpSeverity::Minor => "🟠",
+		BumpSeverity::Patch => "🟢",
+		BumpSeverity::None => "⚪",
+	}
+}
+
 /// One release-note entry kept as data until its destination format is known.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -1771,7 +1968,7 @@ pub struct ReleaseNotesEntry {
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub details_markdown: Option<String>,
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
-	pub packages: Vec<String>,
+	pub packages: Vec<ReleaseNotePackage>,
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub change_type: Option<String>,
 	pub bump: BumpSeverity,
@@ -1955,7 +2152,6 @@ pub enum CollapsedSectionStyle {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "snake_case")]
-#[derive(Default)]
 pub struct ChangelogStyle {
 	#[serde(default)]
 	pub section_separator: SectionSeparator,
@@ -1967,6 +2163,29 @@ pub struct ChangelogStyle {
 	pub metadata_style: MetadataStyle,
 	#[serde(default)]
 	pub collapsed_section_style: CollapsedSectionStyle,
+	/// Prefix each package label with a colored symbol for its bump severity.
+	///
+	/// 🔴 major, 🟠 minor, 🟢 patch, ⚪ none. Enabled by default so a reader can
+	/// see which package was breaking when an entry merged several targets.
+	#[serde(default = "default_package_bump_symbols")]
+	pub package_bump_symbols: bool,
+}
+
+fn default_package_bump_symbols() -> bool {
+	true
+}
+
+impl Default for ChangelogStyle {
+	fn default() -> Self {
+		Self {
+			section_separator: SectionSeparator::default(),
+			package_label_style: PackageLabelStyle::default(),
+			package_label_placement: PackageLabelPlacement::default(),
+			metadata_style: MetadataStyle::default(),
+			collapsed_section_style: CollapsedSectionStyle::default(),
+			package_bump_symbols: default_package_bump_symbols(),
+		}
+	}
 }
 
 impl ChangelogStyle {
@@ -1987,6 +2206,9 @@ impl ChangelogStyle {
 			collapsed_section_style: overrides
 				.collapsed_section_style
 				.unwrap_or(self.collapsed_section_style),
+			package_bump_symbols: overrides
+				.package_bump_symbols
+				.unwrap_or(self.package_bump_symbols),
 		}
 	}
 
@@ -2038,13 +2260,19 @@ impl ChangelogStyle {
 				"Render collapsed sections as regular ### headings, no HTML collapse."
 			}
 		};
+		let symbol_rule = if self.package_bump_symbols {
+			"Prefix each package label with a symbol for its bump severity: 🔴 major, 🟠 minor, 🟢 patch, ⚪ none."
+		} else {
+			"Render package labels without a bump severity symbol."
+		};
 		format!(
 			"Changelog style rules:\n\
 			 - {separator_rule}\n\
 			 - {label_rule}\n\
 			 - {placement_rule}\n\
 			 - {metadata_rule}\n\
-			 - {collapsed_rule}"
+			 - {collapsed_rule}\n\
+			 - {symbol_rule}"
 		)
 	}
 
@@ -2067,6 +2295,7 @@ pub struct ReleaseNotesStyleOverrides {
 	pub package_label_placement: Option<PackageLabelPlacement>,
 	pub metadata_style: Option<MetadataStyle>,
 	pub collapsed_section_style: Option<CollapsedSectionStyle>,
+	pub package_bump_symbols: Option<bool>,
 }
 
 impl ReleaseNotesStyleOverrides {
@@ -2496,11 +2725,28 @@ fn default_publish_timeout_retries() -> u32 {
 	2
 }
 
+/// How strictly trusted publishing is enforced for a package publish.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TrustedPublishingMode {
+	/// Publishing must run from a verifiable CI/OIDC identity; local/manual
+	/// publishing fails before any registry mutation.
+	#[default]
+	Required,
+	/// Use trusted publishing when a verifiable CI/OIDC identity is available
+	/// and fall back to local/manual credentials otherwise. CI runs still
+	/// verify the configured repository, workflow, and environment.
+	Preferred,
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TrustedPublishingSettings {
 	#[serde(default = "default_true")]
 	pub enabled: bool,
+	#[serde(default)]
+	pub mode: TrustedPublishingMode,
 	#[serde(default)]
 	pub repository: Option<String>,
 	#[serde(default)]
@@ -2541,6 +2787,7 @@ impl Default for TrustedPublishingSettings {
 	fn default() -> Self {
 		Self {
 			enabled: true,
+			mode: TrustedPublishingMode::Required,
 			repository: None,
 			workflow: None,
 			environment: None,
@@ -2593,6 +2840,7 @@ impl Default for PublishSettings {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct PackageDefinition {
 	pub id: String,
 	pub path: PathBuf,
@@ -2618,6 +2866,32 @@ pub struct PackageDefinition {
 	pub tag: bool,
 	pub release: bool,
 	pub version_format: VersionFormat,
+	/// Where the package's current release version is read from.
+	#[serde(default)]
+	#[cfg_attr(feature = "schema", schemars(default))]
+	pub version_source: VersionSource,
+	/// Version used as the release baseline when `version_source = "tag"` and
+	/// no matching release tag exists yet.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[cfg_attr(feature = "schema", schemars(skip))]
+	pub initial_version: Option<Version>,
+	/// Floating tag aliases moved to every non-prerelease release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
+	/// Cap for this package's classified release bump. Overrides the group's
+	/// ceiling when the package declares one.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub bump_ceiling: Option<BumpSeverity>,
+	/// Whether the changeset policy enforces classified bumps for this package.
+	/// Overrides the group's setting when the package declares one; `None` and
+	/// `Some(true)` both enforce.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub classification_enforced: Option<bool>,
+	/// CLI binary shipped by this package. Additive to `package_type`: the
+	/// package keeps its ecosystem surface and gains a command-surface
+	/// identity for change classification.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub cli: Option<PackageCliDefinition>,
 	#[serde(default)]
 	pub publish: PublishSettings,
 }
@@ -2633,6 +2907,7 @@ pub enum GroupChangelogInclude {
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct GroupDefinition {
 	pub id: String,
 	pub packages: Vec<String>,
@@ -2655,6 +2930,26 @@ pub struct GroupDefinition {
 	pub tag: bool,
 	pub release: bool,
 	pub version_format: VersionFormat,
+	/// Where member packages read their current release version from.
+	#[serde(default)]
+	#[cfg_attr(feature = "schema", schemars(default))]
+	pub version_source: VersionSource,
+	/// Version used as the release baseline when `version_source = "tag"` and
+	/// no matching release tag exists yet.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[cfg_attr(feature = "schema", schemars(skip))]
+	pub initial_version: Option<Version>,
+	/// Floating tag aliases moved to every non-prerelease release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
+	/// Cap for the group's classified release bump. Members that declare their
+	/// own ceiling override it.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub bump_ceiling: Option<BumpSeverity>,
+	/// Whether the changeset policy enforces classified bumps for members that
+	/// do not declare `classification_enforced` themselves.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub classification_enforced: Option<bool>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -2787,6 +3082,31 @@ pub struct PublishOrderSettings {
 pub struct LockfileCommandDefinition {
 	pub command: String,
 	#[serde(default)]
+	pub cwd: Option<PathBuf>,
+	#[serde(default)]
+	pub shell: ShellConfig,
+}
+
+/// Registration of a CLI binary shipped by a package. The package keeps its
+/// ecosystem type and public-API surface; `cli` adds a command-surface
+/// identity that change classification can reason about.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PackageCliDefinition {
+	/// Binary name as users invoke it. Also names the committed baseline file
+	/// under `.monochange/cli-snapshots/`.
+	pub name: String,
+	/// Command that prints a normalized command-surface snapshot JSON document
+	/// on stdout.
+	pub snapshot: CliSnapshotCommandDefinition,
+}
+
+/// How a package CLI's surface snapshot is captured.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CliSnapshotCommandDefinition {
+	pub command: String,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub cwd: Option<PathBuf>,
 	#[serde(default)]
 	pub shell: ShellConfig,
@@ -3979,7 +4299,9 @@ fn step_input_help_text(name: &str) -> &'static str {
 		"write_empty_release_record" => "Write a release record even when no packages change",
 		"release_json" => "Write the prepared release record as JSON",
 		"from-ref" => "Git ref that contains the release record to publish",
-		"auto-close-issues" => "Close referenced issues after adding the release comment",
+		"auto-close-issues" => {
+			"Close issues that the release review requests claim via closing keywords after adding the release comment"
+		}
 		"draft" => "Create hosted releases as drafts",
 		"package" => "Limit the operation to one or more package ids",
 		"show-all" => "Include unchanged and skipped package details",
@@ -4092,7 +4414,7 @@ pub fn render_structured_release_notes_with(
 				// patch-coverage:ignore-end
 			})
 		}
-		ChangelogFormat::Text => render_structured_text_release_notes(document),
+		ChangelogFormat::Text => render_structured_text_release_notes(document, style),
 	}
 }
 
@@ -4172,6 +4494,7 @@ fn push_structured_markdown_entries(
 
 fn render_structured_text_release_notes(
 	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
+	style: &ChangelogStyle,
 ) -> String {
 	let mut lines = vec![plain_markdown(&document.title)];
 	for paragraph in &document.summary {
@@ -4186,7 +4509,7 @@ fn render_structured_text_release_notes(
 		lines.push(plain_markdown(&section.title));
 		for entry in &section.entries {
 			lines.push(String::new());
-			lines.push(render_release_note_entry_text(entry));
+			lines.push(render_release_note_entry_text(entry, style));
 		}
 	}
 	lines.join("\n")
@@ -4209,7 +4532,8 @@ pub fn render_release_note_entry_markdown(
 		.as_deref()
 		.map(str::trim)
 		.filter(|details| !details.is_empty());
-	let package_label = markdown_package_label(entry, style.package_label_style);
+	let package_label =
+		markdown_package_label(entry, style.package_label_style, style.package_bump_symbols);
 	let metadata = markdown_release_note_metadata(&entry.provenance, style.metadata_style);
 
 	match entry.style {
@@ -4268,12 +4592,15 @@ pub fn render_release_note_entry_markdown(
 	}
 }
 
-fn render_release_note_entry_text(entry: &ReleaseNotesEntry) -> String {
+fn render_release_note_entry_text(entry: &ReleaseNotesEntry, style: &ChangelogStyle) -> String {
 	let mut lines = vec![plain_markdown(&sentence_case_release_note_summary(
 		&entry.summary,
 	))];
 	if !entry.packages.is_empty() {
-		lines.push(format!("  Packages: {}", entry.packages.join(", ")));
+		lines.push(format!(
+			"  Packages: {}",
+			render_release_note_packages_text(&entry.packages, style.package_bump_symbols)
+		));
 	}
 	if let Some(details) = entry
 		.details_markdown
@@ -4379,27 +4706,70 @@ fn push_release_note_chunk_separator(rendered: &mut String) {
 	}
 }
 
-fn markdown_package_label(entry: &ReleaseNotesEntry, style: PackageLabelStyle) -> String {
+/// Render one package label with its optional bump symbol.
+///
+/// The symbol is opt-out through `[changelog.style].package_bump_symbols`, so
+/// the returned text has no leading or trailing whitespace of its own.
+fn release_note_package_label(package: &ReleaseNotePackage, symbols: bool) -> String {
+	if symbols {
+		format!("{} {}", package.symbol(), package.name)
+	} else {
+		package.name.clone()
+	}
+}
+
+fn render_release_note_packages_text(packages: &[ReleaseNotePackage], symbols: bool) -> String {
+	packages
+		.iter()
+		.map(|package| release_note_package_label(package, symbols))
+		.collect::<Vec<_>>()
+		.join(", ")
+}
+
+fn markdown_package_label(
+	entry: &ReleaseNotesEntry,
+	style: PackageLabelStyle,
+	symbols: bool,
+) -> String {
 	if entry.packages.is_empty() || style == PackageLabelStyle::Omit {
 		return String::new();
 	}
 	if entry.style == ReleaseNoteEntryStyle::Compact
 		&& let [package] = entry.packages.as_slice()
 	{
-		return format!("**{package}**: ");
+		return format!(
+			"{}**{}**: ",
+			if symbols {
+				format!("{} ", package.symbol())
+			} else {
+				String::new()
+			},
+			package.name
+		);
 	}
 	let packages = entry
 		.packages
 		.iter()
-		.map(|package| {
-			match style {
-				PackageLabelStyle::Badge => format!("*{package}*"),
-				PackageLabelStyle::Inline | PackageLabelStyle::Omit => format!("_{package}_"),
-			}
-		})
+		.map(|package| markdown_package_name(package, style, symbols))
 		.collect::<Vec<_>>()
 		.join(", ");
 	format!("_Packages:_ {packages}")
+}
+
+fn markdown_package_name(
+	package: &ReleaseNotePackage,
+	style: PackageLabelStyle,
+	symbols: bool,
+) -> String {
+	let name = match style {
+		PackageLabelStyle::Badge => format!("*{}*", package.name),
+		PackageLabelStyle::Inline | PackageLabelStyle::Omit => format!("_{}_", package.name),
+	};
+	if symbols {
+		format!("{} {name}", package.symbol())
+	} else {
+		name
+	}
 }
 
 fn markdown_release_note_metadata(
@@ -4777,6 +5147,9 @@ pub struct ReleaseManifestTarget {
 	pub rendered_title: String,
 	#[serde(default)]
 	pub rendered_changelog_title: String,
+	/// Floating tag aliases moved to this target's release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -5339,6 +5712,9 @@ pub struct ReleaseRecordTarget {
 	pub tag_name: String,
 	#[serde(default)]
 	pub members: Vec<String>,
+	/// Floating tag aliases moved to this target's release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -5804,11 +6180,43 @@ impl Default for ChangesetAffectedSettings {
 	}
 }
 
+/// Pull-request label policy for `monochange change classify`.
+///
+/// Classification describes the compatibility impact of pending work. A pull
+/// request that only bumps versions, such as the release request monochange
+/// opens itself, has no such pending work, so classifying it produces noise.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ChangesetClassificationSettings {
+	/// Pull-request labels that skip classification entirely. When any label on
+	/// the pull request matches an entry here, the command reports a skipped
+	/// result instead of analyzing packages.
+	///
+	/// Defaults to `["release"]` so the release pull request monochange opens is
+	/// not classified. Set this to `[]` to always classify.
+	#[serde(default = "default_classification_skip_labels")]
+	pub skip_labels: Vec<String>,
+}
+
+fn default_classification_skip_labels() -> Vec<String> {
+	vec!["release".to_string()]
+}
+
+impl Default for ChangesetClassificationSettings {
+	fn default() -> Self {
+		Self {
+			skip_labels: default_classification_skip_labels(),
+		}
+	}
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct ChangesetSettings {
 	#[serde(default)]
 	pub affected: ChangesetAffectedSettings,
+	#[serde(default)]
+	pub classification: ChangesetClassificationSettings,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -6094,6 +6502,18 @@ pub trait HostedSourceAdapter: Sync {
 		if plans.is_empty() {
 			return Ok(Vec::new());
 		}
+		self.comment_released_issues_with_plans(source, &plans)
+			.await
+	}
+
+	/// Post release comments for the given plans, honoring the `close` flag of
+	/// every plan as adjusted by the caller (for example via
+	/// `--auto-close-issues`).
+	async fn comment_released_issues_with_plans(
+		&self,
+		_source: &SourceConfiguration,
+		_plans: &[HostedIssueCommentPlan],
+	) -> MonochangeResult<Vec<HostedIssueCommentOutcome>> {
 		Err(MonochangeError::Config(format!(
 			"released issue comments are not yet supported for {}",
 			self.provider()
@@ -6229,6 +6649,20 @@ pub struct EffectiveReleaseIdentity {
 	pub release: bool,
 	pub version_format: VersionFormat,
 	pub members: Vec<String>,
+	/// Where member packages read their current release version from.
+	#[serde(default)]
+	pub version_source: VersionSource,
+	/// Version used as the release baseline when `version_source` is `tag` and
+	/// no matching release tag exists yet.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub initial_version: Option<Version>,
+	/// Floating tag aliases moved to every non-prerelease release tag.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub floating_tags: Vec<FloatingTagFormat>,
+	/// Cap for classified release bumps across this identity.
+	pub bump_ceiling: Option<BumpSeverity>,
+	/// Whether the changeset policy enforces classified bumps.
+	pub classification_enforced: bool,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -6360,6 +6794,10 @@ impl WorkspaceConfiguration {
 	}
 
 	/// Resolve the effective outward release identity for a package.
+	///
+	/// Group-owned fields come from the group. Classification policy
+	/// (`bump_ceiling`, `classification_enforced`) is per package: the member's
+	/// own declaration wins, and the group's declaration is the fallback.
 	#[must_use]
 	pub fn effective_release_identity(&self, package_id: &str) -> Option<EffectiveReleaseIdentity> {
 		let package = self.package_by_id(package_id)?;
@@ -6372,6 +6810,14 @@ impl WorkspaceConfiguration {
 				release: group.release,
 				version_format: group.version_format.clone(),
 				members: group.packages.clone(),
+				version_source: group.version_source,
+				initial_version: group.initial_version.clone(),
+				floating_tags: group.floating_tags.clone(),
+				bump_ceiling: package.bump_ceiling.or(group.bump_ceiling),
+				classification_enforced: package
+					.classification_enforced
+					.or(group.classification_enforced)
+					.unwrap_or(true),
 			});
 		}
 
@@ -6383,6 +6829,11 @@ impl WorkspaceConfiguration {
 			release: package.release,
 			version_format: package.version_format.clone(),
 			members: vec![package.id.clone()],
+			version_source: package.version_source,
+			initial_version: package.initial_version.clone(),
+			floating_tags: package.floating_tags.clone(),
+			bump_ceiling: package.bump_ceiling,
+			classification_enforced: package.classification_enforced.unwrap_or(true),
 		})
 	}
 }

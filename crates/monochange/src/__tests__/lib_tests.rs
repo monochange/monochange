@@ -34,6 +34,7 @@ use monochange_core::Ecosystem;
 use monochange_core::GroupChangelogInclude;
 use monochange_core::PreparedChangesetTarget;
 use monochange_core::VersionFormat;
+use monochange_core::VersionSource;
 use monochange_test_helpers::copy_directory;
 use monochange_test_helpers::current_test_name;
 use monochange_test_helpers::snapshot_settings;
@@ -2692,9 +2693,24 @@ fn change_command_sources_type_choices_from_workspace_configuration() {
 		.iter()
 		.find(|i| i.name == "type")
 		.unwrap_or_else(|| panic!("expected type input"));
+	// Declared types inherit the built-in vocabulary, so the CLI offers the
+	// merged, sorted set.
 	assert_eq!(
 		type_input.choices,
-		vec!["docs".to_string(), "test".to_string()]
+		vec![
+			"breaking".to_string(),
+			"change".to_string(),
+			"docs".to_string(),
+			"feat".to_string(),
+			"fix".to_string(),
+			"major".to_string(),
+			"minor".to_string(),
+			"none".to_string(),
+			"patch".to_string(),
+			"refactor".to_string(),
+			"security".to_string(),
+			"test".to_string(),
+		]
 	);
 
 	let error = Command::new("monochange")
@@ -2708,14 +2724,17 @@ fn change_command_sources_type_choices_from_workspace_configuration() {
 			OsString::from("--package"),
 			OsString::from("core"),
 			OsString::from("--type"),
-			OsString::from("security"),
+			OsString::from("nope"),
 			OsString::from("--reason"),
 			OsString::from("clarify migration guide"),
 		])
 		.expect_err("unknown configured type should be rejected by clap choices");
 	let rendered = error.to_string();
-	assert!(rendered.contains("invalid value 'security'"));
-	assert!(rendered.contains("[possible values: docs, test]"));
+	assert!(rendered.contains("invalid value 'nope'"));
+	assert!(rendered.contains(
+		"[possible values: breaking, change, docs, feat, fix, major, minor, none, patch, refactor, \
+		 security, test]"
+	));
 }
 
 #[test]
@@ -3063,14 +3082,14 @@ fn add_change_file_rejects_unknown_change_type() {
 			.package_refs(&["core".to_string()])
 			.bump(BumpSeverity::Patch)
 			.reason("unknown type")
-			.change_type(Some("docs"))
+			.change_type(Some("nope"))
 			.build(),
 	)
 	.expect_err("unknown type should fail");
 	assert!(
 		error
 			.to_string()
-			.contains("uses unknown change type `docs`")
+			.contains("uses unknown change type `nope`")
 	);
 }
 
@@ -4753,8 +4772,8 @@ fn configuration_guide_calls_out_current_implementation_limits() {
 		.unwrap_or_else(|error| panic!("configuration guide: {error}"));
 
 	for expected in [
-		"`defaults.include_private`",
-		"`[ecosystems.*].enabled/roots/exclude`",
+		"- `[defaults].include_private` is parsed and validated, but discovery reports private packages either way",
+		"- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated, but discovery still scans every supported ecosystem",
 		"`PrepareRelease`",
 		"`RetargetRelease`",
 		"`Command`",
@@ -5789,6 +5808,7 @@ fn sample_release_manifest_for_commit_message(
 			members: vec!["monochange".to_string(), "monochange_core".to_string()],
 			rendered_title: "monochange 1.2.3".to_string(),
 			rendered_changelog_title: "1.2.3".to_string(),
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec!["monochange".to_string(), "monochange_core".to_string()],
 		changed_files: vec![Path::new("Cargo.lock").to_path_buf()],
@@ -5869,6 +5889,7 @@ fn sample_release_record_for_discovery_text() -> monochange_core::ReleaseRecord 
 			release: true,
 			tag_name: "v1.2.3".to_string(),
 			members: vec!["monochange".to_string(), "monochange_core".to_string()],
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec!["monochange".to_string(), "monochange_core".to_string()],
 		changed_files: vec![Path::new("Cargo.lock").to_path_buf()],
@@ -6007,6 +6028,7 @@ fn write_release_record_file_dedupes_existing_records_with_overlapping_tags() {
 			members: Vec::new(),
 			rendered_title: String::new(),
 			rendered_changelog_title: String::new(),
+			floating_tags: Vec::new(),
 		}];
 		manifest.released_packages = vec![id.to_string()];
 		manifest.plan = monochange_core::ReleaseManifestPlan {
@@ -6059,6 +6081,7 @@ fn write_release_record_file_dedupes_existing_records_with_overlapping_tags() {
 			members: Vec::new(),
 			rendered_title: String::new(),
 			rendered_changelog_title: String::new(),
+			floating_tags: Vec::new(),
 		});
 	third.released_packages.push("other".to_string());
 	let third_path = write_release_record_file(root, None, &third)
@@ -6203,6 +6226,7 @@ fn write_release_record_file_dedupes_multiple_overlapping_records() {
 		members: Vec::new(),
 		rendered_title: String::new(),
 		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
 	}];
 	manifest_a.released_packages = vec!["sdk".to_string()];
 
@@ -6218,6 +6242,7 @@ fn write_release_record_file_dedupes_multiple_overlapping_records() {
 		members: Vec::new(),
 		rendered_title: String::new(),
 		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
 	}];
 	manifest_b.released_packages = vec!["ui".to_string()];
 
@@ -6240,6 +6265,7 @@ fn write_release_record_file_dedupes_multiple_overlapping_records() {
 			members: Vec::new(),
 			rendered_title: String::new(),
 			rendered_changelog_title: String::new(),
+			floating_tags: Vec::new(),
 		},
 		monochange_core::ReleaseManifestTarget {
 			id: "ui".to_string(),
@@ -6252,6 +6278,7 @@ fn write_release_record_file_dedupes_multiple_overlapping_records() {
 			members: Vec::new(),
 			rendered_title: String::new(),
 			rendered_changelog_title: String::new(),
+			floating_tags: Vec::new(),
 		},
 	];
 	manifest_c.released_packages = vec!["sdk".to_string(), "ui".to_string()];
@@ -6305,6 +6332,7 @@ fn write_release_record_file_reports_error_when_dedupe_cannot_remove_stale_dir()
 			members: Vec::new(),
 			rendered_title: String::new(),
 			rendered_changelog_title: String::new(),
+			floating_tags: Vec::new(),
 		}];
 		manifest.released_packages = vec!["sdk".to_string()];
 		manifest.plan = monochange_core::ReleaseManifestPlan {
@@ -6335,6 +6363,7 @@ fn write_release_record_file_reports_error_when_dedupe_cannot_remove_stale_dir()
 			members: Vec::new(),
 			rendered_title: String::new(),
 			rendered_changelog_title: String::new(),
+			floating_tags: Vec::new(),
 		}];
 		manifest.released_packages = vec!["ui".to_string()];
 		manifest.plan = monochange_core::ReleaseManifestPlan {
@@ -6376,6 +6405,7 @@ fn write_release_record_file_reports_error_when_dedupe_cannot_remove_stale_dir()
 				members: Vec::new(),
 				rendered_title: String::new(),
 				rendered_changelog_title: String::new(),
+				floating_tags: Vec::new(),
 			},
 			monochange_core::ReleaseManifestTarget {
 				id: "ui".to_string(),
@@ -6388,6 +6418,7 @@ fn write_release_record_file_reports_error_when_dedupe_cannot_remove_stale_dir()
 				members: Vec::new(),
 				rendered_title: String::new(),
 				rendered_changelog_title: String::new(),
+				floating_tags: Vec::new(),
 			},
 		];
 		manifest.released_packages = vec!["sdk".to_string(), "ui".to_string()];
@@ -12639,6 +12670,7 @@ fn sample_release_record_for_retarget() -> monochange_core::ReleaseRecord {
 			release: true,
 			tag_name: "v1.2.3".to_string(),
 			members: vec!["monochange".to_string()],
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec!["monochange".to_string()],
 		changed_files: vec![Path::new("Cargo.lock").to_path_buf()],
@@ -12862,6 +12894,12 @@ fn sample_group_definition(include: GroupChangelogInclude) -> monochange_core::G
 		tag: false,
 		release: false,
 		version_format: VersionFormat::Namespaced,
+		version_source: VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+
+		floating_tags: Vec::new(),
 	}
 }
 
@@ -12902,6 +12940,13 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 			release: true,
 			publish: monochange_core::PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: vec![monochange_core::GroupDefinition {
 			id: "sdk".to_string(),
@@ -12918,6 +12963,12 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 			tag: true,
 			release: true,
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
 		}],
 		cli: Vec::new(),
 		changesets: monochange_core::ChangesetSettings::default(),
@@ -13020,6 +13071,13 @@ fn apply_runtime_change_type_choices_updates_only_unconfigured_change_inputs() {
 			release: true,
 			publish: monochange_core::PublishSettings::default(),
 			version_format: VersionFormat::Primary,
+			version_source: VersionSource::default(),
+			initial_version: None,
+			bump_ceiling: None,
+			classification_enforced: None,
+
+			floating_tags: Vec::new(),
+			cli: None,
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -14468,6 +14526,7 @@ fn sample_prepared_release_for_cli_render() -> crate::PreparedRelease {
 			members: vec!["core".to_string(), "app".to_string()],
 			rendered_title: "sdk 1.2.3".to_string(),
 			rendered_changelog_title: "sdk changelog".to_string(),
+			floating_tags: Vec::new(),
 		}],
 		changed_files: vec![PathBuf::from("Cargo.toml")],
 		changelogs: Vec::new(),
@@ -15765,6 +15824,7 @@ fn build_release_manifest_from_record_populates_manifest_from_release_record() {
 			release: true,
 			tag_name: "core/v1.0.0".to_string(),
 			members: vec!["core".to_string()],
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec!["workflow-core".to_string()],
 		changed_files: vec![PathBuf::from("Cargo.toml")],
@@ -15973,6 +16033,7 @@ branches = ["release/*"]
 			release: true,
 			tag_name: "v1.0.0".to_string(),
 			members: vec![],
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec![],
 		changed_files: vec![],
@@ -16127,6 +16188,7 @@ repo = "monochange"
 			release: true,
 			tag_name: "v1.0.0".to_string(),
 			members: vec![],
+			floating_tags: Vec::new(),
 		}],
 		released_packages: vec![],
 		changed_files: vec![],

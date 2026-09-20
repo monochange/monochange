@@ -285,7 +285,7 @@ fn get_info_exposes_tool_instructions_and_capabilities() {
 #[tokio::test(flavor = "multi_thread")]
 async fn classify_changes_matches_the_cli_report_with_public_dependency_propagation() {
 	let fixture = setup_classification_workspace();
-	let options = crate::change_classify::ClassifyOptions {
+	let options = monochange_classification::ClassifyOptions {
 		base: Some("HEAD~1".to_string()),
 		head: "HEAD".to_string(),
 		release: None,
@@ -293,12 +293,15 @@ async fn classify_changes_matches_the_cli_report_with_public_dependency_propagat
 		detection_level: DetectionLevel::Signature,
 		include_unchanged: false,
 		strict: false,
-		format: crate::OutputFormat::Json,
+		skip_cli_snapshots: true,
+		format: monochange_classification::ClassificationFormat::Json,
 		output: None,
-		dependency_propagation: crate::change_classify::DependencyPropagation::Public,
+		labels: Vec::new(),
+		dependency_propagation: monochange_classification::DependencyPropagation::Public,
 	};
-	let expected = crate::change_classify::render_change_classification(fixture.path(), &options)
-		.unwrap_or_else(|error| panic!("CLI classification: {error}"));
+	let expected =
+		monochange_classification::render_change_classification(fixture.path(), &options)
+			.unwrap_or_else(|error| panic!("CLI classification: {error}"));
 	let expected = serde_json::from_str::<serde_json::Value>(&expected)
 		.unwrap_or_else(|error| panic!("parse CLI classification: {error}"));
 
