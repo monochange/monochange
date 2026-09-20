@@ -78,4 +78,5 @@ The agent must only write code, open and update pull requests, review code, run 
 - [Rust quality and safety](docs/agents/rust-quality.md)
 - [Coding style](docs/agents/coding-style.md)
 - [Changeset quality](docs/agents/changeset-quality.md)
+- [Downstream release rollout](docs/agents/downstream-rollout.md)
 - [Plans and execution notes](docs/plans/README.md)
