@@ -170,6 +170,22 @@ For each repository touched, confirm the merged default branch resolves the inte
 
 ## Failure modes worth naming
 
+- **The lock bump also advances unrelated packages.** `ifiokjr-nixpkgs` is one input, so moving it to reach the new monochange also moves every other package the repository takes from it. A repository that pulls its test toolchain from that input can fail a test that has nothing to do with monochange. Check what else the repository imports before assuming a downstream failure is a monochange problem:
+
+  ```bash
+  # what this repository takes from the shared package set
+  grep -nE "ifiokjr-nixpkgs|extra\.|custom\." devenv.nix
+  ```
+
+  Compare the versions of those packages across the old and new revision to confirm the coupling, for example:
+
+  ```bash
+  for rev in <old-rev> <new-rev>; do
+    git -C ../nixpkgs show "$rev:packages/surfpool/package.nix" | grep -m1 'version = "'
+  done
+  ```
+
+  SurfPool and Agave are the usual culprits, because integration suites run against the live validator those packages provide.
 - **A new crate was never placeholder-published.** crates.io rejects the first publish of an unknown name, the batch aborts, and the release lands partially published with the GitHub release still a draft. This is the highest-cost failure in the chain because it can only be cleared by publishing a placeholder and re-dispatching `publish.yml`.
 - **Downstream bump builds the old binary.** The `ifiokjr/nixpkgs` bump (phase 3) has not landed, or the repository's lock refresh resolved a revision from before it.
 - **Downgraded action capability.** An action pin was moved to a tag that predates an input the workflow passes; inputs are ignored silently, so the workflow passes while doing less.
