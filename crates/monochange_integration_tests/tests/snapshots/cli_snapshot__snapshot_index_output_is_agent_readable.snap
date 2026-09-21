@@ -372,6 +372,71 @@ expression: value
       ]
     },
     {
+      "commands": [
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "publish",
+            "packages"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "publish",
+            "readiness"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "publish",
+            "placeholder"
+          ]
+        }
+      ],
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "publish"
+      ]
+    },
+    {
       "hidden": false,
       "max_bump": "major",
       "parser": {
@@ -474,6 +539,36 @@ expression: value
       },
       "path": [
         "diagnose"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "next"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "next-versions"
       ]
     },
     {

@@ -3098,6 +3098,58 @@ async fn execute_cli_command_with_options_reuses_prepared_release_artifact_for_v
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn display_versions_reports_no_planned_versions_without_changesets() {
+	let workspace_dir = initialized_workspace_dir();
+	let root = workspace_dir.path();
+	let configuration = sample_configuration(root);
+
+	for (format, expected) in [
+		("text", "no package or group versions were planned"),
+		("md", "No package or group versions were planned."),
+	] {
+		let output = execute_cli_command_with_options(
+			root,
+			&configuration,
+			&default_cli_command("display-versions"),
+			ExecuteCliCommandOptions {
+				dry_run: false,
+				quiet: false,
+				show_diff: false,
+				inputs: BTreeMap::from([("format".to_string(), vec![format.to_string()])]),
+				prepared_release_path: None,
+				progress_format: ProgressFormat::Auto,
+				progress: None,
+			},
+		)
+		.await
+		.unwrap_or_else(|error| panic!("execute versions command: {error}"));
+
+		assert_eq!(output, expected, "unexpected {format} output");
+	}
+
+	let json_output = execute_cli_command_with_options(
+		root,
+		&configuration,
+		&default_cli_command("display-versions"),
+		ExecuteCliCommandOptions {
+			dry_run: false,
+			quiet: false,
+			show_diff: false,
+			inputs: BTreeMap::from([("format".to_string(), vec!["json".to_string()])]),
+			prepared_release_path: None,
+			progress_format: ProgressFormat::Auto,
+			progress: None,
+		},
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute versions command: {error}"));
+	let parsed: serde_json::Value = serde_json::from_str(&json_output)
+		.unwrap_or_else(|error| panic!("parse versions json output: {error}"));
+
+	assert_eq!(parsed, serde_json::json!({ "packages": {}, "groups": {} }));
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn execute_cli_command_with_options_reports_invalid_versions_artifacts() {
 	let workspace_dir = initialized_workspace_dir();
 	let root = workspace_dir.path();

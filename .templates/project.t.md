@@ -109,9 +109,16 @@ monochange step validate
 monochange step discover --format json
 ```
 
-4. Use repository-defined workflows through `monochange run <command>` when they exist in your config, or call immutable built-in steps directly with `monochange step <name>`.
+4. Check what the next version will be before preparing a release. This reads pending changesets and writes nothing:
 
-5. Preview before mutating files, publishing packages, creating tags, or opening release requests:
+```bash
+monochange next
+monochange next --format json
+```
+
+5. Use repository-defined workflows through `monochange run <command>` when they exist in your config, or call immutable built-in steps directly with `monochange step <name>`.
+
+6. Preview before mutating files, publishing packages, creating tags, or opening release requests:
 
 ```bash
 monochange run release --dry-run --diff
@@ -124,31 +131,36 @@ Run `monochange help <command>` or `monochange help step <name>` for command-spe
 
 <!-- {@projectCommandAutomationMatrix} -->
 
-These are common commands for repositories using monochange. With the current CLI model, workflow names such as `discover`, `change`, `release`, `publish`, and `affected` come from optional `[cli.*]` tables in `monochange.toml` and run as `monochange run <name>`; binary commands such as `check`, `init`, `versions`, and `mcp` stay built in, while typed built-in operations such as validation are exposed as immutable `monochange step *` commands.
+These are common commands for repositories using monochange. With the current CLI model, workflow names such as `discover`, `change`, `release`, and `affected` come from optional `[cli.*]` tables in `monochange.toml` and run as `monochange run <name>`; binary commands such as `check`, `init`, `versions`, `publish`, and `mcp` stay built in, while typed built-in operations such as validation are exposed as immutable `monochange step *` commands.
 
 | Goal                             | Command                                                                                  | Use it when                                                                                                                        |
 | -------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Validate config and changesets   | `monochange step validate`                                                               | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
 | Inspect package ids and groups   | `monochange step discover --format json`                                                 | You need the normalized workspace model                                                                                            |
 | Sync internal dependency ranges  | `monochange versions --dry-run`                                                          | You want internal dependency references to match canonical workspace package versions                                              |
+| Check the next version           | `monochange next`                                                                        | You want the next release group and package versions from pending changesets, without writing any release state                    |
 | Create release intent            | `monochange run change --package <id> --bump <severity> --reason "..."`                  | You need a new `.changeset/*.md` file                                                                                              |
 | Audit pending release context    | `monochange step diagnose-changesets --format json`                                      | You need git provenance, PR/MR links, or related issues                                                                            |
 | Preview the release plan         | `monochange run release --dry-run --diff` or `monochange step prepare-release --dry-run` | You want changelog/version patches without mutating the repo                                                                       |
 | Create a durable release commit  | `monochange step commit-release`                                                         | You want a monochange-managed release commit with an embedded `ReleaseRecord`                                                      |
 | Open or update a release request | `monochange step open-release-request`                                                   | You want a long-lived release PR/MR branch updated from current release state                                                      |
 | Inspect a past release commit    | `monochange step release-record --from <ref>`                                            | You need the durable release declaration from git history                                                                          |
-| Check package publish readiness  | `monochange step publish-readiness --from HEAD --output <path>`                          | You want a non-mutating preflight report before package publication                                                                |
+| Check package publish readiness  | `monochange publish readiness --from HEAD --output <path>`                               | You want a non-mutating preflight report before package publication                                                                |
 | Dry-run configured publishing    | `monochange run publish-check`                                                           | This repository, or another repo with a similar `[cli.publish-check]`, should exercise publishing in CI without registry mutations |
 | Plan ready package publishing    | `monochange step plan-publish-rate-limits --readiness <path>`                            | You want rate-limit batches that exclude non-ready package work                                                                    |
-| Publish packages to registries   | `monochange step publish-packages --output <path>`                                       | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication                           |
-| Bootstrap release packages       | `monochange step placeholder-publish`                                                    | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
+| Publish packages to registries   | `monochange publish packages --output <path>`                                            | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication                           |
+| Bootstrap release packages       | `monochange publish placeholder`                                                         | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
 | Create post-merge release tags   | `monochange step tag-release --from HEAD`                                                | You merged a monochange release commit and now need to create and push its declared tag set                                        |
 | Repair a recent release          | `monochange step retarget-release --from <tag> --target <commit>`                        | You need to retarget a just-created release to a later commit                                                                      |
 | Publish hosted/provider releases | `monochange step publish-release`                                                        | You want GitHub/GitLab/Gitea release objects from prepared release state                                                           |
 
 <!-- {/projectCommandAutomationMatrix} -->
 
-`monochange step publish-readiness` performs non-mutating registry checks before `monochange step publish-packages`. For built-in Cargo publishes to crates.io it also verifies current manifest publishability: `publish = false` blocks publishing, `publish = [...]` must include `crates-io`, `description` must be set, and either `license` or `license-file` must be set. Workspace-inherited Cargo metadata is accepted, and already-published versions remain non-blocking in readiness reports. The artifact fingerprints `monochange.toml`, package manifests, lockfiles, and registry/tooling files, so rerun `monochange step publish-readiness` after those inputs change. `monochange step plan-publish-rate-limits --readiness <path>` validates the artifact for planning and limits rate-limit batches to package ids that are ready in both the artifact and the fresh local readiness check. `monochange step publish-packages` publishes directly from prepared release or `HEAD` release state and does not require the readiness artifact. If readiness shows missing first-time registry packages, run `monochange step placeholder-publish`, then rerun readiness before real publishing. Python packages support built-in PyPI publishing with `uv build` and `uv publish`. Go packages publish by creating VCS tags (`v1.2.3` for root modules, `path/v1.2.3` for submodules) and checking visibility through the Go module proxy. Keep `mode = "external"` for private registries or custom publication flows.
+`monochange next` answers "what version comes next" from pending changesets alone. It prints one version per release group and one version for every package that releases independently, accepts `--format text|json|json-min|md`, and writes nothing: no `release.json`, no prepared-release cache, and no committed file changes. It is the read-only alias for `monochange step display-versions`, and reports `no package or group versions were planned` when the changeset directory is empty. Use `monochange step prepare-release --dry-run` instead when you also need changelog and release-artifact previews.
+
+`monochange publish` groups the built-in publishing steps behind short subcommands. Each one runs the same step as its `monochange step *` equivalent, with the same inputs and output formats: `monochange publish packages` runs `step publish-packages`, `monochange publish readiness` runs `step publish-readiness`, and `monochange publish placeholder` runs `step placeholder-publish`. The `monochange step *` forms stay supported.
+
+`monochange publish readiness` performs non-mutating registry checks before `monochange publish packages`. For built-in Cargo publishes to crates.io it also verifies current manifest publishability: `publish = false` blocks publishing, `publish = [...]` must include `crates-io`, `description` must be set, and either `license` or `license-file` must be set. Workspace-inherited Cargo metadata is accepted, and already-published versions remain non-blocking in readiness reports. The artifact fingerprints `monochange.toml`, package manifests, lockfiles, and registry/tooling files, so rerun `monochange publish readiness` after those inputs change. `monochange step plan-publish-rate-limits --readiness <path>` validates the artifact for planning and limits rate-limit batches to package ids that are ready in both the artifact and the fresh local readiness check. `monochange publish packages` publishes directly from prepared release or `HEAD` release state and does not require the readiness artifact. If readiness shows missing first-time registry packages, run `monochange publish placeholder`, then rerun readiness before real publishing. Python packages support built-in PyPI publishing with `uv build` and `uv publish`. Go packages publish by creating VCS tags (`v1.2.3` for root modules, `path/v1.2.3` for submodules) and checking visibility through the Go module proxy. Keep `mode = "external"` for private registries or custom publication flows.
 
 <!-- {@projectCapabilityMatrix} -->
 

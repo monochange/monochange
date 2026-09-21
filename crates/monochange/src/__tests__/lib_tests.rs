@@ -1011,7 +1011,15 @@ fn generated_step_commands_cover_all_builtin_steps_except_command() {
 fn generated_top_level_step_aliases_parse_as_builtins() {
 	let command = crate::cli::build_command_with_cli("monochange", &[]);
 	let expected = [
-		"create", "discover", "config", "preview", "prepare", "affected", "diagnose",
+		"create",
+		"discover",
+		"config",
+		"preview",
+		"prepare",
+		"affected",
+		"diagnose",
+		"next",
+		"next-versions",
 	];
 
 	for command_name in expected {
@@ -1045,6 +1053,141 @@ fn top_level_preview_alias_forces_prepare_release_dry_run() {
 	assert_eq!(synthetic.name, "preview");
 	assert_eq!(synthetic.steps.len(), 1);
 	assert_eq!(synthetic.steps[0].step_kebab_name(), "prepare-release");
+}
+
+#[test]
+fn next_aliases_resolve_to_display_versions_without_forcing_dry_run() {
+	for command in ["next", "next-versions"] {
+		let alias = crate::cli::top_level_step_alias(command)
+			.unwrap_or_else(|| panic!("expected {command} alias"));
+		assert_eq!(alias.step, "display-versions");
+		assert!(!alias.force_dry_run);
+	}
+}
+
+#[test]
+fn generated_publish_subcommands_parse_as_builtins() {
+	let command = crate::cli::build_command_with_cli("monochange", &[]);
+	let publish = command
+		.find_subcommand("publish")
+		.unwrap_or_else(|| panic!("expected top-level publish command"));
+	let expected = [
+		("packages", "publish-packages"),
+		("readiness", "publish-readiness"),
+		("placeholder", "placeholder-publish"),
+	];
+
+	for (command_name, step_name) in expected {
+		assert!(
+			publish.find_subcommand(command_name).is_some(),
+			"expected publish {command_name} command"
+		);
+		let definition = crate::cli::publish_step_command_definition(command_name)
+			.unwrap_or_else(|error| panic!("publish {command_name} definition: {error}"));
+		assert_eq!(definition.name, format!("publish {command_name}"));
+		assert_eq!(definition.steps.len(), 1);
+		assert_eq!(definition.steps[0].step_kebab_name(), step_name);
+	}
+
+	let matches = command
+		.clone()
+		.try_get_matches_from(["monochange", "publish", "readiness", "--from", "HEAD"])
+		.unwrap_or_else(|error| panic!("publish readiness matches: {error}"));
+	let (namespace, namespace_matches) = matches
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected publish namespace matches"));
+	assert_eq!(namespace, "publish");
+	assert_eq!(namespace_matches.subcommand_name(), Some("readiness"));
+}
+
+#[test]
+fn publish_subcommands_reject_unknown_command_names() {
+	let error = crate::cli::publish_step_command_definition("not-a-publish-command")
+		.err()
+		.unwrap_or_else(|| panic!("expected unknown publish command error"));
+
+	assert_eq!(
+		error.to_string(),
+		"config error: unknown publish command: publish not-a-publish-command"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn next_command_reports_planned_versions_from_the_real_entry_point() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("next-version-preview", tempdir.path());
+
+	let output = run_with_args_in_dir(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("next"),
+			OsString::from("--format"),
+			OsString::from("json"),
+		],
+		tempdir.path(),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("next command: {error}"));
+
+	let parsed: serde_json::Value = serde_json::from_str(&output)
+		.unwrap_or_else(|error| panic!("parse next output: {error}\nraw:\n{output}"));
+	assert_eq!(parsed["groups"]["sdk"], serde_json::json!("1.1.0"));
+	assert_eq!(
+		parsed["packages"]["cargo:crates/tool/Cargo.toml"],
+		serde_json::json!("1.0.1")
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn publish_subcommands_dispatch_to_their_built_in_steps() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("next-version-preview", tempdir.path());
+
+	// `publish readiness` requires a release ref, so the failure it reports
+	// proves the command routed to the `PublishReadiness` step rather than
+	// stopping at argument parsing.
+	let error = run_with_args_in_dir(
+		"monochange",
+		[
+			OsString::from("monochange"),
+			OsString::from("publish"),
+			OsString::from("readiness"),
+		],
+		tempdir.path(),
+	)
+	.await
+	.err()
+	.unwrap_or_else(|| panic!("expected publish readiness to require a ref"));
+
+	assert_eq!(
+		error.to_string(),
+		"config error: missing publish-readiness ref"
+	);
+}
+
+#[test]
+fn diagnostic_command_names_two_level_built_in_commands() {
+	let cases = [
+		(
+			vec!["monochange", "publish", "readiness"],
+			"monochange publish readiness",
+		),
+		(
+			vec!["monochange", "step", "publish-packages"],
+			"monochange step publish-packages",
+		),
+		(vec!["monochange", "next"], "monochange next"),
+	];
+
+	for (args, expected) in cases {
+		let args = args.into_iter().map(OsString::from).collect::<Vec<_>>();
+		assert_eq!(
+			crate::cli_diagnostic_command(&args).as_deref(),
+			Some(expected),
+			"unexpected diagnostic command for {expected}"
+		);
+	}
 }
 
 #[test]

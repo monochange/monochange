@@ -1,0 +1,4 @@
+[package]
+name = "preview-sdk-a"
+version = { workspace = true }
+edition = { workspace = true }

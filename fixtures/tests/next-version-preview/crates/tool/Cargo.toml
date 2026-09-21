@@ -1,0 +1,4 @@
+[package]
+name = "preview-tool"
+version = { workspace = true }
+edition = { workspace = true }
