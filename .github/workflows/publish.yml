@@ -133,7 +133,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
 
       - name: install cross
-        uses: taiki-e/install-action@d438492cf8a250514fa2d34b30bc3c0dc37c65ff # v2.87.8
+        uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73 # v2.87.17
         with:
           tool: cross
         if: contains(matrix.target, '-musl')
@@ -348,7 +348,7 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
       - name: check publish readiness
-        uses: monochange/actions@1fe45f5214577e78f6339e233c05fd429b1adaf7 # v0.9.0
+        uses: monochange/actions@0225509ace4550429775bffc89239ffafb0edf5c # v0.9.4
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
@@ -376,7 +376,7 @@ jobs:
           version: 10
 
       - name: publish packages
-        uses: monochange/actions@1fe45f5214577e78f6339e233c05fd429b1adaf7 # v0.9.0
+        uses: monochange/actions@0225509ace4550429775bffc89239ffafb0edf5c # v0.9.4
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
