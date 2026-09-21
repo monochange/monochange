@@ -146,6 +146,19 @@ fn rejects_unknown_version_scheme_reference() {
 }
 
 #[test]
+fn unknown_version_scheme_reference_lists_the_declared_schemes() {
+	// When schemes exist, the diagnostic names them so a typo is obvious.
+	let error = load_err(&format!(
+		"{BASE}\ndisplay_version = \"missing\"\n\n[version_scheme.calver]\ntemplate = \"{{{{ year }}}}\"\n"
+	));
+	assert!(
+		error.contains("unknown version scheme `missing`"),
+		"{error}"
+	);
+	assert!(error.contains("declared schemes: calver"), "{error}");
+}
+
+#[test]
 fn rejects_unknown_variable_in_scheme_template() {
 	let error = load_err(&format!(
 		"{BASE}\ndisplay_version = \"calver\"\n\n[version_scheme.calver]\ntemplate = \"{{{{ nope }}}}\"\n"

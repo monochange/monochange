@@ -2765,3 +2765,284 @@ fn load_configured_github_actions_package_defaults_manifest_name_without_action_
 	assert!(record.manifest_path.ends_with("action.yml"));
 	assert_eq!(record.name, "actions");
 }
+
+/// A release record in the committed on-disk shape.
+///
+/// `values` and `labels` are omitted when the flags are false, which covers the
+/// record written before release values existed.
+fn frozen_record_json(with_values: bool, with_labels: bool) -> String {
+	let mut record = serde_json::json!({
+		"changedFiles": [],
+		"changelogs": [],
+		"changesets": [],
+		"command": "release",
+		"createdAt": "2026-09-19T12:00:00Z",
+		"kind": "monochange.releaseRecord",
+		"schemaVersion": "0.7",
+		"packagePublications": [],
+		"releaseTargets": [],
+		"releasedPackages": ["app"],
+		"updatedChangelogs": [],
+		"deletedChangesets": [],
+	});
+	if with_values {
+		record["values"] = serde_json::json!({"app.build": "5"});
+	}
+	if with_labels {
+		record["labels"] = serde_json::json!({"app": "2026.9.1"});
+		record["labelInputs"] = serde_json::json!({
+			"date": "2026-09-19",
+			"time": "120000",
+			"ofMonth": 1,
+			"ofQuarter": 1,
+			"ofYear": 1
+		});
+	}
+	record.to_string()
+}
+
+fn versioning_plan(root: &Path, package_id: &str, version: &str) -> monochange_core::ReleasePlan {
+	monochange_core::ReleasePlan {
+		workspace_root: root.to_path_buf(),
+		decisions: vec![monochange_core::ReleaseDecision {
+			package_id: package_id.to_string(),
+			trigger_type: "direct-change".to_string(),
+			recommended_bump: monochange_core::BumpSeverity::Minor,
+			planned_version: Some(
+				semver::Version::parse(version).unwrap_or_else(|error| panic!("version: {error}")),
+			),
+			group_id: None,
+			reasons: Vec::new(),
+			upstream_sources: Vec::new(),
+			warnings: Vec::new(),
+		}],
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	}
+}
+
+#[test]
+fn release_timestamp_from_datetime_maps_every_component() {
+	let timestamp = release_timestamp_from_datetime(
+		chrono::NaiveDate::from_ymd_opt(2026, 9, 19)
+			.unwrap_or_default()
+			.and_hms_opt(13, 45, 30)
+			.unwrap_or_default(),
+	);
+	assert_eq!(timestamp.year, 2026);
+	assert_eq!(timestamp.month, 9);
+	assert_eq!(timestamp.day, 19);
+	assert_eq!(timestamp.hour, 13);
+	assert_eq!(timestamp.minute, 45);
+	assert_eq!(timestamp.second, 30);
+}
+
+#[test]
+fn existing_release_values_returns_none_when_the_plan_has_no_targets() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let plan = monochange_core::ReleasePlan {
+		workspace_root: tempdir.path().to_path_buf(),
+		decisions: Vec::new(),
+		groups: Vec::new(),
+		warnings: Vec::new(),
+		unresolved_items: Vec::new(),
+		compatibility_evidence: Vec::new(),
+	};
+	let values = existing_release_values(tempdir.path(), &plan)
+		.unwrap_or_else(|error| panic!("existing values: {error}"));
+	assert!(values.is_none());
+}
+
+#[test]
+fn existing_release_values_returns_none_when_no_record_exists() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let plan = versioning_plan(tempdir.path(), "app", "1.1.0");
+	let values = existing_release_values(tempdir.path(), &plan)
+		.unwrap_or_else(|error| panic!("existing values: {error}"));
+	assert!(values.is_none());
+}
+
+#[test]
+fn existing_release_values_reads_frozen_values_from_a_record() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let plan = versioning_plan(root, "app", "1.1.0");
+	// Write the record at the deterministic path the plan resolves to, so the
+	// frozen lookup finds it on the next preparation run.
+	let targets = vec![monochange_core::ReleaseManifestTarget {
+		id: "app".to_string(),
+		kind: monochange_core::ReleaseOwnerKind::Package,
+		version: "1.1.0".to_string(),
+		tag: false,
+		release: false,
+		version_format: monochange_core::VersionFormat::default(),
+		tag_name: String::new(),
+		members: Vec::new(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
+	}];
+	let paths = release_record_paths(root, &targets);
+	std::fs::create_dir_all(
+		paths
+			.absolute
+			.parent()
+			.unwrap_or_else(|| panic!("record parent")),
+	)
+	.unwrap_or_else(|error| panic!("create record dir: {error}"));
+	fs::write(&paths.absolute, frozen_record_json(true, true))
+		.unwrap_or_else(|error| panic!("write record: {error}"));
+
+	let values = existing_release_values(root, &plan)
+		.unwrap_or_else(|error| panic!("existing values: {error}"))
+		.unwrap_or_else(|| panic!("a record with values should resolve"));
+
+	assert_eq!(
+		values.values_for("app").get("build"),
+		Some(&"5".to_string())
+	);
+	assert_eq!(
+		values
+			.packages
+			.get("app")
+			.and_then(|entry| entry.label.clone()),
+		Some("2026.9.1".to_string())
+	);
+}
+
+#[test]
+fn existing_release_values_returns_none_for_a_record_without_values_or_labels() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let plan = versioning_plan(root, "app", "1.1.0");
+	let targets = vec![monochange_core::ReleaseManifestTarget {
+		id: "app".to_string(),
+		kind: monochange_core::ReleaseOwnerKind::Package,
+		version: "1.1.0".to_string(),
+		tag: false,
+		release: false,
+		version_format: monochange_core::VersionFormat::default(),
+		tag_name: String::new(),
+		members: Vec::new(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
+	}];
+	let paths = release_record_paths(root, &targets);
+	std::fs::create_dir_all(
+		paths
+			.absolute
+			.parent()
+			.unwrap_or_else(|| panic!("record parent")),
+	)
+	.unwrap_or_else(|error| panic!("create record dir: {error}"));
+	fs::write(&paths.absolute, frozen_record_json(false, false))
+		.unwrap_or_else(|error| panic!("write record: {error}"));
+
+	let values = existing_release_values(root, &plan)
+		.unwrap_or_else(|error| panic!("existing values: {error}"));
+	assert!(values.is_none());
+}
+
+#[test]
+fn existing_release_values_reports_an_unreadable_record_directory() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let plan = versioning_plan(root, "app", "1.1.0");
+	let targets = vec![monochange_core::ReleaseManifestTarget {
+		id: "app".to_string(),
+		kind: monochange_core::ReleaseOwnerKind::Package,
+		version: "1.1.0".to_string(),
+		tag: false,
+		release: false,
+		version_format: monochange_core::VersionFormat::default(),
+		tag_name: String::new(),
+		members: Vec::new(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
+	}];
+	let paths = release_record_paths(root, &targets);
+	std::fs::create_dir_all(
+		paths
+			.absolute
+			.parent()
+			.unwrap_or_else(|| panic!("record parent")),
+	)
+	.unwrap_or_else(|error| panic!("create record dir: {error}"));
+	// A directory where the record file is expected surfaces as an IO error
+	// rather than being treated as a missing record.
+	fs::create_dir_all(&paths.absolute)
+		.unwrap_or_else(|error| panic!("create record dir as file path: {error}"));
+
+	let error = existing_release_values(root, &plan)
+		.expect_err("a directory in place of the record should fail");
+	// The read failure surfaces as an IO error naming the record path.
+	assert!(error.to_string().contains("io error"), "got: {error}");
+	assert!(error.to_string().contains("release.json"), "got: {error}");
+}
+
+#[test]
+fn values_from_record_groups_dotted_keys_and_labels_by_package() {
+	let mut record = monochange_core::ReleaseRecord {
+		schema_version: String::new(),
+		kind: "release-record".to_string(),
+		created_at: "2026-09-19T12:00:00Z".to_string(),
+		command: "release".to_string(),
+		version: None,
+		versions: BTreeMap::new(),
+		release_targets: Vec::new(),
+		released_packages: Vec::new(),
+		changed_files: Vec::new(),
+		package_publications: Vec::new(),
+		updated_changelogs: Vec::new(),
+		deleted_changesets: Vec::new(),
+		changesets: Vec::new(),
+		changelogs: Vec::new(),
+		values: BTreeMap::new(),
+		labels: BTreeMap::new(),
+		label_inputs: Default::default(),
+		provider: None,
+	};
+	record
+		.values
+		.insert("app.build".to_string(), "5".to_string());
+	record
+		.values
+		.insert("app.android".to_string(), "41".to_string());
+	record
+		.values
+		.insert("lib".to_string(), "ignored".to_string());
+	record
+		.labels
+		.insert("app".to_string(), "2026.9.1".to_string());
+
+	let values = values_from_record(&record);
+
+	assert_eq!(
+		values.values_for("app"),
+		BTreeMap::from([
+			("android".to_string(), "41".to_string()),
+			("build".to_string(), "5".to_string()),
+		])
+	);
+	assert_eq!(
+		values
+			.packages
+			.get("app")
+			.and_then(|entry| entry.label.clone()),
+		Some("2026.9.1".to_string())
+	);
+	// A key without a dotted value id carries no value, so only the label
+	// survives for that package.
+	assert!(values.values_for("lib").is_empty());
+	assert_eq!(
+		values
+			.packages
+			.get("lib")
+			.and_then(|entry| entry.label.clone()),
+		None
+	);
+}

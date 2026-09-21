@@ -661,3 +661,68 @@ fn base32_encoding_uses_the_rfc4648_alphabet() {
 		})
 	);
 }
+
+#[test]
+fn value_definition_stamp_behaviour_defaults_by_source() {
+	// An explicit behaviour always wins.
+	assert_eq!(
+		value_definition("file = \"build.json\"\non_release = \"none\"\n").stamp_behaviour(),
+		StampBehaviour::None
+	);
+	// A file counter with no explicit behaviour increments.
+	assert_eq!(
+		value_definition("file = \"build.json\"\n").stamp_behaviour(),
+		StampBehaviour::Increment
+	);
+	// A non-file source with no explicit behaviour is never stamped.
+	assert_eq!(
+		value_definition("env = \"GITHUB_RUN_NUMBER\"\n").stamp_behaviour(),
+		StampBehaviour::None
+	);
+}
+
+#[test]
+fn same_quarter_compares_the_calendar_quarter() {
+	// Q3 2026 covers July through September.
+	let august = timestamp(2026, 8, 15);
+	assert!(august.same_quarter(&LabelInputs {
+		date: "2026-07-01".to_string(),
+		..LabelInputs::default()
+	}));
+	assert!(august.same_quarter(&LabelInputs {
+		date: "2026-09-30".to_string(),
+		..LabelInputs::default()
+	}));
+	// June is the previous quarter.
+	assert!(!august.same_quarter(&LabelInputs {
+		date: "2026-06-30".to_string(),
+		..LabelInputs::default()
+	}));
+	// A different year never matches.
+	assert!(!august.same_quarter(&LabelInputs {
+		date: "2025-08-15".to_string(),
+		..LabelInputs::default()
+	}));
+	// A malformed month cannot be compared, so it does not match.
+	assert!(!august.same_quarter(&LabelInputs {
+		date: "2026-xx-15".to_string(),
+		..LabelInputs::default()
+	}));
+	// A date without a month has no quarter to compare.
+	assert!(!august.same_quarter(&LabelInputs {
+		date: "2026-".to_string(),
+		..LabelInputs::default()
+	}));
+}
+
+#[test]
+fn render_version_template_skips_variables_without_a_value() {
+	// A placeholder with no matching variable is left untouched rather than
+	// being replaced with an empty string.
+	let mut variables = BTreeMap::new();
+	variables.insert("year".to_string(), "2026".to_string());
+	assert_eq!(
+		render_version_template("{{ year }}.{{ missing }}", &variables),
+		"2026.{{ missing }}"
+	);
+}

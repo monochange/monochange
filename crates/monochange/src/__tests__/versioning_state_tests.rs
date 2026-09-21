@@ -1093,3 +1093,172 @@ async fn write_backs_report_paths_without_segments() {
 		.unwrap_or_else(|| panic!("an empty field path should fail"));
 	assert!(error.to_string().contains("no segments"));
 }
+
+#[tokio::test]
+async fn values_for_returns_the_packages_values_and_empty_for_an_unknown_package() {
+	let f = fixture("{\"build\": 3}");
+	let packages = vec![package(
+		"app",
+		vec![(
+			"build",
+			value_definition("file = \"build.json\"\nfield = \"build\"\n"),
+		)],
+	)];
+	let resolved = resolve_release_values(
+		&context(&f.root, None, None),
+		&packages,
+		&BTreeMap::new(),
+		&released("app", "1.0.0"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("resolve: {error}"));
+	assert_eq!(
+		resolved.values_for("app"),
+		BTreeMap::from([("build".to_string(), "4".to_string())])
+	);
+	// The unknown-package branch returns an empty map rather than panicking.
+	assert!(resolved.values_for("missing").is_empty());
+}
+
+#[tokio::test]
+async fn write_backs_collects_counters_across_packages() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = dir.path();
+	fs::write(root.join("app.json"), "{\"build\": 1}")
+		.unwrap_or_else(|error| panic!("write app counter: {error}"));
+	fs::write(root.join("lib.json"), "{\"build\": 10}")
+		.unwrap_or_else(|error| panic!("write lib counter: {error}"));
+	let packages = vec![
+		package(
+			"app",
+			vec![(
+				"build",
+				value_definition("file = \"app.json\"\nfield = \"build\"\n"),
+			)],
+		),
+		package(
+			"lib",
+			vec![(
+				"build",
+				value_definition("file = \"lib.json\"\nfield = \"build\"\n"),
+			)],
+		),
+	];
+	let resolved = resolve_release_values(
+		&context(root, None, None),
+		&packages,
+		&BTreeMap::new(),
+		&BTreeMap::from([
+			("app".to_string(), "1.0.0".to_string()),
+			("lib".to_string(), "1.0.0".to_string()),
+		]),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("resolve: {error}"));
+	let write_backs = resolved.write_backs();
+	assert_eq!(write_backs.len(), 2);
+	assert!(write_backs.iter().any(|write_back| write_back.value == 2));
+	assert!(write_backs.iter().any(|write_back| write_back.value == 11));
+}
+
+#[tokio::test]
+async fn git_commit_count_reads_the_repository() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = dir.path();
+	init_git_repo(root);
+	fs::write(root.join("tracked.txt"), "one")
+		.unwrap_or_else(|error| panic!("write tracked: {error}"));
+	commit_all(root, "first");
+	fs::write(root.join("tracked.txt"), "two")
+		.unwrap_or_else(|error| panic!("rewrite tracked: {error}"));
+	commit_all(root, "second");
+	let head = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
+
+	let packages = vec![package(
+		"app",
+		vec![("rev", value_definition("git = \"commit_count\"\n"))],
+	)];
+	let context = context_with_commit(
+		root,
+		&head,
+		ReleaseTimestamp::new(2026, 9, 19, 12, 0, 0).unwrap_or_default(),
+	);
+	let resolved = resolve_release_values(
+		&context,
+		&packages,
+		&BTreeMap::new(),
+		&released("app", "1.0.0"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("resolve: {error}"));
+	assert_eq!(resolved.packages["app"].values["rev"], "2");
+	assert!(!resolved.packages["app"].monotonic);
+}
+
+#[tokio::test]
+async fn git_commit_count_reports_a_failure_for_an_unknown_revision() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = dir.path();
+	init_git_repo(root);
+	fs::write(root.join("tracked.txt"), "one")
+		.unwrap_or_else(|error| panic!("write tracked: {error}"));
+	commit_all(root, "first");
+
+	let packages = vec![package(
+		"app",
+		vec![("rev", value_definition("git = \"commit_count\"\n"))],
+	)];
+	let context = context_with_commit(
+		root,
+		"0123456789abcdef0123456789abcdef01234567",
+		ReleaseTimestamp::new(2026, 9, 19, 12, 0, 0).unwrap_or_default(),
+	);
+	let error = resolve_release_values(
+		&context,
+		&packages,
+		&BTreeMap::new(),
+		&released("app", "1.0.0"),
+	)
+	.await
+	.err()
+	.unwrap_or_else(|| panic!("an unknown revision should fail"));
+	assert!(
+		error
+			.to_string()
+			.contains("count commits for the release value")
+	);
+}
+
+fn init_git_repo(root: &std::path::Path) {
+	git_in_temp_repo(root, &["init", "-b", "main"]);
+	git_in_temp_repo(root, &["config", "user.name", "monochange Tests"]);
+	git_in_temp_repo(root, &["config", "user.email", "monochange@example.com"]);
+	git_in_temp_repo(root, &["config", "commit.gpgsign", "false"]);
+}
+
+fn commit_all(root: &std::path::Path, message: &str) {
+	git_in_temp_repo(root, &["add", "."]);
+	git_in_temp_repo(root, &["commit", "-m", message]);
+}
+
+fn git_in_temp_repo(root: &std::path::Path, args: &[&str]) {
+	let status = std::process::Command::new("git")
+		.current_dir(root)
+		.args(args)
+		.status()
+		.unwrap_or_else(|error| panic!("git {args:?}: {error}"));
+	assert!(status.success(), "git {args:?} failed");
+}
+
+fn git_output_in_temp_repo(root: &std::path::Path, args: &[&str]) -> String {
+	let output = std::process::Command::new("git")
+		.current_dir(root)
+		.args(args)
+		.output()
+		.unwrap_or_else(|error| panic!("git {args:?}: {error}"));
+	assert!(output.status.success(), "git {args:?} failed");
+	String::from_utf8(output.stdout)
+		.unwrap_or_else(|error| panic!("git output utf8: {error}"))
+		.trim()
+		.to_string()
+}
