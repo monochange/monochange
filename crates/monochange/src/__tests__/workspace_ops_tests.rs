@@ -3003,7 +3003,7 @@ fn values_from_record_groups_dotted_keys_and_labels_by_package() {
 		changelogs: Vec::new(),
 		values: BTreeMap::new(),
 		labels: BTreeMap::new(),
-		label_inputs: Default::default(),
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
 		provider: None,
 	};
 	record
