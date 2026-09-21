@@ -308,6 +308,9 @@ fn test_release_manifest() -> ReleaseManifest {
 			unresolved_items: Vec::new(),
 			compatibility_evidence: Vec::new(),
 		},
+		label_inputs: crate::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -754,6 +757,7 @@ fn versioned_file_definition_uses_regex_returns_true_when_set() {
 		name: None,
 		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: Some(r"v(?<version>\d+\.\d+\.\d+)".to_string()),
+		value_template: None,
 	};
 	assert!(definition.uses_regex());
 }
@@ -769,6 +773,7 @@ fn versioned_file_definition_uses_regex_returns_false_when_unset() {
 		name: None,
 		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert!(!definition.uses_regex());
 }
@@ -784,6 +789,7 @@ fn versioned_file_definition_uses_format_returns_true_when_set() {
 		name: None,
 		missing_field_behavior: MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert!(definition.uses_format());
 }
@@ -3439,6 +3445,7 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 		defaults: WorkspaceDefaults::default(),
 		changelog: ChangelogSettings::default(),
 		prerelease: PrereleaseConfiguration::default(),
+		version_schemes: BTreeMap::new(),
 		packages: vec![
 			PackageDefinition {
 				id: "monochange".to_string(),
@@ -3468,6 +3475,8 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 				cli: None,
+				values: BTreeMap::new(),
+				display_version: None,
 			},
 			PackageDefinition {
 				id: "monochange_core".to_string(),
@@ -3497,6 +3506,8 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 				cli: None,
+				values: BTreeMap::new(),
+				display_version: None,
 			},
 			PackageDefinition {
 				id: "monochange_graph".to_string(),
@@ -3522,6 +3533,8 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 				floating_tags: Vec::new(),
 				publish: PublishSettings::default(),
 				cli: None,
+				values: BTreeMap::new(),
+				display_version: None,
 			},
 		],
 		groups: vec![GroupDefinition {
@@ -4051,6 +4064,9 @@ fn sample_release_record() -> ReleaseRecord {
 		deleted_changesets: vec![PathBuf::from(".changeset/032-step-outputs.md")],
 		changesets: Vec::new(),
 		changelogs: Vec::new(),
+		values: BTreeMap::new(),
+		labels: BTreeMap::new(),
+		label_inputs: crate::versioning::LabelInputs::default(),
 		provider: Some(ReleaseRecordProvider {
 			kind: SourceProvider::GitHub,
 			owner: "ifiokjr".to_string(),

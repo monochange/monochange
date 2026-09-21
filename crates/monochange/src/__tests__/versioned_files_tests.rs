@@ -36,10 +36,12 @@ fn apply_versioned_file_definition(
 		root,
 		updates,
 		definition,
-		&resolved_paths,
-		owner_version,
-		shared_release_version,
-		dep_names,
+		&super::VersionedFileSite {
+			resolved_paths: &resolved_paths,
+			owner_version,
+			shared_release_version,
+			dep_names,
+		},
 		context,
 	)
 }
@@ -572,6 +574,9 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: BTreeMap::new(),
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "*.json".to_string(),
@@ -582,6 +587,7 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	apply_versioned_file_definition(
@@ -676,6 +682,9 @@ fn recursive_versioned_file_globs_skip_ignored_workspace_directories() {
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: BTreeMap::new(),
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "**/metadata.json".to_string(),
@@ -686,6 +695,7 @@ fn recursive_versioned_file_globs_skip_ignored_workspace_directories() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	apply_versioned_file_definition(
@@ -740,9 +750,15 @@ fn build_versioned_file_updates_returns_empty_for_empty_configuration() {
 		compatibility_evidence: Vec::new(),
 	};
 
-	let updates =
-		build_versioned_file_updates_with_base_updates(root, &configuration, &[], &plan, &[])
-			.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
+	let updates = build_versioned_file_updates_with_base_updates(
+		root,
+		&configuration,
+		&[],
+		&plan,
+		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
+	)
+	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
 	assert!(updates.is_empty());
 }
@@ -774,6 +790,7 @@ fn build_versioned_file_updates_reports_invalid_glob_pattern_in_package_prewarm(
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.expect_err("invalid glob should error during prewarm");
 
@@ -835,6 +852,7 @@ fn build_versioned_file_updates_prewarms_group_versioned_file_globs() {
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
@@ -899,6 +917,7 @@ fn build_versioned_file_updates_reports_invalid_glob_pattern_in_group_prewarm() 
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.expect_err("invalid group glob should error during prewarm");
 
@@ -919,6 +938,7 @@ fn build_versioned_file_updates_uses_default_versioned_files() {
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
@@ -939,6 +959,7 @@ fn build_versioned_file_updates_uses_ecosystem_versioned_files() {
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
@@ -1113,6 +1134,9 @@ fn apply_versioned_file_definition_reports_go_for_unsupported_glob_match() {
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: released_versions,
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "*.txt".to_string(),
@@ -1123,6 +1147,7 @@ fn apply_versioned_file_definition_reports_go_for_unsupported_glob_match() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 
@@ -1160,6 +1185,9 @@ fn apply_versioned_file_definition_updates_go_mod_dependencies() {
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: released_versions,
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "go.mod".to_string(),
@@ -1170,6 +1198,7 @@ fn apply_versioned_file_definition_updates_go_mod_dependencies() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 
@@ -1268,6 +1297,7 @@ enabled = true
 		std::slice::from_ref(&package),
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
@@ -1286,6 +1316,7 @@ enabled = true
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.expect_err("invalid overridden versioned file should fail");
 	assert!(error.to_string().contains("failed to parse"));

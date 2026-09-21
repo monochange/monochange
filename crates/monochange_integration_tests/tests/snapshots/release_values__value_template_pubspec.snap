@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "read_file(root, \"apps/app/pubspec.yaml\")"
+---
+name: app
+version: 1.1.0+42
+environment:
+  sdk: ">=3.0.0 <4.0.0"

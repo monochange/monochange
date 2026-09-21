@@ -6,6 +6,7 @@
 	clippy::used_underscore_binding
 )]
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -826,7 +827,7 @@ fn sample_release_record() -> ReleaseRecord {
 		created_at: "2026-04-07T08:00:00Z".to_string(),
 		command: "release-pr".to_string(),
 		version: Some("1.2.3".to_string()),
-		versions: std::collections::BTreeMap::from([("sdk".to_string(), "1.2.3".to_string())]),
+		versions: BTreeMap::from([("sdk".to_string(), "1.2.3".to_string())]),
 		release_targets: vec![ReleaseRecordTarget {
 			id: "sdk".to_string(),
 			kind: ReleaseOwnerKind::Group,
@@ -851,6 +852,9 @@ fn sample_release_record() -> ReleaseRecord {
 			repo: "monochange".to_string(),
 			host: None,
 		}),
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 

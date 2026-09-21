@@ -76,6 +76,7 @@ use std::path::PathBuf;
 pub mod analysis;
 pub mod git;
 pub mod lint;
+pub mod versioning;
 
 pub use analysis::*;
 use glob::MatchOptions;
@@ -87,6 +88,7 @@ use semver::Version;
 use serde::Deserialize;
 use serde::Serialize;
 use thiserror::Error;
+use versioning::ValueDefinition;
 
 pub type MonochangeResult<T> = Result<T, MonochangeError>;
 
@@ -1755,6 +1757,12 @@ pub struct VersionedFileDefinition {
 	pub missing_field_behavior: MissingFieldBehavior,
 	#[serde(default)]
 	pub regex: Option<String>,
+	/// Template rendered into this file's value instead of the plain version.
+	///
+	/// Supports the version template namespace, including declared values such
+	/// as `{{ build }}`. When set, `regex` and `fields` are not used.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub value_template: Option<String>,
 }
 
 impl VersionedFileDefinition {
@@ -2892,6 +2900,15 @@ pub struct PackageDefinition {
 	/// identity for change classification.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub cli: Option<PackageCliDefinition>,
+	/// Declared release values available as template variables by id.
+	///
+	/// Each id becomes `{{ <id> }}` in every version template that renders for
+	/// this package.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub values: BTreeMap<String, ValueDefinition>,
+	/// Version scheme used to render this package's display label.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub display_version: Option<String>,
 	#[serde(default)]
 	pub publish: PublishSettings,
 }
@@ -5627,6 +5644,15 @@ pub struct ReleaseManifest {
 	pub changesets: Vec<PreparedChangeset>,
 	#[serde(default)]
 	pub deleted_changesets: Vec<PathBuf>,
+	/// Declared release values rendered at prepare time.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub values: BTreeMap<String, String>,
+	/// Display labels rendered at prepare time, keyed by package id.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub labels: BTreeMap<String, String>,
+	/// Context values the labels and ordinals were computed from.
+	#[serde(default, skip_serializing_if = "versioning::LabelInputs::is_empty")]
+	pub label_inputs: versioning::LabelInputs,
 	pub plan: ReleaseManifestPlan,
 }
 
@@ -5755,6 +5781,18 @@ pub struct ReleaseRecord {
 	pub changesets: Vec<PreparedChangeset>,
 	#[serde(default)]
 	pub changelogs: Vec<ReleaseManifestChangelog>,
+	/// Declared release values rendered at prepare time, keyed by value id.
+	///
+	/// Frozen so re-rendering a historical release cannot pick up a different
+	/// timestamp, hash, or counter.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub values: BTreeMap<String, String>,
+	/// Display labels rendered for this release, keyed by package id.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub labels: BTreeMap<String, String>,
+	/// Context values the labels and ordinals were computed from.
+	#[serde(default, skip_serializing_if = "versioning::LabelInputs::is_empty")]
+	pub label_inputs: versioning::LabelInputs,
 	#[serde(default)]
 	pub provider: Option<ReleaseRecordProvider>,
 }
@@ -6760,6 +6798,9 @@ pub struct WorkspaceConfiguration {
 	pub cli: Vec<CliCommandDefinition>,
 	pub changesets: ChangesetSettings,
 	pub source: Option<SourceConfiguration>,
+	/// Reusable display-label schemes referenced by `[package.<id>].display_version`.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub version_schemes: BTreeMap<String, versioning::VersionSchemeDefinition>,
 	#[cfg_attr(feature = "schema", schemars(skip))]
 	pub lints: lint::WorkspaceLintSettings,
 	pub cargo: EcosystemSettings,

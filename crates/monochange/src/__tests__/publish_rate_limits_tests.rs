@@ -705,6 +705,7 @@ async fn plan_publish_rate_limits_summarizes_pending_publications_and_batches() 
 		updated_changelogs: Vec::new(),
 		deleted_changesets: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	};
 
 	let server = MockServer::start();
@@ -791,6 +792,8 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings::default(),
 				cli: None,
+				display_version: None,
+				values: BTreeMap::new(),
 			},
 			monochange_core::PackageDefinition {
 				id: "private".to_string(),
@@ -817,6 +820,8 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 				floating_tags: Vec::new(),
 				publish: monochange_core::PublishSettings::default(),
 				cli: None,
+				display_version: None,
+				values: BTreeMap::new(),
 			},
 			monochange_core::PackageDefinition {
 				id: "docs".to_string(),
@@ -846,6 +851,8 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 					..monochange_core::PublishSettings::default()
 				},
 				cli: None,
+				display_version: None,
+				values: BTreeMap::new(),
 			},
 		],
 		groups: Vec::new(),
@@ -859,6 +866,7 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let packages = vec![
 		monochange_core::PackageRecord {
@@ -1015,6 +1023,7 @@ async fn plan_publish_rate_limits_skips_versions_that_are_already_published() {
 		updated_changelogs: Vec::new(),
 		deleted_changesets: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	};
 	let server = MockServer::start();
 	server.mock(|when, then| {
@@ -1355,6 +1364,8 @@ async fn enforce_publish_rate_limits_returns_ok_when_enforcement_is_not_triggere
 			floating_tags: Vec::new(),
 			publish: monochange_core::PublishSettings::default(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -1367,6 +1378,7 @@ async fn enforce_publish_rate_limits_returns_ok_when_enforcement_is_not_triggere
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let unenforced = PublishRateLimitReport {
 		dry_run: true,
@@ -1480,6 +1492,8 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 						..monochange_core::PublishSettings::default()
 					},
 					cli: None,
+					display_version: None,
+					values: BTreeMap::new(),
 				}
 			})
 			.collect(),
@@ -1494,6 +1508,7 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let error = enforce_publish_rate_limits(&configuration, &report, PublishRateLimitMode::Publish)
 		.unwrap_err();

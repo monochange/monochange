@@ -65,6 +65,9 @@ fn minimal_manifest_with_target(id: &str, version: &str) -> ReleaseManifest {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -88,6 +91,7 @@ fn empty_configuration(root: &Path) -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -179,6 +183,9 @@ fn sample_manifest() -> ReleaseManifest {
 				evidence_location: Some("src/lib.rs".to_string()),
 			}],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -245,6 +252,8 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 
 		floating_tags: Vec::new(),
 		cli: None,
+		display_version: None,
+		values: BTreeMap::new(),
 	}];
 	configuration.groups = vec![monochange_core::GroupDefinition {
 		id: "sdk".to_string(),
@@ -476,6 +485,8 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		},
 		PackageDefinition {
 			id: "web".to_string(),
@@ -506,6 +517,8 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		},
 		PackageDefinition {
 			id: "disabled".to_string(),
@@ -536,6 +549,8 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		},
 		PackageDefinition {
 			id: "private".to_string(),
@@ -565,6 +580,8 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		},
 	];
 
@@ -709,6 +726,7 @@ fn build_release_manifest_copies_package_publications_from_prepared_release() {
 			fail_on_duplicate: false,
 		}],
 		dry_run: false,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	};
 
 	let manifest = build_release_manifest(&cli_command, &prepared_release, &[]);
@@ -915,6 +933,9 @@ fn release_paths_from_manifest_computes_hash_relative_and_absolute() {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let paths = ReleasePaths::from_manifest(&root, &manifest);
 	assert!(!paths.hash.is_empty());
@@ -962,6 +983,9 @@ fn release_paths_from_record_produces_same_hash_as_from_manifest() {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let from_manifest = ReleasePaths::from_manifest(&root, &manifest);
 	let record = build_release_record(None, &manifest);

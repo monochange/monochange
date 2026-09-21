@@ -151,10 +151,12 @@ fn apply_versioned_file_definition(
 		root,
 		updates,
 		definition,
-		&resolved_paths,
-		owner_version,
-		shared_release_version,
-		dep_names,
+		&super::VersionedFileSite {
+			resolved_paths: &resolved_paths,
+			owner_version,
+			shared_release_version,
+			dep_names,
+		},
 		context,
 	)
 }
@@ -5845,6 +5847,9 @@ fn sample_release_manifest_for_commit_message(
 			unresolved_items: Vec::new(),
 			compatibility_evidence: Vec::new(),
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -5904,6 +5909,9 @@ fn sample_release_record_for_discovery_text() -> monochange_core::ReleaseRecord 
 			repo: "monochange".to_string(),
 			host: None,
 		}),
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -5930,6 +5938,9 @@ fn text_release_record_discovery_omits_empty_sections() {
 			changelogs: Vec::new(),
 			package_publications: Vec::new(),
 			provider: None,
+			label_inputs: monochange_core::versioning::LabelInputs::default(),
+			labels: BTreeMap::new(),
+			values: BTreeMap::new(),
 		},
 	};
 
@@ -10668,6 +10679,9 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: BTreeMap::new(),
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 
 	let explicit = monochange_core::VersionedFileDefinition {
@@ -10679,6 +10693,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert_eq!(crate::resolve_versioned_prefix(&explicit, &context), "~");
 
@@ -10691,6 +10706,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert_eq!(
 		crate::resolve_versioned_prefix(&ecosystem, &context),
@@ -10706,6 +10722,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert_eq!(
 		crate::resolve_versioned_prefix(&fallback, &context),
@@ -10721,6 +10738,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert_eq!(crate::resolve_versioned_prefix(&python, &context), "~=");
 
@@ -10733,6 +10751,7 @@ fn resolve_versioned_prefix_prefers_explicit_then_ecosystem_then_default() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert_eq!(crate::resolve_versioned_prefix(&go, &context), "");
 	assert_eq!(monochange_python::default_dependency_version_prefix(), ">=");
@@ -10783,6 +10802,7 @@ fn build_versioned_file_updates_skips_unreleased_package_definitions() {
 		&discovery.packages,
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("versioned file updates: {error}"));
 
@@ -11373,6 +11393,7 @@ fn expand_versioned_file_fields_supports_name_templates_and_passthrough_fields()
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert_eq!(
 		crate::versioned_files::expand_versioned_file_fields(&definition, &["core".to_string()]),
@@ -11391,6 +11412,7 @@ fn expand_versioned_file_fields_supports_name_templates_and_passthrough_fields()
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	assert_eq!(
 		crate::versioned_files::expand_versioned_file_fields(&go, &["core".to_string()]),
@@ -11428,6 +11450,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 			name: None,
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
+			value_template: None,
 		};
 		let error = apply_versioned_file_definition(
 			tempdir.path(),
@@ -11464,6 +11487,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let error = apply_versioned_file_definition(
 		tempdir.path(),
@@ -11494,6 +11518,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let error = apply_versioned_file_definition(
 		pnpm_tempdir.path(),
@@ -11525,6 +11550,7 @@ fn apply_versioned_file_definition_reports_manifest_parse_errors_for_text_update
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let error = apply_versioned_file_definition(
 		cached_dart_tempdir.path(),
@@ -11644,6 +11670,7 @@ fn apply_versioned_file_definition_returns_early_without_matching_versions() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let dep_names = vec!["core".to_string()];
 	let mut updates = BTreeMap::new();
@@ -11678,6 +11705,7 @@ fn apply_versioned_file_definition_rejects_invalid_glob_patterns() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let dep_names = vec!["core".to_string()];
 	let error = apply_versioned_file_definition(
@@ -11718,6 +11746,7 @@ fn apply_versioned_file_definition_rejects_unsupported_glob_matches() {
 			name: None,
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
+			value_template: None,
 		};
 		let error = apply_versioned_file_definition(
 			tempdir.path(),
@@ -11760,6 +11789,7 @@ monochange = { path = "crates/monochange", version = "1.0.0" }
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	apply_versioned_file_definition(
@@ -11817,6 +11847,7 @@ extra = { path = "crates/extra", version = "1.0.0" }
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	let shared_version = "4.0.0".to_string();
@@ -11869,6 +11900,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let bun_path = bun_tempdir.path().join("packages/app/bun.lockb");
 	let original_bun =
@@ -11907,6 +11939,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut deno_updates = BTreeMap::new();
 	apply_versioned_file_definition(
@@ -11950,6 +11983,7 @@ fn apply_versioned_file_definition_updates_regex_versioned_files_from_cached_tex
 		regex: Some(
 			r"https:\/\/example.com\/download\/v(?<version>\d+\.\d+\.\d+)\.tgz".to_string(),
 		),
+		value_template: None,
 	};
 	let mut updates = BTreeMap::from([(
 		tempdir.path().join("README.md"),
@@ -11997,6 +12031,7 @@ fn apply_versioned_file_definition_reports_invalid_regex_patterns() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: Some("(".to_string()),
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	let error = apply_versioned_file_definition(
@@ -12036,6 +12071,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let manifest_dep_names = vec!["core".to_string()];
 	let mut manifest_updates = BTreeMap::new();
@@ -12084,6 +12120,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let package_lock_dep_names = vec!["app".to_string()];
 	let mut package_lock_updates = BTreeMap::new();
@@ -12126,6 +12163,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let pnpm_dep_names = vec!["core".to_string()];
 	let mut pnpm_updates = BTreeMap::new();
@@ -12165,6 +12203,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let bun_dep_names = vec!["left-pad".to_string()];
 	let mut bun_updates = BTreeMap::new();
@@ -12219,6 +12258,7 @@ dependencies = ["python-core>=1.0.0"]
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let dep_names = vec!["python-core".to_string()];
 	let mut updates = BTreeMap::new();
@@ -12251,6 +12291,7 @@ dependencies = ["python-core>=1.0.0"]
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	apply_versioned_file_definition(
 		tempdir.path(),
@@ -12294,6 +12335,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let error = apply_versioned_file_definition(
 		tempdir.path(),
@@ -12323,6 +12365,7 @@ async fn apply_versioned_file_definition_reports_python_error_paths() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	updates.insert(
 		manifest_path,
@@ -12361,6 +12404,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let deno_manifest_dep_names = vec!["core".to_string()];
 	let mut deno_manifest_updates = BTreeMap::new();
@@ -12399,6 +12443,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let deno_lock_dep_names = vec!["app".to_string()];
 	let mut deno_lock_updates = BTreeMap::new();
@@ -12436,6 +12481,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let dart_manifest_dep_names = vec!["shared".to_string()];
 	let mut dart_manifest_updates = BTreeMap::new();
@@ -12476,6 +12522,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let dart_lock_dep_names = vec!["nested_dart_app".to_string()];
 	let mut dart_lock_updates = BTreeMap::new();
@@ -12542,6 +12589,9 @@ fn versioned_test_context<'a>(
 			.collect(),
 		released_versions_by_native_name,
 		configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	}
 }
 
@@ -12685,6 +12735,9 @@ fn sample_release_record_for_retarget() -> monochange_core::ReleaseRecord {
 			repo: "monochange".to_string(),
 			host: None,
 		}),
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -12947,6 +13000,8 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		}],
 		groups: vec![monochange_core::GroupDefinition {
 			id: "sdk".to_string(),
@@ -12980,6 +13035,7 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	assert_eq!(
 		configured_change_type_choices(&configuration),
@@ -13078,6 +13134,8 @@ fn apply_runtime_change_type_choices_updates_only_unconfigured_change_inputs() {
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -13090,6 +13148,7 @@ fn apply_runtime_change_type_choices_updates_only_unconfigured_change_inputs() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let mut cli = vec![
 		CliCommandDefinition {
@@ -13156,6 +13215,7 @@ fn apply_runtime_change_type_choices_preserves_existing_choice_inputs_and_empty_
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let mut cli = vec![CliCommandDefinition {
 		name: "change".to_string(),
@@ -14534,6 +14594,7 @@ fn sample_prepared_release_for_cli_render() -> crate::PreparedRelease {
 		deleted_changesets: Vec::new(),
 		package_publications: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	}
 }
 
@@ -14858,6 +14919,7 @@ fn apply_versioned_file_definition_reports_invalid_glob_pattern() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: Some(r"v(?<version>\d+\.\d+\.\d+)".to_string()),
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	let error = apply_versioned_file_definition(
@@ -14889,6 +14951,7 @@ fn apply_versioned_file_definition_reports_missing_ecosystem_type() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	let error = apply_versioned_file_definition(
@@ -15839,6 +15902,9 @@ fn build_release_manifest_from_record_populates_manifest_from_release_record() {
 			repo: "monochange".to_string(),
 			host: None,
 		}),
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 
 	let manifest = crate::release_artifacts::build_release_manifest_from_record(&record);
@@ -15911,6 +15977,9 @@ fn build_release_manifest_from_record_preserves_changelog_metadata() {
 		changesets: Vec::new(),
 		changelogs: vec![changelog.clone()],
 		provider: None,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 
 	let manifest = crate::release_artifacts::build_release_manifest_from_record(&record);
@@ -16064,6 +16133,9 @@ branches = ["release/*"]
 		}],
 		changelogs: Vec::new(),
 		provider: None,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let json = serde_json::to_string_pretty(&record)
 		.unwrap_or_else(|error| panic!("serialize release record: {error}"));
@@ -16219,6 +16291,9 @@ repo = "monochange"
 		}],
 		changelogs: Vec::new(),
 		provider: None,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let json = serde_json::to_string_pretty(&record)
 		.unwrap_or_else(|error| panic!("serialize release record: {error}"));

@@ -104,6 +104,7 @@ fn empty_configuration(root: &Path) -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -159,6 +160,8 @@ fn sample_package_definition(config_id: &str) -> PackageDefinition {
 
 		floating_tags: Vec::new(),
 		cli: None,
+		display_version: None,
+		values: BTreeMap::new(),
 	}
 }
 

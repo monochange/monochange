@@ -30,6 +30,7 @@ use monochange_classification::render_change_classification;
 use monochange_classification::render_changeset_api_validation;
 
 use crate::cli::classify_options_from_matches;
+use crate::versioning_state::ResolvedReleaseValues;
 pub mod changelog {
 	pub use monochange_changelog::render_message_template;
 }
@@ -264,6 +265,7 @@ pub use sync::sync_workspace_versions;
 mod tracing_setup;
 mod trusted_publishing_readiness;
 mod versioned_files;
+mod versioning_state;
 mod workspace_ops;
 
 pub(crate) use prepared_release_cache::ensure_monochange_artifact_ignored;
@@ -470,6 +472,8 @@ pub struct PreparedRelease {
 	pub updated_changelogs: Vec<PathBuf>,
 	pub deleted_changesets: Vec<PathBuf>,
 	pub dry_run: bool,
+	/// Declared release values and display labels resolved at prepare time.
+	pub versioning: ResolvedReleaseValues,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]

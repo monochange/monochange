@@ -1,5 +1,6 @@
 #![forbid(clippy::indexing_slicing)]
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use httpmock::Method::GET;
@@ -73,6 +74,9 @@ fn sample_manifest() -> ReleaseManifest {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -294,6 +298,9 @@ fn release_pull_request_body_includes_command_and_targets() {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let body = release_pull_request_body(&manifest);
 	assert!(body.contains("## Prepared release"));
@@ -343,6 +350,9 @@ fn release_pull_request_body_lists_changed_files() {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let body = release_pull_request_body(&manifest);
 	assert!(body.contains("## Changed files"));
@@ -427,6 +437,9 @@ fn minimal_release_body_with_decision_reasons() {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let target = minimal_target("my-pkg");
 	let body = minimal_release_body(&manifest, &target);

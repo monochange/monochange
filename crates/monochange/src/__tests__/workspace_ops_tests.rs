@@ -258,6 +258,7 @@ fn workspace_configuration_with_lockfile_commands() -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -442,6 +443,8 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		}],
 		..configuration
 	};
@@ -489,6 +492,8 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -501,6 +506,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let undetected_error = discover_release_workspace(undetected_root.path(), &undetected)
 		.err()
@@ -548,6 +554,8 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -560,6 +568,7 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let missing_manifest_error =
 		discover_release_workspace(missing_manifest_root.path(), &missing_manifest)
@@ -2680,6 +2689,8 @@ fn github_actions_definition(id: &str, path: &str) -> monochange_core::PackageDe
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 		cli: None,
+		display_version: None,
+		values: BTreeMap::new(),
 	}
 }
 

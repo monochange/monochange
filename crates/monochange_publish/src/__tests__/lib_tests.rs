@@ -34,6 +34,7 @@ fn empty_configuration(root: &Path) -> WorkspaceConfiguration {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -2463,6 +2464,7 @@ fn publish_order_configuration(npm_dependency_fields: Option<Vec<&str>>) -> Work
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 

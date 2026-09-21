@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use regex::Regex;
 
 use super::*;
+use crate::versioning_state::ResolvedReleaseValues;
 
 /// Context needed when applying version updates to versioned files.
 ///
@@ -28,6 +29,23 @@ pub(crate) struct VersionedFileUpdateContext<'a> {
 	pub(crate) current_versions_by_native_name: BTreeMap<String, String>,
 	pub(crate) released_versions_by_native_name: BTreeMap<String, String>,
 	pub(crate) configuration: &'a monochange_core::WorkspaceConfiguration,
+	/// Declared release values, keyed by package id then value id.
+	pub(crate) release_values: BTreeMap<String, BTreeMap<String, String>>,
+	/// Context values the calendar variables and ordinals derive from.
+	pub(crate) label_inputs: monochange_core::versioning::LabelInputs,
+	/// Rendered display labels, keyed by package id.
+	pub(crate) labels: BTreeMap<String, String>,
+}
+
+/// The per-call identity of one versioned-file application.
+///
+/// Bundled so the application function keeps a readable signature as more
+/// per-owner values (version, shared version, dependency names) are added.
+pub(crate) struct VersionedFileSite<'a, N> {
+	pub(crate) resolved_paths: &'a [PathBuf],
+	pub(crate) owner_version: &'a str,
+	pub(crate) shared_release_version: Option<&'a String>,
+	pub(crate) dep_names: &'a [N],
 }
 
 #[derive(Debug)]
@@ -182,6 +200,7 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 	packages: &[PackageRecord],
 	plan: &ReleasePlan,
 	base_updates: &[FileUpdate],
+	versioning: &ResolvedReleaseValues,
 ) -> MonochangeResult<Vec<FileUpdate>> {
 	if configuration.packages.is_empty()
 		&& configuration.groups.is_empty()
@@ -245,6 +264,22 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 		current_versions_by_native_name,
 		released_versions_by_native_name,
 		configuration,
+		release_values: versioning
+			.packages
+			.iter()
+			.map(|(package_id, values)| (package_id.clone(), values.values.clone()))
+			.collect(),
+		label_inputs: versioning.label_inputs.clone(),
+		labels: versioning
+			.packages
+			.iter()
+			.filter_map(|(package_id, values)| {
+				values
+					.label
+					.clone()
+					.map(|label| (package_id.clone(), label))
+			})
+			.collect(),
 	};
 
 	let mut updates = BTreeMap::<PathBuf, CachedDocument>::new();
@@ -292,10 +327,12 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 					root,
 					&mut updates,
 					versioned_file,
-					resolved_paths,
-					version,
-					shared_release_version.as_ref(),
-					&effective_dep_names,
+					&VersionedFileSite {
+						resolved_paths,
+						owner_version: version,
+						shared_release_version: shared_release_version.as_ref(),
+						dep_names: &effective_dep_names,
+					},
 					&context,
 				)?;
 				continue;
@@ -306,10 +343,12 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 				root,
 				&mut updates,
 				versioned_file,
-				resolved_paths,
-				version,
-				shared_release_version.as_ref(),
-				&dep_names,
+				&VersionedFileSite {
+					resolved_paths,
+					owner_version: version,
+					shared_release_version: shared_release_version.as_ref(),
+					dep_names: &dep_names,
+				},
 				&context,
 			)?;
 		}
@@ -364,10 +403,12 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 				root,
 				&mut updates,
 				versioned_file,
-				resolved_paths,
-				&group_version,
-				Some(&group_version),
-				&group_dep_names,
+				&VersionedFileSite {
+					resolved_paths,
+					owner_version: &group_version,
+					shared_release_version: Some(&group_version),
+					dep_names: &group_dep_names,
+				},
 				&context,
 			)?;
 		}
@@ -434,6 +475,7 @@ fn apply_inferred_lockfile_updates(
 			name: None,
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
+			value_template: None,
 		};
 
 		// Supported lockfiles can be rewritten directly from the release plan.
@@ -445,10 +487,12 @@ fn apply_inferred_lockfile_updates(
 			root,
 			updates,
 			&definition,
-			resolved_paths,
-			"",
-			shared_release_version,
-			&dep_names,
+			&VersionedFileSite {
+				resolved_paths,
+				owner_version: "",
+				shared_release_version,
+				dep_names: &dep_names,
+			},
 			context,
 		)?;
 	}
@@ -1349,16 +1393,129 @@ fn update_versioned_file_regex(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn apply_versioned_file_definition_to_paths(
+/// Render a `value_template` into a concrete file value.
+///
+/// The template sees the full variable namespace: the `SemVer` identity parts,
+/// the calendar context, the release ordinals, and the package's declared
+/// values.
+fn render_versioned_file_value(
+	template: &str,
+	owner_version: &str,
+	owner_name: Option<&str>,
+	context: &VersionedFileUpdateContext<'_>,
+	ecosystem_type: Option<monochange_core::EcosystemType>,
+) -> MonochangeResult<String> {
+	let package_id = owner_name.unwrap_or_default();
+	let values = context
+		.release_values
+		.get(package_id)
+		.cloned()
+		.unwrap_or_default();
+	let (identity, prerelease) = split_identity(owner_version);
+	let ecosystem = ecosystem_type.map(ecosystem_type_str).unwrap_or_default();
+	let mut variables = monochange_core::versioning::template_variables(
+		identity,
+		prerelease,
+		package_id,
+		&ecosystem,
+		&context.label_inputs,
+		&values,
+	);
+	variables.insert(
+		"label".to_string(),
+		context
+			.labels
+			.get(package_id)
+			.cloned()
+			.unwrap_or_else(|| owner_version.to_string()),
+	);
+	// The template was validated against the declared ids, so an unresolved
+	// variable here means the rendering context is missing a value.
+	let rendered = monochange_core::versioning::render_version_template(template, &variables);
+	if let Some(variable) = monochange_core::versioning::template_variables_used(&rendered).first()
+	{
+		return Err(MonochangeError::Config(format!(
+			"versioned file value template `{template}` left `{{{{ {variable} }}}}` unresolved"
+		)));
+	}
+	Ok(rendered)
+}
+
+fn ecosystem_type_str(ecosystem: monochange_core::EcosystemType) -> String {
+	match ecosystem {
+		monochange_core::EcosystemType::Cargo => "cargo",
+		monochange_core::EcosystemType::Npm => "npm",
+		monochange_core::EcosystemType::Deno => "deno",
+		monochange_core::EcosystemType::Dart => "dart",
+		monochange_core::EcosystemType::Python => "python",
+		monochange_core::EcosystemType::Go => "go",
+		// patch-coverage:ignore-start -- future-proof fallback for a non_exhaustive enum.
+		_ => "",
+		// patch-coverage:ignore-end
+	}
+	.to_string()
+}
+
+/// Split a version string into its identity core and prerelease parts.
+fn split_identity(version: &str) -> (&str, &str) {
+	let (without_build, _) = version.split_once('+').unwrap_or((version, ""));
+	match without_build.split_once('-') {
+		Some((core, prerelease)) => (core, prerelease),
+		None => (without_build, ""),
+	}
+}
+
+/// Replace a versioned file's version value while preserving its contents.
+///
+/// Text documents are matched by their existing version text; structured
+/// documents are parsed so the field is replaced precisely.
+fn replace_versioned_file_version(contents: &str, value: &str) -> MonochangeResult<String> {
+	use regex::Regex;
+	let pattern = Regex::new(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?")
+		.map_err(|error| MonochangeError::Config(format!("invalid version pattern: {error}")))?;
+	if !pattern.is_match(contents) {
+		return Err(MonochangeError::Config(
+			"versioned file value template could not find a SemVer version to replace; add an explicit `regex` or `fields` entry instead"
+				.to_string(),
+		));
+	}
+	Ok(pattern.replacen(contents, 1, value).to_string())
+}
+
+pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 	root: &Path,
 	updates: &mut BTreeMap<PathBuf, CachedDocument>,
 	definition: &VersionedFileDefinition,
-	resolved_paths: &[PathBuf],
-	owner_version: &str,
-	shared_release_version: Option<&String>,
-	dep_names: &[impl AsRef<str>],
+	site: &VersionedFileSite<'_, N>,
 	context: &VersionedFileUpdateContext<'_>,
 ) -> MonochangeResult<()> {
+	let resolved_paths = site.resolved_paths;
+	let owner_version = site.owner_version;
+	let shared_release_version = site.shared_release_version;
+	let dep_names = site.dep_names;
+	// A value template renders the whole file value instead of the plain
+	// version, so declared counters and calendar parts can reach store-facing
+	// files such as an Expo app manifest or a Flutter pubspec.
+	if let Some(template) = definition.value_template.as_deref() {
+		let name = dep_names.first().map(AsRef::as_ref);
+		for resolved_path in resolved_paths {
+			let resolved_path = resolved_path.clone();
+			let contents = read_cached_text_document(updates, &resolved_path)?;
+			let value = render_versioned_file_value(
+				template,
+				owner_version,
+				name,
+				context,
+				definition.ecosystem_type,
+			)?;
+			updates.insert(
+				resolved_path,
+				CachedDocument::Text(replace_versioned_file_version(&contents, &value)?),
+			);
+		}
+		return Ok(());
+	}
+
 	if let Some(pattern) = &definition.regex {
 		for resolved_path in resolved_paths {
 			let resolved_path = resolved_path.clone();

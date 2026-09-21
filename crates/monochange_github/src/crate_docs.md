@@ -63,6 +63,9 @@ let manifest = ReleaseManifest {
     changesets: Vec::new(),
     changelogs: Vec::new(),
     deleted_changesets: Vec::new(),
+    values: std::collections::BTreeMap::new(),
+    labels: std::collections::BTreeMap::new(),
+    label_inputs: monochange_core::versioning::LabelInputs::default(),
     plan: ReleaseManifestPlan {
         workspace_root: std::path::PathBuf::from("."),
         decisions: Vec::new(),

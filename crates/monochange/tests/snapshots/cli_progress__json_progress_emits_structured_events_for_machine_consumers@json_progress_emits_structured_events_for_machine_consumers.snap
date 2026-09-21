@@ -104,6 +104,10 @@ expression: redacted
       },
       {
         "duration_ms": "[duration_ms]",
+        "label": "resolve release values"
+      },
+      {
+        "duration_ms": "[duration_ms]",
         "label": "sync internal dependency constraints"
       }
     ],

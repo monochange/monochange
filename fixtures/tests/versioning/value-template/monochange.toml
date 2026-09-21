@@ -1,0 +1,30 @@
+[defaults]
+package_type = "dart"
+
+[package.app]
+path = "apps/app"
+display_version = "calver"
+
+[version_scheme.calver]
+template = "{{ year }}.{{ month_padded }}.{{ release_of_month }}"
+
+[package.app.values.ios]
+file = "build.json"
+field = "ios"
+reset = "version"
+
+[package.app.values.android]
+file = "build.json"
+field = "android"
+reset = "never"
+
+[[package.app.versioned_files]]
+path = "apps/app/pubspec.yaml"
+type = "dart"
+value_template = "{{ identity }}+{{ android }}"
+
+[[package.app.versioned_files]]
+path = "apps/app/store.json"
+format = "json"
+fields = ["release.version"]
+value_template = "{{ identity }}+{{ ios }}"

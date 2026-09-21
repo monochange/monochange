@@ -42,6 +42,7 @@ rstest = { workspace = true, default-features = true }
 rustls = { workspace = true, default-features = true }
 serde_json = { workspace = true, default-features = true }
 similar-asserts = { workspace = true, default-features = true }
+toml = { workspace = true, default-features = true }
 
 [lints]
 workspace = true

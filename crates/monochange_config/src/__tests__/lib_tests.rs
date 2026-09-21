@@ -1,4 +1,5 @@
 mod mutant_killers_tests;
+mod versioning_tests;
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -5445,6 +5446,9 @@ fn package_definition(id: &str, path: &str) -> monochange_core::PackageDefinitio
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 		cli: None,
+
+		values: BTreeMap::new(),
+		display_version: None,
 	}
 }
 
@@ -6058,6 +6062,8 @@ fn validate_changesets_configuration_rejects_invalid_additional_path_globs() {
 		&monochange_core::ChangesetSettings::default(),
 		&[monochange_core::PackageDefinition {
 			additional_paths: vec!["[".to_string()],
+			values: BTreeMap::new(),
+			display_version: None,
 			..package_definition("core", "crates/core")
 		}],
 	)
@@ -6073,6 +6079,8 @@ fn validate_changesets_configuration_rejects_invalid_additional_path_globs() {
 		&monochange_core::ChangesetSettings::default(),
 		&[monochange_core::PackageDefinition {
 			additional_paths: vec![" ".to_string()],
+			values: BTreeMap::new(),
+			display_version: None,
 			..package_definition("core", "crates/core")
 		}],
 	)
@@ -6610,6 +6618,8 @@ fn validate_package_and_source_settings_cover_duplicate_and_pattern_errors() {
 		&monochange_core::ChangesetSettings::default(),
 		&[monochange_core::PackageDefinition {
 			ignored_paths: vec![String::new()],
+			values: BTreeMap::new(),
+			display_version: None,
 			..package_definition("core", "crates/core")
 		}],
 	)
@@ -7040,6 +7050,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			prefix: None,
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
+			value_template: None,
 		}],
 		&declared_packages,
 		"package",
@@ -7065,6 +7076,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			prefix: None,
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
+			value_template: None,
 		}],
 		&declared_packages,
 		"package",
@@ -7095,6 +7107,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 		prefix: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	validate_versioned_files_for_test(
 		duplicate_glob_dir.path(),
@@ -7126,6 +7139,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			prefix: None,
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
+			value_template: None,
 		}],
 		&declared_packages,
 		"package",
@@ -7160,6 +7174,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			prefix: None,
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
+			value_template: None,
 		}],
 		&declared_packages,
 		"package",
@@ -7189,6 +7204,7 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			prefix: None,
 			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 			regex: None,
+			value_template: None,
 		}],
 		&declared_packages,
 		"package",
@@ -7351,6 +7367,9 @@ fn matching_package_helpers_cover_references_and_definitions() {
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 		cli: None,
+
+		values: BTreeMap::new(),
+		display_version: None,
 	};
 	assert_eq!(
 		crate::find_matching_package_indices_for_definition(&packages, &root, &definition),
@@ -8121,6 +8140,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	validate_versioned_files_for_test(
 		&root,
@@ -8141,6 +8161,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let error = validate_versioned_files_for_test(
 		&root,
@@ -8162,6 +8183,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: Some("version = (?<version>.*)".to_string()),
+		value_template: None,
 	};
 	let error = validate_versioned_files_for_test(
 		&root,
@@ -8183,6 +8205,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let error = validate_versioned_files_for_test(
 		&root,
@@ -8204,6 +8227,7 @@ fn validate_versioned_files_accepts_format_mode_and_rejects_invalid_combinations
 		prefix: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let error = validate_versioned_files_for_test(
 		&root,

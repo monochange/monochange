@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "&manifest.values"
+---
+{
+  "app.android": "42",
+  "app.ios": "8"
+}

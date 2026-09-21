@@ -234,6 +234,7 @@ fn sample_configuration(root: &Path) -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -267,6 +268,8 @@ fn sample_package_definition(
 		floating_tags: Vec::new(),
 		publish: monochange_core::PublishSettings::default(),
 		cli: None,
+		display_version: None,
+		values: BTreeMap::new(),
 	}
 }
 
@@ -292,6 +295,7 @@ fn sample_prepared_release(root: &Path) -> PreparedRelease {
 		updated_changelogs: Vec::new(),
 		deleted_changesets: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	}
 }
 

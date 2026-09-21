@@ -77,6 +77,7 @@ fn empty_configuration() -> WorkspaceConfiguration {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -328,6 +329,8 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 
 				floating_tags: Vec::new(),
 				cli: None,
+				display_version: None,
+				values: BTreeMap::new(),
 			},
 			PackageDefinition {
 				id: "core".to_string(),
@@ -354,6 +357,8 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 
 				floating_tags: Vec::new(),
 				cli: None,
+				display_version: None,
+				values: BTreeMap::new(),
 			},
 			PackageDefinition {
 				id: "web".to_string(),
@@ -380,6 +385,8 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 
 				floating_tags: Vec::new(),
 				cli: None,
+				display_version: None,
+				values: BTreeMap::new(),
 			},
 		],
 		groups: vec![GroupDefinition {
@@ -414,6 +421,7 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let displays = build_selectable_targets(&configuration)
 		.into_iter()
@@ -502,6 +510,7 @@ fn build_selectable_targets_handles_group_with_empty_packages() {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let targets = build_selectable_targets(&configuration);
 	assert_eq!(targets.len(), 1);
@@ -543,6 +552,8 @@ fn build_selectable_targets_with_only_standalone_packages() {
 
 				floating_tags: Vec::new(),
 				cli: None,
+				display_version: None,
+				values: BTreeMap::new(),
 			},
 			PackageDefinition {
 				id: "beta".to_string(),
@@ -569,6 +580,8 @@ fn build_selectable_targets_with_only_standalone_packages() {
 
 				floating_tags: Vec::new(),
 				cli: None,
+				display_version: None,
+				values: BTreeMap::new(),
 			},
 		],
 		groups: Vec::new(),
@@ -582,6 +595,7 @@ fn build_selectable_targets_with_only_standalone_packages() {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let targets = build_selectable_targets(&configuration);
 	let ids: Vec<&str> = targets.iter().map(|t| t.id.as_str()).collect();
@@ -666,6 +680,8 @@ fn build_selectable_targets_deduplicates_and_sorts_change_types() {
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		}],
 		groups: Vec::new(),
 		cli: Vec::new(),
@@ -678,6 +694,7 @@ fn build_selectable_targets_deduplicates_and_sorts_change_types() {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let target = build_selectable_targets(&configuration)
 		.into_iter()

@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "read_file(root, \"build.json\")"
+---
+{ "build": 4 }

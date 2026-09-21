@@ -399,6 +399,43 @@
 			],
 			"type": "string"
 		},
+		"LabelInputs": {
+			"description": "The context values available to schemes, titles, tags, paths, and values.",
+			"properties": {
+				"date": {
+					"default": "",
+					"description": "Release date in `YYYY-MM-DD` form, in UTC.",
+					"type": "string"
+				},
+				"of_month": {
+					"default": 0,
+					"description": "Ordinal of this release within its calendar month.",
+					"format": "uint64",
+					"minimum": 0,
+					"type": "integer"
+				},
+				"of_quarter": {
+					"default": 0,
+					"description": "Ordinal of this release within its calendar quarter.",
+					"format": "uint64",
+					"minimum": 0,
+					"type": "integer"
+				},
+				"of_year": {
+					"default": 0,
+					"description": "Ordinal of this release within its calendar year.",
+					"format": "uint64",
+					"minimum": 0,
+					"type": "integer"
+				},
+				"time": {
+					"default": "",
+					"description": "Release time in `HHMMSS` form, in UTC.",
+					"type": "string"
+				}
+			},
+			"type": "object"
+		},
 		"PackagePublicationTarget": {
 			"properties": {
 				"attestations": {
@@ -878,6 +915,17 @@
 			"const": "monochange.releaseRecord",
 			"type": "string"
 		},
+		"label_inputs": {
+			"$ref": "#/$defs/LabelInputs",
+			"description": "Context values the labels and ordinals were computed from."
+		},
+		"labels": {
+			"additionalProperties": {
+				"type": "string"
+			},
+			"description": "Display labels rendered for this release, keyed by package id.",
+			"type": "object"
+		},
 		"package_publications": {
 			"default": [],
 			"items": {
@@ -918,6 +966,13 @@
 				"type": "string"
 			},
 			"type": "array"
+		},
+		"values": {
+			"additionalProperties": {
+				"type": "string"
+			},
+			"description": "Declared release values rendered at prepare time, keyed by value id.\n\nFrozen so re-rendering a historical release cannot pick up a different\ntimestamp, hash, or counter.",
+			"type": "object"
 		},
 		"version": {
 			"default": null,

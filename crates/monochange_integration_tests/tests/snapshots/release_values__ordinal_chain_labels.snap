@@ -1,0 +1,7 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "&third.labels"
+---
+{
+  "app": "2026.10.1"
+}
