@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use crate::versioning::CounterFileError;
 use crate::versioning::GitSource;
+use crate::versioning::HashAlgorithm;
 use crate::versioning::HashEncoding;
 use crate::versioning::LabelInputs;
 use crate::versioning::ReleaseTimestamp;
@@ -74,6 +75,7 @@ fn stamp_behaviour_strings_match_config_values() {
 	assert_eq!(HashEncoding::Base32.as_str(), "base32");
 	assert_eq!(HashEncoding::Base36.as_str(), "base36");
 	assert_eq!(HashEncoding::Digits.as_str(), "digits");
+	assert_eq!(HashAlgorithm::Sha256.as_str(), "sha256");
 }
 
 #[test]

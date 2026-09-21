@@ -1444,3 +1444,63 @@ fn latest_tag_version_with_prefix_ignores_non_semver_tags() {
 		Some(Version::new(0, 2, 0))
 	);
 }
+
+#[test]
+fn build_release_manifest_freezes_rendered_values_and_label_inputs() {
+	let cli_command = CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: Vec::new(),
+		dry_run: false,
+	};
+	let mut versioning = crate::versioning_state::ResolvedReleaseValues::default();
+	versioning.packages.insert(
+		"core".to_string(),
+		crate::versioning_state::PackageValues {
+			values: BTreeMap::from([("build".to_string(), "5".to_string())]),
+			label: Some("2026.9.1".to_string()),
+			write_backs: Vec::new(),
+			monotonic: true,
+		},
+	);
+	versioning.label_inputs = monochange_core::versioning::LabelInputs {
+		date: "2026-09-19".to_string(),
+		time: "120000".to_string(),
+		of_month: 1,
+		of_quarter: 1,
+		of_year: 1,
+	};
+	let prepared_release = PreparedRelease {
+		plan: ReleasePlan {
+			workspace_root: PathBuf::from("."),
+			decisions: Vec::new(),
+			groups: Vec::new(),
+			warnings: Vec::new(),
+			unresolved_items: Vec::new(),
+			compatibility_evidence: Vec::new(),
+		},
+		changeset_paths: Vec::new(),
+		changesets: Vec::new(),
+		released_packages: vec!["core".to_string()],
+		version: Some("1.2.3".to_string()),
+		group_version: None,
+		release_targets: Vec::new(),
+		changed_files: Vec::new(),
+		changelogs: Vec::new(),
+		updated_changelogs: Vec::new(),
+		deleted_changesets: Vec::new(),
+		package_publications: Vec::new(),
+		dry_run: false,
+		versioning,
+	};
+
+	let manifest = build_release_manifest(&cli_command, &prepared_release, &[]);
+
+	// Rendered values are frozen so a later re-render cannot pick up a
+	// different counter, and the calendar context travels with them.
+	assert_eq!(manifest.values.get("core.build"), Some(&"5".to_string()));
+	assert_eq!(manifest.labels.get("core"), Some(&"2026.9.1".to_string()));
+	assert_eq!(manifest.label_inputs.date, "2026-09-19");
+	assert!(!manifest.label_inputs.is_empty());
+}

@@ -3046,3 +3046,72 @@ fn values_from_record_groups_dotted_keys_and_labels_by_package() {
 		None
 	);
 }
+
+#[tokio::test]
+async fn resolve_release_values_for_prepare_returns_default_without_released_packages() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let plan = versioning_plan(tempdir.path(), "app", "1.1.0");
+	// A package record that does not carry the `config_id` metadata the plan
+	// keys on leaves nothing to resolve, so the default is returned.
+	let packages = vec![monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"app",
+		tempdir.path().join("package.json"),
+		tempdir.path().to_path_buf(),
+		Some(semver::Version::parse("1.0.0").unwrap_or_else(|error| panic!("version: {error}"))),
+		monochange_core::PublishState::Public,
+	)];
+	let configuration = workspace_configuration_with_lockfile_commands();
+	let values =
+		resolve_release_values_for_prepare(tempdir.path(), &configuration, &packages, &plan)
+			.await
+			.unwrap_or_else(|error| panic!("resolve values: {error}"));
+	assert!(values.packages.is_empty());
+}
+
+#[tokio::test]
+async fn previous_release_versioning_returns_nothing_without_a_record() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let (inputs, version) = previous_release_versioning(tempdir.path()).await;
+	assert!(inputs.is_none());
+	assert!(version.is_none());
+}
+
+#[tokio::test]
+async fn existing_release_values_reports_invalid_record_json() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let plan = versioning_plan(root, "app", "1.1.0");
+	let targets = vec![monochange_core::ReleaseManifestTarget {
+		id: "app".to_string(),
+		kind: monochange_core::ReleaseOwnerKind::Package,
+		version: "1.1.0".to_string(),
+		tag: false,
+		release: false,
+		version_format: monochange_core::VersionFormat::default(),
+		tag_name: String::new(),
+		members: Vec::new(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
+	}];
+	let paths = release_record_paths(root, &targets);
+	std::fs::create_dir_all(
+		paths
+			.absolute
+			.parent()
+			.unwrap_or_else(|| panic!("record parent")),
+	)
+	.unwrap_or_else(|error| panic!("create record dir: {error}"));
+	// A record that is not valid JSON names the offending path.
+	fs::write(&paths.absolute, "{ not json")
+		.unwrap_or_else(|error| panic!("write record: {error}"));
+
+	let error = existing_release_values(root, &plan).expect_err("invalid record json should fail");
+	assert!(
+		error
+			.to_string()
+			.contains("could not read the existing release record"),
+		"got: {error}"
+	);
+}

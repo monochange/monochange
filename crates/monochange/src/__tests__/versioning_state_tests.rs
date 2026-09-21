@@ -1262,3 +1262,142 @@ fn git_output_in_temp_repo(root: &std::path::Path, args: &[&str]) -> String {
 		.trim()
 		.to_string()
 }
+
+#[tokio::test]
+async fn train_reset_moves_the_counter_to_one_in_a_new_version() {
+	let f = fixture("{\"build\": 7}");
+	let packages = vec![package(
+		"app",
+		vec![(
+			"build",
+			value_definition("file = \"build.json\"\nfield = \"build\"\nreset = \"version\"\n"),
+		)],
+	)];
+	// A different previous identity resets a train-scoped counter.
+	let resolved = resolve_release_values(
+		&context(&f.root, Some("1.0.0"), None),
+		&packages,
+		&BTreeMap::new(),
+		&released("app", "2.0.0"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("resolve: {error}"));
+	assert_eq!(resolved.packages["app"].values["build"], "1");
+}
+
+#[tokio::test]
+async fn display_scheme_renders_prerelease_without_build_metadata() {
+	let f = fixture("{}");
+	let mut packages = vec![package("app", Vec::new())];
+	packages[0].display_version = Some("identity".to_string());
+	// `{{ prerelease }}` comes from the identity, so a prerelease version with
+	// build metadata renders the prerelease tail without the metadata.
+	let schemes = BTreeMap::from([(
+		"identity".to_string(),
+		monochange_core::versioning::VersionSchemeDefinition {
+			template: "{{ prerelease }}".to_string(),
+		},
+	)]);
+	let resolved = resolve_release_values(
+		&context(&f.root, None, None),
+		&packages,
+		&schemes,
+		&released("app", "1.2.3-alpha.1+build.5"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("resolve: {error}"));
+	// `prerelease` carries the prerelease tail with build metadata removed.
+	assert_eq!(resolved.packages["app"].label.as_deref(), Some("alpha.1"));
+}
+
+#[tokio::test]
+async fn display_scheme_renders_an_empty_prerelease_for_a_stable_version() {
+	let f = fixture("{}");
+	let mut packages = vec![package("app", Vec::new())];
+	packages[0].display_version = Some("identity".to_string());
+	let schemes = BTreeMap::from([(
+		"identity".to_string(),
+		monochange_core::versioning::VersionSchemeDefinition {
+			template: "{{ identity }}.{{ prerelease }}".to_string(),
+		},
+	)]);
+	let resolved = resolve_release_values(
+		&context(&f.root, None, None),
+		&packages,
+		&schemes,
+		&released("app", "1.2.3"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("resolve: {error}"));
+	// A stable version has no prerelease, so the variable renders empty.
+	assert_eq!(resolved.packages["app"].label.as_deref(), Some("1.2.3."));
+}
+
+#[tokio::test]
+async fn counter_file_read_reports_a_non_missing_io_error() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = dir.path();
+	// A directory where the counter file is expected reads as an IO error that
+	// is not `NotFound`, so it surfaces as an `IoSource` rather than the
+	// missing-file guidance.
+	fs::create_dir_all(root.join("build.json"))
+		.unwrap_or_else(|error| panic!("create counter dir: {error}"));
+	let packages = vec![package(
+		"app",
+		vec![(
+			"build",
+			value_definition("file = \"build.json\"\nfield = \"build\"\n"),
+		)],
+	)];
+	let error = resolve_release_values(
+		&context(root, None, None),
+		&packages,
+		&BTreeMap::new(),
+		&released("app", "1.0.0"),
+	)
+	.await
+	.err()
+	.unwrap_or_else(|| panic!("a directory in place of the counter file should fail"));
+	assert!(error.to_string().contains("io error"), "got: {error}");
+}
+
+#[tokio::test]
+async fn counter_write_back_reports_a_non_missing_io_error() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = dir.path();
+	// The counter is read through a real file, then the directory is put in its
+	// place so the write-back cannot replace it.
+	fs::write(root.join("build.json"), "{\"build\": 1}")
+		.unwrap_or_else(|error| panic!("write counter: {error}"));
+	let write_backs = vec![monochange_core::versioning::CounterWriteBack {
+		file: std::path::PathBuf::from("build.json"),
+		field: "build".to_string(),
+		value: 2,
+	}];
+	fs::remove_file(root.join("build.json"))
+		.unwrap_or_else(|error| panic!("remove counter: {error}"));
+	fs::create_dir(root.join("build.json"))
+		.unwrap_or_else(|error| panic!("create counter dir: {error}"));
+	let error = apply_counter_write_backs(root, &write_backs)
+		.await
+		.err()
+		.unwrap_or_else(|| panic!("writing into a directory should fail"));
+	assert!(error.to_string().contains("io error"), "got: {error}");
+}
+
+#[tokio::test]
+async fn write_backs_report_a_flat_field_without_a_value_separator() {
+	let f = fixture("{\"build\" 3}");
+	// The key exists but no colon follows it, so the flat rewrite cannot locate
+	// the value and reports the field instead of writing garbage.
+	let write_backs = vec![monochange_core::versioning::CounterWriteBack {
+		file: std::path::PathBuf::from("build.json"),
+		field: "build".to_string(),
+		value: 5,
+	}];
+	let error = apply_counter_write_backs(&f.root, &write_backs)
+		.await
+		.err()
+		.unwrap_or_else(|| panic!("a field without a separator should fail"));
+	assert!(error.to_string().contains("has no value"), "got: {error}");
+}

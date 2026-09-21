@@ -1031,9 +1031,11 @@ pub fn render_version_template(template: &str, variables: &BTreeMap<String, Stri
 	let mut names = variables.keys().collect::<Vec<_>>();
 	names.sort_by_key(|name| std::cmp::Reverse(name.len()));
 	for name in names {
+		// patch-coverage:ignore-start -- `names` is built from `variables.keys()`, so every lookup succeeds.
 		let Some(value) = variables.get(name) else {
 			continue;
 		};
+		// patch-coverage:ignore-end
 		for pattern in [format!("{{{{ {name} }}}}"), format!("{{{{{name}}}}}")] {
 			rendered = rendered.replace(&pattern, value);
 		}
