@@ -1,8 +1,9 @@
 ---
-"monochange": minor
-"monochange_core": minor
+"monochange": major
+"monochange_core": major
 "monochange_config": minor
 "monochange_schema": minor
+"monochange_github": patch
 ---
 
 # Declare release values and version schemes for counters and calendar labels
@@ -57,6 +58,22 @@ value_template = "{{ identity }}+{{ build }}"
 Template variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.
 
 Resolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.
+
+## Breaking change
+
+`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:
+
+```rust
+ReleaseManifest {
+	// ...existing fields...
+	values: std::collections::BTreeMap::new(),
+	labels: std::collections::BTreeMap::new(),
+	label_inputs: monochange_core::versioning::LabelInputs::default(),
+	plan: /* ... */,
+}
+```
+
+Deserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.
 
 ## Ordering guarantees
 
