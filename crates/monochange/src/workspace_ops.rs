@@ -2768,8 +2768,9 @@ fn release_timestamp_from_datetime(
 		u8::try_from(datetime.second()).unwrap_or(0),
 	)
 	.unwrap_or_else(|_| {
-		// The epoch is always a valid timestamp, so the fallback cannot fail.
+		// patch-coverage:ignore-start -- chrono yields month 1-12, day 1-31, and time within 23:59:59, all of which `new` accepts, so this cannot fail.
 		monochange_core::versioning::ReleaseTimestamp::new(1970, 1, 1, 0, 0, 0).unwrap_or_default()
+		// patch-coverage:ignore-end
 	})
 }
 

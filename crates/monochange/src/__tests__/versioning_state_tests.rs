@@ -1401,3 +1401,28 @@ async fn write_backs_report_a_flat_field_without_a_value_separator() {
 		.unwrap_or_else(|| panic!("a field without a separator should fail"));
 	assert!(error.to_string().contains("has no value"), "got: {error}");
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn counter_write_back_reports_a_write_failure() {
+	use std::os::unix::fs::PermissionsExt;
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = dir.path();
+	let counter = root.join("build.json");
+	fs::write(&counter, "{\"build\": 1}").unwrap_or_else(|error| panic!("write counter: {error}"));
+	// The read succeeds, then the file is made read-only so the write fails.
+	fs::set_permissions(&counter, fs::Permissions::from_mode(0o444))
+		.unwrap_or_else(|error| panic!("chmod counter: {error}"));
+	let write_backs = vec![monochange_core::versioning::CounterWriteBack {
+		file: std::path::PathBuf::from("build.json"),
+		field: "build".to_string(),
+		value: 2,
+	}];
+	let result = apply_counter_write_backs(root, &write_backs).await;
+	// Restore permissions so the temp directory can be cleaned up.
+	let _ = fs::set_permissions(&counter, fs::Permissions::from_mode(0o644));
+	let error = result
+		.err()
+		.unwrap_or_else(|| panic!("writing a read-only counter should fail"));
+	assert!(error.to_string().contains("io error"), "got: {error}");
+}

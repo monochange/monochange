@@ -3115,3 +3115,61 @@ async fn existing_release_values_reports_invalid_record_json() {
 		"got: {error}"
 	);
 }
+
+#[tokio::test]
+async fn resolve_release_values_for_prepare_reuses_a_frozen_record() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	// The plan is keyed by discovery record id while declared values live under
+	// the configured package id, so the record carries both.
+	let mut package = monochange_core::PackageRecord::new(
+		monochange_core::Ecosystem::Npm,
+		"app",
+		root.join("package.json"),
+		root.to_path_buf(),
+		Some(semver::Version::parse("1.0.0").unwrap_or_else(|error| panic!("version: {error}"))),
+		monochange_core::PublishState::Public,
+	);
+	package
+		.metadata
+		.insert("config_id".to_string(), "app".to_string());
+	let record_id = package.id.clone();
+	let plan = versioning_plan(root, &record_id, "1.1.0");
+	let packages = vec![package];
+
+	// The record is written for the identity the plan resolves to, so the
+	// idempotency lookup finds it and returns the values unchanged.
+	let targets = vec![monochange_core::ReleaseManifestTarget {
+		id: record_id.clone(),
+		kind: monochange_core::ReleaseOwnerKind::Package,
+		version: "1.1.0".to_string(),
+		tag: false,
+		release: false,
+		version_format: monochange_core::VersionFormat::default(),
+		tag_name: String::new(),
+		members: Vec::new(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
+		floating_tags: Vec::new(),
+	}];
+	let paths = release_record_paths(root, &targets);
+	std::fs::create_dir_all(
+		paths
+			.absolute
+			.parent()
+			.unwrap_or_else(|| panic!("record parent")),
+	)
+	.unwrap_or_else(|error| panic!("create record dir: {error}"));
+	fs::write(&paths.absolute, frozen_record_json(true, true))
+		.unwrap_or_else(|error| panic!("write record: {error}"));
+
+	let configuration = workspace_configuration_with_lockfile_commands();
+	let values = resolve_release_values_for_prepare(root, &configuration, &packages, &plan)
+		.await
+		.unwrap_or_else(|error| panic!("resolve values: {error}"));
+
+	assert_eq!(
+		values.values_for("app").get("build"),
+		Some(&"5".to_string())
+	);
+}
