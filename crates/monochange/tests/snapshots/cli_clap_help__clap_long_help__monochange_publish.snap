@@ -1,0 +1,44 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange publish
+
+Run the built-in publishing steps through short subcommands. Each subcommand runs the same built-in step as the equivalent `monochange step <name>` command, with the same inputs and output formats. `packages` publishes release-state package versions to their registries, `readiness` reports registry readiness without publishing, and `placeholder` bootstraps first-time registry packages with placeholder versions.
+
+[1m[97mUsage:[0m [93mmonochange publish[0m [95m[OPTIONS][0m [95m<COMMAND>[0m
+
+[1m[96mPublish Commands:[0m
+  [93mpackages[0m     Publish package versions from durable monochange release state
+  [93mreadiness[0m    Check package registry publishing readiness without publishing packages
+  [93mplaceholder[0m  Publish placeholder package versions for missing registry packages
+
+[1m[96mOptions:[0m
+  [93m-h[0m, [93m--help[0m
+          Print help (see a summary with '-h')
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress result, progress, and diagnostic output without changing execution
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange publish readiness --from HEAD --output readiness.json
+  monochange publish packages --output publish.json
+  monochange publish placeholder --format json
+
+Each subcommand accepts the same inputs as the matching built-in step:
+  monochange publish packages     -> monochange step publish-packages
+  monochange publish readiness    -> monochange step publish-readiness
+  monochange publish placeholder  -> monochange step placeholder-publish

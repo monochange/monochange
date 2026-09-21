@@ -34,10 +34,13 @@ Visible top-level commands:
   lint
   mcp
   migrate
+  next
+  next-versions
   notes
   populate
   prepare
   preview
+  publish
   run
   skill
   snapshot

@@ -687,7 +687,7 @@ fn cli_diagnostic_command(args: &[OsString]) -> Option<String> {
 		command_args_after_globals(args).filter(|argument| !argument.starts_with('-'));
 	let first = command_args.next()?;
 	let mut command = format!("monochange {first}");
-	if matches!(first, "run" | "step" | "versions" | "lint")
+	if matches!(first, "run" | "step" | "versions" | "lint" | "publish")
 		&& let Some(second) = command_args.next()
 	{
 		command.push(' ');
@@ -1537,6 +1537,25 @@ async fn run_with_args_in_dir_with_progress(
 			}
 		}
 
+		Some(("publish", publish_matches)) => {
+			let (publish_command, publish_command_matches) = publish_matches
+				.subcommand()
+				.expect("clap requires a publish subcommand");
+			let configuration = configuration?;
+			let synthetic = cli::publish_step_command_definition(publish_command)?;
+			let inputs = collect_cli_command_inputs(&synthetic, publish_command_matches);
+			let dry_run = publish_command_matches.get_flag("dry-run");
+			execute_cli_command_with_progress(
+				root,
+				&configuration,
+				&synthetic,
+				dry_run,
+				quiet,
+				inputs,
+				progress,
+			)
+			.await
+		}
 		Some(("step", step_matches)) => {
 			let Some((step_name, step_command_matches)) = step_matches.subcommand() else {
 				return Err(MonochangeError::Config(

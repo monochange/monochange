@@ -36,6 +36,7 @@
 - [JSON Schema reference](reference/schemas.md)
 - [Manifest linting with `monochange check`](reference/linting.md)
 - [Internal dependency versions with `monochange versions sync`](reference/versions.md)
+- [Version preview and `monochange publish`](reference/version-preview-and-publish.md)
 - [Progress output](reference/progress-output.md)
 - [Telemetry](reference/telemetry.md)
 - [Hosted release benchmarks](reference/hosted-release-benchmarks.md)

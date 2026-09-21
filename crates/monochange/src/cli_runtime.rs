@@ -798,6 +798,9 @@ pub(crate) async fn execute_cli_command_with_options(
 					Ok(())
 				}
 				CliStepDefinition::DisplayVersions { .. } => {
+					// Reporting the planned versions is useful precisely when there is
+					// nothing queued as well, so an empty changeset set renders "no
+					// versions planned" instead of failing the step.
 					let prepared_execution = match maybe_load_prepared_release_execution(
 						root,
 						configuration,
@@ -814,7 +817,7 @@ pub(crate) async fn execute_cli_command_with_options(
 								configuration,
 								true,
 								false,
-								false,
+								true,
 							)
 							.await?
 						}

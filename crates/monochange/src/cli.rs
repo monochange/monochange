@@ -11,6 +11,7 @@ use monochange_core::CliCommandDefinition;
 use monochange_core::CliInputDefinition;
 use monochange_core::CliInputKind;
 use monochange_core::CliStepDefinition;
+use monochange_core::MonochangeError;
 use monochange_core::default_cli_commands;
 
 /// Build the top-level Clap command for the `monochange` binary.
@@ -68,10 +69,7 @@ pub(crate) fn cli_commands_for_root(root: &Path) -> Vec<CliCommandDefinition> {
 /// Extract CLI commands from an already-loaded configuration result, avoiding
 /// a redundant config load when the caller has already parsed the config.
 pub(crate) fn cli_commands_from_config(
-	configuration: &Result<
-		monochange_core::WorkspaceConfiguration,
-		monochange_core::MonochangeError,
-	>,
+	configuration: &Result<monochange_core::WorkspaceConfiguration, MonochangeError>,
 ) -> Vec<CliCommandDefinition> {
 	let Ok(configuration) = configuration else {
 		return default_cli_commands();
@@ -359,6 +357,7 @@ When provided, the generated config includes:\n\
 		.subcommand(build_migrate_subcommand())
 		.subcommand(build_lint_subcommand())
 		.subcommand(build_versions_subcommand())
+		.subcommand(build_publish_subcommand())
 		.subcommands(build_top_level_step_alias_subcommands())
 		.subcommand({
 			#[cfg(feature = "mcp")]
@@ -1001,6 +1000,18 @@ pub(crate) const TOP_LEVEL_STEP_ALIASES: &[TopLevelStepAlias] = &[
 		help_text: "Inspect changeset provenance and review metadata",
 		force_dry_run: false,
 	},
+	TopLevelStepAlias {
+		command: "next",
+		step: "display-versions",
+		help_text: "Show the next version for each release group and package without writing files",
+		force_dry_run: false,
+	},
+	TopLevelStepAlias {
+		command: "next-versions",
+		step: "display-versions",
+		help_text: "Show the next version for each release group and package without writing files",
+		force_dry_run: false,
+	},
 ];
 
 pub(crate) fn top_level_step_alias(command: &str) -> Option<TopLevelStepAlias> {
@@ -1076,6 +1087,112 @@ pub(crate) fn build_step_subcommand() -> Command {
 		command = command.subcommand(build_cli_command_subcommand_with_prefix(
 			&synthetic,
 			"monochange step",
+		));
+	}
+
+	command
+}
+
+/// Subcommands grouped under the built-in top-level `publish` command.
+///
+/// Each entry names the built-in step the subcommand runs. The step supplies
+/// the inputs, so `publish packages` accepts exactly what
+/// `step publish-packages` accepts.
+pub(crate) const PUBLISH_STEP_SUBCOMMANDS: &[PublishStepSubcommand] = &[
+	PublishStepSubcommand {
+		command: "packages",
+		step: "publish-packages",
+		help_text: "Publish package versions from durable monochange release state",
+	},
+	PublishStepSubcommand {
+		command: "readiness",
+		step: "publish-readiness",
+		help_text: "Check package registry publishing readiness without publishing packages",
+	},
+	PublishStepSubcommand {
+		command: "placeholder",
+		step: "placeholder-publish",
+		help_text: "Publish placeholder package versions for missing registry packages",
+	},
+];
+
+/// One built-in step exposed as a subcommand of `monochange publish`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct PublishStepSubcommand {
+	pub(crate) command: &'static str,
+	pub(crate) step: &'static str,
+	pub(crate) help_text: &'static str,
+}
+
+/// Build the step-backed definition for a `monochange publish <command>`
+/// subcommand.
+///
+/// `name` is the command name recorded on the definition. The clap builder
+/// passes the short subcommand token so `monochange publish packages` parses,
+/// while the runtime passes the fully qualified `publish packages` so progress
+/// output and error messages name the command the user typed.
+fn publish_step_definition(
+	subcommand: PublishStepSubcommand,
+	name: String,
+) -> CliCommandDefinition {
+	let step = monochange_core::all_step_variants()
+		.into_iter()
+		.find(|step| step.step_kebab_name() == subcommand.step)
+		.unwrap_or_else(|| panic!("missing built-in step `{}`", subcommand.step));
+
+	CliCommandDefinition {
+		name,
+		help_text: Some(subcommand.help_text.to_string()),
+		inputs: step.step_inputs_schema(),
+		steps: vec![step.with_inherited_step_inputs()],
+		dry_run: false,
+	}
+}
+
+/// Resolve a `monochange publish <command>` invocation into the definition the
+/// runtime executes.
+///
+/// The clap subcommand set is built from [`PUBLISH_STEP_SUBCOMMANDS`], so an
+/// unknown name can only arrive through a direct caller such as a test.
+pub(crate) fn publish_step_command_definition(
+	command: &str,
+) -> monochange_core::MonochangeResult<CliCommandDefinition> {
+	let subcommand = PUBLISH_STEP_SUBCOMMANDS
+		.iter()
+		.copied()
+		.find(|subcommand| subcommand.command == command)
+		.ok_or_else(|| {
+			MonochangeError::Config(format!("unknown publish command: publish {command}"))
+		})?;
+
+	Ok(publish_step_definition(
+		subcommand,
+		format!("publish {command}"),
+	))
+}
+
+fn build_publish_subcommand() -> Command {
+	let mut command = Command::new("publish")
+		.about("Publish packages and inspect registry publishing state")
+		.long_about(
+			"Run the built-in publishing steps through short subcommands. Each subcommand runs the \
+same built-in step as the equivalent `monochange step <name>` command, with the same inputs and \
+output formats. `packages` publishes release-state package versions to their registries, \
+`readiness` reports registry readiness without publishing, and `placeholder` bootstraps \
+first-time registry packages with placeholder versions.",
+		)
+		.after_help(
+			"Examples:\n  monochange publish readiness --from HEAD --output readiness.json\n  monochange publish packages --output publish.json\n  monochange publish placeholder --format json\n\nEach subcommand accepts the same inputs as the matching built-in step:\n  monochange publish packages     -> monochange step publish-packages\n  monochange publish readiness    -> monochange step publish-readiness\n  monochange publish placeholder  -> monochange step placeholder-publish",
+		)
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand_help_heading("Publish Commands");
+
+	for subcommand in PUBLISH_STEP_SUBCOMMANDS {
+		let definition = publish_step_definition(*subcommand, subcommand.command.to_string());
+		command = command.subcommand(build_cli_command_subcommand_with_prefix(
+			&definition,
+			"monochange publish",
 		));
 	}
 
@@ -1551,7 +1668,7 @@ pub fn classify_options_from_matches(
 				.as_deref(),
 		),
 		format: monochange_classification::ClassificationFormat::parse(format)
-			.map_err(monochange_core::MonochangeError::Config)?,
+			.map_err(MonochangeError::Config)?,
 		output: matches.get_one::<String>("output").map(PathBuf::from),
 		// Only the classification-producing subcommands declare `--label`;
 		// `changeset validate` shares this parser without the skip policy.

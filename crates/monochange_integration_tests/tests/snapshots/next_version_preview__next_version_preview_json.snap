@@ -1,0 +1,14 @@
+---
+source: crates/monochange_integration_tests/tests/next_version_preview.rs
+expression: parsed
+---
+{
+  "groups": {
+    "sdk": "1.1.0"
+  },
+  "packages": {
+    "cargo:crates/sdk-a/Cargo.toml": "1.1.0",
+    "cargo:crates/sdk-b/Cargo.toml": "1.1.0",
+    "cargo:crates/tool/Cargo.toml": "1.0.1"
+  }
+}
