@@ -36,10 +36,12 @@ fn apply_versioned_file_definition(
 		root,
 		updates,
 		definition,
-		&resolved_paths,
-		owner_version,
-		shared_release_version,
-		dep_names,
+		&super::VersionedFileSite {
+			resolved_paths: &resolved_paths,
+			owner_version,
+			shared_release_version,
+			dep_names,
+		},
 		context,
 	)
 }
@@ -572,6 +574,9 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: BTreeMap::new(),
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "*.json".to_string(),
@@ -582,6 +587,7 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	apply_versioned_file_definition(
@@ -654,6 +660,235 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 	assert!(error.to_string().contains("invalid glob pattern"));
 }
 
+/// Build a value-template definition aimed at one file.
+fn value_template_definition(
+	path: &str,
+	template: &str,
+	ecosystem_type: Option<EcosystemType>,
+) -> monochange_core::VersionedFileDefinition {
+	monochange_core::VersionedFileDefinition {
+		path: path.to_string(),
+		ecosystem_type,
+		format: None,
+		prefix: None,
+		fields: None,
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: Some(template.to_string()),
+	}
+}
+
+#[test]
+fn value_template_renders_declared_values_into_a_file() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("pubspec.yaml"), "version: 1.0.0\n")
+		.unwrap_or_else(|error| panic!("write pubspec: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::from([(
+			"app".to_string(),
+			BTreeMap::from([("build".to_string(), "42".to_string())]),
+		)]),
+	};
+	let definition = value_template_definition("pubspec.yaml", "{{ identity }}+{{ build }}", None);
+	let mut updates = BTreeMap::new();
+	apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"1.2.3",
+		None,
+		&["app".to_string()],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply value template: {error}"));
+	assert!(matches!(
+		updates.get(&root.join("pubspec.yaml")),
+		Some(CachedDocument::Text(contents)) if contents.contains("version: 1.2.3+42")
+	));
+}
+
+#[test]
+fn value_template_reports_an_unresolved_variable() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("pubspec.yaml"), "version: 1.0.0\n")
+		.unwrap_or_else(|error| panic!("write pubspec: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		// No `build` value is declared for the package, so the rendered template
+		// still carries `{{ build }}` and must be reported rather than written.
+		release_values: BTreeMap::new(),
+	};
+	let definition = value_template_definition("pubspec.yaml", "{{ identity }}+{{ build }}", None);
+	let mut updates = BTreeMap::new();
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"1.2.3",
+		None,
+		&["app".to_string()],
+		&context,
+	)
+	.expect_err("an unresolved template variable should fail");
+	assert!(error.to_string().contains("unresolved"), "got: {error}");
+}
+
+#[test]
+fn value_template_reports_a_file_without_a_semver_to_replace() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("store.json"), "{\"build\": 7}\n")
+		.unwrap_or_else(|error| panic!("write store: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
+	};
+	let definition = value_template_definition("store.json", "{{ identity }}", None);
+	let mut updates = BTreeMap::new();
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"1.2.3",
+		None,
+		&["app".to_string()],
+		&context,
+	)
+	.expect_err("a file with no SemVer text should fail");
+	assert!(
+		error
+			.to_string()
+			.contains("could not find a SemVer version"),
+		"got: {error}"
+	);
+}
+
+#[test]
+fn value_template_uses_each_ecosystem_name_in_the_context() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
+	};
+	// `{{ ecosystem }}` renders through the ecosystem-name mapping, so each
+	// ecosystem type must produce its own name.
+	for (ecosystem_type, expected) in [
+		(EcosystemType::Cargo, "cargo"),
+		(EcosystemType::Npm, "npm"),
+		(EcosystemType::Deno, "deno"),
+		(EcosystemType::Dart, "dart"),
+		(EcosystemType::Python, "python"),
+		(EcosystemType::Go, "go"),
+	] {
+		let file_name = format!("{expected}.txt");
+		std::fs::write(root.join(&file_name), "version 1.0.0\n")
+			.unwrap_or_else(|error| panic!("write {file_name}: {error}"));
+		let definition = value_template_definition(
+			&file_name,
+			"{{ ecosystem }}-{{ identity }}",
+			Some(ecosystem_type),
+		);
+		let mut updates = BTreeMap::new();
+		apply_versioned_file_definition(
+			root,
+			&mut updates,
+			&definition,
+			"1.2.3",
+			None,
+			&["app".to_string()],
+			&context,
+		)
+		.unwrap_or_else(|error| panic!("apply {expected} template: {error}"));
+		assert!(
+			matches!(
+				updates.get(&root.join(&file_name)),
+				Some(CachedDocument::Text(contents))
+					if contents.contains(&format!("{expected}-1.2.3"))
+			),
+			"ecosystem {expected} did not render"
+		);
+	}
+}
+
+#[test]
+fn value_template_renders_prerelease_identity_without_build_metadata() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("version.txt"), "1.0.0\n")
+		.unwrap_or_else(|error| panic!("write version: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
+	};
+	// `{{ prerelease }}` carries the prerelease tail with build metadata removed.
+	let definition = value_template_definition("version.txt", "{{ prerelease }}", None);
+	let mut updates = BTreeMap::new();
+	apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"1.2.3-alpha.1+build.5",
+		None,
+		&["app".to_string()],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply prerelease template: {error}"));
+	assert!(matches!(
+		updates.get(&root.join("version.txt")),
+		Some(CachedDocument::Text(contents)) if contents.contains("alpha.1")
+	));
+}
+
 #[test]
 fn recursive_versioned_file_globs_skip_ignored_workspace_directories() {
 	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -676,6 +911,9 @@ fn recursive_versioned_file_globs_skip_ignored_workspace_directories() {
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: BTreeMap::new(),
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "**/metadata.json".to_string(),
@@ -686,6 +924,7 @@ fn recursive_versioned_file_globs_skip_ignored_workspace_directories() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 	apply_versioned_file_definition(
@@ -740,9 +979,15 @@ fn build_versioned_file_updates_returns_empty_for_empty_configuration() {
 		compatibility_evidence: Vec::new(),
 	};
 
-	let updates =
-		build_versioned_file_updates_with_base_updates(root, &configuration, &[], &plan, &[])
-			.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
+	let updates = build_versioned_file_updates_with_base_updates(
+		root,
+		&configuration,
+		&[],
+		&plan,
+		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
+	)
+	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
 	assert!(updates.is_empty());
 }
@@ -774,6 +1019,7 @@ fn build_versioned_file_updates_reports_invalid_glob_pattern_in_package_prewarm(
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.expect_err("invalid glob should error during prewarm");
 
@@ -835,6 +1081,7 @@ fn build_versioned_file_updates_prewarms_group_versioned_file_globs() {
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
@@ -899,6 +1146,7 @@ fn build_versioned_file_updates_reports_invalid_glob_pattern_in_group_prewarm() 
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.expect_err("invalid group glob should error during prewarm");
 
@@ -919,6 +1167,7 @@ fn build_versioned_file_updates_uses_default_versioned_files() {
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
@@ -939,6 +1188,7 @@ fn build_versioned_file_updates_uses_ecosystem_versioned_files() {
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
@@ -1113,6 +1363,9 @@ fn apply_versioned_file_definition_reports_go_for_unsupported_glob_match() {
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: released_versions,
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "*.txt".to_string(),
@@ -1123,6 +1376,7 @@ fn apply_versioned_file_definition_reports_go_for_unsupported_glob_match() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 
@@ -1160,6 +1414,9 @@ fn apply_versioned_file_definition_updates_go_mod_dependencies() {
 		current_versions_by_native_name: BTreeMap::new(),
 		released_versions_by_native_name: released_versions,
 		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
 	};
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "go.mod".to_string(),
@@ -1170,6 +1427,7 @@ fn apply_versioned_file_definition_updates_go_mod_dependencies() {
 		name: None,
 		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 		regex: None,
+		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
 
@@ -1268,6 +1526,7 @@ enabled = true
 		std::slice::from_ref(&package),
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.unwrap_or_else(|error| panic!("build versioned updates: {error}"));
 
@@ -1286,6 +1545,7 @@ enabled = true
 		&[package],
 		&plan,
 		&[],
+		&crate::versioning_state::ResolvedReleaseValues::default(),
 	)
 	.expect_err("invalid overridden versioned file should fail");
 	assert!(error.to_string().contains("failed to parse"));

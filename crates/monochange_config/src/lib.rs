@@ -82,6 +82,9 @@ use monochange_core::lint::ChangesetSummaryLintSettings;
 use monochange_core::lint::LintRuleConfig;
 use monochange_core::lint::WorkspaceLintSettings;
 use monochange_core::relative_to_root;
+use monochange_core::versioning::validate_template_variables;
+use monochange_core::versioning::validate_value_definition;
+use monochange_core::versioning::validate_value_id;
 use regex::Regex;
 use semver::Version;
 use serde::Deserialize;
@@ -152,11 +155,24 @@ pub(crate) struct RawWorkspaceConfiguration {
 	prerelease: PrereleaseConfiguration,
 	#[serde(default)]
 	source: Option<RawSourceConfiguration>,
+	/// Reusable display-label schemes referenced by `[package.<id>].display_version`.
+	#[serde(default)]
+	version_scheme: BTreeMap<String, RawVersionSchemeDefinition>,
 	#[serde(default)]
 	#[cfg_attr(feature = "schema", schemars(with = "serde_json::Value"))]
 	lints: WorkspaceLintSettings,
 	#[serde(default)]
 	ecosystems: RawEcosystems,
+}
+
+/// Raw `[version_scheme.<id>]` value.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "schema", schemars(rename = "version_scheme"))]
+pub(crate) struct RawVersionSchemeDefinition {
+	/// Template rendered into a package's display label.
+	template: String,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -307,6 +323,12 @@ pub(crate) struct RawPackageDefinition {
 	initial_version: Option<Version>,
 	#[serde(default)]
 	floating_tags: Vec<FloatingTagFormat>,
+	/// Declared release values available as template variables by id.
+	#[serde(default)]
+	values: BTreeMap<String, monochange_core::versioning::ValueDefinition>,
+	/// Version scheme used to render this package's display label.
+	#[serde(default)]
+	display_version: Option<String>,
 	#[serde(default)]
 	publish: RawPublishSettings,
 	#[serde(default)]
@@ -1019,6 +1041,7 @@ fn normalize_versioned_files(
 					name: None,
 					missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
 					regex: None,
+					value_template: None,
 				})
 			}
 			RawVersionedFileDefinition::Path(_) => Err(config_diagnostic(
@@ -1867,6 +1890,7 @@ fn build_package_definitions(
 					name: None,
 					missing_field_behavior: monochange_core::MissingFieldBehavior::Ignore,
 					regex: None,
+					value_template: None,
 				});
 			}
 			versioned_files.extend(normalize_versioned_files(
@@ -1931,6 +1955,8 @@ fn build_package_definitions(
 				bump_ceiling: package.bump_ceiling,
 				classification_enforced: package.classification_enforced,
 				cli: normalize_package_cli(package.cli),
+				values: package.values,
+				display_version: package.display_version,
 				publish,
 			})
 		})
@@ -2170,6 +2196,8 @@ fn discover_auto_packages(
 				bump_ceiling: None,
 				classification_enforced: None,
 				cli: None,
+				values: BTreeMap::new(),
+				display_version: None,
 				publish: ecosystem_settings.publish.clone(),
 			});
 		}
@@ -2217,6 +2245,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		changesets,
 		prerelease,
 		source,
+		version_scheme,
 		lints,
 		ecosystems,
 	} = raw;
@@ -2257,6 +2286,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		.as_ref()
 		.and_then(RawChangelogConfig::format)
 		.unwrap_or_default();
+	let version_schemes = resolve_version_schemes(&contents, version_scheme)?;
 	let packages = build_package_definitions(
 		&contents,
 		package,
@@ -2355,6 +2385,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		&mut versioned_file_cache,
 	)?;
 	validate_package_cli_definitions(&contents, &packages)?;
+	validate_version_values(&contents, &packages, &version_schemes)?;
 	validate_cli_runtime_requirements(&cli, &changesets, source.as_ref())?;
 
 	let defaults_bump_propagation = resolve_bump_propagation(
@@ -2388,6 +2419,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		cli,
 		changesets,
 		source,
+		version_schemes,
 		lints,
 		cargo: cargo_ecosystem,
 		npm: npm_ecosystem,
@@ -4689,6 +4721,273 @@ fn validate_package_cli_definitions(
 #[allow(clippy::match_same_arms)]
 fn expected_manifest_name(package_type: PackageType) -> Option<&'static str> {
 	package_type.manifest_file_name()
+}
+
+/// Resolve `[version_scheme.<id>]` tables into their domain form.
+fn resolve_version_schemes(
+	contents: &str,
+	raw: BTreeMap<String, RawVersionSchemeDefinition>,
+) -> MonochangeResult<BTreeMap<String, monochange_core::versioning::VersionSchemeDefinition>> {
+	let mut schemes = BTreeMap::new();
+	for (id, scheme) in raw {
+		if let Err(error) = validate_identifier_key(contents, "version_scheme", &id) {
+			let message = format!("invalid version scheme id `{id}`: {error}");
+			let help = "use a lowercase identifier such as `calver`".to_string();
+			let label = config_section_label(contents, "version_scheme", &id, "invalid scheme id");
+			let labels = vec![label];
+			return Err(config_diagnostic(contents, message, labels, Some(help)));
+		}
+		if scheme.template.trim().is_empty() {
+			let message = format!("version scheme `{id}` has an empty template");
+			let help = "set `template` to a value such as `{{ year }}.{{ month }}`".to_string();
+			let label = config_section_label(contents, "version_scheme", &id, "empty template");
+			let labels = vec![label];
+			return Err(config_diagnostic(contents, message, labels, Some(help)));
+		}
+		let definition = monochange_core::versioning::VersionSchemeDefinition {
+			template: scheme.template,
+		};
+		schemes.insert(id, definition);
+	}
+	Ok(schemes)
+	// patch-coverage:ignore-start -- closing brace, blank, doc, and signature lines carry no statements; llvm-cov still emits zero-count records for them.
+}
+
+/// Validate declared package values, display schemes, and value templates.
+///
+/// Every template is checked against the variables that will actually be
+/// available at render time: the context variables plus the package's own
+/// declared value ids.
+fn validate_version_values(
+	contents: &str,
+	packages: &[PackageDefinition],
+	schemes: &BTreeMap<String, monochange_core::versioning::VersionSchemeDefinition>,
+) -> MonochangeResult<()> {
+	// patch-coverage:ignore-end
+	for package in packages {
+		for (value_id, definition) in &package.values {
+			if let Err(error) = validate_value_id(value_id) {
+				return Err(config_diagnostic(
+					contents,
+					format!("package `{}` has an invalid value id: {error}", package.id),
+					vec![config_section_label(
+						contents,
+						"package",
+						&package.id,
+						"invalid value id",
+					)],
+					None,
+				));
+			}
+			if let Err(error) = validate_value_definition(value_id, definition) {
+				return Err(config_diagnostic(
+					contents,
+					format!("package `{}`: {error}", package.id),
+					vec![config_section_label(
+						contents,
+						"package",
+						&package.id,
+						"invalid value definition",
+					)],
+					Some(
+						"declare exactly one source (`file`, `hash`, `env`, `git`, or `timestamp`)"
+							.to_string(),
+					),
+				));
+			}
+		}
+		// Values become template variables, so every template that can render
+		// for this package must be checked against the same available set.
+		let available = available_template_variables(package);
+		if let Some(scheme_id) = package.display_version.as_deref() {
+			let Some(scheme) = schemes.get(scheme_id) else {
+				let declared = if schemes.is_empty() {
+					"none declared".to_string()
+				} else {
+					schemes.keys().cloned().collect::<Vec<_>>().join(", ")
+				};
+				return Err(config_diagnostic(
+					contents,
+					format!(
+						"package `{}` references unknown version scheme `{scheme_id}`; declared schemes: {declared}",
+						package.id
+					),
+					vec![config_section_label(
+						contents,
+						"package",
+						&package.id,
+						"unknown version scheme",
+					)],
+					Some("add a `[version_scheme.<id>]` table for it".to_string()),
+				));
+			};
+			validate_template_variables(
+				&scheme.template,
+				&available,
+				&format!("package `{}` version scheme `{scheme_id}`", package.id),
+			)?;
+		}
+		for surface in [&package.release_title, &package.changelog_version_title]
+			.into_iter()
+			.flatten()
+		{
+			validate_template_variables(
+				surface,
+				&available,
+				&format!("package `{}` title", package.id),
+			)?;
+		}
+		// Compare on the literal path text so `path = "."` and a bare manifest
+		// name still match; `join` would produce `./package.json`.
+		let manifest_path = package.package_type.manifest_file_name().map(|manifest| {
+			let joined = package.path.join(manifest);
+			joined
+				.to_string_lossy()
+				.trim_start_matches("./")
+				.to_string()
+		});
+		for versioned_file in &package.versioned_files {
+			let Some(template) = versioned_file.value_template.as_deref() else {
+				continue;
+			};
+			let surface = format!(
+				"package `{}` versioned file `{}`",
+				package.id, versioned_file.path
+			);
+			validate_template_variables(template, &available, &surface)?;
+			// The identity-bearing manifest must stay a bare pre-release-aware
+			// SemVer: calendar, ordinal, and counter values are not valid there.
+			if manifest_path
+				.as_deref()
+				.is_some_and(|manifest| versioned_file.path == manifest)
+			{
+				validate_manifest_value_template(contents, &surface, template, package)?;
+			}
+		}
+	}
+	Ok(())
+}
+
+/// Reject a manifest value template that cannot render a valid `SemVer`.
+///
+/// Dart and Flutter manifests legitimately carry build metadata
+/// (`1.2.3+4`), so a build counter is valid there. What is not valid is a
+/// template whose shape can never parse as `SemVer` — a calendar month paired
+/// with a package name, a hash with letters in a numeric position, or a
+/// literal that is not `SemVer`-shaped at all.
+fn validate_manifest_value_template(
+	contents: &str,
+	surface: &str,
+	template: &str,
+	package: &PackageDefinition,
+) -> MonochangeResult<()> {
+	let variables = available_template_variables(package);
+
+	// A variable may only appear where `SemVer` grammar allows it. Map each
+	// position to whether it accepts arbitrary text or digits only.
+	for variable in monochange_core::versioning::template_variables_used(template) {
+		let Some(definition) = package.values.get(&variable) else {
+			continue;
+		};
+		if definition.renders_numeric() {
+			continue;
+		}
+		let label = config_section_label(
+			contents,
+			"package",
+			&package.id,
+			"value can contain letters",
+		);
+		let message = format!(
+			"{surface} uses `{{{{ {variable} }}}}` in a `SemVer` position, but that value can contain letters"
+		);
+		let help = "use a numeric counter, a `digits`-encoded hash, or move it to another file"
+			.to_string();
+		return Err(config_diagnostic(
+			contents,
+			message,
+			vec![label],
+			Some(help),
+		));
+	}
+
+	// patch-coverage:ignore-start -- explanatory comment carries no statements.
+	// The rendered result must parse. Unknown variables are substituted with a
+	// plausible value so the check reasons about shape rather than content.
+	// patch-coverage:ignore-end
+	let probe = probe_render_variables(template, &variables);
+	if Version::parse(&probe).is_ok() {
+		return Ok(());
+	}
+	let label = config_section_label(
+		contents,
+		"package",
+		&package.id,
+		"manifest value template is not SemVer-shaped",
+	);
+	let message = format!("{surface} cannot render a valid `SemVer` version");
+	let help = "manifests must carry a plain SemVer such as `1.2.3` or `1.2.3+4`".to_string();
+	Err(config_diagnostic(
+		contents,
+		message,
+		vec![label],
+		Some(help),
+	))
+}
+
+/// Substitute template variables with representative values for a shape check.
+fn probe_render_variables(template: &str, available: &BTreeMap<String, String>) -> String {
+	let mut probe = template.to_string();
+	for variable in monochange_core::versioning::template_variables_used(template) {
+		// `SemVer` positions need a full core, so identity-bearing variables
+		// probe with one; everything else probes as a single number.
+		let replacement = if variable == "identity" || variable == "version" {
+			"1.2.3"
+		} else {
+			"1"
+		};
+		let _ = available;
+		for pattern in [
+			format!("{{{{ {variable} }}}}"),
+			format!("{{{{{variable}}}}}"),
+		] {
+			probe = probe.replace(&pattern, replacement);
+		}
+	}
+	probe
+}
+
+/// Context variables plus declared value ids available to a package's templates.
+fn available_template_variables(package: &PackageDefinition) -> BTreeMap<String, String> {
+	let mut available = BTreeMap::new();
+	for variable in [
+		"major",
+		"minor",
+		"patch",
+		"version",
+		"identity",
+		"prerelease",
+		"name",
+		"ecosystem",
+		"year",
+		"year_short",
+		"month",
+		"month_padded",
+		"quarter",
+		"day",
+		"date",
+		"time",
+		"release_of_month",
+		"release_of_quarter",
+		"release_of_year",
+		"label",
+	] {
+		available.insert(variable.to_string(), variable.to_string());
+	}
+	for value_id in package.values.keys() {
+		available.insert(value_id.clone(), value_id.clone());
+	}
+	available
 }
 
 fn build_changelog_settings(raw: RawChangelogSettings) -> ChangelogSettings {

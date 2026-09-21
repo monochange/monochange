@@ -575,6 +575,7 @@ fn sample_configuration(root: &Path) -> monochange_core::WorkspaceConfiguration 
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -614,6 +615,7 @@ fn sample_prepared_release() -> PreparedRelease {
 		updated_changelogs: Vec::new(),
 		deleted_changesets: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	}
 }
 
@@ -677,6 +679,7 @@ fn sample_prepared_release_with_versions() -> PreparedRelease {
 		updated_changelogs: Vec::new(),
 		deleted_changesets: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	}
 }
 
@@ -1152,6 +1155,7 @@ fn render_cli_command_results_include_release_details_policy_and_logs() {
 		deleted_changesets: vec![PathBuf::from(".changeset/feature.md")],
 		package_publications: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	});
 	context.prepared_file_diffs = vec![PreparedFileDiff {
 		path: PathBuf::from("Cargo.toml"),
@@ -2816,6 +2820,7 @@ async fn execute_cli_command_reports_command_failures_after_progress_callbacks()
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	};
 	let error = execute_cli_command(
 		tempdir.path(),
@@ -2902,6 +2907,7 @@ fn build_release_template_value_serializes_file_diffs() {
 		deleted_changesets: Vec::new(),
 		package_publications: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	});
 	context.prepared_file_diffs = vec![PreparedFileDiff {
 		path: PathBuf::from("Cargo.toml"),
@@ -3398,6 +3404,7 @@ fn render_cli_command_result_and_markdown_include_release_target_details_without
 		deleted_changesets: Vec::new(),
 		package_publications: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	});
 	context.changeset_policy_evaluation = Some(ChangesetPolicyEvaluation {
 		enforce: false,

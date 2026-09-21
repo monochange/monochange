@@ -191,6 +191,68 @@ warn_on_group_mismatch = true
 # targets = ["app"]
 
 
+# Version schemes render "vanity" display labels from calendar parts, release
+# ordinals, and declared release values. Reference one from a package with
+# `display_version = "<scheme id>"`.
+#
+# Available variables:
+#   Identity:  {{ major }} {{ minor }} {{ patch }} {{ version }} {{ identity }}
+#              {{ prerelease }}
+#   Calendar:  {{ year }} {{ year_short }} {{ month }} {{ month_padded }}
+#              {{ quarter }} {{ day }} {{ date }} {{ time }}
+#   Ordinals:  {{ release_of_month }} {{ release_of_quarter }} {{ release_of_year }}
+#   Declared:  every `[package.<id>.values.<value id>]` id, plus `{{ label }}`
+#              for the package's own rendered label.
+#
+# [version_scheme.calver]
+# template = "{{ year }}.{{ month_padded }}.{{ release_of_month }}"
+
+# [version_scheme.ubuntu]
+# template = "{{ year_short }}.{{ month_padded }}"
+
+# Declared release values become template variables and, for file counters, are
+# stamped on every release. The counter file is yours to create and commit:
+#   { "build": 0 }
+#
+# Sources (declare exactly one):
+#   file + field   stamped or read-only counter at a dot-separated JSON field
+#   hash           digest of a file; supports algorithm/encoding/length
+#   env            environment variable value
+#   git            short_hash or commit_count of the release commit
+#   timestamp      now or commit
+#
+# Behaviours for `file` counters:
+#   on_release = "increment"              add one (default)
+#   on_release = { add = { amount = 10 }} add a fixed amount
+#   on_release = "none"                   read without changing
+#   reset = "never"                       never restart (Google Play, macOS)
+#   reset = "version"                     restart when the version changes (iOS)
+#
+# [package.app.values.build]
+# file = "build.json"
+# field = "build"
+# on_release = "increment"
+# reset = "version"
+
+# [package.app.values.play_code]
+# file = "build.json"
+# field = "play_code"
+# reset = "never"
+
+# [package.app.values.artifact]
+# hash = "artifacts/app.aab"
+# encoding = "base36"
+# length = 8
+
+# A versioned file can render a whole value instead of the plain version, so
+# store counters reach pubspec.yaml or an Expo app.json.
+#
+# [[package.app.versioned_files]]
+# path = "pubspec.yaml"
+# type = "dart"
+# value_template = "{{ identity }}+{{ build }}"
+
+
 # Default empty_update_message applied when a package is bumped but has no
 # direct changeset entries (e.g. transitive dependency bumps or group
 # synchronization). Template placeholders are interpolated at render time

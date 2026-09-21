@@ -623,6 +623,21 @@ versioned_files = ["**/packages/*/package.json"]
 
 Typed manifest entries can update dependency sections and arbitrary string fields inside TOML or JSON manifests. Dependency targets in `versioned_files` must reference declared package ids. Groups must use explicit typed entries because monochange cannot infer a group ecosystem from a bare string.
 
+### Value templates
+
+A versioned file can render a whole value instead of the plain version. This is how a store build number reaches a `pubspec.yaml` or an Expo `app.json`:
+
+```toml
+[[package.app.versioned_files]]
+path = "pubspec.yaml"
+type = "dart"
+value_template = "{{ identity }}+{{ build }}"
+```
+
+The template sees the full variable namespace, including values declared with `[package.<id>.values.<id>]`. See [Release values and version schemes](#release-values-and-version-schemes).
+
+A package's own ecosystem manifest must stay a plain `SemVer`, so `value_template` on that path rejects calendar, ordinal, and counter variables with a configuration error. Move store values into a separate versioned file, or set `version_source = "tag"` when the manifest cannot carry a SemVer version at all.
+
 ### Dependency prefixes
 
 Typed entries write internal dependency references with a range prefix. Set `prefix` on an entry to control it exactly. Accepted values are `"^"`, `"~"`, `">="`, `"="`, `"v"`, or `""` for a bare version:
@@ -1253,6 +1268,90 @@ Supported template variables include:
 The `*_link` variants render markdown links when the hosting provider exposes URLs. By default `{{ context }}` renders the highest-value metadata for readers: owner, review request, introduced commit, last updated commit when different, and linked issues. It does not expose the transient `.changeset/*.md` path unless you explicitly reference `{{ changeset_path }}` in your template.
 
 <!-- {/configurationPackageOverridesSnippet} -->
+
+## Release values and version schemes
+
+Release planning tracks one version axis: a `SemVer` identity. Two optional surfaces add a second number and a human-facing label.
+
+### Version schemes
+
+`[version_scheme.<id>]` renders a display label from calendar parts, release ordinals, and declared values. Reference one from a package with `display_version`:
+
+```toml
+[version_scheme.calver]
+template = "{{ year }}.{{ month_padded }}.{{ release_of_month }}"
+
+[package.app]
+display_version = "calver"
+```
+
+Template variables:
+
+| Group    | Variables                                                                       |
+| -------- | ------------------------------------------------------------------------------- |
+| Identity | `major`, `minor`, `patch`, `version`, `identity`, `prerelease`                  |
+| Calendar | `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time` |
+| Ordinals | `release_of_month`, `release_of_quarter`, `release_of_year`                     |
+| Declared | every `[package.<id>.values.<id>]` id, plus `label`                             |
+
+Ordinals chain from the previous release record and restart at `1` in a new month, quarter, or year. Values and labels are frozen into the release record, so re-rendering a historical release always produces the same string.
+
+### Declared values
+
+`[package.<id>.values.<id>]` declares a value that becomes a template variable. Every declaration names exactly one source.
+
+```toml
+# A stamped counter in a file you create and commit.
+[package.app.values.build]
+file = "build.json" # { "build": 0 }
+field = "build" # dot-separated paths are supported
+on_release = "increment" # or { add = { amount = 10 } } or "none"
+reset = "version" # "version" for iOS trains, "never" for Play/macOS
+
+[package.app.values.artifact]
+hash = "artifacts/app.aab" # sha256 over a file
+encoding = "base36" # hex | base32 | base36 | digits
+length = 8
+
+[package.app.values.run]
+env = "GITHUB_RUN_NUMBER"
+
+[package.app.values.rev]
+git = "commit_count" # or short_hash
+
+[package.app.values.when]
+timestamp = "commit" # or now
+```
+
+| Source                             | Stamped | Ordering guarantee       |
+| ---------------------------------- | ------- | ------------------------ |
+| `file` + `field` with `on_release` | yes     | monotonic within `reset` |
+| `hash`                             | no      | none — an identifier     |
+| `env`                              | no      | none                     |
+| `git`                              | no      | depends on the git value |
+| `timestamp`                        | no      | none                     |
+
+Only stamped counters and ordinals are monotonic. A hash-derived value is valid in a display label, but must not be relied on for ordering; monochange treats a scheme that uses one as non-monotonic rather than pretending otherwise.
+
+### Counter files
+
+Counter files are yours to create and commit. monochange reads the declared field and rewrites only that value, preserving the surrounding formatting and comments:
+
+```json
+{ "build": 0 }
+```
+
+The first stamped release writes `1`. A missing file, a missing field, or a non-integer value is a blocking error naming the path, field, and expected shape:
+
+```text
+counter file `build.json` does not exist; create it with its starting value, for example {"build": 0}
+```
+
+Adopting monochange in a repository whose app already has a production build number means creating the file once with the current value.
+
+`reset = "version"` restarts the counter when the identity version changes, which is Apple's release-train rule for iOS build numbers. `reset = "never"` is the Google Play and macOS rule: the value only ever increases.
+
+Re-running `prepare-release` for a version that already has a release record reuses the frozen values instead of stamping counters again, so a repeated run never double-increments.
 
 ## Package references
 

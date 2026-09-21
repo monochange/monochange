@@ -307,6 +307,7 @@ fn sample_prepared_release(
 		updated_changelogs: Vec::new(),
 		deleted_changesets: Vec::new(),
 		dry_run: true,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	}
 }
 
@@ -480,6 +481,8 @@ fn sample_configuration(
 						..monochange_core::PublishSettings::default()
 					},
 					cli: None,
+					display_version: None,
+					values: BTreeMap::new(),
 				}
 			})
 			.collect(),
@@ -494,6 +497,7 @@ fn sample_configuration(
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -524,6 +528,9 @@ fn commit_release_record(root: &Path, publications: Vec<PackagePublicationTarget
 		changesets: Vec::new(),
 		changelogs: Vec::new(),
 		provider: None,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let json = serde_json::to_string_pretty(&record).expect("serialize release record");
 	let hash = {

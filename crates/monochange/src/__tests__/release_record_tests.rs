@@ -82,6 +82,9 @@ fn floating_tags_record(
 		deleted_changesets: Vec::new(),
 		changesets: Vec::new(),
 		provider: None,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 
 	ReleaseRecordDiscovery {

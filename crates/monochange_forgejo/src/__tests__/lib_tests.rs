@@ -1,5 +1,6 @@
 #![allow(clippy::disallowed_methods)]
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use httpmock::Method::GET;
@@ -1412,6 +1413,9 @@ fn sample_manifest() -> ReleaseManifest {
 			unresolved_items: Vec::new(),
 			compatibility_evidence: Vec::new(),
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 

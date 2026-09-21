@@ -1379,6 +1379,56 @@
 			"description": "Rendered template for one floating tag alias.\n\n`v0.9.2` also moves `v0.9` when the alias template renders\n`v{{ major }}.{{ minor }}`. Templates may use `{{ major }}`, `{{ minor }}`,\n`{{ patch }}`, and `{{ version }}`.",
 			"type": "string"
 		},
+		"GitSource": {
+			"description": "Which git-derived value a `git` source reads.",
+			"oneOf": [
+				{
+					"const": "short_hash",
+					"description": "Abbreviated commit hash of the release commit.",
+					"type": "string"
+				},
+				{
+					"const": "commit_count",
+					"description": "Number of commits reachable from the release commit.",
+					"type": "string"
+				}
+			]
+		},
+		"HashAlgorithm": {
+			"description": "Hash algorithms available to `hash` value sources.",
+			"oneOf": [
+				{
+					"const": "sha256",
+					"description": "SHA-256, the default and only supported algorithm.",
+					"type": "string"
+				}
+			]
+		},
+		"HashEncoding": {
+			"description": "How a hash is rendered into a template value.",
+			"oneOf": [
+				{
+					"const": "hex",
+					"description": "Lowercase hexadecimal.",
+					"type": "string"
+				},
+				{
+					"const": "base32",
+					"description": "Lowercase RFC 4648 base32 without padding.",
+					"type": "string"
+				},
+				{
+					"const": "base36",
+					"description": "Lowercase base36 (`0-9a-z`), the alphanumeric option.",
+					"type": "string"
+				},
+				{
+					"const": "digits",
+					"description": "Decimal digits only, derived from the hash as a big-endian integer.",
+					"type": "string"
+				}
+			]
+		},
 		"LockfileCommandDefinition": {
 			"additionalProperties": false,
 			"properties": {
@@ -1807,6 +1857,21 @@
 			},
 			"type": "object"
 		},
+		"ResetPolicy": {
+			"description": "When a stamped counter returns to its starting value.",
+			"oneOf": [
+				{
+					"const": "never",
+					"description": "Never reset: the value only ever increases.\n\nMatches Google Play `versionCode` and macOS `CFBundleVersion`.",
+					"type": "string"
+				},
+				{
+					"const": "version",
+					"description": "Reset when the identity version changes, matching Apple's iOS release\ntrains.",
+					"type": "string"
+				}
+			]
+		},
 		"SectionSeparator": {
 			"description": "How to format section headings in rendered changelogs.\nNote: Section headings are plain strings — include emoji directly in the `heading` field\nof `ChangelogSectionDef` if desired (e.g. `\"🚀 Added\"`, `\"🐛 Fixed\"`).",
 			"oneOf": [
@@ -1860,6 +1925,60 @@
 			],
 			"type": "string"
 		},
+		"StampBehaviour": {
+			"description": "What happens to a file counter when a release is stamped.",
+			"oneOf": [
+				{
+					"const": "increment",
+					"description": "Add one on every stamped release.",
+					"type": "string"
+				},
+				{
+					"additionalProperties": false,
+					"description": "Add a fixed amount on every stamped release.",
+					"properties": {
+						"add": {
+							"properties": {
+								"amount": {
+									"description": "Amount added to the current value.",
+									"format": "uint64",
+									"minimum": 0,
+									"type": "integer"
+								}
+							},
+							"required": [
+								"amount"
+							],
+							"type": "object"
+						}
+					},
+					"required": [
+						"add"
+					],
+					"type": "object"
+				},
+				{
+					"const": "none",
+					"description": "Read the value without changing it.",
+					"type": "string"
+				}
+			]
+		},
+		"TimestampSource": {
+			"description": "Which timestamp a `timestamp` value source reads.",
+			"oneOf": [
+				{
+					"const": "now",
+					"description": "The moment the release is prepared, in UTC.\n\nThis changes on every run by design; the stamped value is frozen into\nthe release record so re-rendering is stable.",
+					"type": "string"
+				},
+				{
+					"const": "commit",
+					"description": "The commit time of the release commit, in UTC.",
+					"type": "string"
+				}
+			]
+		},
 		"TrustedPublishingMode": {
 			"description": "How strictly trusted publishing is enforced for a package publish.",
 			"oneOf": [
@@ -1874,6 +1993,98 @@
 					"type": "string"
 				}
 			]
+		},
+		"ValueDefinition": {
+			"additionalProperties": false,
+			"description": "How a declared value produces its template string.\n\nExactly one of the source fields must be set. The sources are declared as\nsibling optional fields rather than a nested enum so unknown keys fail\nloudly and validation can report every conflict at once.",
+			"properties": {
+				"algorithm": {
+					"$ref": "#/$defs/HashAlgorithm",
+					"default": "sha256",
+					"description": "Hash algorithm. Only meaningful with `hash`."
+				},
+				"encoding": {
+					"$ref": "#/$defs/HashEncoding",
+					"default": "hex",
+					"description": "How a hash digest is rendered. Only meaningful with `hash`."
+				},
+				"env": {
+					"description": "Environment variable name, for an environment-derived value.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"field": {
+					"description": "Dot-separated field path inside `file`.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"file": {
+					"description": "Counter file path, for a stamped or read-only file counter.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"git": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/GitSource"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"description": "Which git value to read."
+				},
+				"hash": {
+					"description": "File to hash, for a derived hash value.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"length": {
+					"description": "Truncate a rendered hash to this many characters.",
+					"format": "uint",
+					"minimum": 0,
+					"type": [
+						"integer",
+						"null"
+					]
+				},
+				"on_release": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/StampBehaviour"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"description": "What happens to a file counter when a release is stamped.\n\nDefaults to `increment` for `file` values and to no stamping for derived\nvalues. Declaring it on a derived value is a config error."
+				},
+				"reset": {
+					"$ref": "#/$defs/ResetPolicy",
+					"default": "never",
+					"description": "When a stamped counter resets. Only meaningful with `file`."
+				},
+				"timestamp": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/TimestampSource"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"description": "Which timestamp to read."
+				}
+			},
+			"type": "object"
 		},
 		"VersionSource": {
 			"description": "Where a package's current release version is read from.\n\nDefaults to `manifest` for ecosystems that store a version field in their\nmanifest. `tag` reads the baseline from the latest reachable release tag\nmatching the release owner's `version_format`, which suits GitHub Actions\nrepositories and other tag-only release targets.",
@@ -1945,6 +2156,13 @@
 						}
 					],
 					"default": null
+				},
+				"value_template": {
+					"description": "Template rendered into this file's value instead of the plain version.\n\nSupports the version template namespace, including declared values such\nas `{{ build }}`. When set, `regex` and `fields` are not used.",
+					"type": [
+						"string",
+						"null"
+					]
 				}
 			},
 			"required": [
@@ -2724,6 +2942,14 @@
 						}
 					]
 				},
+				"display_version": {
+					"default": null,
+					"description": "Version scheme used to render this package's display label.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
 				"empty_update_message": {
 					"default": null,
 					"type": [
@@ -2792,6 +3018,14 @@
 							"type": "null"
 						}
 					]
+				},
+				"values": {
+					"additionalProperties": {
+						"$ref": "#/$defs/ValueDefinition"
+					},
+					"default": {},
+					"description": "Declared release values available as template variables by id.",
+					"type": "object"
 				},
 				"version_format": {
 					"default": "namespaced",
@@ -3076,6 +3310,20 @@
 				}
 			]
 		},
+		"version_scheme": {
+			"additionalProperties": false,
+			"description": "Raw `[version_scheme.<id>]` value.",
+			"properties": {
+				"template": {
+					"description": "Template rendered into a package's display label.",
+					"type": "string"
+				}
+			},
+			"required": [
+				"template"
+			],
+			"type": "object"
+		},
 		"versioned_file_definition": {
 			"anyOf": [
 				{
@@ -3172,6 +3420,13 @@
 					"type": "null"
 				}
 			]
+		},
+		"version_scheme": {
+			"additionalProperties": {
+				"$ref": "#/$defs/version_scheme"
+			},
+			"description": "Reusable display-label schemes referenced by `[package.<id>].display_version`.",
+			"type": "object"
 		}
 	},
 	"title": "monochange configuration",

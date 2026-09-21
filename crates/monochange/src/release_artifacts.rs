@@ -918,6 +918,15 @@ pub(crate) fn build_release_manifest(
 		package_publications: prepared_release.package_publications.clone(),
 		changesets: prepared_release.changesets.clone(),
 		deleted_changesets: prepared_release.deleted_changesets.clone(),
+		values: prepared_release.versioning.frozen_values(),
+		labels: prepared_release.versioning.frozen_labels(),
+		// Context is only meaningful when something was rendered from it, and
+		// omitting it keeps manifests unchanged for workspaces without values.
+		label_inputs: if prepared_release.versioning.is_empty() {
+			monochange_core::versioning::LabelInputs::default()
+		} else {
+			prepared_release.versioning.label_inputs.clone()
+		},
 		plan: ReleaseManifestPlan {
 			workspace_root: PathBuf::from("."),
 			decisions: prepared_release
@@ -973,6 +982,9 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 	ReleaseManifest {
 		command: record.command.clone(),
 		dry_run: false,
+		values: record.values.clone(),
+		labels: record.labels.clone(),
+		label_inputs: record.label_inputs.clone(),
 		version: record.version.clone(),
 		group_version: None,
 		release_targets: record
@@ -1082,6 +1094,9 @@ pub(crate) fn build_release_record(
 		changelogs: manifest.changelogs.clone(),
 		deleted_changesets: manifest.deleted_changesets.clone(),
 		changesets: manifest.changesets.clone(),
+		values: manifest.values.clone(),
+		labels: manifest.labels.clone(),
+		label_inputs: manifest.label_inputs.clone(),
 		provider: source.map(|source| {
 			ReleaseRecordProvider {
 				kind: source.provider,
@@ -1497,6 +1512,14 @@ pub(crate) struct ReleasePaths {
 	pub absolute: PathBuf,
 }
 
+/// Compute the record paths for a set of release targets.
+///
+/// Callers that only have targets (not a full manifest or record) use this to
+/// check whether a release record already exists.
+pub(crate) fn release_record_paths(root: &Path, targets: &[ReleaseManifestTarget]) -> ReleasePaths {
+	ReleasePaths::from_manifest_targets(root, targets)
+}
+
 impl ReleasePaths {
 	/// Compute paths from an already-built `ReleaseRecord`.
 	///
@@ -1525,7 +1548,12 @@ impl ReleasePaths {
 	/// `ReleaseRecord`. The hash is derived from `manifest.release_targets`
 	/// directly so callers can check file existence before doing expensive work.
 	pub fn from_manifest(root: &Path, manifest: &ReleaseManifest) -> Self {
-		let hash = release_targets_hash(&manifest.release_targets);
+		Self::from_manifest_targets(root, &manifest.release_targets)
+	}
+
+	/// Compute paths from release targets alone.
+	pub fn from_manifest_targets(root: &Path, release_targets: &[ReleaseManifestTarget]) -> Self {
+		let hash = release_targets_hash(release_targets);
 		let relative = PathBuf::from(".monochange/releases")
 			.join(&hash)
 			.join("release.json");

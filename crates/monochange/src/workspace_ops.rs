@@ -34,7 +34,10 @@ use monochange_core::PrereleaseBase;
 use monochange_core::PrereleaseConfiguration;
 use monochange_core::PrereleaseNumbering;
 use monochange_core::ReleaseDecision;
+use monochange_core::ReleaseManifestTarget;
+use monochange_core::ReleaseOwnerKind;
 use monochange_core::ReleasePlan;
+use monochange_core::ReleaseRecord;
 use monochange_core::SourceConfiguration;
 use monochange_core::VersionStrategy;
 use monochange_core::default_cli_commands;
@@ -55,7 +58,15 @@ use tokio::time::timeout;
 use typed_builder::TypedBuilder;
 
 use crate::interactive;
+use crate::release_artifacts::release_record_paths;
+use crate::release_artifacts::resolve_release_datetime;
+use crate::release_record::discover_release_record;
 use crate::versioned_files::released_versions_by_record_id;
+use crate::versioning_state::PackageValues;
+use crate::versioning_state::ResolveContext;
+use crate::versioning_state::ResolvedReleaseValues;
+use crate::versioning_state::apply_counter_write_backs;
+use crate::versioning_state::resolve_release_values;
 use crate::*;
 
 /// Result of initializing a workspace with `monochange init`.
@@ -2058,6 +2069,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 				updated_changelogs: Vec::new(),
 				deleted_changesets: Vec::new(),
 				dry_run,
+				versioning: ResolvedReleaseValues::default(),
 			},
 			file_diffs: Vec::new(),
 			phase_timings,
@@ -2212,6 +2224,14 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		} else {
 			manifest_updates_result.0?
 		};
+	// Resolve declared release values before versioned files render, because a
+	// `value_template` can reference any declared counter or calendar part.
+	let versioning = measure_async_prepare_phase(
+		&mut phase_timings,
+		"resolve release values",
+		resolve_release_values_for_prepare(root, configuration, &discovery.packages, &plan),
+	)
+	.await?;
 	let versioned_file_updates =
 		if configuration.prerelease.enabled && !configuration.prerelease.write_manifests {
 			Vec::new()
@@ -2224,6 +2244,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 					&discovery.packages,
 					&plan,
 					&manifest_updates,
+					&versioning,
 				)
 			})?
 		};
@@ -2368,6 +2389,16 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		.iter()
 		.map(|update| root_relative(root, &update.path))
 		.collect::<Vec<_>>();
+	// Counter files are stamped on disk so the release commit carries the new
+	// values and the release diff shows `build: 3 -> 4`.
+	if !dry_run {
+		let stamped = apply_counter_write_backs(root, &versioning.write_backs()).await?;
+		for path in stamped {
+			if !changed_files.contains(&path) {
+				changed_files.push(path);
+			}
+		}
+	}
 	changed_files.sort();
 	changed_files.dedup();
 	let changelogs = changelog_updates
@@ -2455,6 +2486,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			updated_changelogs,
 			deleted_changesets,
 			dry_run,
+			versioning,
 		},
 		file_diffs,
 		phase_timings,
@@ -2536,6 +2568,210 @@ fn measure_prepare_phase<T>(
 	let result = action();
 	record_prepare_phase_timing(phase_timings, label, started_at);
 	result
+}
+
+/// Resolve declared release values and display labels for the releasing packages.
+///
+/// Ordinals chain from the previous release record, and train-scoped counters
+/// reset when the identity version differs from the previous release of the
+/// same owner.
+async fn resolve_release_values_for_prepare(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	packages: &[monochange_core::PackageRecord],
+	plan: &ReleasePlan,
+) -> MonochangeResult<ResolvedReleaseValues> {
+	// Declared values are configured per package *config* id, so the released
+	// versions must be keyed the same way.
+	let released = released_versions_by_config_id(plan, packages);
+	if released.is_empty() {
+		return Ok(ResolvedReleaseValues::default());
+	}
+
+	let timestamp = release_timestamp_from_datetime(resolve_release_datetime());
+	let (previous_inputs, previous_version) = previous_release_versioning(root).await;
+
+	// Re-preparing a release that already has a record must not advance
+	// counters again. The record path is a deterministic function of the
+	// release targets, so this is a direct lookup.
+	if let Some(frozen) = existing_release_values(root, plan)? {
+		return Ok(frozen);
+	}
+
+	let context = ResolveContext {
+		root,
+		timestamp,
+		previous_inputs: previous_inputs.as_ref(),
+		previous_version: previous_version.as_deref(),
+		commit: None,
+		commit_timestamp: None,
+	};
+	resolve_release_values(
+		&context,
+		&configuration.packages,
+		&configuration.version_schemes,
+		&released,
+	)
+	.await
+}
+
+/// Map released versions onto package config ids.
+///
+/// Release plans are keyed by discovery record id (`{ecosystem}:{path}`), while
+/// declared values live under the configured package id.
+fn released_versions_by_config_id(
+	plan: &ReleasePlan,
+	packages: &[monochange_core::PackageRecord],
+) -> BTreeMap<String, String> {
+	let released = released_versions_by_record_id(plan);
+	packages
+		.iter()
+		.filter_map(|package| {
+			let config_id = package.metadata.get("config_id")?;
+			let version = released.get(&package.id)?;
+			Some((config_id.clone(), version.clone()))
+		})
+		.collect()
+}
+
+/// Load the values frozen in an existing release record for this plan.
+///
+/// Returns `None` when no record exists yet, which is the normal first run.
+/// The record path is a deterministic function of the release targets'
+/// `(id, kind, version)`, so this is a direct lookup rather than a re-resolve.
+fn existing_release_values(
+	root: &Path,
+	plan: &ReleasePlan,
+) -> MonochangeResult<Option<ResolvedReleaseValues>> {
+	let targets = plan
+		.groups
+		.iter()
+		.filter_map(|group| {
+			group.planned_version.as_ref().map(|version| {
+				ReleaseManifestTarget {
+					id: group.group_id.clone(),
+					kind: ReleaseOwnerKind::Group,
+					version: version.to_string(),
+					tag: false,
+					release: false,
+					version_format: VersionFormat::default(),
+					tag_name: String::new(),
+					members: group.members.clone(),
+					rendered_title: String::new(),
+					rendered_changelog_title: String::new(),
+					floating_tags: Vec::new(),
+				}
+			})
+		})
+		.chain(plan.decisions.iter().filter_map(|decision| {
+			decision.planned_version.as_ref().map(|version| {
+				ReleaseManifestTarget {
+					id: decision.package_id.clone(),
+					kind: ReleaseOwnerKind::Package,
+					version: version.to_string(),
+					tag: false,
+					release: false,
+					version_format: VersionFormat::default(),
+					tag_name: String::new(),
+					members: Vec::new(),
+					rendered_title: String::new(),
+					rendered_changelog_title: String::new(),
+					floating_tags: Vec::new(),
+				}
+			})
+		}))
+		.collect::<Vec<_>>();
+	if targets.is_empty() {
+		return Ok(None);
+	}
+	let paths = release_record_paths(root, &targets);
+	if !paths.absolute.exists() {
+		return Ok(None);
+	}
+	let contents = fs::read_to_string(&paths.absolute).map_err(|error| {
+		MonochangeError::IoSource {
+			path: paths.absolute.clone(),
+			source: error,
+		}
+	})?;
+	let record = monochange_core::parse_release_record_json(&contents).map_err(|error| {
+		MonochangeError::Config(format!(
+			"could not read the existing release record at {}: {error}",
+			paths.relative.display()
+		))
+	})?;
+	if record.values.is_empty() && record.labels.is_empty() {
+		return Ok(None);
+	}
+	Ok(Some(values_from_record(&record)))
+}
+
+/// Rebuild resolved values from a record's frozen value map.
+fn values_from_record(record: &ReleaseRecord) -> ResolvedReleaseValues {
+	let mut packages: BTreeMap<String, PackageValues> = BTreeMap::new();
+	for (key, value) in &record.values {
+		if let Some((package_id, value_id)) = key.split_once('.') {
+			packages
+				.entry(package_id.to_string())
+				.or_default()
+				.values
+				.insert(value_id.to_string(), value.clone());
+		}
+	}
+	for (package_id, label) in &record.labels {
+		packages.entry(package_id.clone()).or_default().label = Some(label.clone());
+	}
+	ResolvedReleaseValues {
+		packages,
+		label_inputs: record.label_inputs.clone(),
+	}
+}
+
+/// Read the label inputs and identity version from the previous release record.
+async fn previous_release_versioning(
+	root: &Path,
+) -> (
+	Option<monochange_core::versioning::LabelInputs>,
+	Option<String>,
+) {
+	// The previous release record supplies both the ordinal chaining context
+	// and the identity that train-scoped counters compare against.
+	let Ok(discovery) = discover_release_record(root, "HEAD").await else {
+		return (None, None);
+	};
+	let record = discovery.record;
+	let inputs = if record.label_inputs.is_empty() {
+		None
+	} else {
+		Some(record.label_inputs)
+	};
+	let version = record
+		.release_targets
+		.first()
+		.map(|target| target.version.clone())
+		.or(record.version);
+	(inputs, version)
+}
+
+/// Convert a local datetime into the UTC calendar context values use.
+fn release_timestamp_from_datetime(
+	datetime: chrono::NaiveDateTime,
+) -> monochange_core::versioning::ReleaseTimestamp {
+	use chrono::Datelike;
+	use chrono::Timelike;
+	monochange_core::versioning::ReleaseTimestamp::new(
+		u16::try_from(datetime.year()).unwrap_or(1970),
+		u8::try_from(datetime.month()).unwrap_or(1),
+		u8::try_from(datetime.day()).unwrap_or(1),
+		u8::try_from(datetime.hour()).unwrap_or(0),
+		u8::try_from(datetime.minute()).unwrap_or(0),
+		u8::try_from(datetime.second()).unwrap_or(0),
+	)
+	.unwrap_or_else(|_| {
+		// patch-coverage:ignore-start -- chrono yields month 1-12, day 1-31, and time within 23:59:59, all of which `new` accepts, so this cannot fail.
+		monochange_core::versioning::ReleaseTimestamp::new(1970, 1, 1, 0, 0, 0).unwrap_or_default()
+	})
+	// patch-coverage:ignore-end
 }
 
 async fn measure_async_prepare_phase<T>(

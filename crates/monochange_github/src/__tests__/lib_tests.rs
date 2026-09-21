@@ -332,6 +332,9 @@ fn comment_released_issues_with_client_closes_issues_when_plan_close_is_true() {
 		},
 		deleted_changesets: vec![],
 		changesets: vec![],
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let plans = vec![GitHubIssueCommentPlan {
 		repository: "ifiokjr/monochange".to_string(),
@@ -633,6 +636,9 @@ fn build_release_requests_fall_back_to_minimal_release_bodies() {
 			unresolved_items: Vec::new(),
 			compatibility_evidence: Vec::new(),
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 
 	let requests = build_release_requests(&github, &manifest);
@@ -3550,6 +3556,9 @@ fn sample_manifest() -> ReleaseManifest {
 			unresolved_items: Vec::new(),
 			compatibility_evidence: Vec::new(),
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 

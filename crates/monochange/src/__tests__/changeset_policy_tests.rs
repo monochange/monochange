@@ -127,6 +127,8 @@ fn sample_package() -> PackageDefinition {
 
 		floating_tags: Vec::new(),
 		cli: None,
+		display_version: None,
+		values: BTreeMap::new(),
 	}
 }
 

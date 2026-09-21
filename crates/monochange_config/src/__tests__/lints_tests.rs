@@ -80,6 +80,7 @@ fn workspace_configuration(root: &Path) -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -1144,6 +1145,8 @@ fn collect_targets_populates_target_types_from_configuration() {
 			floating_tags: Vec::new(),
 			publish: monochange_core::PublishSettings::default(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		});
 	configuration.groups.push(monochange_core::GroupDefinition {
 		id: "group".to_string(),

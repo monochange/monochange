@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "&manifest.labels"
+---
+{
+  "app": "2026.09.1",
+  "lib": "26Q3.1"
+}

@@ -1,0 +1,7 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: error
+---
+error[config.invalid]: package `app` value `build` reads counter file `build.json`, which does not exist; create it with its starting value, for example {"build": 0}
+  command: monochange step prepare-release
+  help: Check `monochange.toml` and the command arguments, then rerun the command.

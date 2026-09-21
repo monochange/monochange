@@ -1,0 +1,16 @@
+[defaults]
+package_type = "npm"
+
+[version_scheme.calver]
+template = "{{ year }}.{{ month_padded }}.{{ release_of_month }}"
+
+[version_scheme.quarterly]
+template = "{{ year_short }}Q{{ quarter }}.{{ release_of_quarter }}"
+
+[package.app]
+path = "packages/app"
+display_version = "calver"
+
+[package.lib]
+path = "packages/lib"
+display_version = "quarterly"

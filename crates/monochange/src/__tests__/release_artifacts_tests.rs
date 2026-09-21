@@ -65,6 +65,9 @@ fn minimal_manifest_with_target(id: &str, version: &str) -> ReleaseManifest {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -88,6 +91,7 @@ fn empty_configuration(root: &Path) -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		version_schemes: BTreeMap::new(),
 	}
 }
 
@@ -179,6 +183,9 @@ fn sample_manifest() -> ReleaseManifest {
 				evidence_location: Some("src/lib.rs".to_string()),
 			}],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	}
 }
 
@@ -245,6 +252,8 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 
 		floating_tags: Vec::new(),
 		cli: None,
+		display_version: None,
+		values: BTreeMap::new(),
 	}];
 	configuration.groups = vec![monochange_core::GroupDefinition {
 		id: "sdk".to_string(),
@@ -476,6 +485,8 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		},
 		PackageDefinition {
 			id: "web".to_string(),
@@ -506,6 +517,8 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		},
 		PackageDefinition {
 			id: "disabled".to_string(),
@@ -536,6 +549,8 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		},
 		PackageDefinition {
 			id: "private".to_string(),
@@ -565,6 +580,8 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 
 			floating_tags: Vec::new(),
 			cli: None,
+			display_version: None,
+			values: BTreeMap::new(),
 		},
 	];
 
@@ -709,6 +726,7 @@ fn build_release_manifest_copies_package_publications_from_prepared_release() {
 			fail_on_duplicate: false,
 		}],
 		dry_run: false,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	};
 
 	let manifest = build_release_manifest(&cli_command, &prepared_release, &[]);
@@ -915,6 +933,9 @@ fn release_paths_from_manifest_computes_hash_relative_and_absolute() {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let paths = ReleasePaths::from_manifest(&root, &manifest);
 	assert!(!paths.hash.is_empty());
@@ -962,6 +983,9 @@ fn release_paths_from_record_produces_same_hash_as_from_manifest() {
 			unresolved_items: vec![],
 			compatibility_evidence: vec![],
 		},
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		values: BTreeMap::new(),
 	};
 	let from_manifest = ReleasePaths::from_manifest(&root, &manifest);
 	let record = build_release_record(None, &manifest);
@@ -1419,4 +1443,64 @@ fn latest_tag_version_with_prefix_ignores_non_semver_tags() {
 		latest_tag_version_with_prefix(&sorted_tags, "v"),
 		Some(Version::new(0, 2, 0))
 	);
+}
+
+#[test]
+fn build_release_manifest_freezes_rendered_values_and_label_inputs() {
+	let cli_command = CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: Vec::new(),
+		dry_run: false,
+	};
+	let mut versioning = crate::versioning_state::ResolvedReleaseValues::default();
+	versioning.packages.insert(
+		"core".to_string(),
+		crate::versioning_state::PackageValues {
+			values: BTreeMap::from([("build".to_string(), "5".to_string())]),
+			label: Some("2026.9.1".to_string()),
+			write_backs: Vec::new(),
+			monotonic: true,
+		},
+	);
+	versioning.label_inputs = monochange_core::versioning::LabelInputs {
+		date: "2026-09-19".to_string(),
+		time: "120000".to_string(),
+		of_month: 1,
+		of_quarter: 1,
+		of_year: 1,
+	};
+	let prepared_release = PreparedRelease {
+		plan: ReleasePlan {
+			workspace_root: PathBuf::from("."),
+			decisions: Vec::new(),
+			groups: Vec::new(),
+			warnings: Vec::new(),
+			unresolved_items: Vec::new(),
+			compatibility_evidence: Vec::new(),
+		},
+		changeset_paths: Vec::new(),
+		changesets: Vec::new(),
+		released_packages: vec!["core".to_string()],
+		version: Some("1.2.3".to_string()),
+		group_version: None,
+		release_targets: Vec::new(),
+		changed_files: Vec::new(),
+		changelogs: Vec::new(),
+		updated_changelogs: Vec::new(),
+		deleted_changesets: Vec::new(),
+		package_publications: Vec::new(),
+		dry_run: false,
+		versioning,
+	};
+
+	let manifest = build_release_manifest(&cli_command, &prepared_release, &[]);
+
+	// Rendered values are frozen so a later re-render cannot pick up a
+	// different counter, and the calendar context travels with them.
+	assert_eq!(manifest.values.get("core.build"), Some(&"5".to_string()));
+	assert_eq!(manifest.labels.get("core"), Some(&"2026.9.1".to_string()));
+	assert_eq!(manifest.label_inputs.date, "2026-09-19");
+	assert!(!manifest.label_inputs.is_empty());
 }

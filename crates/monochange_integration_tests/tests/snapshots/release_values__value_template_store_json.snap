@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "read_file(root, \"apps/app/store.json\")"
+---
+{
+  "release": {
+    "version": "1.1.0+8"
+  }
+}

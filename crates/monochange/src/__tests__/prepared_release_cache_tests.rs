@@ -760,6 +760,7 @@ async fn tracked_path_snapshots_hashes_existing_changed_files() {
 		updated_changelogs: Vec::new(),
 		deleted_changesets: Vec::new(),
 		dry_run: false,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	};
 
 	let tracked_paths = tracked_path_snapshots(root, &prepared_release)

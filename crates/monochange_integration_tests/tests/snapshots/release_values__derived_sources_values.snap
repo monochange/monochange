@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "&manifest.values"
+---
+{
+  "app.artifact": "540682",
+  "app.run": "1842",
+  "app.tag": "afggm",
+  "app.when": "20260919101112"
+}

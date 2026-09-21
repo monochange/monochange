@@ -1,0 +1,21 @@
+[defaults]
+package_type = "npm"
+
+[package.app]
+path = "."
+
+[package.app.values.artifact]
+hash = "artifact.bin"
+encoding = "digits"
+length = 6
+
+[package.app.values.tag]
+hash = "artifact.bin"
+encoding = "base36"
+length = 5
+
+[package.app.values.run]
+env = "MONOCHANGE_TEST_RUN_NUMBER"
+
+[package.app.values.when]
+timestamp = "now"

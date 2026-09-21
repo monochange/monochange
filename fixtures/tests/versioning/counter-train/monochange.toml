@@ -1,0 +1,11 @@
+[defaults]
+package_type = "cargo"
+
+[package.app]
+path = "crates/app"
+
+[package.app.values.build]
+file = "build.json"
+field = "build"
+on_release = "increment"
+reset = "version"

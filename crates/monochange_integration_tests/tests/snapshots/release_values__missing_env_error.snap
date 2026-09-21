@@ -1,0 +1,7 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: error
+---
+error[config.invalid]: package `app` value `run` reads environment variable `MONOCHANGE_TEST_RUN_NUMBER`, which is not set
+  command: monochange step prepare-release
+  help: Check `monochange.toml` and the command arguments, then rerun the command.

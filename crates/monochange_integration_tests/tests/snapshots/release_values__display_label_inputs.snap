@@ -1,0 +1,11 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "serde_json::json!({\n    \"date\": manifest.label_inputs.date, \"time\": \"[time]\", \"of_month\":\n    manifest.label_inputs.of_month, \"of_quarter\":\n    manifest.label_inputs.of_quarter, \"of_year\":\n    manifest.label_inputs.of_year,\n})"
+---
+{
+  "date": "2026-09-19",
+  "of_month": 1,
+  "of_quarter": 1,
+  "of_year": 1,
+  "time": "[time]"
+}

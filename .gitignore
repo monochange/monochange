@@ -33,6 +33,7 @@ node_modules/
 .claude/
 CLAUDE.md
 .serena/
+.video_agent/
 /mutants-report/
 /mutants.out/
 /mutants.out.old/

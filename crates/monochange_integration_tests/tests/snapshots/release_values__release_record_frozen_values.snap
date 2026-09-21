@@ -1,0 +1,17 @@
+---
+source: crates/monochange_integration_tests/tests/release_values.rs
+expression: "serde_json::json!({\n    \"values\": record.get(\"values\").cloned().unwrap_or(Value::Null), \"labels\":\n    record.get(\"labels\").cloned().unwrap_or(Value::Null), \"label_inputs\":\n    record.get(\"label_inputs\").cloned().unwrap_or(Value::Null),\n})"
+---
+{
+  "label_inputs": {
+    "date": "2026-09-19",
+    "of_month": 1,
+    "of_quarter": 1,
+    "of_year": 1,
+    "time": "000000"
+  },
+  "labels": null,
+  "values": {
+    "app.build": "4"
+  }
+}
