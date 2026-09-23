@@ -1,6 +1,6 @@
 ---
-source: crates/monochange_integration_tests/tests/group_release_note_fallback.rs
-expression: normalize_commit_links(body)
+source: crates/monochange_integration_tests/tests/github_release_notes_h2.rs
+expression: body
 ---
 Grouped release for `sdk`.
 

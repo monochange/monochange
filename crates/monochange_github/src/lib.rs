@@ -2102,11 +2102,32 @@ fn monochange_release_body(
 
 	match (target_changelog, member_changelogs.is_empty()) {
 		(Some(changelog), _) if changelog_has_release_notes(changelog) => {
-			changelog.rendered.clone()
+			provider_body_from_changelog_rendered(&changelog.rendered)
 		}
 		(_, false) => grouped_member_release_body(target, &member_changelogs),
 		(_, true) => minimal_release_body(manifest, target),
 	}
+}
+
+fn provider_body_from_changelog_rendered(rendered: &str) -> String {
+	let mut lines = rendered.lines().collect::<Vec<_>>();
+	if lines.first().is_some_and(|first| first.starts_with("## ")) {
+		lines.remove(0);
+		while lines.first().is_some_and(|line| line.trim().is_empty()) {
+			lines.remove(0);
+		}
+	}
+	let mut promoted = Vec::with_capacity(lines.len());
+	for line in lines {
+		if let Some(rest) = line.strip_prefix("#### ") {
+			promoted.push(format!("### {rest}"));
+		} else if let Some(rest) = line.strip_prefix("### ") {
+			promoted.push(format!("## {rest}"));
+		} else {
+			promoted.push(line.to_string());
+		}
+	}
+	promoted.join("\n")
 }
 
 fn uncovered_member_changelogs<'a>(
@@ -2136,29 +2157,20 @@ fn grouped_member_release_body(
 	target: &ReleaseManifestTarget,
 	member_changelogs: &[&ReleaseManifestChangelog],
 ) -> String {
-	let title = if target.rendered_changelog_title.is_empty() {
-		target.rendered_title.as_str()
-	} else {
-		target.rendered_changelog_title.as_str()
-	};
-	let title = if title.is_empty() {
-		target.tag_name.as_str()
-	} else {
-		title
-	};
-	let mut lines = vec![format!("## {title}"), String::new()];
-	lines.push(format!("Grouped release for `{}`.", target.id));
-	lines.push(String::new());
+	let mut lines = vec![
+		format!("Grouped release for `{}`.", target.id),
+		String::new(),
+	];
 	push_member_changelogs(&mut lines, member_changelogs);
 	lines.join("\n")
 }
 
 fn push_member_changelogs(lines: &mut Vec<String>, changelogs: &[&ReleaseManifestChangelog]) {
-	lines.push("## Member package changelogs".to_string());
-
-	for changelog in changelogs {
-		lines.push(String::new());
-		lines.push(format!("### `{}`", changelog.owner_id));
+	for (index, changelog) in changelogs.iter().enumerate() {
+		if index > 0 {
+			lines.push(String::new());
+		}
+		lines.push(format!("## `{}`", changelog.owner_id));
 		push_changelog_notes(lines, changelog);
 	}
 }
@@ -2180,7 +2192,7 @@ fn push_changelog_notes(lines: &mut Vec<String>, changelog: &ReleaseManifestChan
 			continue;
 		}
 		lines.push(String::new());
-		lines.push(format!("#### {}", section.title));
+		lines.push(format!("### {}", section.title));
 		lines.push(String::new());
 		push_body_entries(lines, &entries);
 	}
