@@ -939,6 +939,42 @@ fn release_body_uses_tag_title_when_group_titles_are_empty() {
 }
 
 #[test]
+fn release_body_separates_multiple_member_changelogs_with_blank_line() {
+	let mut manifest = sample_manifest();
+	let source = monochange_release_source();
+	let target = group_release_target("sdk release title", "");
+	manifest.changelogs = vec![
+		release_changelog(
+			"core",
+			ReleaseOwnerKind::Package,
+			vec![],
+			vec![release_section("Fixes", vec!["- fix core bug"])],
+			"## core 1.2.0",
+		),
+		release_changelog(
+			"cli",
+			ReleaseOwnerKind::Package,
+			vec![],
+			vec![release_section("Features", vec!["- add cli feature"])],
+			"## cli 1.2.0",
+		),
+	];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert!(
+		body.starts_with("Grouped release for `sdk`.\n\n## `core`"),
+		"body:\n{body}"
+	);
+	assert!(body.contains("## `core`"), "body:\n{body}");
+	assert!(body.contains("### Fixes"), "body:\n{body}");
+	assert!(body.contains("- fix core bug"), "body:\n{body}");
+	assert!(body.contains("## `cli`"), "body:\n{body}");
+	assert!(body.contains("### Features"), "body:\n{body}");
+	assert!(body.contains("- add cli feature"), "body:\n{body}");
+}
+
+#[test]
 fn release_body_does_not_duplicate_member_notes_already_covered_by_group() {
 	let mut manifest = sample_manifest();
 	let source = monochange_release_source();
