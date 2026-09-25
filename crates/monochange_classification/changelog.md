@@ -72,6 +72,12 @@ pub fn run_package_snapshot(
 
 _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #711](https://github.com/monochange/monochange/pull/711) · _Related issues:_ [#705](https://github.com/monochange/monochange/issues/705)
 
+## monochange_classification [0.2.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.2.1) (2026-09-25)
+
+### Changed
+
+- **No package-specific changes were recorded; `monochange_classification` was updated to 0.2.1.**
+
 ## [0.1.0] - 2026-09-15
 
 - Initial classification contract: compatibility findings, package decisions, and the skipped-report state.

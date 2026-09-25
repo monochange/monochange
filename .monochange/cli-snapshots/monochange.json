@@ -3,7 +3,7 @@
 	"kind": "cli-surface",
 	"tool": {
 		"name": "monochange",
-		"version": "0.14.0"
+		"version": "0.15.0"
 	},
 	"provenance": {
 		"extractor": "clap",
@@ -413,6 +413,71 @@
 		},
 		{
 			"path": [
+				"publish"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"publish",
+						"packages"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"publish",
+						"readiness"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"publish",
+						"placeholder"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
+		},
+		{
+			"path": [
 				"create"
 			],
 			"hidden": false,
@@ -504,6 +569,36 @@
 		{
 			"path": [
 				"diagnose"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"next"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"next-versions"
 			],
 			"hidden": false,
 			"max_bump": "major",
