@@ -1,0 +1,2272 @@
+{
+	"schema_version": "0.7",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-09-25T09:46:54Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.15.0",
+		"monochange_classification": "0.2.1",
+		"monochange_schema": "0.7.1"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.15.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.15.0",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.2.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_classification/v0.2.1",
+			"members": [
+				"monochange_classification"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.7.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.7.1",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.2.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.7.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.15.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/display-versions-empty-changesets.md",
+		".changeset/next-version-preview.md",
+		".changeset/publish-subcommand-group.md",
+		".changeset/release-values-and-version-schemes.md",
+		".changeset/release-values-user-guide.md",
+		".changeset/skill-publish-command-inventory.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/display-versions-empty-changesets.md",
+			"summary": "Report no planned versions instead of failing when no changesets are pending",
+			"details": "`DisplayVersions` required at least one changeset, so asking for the next version between releases failed with a configuration error:\n\n```bash\nmonochange next\n# before: error[config.invalid]: no markdown changesets found under .changeset  (exit 1)\n# after:  no package or group versions were planned                             (exit 0)\n```\n\nAn empty `.changeset` directory is a normal state, and the command now reports it in the selected format rather than treating it as an error. `text` prints `no package or group versions were planned`, `markdown` prints `No package or group versions were planned.`, and `json` emits empty maps:\n\n```json\n{\n\t\"packages\": {},\n\t\"groups\": {}\n}\n```\n\n`PrepareRelease` is unchanged: it still requires changesets unless a command sets `allow_empty_changesets = true`.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"short_sha": "cd054c6",
+						"url": "https://github.com/monochange/monochange/commit/cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"authored_at": "2026-09-21T11:35:08+01:00",
+						"committed_at": "2026-09-21T11:35:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#722",
+						"title": "feat(cli): add publish subcommands and a next-version preview",
+						"url": "https://github.com/monochange/monochange/pull/722",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"short_sha": "cd054c6",
+						"url": "https://github.com/monochange/monochange/commit/cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"authored_at": "2026-09-21T11:35:08+01:00",
+						"committed_at": "2026-09-21T11:35:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#722",
+						"title": "feat(cli): add publish subcommands and a next-version preview",
+						"url": "https://github.com/monochange/monochange/pull/722",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/next-version-preview.md",
+			"summary": "Check the next version with `monochange next`",
+			"details": "Answering \"what version will this release be\" required knowing that `monochange step display-versions` existed. There is now a top-level command for it:\n\n```bash\nmonochange next\n```\n\n```text\ngroup versions:\n- sdk: 1.1.0\npackage versions:\n- cargo:crates/sdk-a/Cargo.toml: 1.1.0\n- cargo:crates/sdk-b/Cargo.toml: 1.1.0\n- cargo:crates/tool/Cargo.toml: 1.0.1\n```\n\nIt reports one version per release group plus one version for every package that releases independently, and accepts `--format text|json|json-min|md` for scripting:\n\n```bash\nmonochange next --format json\n```\n\n```json\n{\n\t\"packages\": {\n\t\t\"cargo:crates/sdk-a/Cargo.toml\": \"1.1.0\",\n\t\t\"cargo:crates/tool/Cargo.toml\": \"1.0.1\"\n\t},\n\t\"groups\": {\n\t\t\"sdk\": \"1.1.0\"\n\t}\n}\n```\n\n`monochange next-versions` is an alias that resolves to the same command. Both are read-only aliases for `monochange step display-versions`: no `release.json`, no prepared-release cache under `.monochange/local/`, and no changes to manifests, changelogs, or changesets, so the command leaves a clean working tree and is safe in a pre-commit check or a reporting-only CI job.\n\nFor contrast, `monochange versions list` reports the versions recorded in the workspace today, while `monochange next` reports the versions planned from pending changesets.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"short_sha": "cd054c6",
+						"url": "https://github.com/monochange/monochange/commit/cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"authored_at": "2026-09-21T11:35:08+01:00",
+						"committed_at": "2026-09-21T11:35:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#722",
+						"title": "feat(cli): add publish subcommands and a next-version preview",
+						"url": "https://github.com/monochange/monochange/pull/722",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"short_sha": "cd054c6",
+						"url": "https://github.com/monochange/monochange/commit/cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"authored_at": "2026-09-21T11:35:08+01:00",
+						"committed_at": "2026-09-21T11:35:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#722",
+						"title": "feat(cli): add publish subcommands and a next-version preview",
+						"url": "https://github.com/monochange/monochange/pull/722",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/publish-subcommand-group.md",
+			"summary": "Group the publish steps behind `monochange publish`",
+			"details": "The publishing steps were only reachable through long `monochange step *` invocations, which made them hard to discover and awkward to type. The three publishing operations are now also available as subcommands of a built-in `monochange publish` command:\n\n```bash\n# before\nmonochange step publish-packages --output publish.json\nmonochange step publish-readiness --from HEAD --output readiness.json\nmonochange step placeholder-publish --format json\n\n# after (equivalent)\nmonochange publish packages --output publish.json\nmonochange publish readiness --from HEAD --output readiness.json\nmonochange publish placeholder --format json\n```\n\nEach subcommand runs the exact same built-in step with the same inputs and output formats, so `--format`, `--output`, `--from`, `--package`, `--group`, `--ecosystem`, `--resume`, `--all`, `--show-all`, `--stream-output`, `--fail-on-duplicate`, and `--otp` keep working unchanged. Diagnostics name the command you typed, so a failure reports `command: monochange publish readiness` rather than the bare step name.\n\nThe `monochange step *` forms remain supported and unchanged. Config-defined commands are unaffected: a `[cli.publish]` workflow in `monochange.toml` still runs as `monochange run publish`, because config commands and built-in command groups are separate namespaces.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"short_sha": "cd054c6",
+						"url": "https://github.com/monochange/monochange/commit/cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"authored_at": "2026-09-21T11:35:08+01:00",
+						"committed_at": "2026-09-21T11:35:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#722",
+						"title": "feat(cli): add publish subcommands and a next-version preview",
+						"url": "https://github.com/monochange/monochange/pull/722",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"short_sha": "cd054c6",
+						"url": "https://github.com/monochange/monochange/commit/cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"authored_at": "2026-09-21T11:35:08+01:00",
+						"committed_at": "2026-09-21T11:35:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#722",
+						"title": "feat(cli): add publish subcommands and a next-version preview",
+						"url": "https://github.com/monochange/monochange/pull/722",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/release-values-and-version-schemes.md",
+			"summary": "Declare release values and version schemes for counters and calendar labels",
+			"details": "Release planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ded858f22b6b801ebf2ae80158b9c63ae8fcdb8e",
+						"short_sha": "ded858f",
+						"url": "https://github.com/monochange/monochange/commit/ded858f22b6b801ebf2ae80158b9c63ae8fcdb8e",
+						"authored_at": "2026-09-21T11:58:54+01:00",
+						"committed_at": "2026-09-21T11:58:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#720",
+						"title": "feat(release): declare release values and version schemes for counters and calendar labels",
+						"url": "https://github.com/monochange/monochange/pull/720",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ded858f22b6b801ebf2ae80158b9c63ae8fcdb8e",
+						"short_sha": "ded858f",
+						"url": "https://github.com/monochange/monochange/commit/ded858f22b6b801ebf2ae80158b9c63ae8fcdb8e",
+						"authored_at": "2026-09-21T11:58:54+01:00",
+						"committed_at": "2026-09-21T11:58:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#720",
+						"title": "feat(release): declare release values and version schemes for counters and calendar labels",
+						"url": "https://github.com/monochange/monochange/pull/720",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/release-values-user-guide.md",
+			"summary": "Version your app with store build numbers and calendar labels",
+			"details": "Repositories that ship an app alongside their libraries can now give the app its own delivery numbers without changing how anything else is versioned.\n\nTwo additions:\n\n- **A build number per app.** Declare a counter in a file you own and commit, and monochange advances it on every release. This is the number the App Store and Google Play expect, and it is separate from the version your users see.\n- **A calendar-style display version.** Render labels such as `2026.09.2` from the release date and how many times you have released that month.\n\nThe two settings that matter most:\n\n- `reset = \"version\"` restarts the build number when the version changes. This matches the iOS App Store, where each new version can start again from build 1.\n- `reset = \"never\"` never restarts. This matches Google Play, where a version code that has been used once can never be used again.\n\nSet up looks like this:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n\n[package.app.values.build]\nfile = \"build.json\"\nfield = \"build\"\non_release = \"increment\"\nreset = \"never\"\n\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\n##### What you have to do\n\nCreate the counter file yourself and commit it, with the number to start from:\n\n```json\n{ \"build\": 0 }\n```\n\nIf your app is already published, put its current build number there instead of `0`, so the next release continues from where you are. If the file is missing, monochange stops with an error naming the file and field rather than guessing a starting point — a wrong guess would produce a build the stores reject as a duplicate.\n\nNothing changes for projects that do not configure any of this.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ded858f22b6b801ebf2ae80158b9c63ae8fcdb8e",
+						"short_sha": "ded858f",
+						"url": "https://github.com/monochange/monochange/commit/ded858f22b6b801ebf2ae80158b9c63ae8fcdb8e",
+						"authored_at": "2026-09-21T11:58:54+01:00",
+						"committed_at": "2026-09-21T11:58:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#720",
+						"title": "feat(release): declare release values and version schemes for counters and calendar labels",
+						"url": "https://github.com/monochange/monochange/pull/720",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ded858f22b6b801ebf2ae80158b9c63ae8fcdb8e",
+						"short_sha": "ded858f",
+						"url": "https://github.com/monochange/monochange/commit/ded858f22b6b801ebf2ae80158b9c63ae8fcdb8e",
+						"authored_at": "2026-09-21T11:58:54+01:00",
+						"committed_at": "2026-09-21T11:58:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#720",
+						"title": "feat(release): declare release values and version schemes for counters and calendar labels",
+						"url": "https://github.com/monochange/monochange/pull/720",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/skill-publish-command-inventory.md",
+			"summary": "Add `publish` to the skill's generated command inventory",
+			"details": "The generated command inventory in `commands.md` now lists the built-in `publish` command, so an assistant following the skill sees `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` alongside the existing `monochange step *` entries.\n\nThe `next` and `next-versions` commands are aliases rather than distinct clap command literals, so they follow the same rule as the other top-level step aliases and stay out of this literal inventory.",
+			"targets": [
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"short_sha": "cd054c6",
+						"url": "https://github.com/monochange/monochange/commit/cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"authored_at": "2026-09-21T11:35:08+01:00",
+						"committed_at": "2026-09-21T11:35:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#722",
+						"title": "feat(cli): add publish subcommands and a next-version preview",
+						"url": "https://github.com/monochange/monochange/pull/722",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"short_sha": "cd054c6",
+						"url": "https://github.com/monochange/monochange/commit/cd054c67909bd5e16cf2d32cdb93427c609bef60",
+						"authored_at": "2026-09-21T11:35:08+01:00",
+						"committed_at": "2026-09-21T11:35:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#722",
+						"title": "feat(cli): add publish subcommands and a next-version preview",
+						"url": "https://github.com/monochange/monochange/pull/722",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Declare release values and version schemes for counters and calendar labels\n\n_Packages:_ 🔴 _monochange_, 🔴 _monochange_core_, 🟠 _monochange_config_, 🟢 _monochange_github_\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Check the next version with `monochange next`\n\n_Packages:_ 🟠 _monochange_\n\nAnswering \"what version will this release be\" required knowing that `monochange step display-versions` existed. There is now a top-level command for it:\n\n```bash\nmonochange next\n```\n\n```text\ngroup versions:\n- sdk: 1.1.0\npackage versions:\n- cargo:crates/sdk-a/Cargo.toml: 1.1.0\n- cargo:crates/sdk-b/Cargo.toml: 1.1.0\n- cargo:crates/tool/Cargo.toml: 1.0.1\n```\n\nIt reports one version per release group plus one version for every package that releases independently, and accepts `--format text|json|json-min|md` for scripting:\n\n```bash\nmonochange next --format json\n```\n\n```json\n{\n\t\"packages\": {\n\t\t\"cargo:crates/sdk-a/Cargo.toml\": \"1.1.0\",\n\t\t\"cargo:crates/tool/Cargo.toml\": \"1.0.1\"\n\t},\n\t\"groups\": {\n\t\t\"sdk\": \"1.1.0\"\n\t}\n}\n```\n\n`monochange next-versions` is an alias that resolves to the same command. Both are read-only aliases for `monochange step display-versions`: no `release.json`, no prepared-release cache under `.monochange/local/`, and no changes to manifests, changelogs, or changesets, so the command leaves a clean working tree and is safe in a pre-commit check or a reporting-only CI job.\n\nFor contrast, `monochange versions list` reports the versions recorded in the workspace today, while `monochange next` reports the versions planned from pending changesets.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)",
+							"#### Group the publish steps behind `monochange publish`\n\n_Packages:_ 🟠 _monochange_\n\nThe publishing steps were only reachable through long `monochange step *` invocations, which made them hard to discover and awkward to type. The three publishing operations are now also available as subcommands of a built-in `monochange publish` command:\n\n```bash\n# before\nmonochange step publish-packages --output publish.json\nmonochange step publish-readiness --from HEAD --output readiness.json\nmonochange step placeholder-publish --format json\n\n# after (equivalent)\nmonochange publish packages --output publish.json\nmonochange publish readiness --from HEAD --output readiness.json\nmonochange publish placeholder --format json\n```\n\nEach subcommand runs the exact same built-in step with the same inputs and output formats, so `--format`, `--output`, `--from`, `--package`, `--group`, `--ecosystem`, `--resume`, `--all`, `--show-all`, `--stream-output`, `--fail-on-duplicate`, and `--otp` keep working unchanged. Diagnostics name the command you typed, so a failure reports `command: monochange publish readiness` rather than the bare step name.\n\nThe `monochange step *` forms remain supported and unchanged. Config-defined commands are unaffected: a `[cli.publish]` workflow in `monochange.toml` still runs as `monochange run publish`, because config commands and built-in command groups are separate namespaces.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)",
+							"#### Version your app with store build numbers and calendar labels\n\n_Packages:_ 🟠 _monochange_\n\nRepositories that ship an app alongside their libraries can now give the app its own delivery numbers without changing how anything else is versioned.\n\nTwo additions:\n\n- **A build number per app.** Declare a counter in a file you own and commit, and monochange advances it on every release. This is the number the App Store and Google Play expect, and it is separate from the version your users see.\n- **A calendar-style display version.** Render labels such as `2026.09.2` from the release date and how many times you have released that month.\n\nThe two settings that matter most:\n\n- `reset = \"version\"` restarts the build number when the version changes. This matches the iOS App Store, where each new version can start again from build 1.\n- `reset = \"never\"` never restarts. This matches Google Play, where a version code that has been used once can never be used again.\n\nSet up looks like this:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n\n[package.app.values.build]\nfile = \"build.json\"\nfield = \"build\"\non_release = \"increment\"\nreset = \"never\"\n\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\n##### What you have to do\n\nCreate the counter file yourself and commit it, with the number to start from:\n\n```json\n{ \"build\": 0 }\n```\n\nIf your app is already published, put its current build number there instead of `0`, so the next release continues from where you are. If the file is missing, monochange stops with an error naming the file and field rather than guessing a starting point — a wrong guess would produce a build the stores reject as a duplicate.\n\nNothing changes for projects that do not configure any of this.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add `publish` to the skill's generated command inventory\n\n_Packages:_ 🟢 _@monochange/skill_\n\nThe generated command inventory in `commands.md` now lists the built-in `publish` command, so an assistant following the skill sees `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` alongside the existing `monochange step *` entries.\n\nThe `next` and `next-versions` commands are aliases rather than distinct clap command literals, so they follow the same rule as the other top-level step aliases and stay out of this literal inventory.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)",
+							"#### Report no planned versions instead of failing when no changesets are pending\n\n_Packages:_ 🟢 _monochange_\n\n`DisplayVersions` required at least one changeset, so asking for the next version between releases failed with a configuration error:\n\n```bash\nmonochange next\n# before: error[config.invalid]: no markdown changesets found under .changeset  (exit 1)\n# after:  no package or group versions were planned                             (exit 0)\n```\n\nAn empty `.changeset` directory is a normal state, and the command now reports it in the selected format rather than treating it as an error. `text` prints `no package or group versions were planned`, `markdown` prints `No package or group versions were planned.`, and `json` emits empty maps:\n\n```json\n{\n\t\"packages\": {},\n\t\"groups\": {}\n}\n```\n\n`PrepareRelease` is unchanged: it still requires changesets unless a command sets `allow_empty_changesets = true`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\nGrouped release for `main`.\n\n### 💥 Breaking Change\n\n#### Declare release values and version schemes for counters and calendar labels\n\n_Packages:_ 🔴 _monochange_, 🔴 _monochange_core_, 🟠 _monochange_config_, 🟢 _monochange_github_\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)\n\n### 🚀 Feature\n\n#### Check the next version with `monochange next`\n\n_Packages:_ 🟠 _monochange_\n\nAnswering \"what version will this release be\" required knowing that `monochange step display-versions` existed. There is now a top-level command for it:\n\n```bash\nmonochange next\n```\n\n```text\ngroup versions:\n- sdk: 1.1.0\npackage versions:\n- cargo:crates/sdk-a/Cargo.toml: 1.1.0\n- cargo:crates/sdk-b/Cargo.toml: 1.1.0\n- cargo:crates/tool/Cargo.toml: 1.0.1\n```\n\nIt reports one version per release group plus one version for every package that releases independently, and accepts `--format text|json|json-min|md` for scripting:\n\n```bash\nmonochange next --format json\n```\n\n```json\n{\n\t\"packages\": {\n\t\t\"cargo:crates/sdk-a/Cargo.toml\": \"1.1.0\",\n\t\t\"cargo:crates/tool/Cargo.toml\": \"1.0.1\"\n\t},\n\t\"groups\": {\n\t\t\"sdk\": \"1.1.0\"\n\t}\n}\n```\n\n`monochange next-versions` is an alias that resolves to the same command. Both are read-only aliases for `monochange step display-versions`: no `release.json`, no prepared-release cache under `.monochange/local/`, and no changes to manifests, changelogs, or changesets, so the command leaves a clean working tree and is safe in a pre-commit check or a reporting-only CI job.\n\nFor contrast, `monochange versions list` reports the versions recorded in the workspace today, while `monochange next` reports the versions planned from pending changesets.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)\n\n#### Group the publish steps behind `monochange publish`\n\n_Packages:_ 🟠 _monochange_\n\nThe publishing steps were only reachable through long `monochange step *` invocations, which made them hard to discover and awkward to type. The three publishing operations are now also available as subcommands of a built-in `monochange publish` command:\n\n```bash\n# before\nmonochange step publish-packages --output publish.json\nmonochange step publish-readiness --from HEAD --output readiness.json\nmonochange step placeholder-publish --format json\n\n# after (equivalent)\nmonochange publish packages --output publish.json\nmonochange publish readiness --from HEAD --output readiness.json\nmonochange publish placeholder --format json\n```\n\nEach subcommand runs the exact same built-in step with the same inputs and output formats, so `--format`, `--output`, `--from`, `--package`, `--group`, `--ecosystem`, `--resume`, `--all`, `--show-all`, `--stream-output`, `--fail-on-duplicate`, and `--otp` keep working unchanged. Diagnostics name the command you typed, so a failure reports `command: monochange publish readiness` rather than the bare step name.\n\nThe `monochange step *` forms remain supported and unchanged. Config-defined commands are unaffected: a `[cli.publish]` workflow in `monochange.toml` still runs as `monochange run publish`, because config commands and built-in command groups are separate namespaces.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)\n\n#### Version your app with store build numbers and calendar labels\n\n_Packages:_ 🟠 _monochange_\n\nRepositories that ship an app alongside their libraries can now give the app its own delivery numbers without changing how anything else is versioned.\n\nTwo additions:\n\n- **A build number per app.** Declare a counter in a file you own and commit, and monochange advances it on every release. This is the number the App Store and Google Play expect, and it is separate from the version your users see.\n- **A calendar-style display version.** Render labels such as `2026.09.2` from the release date and how many times you have released that month.\n\nThe two settings that matter most:\n\n- `reset = \"version\"` restarts the build number when the version changes. This matches the iOS App Store, where each new version can start again from build 1.\n- `reset = \"never\"` never restarts. This matches Google Play, where a version code that has been used once can never be used again.\n\nSet up looks like this:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n\n[package.app.values.build]\nfile = \"build.json\"\nfield = \"build\"\non_release = \"increment\"\nreset = \"never\"\n\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\n##### What you have to do\n\nCreate the counter file yourself and commit it, with the number to start from:\n\n```json\n{ \"build\": 0 }\n```\n\nIf your app is already published, put its current build number there instead of `0`, so the next release continues from where you are. If the file is missing, monochange stops with an error naming the file and field rather than guessing a starting point — a wrong guess would produce a build the stores reject as a duplicate.\n\nNothing changes for projects that do not configure any of this.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)\n\n### 🐛 Fixed\n\n#### Add `publish` to the skill's generated command inventory\n\n_Packages:_ 🟢 _@monochange/skill_\n\nThe generated command inventory in `commands.md` now lists the built-in `publish` command, so an assistant following the skill sees `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` alongside the existing `monochange step *` entries.\n\nThe `next` and `next-versions` commands are aliases rather than distinct clap command literals, so they follow the same rule as the other top-level step aliases and stay out of this literal inventory.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)\n\n#### Report no planned versions instead of failing when no changesets are pending\n\n_Packages:_ 🟢 _monochange_\n\n`DisplayVersions` required at least one changeset, so asking for the next version between releases failed with a configuration error:\n\n```bash\nmonochange next\n# before: error[config.invalid]: no markdown changesets found under .changeset  (exit 1)\n# after:  no package or group versions were planned                             (exit 0)\n```\n\nAn empty `.changeset` directory is a normal state, and the command now reports it in the selected format rather than treating it as an error. `text` prints `no package or group versions were planned`, `markdown` prints `No package or group versions were planned.`, and `json` emits empty maps:\n\n```json\n{\n\t\"packages\": {},\n\t\"groups\": {}\n}\n```\n\n`PrepareRelease` is unchanged: it still requires changesets unless a command sets `allow_empty_changesets = true`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Check the next version with `monochange next`\n\nAnswering \"what version will this release be\" required knowing that `monochange step display-versions` existed. There is now a top-level command for it:\n\n```bash\nmonochange next\n```\n\n```text\ngroup versions:\n- sdk: 1.1.0\npackage versions:\n- cargo:crates/sdk-a/Cargo.toml: 1.1.0\n- cargo:crates/sdk-b/Cargo.toml: 1.1.0\n- cargo:crates/tool/Cargo.toml: 1.0.1\n```\n\nIt reports one version per release group plus one version for every package that releases independently, and accepts `--format text|json|json-min|md` for scripting:\n\n```bash\nmonochange next --format json\n```\n\n```json\n{\n\t\"packages\": {\n\t\t\"cargo:crates/sdk-a/Cargo.toml\": \"1.1.0\",\n\t\t\"cargo:crates/tool/Cargo.toml\": \"1.0.1\"\n\t},\n\t\"groups\": {\n\t\t\"sdk\": \"1.1.0\"\n\t}\n}\n```\n\n`monochange next-versions` is an alias that resolves to the same command. Both are read-only aliases for `monochange step display-versions`: no `release.json`, no prepared-release cache under `.monochange/local/`, and no changes to manifests, changelogs, or changesets, so the command leaves a clean working tree and is safe in a pre-commit check or a reporting-only CI job.\n\nFor contrast, `monochange versions list` reports the versions recorded in the workspace today, while `monochange next` reports the versions planned from pending changesets.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)",
+							"#### Group the publish steps behind `monochange publish`\n\nThe publishing steps were only reachable through long `monochange step *` invocations, which made them hard to discover and awkward to type. The three publishing operations are now also available as subcommands of a built-in `monochange publish` command:\n\n```bash\n# before\nmonochange step publish-packages --output publish.json\nmonochange step publish-readiness --from HEAD --output readiness.json\nmonochange step placeholder-publish --format json\n\n# after (equivalent)\nmonochange publish packages --output publish.json\nmonochange publish readiness --from HEAD --output readiness.json\nmonochange publish placeholder --format json\n```\n\nEach subcommand runs the exact same built-in step with the same inputs and output formats, so `--format`, `--output`, `--from`, `--package`, `--group`, `--ecosystem`, `--resume`, `--all`, `--show-all`, `--stream-output`, `--fail-on-duplicate`, and `--otp` keep working unchanged. Diagnostics name the command you typed, so a failure reports `command: monochange publish readiness` rather than the bare step name.\n\nThe `monochange step *` forms remain supported and unchanged. Config-defined commands are unaffected: a `[cli.publish]` workflow in `monochange.toml` still runs as `monochange run publish`, because config commands and built-in command groups are separate namespaces.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)",
+							"#### Version your app with store build numbers and calendar labels\n\nRepositories that ship an app alongside their libraries can now give the app its own delivery numbers without changing how anything else is versioned.\n\nTwo additions:\n\n- **A build number per app.** Declare a counter in a file you own and commit, and monochange advances it on every release. This is the number the App Store and Google Play expect, and it is separate from the version your users see.\n- **A calendar-style display version.** Render labels such as `2026.09.2` from the release date and how many times you have released that month.\n\nThe two settings that matter most:\n\n- `reset = \"version\"` restarts the build number when the version changes. This matches the iOS App Store, where each new version can start again from build 1.\n- `reset = \"never\"` never restarts. This matches Google Play, where a version code that has been used once can never be used again.\n\nSet up looks like this:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n\n[package.app.values.build]\nfile = \"build.json\"\nfield = \"build\"\non_release = \"increment\"\nreset = \"never\"\n\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\n##### What you have to do\n\nCreate the counter file yourself and commit it, with the number to start from:\n\n```json\n{ \"build\": 0 }\n```\n\nIf your app is already published, put its current build number there instead of `0`, so the next release continues from where you are. If the file is missing, monochange stops with an error naming the file and field rather than guessing a starting point — a wrong guess would produce a build the stores reject as a duplicate.\n\nNothing changes for projects that do not configure any of this.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Report no planned versions instead of failing when no changesets are pending\n\n`DisplayVersions` required at least one changeset, so asking for the next version between releases failed with a configuration error:\n\n```bash\nmonochange next\n# before: error[config.invalid]: no markdown changesets found under .changeset  (exit 1)\n# after:  no package or group versions were planned                             (exit 0)\n```\n\nAn empty `.changeset` directory is a normal state, and the command now reports it in the selected format rather than treating it as an error. `text` prints `no package or group versions were planned`, `markdown` prints `No package or group versions were planned.`, and `json` emits empty maps:\n\n```json\n{\n\t\"packages\": {},\n\t\"groups\": {}\n}\n```\n\n`PrepareRelease` is unchanged: it still requires changesets unless a command sets `allow_empty_changesets = true`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### 💥 Breaking Change\n\n#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)\n\n### 🚀 Feature\n\n#### Check the next version with `monochange next`\n\nAnswering \"what version will this release be\" required knowing that `monochange step display-versions` existed. There is now a top-level command for it:\n\n```bash\nmonochange next\n```\n\n```text\ngroup versions:\n- sdk: 1.1.0\npackage versions:\n- cargo:crates/sdk-a/Cargo.toml: 1.1.0\n- cargo:crates/sdk-b/Cargo.toml: 1.1.0\n- cargo:crates/tool/Cargo.toml: 1.0.1\n```\n\nIt reports one version per release group plus one version for every package that releases independently, and accepts `--format text|json|json-min|md` for scripting:\n\n```bash\nmonochange next --format json\n```\n\n```json\n{\n\t\"packages\": {\n\t\t\"cargo:crates/sdk-a/Cargo.toml\": \"1.1.0\",\n\t\t\"cargo:crates/tool/Cargo.toml\": \"1.0.1\"\n\t},\n\t\"groups\": {\n\t\t\"sdk\": \"1.1.0\"\n\t}\n}\n```\n\n`monochange next-versions` is an alias that resolves to the same command. Both are read-only aliases for `monochange step display-versions`: no `release.json`, no prepared-release cache under `.monochange/local/`, and no changes to manifests, changelogs, or changesets, so the command leaves a clean working tree and is safe in a pre-commit check or a reporting-only CI job.\n\nFor contrast, `monochange versions list` reports the versions recorded in the workspace today, while `monochange next` reports the versions planned from pending changesets.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)\n\n#### Group the publish steps behind `monochange publish`\n\nThe publishing steps were only reachable through long `monochange step *` invocations, which made them hard to discover and awkward to type. The three publishing operations are now also available as subcommands of a built-in `monochange publish` command:\n\n```bash\n# before\nmonochange step publish-packages --output publish.json\nmonochange step publish-readiness --from HEAD --output readiness.json\nmonochange step placeholder-publish --format json\n\n# after (equivalent)\nmonochange publish packages --output publish.json\nmonochange publish readiness --from HEAD --output readiness.json\nmonochange publish placeholder --format json\n```\n\nEach subcommand runs the exact same built-in step with the same inputs and output formats, so `--format`, `--output`, `--from`, `--package`, `--group`, `--ecosystem`, `--resume`, `--all`, `--show-all`, `--stream-output`, `--fail-on-duplicate`, and `--otp` keep working unchanged. Diagnostics name the command you typed, so a failure reports `command: monochange publish readiness` rather than the bare step name.\n\nThe `monochange step *` forms remain supported and unchanged. Config-defined commands are unaffected: a `[cli.publish]` workflow in `monochange.toml` still runs as `monochange run publish`, because config commands and built-in command groups are separate namespaces.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)\n\n#### Version your app with store build numbers and calendar labels\n\nRepositories that ship an app alongside their libraries can now give the app its own delivery numbers without changing how anything else is versioned.\n\nTwo additions:\n\n- **A build number per app.** Declare a counter in a file you own and commit, and monochange advances it on every release. This is the number the App Store and Google Play expect, and it is separate from the version your users see.\n- **A calendar-style display version.** Render labels such as `2026.09.2` from the release date and how many times you have released that month.\n\nThe two settings that matter most:\n\n- `reset = \"version\"` restarts the build number when the version changes. This matches the iOS App Store, where each new version can start again from build 1.\n- `reset = \"never\"` never restarts. This matches Google Play, where a version code that has been used once can never be used again.\n\nSet up looks like this:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n\n[package.app.values.build]\nfile = \"build.json\"\nfield = \"build\"\non_release = \"increment\"\nreset = \"never\"\n\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\n##### What you have to do\n\nCreate the counter file yourself and commit it, with the number to start from:\n\n```json\n{ \"build\": 0 }\n```\n\nIf your app is already published, put its current build number there instead of `0`, so the next release continues from where you are. If the file is missing, monochange stops with an error naming the file and field rather than guessing a starting point — a wrong guess would produce a build the stores reject as a duplicate.\n\nNothing changes for projects that do not configure any of this.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)\n\n### 🐛 Fixed\n\n#### Report no planned versions instead of failing when no changesets are pending\n\n`DisplayVersions` required at least one changeset, so asking for the next version between releases failed with a configuration error:\n\n```bash\nmonochange next\n# before: error[config.invalid]: no markdown changesets found under .changeset  (exit 1)\n# after:  no package or group versions were planned                             (exit 0)\n```\n\nAn empty `.changeset` directory is a normal state, and the command now reports it in the selected format rather than treating it as an error. `text` prints `no package or group versions were planned`, `markdown` prints `No package or group versions were planned.`, and `json` emits empty maps:\n\n```json\n{\n\t\"packages\": {},\n\t\"groups\": {}\n}\n```\n\n`PrepareRelease` is unchanged: it still requires changesets unless a command sets `allow_empty_changesets = true`.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.2.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.2.1) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.2.1.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.2.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.2.1) (2026-09-25)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.2.1.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### 🚀 Feature\n\n#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### 💥 Breaking Change\n\n#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_dart` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_dart` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_deno` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_deno` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### 🐛 Fixed\n\n#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_go` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_go` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_graph` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_graph` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_lint` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_lint` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_linting` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_linting` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_npm` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_npm` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_publish` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_publish` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_python` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_python` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.7.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.7.1) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.7.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.7.1) (2026-09-25)\n\n### 🚀 Feature\n\n#### Declare release values and version schemes for counters and calendar labels\n\nRelease planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.\n\nTwo new configuration surfaces address this.\n\n**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:\n\n```toml\n[version_scheme.calver]\ntemplate = \"{{ year }}.{{ month_padded }}.{{ release_of_month }}\"\n\n[package.app]\ndisplay_version = \"calver\"\n```\n\n**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:\n\n```toml\n[package.app.values.build]\nfile = \"build.json\" # you create and commit this: {\"build\": 0}\nfield = \"build\"\non_release = \"increment\" # or { add = { amount = 10 } } or \"none\"\nreset = \"version\" # iOS release trains; \"never\" for Play/macOS\n\n[package.app.values.artifact]\nhash = \"artifacts/app.aab\" # sha256 over a file\nencoding = \"base36\" # hex, base32, base36, or digits\nlength = 8\n\n[package.app.values.run]\nenv = \"GITHUB_RUN_NUMBER\"\n\n[package.app.values.rev]\ngit = \"commit_count\" # or short_hash\n\n[package.app.values.when]\ntimestamp = \"commit\" # or now\n```\n\nA declared value reaching a store-facing file uses `value_template` instead of a plain version:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nTemplate variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.\n\nResolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.\n\n##### Breaking change\n\n`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:\n\n```rust\nReleaseManifest {\n\t// ...existing fields...\n\tvalues: std::collections::BTreeMap::new(),\n\tlabels: std::collections::BTreeMap::new(),\n\tlabel_inputs: monochange_core::versioning::LabelInputs::default(),\n\tplan: /* ... */,\n}\n```\n\nDeserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.\n\n##### Ordering guarantees\n\nValues fall into three classes. Only counters and ordinals are monotonic; identifiers are not:\n\n- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;\n- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;\n- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.\n\nA hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.\n\n##### Counter files\n\nCounter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:\n\n```text\ncounter file `build.json` does not exist; create it with its starting value, for example {\"build\": 0}\n```\n\nAdopting monochange in a repository whose app already has a production build number means creating the file once with the current value.\n\nPackages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.\n\n##### Validation\n\n- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);\n- `display_version` must reference a declared scheme, and scheme templates may only use available variables;\n- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.\n\nThat last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:\n\n```toml\n[[package.app.versioned_files]]\npath = \"pubspec.yaml\"\ntype = \"dart\"\nvalue_template = \"{{ identity }}+{{ build }}\"\n```\n\nA template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_semver` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_semver` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.15.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.15.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add `publish` to the skill's generated command inventory\n\nThe generated command inventory in `commands.md` now lists the built-in `publish` command, so an assistant following the skill sees `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` alongside the existing `monochange step *` entries.\n\nThe `next` and `next-versions` commands are aliases rather than distinct clap command literals, so they follow the same rule as the other top-level step aliases and stay out of this literal inventory.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)\n\n### 🐛 Fixed\n\n#### Add `publish` to the skill's generated command inventory\n\nThe generated command inventory in `commands.md` now lists the built-in `publish` command, so an assistant following the skill sees `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` alongside the existing `monochange step *` entries.\n\nThe `next` and `next-versions` commands are aliases rather than distinct clap command literals, so they follow the same rule as the other top-level step aliases and stay out of this literal inventory.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

@@ -9,6 +9,18 @@
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 - Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-25)
+
+### 🐛 Fixed
+
+#### Add `publish` to the skill's generated command inventory
+
+The generated command inventory in `commands.md` now lists the built-in `publish` command, so an assistant following the skill sees `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` alongside the existing `monochange step *` entries.
+
+The `next` and `next-versions` commands are aliases rather than distinct clap command literals, so they follow the same rule as the other top-level step aliases and stay out of this literal inventory.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### 🐛 Fixed
