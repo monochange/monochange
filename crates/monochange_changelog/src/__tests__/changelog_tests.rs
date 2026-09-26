@@ -2349,6 +2349,39 @@ fn compact_configured_template_labels_single_packages_with_the_symbol() {
 }
 
 #[test]
+fn configured_template_context_does_not_duplicate_the_package_line() {
+	let mut settings = multi_target_settings();
+	settings.templates = vec!["- {{ summary }}\n{{ context }}".to_string()];
+	let sections = build_release_note_sections(
+		"sdk",
+		&settings,
+		&[ReleaseNoteChange {
+			change_type: Some("fix".to_string()),
+			bump: BumpSeverity::Patch,
+			summary: "fix a bug".to_string(),
+			details: None,
+			..sample_change("pkg-a", "pkg-a", ".changeset/a.md")
+		}],
+	);
+	let entry = &sections[0].entries[0];
+
+	// `render_release_note_context` already emits the package line, so the
+	// labeled-entry wrapper must not append a second copy.
+	let rendered = render_configured_release_note_entry(
+		entry,
+		&ChangelogStyle::default(),
+		&settings.templates,
+		"sdk",
+		"1.2.3",
+	);
+	assert!(
+		rendered.starts_with("- fix a bug\n_Packages:_ 🟢 _pkg-a_\n_Owner:_"),
+		"rendered:\n{rendered}"
+	);
+	assert_eq!(rendered.matches("_Packages:_").count(), 1);
+}
+
+#[test]
 fn a_package_changelog_never_labels_the_package_it_belongs_to() {
 	let settings = multi_target_settings();
 	let sections = build_release_note_sections(

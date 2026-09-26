@@ -289,6 +289,39 @@ fn release_record_v0_4_migration_adds_default_output_identity() {
 }
 
 #[test]
+fn release_record_v0_7_migration_accepts_payloads_unchanged() {
+	let payload = json!({
+		"schema_version": "0.7",
+		"kind": release_record::KIND,
+		"created_at": "2026-01-01T00:00:00Z",
+		"command": "release",
+		"release_targets": [],
+		"released_packages": [],
+		"changed_files": [],
+		"changelogs": [
+			{
+				"owner_id": "sdk",
+				"owner_kind": "group",
+				"output": "default",
+				"stream": "default",
+				"path": "changelog.md",
+				"format": "monochange",
+				"notes": { "title": "1.2.0", "summary": [], "sections": [] },
+				"rendered": "## 1.2.0"
+			}
+		]
+	});
+	let migrated = release_record::migrate_value(payload.clone())
+		.unwrap_or_else(|error| panic!("migrate v0.7 release record: {error}"));
+
+	// The v0.8 change is confined to the configuration contract, so a release
+	// record must migrate to the current version with every field intact.
+	let mut expected = payload;
+	expected["schema_version"] = json!(CURRENT_SCHEMA_VERSION_TEXT);
+	assert_eq!(migrated, expected);
+}
+
+#[test]
 fn release_record_rust_migration_edges_reject_missing_paths() {
 	let current =
 		current_schema_version().unwrap_or_else(|error| panic!("current schema version: {error}"));

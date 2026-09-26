@@ -2937,6 +2937,72 @@ fn expanded_entries_move_the_summary_remainder_into_the_body() {
 }
 
 #[test]
+fn expanded_entries_render_metadata_and_owner_after_the_package_line() {
+	let entry = ReleaseNotesEntry {
+		summary: "Migrate the config format".to_string(),
+		details_markdown: None,
+		packages: vec![ReleaseNotePackage::new("core", BumpSeverity::Major)],
+		change_type: Some("breaking".to_string()),
+		bump: BumpSeverity::Major,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Expanded,
+		provenance: ReleaseNoteProvenance {
+			change_owner: Some(ReleaseNoteReference {
+				label: "@ifiokjr".to_string(),
+				url: None,
+			}),
+			..ReleaseNoteProvenance::default()
+		},
+	};
+	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
+	assert_eq!(
+		rendered,
+		"#### Migrate the config format\n\n_Packages:_ 🔴 _core_\n\n_Owner:_ @ifiokjr"
+	);
+}
+
+#[test]
+fn blockquote_and_omit_metadata_styles_place_packages_on_their_own_line() {
+	let entry = ReleaseNotesEntry {
+		summary: "Fix the thing".to_string(),
+		details_markdown: None,
+		packages: vec![ReleaseNotePackage::new("cli", BumpSeverity::Patch)],
+		change_type: Some("fix".to_string()),
+		bump: BumpSeverity::Patch,
+		stream: "default".to_string(),
+		style: ReleaseNoteEntryStyle::Compact,
+		provenance: ReleaseNoteProvenance {
+			change_owner: Some(ReleaseNoteReference {
+				label: "@ifiokjr".to_string(),
+				url: None,
+			}),
+			..ReleaseNoteProvenance::default()
+		},
+	};
+	let blockquote = crate::render_release_note_entry_markdown(
+		&entry,
+		&ChangelogStyle {
+			metadata_style: MetadataStyle::Blockquote,
+			..ChangelogStyle::default()
+		},
+	);
+	assert_eq!(
+		blockquote,
+		"- **Fix the thing.**\n  > _Packages:_ 🟢 _cli_\n  > _Owner:_ @ifiokjr"
+	);
+
+	// Omitting metadata drops the package line with the rest of the provenance.
+	let omitted = crate::render_release_note_entry_markdown(
+		&entry,
+		&ChangelogStyle {
+			metadata_style: MetadataStyle::Omit,
+			..ChangelogStyle::default()
+		},
+	);
+	assert_eq!(omitted, "- **Fix the thing.**");
+}
+
+#[test]
 fn structured_release_notes_cover_layout_and_metadata_variants() {
 	let provenance = ReleaseNoteProvenance {
 		source_path: Some(".changeset/fix.md".to_string()),
