@@ -62,3 +62,13 @@ include = ["sdk-cli"]
 ```
 
 Direct group-targeted changesets are always included. Member-targeted changesets are filtered only for the group changelog; package changelogs and release planning remain unchanged.
+
+The filter curates the committed changelog, and nothing else. A provider release body still describes every change the release shipped, so a group whose changelog hides internal notes cannot publish a release that appears to contain nothing. Each change is listed once, in its configured section, with the packages it affects:
+
+```markdown
+Grouped release for `sdk`.
+
+## Fixes
+
+- **Fix shared bug.** _Packages:_ 🟠 _core_, 🟢 _cli_ _Owner:_ @ifiokjr · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725)
+```

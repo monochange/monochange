@@ -29,7 +29,6 @@ use monochange_core::HostingCapabilities;
 use monochange_core::HostingProviderKind;
 use monochange_core::MetadataStyle;
 use monochange_core::PackageDefinition;
-use monochange_core::PackageLabelPlacement;
 use monochange_core::PackageLabelStyle;
 use monochange_core::PackageRecord;
 use monochange_core::PackageType;
@@ -1186,7 +1185,6 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 		"#### Summary\n\nMore",
 		&ChangelogStyle {
 			package_label_style: PackageLabelStyle::Badge,
-			package_label_placement: PackageLabelPlacement::AfterHeading,
 			..ChangelogStyle::default()
 		},
 	);
@@ -1200,7 +1198,6 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 			"#### Summary\n\nMore",
 			&ChangelogStyle {
 				package_label_style: PackageLabelStyle::Badge,
-				package_label_placement: PackageLabelPlacement::AfterChange,
 				..ChangelogStyle::default()
 			}
 		),
@@ -1216,7 +1213,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 			"- Added release note support",
 			&ChangelogStyle::default()
 		),
-		"- 🟠 **pkg-a**: Added release note support"
+		"- Added release note support\n_Packages:_ 🟠 _pkg-a_"
 	);
 	assert_eq!(
 		format_structured_labeled_entry(
@@ -1227,7 +1224,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 				..ChangelogStyle::default()
 			}
 		),
-		"- 🟠 **pkg-a**: Added release note support"
+		"- Added release note support\n_Packages:_ 🟠 *pkg-a*"
 	);
 	assert_eq!(
 		format_structured_labeled_entry(
@@ -1293,17 +1290,21 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 
 	let sample_entry =
 		release_notes_entry(&sample_change("pkg-a", "pkg-a", ".changeset/a.md"), "sdk");
-	assert_eq!(
-		render_release_note_context(&sample_entry, MetadataStyle::Omit),
-		""
-	);
-	assert!(
-		render_release_note_context(&sample_entry, MetadataStyle::Blockquote)
-			.starts_with("> _Owner:_")
-	);
-	assert!(
-		render_release_note_context(&sample_entry, MetadataStyle::Plain).contains("\n_Review:_")
-	);
+	let omit_style = ChangelogStyle {
+		metadata_style: MetadataStyle::Omit,
+		..ChangelogStyle::default()
+	};
+	let blockquote_style = ChangelogStyle {
+		metadata_style: MetadataStyle::Blockquote,
+		..ChangelogStyle::default()
+	};
+	let plain_style = ChangelogStyle {
+		metadata_style: MetadataStyle::Plain,
+		..ChangelogStyle::default()
+	};
+	assert_eq!(render_release_note_context(&sample_entry, &omit_style), "");
+	assert!(render_release_note_context(&sample_entry, &blockquote_style).contains("> _Owner:_"));
+	assert!(render_release_note_context(&sample_entry, &plain_style).contains("\n_Review:_"));
 	let rendered = apply_release_note_entry_template(
 		"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}\n\n{{ change_owner_link }}\n\n{{ review_request_link }}\n\n{{ introduced_commit_link }}\n\n{{ last_updated_commit_link }}\n\n{{ related_issue_links }}\n\n{{ closed_issue_links }}",
 		&sample_entry,
@@ -1489,6 +1490,7 @@ fn package_and_group_release_note_helpers_cover_empty_filtered_and_aggregated_pa
 		&BTreeMap::new(),
 		&[package_a.clone(), package_b.clone()],
 		"2.0.0",
+		GroupChangeSelection::RespectInclude,
 	);
 	assert_eq!(group_empty.len(), 1);
 	assert!(
@@ -1546,6 +1548,7 @@ fn package_and_group_release_note_helpers_cover_empty_filtered_and_aggregated_pa
 		&targets_by_path,
 		&[package_a.clone(), package_b.clone()],
 		"2.0.0",
+		GroupChangeSelection::RespectInclude,
 	);
 	assert_eq!(grouped.len(), 1);
 	assert_eq!(
@@ -1562,6 +1565,7 @@ fn package_and_group_release_note_helpers_cover_empty_filtered_and_aggregated_pa
 		&targets_by_path,
 		&[package_a.clone(), package_b.clone()],
 		"2.0.0",
+		GroupChangeSelection::RespectInclude,
 	);
 	assert_eq!(selected_filtered.len(), 1);
 	assert!(
@@ -1579,6 +1583,7 @@ fn package_and_group_release_note_helpers_cover_empty_filtered_and_aggregated_pa
 		&targets_by_path,
 		&[package_a.clone(), package_b.clone()],
 		"2.0.0",
+		GroupChangeSelection::RespectInclude,
 	);
 	assert_eq!(filtered.len(), 1);
 	assert!(
@@ -2330,7 +2335,7 @@ fn compact_configured_template_labels_single_packages_with_the_symbol() {
 
 	let with_symbols =
 		format_structured_labeled_entry(entry, "- fix a bug", &ChangelogStyle::default());
-	assert_eq!(with_symbols, "- 🟢 **pkg-a**: fix a bug");
+	assert_eq!(with_symbols, "- fix a bug\n_Packages:_ 🟢 _pkg-a_");
 
 	let without_symbols = format_structured_labeled_entry(
 		entry,
@@ -2340,7 +2345,40 @@ fn compact_configured_template_labels_single_packages_with_the_symbol() {
 			..ChangelogStyle::default()
 		},
 	);
-	assert_eq!(without_symbols, "- **pkg-a**: fix a bug");
+	assert_eq!(without_symbols, "- fix a bug\n_Packages:_ _pkg-a_");
+}
+
+#[test]
+fn configured_template_context_does_not_duplicate_the_package_line() {
+	let mut settings = multi_target_settings();
+	settings.templates = vec!["- {{ summary }}\n{{ context }}".to_string()];
+	let sections = build_release_note_sections(
+		"sdk",
+		&settings,
+		&[ReleaseNoteChange {
+			change_type: Some("fix".to_string()),
+			bump: BumpSeverity::Patch,
+			summary: "fix a bug".to_string(),
+			details: None,
+			..sample_change("pkg-a", "pkg-a", ".changeset/a.md")
+		}],
+	);
+	let entry = &sections[0].entries[0];
+
+	// `render_release_note_context` already emits the package line, so the
+	// labeled-entry wrapper must not append a second copy.
+	let rendered = render_configured_release_note_entry(
+		entry,
+		&ChangelogStyle::default(),
+		&settings.templates,
+		"sdk",
+		"1.2.3",
+	);
+	assert!(
+		rendered.starts_with("- fix a bug\n_Packages:_ 🟢 _pkg-a_\n_Owner:_"),
+		"rendered:\n{rendered}"
+	);
+	assert_eq!(rendered.matches("_Packages:_").count(), 1);
 }
 
 #[test]
@@ -2455,11 +2493,11 @@ fn render_release_notes_document_includes_section_headings_in_markdown() {
 		"rendered markdown should include ### Bug Fixes heading"
 	);
 	assert!(
-		markdown.contains("- 🟠 **pkg-a**: add feature"),
+		markdown.contains("- add feature\n_Packages:_ 🟠 _pkg-a_"),
 		"rendered markdown should include labeled feat entry"
 	);
 	assert!(
-		markdown.contains("- 🟢 **pkg-b**: fix bug"),
+		markdown.contains("- fix bug\n_Packages:_ 🟢 _pkg-b_"),
 		"rendered markdown should include labeled fix entry"
 	);
 
@@ -2554,7 +2592,7 @@ fn monochange_format_includes_heading_for_single_changed_section() {
 		"monochange format should include ### Changed heading for single default section"
 	);
 	assert!(
-		markdown.contains("- 🟢 **pkg-a**: fix bug"),
+		markdown.contains("- fix bug\n_Packages:_ 🟢 _pkg-a_"),
 		"entry should appear after heading"
 	);
 }

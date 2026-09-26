@@ -17,6 +17,7 @@ use monochange_core::ChangelogFormat;
 use monochange_core::ChangelogOutputDefinition;
 use monochange_core::ChangelogOutputMode;
 use monochange_core::ChangelogSettings;
+use monochange_core::ChangelogStyle;
 use monochange_core::ChangelogTarget;
 use monochange_core::ChangesetTargetKind;
 use monochange_core::GroupChangelogInclude;
@@ -27,7 +28,6 @@ use monochange_core::HostedReviewRequestRef;
 use monochange_core::MetadataStyle;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
-use monochange_core::PackageLabelPlacement;
 use monochange_core::PackageLabelStyle;
 use monochange_core::PackageRecord;
 use monochange_core::PreparedChangeset;
@@ -371,7 +371,7 @@ pub fn build_changelog_updates(
 		let group_definition = group_definitions_by_id
 			.get(planned_group.group_id.as_str())
 			.copied();
-		let changes = group_release_note_changes(
+		let complete_changes = group_release_note_changes(
 			context.configuration,
 			group_definition,
 			planned_group,
@@ -379,6 +379,7 @@ pub fn build_changelog_updates(
 			&changeset_targets_by_path,
 			context.packages,
 			&planned_version.to_string(),
+			GroupChangeSelection::CompleteRelease,
 		);
 		let changelog_title = context
 			.release_targets
@@ -388,18 +389,18 @@ pub fn build_changelog_updates(
 				|| planned_version.to_string(),
 				|rt| rt.rendered_changelog_title.clone(),
 			);
-		let document = build_release_notes_document(
-			&planned_group.group_id,
-			&changelog_title,
-			group_release_summary(&planned_group.group_id),
-			&context.configuration.changelog,
-			&changes,
-		);
 		let release_notes_style = context
 			.configuration
 			.changelog
 			.release_notes
 			.resolve(&context.configuration.changelog.style);
+		let document = build_release_notes_document(
+			&planned_group.group_id,
+			&changelog_title,
+			group_release_summary(&planned_group.group_id),
+			&context.configuration.changelog,
+			&complete_changes,
+		);
 		let rendered = render_changelog_release_notes(
 			changelog_target.format,
 			&document,
@@ -415,6 +416,41 @@ pub fn build_changelog_updates(
 			&planned_group.group_id,
 			&planned_version.to_string(),
 		);
+		// The changelog file is a curated document, so it honors the group's
+		// `include` filter. Provider bodies above describe the whole release:
+		// a filter that hides internal notes from a file must not publish a
+		// release that claims nothing happened.
+		let file_rendered = if group_definition
+			.is_some_and(|group| group.changelog_include != GroupChangelogInclude::All)
+		{
+			let file_changes = group_release_note_changes(
+				context.configuration,
+				group_definition,
+				planned_group,
+				&default_release_note_changes,
+				&changeset_targets_by_path,
+				context.packages,
+				&planned_version.to_string(),
+				GroupChangeSelection::RespectInclude,
+			);
+			let file_document = build_release_notes_document(
+				&planned_group.group_id,
+				&changelog_title,
+				group_release_summary(&planned_group.group_id),
+				&context.configuration.changelog,
+				&file_changes,
+			);
+			render_changelog_release_notes(
+				changelog_target.format,
+				&file_document,
+				&release_notes_style,
+				&context.configuration.changelog.templates,
+				&planned_group.group_id,
+				&planned_version.to_string(),
+			)
+		} else {
+			rendered.clone()
+		};
 		let initial_header = render_group_initial_changelog_header(
 			context,
 			changelog_target,
@@ -425,7 +461,7 @@ pub fn build_changelog_updates(
 		);
 		let next_changelog = append_changelog_section(
 			&changelog_target.path,
-			&rendered,
+			&file_rendered,
 			Some(initial_header.as_str()),
 		)?;
 		updates.push(ChangelogUpdate {
@@ -639,6 +675,7 @@ fn build_named_group_changelog_update(
 		changeset_targets_by_path,
 		context.packages,
 		&planned_version.to_string(),
+		GroupChangeSelection::RespectInclude,
 	);
 	if !changes.iter().any(|change| change.source_path.is_some()) {
 		return Ok(None);
@@ -1464,6 +1501,20 @@ fn package_release_note_changes(
 	changes
 }
 
+/// Which member changes a group release-notes document is built from.
+///
+/// A group has two audiences. The changelog file is a curated document that
+/// honors the group's `include` filter, while a provider release body
+/// announces the release and must describe every change that shipped.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum GroupChangeSelection {
+	/// Honor the group's `include` filter. Used for changelog files.
+	RespectInclude,
+	/// Keep every member change. Used for provider release bodies.
+	CompleteRelease,
+}
+
+#[allow(clippy::too_many_arguments)]
 fn group_release_note_changes(
 	configuration: &monochange_core::WorkspaceConfiguration,
 	group_definition: Option<&monochange_core::GroupDefinition>,
@@ -1472,6 +1523,7 @@ fn group_release_note_changes(
 	changeset_targets_by_path: &BTreeMap<PathBuf, Vec<PreparedChangesetTarget>>,
 	packages: &[PackageRecord],
 	planned_version: &str,
+	selection: GroupChangeSelection,
 ) -> Vec<ReleaseNoteChange> {
 	let unfiltered_changes = planned_group
 		.members
@@ -1487,11 +1539,12 @@ fn group_release_note_changes(
 	let mut changes = unfiltered_changes
 		.iter()
 		.filter_map(|change| {
-			filter_group_release_note_change(
+			route_group_release_note_change(
 				change,
 				group_definition,
 				planned_group,
 				changeset_targets_by_path,
+				selection,
 			)
 		})
 		.collect::<Vec<_>>();
@@ -1544,6 +1597,27 @@ pub fn filter_group_release_note_change(
 	planned_group: &monochange_core::PlannedVersionGroup,
 	changeset_targets_by_path: &BTreeMap<PathBuf, Vec<PreparedChangesetTarget>>,
 ) -> Option<ReleaseNoteChange> {
+	route_group_release_note_change(
+		change,
+		group_definition,
+		planned_group,
+		changeset_targets_by_path,
+		GroupChangeSelection::RespectInclude,
+	)
+}
+
+/// Route one member change into a group document.
+///
+/// A changeset that names the group directly is always grouped under the group
+/// id. A changeset that names members is included unless the group's `include`
+/// filter rejects it, which only applies to the changelog file.
+fn route_group_release_note_change(
+	change: &ReleaseNoteChange,
+	group_definition: Option<&monochange_core::GroupDefinition>,
+	planned_group: &monochange_core::PlannedVersionGroup,
+	changeset_targets_by_path: &BTreeMap<PathBuf, Vec<PreparedChangesetTarget>>,
+	selection: GroupChangeSelection,
+) -> Option<ReleaseNoteChange> {
 	let source_path = change.source_path.as_ref().map(PathBuf::from)?;
 	let targets = changeset_targets_by_path.get(&source_path)?;
 	if targets.iter().any(|target| {
@@ -1564,6 +1638,9 @@ pub fn filter_group_release_note_change(
 		.collect::<BTreeSet<_>>();
 	if in_group_targets.is_empty() {
 		return None;
+	}
+	if selection == GroupChangeSelection::CompleteRelease {
+		return Some(change.clone());
 	}
 	let default_include = GroupChangelogInclude::All;
 	let include = group_definition.map_or(&default_include, |group| &group.changelog_include);
@@ -2019,7 +2096,7 @@ fn markdown_link_url(link: &str) -> Option<String> {
 fn render_changelog_release_notes(
 	format: ChangelogFormat,
 	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
-	style: &monochange_core::ChangelogStyle,
+	style: &ChangelogStyle,
 	templates: &[String],
 	target_id: &str,
 	version: &str,
@@ -2034,7 +2111,7 @@ fn render_changelog_release_notes(
 
 fn legacy_release_notes_document(
 	document: &ReleaseNotesDocument<ReleaseNotesEntry>,
-	style: &monochange_core::ChangelogStyle,
+	style: &ChangelogStyle,
 	templates: &[String],
 	target_id: &str,
 	version: &str,
@@ -2075,7 +2152,7 @@ fn uses_default_change_templates(templates: &[String]) -> bool {
 
 fn render_configured_release_note_entry(
 	entry: &ReleaseNotesEntry,
-	style: &monochange_core::ChangelogStyle,
+	style: &ChangelogStyle,
 	templates: &[String],
 	target_id: &str,
 	version: &str,
@@ -2100,7 +2177,7 @@ fn render_configured_release_note_entry(
 fn apply_release_note_entry_template(
 	template: &str,
 	entry: &ReleaseNotesEntry,
-	style: &monochange_core::ChangelogStyle,
+	style: &ChangelogStyle,
 	target_id: &str,
 	version: &str,
 ) -> Option<String> {
@@ -2128,7 +2205,7 @@ fn apply_release_note_entry_template(
 	if let Some(value) = entry.change_type.as_ref() {
 		context.insert("type", value.clone());
 	}
-	let rendered_context = render_release_note_context(entry, style.metadata_style);
+	let rendered_context = render_release_note_context(entry, style);
 	if !rendered_context.is_empty() {
 		context.insert("context", rendered_context);
 	}
@@ -2225,35 +2302,42 @@ fn insert_references_template_values(
 	);
 }
 
-fn render_release_note_context(entry: &ReleaseNotesEntry, metadata_style: MetadataStyle) -> String {
-	let mut lines = Vec::new();
+/// Render the provenance block for one change.
+///
+/// Packages describe the change, so the `_Packages:_` line opens the block
+/// directly above the owner line instead of appearing inline in the heading.
+/// `Inline` joins the remaining provenance items into one line and leaves the
+/// package line separate, so affected packages always read as their own column.
+fn render_release_note_context(entry: &ReleaseNotesEntry, style: &ChangelogStyle) -> String {
+	let package_line = render_affected_packages_metadata(entry, style);
+	let mut metadata_lines = Vec::new();
 	if let Some(reference) = entry.provenance.change_owner.as_ref() {
-		lines.push(format!(
+		metadata_lines.push(format!(
 			"_Owner:_ {}",
 			render_release_note_reference(reference)
 		));
 	}
 	if let Some(reference) = entry.provenance.review_request.as_ref() {
-		lines.push(format!(
+		metadata_lines.push(format!(
 			"_Review:_ {}",
 			render_release_note_reference(reference)
 		));
 	} else {
 		if let Some(reference) = entry.provenance.introduced_commit.as_ref() {
-			lines.push(format!(
+			metadata_lines.push(format!(
 				"_Introduced in:_ {}",
 				render_release_note_reference(reference)
 			));
 		}
 		if let Some(reference) = entry.provenance.last_updated_commit.as_ref() {
-			lines.push(format!(
+			metadata_lines.push(format!(
 				"_Last updated in:_ {}",
 				render_release_note_reference(reference)
 			));
 		}
 	}
 	if !entry.provenance.closed_issues.is_empty() {
-		lines.push(format!(
+		metadata_lines.push(format!(
 			"_Closed issues:_ {}",
 			entry
 				.provenance
@@ -2265,7 +2349,7 @@ fn render_release_note_context(entry: &ReleaseNotesEntry, metadata_style: Metada
 		));
 	}
 	if !entry.provenance.related_issues.is_empty() {
-		lines.push(format!(
+		metadata_lines.push(format!(
 			"_Related issues:_ {}",
 			entry
 				.provenance
@@ -2276,36 +2360,38 @@ fn render_release_note_context(entry: &ReleaseNotesEntry, metadata_style: Metada
 				.join(", ")
 		));
 	}
-	match metadata_style {
-		MetadataStyle::Inline => lines.join(" · "),
+	let metadata = match style.metadata_style {
+		MetadataStyle::Inline => metadata_lines.join(" · "),
 		MetadataStyle::Blockquote => {
-			lines
+			metadata_lines
 				.into_iter()
 				.map(|line| format!("> {line}"))
 				.collect::<Vec<_>>()
 				.join("\n")
 		}
-		MetadataStyle::Plain => lines.join("\n"),
+		MetadataStyle::Plain => metadata_lines.join("\n"),
 		MetadataStyle::Omit | _ => String::new(),
-	}
+	};
+	[package_line, Some(metadata)]
+		.into_iter()
+		.flatten()
+		.filter(|line| !line.is_empty())
+		.collect::<Vec<_>>()
+		.join("\n")
 }
 
-fn render_release_note_reference(reference: &ReleaseNoteReference) -> String {
-	reference.url.as_deref().map_or_else(
-		|| reference.label.clone(),
-		|url| render_markdown_link(&reference.label, Some(url)),
-	)
-}
-
-fn format_structured_labeled_entry(
+/// Render the `_Packages:_` line for a change, if it has any packages.
+fn render_affected_packages_metadata(
 	entry: &ReleaseNotesEntry,
-	rendered: &str,
-	style: &monochange_core::ChangelogStyle,
-) -> String {
-	if entry.packages.is_empty() || style.package_label_style == PackageLabelStyle::Omit {
-		return rendered.to_string();
+	style: &ChangelogStyle,
+) -> Option<String> {
+	if entry.packages.is_empty()
+		|| style.package_label_style == PackageLabelStyle::Omit
+		|| style.metadata_style == MetadataStyle::Omit
+	{
+		return None;
 	}
-	let labels = entry
+	let packages = entry
 		.packages
 		.iter()
 		.map(|package| {
@@ -2323,30 +2409,38 @@ fn format_structured_labeled_entry(
 		})
 		.collect::<Vec<_>>()
 		.join(", ");
-	let label_line = format!("_Packages:_ {labels}");
-	if style.package_label_placement == PackageLabelPlacement::AfterChange {
-		return format!("{rendered}\n{label_line}");
+	let line = format!("_Packages:_ {packages}");
+	Some(match style.metadata_style {
+		MetadataStyle::Blockquote => format!("> {line}"),
+		_ => line,
+	})
+}
+
+fn render_release_note_reference(reference: &ReleaseNoteReference) -> String {
+	reference.url.as_deref().map_or_else(
+		|| reference.label.clone(),
+		|url| render_markdown_link(&reference.label, Some(url)),
+	)
+}
+
+/// Append the package line to a template-rendered entry that has no context
+/// block to host it.
+///
+/// Templates that omit `{{ context }}` still need to name the affected
+/// packages, so the line is appended as the final provenance line. Templates
+/// that do render `{{ context }}` already include it.
+fn format_structured_labeled_entry(
+	entry: &ReleaseNotesEntry,
+	rendered: &str,
+	style: &ChangelogStyle,
+) -> String {
+	let Some(package_line) = render_affected_packages_metadata(entry, style) else {
+		return rendered.to_string();
+	};
+	if rendered.contains(&package_line) {
+		return rendered.to_string();
 	}
-	if let Some((heading, body)) = rendered.split_once('\n')
-		&& heading.starts_with('#')
-	{
-		return format!("{heading}\n{label_line}\n{body}");
-	}
-	if let [package] = entry.packages.as_slice()
-		&& !rendered.contains('\n')
-		&& let Some(item) = rendered.strip_prefix("- ")
-	{
-		return format!(
-			"- {}{}**: {item}",
-			if style.package_bump_symbols {
-				format!("{} **", package.symbol())
-			} else {
-				"**".to_string()
-			},
-			package.name
-		);
-	}
-	format!("{rendered}\n{label_line}")
+	format!("{rendered}\n{package_line}")
 }
 
 fn config_package_id(package: &PackageRecord) -> String {

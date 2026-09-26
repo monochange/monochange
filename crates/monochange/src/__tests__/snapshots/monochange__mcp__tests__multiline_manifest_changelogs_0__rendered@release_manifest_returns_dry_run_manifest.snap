@@ -8,4 +8,5 @@ Grouped release for `sdk`.
 
 ### Features
 
-- 🟠 **core**: **add release command.**
+- **add release command.**
+  _Packages:_ 🟠 _core_

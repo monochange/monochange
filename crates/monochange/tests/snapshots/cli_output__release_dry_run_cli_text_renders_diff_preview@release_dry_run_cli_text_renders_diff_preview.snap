@@ -50,7 +50,7 @@ file diffs:
 
 --- a/changelog.md
 +++ b/changelog.md
-@@ -1 +1,9 @@
+@@ -1 +1,10 @@
  # Changelog
 +
 +## 1.1.0 ([DATE])
@@ -59,7 +59,8 @@ file diffs:
 +
 +### Features
 +
-+- 🟠 **core**: **add feature.**
++- **add feature.**
++  _Packages:_ 🟠 _core_
 
 --- a/crates/core/CHANGELOG.md
 +++ b/crates/core/CHANGELOG.md

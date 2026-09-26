@@ -1,6 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/release_values.rs
-expression: "serde_json::json!({\n    \"date\": manifest.label_inputs.date, \"time\": \"[time]\", \"of_month\":\n    manifest.label_inputs.of_month, \"of_quarter\":\n    manifest.label_inputs.of_quarter, \"of_year\":\n    manifest.label_inputs.of_year,\n})"
+expression: inputs
 ---
 {
   "date": "2026-09-19",
