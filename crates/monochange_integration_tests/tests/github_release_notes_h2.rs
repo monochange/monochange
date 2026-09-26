@@ -141,7 +141,7 @@ fn github_release_notes_use_h2_sections_without_title_in_body() {
 }
 
 #[test]
-fn github_grouped_fallback_lists_member_packages_without_version_title() {
+fn github_grouped_body_merges_member_changes_without_package_sections() {
 	let tempdir = setup_case("group-empty-one-member-note");
 	let releases = release_requests(tempdir.path());
 	let release = releases
@@ -167,8 +167,14 @@ fn github_grouped_fallback_lists_member_packages_without_version_title() {
 		!body.contains("## [1.1.0]"),
 		"body should not contain version title:\n{body}"
 	);
-	assert!(body.contains("## `core`"), "body:\n{body}");
-	assert!(body.contains("### Features"), "body:\n{body}");
+	// A group release lists each change once with its affected packages. It must
+	// never nest a header per member package.
+	assert!(
+		!body.contains("## `core`"),
+		"group body should not nest a package section:\n{body}"
+	);
+	assert!(body.contains("## Features"), "body:\n{body}");
+	assert!(body.contains("_Packages:_ 🟠 _core_"), "body:\n{body}");
 
 	assert_snapshot!("group_empty_one_member_note__body", body);
 }

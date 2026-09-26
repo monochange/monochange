@@ -228,14 +228,12 @@ fn monochange_release_body(
 			&& changelog.owner_kind == target.kind
 			&& changelog.output == output
 	});
-	let member_changelogs = uncovered_member_changelogs(manifest, target, target_changelog, output);
 
-	match (target_changelog, member_changelogs.is_empty()) {
-		(Some(changelog), _) if changelog_has_release_notes(changelog) => {
+	match target_changelog {
+		Some(changelog) if changelog_has_release_notes(changelog) => {
 			provider_body_from_changelog_rendered(&changelog.rendered)
 		}
-		(_, false) => grouped_member_release_body(target, &member_changelogs),
-		(_, true) => minimal_release_body(manifest, target),
+		_ => minimal_release_body(manifest, target),
 	}
 }
 
@@ -268,74 +266,6 @@ fn provider_body_from_changelog_rendered(rendered: &str) -> String {
 	promoted.join("\n")
 }
 
-fn uncovered_member_changelogs<'a>(
-	manifest: &'a ReleaseManifest,
-	target: &ReleaseManifestTarget,
-	target_changelog: Option<&ReleaseManifestChangelog>,
-	output: &str,
-) -> Vec<&'a ReleaseManifestChangelog> {
-	if target.kind != ReleaseOwnerKind::Group {
-		return Vec::new();
-	}
-
-	manifest
-		.changelogs
-		.iter()
-		.filter(|changelog| {
-			changelog.owner_kind == ReleaseOwnerKind::Package
-				&& target.members.contains(&changelog.owner_id)
-				&& changelog.output == output
-				&& changelog_has_release_notes(changelog)
-				&& changelog_has_uncovered_notes(changelog, target_changelog)
-		})
-		.collect()
-}
-
-fn grouped_member_release_body(
-	target: &ReleaseManifestTarget,
-	member_changelogs: &[&ReleaseManifestChangelog],
-) -> String {
-	let mut lines = vec![
-		format!("Grouped release for `{}`.", target.id),
-		String::new(),
-	];
-	push_member_changelogs(&mut lines, member_changelogs);
-	lines.join("\n")
-}
-
-fn push_member_changelogs(lines: &mut Vec<String>, changelogs: &[&ReleaseManifestChangelog]) {
-	for (index, changelog) in changelogs.iter().enumerate() {
-		if index > 0 {
-			lines.push(String::new());
-		}
-		lines.push(format!("## `{}`", changelog.owner_id));
-		push_changelog_notes(lines, changelog);
-	}
-}
-
-fn push_changelog_notes(lines: &mut Vec<String>, changelog: &ReleaseManifestChangelog) {
-	for paragraph in &changelog.notes.summary {
-		lines.push(String::new());
-		lines.push(paragraph.clone());
-	}
-
-	for section in &changelog.notes.sections {
-		let entries = section
-			.entries
-			.iter()
-			.filter(|entry| !is_empty_release_note(entry))
-			.cloned()
-			.collect::<Vec<_>>();
-		if entries.is_empty() {
-			continue;
-		}
-		lines.push(String::new());
-		lines.push(format!("### {}", section.title));
-		lines.push(String::new());
-		push_body_entries(lines, &entries);
-	}
-}
-
 fn changelog_has_release_notes(changelog: &ReleaseManifestChangelog) -> bool {
 	changelog.notes.sections.iter().any(|section| {
 		section
@@ -349,40 +279,6 @@ fn is_empty_release_note(entry: &str) -> bool {
 	entry.contains("No group-facing notes were recorded for this release")
 		|| entry.contains("No package-specific changes were recorded")
 		|| entry.contains("No significant changes")
-}
-
-fn changelog_has_uncovered_notes(
-	changelog: &ReleaseManifestChangelog,
-	target_changelog: Option<&ReleaseManifestChangelog>,
-) -> bool {
-	let Some(target_changelog) = target_changelog else {
-		return true;
-	};
-	let covered_entries = target_changelog
-		.notes
-		.sections
-		.iter()
-		.flat_map(|section| &section.entries)
-		.map(|entry| normalized_release_entry(entry))
-		.collect::<Vec<_>>();
-
-	changelog
-		.notes
-		.sections
-		.iter()
-		.flat_map(|section| &section.entries)
-		.filter(|entry| !is_empty_release_note(entry))
-		.any(|entry| !covered_entries.contains(&normalized_release_entry(entry)))
-}
-
-fn normalized_release_entry(entry: &str) -> String {
-	entry
-		.lines()
-		.filter(|line| !line.trim_start().starts_with("_Packages:"))
-		.collect::<Vec<_>>()
-		.join("\n")
-		.trim()
-		.to_string()
 }
 
 /// Build a blocking HTTP client for provider API calls.

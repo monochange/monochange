@@ -6,5 +6,6 @@ Grouped release for `sdk`.
 
 ## Features
 
-- 🟠 **core**: **Add core feature.** Adds a visible core feature that the group changelog includes directly.
+- **Add core feature.** Adds a visible core feature that the group changelog includes directly.
+  _Packages:_ 🟠 _core_
   _Owner:_ test · _Introduced in:_ [1aef008](https://github.com/ifiokjr/monochange/commit/1aef0089ab2c1ebaf3d1711f0be7e1330b39810d)

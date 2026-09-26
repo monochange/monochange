@@ -333,6 +333,8 @@ Routine entries use a compact bullet. Breaking entries and entries with migratio
 
 One changeset can target several packages with different change types. monochange renders that changeset once, in the section with the lowest `priority`, and lists every package it targeted. Each package label carries a colored symbol for the bump that package received: `🔴` major, `🟠` minor, `🟢` patch, and `⚪` none. Set `package_bump_symbols = false` to omit the symbols.
 
+Affected packages are metadata about a change, so they render as a `_Packages:_` line directly above the `_Owner:_` line rather than inside the heading. A package's own release notes omit the label entirely, because the document already identifies the package.
+
 Built-in section headings are plain text, such as `Features` and `Fixes`. Configure custom `[changelog.sections.<id>].heading` values when a project deliberately wants emoji or other decoration.
 
 ```toml
@@ -341,8 +343,6 @@ Built-in section headings are plain text, such as `Features` and `Fixes`. Config
 metadata_style = "inline"
 # Prefix each package label with a colored bump symbol.
 package_bump_symbols = true
-# `after_heading` (default) or `after_change`.
-package_label_placement = "after_heading"
 # `inline` (default), `badge`, or `omit`.
 package_label_style = "inline"
 # `blank_line` (default), `thematic_break`, or `none`.

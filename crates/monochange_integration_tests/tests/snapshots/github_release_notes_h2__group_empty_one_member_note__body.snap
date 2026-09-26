@@ -4,9 +4,8 @@ expression: body
 ---
 Grouped release for `sdk`.
 
-## `core`
-
-### Features
+## Features
 
 - **Add core feature.** Adds a visible core feature that should appear only in the member fallback.
+  _Packages:_ 🟠 _core_
   _Owner:_ test · _Introduced in:_ [97e2abf](https://github.com/ifiokjr/monochange/commit/97e2abf3d32b8150f4ab1d6be807af05f4d9598a)

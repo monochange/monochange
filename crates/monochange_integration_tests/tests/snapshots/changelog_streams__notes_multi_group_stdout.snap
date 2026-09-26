@@ -8,5 +8,6 @@ Grouped release for `sdk`.
 
 ### App features
 
-- 🟠 **app**: **Preview collectible art before publishing.** Creators can review artwork and metadata before making a project live.
+- **Preview collectible art before publishing.** Creators can review artwork and metadata before making a project live.
+  _Packages:_ 🟠 _app_
   _Owner:_ test · _Introduced in:_ [COMMIT]

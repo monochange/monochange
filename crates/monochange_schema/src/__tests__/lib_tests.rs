@@ -240,6 +240,7 @@ fn release_record_rust_migration_edges_are_explicit_and_ordered() {
 			(SchemaVersion::new(0, 4), SchemaVersion::new(0, 5)),
 			(SchemaVersion::new(0, 5), SchemaVersion::new(0, 6)),
 			(SchemaVersion::new(0, 6), SchemaVersion::new(0, 7)),
+			(SchemaVersion::new(0, 7), SchemaVersion::new(0, 8)),
 		]
 	);
 }

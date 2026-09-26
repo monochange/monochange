@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_github/src/__tests__/lib_tests.rs
-assertion_line: 183
 expression: "request.body.as_deref().unwrap_or_else(|| panic!(\"expected body\"))"
 ---
 Grouped release for `sdk`.

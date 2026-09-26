@@ -37,7 +37,6 @@ use crate::MissingFieldBehavior;
 use crate::MonochangeError;
 use crate::PackageDefinition;
 use crate::PackageDependency;
-use crate::PackageLabelPlacement;
 use crate::PackageLabelStyle;
 use crate::PackageRecord;
 use crate::PackageType;
@@ -2737,7 +2736,7 @@ fn compact_single_package_entries_drop_the_symbol_when_disabled() {
 
 	let with_symbols =
 		crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
-	assert_eq!(with_symbols, "- 🟢 **cli**: **Fix the thing.**");
+	assert_eq!(with_symbols, "- **Fix the thing.**\n  _Packages:_ 🟢 _cli_");
 
 	let without_symbols = crate::render_release_note_entry_markdown(
 		&entry,
@@ -2746,7 +2745,7 @@ fn compact_single_package_entries_drop_the_symbol_when_disabled() {
 			..ChangelogStyle::default()
 		},
 	);
-	assert_eq!(without_symbols, "- **cli**: **Fix the thing.**");
+	assert_eq!(without_symbols, "- **Fix the thing.**\n  _Packages:_ _cli_");
 }
 
 #[test]
@@ -2861,7 +2860,7 @@ fn compact_entries_separate_multi_package_labels_from_the_summary() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"- _Packages:_ 🟢 _core_, 🟢 _app_ **add shared release note.**"
+		"- **add shared release note.**\n  _Packages:_ 🟢 _core_, 🟢 _app_"
 	);
 }
 
@@ -2880,22 +2879,19 @@ fn compact_entries_bold_only_the_first_sentence_of_a_long_summary() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"- 🟢 **cli**: **Add the first thing.** Preserve the rest as plain text Details stay plain."
+		"- **Add the first thing.** Preserve the rest as plain text Details stay plain.\n  _Packages:_ 🟢 _cli_"
 	);
 
-	let after_change = crate::render_release_note_entry_markdown(
+	let without_details = crate::render_release_note_entry_markdown(
 		&ReleaseNotesEntry {
 			details_markdown: None,
 			..entry.clone()
 		},
-		&ChangelogStyle {
-			package_label_placement: PackageLabelPlacement::AfterChange,
-			..ChangelogStyle::default()
-		},
+		&ChangelogStyle::default(),
 	);
 	assert_eq!(
-		after_change,
-		"- **Add the first thing.** Preserve the rest as plain text\n  🟢 **cli**:"
+		without_details,
+		"- **Add the first thing.** Preserve the rest as plain text\n  _Packages:_ 🟢 _cli_"
 	);
 }
 
@@ -2917,7 +2913,7 @@ fn compact_entries_render_details_without_a_summary() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"- _Packages:_ 🟢 _core_, 🟢 _app_ Details carry the change."
+		"- Details carry the change.\n  _Packages:_ 🟢 _core_, 🟢 _app_"
 	);
 }
 
@@ -2936,7 +2932,7 @@ fn expanded_entries_move_the_summary_remainder_into_the_body() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"#### Migrate the config format.\n\nDetails follow the heading\n\n_Packages:_ 🟢 _core_\n\nExisting `monochange.toml` files keep working."
+		"#### Migrate the config format.\n\nDetails follow the heading\n\nExisting `monochange.toml` files keep working.\n\n_Packages:_ 🟢 _core_"
 	);
 }
 
@@ -3026,7 +3022,6 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 	let blockquote_style = ChangelogStyle {
 		section_separator: SectionSeparator::ThematicBreak,
 		package_label_style: PackageLabelStyle::Badge,
-		package_label_placement: PackageLabelPlacement::AfterChange,
 		metadata_style: MetadataStyle::Blockquote,
 		collapsed_section_style: CollapsedSectionStyle::Details,
 		package_bump_symbols: true,
@@ -3057,7 +3052,6 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 	assert_eq!(legacy.sections[1].entries.len(), 2);
 
 	let plain_style = ChangelogStyle {
-		package_label_placement: PackageLabelPlacement::AfterChange,
 		metadata_style: MetadataStyle::Plain,
 		collapsed_section_style: CollapsedSectionStyle::Plain,
 		..ChangelogStyle::default()
@@ -3066,7 +3060,7 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 	assert!(expanded.contains("_Packages:_ 🟢 _core_, 🟢 _cli_"));
 	assert!(expanded.contains("_Related issues:_ #10"));
 	let compact = crate::render_release_note_entry_markdown(&compact_entry, &plain_style);
-	assert!(compact.contains("\n  🟢 **cli**:"));
+	assert!(compact.contains("\n  _Packages:_ 🟢 _cli_"));
 
 	let omitted = crate::render_release_note_entry_markdown(
 		&expanded_entry,
@@ -3179,7 +3173,6 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 			ChangelogStyle {
 				section_separator: SectionSeparator::BlankLine,
 				package_label_style: PackageLabelStyle::Badge,
-				package_label_placement: PackageLabelPlacement::AfterHeading,
 				metadata_style: MetadataStyle::Blockquote,
 				collapsed_section_style: CollapsedSectionStyle::Details,
 				package_bump_symbols: true,
@@ -3187,7 +3180,6 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 			[
 				"single blank line",
 				"emphasized package names",
-				"Place package labels after the change heading/title",
 				"block-quote lines prefixed with >",
 				"HTML <details>/<summary>",
 			],
@@ -3196,15 +3188,13 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 			ChangelogStyle {
 				section_separator: SectionSeparator::ThematicBreak,
 				package_label_style: PackageLabelStyle::Inline,
-				package_label_placement: PackageLabelPlacement::AfterHeading,
 				metadata_style: MetadataStyle::Plain,
 				collapsed_section_style: CollapsedSectionStyle::Plain,
 				package_bump_symbols: true,
 			},
 			[
 				"thematic break (---)",
-				"render labels inline",
-				"Place package labels after the change heading/title",
+				"`_Packages:_` metadata line above the owner line",
 				"plain text — no block-quote prefix",
 				"regular ### headings",
 			],
@@ -3213,7 +3203,6 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 			ChangelogStyle {
 				section_separator: SectionSeparator::None,
 				package_label_style: PackageLabelStyle::Omit,
-				package_label_placement: PackageLabelPlacement::AfterChange,
 				metadata_style: MetadataStyle::Omit,
 				collapsed_section_style: CollapsedSectionStyle::Details,
 				package_bump_symbols: true,
@@ -3221,8 +3210,7 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 			[
 				"Do not add any separator",
 				"Omit package labels",
-				"Place package labels after",
-				"Omit metadata lines",
+				"Omit metadata lines entirely",
 				"HTML <details>/<summary>",
 			],
 		),
@@ -3244,7 +3232,6 @@ fn release_notes_style_overrides_only_replace_configured_fields() {
 	let base = ChangelogStyle {
 		section_separator: SectionSeparator::BlankLine,
 		package_label_style: PackageLabelStyle::Inline,
-		package_label_placement: PackageLabelPlacement::AfterHeading,
 		metadata_style: MetadataStyle::Inline,
 		collapsed_section_style: CollapsedSectionStyle::Details,
 		package_bump_symbols: true,
@@ -3252,7 +3239,6 @@ fn release_notes_style_overrides_only_replace_configured_fields() {
 	let overrides = ReleaseNotesStyleOverrides {
 		section_separator: Some(SectionSeparator::ThematicBreak),
 		package_label_style: None,
-		package_label_placement: Some(PackageLabelPlacement::AfterChange),
 		metadata_style: Some(MetadataStyle::Omit),
 		collapsed_section_style: Some(CollapsedSectionStyle::Plain),
 		package_bump_symbols: None,
@@ -3267,10 +3253,6 @@ fn release_notes_style_overrides_only_replace_configured_fields() {
 	assert_eq!(overrides.resolve(&base), resolved);
 	assert_eq!(resolved.section_separator, SectionSeparator::ThematicBreak);
 	assert_eq!(resolved.package_label_style, PackageLabelStyle::Inline);
-	assert_eq!(
-		resolved.package_label_placement,
-		PackageLabelPlacement::AfterChange
-	);
 	assert_eq!(resolved.metadata_style, MetadataStyle::Omit);
 	assert_eq!(
 		resolved.collapsed_section_style,
@@ -3308,7 +3290,6 @@ fn render_release_notes_applies_separator_and_plain_collapsed_styles() {
 	let style = ChangelogStyle {
 		section_separator: SectionSeparator::ThematicBreak,
 		package_label_style: PackageLabelStyle::Inline,
-		package_label_placement: PackageLabelPlacement::AfterHeading,
 		metadata_style: MetadataStyle::Plain,
 		collapsed_section_style: CollapsedSectionStyle::Plain,
 		package_bump_symbols: true,
@@ -3329,7 +3310,6 @@ fn render_release_notes_applies_separator_and_plain_collapsed_styles() {
 	let compact_style = ChangelogStyle {
 		section_separator: SectionSeparator::None,
 		package_label_style: PackageLabelStyle::Inline,
-		package_label_placement: PackageLabelPlacement::AfterHeading,
 		metadata_style: MetadataStyle::Plain,
 		collapsed_section_style: CollapsedSectionStyle::Details,
 		package_bump_symbols: true,

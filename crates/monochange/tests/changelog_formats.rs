@@ -116,7 +116,10 @@ fn release_filters_group_changelog_entries_to_selected_member_packages() {
 	assert!(core_changelog.contains("- **add cli feature.**"));
 	assert!(app_changelog.contains("- **document internal sync work.**"));
 	assert!(!group_changelog.contains("Changed members:"));
-	assert!(group_changelog.contains("- 🟠 **core**: **add cli feature.**"));
+	assert!(
+		group_changelog.contains("_Packages:_ 🟠 _core_"),
+		"group changelog:\n{group_changelog}"
+	);
 	assert!(!group_changelog.contains("document internal sync work"));
 }
 

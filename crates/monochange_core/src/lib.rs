@@ -2101,18 +2101,6 @@ pub enum PackageLabelStyle {
 	Omit,
 }
 
-/// Where to place package labels relative to a changelog entry.
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum PackageLabelPlacement {
-	/// Place package labels after the change heading/title and before the change body.
-	#[default]
-	AfterHeading,
-	/// Place package labels after the full rendered change.
-	AfterChange,
-}
 /// How to render metadata lines (owner, review link, etc.) in changelog entries.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
@@ -2166,8 +2154,6 @@ pub struct ChangelogStyle {
 	#[serde(default)]
 	pub package_label_style: PackageLabelStyle,
 	#[serde(default)]
-	pub package_label_placement: PackageLabelPlacement,
-	#[serde(default)]
 	pub metadata_style: MetadataStyle,
 	#[serde(default)]
 	pub collapsed_section_style: CollapsedSectionStyle,
@@ -2188,7 +2174,6 @@ impl Default for ChangelogStyle {
 		Self {
 			section_separator: SectionSeparator::default(),
 			package_label_style: PackageLabelStyle::default(),
-			package_label_placement: PackageLabelPlacement::default(),
 			metadata_style: MetadataStyle::default(),
 			collapsed_section_style: CollapsedSectionStyle::default(),
 			package_bump_symbols: default_package_bump_symbols(),
@@ -2207,9 +2192,6 @@ impl ChangelogStyle {
 			package_label_style: overrides
 				.package_label_style
 				.unwrap_or(self.package_label_style),
-			package_label_placement: overrides
-				.package_label_placement
-				.unwrap_or(self.package_label_placement),
 			metadata_style: overrides.metadata_style.unwrap_or(self.metadata_style),
 			collapsed_section_style: overrides
 				.collapsed_section_style
@@ -2233,20 +2215,12 @@ impl ChangelogStyle {
 		};
 		let label_rule = match self.package_label_style {
 			PackageLabelStyle::Badge => {
-				"When a change touches multiple packages, render package labels as emphasized package names."
+				"Render affected packages as a `_Packages:_` metadata line above the owner line, with emphasized package names."
 			}
 			PackageLabelStyle::Inline => {
-				"When a change touches multiple packages, render labels inline: **_pkg-a_, _pkg-b_**: entry. For a single package label: - **pkg**: entry."
+				"Render affected packages as a `_Packages:_` metadata line above the owner line."
 			}
 			PackageLabelStyle::Omit => "Omit package labels from changelog entries.",
-		};
-		let placement_rule = match self.package_label_placement {
-			PackageLabelPlacement::AfterHeading => {
-				"Place package labels after the change heading/title and before the change body."
-			}
-			PackageLabelPlacement::AfterChange => {
-				"Place package labels after the rendered change entry."
-			}
 		};
 		let metadata_rule = match self.metadata_style {
 			MetadataStyle::Blockquote => {
@@ -2277,7 +2251,6 @@ impl ChangelogStyle {
 			"Changelog style rules:\n\
 			 - {separator_rule}\n\
 			 - {label_rule}\n\
-			 - {placement_rule}\n\
 			 - {metadata_rule}\n\
 			 - {collapsed_rule}\n\
 			 - {symbol_rule}"
@@ -2300,7 +2273,6 @@ impl ChangelogStyle {
 pub struct ReleaseNotesStyleOverrides {
 	pub section_separator: Option<SectionSeparator>,
 	pub package_label_style: Option<PackageLabelStyle>,
-	pub package_label_placement: Option<PackageLabelPlacement>,
 	pub metadata_style: Option<MetadataStyle>,
 	pub collapsed_section_style: Option<CollapsedSectionStyle>,
 	pub package_bump_symbols: Option<bool>,
@@ -4552,13 +4524,18 @@ pub fn render_release_note_entry_markdown(
 	let package_label =
 		markdown_package_label(entry, style.package_label_style, style.package_bump_symbols);
 	let metadata = markdown_release_note_metadata(&entry.provenance, style.metadata_style);
+	// Packages describe the change, so they sit on their own line directly above
+	// the owner line. `Inline` joins the remaining metadata into one line, and
+	// packages must not be folded into it.
+	let package_line = match style.metadata_style {
+		MetadataStyle::Blockquote => format!("> {package_label}"),
+		MetadataStyle::Plain | MetadataStyle::Inline => package_label,
+		MetadataStyle::Omit => String::new(),
+	};
 
 	match entry.style {
 		ReleaseNoteEntryStyle::Compact => {
 			let mut rendered = String::from("- ");
-			if style.package_label_placement == PackageLabelPlacement::AfterHeading {
-				rendered.push_str(&package_label);
-			}
 			if !summary.is_empty() {
 				push_release_note_chunk_separator(&mut rendered);
 				let _ = write!(rendered, "**{summary}**");
@@ -4571,15 +4548,12 @@ pub fn render_release_note_entry_markdown(
 				push_release_note_chunk_separator(&mut rendered);
 				rendered.push_str(details);
 			}
-			if style.package_label_placement == PackageLabelPlacement::AfterChange
-				&& !package_label.is_empty()
+			for line in [package_line, metadata]
+				.into_iter()
+				.filter(|l| !l.is_empty())
 			{
 				rendered.push_str("\n  ");
-				rendered.push_str(package_label.trim());
-			}
-			if !metadata.is_empty() {
-				rendered.push_str("\n  ");
-				rendered.push_str(&metadata.replace('\n', "\n  "));
+				rendered.push_str(&line.replace('\n', "\n  "));
 			}
 			rendered
 		}
@@ -4588,22 +4562,14 @@ pub fn render_release_note_entry_markdown(
 			if !summary_rest.is_empty() {
 				parts.push(summary_rest.to_string());
 			}
-			if style.package_label_placement == PackageLabelPlacement::AfterHeading
-				&& !package_label.is_empty()
-			{
-				parts.push(package_label.trim().to_string());
-			}
 			if let Some(details) = details {
 				parts.push(details.to_string());
 			}
-			if style.package_label_placement == PackageLabelPlacement::AfterChange
-				&& !package_label.is_empty()
-			{
-				parts.push(package_label.trim().to_string());
-			}
-			if !metadata.is_empty() {
-				parts.push(metadata);
-			}
+			parts.extend(
+				[package_line, metadata]
+					.into_iter()
+					.filter(|p| !p.is_empty()),
+			);
 			parts.join("\n\n")
 		}
 	}
@@ -4743,6 +4709,12 @@ fn render_release_note_packages_text(packages: &[ReleaseNotePackage], symbols: b
 		.join(", ")
 }
 
+/// Render the `_Packages:_` provenance line for an entry.
+///
+/// Packages are metadata about a change, never part of its heading, so this
+/// always returns a standalone line that the entry renderer places inside the
+/// provenance block. A single package is listed the same way as several, which
+/// keeps grouped output uniform and lets a reader scan one column.
 fn markdown_package_label(
 	entry: &ReleaseNotesEntry,
 	style: PackageLabelStyle,
@@ -4750,19 +4722,6 @@ fn markdown_package_label(
 ) -> String {
 	if entry.packages.is_empty() || style == PackageLabelStyle::Omit {
 		return String::new();
-	}
-	if entry.style == ReleaseNoteEntryStyle::Compact
-		&& let [package] = entry.packages.as_slice()
-	{
-		return format!(
-			"{}**{}**: ",
-			if symbols {
-				format!("{} ", package.symbol())
-			} else {
-				String::new()
-			},
-			package.name
-		);
 	}
 	let packages = entry
 		.packages

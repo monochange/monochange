@@ -293,10 +293,6 @@
 					"description": "Prefix each package label with a colored symbol for its bump severity.\n\n🔴 major, 🟠 minor, 🟢 patch, ⚪ none. Enabled by default so a reader can\nsee which package was breaking when an entry merged several targets.",
 					"type": "boolean"
 				},
-				"package_label_placement": {
-					"$ref": "#/$defs/PackageLabelPlacement",
-					"default": "after_heading"
-				},
 				"package_label_style": {
 					"$ref": "#/$defs/PackageLabelStyle",
 					"default": "inline"
@@ -1484,21 +1480,6 @@
 			],
 			"type": "string"
 		},
-		"PackageLabelPlacement": {
-			"description": "Where to place package labels relative to a changelog entry.",
-			"oneOf": [
-				{
-					"const": "after_heading",
-					"description": "Place package labels after the change heading/title and before the change body.",
-					"type": "string"
-				},
-				{
-					"const": "after_change",
-					"description": "Place package labels after the full rendered change.",
-					"type": "string"
-				}
-			]
-		},
 		"PackageLabelStyle": {
 			"description": "How to render multi-package labels in changelog entries.",
 			"oneOf": [
@@ -1820,17 +1801,6 @@
 						"boolean",
 						"null"
 					]
-				},
-				"package_label_placement": {
-					"anyOf": [
-						{
-							"$ref": "#/$defs/PackageLabelPlacement"
-						},
-						{
-							"type": "null"
-						}
-					],
-					"default": null
 				},
 				"package_label_style": {
 					"anyOf": [
@@ -2280,7 +2250,6 @@
 						"collapsed_section_style": null,
 						"metadata_style": null,
 						"package_bump_symbols": null,
-						"package_label_placement": null,
 						"package_label_style": null,
 						"section_separator": null
 					}
@@ -2312,7 +2281,6 @@
 						"collapsed_section_style": "details",
 						"metadata_style": "inline",
 						"package_bump_symbols": true,
-						"package_label_placement": "after_heading",
 						"package_label_style": "inline",
 						"section_separator": "blank_line"
 					}

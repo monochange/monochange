@@ -830,7 +830,51 @@ fn release_body_uses_minimal_body_when_group_and_member_notes_are_empty_fallback
 }
 
 #[test]
-fn release_body_uses_member_changelogs_when_group_only_has_empty_fallback() {
+fn release_body_renders_the_merged_group_changelog_without_member_sections() {
+	let mut manifest = sample_manifest();
+	let source = monochange_release_source();
+	let target = group_release_target("sdk release title", "");
+	// A group release body is the group changelog, which already merges every
+	// member change into one deduplicated entry per change. Member changelogs
+	// must never be rolled up as per-package sections.
+	manifest.changelogs = vec![
+		release_changelog(
+			"sdk",
+			ReleaseOwnerKind::Group,
+			vec![],
+			vec![
+				release_section(
+					"Features",
+					vec!["- add core feature\n_Packages:_ 🟠 _core_"],
+				),
+				release_section(
+					"Fixes",
+					vec!["- fix shared bug\n_Packages:_ 🟢 _core_, 🟢 _cli_"],
+				),
+			],
+			"## sdk 1.2.0\n\n### Features\n\n- add core feature\n_Packages:_ 🟠 _core_\n\n### Fixes\n\n- fix shared bug\n_Packages:_ 🟢 _core_, 🟢 _cli_",
+		),
+		release_changelog(
+			"core",
+			ReleaseOwnerKind::Package,
+			vec![],
+			vec![release_section("Fixes", vec!["- fix core bug"])],
+			"## core 1.2.0",
+		),
+	];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert_eq!(
+		body,
+		"## Features\n\n- add core feature\n_Packages:_ 🟠 _core_\n\n## Fixes\n\n- fix shared bug\n_Packages:_ 🟢 _core_, 🟢 _cli_"
+	);
+	assert!(!body.contains("## `core`"), "body:\n{body}");
+	assert!(!body.contains("fix core bug"), "body:\n{body}");
+}
+
+#[test]
+fn release_body_falls_back_to_minimal_body_when_group_notes_are_empty() {
 	let mut manifest = sample_manifest();
 	let source = monochange_release_source();
 	let target = group_release_target("sdk release title", "");
@@ -860,118 +904,17 @@ fn release_body_uses_member_changelogs_when_group_only_has_empty_fallback() {
 			],
 			"## core 1.2.0",
 		),
-		release_changelog(
-			"cli",
-			ReleaseOwnerKind::Package,
-			vec![],
-			vec![release_section(
-				"Other",
-				vec![
-					"No package-specific changes were recorded; `cli` was updated to 1.2.0 as part of group `sdk`.",
-				],
-			)],
-			"## cli 1.2.0",
-		),
 	];
 
 	let body = release_body(&source, &manifest, &target).expect("release body");
 
-	assert!(
-		body.starts_with("Grouped release for `sdk`."),
-		"body:\n{body}"
-	);
-	assert!(!body.contains("sdk release title"), "body:\n{body}");
-	assert!(body.contains("## `core`"), "body:\n{body}");
-	assert!(!body.contains("### `core`"), "body:\n{body}");
-	assert!(body.contains("### Fixes"), "body:\n{body}");
-	assert!(body.contains("- fix core bug"), "body:\n{body}");
-	assert!(!body.contains("## `cli`"), "body:\n{body}");
+	assert!(body.contains("prepare release"), "body:\n{body}");
+	assert!(!body.contains("## `core`"), "body:\n{body}");
 	assert!(!body.contains("No group-facing notes"), "body:\n{body}");
 	assert!(
 		!body.contains("No package-specific changes"),
 		"body:\n{body}"
 	);
-}
-
-#[test]
-fn release_body_prefers_group_changelog_title_for_member_only_group_notes() {
-	let mut manifest = sample_manifest();
-	let source = monochange_release_source();
-	let target = group_release_target("sdk release title", "sdk changelog title");
-	manifest.changelogs = vec![release_changelog(
-		"core",
-		ReleaseOwnerKind::Package,
-		vec![],
-		vec![release_section("Fixes", vec!["- fix core bug"])],
-		"## core 1.2.0",
-	)];
-
-	let body = release_body(&source, &manifest, &target).expect("release body");
-
-	assert!(
-		body.starts_with("Grouped release for `sdk`."),
-		"body:\n{body}"
-	);
-	assert!(body.contains("## `core`"), "body:\n{body}");
-	assert!(body.contains("### Fixes"), "body:\n{body}");
-}
-
-#[test]
-fn release_body_uses_tag_title_when_group_titles_are_empty() {
-	let mut manifest = sample_manifest();
-	let source = monochange_release_source();
-	let target = group_release_target("", "");
-	manifest.changelogs = vec![release_changelog(
-		"core",
-		ReleaseOwnerKind::Package,
-		vec![],
-		vec![release_section("Fixes", vec!["- fix core bug"])],
-		"## core 1.2.0",
-	)];
-
-	let body = release_body(&source, &manifest, &target).expect("release body");
-
-	assert!(
-		body.starts_with("Grouped release for `sdk`."),
-		"body:\n{body}"
-	);
-	assert!(body.contains("## `core`"), "body:\n{body}");
-}
-
-#[test]
-fn release_body_separates_multiple_member_changelogs_with_blank_line() {
-	let mut manifest = sample_manifest();
-	let source = monochange_release_source();
-	let target = group_release_target("sdk release title", "");
-	manifest.changelogs = vec![
-		release_changelog(
-			"core",
-			ReleaseOwnerKind::Package,
-			vec![],
-			vec![release_section("Fixes", vec!["- fix core bug"])],
-			"## core 1.2.0",
-		),
-		release_changelog(
-			"cli",
-			ReleaseOwnerKind::Package,
-			vec![],
-			vec![release_section("Features", vec!["- add cli feature"])],
-			"## cli 1.2.0",
-		),
-	];
-
-	let body = release_body(&source, &manifest, &target).expect("release body");
-
-	assert!(
-		body.starts_with("Grouped release for `sdk`.\n\n## `core`"),
-		"body:\n{body}"
-	);
-	assert!(body.contains("## `core`"), "body:\n{body}");
-	assert!(body.contains("### Fixes"), "body:\n{body}");
-	assert!(body.contains("- fix core bug"), "body:\n{body}");
-	assert!(body.contains("## `cli`"), "body:\n{body}");
-	assert!(body.contains("### Features"), "body:\n{body}");
-	assert!(body.contains("- add cli feature"), "body:\n{body}");
 }
 
 #[test]

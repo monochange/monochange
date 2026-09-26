@@ -957,7 +957,7 @@
 			"type": "array"
 		},
 		"schema_version": {
-			"default": "0.7",
+			"default": "0.8",
 			"type": "string"
 		},
 		"updated_changelogs": {
