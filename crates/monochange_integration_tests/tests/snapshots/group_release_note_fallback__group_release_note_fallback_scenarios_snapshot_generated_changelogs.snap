@@ -102,6 +102,42 @@ expression: "Value::Object(snapshots)"
       }
     ]
   },
+  "group-shared-changeset": {
+    "changed_files": [
+      "Cargo.toml",
+      "changelog.md",
+      "crates/app/CHANGELOG.md",
+      "crates/app/Cargo.toml",
+      "crates/cli/CHANGELOG.md",
+      "crates/cli/Cargo.toml",
+      "crates/core/CHANGELOG.md",
+      "crates/core/Cargo.toml",
+      "group.toml"
+    ],
+    "changelogFiles": {
+      "app": true,
+      "core": true,
+      "group": true
+    },
+    "release_targets": [
+      {
+        "id": "sdk",
+        "kind": "group",
+        "members": [
+          "core",
+          "app",
+          "cli"
+        ],
+        "release": true,
+        "rendered_changelog_title": "[2.0.0](https://github.com/ifiokjr/monochange/releases/tag/v2.0.0) (2026-04-06)",
+        "rendered_title": "2.0.0 (2026-04-06)",
+        "tag": true,
+        "tag_name": "v2.0.0",
+        "version": "2.0.0",
+        "version_format": "primary"
+      }
+    ]
+  },
   "ungrouped-empty-package": {
     "changed_files": [
       "Cargo.toml",

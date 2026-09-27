@@ -334,7 +334,7 @@ Recommended rendering rules:
 - Render `feat`, `change`, `fix`, `security`, and `perf` as compact entries unless the body contains a migration or code block.
 - Collapse or omit `test`, `refactor`, and `docs` sections according to the existing priority thresholds.
 - Show package labels in grouped or workspace changelogs. Omit them from a package's own changelog.
-- Put provenance after the explanation. Do not place `_Packages:_` between a heading and its body.
+- Name the affected packages directly beneath a change's heading and above its explanation, so a reader learns what the change affects before reading it. A compact entry keeps the package line beside its bullet text.
 - Make section emoji opt-in. Reserve default icons and color for terminal status, where they communicate state.
 - Add a short release summary only when it provides counts that the document does not repeat elsewhere.
 

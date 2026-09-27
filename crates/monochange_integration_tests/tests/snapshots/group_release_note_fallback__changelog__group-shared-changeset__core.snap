@@ -1,0 +1,17 @@
+---
+source: crates/monochange_integration_tests/tests/group_release_note_fallback.rs
+expression: normalize_commit_links(&contents)
+---
+# Changelog
+
+## [2.0.0](https://github.com/ifiokjr/monochange/releases/tag/v2.0.0) (2026-04-06)
+
+### Breaking changes
+
+#### Split the release note renderer
+
+_Owner:_ test · _Introduced in:_ [091147d](https://github.com/ifiokjr/monochange/commit/091147d5465db8432fe4ea64df85996dbb5dc795)
+
+One changeset targets three packages with three different change types, so the
+group release must publish it once in the breaking section with every affected
+package listed.

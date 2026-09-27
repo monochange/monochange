@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/release_notes_and_propagation.rs
-assertion_line: 154
 expression: group_changelog
 ---
 # Changelog

@@ -89,9 +89,9 @@ expression: "Value::Object(snapshots)"
           {
             "collapsed": false,
             "entries": [
-              "- **No group-facing notes were recorded for this release.** Member packages were updated as part of the synchronized group `sdk` version, but their changes are not configured for inclusion in this changelog."
+              "[multiline text]"
             ],
-            "title": "Changed"
+            "title": "Features"
           }
         ]
       },
@@ -223,6 +223,97 @@ expression: "Value::Object(snapshots)"
         "body": "[see string snapshot]",
         "name": "1.1.0 (2026-04-06)",
         "tag_name": "v1.1.0",
+        "targetId": "sdk",
+        "targetKind": "group"
+      }
+    ]
+  },
+  "group-shared-changeset": {
+    "changelogs": [
+      {
+        "owner_id": "sdk",
+        "owner_kind": "group",
+        "path": "changelog.md",
+        "rendered": "[see string snapshot]",
+        "sections": [
+          {
+            "collapsed": false,
+            "entries": [
+              "[multiline text]"
+            ],
+            "title": "Breaking changes"
+          }
+        ]
+      },
+      {
+        "owner_id": "app",
+        "owner_kind": "package",
+        "path": "crates/app/CHANGELOG.md",
+        "rendered": "[see string snapshot]",
+        "sections": [
+          {
+            "collapsed": false,
+            "entries": [
+              "[multiline text]"
+            ],
+            "title": "Features"
+          }
+        ]
+      },
+      {
+        "owner_id": "cli",
+        "owner_kind": "package",
+        "path": "crates/cli/CHANGELOG.md",
+        "rendered": "[see string snapshot]",
+        "sections": [
+          {
+            "collapsed": false,
+            "entries": [
+              "[multiline text]"
+            ],
+            "title": "Fixes"
+          }
+        ]
+      },
+      {
+        "owner_id": "core",
+        "owner_kind": "package",
+        "path": "crates/core/CHANGELOG.md",
+        "rendered": "[see string snapshot]",
+        "sections": [
+          {
+            "collapsed": false,
+            "entries": [
+              "[multiline text]"
+            ],
+            "title": "Breaking changes"
+          }
+        ]
+      }
+    ],
+    "release_targets": [
+      {
+        "id": "sdk",
+        "kind": "group",
+        "members": [
+          "core",
+          "app",
+          "cli"
+        ],
+        "release": true,
+        "rendered_changelog_title": "[2.0.0](https://github.com/ifiokjr/monochange/releases/tag/v2.0.0) (2026-04-06)",
+        "rendered_title": "2.0.0 (2026-04-06)",
+        "tag": true,
+        "tag_name": "v2.0.0",
+        "version": "2.0.0",
+        "version_format": "primary"
+      }
+    ],
+    "releases": [
+      {
+        "body": "[see string snapshot]",
+        "name": "2.0.0 (2026-04-06)",
+        "tag_name": "v2.0.0",
         "targetId": "sdk",
         "targetKind": "group"
       }
