@@ -19,12 +19,22 @@ The `[changelog.style].package_label_placement` setting and its `release_notes` 
 # package_label_placement = "after_heading"
 ```
 
-Affected packages keep their per-package bump symbols, so a merged entry still shows which package was major and which was minor:
+Affected packages keep their per-package bump symbols, so a merged entry still shows which package was major and which was minor. A compact entry keeps the package line beside the bullet text:
 
 ```markdown
 ## Fixes
 
 - **Fix shared bug.** _Packages:_ 🟠 _core_, 🟢 _cli_ _Owner:_ @ifiokjr · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725)
+```
+
+An expanded entry — a breaking change, or any change whose body has a code block or several paragraphs — renders the package line directly beneath its heading, above the explanation:
+
+```markdown
+### Split the release note renderer
+
+_Packages:_ 🔴 _core_, 🟠 _app_, 🟢 _cli_ _Owner:_ @ifiokjr · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725)
+
+One changeset targets three packages with three different change types, so the group release publishes it once in the breaking section.
 ```
 
 The group `include` filter is unchanged for changelog files: `include = ["app"]` still curates the committed changelog. A provider release body is no longer derived from that filtered file, so a filter that hides internal notes from a changelog cannot publish a release that claims nothing happened. The `uncovered_member_changelogs`, `grouped_member_release_body`, and `push_member_changelogs` helpers are deleted from `monochange_hosting` and their duplicate in `monochange_github`.

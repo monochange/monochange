@@ -2423,12 +2423,14 @@ fn render_release_note_reference(reference: &ReleaseNoteReference) -> String {
 	)
 }
 
-/// Append the package line to a template-rendered entry that has no context
+/// Insert the package line into a template-rendered entry that has no context
 /// block to host it.
 ///
-/// Templates that omit `{{ context }}` still need to name the affected
-/// packages, so the line is appended as the final provenance line. Templates
-/// that do render `{{ context }}` already include it.
+/// Templates that render `{{ context }}` already include the line, so this adds
+/// nothing. A template that opens with a heading gets the line directly beneath
+/// that heading, matching the built-in expanded layout: a reader learns what the
+/// change affects before reading the body. Any other template receives the line
+/// as its final provenance line.
 fn format_structured_labeled_entry(
 	entry: &ReleaseNotesEntry,
 	rendered: &str,
@@ -2439,6 +2441,11 @@ fn format_structured_labeled_entry(
 	};
 	if rendered.contains(&package_line) {
 		return rendered.to_string();
+	}
+	if let Some((heading, body)) = rendered.split_once('\n')
+		&& heading.starts_with('#')
+	{
+		return format!("{heading}\n{package_line}\n{body}");
 	}
 	format!("{rendered}\n{package_line}")
 }

@@ -2932,7 +2932,7 @@ fn expanded_entries_move_the_summary_remainder_into_the_body() {
 	let rendered = crate::render_release_note_entry_markdown(&entry, &ChangelogStyle::default());
 	assert_eq!(
 		rendered,
-		"#### Migrate the config format.\n\nDetails follow the heading\n\nExisting `monochange.toml` files keep working.\n\n_Packages:_ 🟢 _core_"
+		"#### Migrate the config format.\n\nDetails follow the heading\n\n_Packages:_ 🟢 _core_\n\nExisting `monochange.toml` files keep working."
 	);
 }
 

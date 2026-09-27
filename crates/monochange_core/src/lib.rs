@@ -4562,14 +4562,16 @@ pub fn render_release_note_entry_markdown(
 			if !summary_rest.is_empty() {
 				parts.push(summary_rest.to_string());
 			}
-			if let Some(details) = details {
-				parts.push(details.to_string());
-			}
+			// Packages open the provenance block directly beneath the heading, so a
+			// reader learns what the change affects before reading its details.
 			parts.extend(
 				[package_line, metadata]
 					.into_iter()
-					.filter(|p| !p.is_empty()),
+					.filter(|part| !part.is_empty()),
 			);
+			if let Some(details) = details {
+				parts.push(details.to_string());
+			}
 			parts.join("\n\n")
 		}
 	}

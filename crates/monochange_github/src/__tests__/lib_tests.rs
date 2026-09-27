@@ -3452,6 +3452,47 @@ fn release_body_does_not_duplicate_github_member_notes_already_in_group() {
 }
 
 #[test]
+fn release_body_publishes_a_shared_changeset_exactly_once() {
+	let source = github_release_source();
+	let target = github_group_release_target("sdk release title", "");
+	let mut manifest = sample_manifest();
+	// One changeset routed to three sections for three packages. The group
+	// changelog merges it into the breaking section and lists every package, so
+	// the published body must carry one entry rather than one per section.
+	manifest.changelogs = vec![github_release_changelog(
+		"sdk",
+		ReleaseOwnerKind::Group,
+		vec![],
+		vec![github_release_section(
+			"Breaking changes",
+			vec!["- **split floats and fixed.**\n  _Packages:_ 🔴 _core_, 🟠 _app_, ⚪ _cli_"],
+		)],
+		"## sdk 1.2.0\n\n### Breaking changes\n\n- **split floats and fixed.**\n  _Packages:_ 🔴 _core_, 🟠 _app_, ⚪ _cli_",
+	)];
+
+	let body = release_body(&source, &manifest, &target).expect("release body");
+
+	assert_eq!(
+		body.matches("split floats and fixed").count(),
+		1,
+		"the shared change must appear once in the release body:\n{body}"
+	);
+	assert_eq!(
+		body.matches("_Packages:_").count(),
+		1,
+		"the package line must appear once in the release body:\n{body}"
+	);
+	assert!(
+		body.contains("_Packages:_ 🔴 _core_, 🟠 _app_, ⚪ _cli_"),
+		"every affected package must survive with its own bump symbol:\n{body}"
+	);
+	assert!(
+		!body.contains("## Features") && !body.contains("## Documentation"),
+		"the lower-priority sections must not repeat the change:\n{body}"
+	);
+}
+
+#[test]
 fn release_body_ignores_github_member_changelogs_for_package_targets() {
 	let source = github_release_source();
 	let target = ReleaseManifestTarget {

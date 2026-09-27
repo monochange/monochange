@@ -335,6 +335,8 @@ One changeset can target several packages with different change types. monochang
 
 Affected packages are metadata about a change, so they render as a `_Packages:_` line directly above the `_Owner:_` line rather than inside the heading. A package's own release notes omit the label entirely, because the document already identifies the package.
 
+An expanded entry — a breaking change, or any change whose body contains a code block, a blank line, or migration guidance — puts the package line directly beneath its heading and above the explanation, so a reader learns what the change affects before reading it. A compact entry keeps the line beside the bullet text.
+
 Built-in section headings are plain text, such as `Features` and `Fixes`. Configure custom `[changelog.sections.<id>].heading` values when a project deliberately wants emoji or other decoration.
 
 ```toml
