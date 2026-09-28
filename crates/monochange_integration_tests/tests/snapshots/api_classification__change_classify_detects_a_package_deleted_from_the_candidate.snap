@@ -65,6 +65,7 @@ expression: report
           "monochange/package-lifecycle/package/removed/package/retired"
         ],
         "proposed_changeset_bump": "major",
+        "pull_request_changes": true,
         "release_floor": "major",
         "release_impact": "breaking",
         "review_required": false
@@ -209,6 +210,7 @@ expression: report
           "npm/package-json/public_api/removed/function/publicApi"
         ],
         "proposed_changeset_bump": "major",
+        "pull_request_changes": true,
         "release_floor": "major",
         "release_impact": "breaking",
         "review_required": false

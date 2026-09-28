@@ -1,0 +1,96 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+expression: report
+---
+{
+  "candidate": "merge-tree:[SHA]",
+  "comparisons": [
+    {
+      "base": "HEAD~1",
+      "head": "merge-tree:[SHA]",
+      "kind": "pull_request",
+      "note": null,
+      "status": "analyzed"
+    },
+    {
+      "base": "[SHA]",
+      "head": "HEAD",
+      "kind": "source_delta",
+      "note": null,
+      "status": "analyzed"
+    }
+  ],
+  "default_branch": "HEAD~1",
+  "packages": [
+    {
+      "action": "review",
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pull_request",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "source_delta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "release_to_default",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        }
+      ],
+      "decision": {
+        "classification_enforced": true,
+        "compatibility_impact": "compatible",
+        "completeness": "complete",
+        "confidence": "high",
+        "enforceable_minimum": "none",
+        "finding_ids": [],
+        "proposed_changeset_bump": "none",
+        "pull_request_changes": false,
+        "release_floor": "none",
+        "review_required": false
+      },
+      "ecosystem": "npm",
+      "existing_changesets": [
+        {
+          "bump": "minor",
+          "change_type": "minor",
+          "path": ".changeset/stale.md"
+        }
+      ],
+      "findings": [],
+      "package_id": "core",
+      "package_name": "@acme/core",
+      "recommendation": "none",
+      "release_owner": {
+        "id": "core",
+        "kind": "package",
+        "latest_release": null
+      },
+      "summary": "the pull request does not change this package; the pending changeset intent needs review",
+      "warnings": []
+    }
+  ],
+  "recommendation": "none",
+  "schema_version": "[SCHEMA_VERSION]",
+  "skipped": false,
+  "warnings": [
+    "changed path `.changeset/stale.md` did not match any configured package"
+  ]
+}

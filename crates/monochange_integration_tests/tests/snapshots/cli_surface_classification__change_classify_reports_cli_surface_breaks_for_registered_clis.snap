@@ -71,6 +71,7 @@ expression: projected
           "monochange/cli-surface/option-removed/check"
         ],
         "proposed_changeset_bump": "major",
+        "pull_request_changes": true,
         "release_floor": "major",
         "review_required": false
       },

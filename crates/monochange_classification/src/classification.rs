@@ -255,6 +255,13 @@ pub struct ChangeRecommendation {
 	/// candidate. Absent when no reachable release tag matched the package.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub release_impact: Option<CompatibilityImpact>,
+	/// Whether this contribution touches the package. The net candidate and the
+	/// local working tree are pull request evidence; the `release` and
+	/// `releaseToDefault` comparisons describe the default branch and do not set
+	/// this flag. When false, `proposed_changeset_bump` and
+	/// `enforceable_minimum` are `none` and the accumulated change appears only
+	/// in `release_floor` and `release_impact`.
+	pub pull_request_changes: bool,
 	pub proposed_changeset_bump: BumpSeverity,
 	pub enforceable_minimum: BumpSeverity,
 	pub release_floor: BumpSeverity,
@@ -689,6 +696,16 @@ pub fn build_change_classification_report(
 		}
 
 		let changed_files = pull_request_changed_files(&package_id, &pull_request);
+		// A package is in scope for this pull request when the net candidate or
+		// the local working tree touches it. The `release` and
+		// `releaseToDefault` frames describe work the default branch already
+		// carries, so they must not put a package this contribution never
+		// touched into scope. The working tree keeps a package whose branch
+		// change was reverted locally in scope.
+		let pull_request_in_scope = !changed_files.is_empty()
+			|| working_tree.as_ref().is_some_and(|analysis| {
+				!pull_request_changed_files(&package_id, analysis).is_empty()
+			});
 		let mut findings = collect_findings(&package_id, &evidence, options.detection_level);
 		let mut cli_warnings = Vec::new();
 		let cli_classification = collect_cli_surface_classification(
@@ -718,20 +735,15 @@ pub fn build_change_classification_report(
 		let classification_enforced = release_identity
 			.as_ref()
 			.is_none_or(|identity| identity.classification_enforced);
-		let mut decision = build_recommendation(
+		let decision = build_recommendation(
 			&findings,
-			!changed_files.is_empty(),
+			pull_request_in_scope,
 			latest_release.is_some(),
 			bump_ceiling,
 			classification_enforced,
 		);
-		if changed_files.is_empty() && !package_changesets.is_empty() {
-			decision.compatibility_impact = CompatibilityImpact::Unmodeled;
-			decision.completeness = AnalysisCompleteness::Unsupported;
-			decision.review_required = true;
-		}
 		let action = changeset_action(&decision, &package_changesets);
-		let summary = recommendation_summary(&decision, &findings);
+		let summary = recommendation_summary(&decision, &findings, package_changesets.len());
 		let package_warnings = package_warnings(&package_id, &evidence);
 
 		package_reports.push(PackageClassification {
@@ -921,7 +933,7 @@ pub fn classification_report(
 			recommendation = package_recommendation;
 		}
 
-		let summary = recommendation_summary(&decision, &findings);
+		let summary = recommendation_summary(&decision, &findings, 0);
 		warnings.extend(package.warnings.iter().cloned());
 
 		packages.push(PackageClassification {
@@ -1964,14 +1976,20 @@ fn cli_classification_description(cli: &PackageCliClassification) -> String {
 
 fn build_recommendation(
 	findings: &[ClassificationFinding],
-	has_current_changes: bool,
+	has_pull_request_changes: bool,
 	has_release: bool,
 	bump_ceiling: Option<BumpSeverity>,
 	classification_enforced: bool,
 ) -> ChangeRecommendation {
+	// The `release` and `releaseToDefault` comparisons describe what the
+	// default branch accumulated since the latest release. They are evidence
+	// for the release floor, never intent for this pull request, so a package
+	// with no pull request change proposes nothing.
 	let current = findings
 		.iter()
-		.filter(|finding| finding.comparisons.contains(&ComparisonKind::PullRequest))
+		.filter(|finding| {
+			has_pull_request_changes && finding.comparisons.contains(&ComparisonKind::PullRequest)
+		})
 		.collect::<Vec<_>>();
 	let release = findings
 		.iter()
@@ -2029,7 +2047,7 @@ fn build_recommendation(
 			.iter()
 			.all(|finding| finding.coverage.completeness == AnalysisCompleteness::Complete);
 	let completeness =
-		if !has_current_changes || has_conclusive_major || all_current_findings_complete {
+		if !has_pull_request_changes || has_conclusive_major || all_current_findings_complete {
 			AnalysisCompleteness::Complete
 		} else {
 			AnalysisCompleteness::Partial
@@ -2051,6 +2069,7 @@ fn build_recommendation(
 	ChangeRecommendation {
 		compatibility_impact,
 		release_impact,
+		pull_request_changes: has_pull_request_changes,
 		proposed_changeset_bump,
 		enforceable_minimum,
 		release_floor,
@@ -2133,6 +2152,7 @@ fn changeset_action(
 fn recommendation_summary(
 	decision: &ChangeRecommendation,
 	findings: &[ClassificationFinding],
+	pending_changesets: usize,
 ) -> String {
 	let count = decision.finding_ids.len();
 	// The default-branch comparison saw a break the release comparison never
@@ -2164,9 +2184,15 @@ fn recommendation_summary(
 		BumpSeverity::Patch => {
 			format!("{count} compatible finding(s) propose a patch changeset{release_cap_note}")
 		}
-		BumpSeverity::None if decision.review_required => {
-			"pending changeset intent has no matching package change and requires review"
+		// The `release` and `releaseToDefault` intervals belong to the default
+		// branch, so an untouched package is unaffected even when its release
+		// floor is higher. Only an unmatched changeset needs a decision here.
+		BumpSeverity::None if !decision.pull_request_changes && pending_changesets > 0 => {
+			"the pull request does not change this package; the pending changeset intent needs review"
 				.to_string()
+		}
+		BumpSeverity::None if decision.review_required => {
+			"pending changeset intent has no matching package change and requires review".to_string()
 		}
 		BumpSeverity::None => {
 			format!("no package change requires a changeset{release_cap_note}")
@@ -2281,6 +2307,10 @@ fn propagate_public_dependency_impacts(
 			}
 			package.decision.release_floor =
 				std::cmp::max(package.decision.release_floor, BumpSeverity::Patch);
+			// The propagated finding belongs to the pull request interval, so
+			// the dependent package is now pull-request-affected even when the
+			// diff never mentions it.
+			package.decision.pull_request_changes = true;
 			package.decision.completeness = AnalysisCompleteness::Partial;
 			package.decision.review_required = true;
 			package.action = changeset_action(&package.decision, &package.existing_changesets);
@@ -2291,6 +2321,7 @@ fn propagate_public_dependency_impacts(
 		let decision = ChangeRecommendation {
 			compatibility_impact: CompatibilityImpact::Compatible,
 			release_impact: None,
+			pull_request_changes: true,
 			proposed_changeset_bump: BumpSeverity::Patch,
 			enforceable_minimum: BumpSeverity::None,
 			release_floor: BumpSeverity::Patch,

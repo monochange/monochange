@@ -1,0 +1,295 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+expression: report
+---
+{
+  "candidate": "merge-tree:[SHA]",
+  "comparisons": [
+    {
+      "base": "main",
+      "head": "merge-tree:[SHA]",
+      "kind": "pull_request",
+      "note": null,
+      "status": "analyzed"
+    },
+    {
+      "base": "[SHA]",
+      "head": "HEAD",
+      "kind": "source_delta",
+      "note": null,
+      "status": "analyzed"
+    }
+  ],
+  "default_branch": "main",
+  "packages": [
+    {
+      "action": "review",
+      "comparisons": [
+        {
+          "base": "main",
+          "head": "merge-tree:[SHA]",
+          "kind": "pull_request",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "source_delta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "core/v1.0.0",
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "core/v1.0.0",
+          "head": "main",
+          "kind": "release_to_default",
+          "note": null,
+          "status": "analyzed"
+        }
+      ],
+      "decision": {
+        "classification_enforced": true,
+        "compatibility_impact": "compatible",
+        "completeness": "complete",
+        "confidence": "high",
+        "enforceable_minimum": "none",
+        "finding_ids": [],
+        "proposed_changeset_bump": "none",
+        "pull_request_changes": false,
+        "release_floor": "major",
+        "release_impact": "breaking",
+        "review_required": false
+      },
+      "ecosystem": "cargo",
+      "existing_changesets": [
+        {
+          "bump": "minor",
+          "change_type": "feat",
+          "path": ".changeset/security-lints.md"
+        }
+      ],
+      "findings": [
+        {
+          "after": "# [doc = \" The `floats` reexport moved to `pinapod`, so the old alias is gone.\"] pub mod pod { pub struct PodF32 ; }",
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": null,
+          "bump": "minor",
+          "change": "added",
+          "comparisons": [
+            "release",
+            "release_to_default"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detection_level": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/added/module/pod",
+          "impact": "additive",
+          "location": "src/lib.rs",
+          "rule_id": "cargo/public-api/public_api/added/module",
+          "summary": "module `pod` added",
+          "surface": "public_api"
+        },
+        {
+          "after": "pub struct PodF32 ;",
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": null,
+          "bump": "minor",
+          "change": "added",
+          "comparisons": [
+            "release",
+            "release_to_default"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detection_level": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/added/struct/pod::PodF32",
+          "impact": "additive",
+          "location": "src/lib.rs",
+          "rule_id": "cargo/public-api/public_api/added/struct",
+          "summary": "struct `pod::PodF32` added",
+          "surface": "public_api"
+        },
+        {
+          "after": null,
+          "analyzer": {
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "pub use Pod as OldPod;",
+          "bump": "major",
+          "change": "removed",
+          "comparisons": [
+            "release",
+            "release_to_default"
+          ],
+          "confidence": "medium",
+          "coverage": {
+            "completeness": "partial",
+            "detection_level": "signature",
+            "note": "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete"
+          },
+          "id": "cargo/public-api/public_api/removed/reexport/Pod as OldPod",
+          "impact": "breaking",
+          "location": "src/lib.rs",
+          "rule_id": "cargo/public-api/public_api/removed/reexport",
+          "summary": "reexport `Pod as OldPod` removed",
+          "surface": "public_api"
+        }
+      ],
+      "package_id": "core",
+      "package_name": "core",
+      "recommendation": "none",
+      "release_owner": {
+        "id": "core",
+        "kind": "package",
+        "latest_release": "core/v1.0.0"
+      },
+      "summary": "the pull request does not change this package; the pending changeset intent needs review",
+      "warnings": []
+    },
+    {
+      "action": "create",
+      "comparisons": [
+        {
+          "base": "main",
+          "head": "merge-tree:[SHA]",
+          "kind": "pull_request",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "source_delta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "lints/v1.0.0",
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "lints/v1.0.0",
+          "head": "main",
+          "kind": "release_to_default",
+          "note": null,
+          "status": "analyzed"
+        }
+      ],
+      "decision": {
+        "classification_enforced": true,
+        "compatibility_impact": "additive",
+        "completeness": "complete",
+        "confidence": "high",
+        "enforceable_minimum": "minor",
+        "finding_ids": [
+          "cargo/public-api/public_api/modified/constant/LINT_NAMES",
+          "cargo/public-api/public_api/modified/static/LINTS"
+        ],
+        "proposed_changeset_bump": "minor",
+        "pull_request_changes": true,
+        "release_floor": "minor",
+        "release_impact": "additive",
+        "review_required": false
+      },
+      "ecosystem": "cargo",
+      "existing_changesets": [],
+      "findings": [
+        {
+          "after": "pub const LINT_NAMES : & [& str] = & [\"asset_arithmetic\" , \"unchecked_math\" , \"shift_overflow\"] ;",
+          "analyzer": {
+            "engine": "monochange",
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "pub const LINT_NAMES : & [& str] = & [\"asset_arithmetic\" , \"unchecked_math\"] ;",
+          "bump": "minor",
+          "change": "modified",
+          "comparisons": [
+            "pull_request",
+            "release",
+            "source_delta"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "completeness": "complete",
+            "detection_level": "signature",
+            "note": "constant `LINT_NAMES` appends elements to a public `& str` slice literal; the element type and the existing element order are unchanged"
+          },
+          "id": "cargo/public-api/public_api/modified/constant/LINT_NAMES",
+          "impact": "additive",
+          "location": "src/lib.rs",
+          "rule_id": "cargo/public-api/public_api/modified/constant",
+          "summary": "constant `LINT_NAMES` modified",
+          "surface": "public_api"
+        },
+        {
+          "after": "pub static LINTS : & [& str] = & [\"asset_arithmetic\" , \"unchecked_math\" , \"shift_overflow\"] ;",
+          "analyzer": {
+            "engine": "monochange",
+            "id": "cargo/public-api",
+            "version": "1"
+          },
+          "before": "pub static LINTS : & [& str] = & [\"asset_arithmetic\" , \"unchecked_math\"] ;",
+          "bump": "minor",
+          "change": "modified",
+          "comparisons": [
+            "pull_request",
+            "release",
+            "source_delta"
+          ],
+          "confidence": "high",
+          "coverage": {
+            "completeness": "complete",
+            "detection_level": "signature",
+            "note": "static `LINTS` appends elements to a public `& str` slice literal; the element type and the existing element order are unchanged"
+          },
+          "id": "cargo/public-api/public_api/modified/static/LINTS",
+          "impact": "additive",
+          "location": "src/lib.rs",
+          "rule_id": "cargo/public-api/public_api/modified/static",
+          "summary": "static `LINTS` modified",
+          "surface": "public_api"
+        }
+      ],
+      "package_id": "lints",
+      "package_name": "lints",
+      "recommendation": "minor",
+      "release_owner": {
+        "id": "lints",
+        "kind": "package",
+        "latest_release": "lints/v1.0.0"
+      },
+      "summary": "2 additive finding(s) propose a minor changeset",
+      "warnings": []
+    }
+  ],
+  "recommendation": "minor",
+  "schema_version": "[SCHEMA_VERSION]",
+  "skipped": false,
+  "warnings": [
+    "changed path `.changeset/security-lints.md` did not match any configured package"
+  ]
+}

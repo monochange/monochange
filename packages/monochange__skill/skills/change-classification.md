@@ -22,6 +22,8 @@ With the default `--head HEAD`, monochange materializes committed, staged, unsta
 
 Use `decision.proposed_changeset_bump` as the starting bump for the current pull request. It is already capped by the release comparison: a modeled finding never proposes more than the release-relative bump for the package, because nobody holding the latest release can observe a break in an API the release never shipped. Use `decision.release_impact` to read that release-relative verdict, and `decision.release_floor` to understand all unreleased changes since the latest release. Do not copy `release_floor` into the current changeset when an earlier merged change caused it.
 
+Use `decision.pull_request_changes` to tell whether this contribution touched the package at all. When it is `false`, every finding came from the `release`/`releaseToDefault` intervals, so `proposed_changeset_bump` is `none`, `review_required` is `false`, and the accumulated change appears only in `release_floor` and `release_impact`. Report the package as unaffected by this pull request and do not write a bump for it. An `action` of `review` on such a package means a pending changeset describes a cross-package consumer effect, not that the package needs a breaking bump, and the summary says so.
+
 Trace `decision.finding_ids` into `findings`. Confirm the source location, before and after signatures, and `comparisons` for each finding that determines a `major` or `minor` proposal.
 
 The same item can have separate comparison-qualified findings when its signatures differ between the pull request and release intervals. A finding that includes `pullRequest` but not `release` describes a break against the default branch only; the decision has already accounted for it, so write the changeset the decision proposes and describe the refinement in the changeset body. Use `release` findings to explain the accumulated release floor.
@@ -48,6 +50,8 @@ A `failed` status means the configured snapshot command exited non-zero, printed
 ## Check ecosystem coverage
 
 Package lifecycle findings are high-confidence and complete. Built-in Cargo, JavaScript, Deno, and Dart source findings are medium-confidence and partial. The source analyzers model syntax and package metadata, but they do not prove every source-compatible behavior.
+
+A public Rust `const` or `static` whose declared type is `&[T]`, `[T; N]`, or `Vec<T>` and whose initializer is a literal is the exception: appending elements to the end is high-confidence `additive`/`minor`, matching `cargo semver-checks`, because the element type and every existing element are unchanged. A removal, a reorder, an element edit, or a changed element type is still `breaking`. A non-literal initializer stays conservative.
 
 For a TypeScript package, install `node`, the workspace's `typescript` compiler, and the package dependencies. Then use `detection_level: "semantic"`. monochange emits declarations independently for the before and after snapshots, resolves explicit `exports`, `types`, and `typings` entrypoints, and asks TypeScript to check consumer assignability.
 
