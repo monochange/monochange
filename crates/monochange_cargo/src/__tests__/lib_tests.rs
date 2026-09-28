@@ -1507,6 +1507,53 @@ fn validate_versioned_file_rejects_missing_version() {
 }
 
 #[test]
+fn validate_versioned_file_accepts_dependency_section_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("Cargo.toml");
+	fs::write(
+		&path,
+		"[package]\nname = \"test\"\nversion = \"1.0.0\"\n[dependencies]\nserde = \"1\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["dependencies".to_string()];
+	assert!(super::validate_versioned_file(&path, "Cargo.toml", Some(&custom_fields)).is_ok());
+}
+
+#[test]
+fn validate_versioned_file_rejects_missing_section_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("Cargo.toml");
+	fs::write(&path, "[package]\nname = \"test\"\nversion = \"1.0.0\"\n")
+		.unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["dependencies".to_string()];
+	let result = super::validate_versioned_file(&path, "Cargo.toml", Some(&custom_fields));
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a `dependencies` string field")
+	);
+}
+
+#[test]
+fn validate_versioned_file_treats_empty_custom_fields_as_default() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("Cargo.toml");
+	fs::write(&path, "[package]\nname = \"test\"\n")
+		.unwrap_or_else(|error| panic!("write: {error}"));
+	// An explicitly empty field list falls back to the default version search.
+	let result = super::validate_versioned_file(&path, "Cargo.toml", Some(&[]));
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a readable version field")
+	);
+}
+
+#[test]
 fn validate_versioned_file_rejects_missing_file() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let path = tempdir.path().join("missing.toml");

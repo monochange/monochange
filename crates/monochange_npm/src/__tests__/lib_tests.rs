@@ -1123,6 +1123,69 @@ fn validate_versioned_file_rejects_missing_file() {
 }
 
 #[test]
+fn validate_versioned_file_accepts_dotted_custom_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("package.json");
+	fs::write(
+		&path,
+		r#"{"name": "test", "metadata": {"bin": {"monochange": {"version": "1.0.0"}}}}"#,
+	)
+	.unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["metadata.bin.monochange.version".to_string()];
+	assert!(super::validate_versioned_file(&path, "package.json", Some(&custom_fields)).is_ok());
+}
+
+#[test]
+fn validate_versioned_file_rejects_missing_dotted_custom_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("package.json");
+	fs::write(&path, r#"{"name": "test", "metadata": {"bin": {}}}"#)
+		.unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["metadata.bin.monochange.version".to_string()];
+	let result = super::validate_versioned_file(&path, "package.json", Some(&custom_fields));
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a `metadata.bin.monochange.version` string field")
+	);
+}
+
+#[test]
+fn validate_versioned_file_validates_every_custom_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("package.json");
+	fs::write(&path, r#"{"version": "1.0.0"}"#).unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["version".to_string(), "missing".to_string()];
+	let result = super::validate_versioned_file(&path, "package.json", Some(&custom_fields));
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a `missing` string field")
+	);
+}
+
+#[test]
+fn validate_versioned_file_treats_empty_custom_fields_as_default() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("package.json");
+	fs::write(&path, r#"{"name": "test"}"#).unwrap_or_else(|error| panic!("write: {error}"));
+	// An explicitly empty field list falls back to the `version` default, so a
+	// manifest without `version` is still rejected.
+	let result = super::validate_versioned_file(&path, "package.json", Some(&[]));
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a `version` string field")
+	);
+}
+
+#[test]
 fn workspace_pattern_skips_directories_without_package_json() {
 	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
 		.join("../../fixtures/tests/npm/workspace-missing-package-json");

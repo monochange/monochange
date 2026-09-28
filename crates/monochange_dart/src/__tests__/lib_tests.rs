@@ -656,3 +656,48 @@ fn standalone_dart_packages_without_workspace_root_keep_distinct_ids() {
 		]
 	);
 }
+
+#[test]
+fn validate_versioned_file_accepts_dependency_section_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("pubspec.yaml");
+	fs::write(
+		&path,
+		"name: app\nversion: 1.0.0\ndependencies:\n  core: ^1.0.0\n",
+	)
+	.unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["version".to_string(), "dependencies".to_string()];
+	assert!(super::validate_versioned_file(&path, "pubspec.yaml", Some(&custom_fields)).is_ok());
+}
+
+#[test]
+fn validate_versioned_file_rejects_missing_section_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("pubspec.yaml");
+	fs::write(&path, "name: app\nversion: 1.0.0\n")
+		.unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["dependencies".to_string()];
+	let result = super::validate_versioned_file(&path, "pubspec.yaml", Some(&custom_fields));
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a `dependencies` string field")
+	);
+}
+
+#[test]
+fn validate_versioned_file_rejects_non_string_default_version() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("pubspec.yaml");
+	fs::write(&path, "name: app\nversion: 1.0\n").unwrap_or_else(|error| panic!("write: {error}"));
+	let result = super::validate_versioned_file(&path, "pubspec.yaml", None);
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a `version` string field")
+	);
+}

@@ -247,3 +247,46 @@ fn standalone_deno_packages_without_workspace_root_keep_distinct_ids() {
 		vec!["deno:deno/helper/deno.json", "deno:deno/tool/deno.json"]
 	);
 }
+
+#[test]
+fn validate_versioned_file_accepts_dotted_custom_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("deno.json");
+	fs::write(&path, r#"{"exports": {".": {"version": "1.0.0"}}}"#)
+		.unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["exports".to_string()];
+	assert!(super::validate_versioned_file(&path, "deno.json", Some(&custom_fields)).is_ok());
+}
+
+#[test]
+fn validate_versioned_file_rejects_missing_dotted_custom_field() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("deno.json");
+	fs::write(&path, r#"{"name": "test"}"#).unwrap_or_else(|error| panic!("write: {error}"));
+	let custom_fields = vec!["exports.dot".to_string()];
+	let result = super::validate_versioned_file(&path, "deno.json", Some(&custom_fields));
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a `exports.dot` string field")
+	);
+}
+
+#[test]
+fn validate_versioned_file_treats_empty_custom_fields_as_default() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("deno.json");
+	fs::write(&path, r#"{"name": "test"}"#).unwrap_or_else(|error| panic!("write: {error}"));
+	// An explicitly empty field list falls back to the `version` default, so a
+	// manifest without `version` is still rejected.
+	let result = super::validate_versioned_file(&path, "deno.json", Some(&[]));
+	assert!(result.is_err());
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("does not contain a `version` string field")
+	);
+}

@@ -437,8 +437,10 @@ fn find_all_manifests(root: &Path) -> Vec<PathBuf> {
 		.collect()
 }
 
-/// Return the default dependency-version prefix for this ecosystem.
-/// Validate that a Deno versioned file contains a readable version field.
+/// Validate that a Deno versioned file is readable and declares usable fields.
+///
+/// Custom fields may address a nested scalar (`metadata.version`) or a section,
+/// so each dotted path only has to resolve.
 pub fn validate_versioned_file(
 	full_path: &Path,
 	display_path: &str,
@@ -455,22 +457,27 @@ pub fn validate_versioned_file(
 		))
 	})?;
 
-	let field_name = match custom_fields {
-		Some(fields) if !fields.is_empty() => fields.first().map_or("version", String::as_str),
-		_ => "version",
-	};
-
-	if json
-		.get(field_name)
-		.and_then(|value| value.as_str())
-		.is_none()
+	for field in custom_fields
+		.filter(|fields| !fields.is_empty())
+		.map_or_else(|| vec!["version".to_string()], <[String]>::to_vec)
 	{
-		return Err(MonochangeError::Config(format!(
-			"versioned file `{display_path}` does not contain a `{field_name}` string field"
-		)));
+		if resolve_field(&json, &field).is_none() {
+			return Err(MonochangeError::Config(format!(
+				"versioned file `{display_path}` does not contain a `{field}` string field"
+			)));
+		}
 	}
 
 	Ok(())
+}
+
+/// Resolve a dotted `field` path against a parsed deno manifest.
+fn resolve_field<'a>(doc: &'a Value, field: &str) -> Option<&'a Value> {
+	let mut current = doc;
+	for segment in field.split('.') {
+		current = current.get(segment)?;
+	}
+	Some(current)
 }
 
 #[must_use]

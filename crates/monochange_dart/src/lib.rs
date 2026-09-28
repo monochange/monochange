@@ -706,12 +706,15 @@ fn yaml_string(mapping: &Mapping, key: &str) -> Option<String> {
 		.map(ToString::to_string)
 }
 
-/// Return the default dependency-version prefix for this ecosystem.
-/// Validate that a Dart versioned file contains a readable version field.
+/// Validate that a Dart versioned file is readable and declares usable fields.
+///
+/// With no `custom_fields`, `version` must be a string. With `custom_fields`,
+/// every declared field must resolve: a field naming a dependency section such
+/// as `dependencies` resolves to a mapping and is written per dependency.
 pub fn validate_versioned_file(
 	full_path: &Path,
 	display_path: &str,
-	_custom_fields: Option<&[String]>,
+	custom_fields: Option<&[String]>,
 ) -> MonochangeResult<()> {
 	let contents = fs::read_to_string(full_path).map_err(|error| {
 		MonochangeError::Config(format!(
@@ -724,14 +727,26 @@ pub fn validate_versioned_file(
 		))
 	})?;
 
-	if yaml
-		.get("version")
-		.and_then(|value| value.as_str())
-		.is_none()
-	{
-		return Err(MonochangeError::Config(format!(
-			"versioned file `{display_path}` does not contain a `version` string field"
-		)));
+	match custom_fields.filter(|fields| !fields.is_empty()) {
+		None => {
+			if yaml.get("version").and_then(Value::as_str).is_none() {
+				return Err(MonochangeError::Config(format!(
+					"versioned file `{display_path}` does not contain a `version` string field"
+				)));
+			}
+		}
+		Some(fields) => {
+			for field in fields {
+				let writable = yaml.get(field.as_str()).is_some_and(|value| {
+					value.is_string() || value.is_mapping() || value.is_sequence()
+				});
+				if !writable {
+					return Err(MonochangeError::Config(format!(
+						"versioned file `{display_path}` does not contain a `{field}` string field"
+					)));
+				}
+			}
+		}
 	}
 
 	Ok(())

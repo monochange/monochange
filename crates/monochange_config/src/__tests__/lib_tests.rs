@@ -23,11 +23,14 @@ use monochange_core::CliInputKind;
 use monochange_core::CliStepDefinition;
 use monochange_core::CliStepInputValue;
 use monochange_core::Ecosystem;
+use monochange_core::EcosystemAdapter;
+use monochange_core::EcosystemRegistry;
 use monochange_core::EcosystemType;
 use monochange_core::FloatingTagFormat;
 use monochange_core::GITHUB_PULL_REQUEST_BODY_LIMIT;
 use monochange_core::GroupChangelogInclude;
 use monochange_core::GroupDefinition;
+use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackageRecord;
 use monochange_core::PackageType;
@@ -5800,91 +5803,96 @@ fn raw_changelog_config_resolves_package_and_group_paths() {
 }
 
 #[test]
-fn validate_ecosystem_version_readable_reports_missing_json_and_yaml_string_fields() {
+fn validate_ecosystem_version_readable_passes_fields_to_the_adapter() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let root = tempdir.path();
-	let package_json = root.join("package.json");
-	let pubspec = root.join("pubspec.yaml");
-	let npm_fields = vec!["releaseVersion".to_string()];
-
-	fs::write(&package_json, "{\"releaseVersion\":1}")
-		.unwrap_or_else(|error| panic!("write package.json {}: {error}", package_json.display()));
-	let npm_error = crate::validate_ecosystem_version_readable(
-		&package_json,
+	let manifest = tempdir.path().join("package.json");
+	fs::write(
+		&manifest,
+		"{\"metadata\":{\"bin\":{\"monochange\":{\"version\":\"1.0.0\"}}}}",
+	)
+	.unwrap_or_else(|error| panic!("write manifest: {error}"));
+	let ecosystems = registry_with(
+		Ecosystem::Npm,
+		Err("versioned file `package.json` does not contain a `metadata.bin.monochange.version` string field".to_string()),
+	);
+	let fields = vec!["metadata.bin.monochange.version".to_string()];
+	let error = crate::validate_ecosystem_version_readable(
+		&ecosystems,
+		&manifest,
 		"package.json",
 		EcosystemType::Npm,
-		Some(&npm_fields),
+		Some(&fields),
 		"package",
 		"web",
 	)
 	.err()
-	.unwrap_or_else(|| panic!("expected missing json version field error"));
+	.unwrap_or_else(|| panic!("expected adapter error to surface"));
+	let rendered = error.to_string();
 	assert!(
-		npm_error
-			.to_string()
-			.contains("does not contain a `releaseVersion` string field")
+		rendered.contains("package `web` versioned file `package.json`"),
+		"expected owner context in `{rendered}`"
 	);
-
-	fs::write(&pubspec, "name: app\nversion: 1\n")
-		.unwrap_or_else(|error| panic!("write pubspec {}: {error}", pubspec.display()));
-	let dart_error = crate::validate_ecosystem_version_readable(
-		&pubspec,
-		"pubspec.yaml",
-		EcosystemType::Dart,
-		None,
-		"package",
-		"app",
-	)
-	.err()
-	.unwrap_or_else(|| panic!("expected missing yaml version field error"));
 	assert!(
-		dart_error
-			.to_string()
-			.contains("does not contain a `version` string field")
+		rendered.contains("does not contain a `metadata.bin.monochange.version` string field"),
+		"expected adapter detail in `{rendered}`"
 	);
+}
 
-	let deno_json = root.join("deno.json");
-	fs::write(&deno_json, "{\"name\":\"app\"}")
-		.unwrap_or_else(|error| panic!("write deno.json {}: {error}", deno_json.display()));
-	let deno_error = crate::validate_ecosystem_version_readable(
-		&deno_json,
+#[test]
+fn validate_ecosystem_version_readable_accepts_adapter_success() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let manifest = tempdir.path().join("deno.json");
+	fs::write(&manifest, "{\"version\":\"1.0.0\"}")
+		.unwrap_or_else(|error| panic!("write manifest: {error}"));
+	let ecosystems = registry_with(Ecosystem::Deno, Ok(()));
+	crate::validate_ecosystem_version_readable(
+		&ecosystems,
+		&manifest,
 		"deno.json",
 		EcosystemType::Deno,
 		None,
 		"package",
 		"deno-app",
 	)
+	.unwrap_or_else(|error| panic!("expected Ok, got {error}"));
+}
+
+#[test]
+fn validate_ecosystem_version_readable_reports_unsupported_paths() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let manifest = tempdir.path().join("package.txt");
+	fs::write(&manifest, "version = \"1.0.0\"").unwrap_or_else(|error| panic!("write: {error}"));
+	let error = crate::validate_ecosystem_version_readable(
+		&registry_with(Ecosystem::Npm, Ok(())),
+		&manifest,
+		"package.txt",
+		EcosystemType::Npm,
+		None,
+		"package",
+		"pkg",
+	)
 	.err()
-	.unwrap_or_else(|| panic!("expected missing deno version field error"));
-	assert!(deno_error.to_string().contains(
-		"package `deno-app` versioned file `deno.json` does not contain a `version` string field"
-	));
+	.unwrap_or_else(|| panic!("expected unsupported path error"));
+	assert!(error.to_string().contains("is not supported for ecosystem"));
+}
 
-	let pyproject = root.join("pyproject.toml");
-	fs::write(&pyproject, "[project]\nname = \"app\"\n")
-		.unwrap_or_else(|error| panic!("write pyproject {}: {error}", pyproject.display()));
-	crate::validate_ecosystem_version_readable(
-		&pyproject,
-		"pyproject.toml",
-		EcosystemType::Python,
+#[test]
+fn validate_ecosystem_version_readable_reports_missing_adapters() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let manifest = tempdir.path().join("Cargo.toml");
+	fs::write(&manifest, "[package]\n").unwrap_or_else(|error| panic!("write: {error}"));
+	let error = crate::validate_ecosystem_version_readable(
+		&EcosystemRegistry::new(),
+		&manifest,
+		"Cargo.toml",
+		EcosystemType::Cargo,
 		None,
 		"package",
-		"python-app",
+		"pkg",
 	)
-	.unwrap_or_else(|error| panic!("expected python validation to be a no-op: {error}"));
-
-	let go_mod = root.join("go.mod");
-	fs::write(&go_mod, "module example.com/app\n")
-		.unwrap_or_else(|error| panic!("write go.mod {}: {error}", go_mod.display()));
-	crate::validate_ecosystem_version_readable(
-		&go_mod,
-		"go.mod",
-		EcosystemType::Go,
-		None,
-		"package",
-		"go-app",
-	)
-	.unwrap_or_else(|error| panic!("expected go validation to be a no-op: {error}"));
+	.err()
+	.unwrap_or_else(|| panic!("expected missing adapter error"));
+	assert!(error.to_string().contains("package `pkg`"));
 }
 
 #[test]
@@ -7449,10 +7457,61 @@ fn load_workspace_configuration_rejects_versioned_file_without_type_or_regex() {
 
 // -- validate_versioned_files_content tests --
 
+/// A test double for one ecosystem adapter.
+///
+/// `monochange_config` cannot depend on the ecosystem crates, so these tests
+/// pin the contract the registry carries: dispatch by ecosystem, fields passed
+/// through untouched, and adapter errors wrapped with owner context. The
+/// per-format parsing behaviour lives in the ecosystem crates.
+struct RecordingAdapter {
+	ecosystem: Ecosystem,
+	result: Result<(), String>,
+}
+
+impl EcosystemAdapter for RecordingAdapter {
+	fn ecosystem(&self) -> Ecosystem {
+		self.ecosystem
+	}
+
+	fn discover(&self, _root: &Path) -> MonochangeResult<monochange_core::AdapterDiscovery> {
+		Ok(monochange_core::AdapterDiscovery {
+			packages: Vec::new(),
+			warnings: Vec::new(),
+		})
+	}
+
+	fn load_configured(
+		&self,
+		_root: &Path,
+		_package_path: &Path,
+	) -> MonochangeResult<Option<PackageRecord>> {
+		Ok(None)
+	}
+
+	fn supported_versioned_file_kind(&self, _path: &Path) -> bool {
+		true
+	}
+
+	fn validate_versioned_file(
+		&self,
+		_full_path: &Path,
+		_display_path: &str,
+		_custom_fields: Option<&[String]>,
+	) -> MonochangeResult<()> {
+		self.result.clone().map_err(MonochangeError::Config)
+	}
+}
+
+fn registry_with(ecosystem: Ecosystem, result: Result<(), String>) -> EcosystemRegistry {
+	let mut registry = EcosystemRegistry::new();
+	registry.push_adapter(Box::new(RecordingAdapter { ecosystem, result }));
+	registry
+}
+
 #[test]
 fn validate_versioned_files_content_rejects_missing_file() {
 	let root = fixture_path("config/versioned-file-missing");
-	let error = crate::validate_versioned_files_content(&root)
+	let error = crate::validate_versioned_files_content(&root, &EcosystemRegistry::new())
 		.err()
 		.unwrap_or_else(|| panic!("expected error for missing versioned file"));
 	assert!(error.to_string().contains("does-not-exist.toml"));
@@ -7462,29 +7521,37 @@ fn validate_versioned_files_content_rejects_missing_file() {
 #[test]
 fn validate_versioned_files_content_rejects_regex_without_match() {
 	let root = fixture_path("config/versioned-file-regex-no-match");
-	let error = crate::validate_versioned_files_content(&root)
+	let error = crate::validate_versioned_files_content(&root, &EcosystemRegistry::new())
 		.err()
 		.unwrap_or_else(|| panic!("expected error for regex without match"));
 	assert!(error.to_string().contains("does not match any content"));
 }
 
 #[test]
-fn validate_versioned_files_content_rejects_unparseable_version() {
+fn validate_versioned_files_content_wraps_adapter_errors_with_owner_context() {
 	let root = fixture_path("config/versioned-file-unparseable-version");
-	let error = crate::validate_versioned_files_content(&root)
+	let ecosystems = registry_with(
+		Ecosystem::Cargo,
+		Err("versioned file `crates/core/Cargo.toml` does not contain a readable version field (checked: package.version, workspace.package.version, version)".to_string()),
+	);
+	let error = crate::validate_versioned_files_content(&root, &ecosystems)
 		.err()
-		.unwrap_or_else(|| panic!("expected error for missing version field"));
+		.unwrap_or_else(|| panic!("expected adapter failure to surface"));
+	let rendered = error.to_string();
 	assert!(
-		error
-			.to_string()
-			.contains("does not contain a readable version field")
+		rendered.contains("package `core` versioned file `crates/core/Cargo.toml`"),
+		"expected owner context in `{rendered}`"
+	);
+	assert!(
+		rendered.contains("does not contain a readable version field"),
+		"expected adapter detail in `{rendered}`"
 	);
 }
 
 #[test]
 fn validate_versioned_files_content_warns_on_empty_glob() {
 	let root = fixture_path("config/versioned-file-empty-glob");
-	let warnings = crate::validate_versioned_files_content(&root)
+	let warnings = crate::validate_versioned_files_content(&root, &EcosystemRegistry::new())
 		.unwrap_or_else(|error| panic!("expected Ok with warnings, got error: {error}"));
 	assert_eq!(warnings.len(), 1);
 	assert!(warnings.first().unwrap().contains("matches no files"));
@@ -7498,8 +7565,10 @@ fn validate_versioned_files_content_with_config_deduplicates_glob_patterns() {
 	let root = fixture_path("config/inherited-ecosystem-globs");
 	let configuration =
 		load_workspace_configuration(&root).unwrap_or_else(|error| panic!("load config: {error}"));
+	let ecosystems = registry_with(Ecosystem::Dart, Ok(()));
 	// Should succeed — the inherited globs expand to files that exist.
-	let result = crate::validate_versioned_files_content_with_config(&root, &configuration);
+	let result =
+		crate::validate_versioned_files_content_with_config(&root, &configuration, &ecosystems);
 	assert!(result.is_ok(), "expected Ok, got error: {result:?}");
 }
 
@@ -7948,169 +8017,24 @@ fn source_provider_capabilities_reject_unsupported_settings() {
 }
 
 #[test]
-fn validate_ecosystem_version_readable_reports_parse_and_field_errors() {
-	let root = tempdir().unwrap();
-	let unsupported = root.path().join("package.txt");
-	fs::write(&unsupported, "version = \"1.0.0\"").unwrap();
+fn validate_ecosystem_version_readable_keeps_the_path_check_before_dispatch() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let manifest = tempdir.path().join("not-a-pubspec.yaml");
+	fs::write(&manifest, "name: app\n").unwrap_or_else(|error| panic!("write: {error}"));
+	// Even an adapter that always succeeds cannot rescue an unsupported path,
+	// because the config-side support check runs before the registry dispatch.
 	let error = crate::validate_ecosystem_version_readable(
-		&unsupported,
-		"package.txt",
-		EcosystemType::Npm,
+		&registry_with(Ecosystem::Dart, Ok(())),
+		&manifest,
+		"not-a-pubspec.yaml",
+		EcosystemType::Dart,
 		None,
 		"package",
-		"pkg",
+		"app",
 	)
-	.unwrap_err();
+	.err()
+	.unwrap_or_else(|| panic!("expected unsupported path error"));
 	assert!(error.to_string().contains("is not supported for ecosystem"));
-
-	let missing = root.path().join("package.json");
-	let error = crate::validate_ecosystem_version_readable(
-		&missing,
-		"package.json",
-		EcosystemType::Npm,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap_err();
-	assert!(error.to_string().contains("failed to read"));
-
-	let bad_json = root.path().join("package.json");
-	fs::write(&bad_json, "{").unwrap();
-	let error = crate::validate_ecosystem_version_readable(
-		&bad_json,
-		"package.json",
-		EcosystemType::Npm,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap_err();
-	assert!(error.to_string().contains("is not valid JSON"));
-
-	fs::write(&bad_json, "{\"version\":\"1.0.0\"}").unwrap();
-	crate::validate_ecosystem_version_readable(
-		&bad_json,
-		"package.json",
-		EcosystemType::Npm,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap();
-
-	fs::write(&bad_json, "{\"name\":\"pkg\"}").unwrap();
-	let error = crate::validate_ecosystem_version_readable(
-		&bad_json,
-		"package.json",
-		EcosystemType::Npm,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap_err();
-	assert!(
-		error
-			.to_string()
-			.contains("does not contain a `version` string field")
-	);
-
-	let bad_yaml = root.path().join("pubspec.yaml");
-	fs::write(&bad_yaml, ": bad").unwrap();
-	let error = crate::validate_ecosystem_version_readable(
-		&bad_yaml,
-		"pubspec.yaml",
-		EcosystemType::Dart,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap_err();
-	assert!(error.to_string().contains("is not valid YAML"));
-
-	fs::write(&bad_yaml, "version: 1.0.0\n").unwrap();
-	crate::validate_ecosystem_version_readable(
-		&bad_yaml,
-		"pubspec.yaml",
-		EcosystemType::Dart,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap();
-
-	fs::write(&bad_yaml, "name: pkg\n").unwrap();
-	let error = crate::validate_ecosystem_version_readable(
-		&bad_yaml,
-		"pubspec.yaml",
-		EcosystemType::Dart,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap_err();
-	assert!(
-		error
-			.to_string()
-			.contains("does not contain a `version` string field")
-	);
-
-	let go_mod = root.path().join("go.mod");
-	fs::write(&go_mod, "module example.com/pkg\n").unwrap();
-	crate::validate_ecosystem_version_readable(
-		&go_mod,
-		"go.mod",
-		EcosystemType::Go,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap();
-
-	let bad_toml = root.path().join("Cargo.toml");
-	fs::write(&bad_toml, "[").unwrap();
-	let error = crate::validate_ecosystem_version_readable(
-		&bad_toml,
-		"Cargo.toml",
-		EcosystemType::Cargo,
-		None,
-		"package",
-		"pkg",
-	)
-	.unwrap_err();
-	assert!(error.to_string().contains("is not valid TOML"));
-
-	fs::write(
-		&bad_toml,
-		"[package]\nname = \"pkg\"\nversion = \"1.0.0\"\n",
-	)
-	.unwrap();
-	let fields = vec!["package.version".to_string()];
-	crate::validate_ecosystem_version_readable(
-		&bad_toml,
-		"Cargo.toml",
-		EcosystemType::Cargo,
-		Some(&fields),
-		"package",
-		"pkg",
-	)
-	.unwrap();
-
-	fs::write(&bad_toml, "[package]\nname = \"pkg\"\n").unwrap();
-	let error = crate::validate_ecosystem_version_readable(
-		&bad_toml,
-		"Cargo.toml",
-		EcosystemType::Cargo,
-		Some(&fields),
-		"package",
-		"pkg",
-	)
-	.unwrap_err();
-	assert!(
-		error
-			.to_string()
-			.contains("does not contain a `package.version` string field")
-	);
 }
 
 #[test]

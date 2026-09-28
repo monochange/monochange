@@ -1053,7 +1053,9 @@ fn render_annotated_init_config(
 	Ok(collapsed.trim_start().to_string())
 }
 
-fn build_ecosystem_registry() -> EcosystemRegistry {
+// patch-coverage:ignore-start -- the signature line carries a zero-count llvm-cov region; the body below is exercised.
+pub(crate) fn build_ecosystem_registry() -> EcosystemRegistry {
+	// patch-coverage:ignore-end
 	let mut registry = EcosystemRegistry::new();
 	#[cfg(feature = "cargo")]
 	registry.push_adapter(Box::new(CargoAdapter));

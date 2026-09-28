@@ -40,6 +40,7 @@ use monochange_core::CliStepInputValue;
 use monochange_core::DiscoveredPackage;
 use monochange_core::DiscoveryPathFilter;
 use monochange_core::Ecosystem;
+use monochange_core::EcosystemRegistry;
 use monochange_core::EcosystemSettings;
 use monochange_core::EcosystemType;
 use monochange_core::FloatingTagFormat;
@@ -7042,9 +7043,12 @@ pub fn validate_workspace_with_config(
 #[must_use = "the validation result must be checked"]
 /// Validate versioned-file paths and parsers against real files on disk.
 /// Validate versioned-file paths and parsers against real files on disk, loading the configuration from disk.
-pub fn validate_versioned_files_content(root: &Path) -> MonochangeResult<Vec<String>> {
+pub fn validate_versioned_files_content(
+	root: &Path,
+	ecosystems: &EcosystemRegistry,
+) -> MonochangeResult<Vec<String>> {
 	let configuration = load_workspace_configuration(root)?;
-	validate_versioned_files_content_with_config(root, &configuration)
+	validate_versioned_files_content_with_config(root, &configuration, ecosystems)
 }
 
 /// Validate versioned-file paths and parsers against real files on disk,
@@ -7055,6 +7059,7 @@ pub fn validate_versioned_files_content(root: &Path) -> MonochangeResult<Vec<Str
 pub fn validate_versioned_files_content_with_config(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
+	ecosystems: &EcosystemRegistry,
 ) -> MonochangeResult<Vec<String>> {
 	let mut warnings = Vec::new();
 
@@ -7100,6 +7105,7 @@ pub fn validate_versioned_files_content_with_config(
 				definition,
 				owner_kind,
 				owner_id,
+				ecosystems,
 				&mut warnings,
 			) {
 				errors.push(error.render());
@@ -7122,6 +7128,9 @@ fn validate_single_versioned_file_content(
 	definition: &VersionedFileDefinition,
 	owner_kind: &str,
 	owner_id: &str,
+	// patch-coverage:ignore-start -- the parameter line carries a zero-count llvm-cov region; every call below is exercised.
+	ecosystems: &EcosystemRegistry,
+	// patch-coverage:ignore-end
 	warnings: &mut Vec<String>,
 ) -> MonochangeResult<()> {
 	if path_uses_glob(&definition.path) {
@@ -7168,6 +7177,7 @@ fn validate_single_versioned_file_content(
 	if let Some(ecosystem_type) = definition.ecosystem_type {
 		// Ecosystem-typed versioned file: verify version field is readable.
 		validate_ecosystem_version_readable(
+			ecosystems,
 			&full_path,
 			&definition.path,
 			ecosystem_type,
@@ -7181,6 +7191,7 @@ fn validate_single_versioned_file_content(
 }
 
 fn validate_ecosystem_version_readable(
+	ecosystems: &EcosystemRegistry,
 	full_path: &Path,
 	display_path: &str,
 	ecosystem_type: EcosystemType,
@@ -7193,95 +7204,17 @@ fn validate_ecosystem_version_readable(
 			"{owner_kind} `{owner_id}` versioned file `{display_path}` is not supported for ecosystem `{ecosystem_type:?}`"
 		)));
 	}
-	let contents = fs::read_to_string(full_path).map_err(|error| {
-		MonochangeError::Io(format!("failed to read {}: {error}", full_path.display()))
-	})?;
-	let uses_default_version_field = fields.is_none();
-	let field_names: Vec<&str> = fields.map_or_else(
-		|| vec!["version"],
-		|fields| fields.iter().map(String::as_str).collect(),
-	);
-	let field_error = |field: &str| {
-		if uses_default_version_field {
-			MonochangeError::Config(format!(
-				"{owner_kind} `{owner_id}` versioned file `{display_path}` does not contain a `version` string field; does not contain a readable version field"
-			))
-		} else {
-			MonochangeError::Config(format!(
-				"{owner_kind} `{owner_id}` versioned file `{display_path}` does not contain a `{field}` string field"
-			))
-		}
-	};
-	let value_is_string = |value: &serde_json::Value, field: &str| {
-		value
-			.get(field)
-			.and_then(serde_json::Value::as_str)
-			.is_some()
-	};
-	match ecosystem_type {
-		EcosystemType::Npm | EcosystemType::Deno => {
-			let value: serde_json::Value = serde_json::from_str(&contents).map_err(|error| {
-				MonochangeError::Config(format!(
-					"{owner_kind} `{owner_id}` `{display_path}` is not valid JSON: {error}"
-				))
-			})?;
-			for field in field_names {
-				if value_is_string(&value, field) {
-					continue;
-				}
-				Err(field_error(field))?;
-			}
-		}
-		EcosystemType::Dart => {
-			let value: serde_yaml_ng::Value =
-				serde_yaml_ng::from_str(&contents).map_err(|error| {
-					MonochangeError::Config(format!(
-						"{owner_kind} `{owner_id}` `{display_path}` is not valid YAML: {error}"
-					))
-				})?;
-			for field in field_names {
-				let is_string = value
-					.get(field)
-					.and_then(serde_yaml_ng::Value::as_str)
-					.is_some();
-				if is_string {
-					continue;
-				}
-				Err(field_error(field))?;
-			}
-		}
-		EcosystemType::Cargo => {
-			let value: toml::Value = toml::from_str(&contents).map_err(|error| {
-				MonochangeError::Config(format!(
-					"{owner_kind} `{owner_id}` `{display_path}` is not valid TOML: {error}"
-				))
-			})?;
-			let value_at_path_is_string = |field: &str| {
-				field
-					.split('.')
-					.try_fold(&value, |current, segment| current.get(segment))
-					.and_then(toml::Value::as_str)
-					.is_some()
-			};
-			if uses_default_version_field {
-				let has_version = ["version", "package.version", "workspace.package.version"]
-					.into_iter()
-					.any(value_at_path_is_string);
-				if !has_version {
-					return Err(field_error("version"));
-				}
-			} else {
-				for field in field_names {
-					if value_at_path_is_string(field) {
-						continue;
-					}
-					Err(field_error(field))?;
-				}
-			}
-		}
-		_ => {}
-	}
-	Ok(())
+	let validated =
+		ecosystems.validate_versioned_file(full_path, display_path, ecosystem_type.into(), fields);
+	validated.map_err(|error| {
+		let detail = match &error {
+			MonochangeError::Config(message) => message.clone(),
+			// patch-coverage:ignore-start -- ecosystem validators report failures as `Config`; keep a safe fallback.
+			other => other.to_string(),
+			// patch-coverage:ignore-end
+		};
+		MonochangeError::Config(format!("{owner_kind} `{owner_id}` {detail}"))
+	})
 }
 
 fn validate_changeset_targets(

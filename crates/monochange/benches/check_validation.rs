@@ -74,10 +74,12 @@ fn bench_validate_versioned_files_with_glob_dedup(c: &mut Criterion) {
 				// the validation function that previously had O(P×G) blowup.
 				let configuration =
 					monochange_config::load_workspace_configuration(tempdir.path()).unwrap();
+				let ecosystems = test_registry();
 				b.iter(|| {
 					monochange_config::validate_versioned_files_content_with_config(
 						tempdir.path(),
 						&configuration,
+						&ecosystems,
 					)
 					.unwrap()
 				});
@@ -85,6 +87,13 @@ fn bench_validate_versioned_files_with_glob_dedup(c: &mut Criterion) {
 		);
 	}
 	group.finish();
+}
+
+fn test_registry() -> monochange_core::EcosystemRegistry {
+	let mut registry = monochange_core::EcosystemRegistry::new();
+	#[cfg(feature = "dart")]
+	registry.push_adapter(Box::new(monochange_dart::adapter()));
+	registry
 }
 
 fn bench_validate_workspace_with_config(c: &mut Criterion) {
