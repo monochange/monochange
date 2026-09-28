@@ -26,6 +26,7 @@ Each package has a `decision` object with these fields:
 | ------------------------- | ------------------------------------------------------------------------------------------------- |
 | `compatibility_impact`    | `breaking`, `additive`, `compatible`, or `unmodeled` between the default branch and the candidate |
 | `release_impact`          | The same verdict between the latest release and the candidate; absent when no release tag matched |
+| `pull_request_changes`    | Whether the net candidate or the local working tree contains files that belong to this package    |
 | `proposed_changeset_bump` | The highest current finding after the release cap: `major`, `minor`, `patch`, or `none`           |
 | `enforceable_minimum`     | The highest bump supported by high-confidence evidence, after the same release cap                |
 | `release_floor`           | The highest bump found between the latest release and the candidate                               |
@@ -35,6 +36,8 @@ Each package has a `decision` object with these fields:
 | `finding_ids`             | Stable identifiers for the findings that determine the proposal                                   |
 
 `compatibility_impact` describes the default-branch comparison, so it also sees breaks against an API the default branch has not released yet. `release_impact` describes the same candidate against the package's latest release. When a release comparison is analyzed, a modeled finding cannot propose a bump higher than the release-relative bump for the package, because nobody holding the latest release can observe a break in an item that release never shipped. A pull request that refines an unreleased API therefore reports `compatibility_impact: breaking` with `release_impact: additive` and a `minor` proposal instead of an inflated `major`. Unmodeled findings stay uncapped: they are the review floor for surfaces the analyzers cannot model, and the release comparison cannot refute them. `release_floor` still reports the complete unreleased interval, so a pull request can propose `patch` while the release floor is `major` because an earlier merged pull request introduced the breaking change.
+
+`pull_request_changes` decides what the contribution itself may propose. Findings from the `release` and `releaseToDefault` comparisons describe what the default branch accumulated since the latest release, so a package the pull request does not modify reports `proposed_changeset_bump: none`, `enforceable_minimum: none`, `completeness: complete`, and `review_required: false` while `release_floor` and `release_impact` keep the accumulated change. A pending changeset for such a package still reports `action: review`, because a changeset may intentionally describe a consumer-facing effect implemented in another package, but the report no longer escalates the bump or the review verdict for work someone else already merged. A package becomes pull-request-scoped through the net candidate or through the local working tree, so a branch change that a local edit reverts stays in scope and keeps requiring review.
 
 `none` is conclusive only when `completeness` is `complete` and `review_required` is `false`. A changed package without modeled semantic evidence receives a low-confidence `patch` proposal instead of a false `none` result. A decision is also complete when every current finding is complete. A high-confidence `major` finding makes the bump decision complete even when another analyzer is partial because no unmodeled finding can require a higher bump.
 
@@ -68,6 +71,8 @@ Identical evidence found in several comparisons shares one finding and lists eve
 monochange compares package manifests at both endpoints. Adding or removing a package produces a `monochange/package-lifecycle` finding with `complete` coverage and high confidence. Removing a package proposes `major`, even when the package has no modeled public symbols. Adding one proposes `minor`.
 
 The built-in Cargo, JavaScript, Deno, and Dart source analyzers inspect syntax and package metadata. Their findings are `partial` and medium-confidence because they do not prove every language compatibility rule. Cargo packages can opt into a cargo-semver-checks matrix for stronger Rust evidence.
+
+One Rust case carries a stronger verdict than the syntax default. A public `const` or `static` whose declared type is a slice (`&[T]`), a fixed-size array (`[T; N]`), or `Vec<T>` and whose initializer is a literal is compared element by element. Adding elements to the end is `additive` with a `minor` proposal and high confidence, matching `cargo semver-checks`, because the element type and every existing element stay the same. Removing an element, reordering elements, editing an existing element, or changing the declared element type stays `breaking`, and a non-literal initializer such as a path or a `vec![value; count]` repeat stays conservative because its elements cannot be enumerated.
 
 ## CLI command-surface findings
 
@@ -167,6 +172,7 @@ monochange change classify --format markdown --dependency-propagation public
 
 JSON is the stable agent and automation interface. The top-level `schema_version` changes when the JSON contract changes:
 
+- **0.3** adds `decision.pull_request_changes` and scopes `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.review_required` to packages the pull request actually touches.
 - **0.2** adds `decision.release_impact` and caps `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.release_floor` with the release comparison.
 - **0.1** is the first contract published by the `monochange_classification` crate: snake_case keys, `unmodeled` instead of `unknown`, and the top-level `skipped`, `summary`, and `matched_skip_labels` fields.
 

@@ -143,6 +143,45 @@ fn setup_release_refined_fixture() -> TempDir {
 	tempdir
 }
 
+/// Build a repository where the default branch carries unreleased work in one
+/// package and the pull request only appends to public slices in another.
+///
+/// `released` is tagged `core/v1.0.0` and `lints/v1.0.0`, `default-branch`
+/// renames a public `core` reexport, and `pull-request` appends a lint to the
+/// public `lints` slices while declaring `core: feat` intent.
+fn setup_pull_request_scope_fixture() -> TempDir {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/api-classification/pr-scoped-release-floor");
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
+	copy_directory(&fixture_root.join("released"), tempdir.path());
+	git(tempdir.path(), &["init"]);
+	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
+	git(
+		tempdir.path(),
+		&["config", "user.email", "monochange-tests@example.com"],
+	);
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "release"]);
+	git(tempdir.path(), &["branch", "-M", "main"]);
+	git(tempdir.path(), &["tag", "core/v1.0.0"]);
+	git(tempdir.path(), &["tag", "lints/v1.0.0"]);
+
+	copy_directory(&fixture_root.join("default-branch"), tempdir.path());
+	git(tempdir.path(), &["add", "."]);
+	git(
+		tempdir.path(),
+		&["commit", "-m", "rename the core reexport"],
+	);
+
+	git(tempdir.path(), &["checkout", "-b", "feature"]);
+	copy_directory(&fixture_root.join("pull-request"), tempdir.path());
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "append security lints"]);
+
+	tempdir
+}
+
 fn run_mc(root: &Path, args: &[&str]) -> String {
 	let mut cli_args = vec![OsString::from("monochange")];
 	cli_args.extend(args.iter().map(OsString::from));
@@ -200,7 +239,7 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 	);
 
 	assert_eq!(report["recommendation"], "major");
-	assert_eq!(report["schema_version"], "0.2");
+	assert_eq!(report["schema_version"], "0.3");
 	assert_package_recommendation(&report, "rust_core", "major");
 	assert_package_recommendation(&report, "ts_client", "minor");
 	assert_package_recommendation(&report, "js_utils", "patch");
@@ -525,6 +564,153 @@ fn change_classify_separates_a_break_against_main_from_the_release_verdict() {
 }
 
 #[test]
+fn change_classify_scopes_the_bump_to_the_pull_request_and_keeps_the_release_floor() {
+	let fixture = setup_pull_request_scope_fixture();
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "main", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	// `main` already renamed a public reexport in `core`, and the pull request
+	// never touches that crate. The accumulated break stays in the release floor
+	// and in `release_impact`, but it must not set the proposal or require review.
+	let core = package(&report, "core");
+	assert!(!core["findings"].as_array().is_none_or(Vec::is_empty));
+	assert_eq!(core["decision"]["pull_request_changes"], false);
+	assert_eq!(core["decision"]["proposed_changeset_bump"], "none");
+	assert_eq!(core["decision"]["enforceable_minimum"], "none");
+	assert_eq!(core["decision"]["release_floor"], "major");
+	assert_eq!(core["decision"]["release_impact"], "breaking");
+	assert_eq!(core["decision"]["compatibility_impact"], "compatible");
+	assert_eq!(core["decision"]["completeness"], "complete");
+	assert_eq!(core["decision"]["review_required"], false);
+	assert_eq!(core["decision"]["finding_ids"], serde_json::json!([]));
+	assert_eq!(core["recommendation"], "none");
+	// The pending `core: feat` changeset describes a consumer-facing effect
+	// implemented elsewhere, so the action still asks for review.
+	assert_eq!(core["action"], "review");
+	assert_eq!(
+		core["summary"],
+		"the pull request does not change this package; the pending changeset intent needs review"
+	);
+	assert!(
+		core["findings"].as_array().is_some_and(|findings| {
+			findings.iter().all(|finding| {
+				finding["comparisons"]
+					.as_array()
+					.is_some_and(|comparisons| {
+						!comparisons.iter().any(|value| value == "pull_request")
+					})
+			})
+		}),
+		"default-branch findings must not claim pull request membership: {core:#}"
+	);
+
+	// Appending to each public slice is additive, not a breaking modification.
+	let lints = package(&report, "lints");
+	assert_eq!(lints["decision"]["pull_request_changes"], true);
+	assert_eq!(lints["decision"]["proposed_changeset_bump"], "minor");
+	assert_eq!(lints["decision"]["release_floor"], "minor");
+	assert_eq!(lints["decision"]["review_required"], false);
+	assert_eq!(lints["recommendation"], "minor");
+	assert_eq!(lints["action"], "create");
+	let findings = lints["findings"]
+		.as_array()
+		.unwrap_or_else(|| panic!("lints findings should be an array: {lints:#}"));
+	assert_eq!(findings.len(), 2);
+	for finding in findings {
+		assert_eq!(finding["change"], "modified");
+		assert_eq!(finding["impact"], "additive");
+		assert_eq!(finding["bump"], "minor");
+		assert_eq!(finding["confidence"], "high");
+		assert_eq!(finding["analyzer"]["engine"], "monochange");
+		assert!(
+			finding["coverage"]["note"]
+				.as_str()
+				.is_some_and(|note| note.contains("appends elements")),
+			"the finding should name the append rule: {finding:#}"
+		);
+		assert!(
+			finding["comparisons"]
+				.as_array()
+				.is_some_and(|comparisons| {
+					comparisons.iter().any(|value| value == "pull_request")
+				}),
+			"the append belongs to the pull request interval: {finding:#}"
+		);
+	}
+
+	// The whole pull request is additive, so the report recommendation is minor
+	// instead of the major the untouched `core` crate used to force.
+	assert_eq!(report["recommendation"], "minor");
+
+	let markdown = run_mc(
+		fixture.path(),
+		&[
+			"change",
+			"classify",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"markdown",
+			"--skip-cli-snapshots",
+		],
+	);
+	assert!(
+		markdown.contains(
+			"the pull request does not change this package; the pending changeset intent needs review"
+		),
+		"markdown should explain the untouched package: {markdown}"
+	);
+	assert!(
+		markdown.contains("- Release floor: `major`"),
+		"markdown should keep the release floor: {markdown}"
+	);
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(report);
+	});
+}
+
+#[test]
+fn changeset_api_validation_ignores_default_branch_work_for_an_untouched_package() {
+	let fixture = setup_pull_request_scope_fixture();
+
+	// The pull request's own change is additive, so a `minor` changeset for the
+	// crate it modifies satisfies strict validation. The unrelated `major` floor
+	// on `core` must not demand a breaking changeset for work the pull request
+	// did not author.
+	let error = run_mc_error(
+		fixture.path(),
+		&[
+			"changeset",
+			"validate",
+			"--api",
+			"--strict",
+			"--base",
+			"main",
+			"--head",
+			"HEAD",
+			"--format",
+			"json",
+		],
+	);
+	assert!(
+		!error.contains("package `core`"),
+		"an untouched package must not fail validation: {error}"
+	);
+	assert!(
+		error.contains("package `lints`") && error.contains("requires at least `minor`"),
+		"the touched package should demand the minor bump: {error}"
+	);
+}
+
+#[test]
 fn changeset_api_validation_requires_only_the_release_relative_bump() {
 	let fixture = setup_release_refined_fixture();
 	std::fs::create_dir_all(fixture.path().join(".changeset"))
@@ -698,7 +884,7 @@ fn change_classify_supports_global_jq_and_equals_options() {
 		],
 	);
 
-	assert_eq!(output, "0.2");
+	assert_eq!(output, "0.3");
 }
 
 #[test]
@@ -726,7 +912,7 @@ fn changeset_api_validation_writes_the_requested_report() {
 	assert_eq!(
 		serde_json::from_str::<Value>(&written)
 			.unwrap_or_else(|error| panic!("parse written report: {error}"))["schema_version"],
-		"0.2"
+		"0.3"
 	);
 }
 
@@ -805,6 +991,52 @@ fn change_classify_detects_dart_api_impacts() {
 }
 
 #[test]
+fn change_classify_treats_public_slice_appends_as_additive() {
+	let fixture = setup_api_fixture("slice-append");
+
+	let report = run_json(
+		fixture.path(),
+		&[
+			"change", "classify", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	assert_eq!(report["recommendation"], "minor");
+	let package = package(&report, "lints");
+	assert_eq!(package["recommendation"], "minor");
+	assert_eq!(package["decision"]["pull_request_changes"], true);
+	assert_eq!(package["decision"]["compatibility_impact"], "additive");
+	assert_eq!(package["decision"]["proposed_changeset_bump"], "minor");
+	assert_eq!(package["decision"]["enforceable_minimum"], "minor");
+
+	let findings = package["findings"]
+		.as_array()
+		.unwrap_or_else(|| panic!("lints findings should be an array: {package:#}"));
+	assert_eq!(findings.len(), 2);
+	for finding in findings {
+		assert_eq!(finding["change"], "modified");
+		assert_eq!(finding["impact"], "additive");
+		assert_eq!(finding["bump"], "minor");
+		assert_eq!(finding["confidence"], "high");
+		assert_eq!(finding["coverage"]["completeness"], "complete");
+		assert_eq!(finding["analyzer"]["engine"], "monochange");
+	}
+	// `LIMIT` is unchanged, so it contributes no finding.
+	assert!(
+		!findings.iter().any(|finding| {
+			finding["id"]
+				.as_str()
+				.is_some_and(|id| id.ends_with("/LIMIT"))
+		}),
+		"the unchanged scalar constant must not produce a finding: {package:#}"
+	);
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(report);
+	});
+}
+
+#[test]
 fn change_classify_reports_changeset_only_intent_for_review() {
 	let fixture = setup_api_fixture("stale-changeset");
 
@@ -816,12 +1048,24 @@ fn change_classify_reports_changeset_only_intent_for_review() {
 	);
 	let package = package(&report, "core");
 
+	// The pull request does not modify this package, so it is unaffected by the
+	// contribution. The unmatched changeset intent still asks for review, but it
+	// no longer fabricates an unmodeled verdict or a review-required decision.
 	assert_eq!(package["recommendation"], "none");
 	assert_eq!(package["action"], "review");
-	assert_eq!(package["decision"]["compatibility_impact"], "unmodeled");
-	assert_eq!(package["decision"]["completeness"], "unsupported");
-	assert_eq!(package["decision"]["review_required"], true);
+	assert_eq!(package["decision"]["pull_request_changes"], false);
+	assert_eq!(package["decision"]["compatibility_impact"], "compatible");
+	assert_eq!(package["decision"]["completeness"], "complete");
+	assert_eq!(package["decision"]["review_required"], false);
+	assert_eq!(
+		package["summary"],
+		"the pull request does not change this package; the pending changeset intent needs review"
+	);
 	assert_eq!(package["existing_changesets"][0]["bump"], "minor");
+
+	snapshot_settings().bind(|| {
+		assert_json_snapshot!(report);
+	});
 }
 
 fn run_mc_error(root: &Path, args: &[&str]) -> String {
