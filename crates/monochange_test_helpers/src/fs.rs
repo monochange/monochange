@@ -106,7 +106,20 @@ fn copy_directory_filtered(source: &Path, destination: &Path, skipped: &dyn Fn(&
 				destination_path.display()
 			)
 		});
+		// `fs::copy` preserves the source modification time. Fixtures that copy a
+		// `before` tree and then overwrite it with an `after` tree leave files
+		// whose contents changed but whose size and mtime stayed effectively the
+		// same, and git's stat cache then reports them clean. Give every copied
+		// file a fresh mtime so `git add` always re-hashes it.
+		fresh_modification_time(&destination_path);
 	}
+}
+
+fn fresh_modification_time(path: &Path) {
+	let Ok(file) = fs::File::options().write(true).open(path) else {
+		return;
+	};
+	let _ = file.set_modified(std::time::SystemTime::now());
 }
 
 #[cfg(test)]
