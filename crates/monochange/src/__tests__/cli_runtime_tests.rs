@@ -418,6 +418,7 @@ fn build_release_request_result_formats_published_outcome() {
 			subject: "chore(release): prepare release".to_string(),
 			body: None,
 		},
+		body_truncation: None,
 	};
 
 	let rendered = build_release_request_result(false, &request, || {
@@ -453,6 +454,7 @@ async fn build_release_request_result_for_source_real_mode_delegates_to_publishe
 			subject: "chore(release): prepare release".to_string(),
 			body: None,
 		},
+		body_truncation: None,
 	};
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 
@@ -495,6 +497,7 @@ async fn build_release_request_result_for_source_dry_run_delegates_to_formatter(
 			subject: "chore(release): prepare release".to_string(),
 			body: None,
 		},
+		body_truncation: None,
 	};
 
 	let result = build_release_request_result_for_source(

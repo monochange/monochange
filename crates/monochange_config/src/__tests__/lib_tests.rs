@@ -25,6 +25,7 @@ use monochange_core::CliStepInputValue;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemType;
 use monochange_core::FloatingTagFormat;
+use monochange_core::GITHUB_PULL_REQUEST_BODY_LIMIT;
 use monochange_core::GroupChangelogInclude;
 use monochange_core::GroupDefinition;
 use monochange_core::MonochangeResult;
@@ -32,6 +33,8 @@ use monochange_core::PackageRecord;
 use monochange_core::PackageType;
 use monochange_core::PrereleaseBase;
 use monochange_core::PrereleaseNumbering;
+use monochange_core::ProviderMergeRequestSettings;
+use monochange_core::ProviderPullRequestBodyStyle;
 use monochange_core::PublishMode;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishState;
@@ -1046,6 +1049,51 @@ fn load_workspace_configuration_rejects_empty_pull_request_labels() {
 			.unwrap_or_else(|| panic!("expected config error"))
 			.to_string()
 			.contains("[source.pull_requests].labels must not include empty values")
+	);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_a_zero_pull_request_body_limit() {
+	let root = fixture_path("config/rejects-zero-pr-max-body-chars");
+	assert!(
+		load_workspace_configuration(&root)
+			.err()
+			.unwrap_or_else(|| panic!("expected config error"))
+			.to_string()
+			.contains("[source.pull_requests].max_body_chars must be greater than 0")
+	);
+}
+
+#[test]
+fn pull_request_body_defaults_are_the_current_rendering_behavior() {
+	let settings = ProviderMergeRequestSettings::default();
+
+	assert_eq!(settings.body_style, ProviderPullRequestBodyStyle::Full);
+	assert_eq!(settings.max_body_chars, None);
+	assert_eq!(
+		settings.effective_max_body_chars(SourceProvider::GitHub),
+		Some(GITHUB_PULL_REQUEST_BODY_LIMIT)
+	);
+	assert_eq!(
+		settings.effective_max_body_chars(SourceProvider::GitLab),
+		None
+	);
+}
+
+#[test]
+fn configured_pull_request_body_limit_overrides_the_provider_default() {
+	let settings = ProviderMergeRequestSettings {
+		max_body_chars: Some(1_200),
+		..ProviderMergeRequestSettings::default()
+	};
+
+	assert_eq!(
+		settings.effective_max_body_chars(SourceProvider::GitHub),
+		Some(1_200)
+	);
+	assert_eq!(
+		settings.effective_max_body_chars(SourceProvider::Forgejo),
+		Some(1_200)
 	);
 }
 
@@ -5513,7 +5561,7 @@ fn sample_source_configuration(provider: SourceProvider) -> monochange_core::Sou
 			enabled: true,
 			..Default::default()
 		},
-		pull_requests: monochange_core::ProviderMergeRequestSettings {
+		pull_requests: ProviderMergeRequestSettings {
 			enabled: true,
 			..Default::default()
 		},
@@ -5974,7 +6022,7 @@ fn validate_source_and_changeset_settings_reject_empty_values() {
 			owner: " ".to_string(),
 			repo: "monochange".to_string(),
 			releases: monochange_core::ProviderReleaseSettings::default(),
-			pull_requests: monochange_core::ProviderMergeRequestSettings::default(),
+			pull_requests: ProviderMergeRequestSettings::default(),
 		}))
 		.err()
 		.unwrap_or_else(|| panic!("expected source validation error"));
@@ -6045,7 +6093,7 @@ fn validate_source_and_changeset_settings_reject_empty_values() {
 			owner: "ifiokjr".to_string(),
 			repo: " ".to_string(),
 			releases: monochange_core::ProviderReleaseSettings::default(),
-			pull_requests: monochange_core::ProviderMergeRequestSettings::default(),
+			pull_requests: ProviderMergeRequestSettings::default(),
 		}))
 		.err()
 		.unwrap_or_else(|| panic!("expected source repo validation error"));
@@ -7283,7 +7331,7 @@ fn validate_github_source_and_api_configuration_cover_remaining_paths() {
 			owner: "ifiokjr".to_string(),
 			repo: "monochange".to_string(),
 			releases: monochange_core::ProviderReleaseSettings::default(),
-			pull_requests: monochange_core::ProviderMergeRequestSettings {
+			pull_requests: ProviderMergeRequestSettings {
 				labels: vec![" ".to_string()],
 				..Default::default()
 			},
@@ -7304,7 +7352,7 @@ fn validate_github_source_and_api_configuration_cover_remaining_paths() {
 			owner: "ifiokjr".to_string(),
 			repo: "monochange".to_string(),
 			releases: monochange_core::ProviderReleaseSettings::default(),
-			pull_requests: monochange_core::ProviderMergeRequestSettings::default(),
+			pull_requests: ProviderMergeRequestSettings::default(),
 		}))
 		.err()
 		.unwrap_or_else(|| panic!("expected insecure api_url error"));
@@ -7850,7 +7898,7 @@ fn source_config_for_provider(provider: SourceProvider) -> monochange_core::Sour
 		host: None,
 		api_url: None,
 		releases: monochange_core::ProviderReleaseSettings::default(),
-		pull_requests: monochange_core::ProviderMergeRequestSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
 	}
 }
 

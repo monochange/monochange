@@ -6121,6 +6121,30 @@ pub struct ProviderMergeRequestSettings {
 	pub auto_merge: bool,
 	#[serde(default)]
 	pub verified_commits: bool,
+	/// How much of the release notes the release request body carries.
+	#[serde(default)]
+	pub body_style: ProviderPullRequestBodyStyle,
+	/// Hard cap for the rendered release request body in characters.
+	///
+	/// Defaults to the provider's own limit. Raise it for self-hosted providers
+	/// that accept more, or lower it to keep the review surface short.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[cfg_attr(feature = "schema", schemars(range(min = 1)))]
+	pub max_body_chars: Option<usize>,
+}
+
+/// How much of the release notes a provider release request body carries.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ProviderPullRequestBodyStyle {
+	/// Inline the release notes for every outward target, bounded by the body cap.
+	#[default]
+	Full,
+	/// Render only the prepared-release header, the target list, and the changelog
+	/// paths, leaving the notes to the changelog files and the hosted release body.
+	Summary,
 }
 
 impl ProviderMergeRequestSettings {
@@ -6130,6 +6154,16 @@ impl ProviderMergeRequestSettings {
 		self.commit_subject
 			.clone()
 			.unwrap_or_else(|| self.title.clone())
+	}
+
+	/// Resolve the body cap for one provider.
+	///
+	/// The configured value always wins; otherwise the provider's own limit
+	/// applies, and providers without a known limit stay unbounded.
+	#[must_use]
+	pub fn effective_max_body_chars(&self, provider: SourceProvider) -> Option<usize> {
+		self.max_body_chars
+			.or_else(|| provider.default_max_body_chars())
 	}
 }
 
@@ -6144,6 +6178,8 @@ impl Default for ProviderMergeRequestSettings {
 			labels: default_pull_request_labels(),
 			auto_merge: false,
 			verified_commits: false,
+			body_style: ProviderPullRequestBodyStyle::default(),
+			max_body_chars: None,
 		}
 	}
 }
@@ -6326,7 +6362,28 @@ impl SourceProvider {
 			Self::Forgejo => "forgejo.com",
 		}
 	}
+
+	/// Return the provider's own character limit for a release request body.
+	///
+	/// GitHub rejects a pull request body above 65536 characters on create, so
+	/// that limit is enforced even when the repository configures nothing.
+	/// GitLab, Gitea, and Forgejo document no comparable body limit, so they
+	/// stay unbounded unless `[source.pull_requests].max_body_chars` is set.
+	#[must_use]
+	pub fn default_max_body_chars(self) -> Option<usize> {
+		match self {
+			Self::GitHub => Some(GITHUB_PULL_REQUEST_BODY_LIMIT),
+			Self::GitLab | Self::Gitea | Self::Forgejo => None,
+		}
+	}
 }
+
+/// Character limit GitHub applies to a pull request body on the create call.
+///
+/// The limit is enforced here rather than only reported by the API because the
+/// update call accepts far more, letting a long-lived release pull request grow
+/// past the cap and then block the create call that replaces it.
+pub const GITHUB_PULL_REQUEST_BODY_LIMIT: usize = 65_536;
 
 impl fmt::Display for SourceProvider {
 	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -6618,6 +6675,21 @@ pub struct SourceChangeRequest {
 	pub labels: Vec<String>,
 	pub auto_merge: bool,
 	pub commit_message: CommitMessage,
+	/// Set when the rendered body was shortened to stay inside the provider limit.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub body_truncation: Option<SourceChangeRequestBodyTruncation>,
+}
+
+/// Records that a release request body was shortened to fit a provider limit.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct SourceChangeRequestBodyTruncation {
+	/// Character limit that was applied.
+	pub max_chars: usize,
+	/// Length of the body before it was shortened.
+	pub original_chars: usize,
+	/// Number of release-note entries dropped from the end of the body.
+	pub dropped_entries: usize,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

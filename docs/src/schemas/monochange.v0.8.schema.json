@@ -1603,6 +1603,11 @@
 					"default": "main",
 					"type": "string"
 				},
+				"body_style": {
+					"$ref": "#/$defs/ProviderPullRequestBodyStyle",
+					"default": "full",
+					"description": "How much of the release notes the release request body carries."
+				},
 				"branch_prefix": {
 					"default": "monochange/release",
 					"type": "string"
@@ -1628,6 +1633,15 @@
 					},
 					"type": "array"
 				},
+				"max_body_chars": {
+					"description": "Hard cap for the rendered release request body in characters.\n\nDefaults to the provider's own limit. Raise it for self-hosted providers\nthat accept more, or lower it to keep the review surface short.",
+					"format": "uint",
+					"minimum": 1,
+					"type": [
+						"integer",
+						"null"
+					]
+				},
 				"title": {
 					"default": "chore(release): prepare release",
 					"type": "string"
@@ -1638,6 +1652,21 @@
 				}
 			},
 			"type": "object"
+		},
+		"ProviderPullRequestBodyStyle": {
+			"description": "How much of the release notes a provider release request body carries.",
+			"oneOf": [
+				{
+					"const": "full",
+					"description": "Inline the release notes for every outward target, bounded by the body cap.",
+					"type": "string"
+				},
+				{
+					"const": "summary",
+					"description": "Render only the prepared-release header, the target list, and the changelog\npaths, leaving the notes to the changelog files and the hosted release body.",
+					"type": "string"
+				}
+			]
 		},
 		"ProviderReleaseNotesSource": {
 			"enum": [
@@ -3185,6 +3214,7 @@
 					"default": {
 						"auto_merge": false,
 						"base": "main",
+						"body_style": "full",
 						"branch_prefix": "monochange/release",
 						"enabled": true,
 						"labels": [

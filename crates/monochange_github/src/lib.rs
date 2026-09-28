@@ -12,6 +12,7 @@ use std::sync::OnceLock;
 
 use monochange_core::CommitMessage;
 use monochange_core::DiscoveryPathFilter;
+use monochange_core::GITHUB_PULL_REQUEST_BODY_LIMIT;
 use monochange_core::HostedActorRef;
 use monochange_core::HostedActorSourceKind;
 use monochange_core::HostedIssueCommentOperation;
@@ -32,7 +33,6 @@ use monochange_core::ProviderReleaseNotesSource;
 use monochange_core::ReleaseManifest;
 use monochange_core::ReleaseManifestChangelog;
 use monochange_core::ReleaseManifestTarget;
-use monochange_core::ReleaseOwnerKind;
 use monochange_core::RetargetOperation;
 use monochange_core::RetargetProviderOperation;
 use monochange_core::RetargetProviderResult;
@@ -57,6 +57,9 @@ use monochange_core::git::git_stage_paths_command;
 use monochange_core::git::run_command;
 use monochange_core::git::run_git_commit_message;
 use monochange_hosting::ensure_rustls_provider;
+use monochange_hosting::minimal_release_body;
+use monochange_hosting::release_pull_request_body_for_source;
+use monochange_hosting::release_pull_request_branch;
 use octocrab::Octocrab;
 use regex::Regex;
 use serde::Deserialize;
@@ -605,6 +608,7 @@ pub fn build_release_pull_request_request(
 	manifest: &ReleaseManifest,
 ) -> GitHubPullRequestRequest {
 	let repository = format!("{}/{}", source.owner, source.repo);
+	let rendered = release_pull_request_body_for_source(source, manifest);
 	GitHubPullRequestRequest {
 		provider: SourceProvider::GitHub,
 		repository: repository.clone(),
@@ -616,13 +620,14 @@ pub fn build_release_pull_request_request(
 			&manifest.command,
 		),
 		title: source.pull_requests.title.clone(),
-		body: release_pull_request_body(manifest),
+		body: rendered.body,
 		labels: source.pull_requests.labels.clone(),
 		auto_merge: source.pull_requests.auto_merge,
 		commit_message: CommitMessage {
 			subject: source.pull_requests.effective_commit_subject(),
 			body: None,
 		},
+		body_truncation: rendered.truncation,
 	}
 }
 
@@ -1841,17 +1846,36 @@ fn format_github_api_error(method: &str, path: &str, error: &octocrab::Error) ->
 			if let Some(documentation_url) = &source.documentation_url {
 				parts.push(format!("documentation: {documentation_url}"));
 			}
+			let mut rejects_long_body = false;
 			if let Some(errors) = &source.errors
 				&& !errors.is_empty()
 			{
 				for error in errors {
-					parts.push(format!("details: {error}"));
+					let rendered = error.to_string();
+					rejects_long_body |= is_body_too_long_error(&rendered);
+					parts.push(format!("details: {rendered}"));
 				}
 			}
-			format!("GitHub API {method} `{path}` failed: {}", parts.join("; "))
+			let message = format!("GitHub API {method} `{path}` failed: {}", parts.join("; "));
+			if rejects_long_body {
+				return format!("{message}{}", github_body_limit_hint());
+			}
+			message
 		}
 		_ => format!("GitHub API {method} `{path}` failed: {error}"),
 	}
+}
+
+/// Detect GitHub's rejection of an oversized pull request body.
+fn is_body_too_long_error(details: &str) -> bool {
+	details.contains("body is too long")
+}
+
+/// Point the operator at the setting that bounds the release request body.
+fn github_body_limit_hint() -> String {
+	format!(
+		"; the rendered release pull request body exceeded GitHub's {GITHUB_PULL_REQUEST_BODY_LIMIT} character limit. Set `[source.pull_requests].body_style = \"summary\"` to publish the notes only to the changelog files, or lower `[source.pull_requests].max_body_chars` below the limit to keep the inline notes bounded."
+	)
 }
 
 async fn get_optional_json<T>(client: &Octocrab, path: &str) -> MonochangeResult<Option<T>>
@@ -2143,102 +2167,6 @@ fn is_empty_release_note(entry: &str) -> bool {
 		|| entry.contains("No significant changes")
 }
 
-fn release_pull_request_branch(branch_prefix: &str, command: &str) -> String {
-	let command = command
-		.chars()
-		.map(|character| {
-			if character.is_ascii_alphanumeric() {
-				character.to_ascii_lowercase()
-			} else {
-				'-'
-			}
-		})
-		.collect::<String>()
-		.trim_matches('-')
-		.to_string();
-	let command = if command.is_empty() {
-		"release".to_string()
-	} else {
-		command
-	};
-	format!("{}/{}", branch_prefix.trim_end_matches('/'), command)
-}
-
-fn release_pull_request_body(manifest: &ReleaseManifest) -> String {
-	let mut lines = vec!["## Prepared release".to_string(), String::new()];
-	lines.push(format!("- command: `{}`", manifest.command));
-	for target in manifest
-		.release_targets
-		.iter()
-		.filter(|target| target.release)
-	{
-		lines.push(format!(
-			"- {} `{}` -> `{}`",
-			target.kind, target.id, target.tag_name
-		));
-	}
-	if !manifest.release_targets.iter().any(|target| target.release) {
-		lines.push("- no outward release targets".to_string());
-	}
-	lines.push(String::new());
-	lines.push("## Release notes".to_string());
-	for target in manifest
-		.release_targets
-		.iter()
-		.filter(|target| target.release)
-	{
-		lines.push(String::new());
-		lines.push(format!("### {} {}", target.id, target.version));
-		if let Some(changelog) = manifest.changelogs.iter().find(|changelog| {
-			changelog.owner_id == target.id && changelog.owner_kind == target.kind
-		}) {
-			for paragraph in &changelog.notes.summary {
-				lines.push(String::new());
-				lines.push(paragraph.clone());
-			}
-			for section in &changelog.notes.sections {
-				if section.entries.is_empty() {
-					continue;
-				}
-				lines.push(String::new());
-				lines.push(format!("### {}", section.title));
-				lines.push(String::new());
-				push_body_entries(&mut lines, &section.entries);
-			}
-		} else {
-			lines.push(String::new());
-			lines.push(minimal_release_body(manifest, target));
-		}
-	}
-	if !manifest.changed_files.is_empty() {
-		lines.push(String::new());
-		lines.push("## Changed files".to_string());
-		lines.push(String::new());
-		for path in &manifest.changed_files {
-			lines.push(format!("- {}", path.display()));
-		}
-	}
-	lines.join("\n")
-}
-
-fn push_body_entries(lines: &mut Vec<String>, entries: &[String]) {
-	for (index, entry) in entries.iter().enumerate() {
-		let trimmed = entry.trim();
-		if trimmed.contains('\n') {
-			lines.extend(trimmed.lines().map(ToString::to_string));
-			if index + 1 < entries.len() {
-				lines.push(String::new());
-			}
-			continue;
-		}
-		if trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with('#') {
-			lines.push(trimmed.to_string());
-		} else {
-			lines.push(format!("- {trimmed}"));
-		}
-	}
-}
-
 #[cfg(unix)]
 fn git_blob_mode(metadata: &fs::Metadata) -> &'static str {
 	use std::os::unix::fs::PermissionsExt;
@@ -2253,31 +2181,6 @@ fn git_blob_mode(metadata: &fs::Metadata) -> &'static str {
 #[cfg(not(unix))]
 fn git_blob_mode(_metadata: &std::fs::Metadata) -> &'static str {
 	"100644"
-}
-
-fn minimal_release_body(manifest: &ReleaseManifest, target: &ReleaseManifestTarget) -> String {
-	let mut lines = vec![format!("Release target `{}`", target.id), String::new()];
-	if !target.members.is_empty() {
-		lines.push(format!("Members: {}", target.members.join(", ")));
-		lines.push(String::new());
-	}
-	let reasons = manifest
-		.plan
-		.decisions
-		.iter()
-		.filter(|decision| {
-			target.kind == ReleaseOwnerKind::Package || target.members.contains(&decision.package)
-		})
-		.flat_map(|decision| decision.reasons.iter().cloned())
-		.collect::<Vec<_>>();
-	if reasons.is_empty() {
-		lines.push("- prepare release".to_string());
-	} else {
-		for reason in reasons {
-			lines.push(format!("- {reason}"));
-		}
-	}
-	lines.join("\n")
 }
 
 use std::collections::BTreeMap;

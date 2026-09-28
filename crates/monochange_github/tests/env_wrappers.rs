@@ -136,6 +136,7 @@ fn publish_release_pull_request_uses_git_and_github_env_configuration() {
 						subject: "chore(release): prepare release".to_string(),
 						body: None,
 					},
+					body_truncation: None,
 				},
 				&[PathBuf::from("release.txt")],
 				false,

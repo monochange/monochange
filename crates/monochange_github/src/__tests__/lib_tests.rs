@@ -720,6 +720,111 @@ fn build_release_pull_request_request_renders_branch_and_body() {
 }
 
 #[test]
+fn build_release_pull_request_request_caps_the_body_at_the_github_limit() {
+	let github = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		host: None,
+		api_url: None,
+		owner: "ifiokjr".to_string(),
+		repo: "monochange".to_string(),
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	};
+	let mut manifest = sample_manifest();
+	// Give the target far more notes than the GitHub body limit allows.
+	let entries = (0..1_500)
+		.map(|index| {
+			format!("entry {index} that is long enough to push the rendered body past the limit")
+		})
+		.collect::<Vec<_>>();
+	manifest.changelogs = vec![github_release_changelog(
+		"sdk",
+		ReleaseOwnerKind::Group,
+		vec![],
+		vec![ReleaseNotesSection {
+			title: "Features".to_string(),
+			collapsed: false,
+			entries,
+		}],
+		"",
+	)];
+
+	let request = build_release_pull_request_request(&github, &manifest);
+	let truncation = request
+		.body_truncation
+		.unwrap_or_else(|| panic!("expected the body to be capped at the GitHub limit"));
+	assert_eq!(truncation.max_chars, GITHUB_PULL_REQUEST_BODY_LIMIT);
+	assert!(request.body.chars().count() <= truncation.max_chars);
+	assert!(truncation.original_chars > truncation.max_chars);
+	assert!(truncation.dropped_entries > 0);
+	assert!(request.body.contains("## Prepared release"));
+}
+
+#[test]
+fn build_release_pull_request_request_summary_style_omits_the_notes() {
+	let github = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		host: None,
+		api_url: None,
+		owner: "ifiokjr".to_string(),
+		repo: "monochange".to_string(),
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	};
+	let manifest = sample_manifest();
+	let mut summary_source = github.clone();
+	summary_source.pull_requests.body_style =
+		monochange_core::ProviderPullRequestBodyStyle::Summary;
+
+	let full = build_release_pull_request_request(&github, &manifest);
+	let summary = build_release_pull_request_request(&summary_source, &manifest);
+
+	assert_eq!(summary.body_truncation, None);
+	assert!(summary.body.chars().count() <= full.body.chars().count());
+	assert!(summary.body.contains("## Prepared release"));
+	assert!(summary.body.contains("## Full release notes"));
+}
+
+#[test]
+fn build_release_pull_request_request_honours_a_configured_body_limit() {
+	let mut github = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		host: None,
+		api_url: None,
+		owner: "ifiokjr".to_string(),
+		repo: "monochange".to_string(),
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	};
+	let mut manifest = sample_manifest();
+	let entries = (0..200)
+		.map(|index| format!("entry {index} with a realistic length for a release note"))
+		.collect::<Vec<_>>();
+	manifest.changelogs = vec![github_release_changelog(
+		"sdk",
+		ReleaseOwnerKind::Group,
+		vec![],
+		vec![ReleaseNotesSection {
+			title: "Features".to_string(),
+			collapsed: false,
+			entries,
+		}],
+		"",
+	)];
+	let unbounded = build_release_pull_request_request(&github, &manifest);
+	assert!(unbounded.body.chars().count() > 5_000);
+	github.pull_requests.max_body_chars = Some(5_000);
+
+	let request = build_release_pull_request_request(&github, &manifest);
+	let truncation = request
+		.body_truncation
+		.unwrap_or_else(|| panic!("expected the configured limit to apply"));
+	assert_eq!(truncation.max_chars, 5_000);
+	assert!(truncation.original_chars > 5_000);
+	assert!(request.body.chars().count() <= 5_000);
+}
+
+#[test]
 fn publish_release_requests_creates_release_via_octocrab() {
 	let server = MockServer::start();
 	let release_lookup = server.mock(|when, then| {
@@ -3119,6 +3224,42 @@ fn sample_release_request() -> GitHubReleaseRequest {
 	}
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn publish_release_pull_request_surfaces_the_body_limit_hint() {
+	let server = MockServer::start();
+	let lookup = server.mock(|when, then| {
+		when.method(GET).path("/repos/ifiokjr/monochange/pulls");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body("[]");
+	});
+	let rejected = server.mock(|when, then| {
+		when.method(POST).path("/repos/ifiokjr/monochange/pulls");
+		then.status(422)
+			.header("content-type", "application/json")
+			.body(
+				r#"{"message":"Validation Failed","errors":[{"resource":"Issue","code":"custom","field":"body","message":"body is too long (maximum is 65536 characters)"}]}"#,
+			);
+	});
+	let client = build_test_client(&server);
+	let request = sample_pull_request_request();
+
+	let error = publish_release_pull_request_with_client(&client, &request)
+		.await
+		.err()
+		.unwrap_or_else(|| panic!("expected the create call to be rejected"));
+
+	let rendered = error.to_string();
+	assert!(rendered.contains("status 422"), "{rendered}");
+	assert!(rendered.contains("body is too long"), "{rendered}");
+	assert!(
+		rendered.contains("max_body_chars") && rendered.contains("body_style"),
+		"the error names the settings that bound the body: {rendered}"
+	);
+	lookup.assert();
+	rejected.assert();
+}
+
 fn sample_pull_request_request() -> GitHubPullRequestRequest {
 	GitHubPullRequestRequest {
 		provider: SourceProvider::GitHub,
@@ -3136,6 +3277,7 @@ fn sample_pull_request_request() -> GitHubPullRequestRequest {
 			subject: "chore(release): prepare release".to_string(),
 			body: None,
 		},
+		body_truncation: None,
 	}
 }
 
