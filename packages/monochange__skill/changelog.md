@@ -9,6 +9,76 @@
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 - Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 🐛 Fixed
+
+#### Scope the classified bump to the pull request
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #730](https://github.com/monochange/monochange/pull/730) · _Closed issues:_ [#706](https://github.com/monochange/monochange/issues/706)
+
+- `decision.pull_request_changes` reports whether this contribution touches the package. When it is `false`, every finding came from the `release` or `releaseToDefault` interval, so `decision.proposed_changeset_bump` and `decision.enforceable_minimum` are `none`, `decision.review_required` is `false`, and the accumulated change appears only in `decision.release_floor` and `decision.release_impact`. The net candidate and the local working tree set the flag; the release comparisons never do.
+- A pending changeset for a package the pull request does not modify still reports `action: review` with the summary `the pull request does not change this package; the pending changeset intent needs review`, because a changeset can intentionally describe a consumer-facing effect implemented in another package. It no longer escalates the bump or the review verdict for work an earlier merge introduced.
+- The Cargo analyzer classifies a pure append to a public `const`/`static` whose declared type is `&[T]`, `[T; N]`, or `Vec<T>` and whose initializer is a literal as `additive`/`minor` with high confidence, matching `cargo semver-checks`. A removal, a reorder, an element edit, a changed element type, or a non-literal initializer stays conservative.
+
+```json
+{
+	"compatibility_impact": "compatible",
+	"release_impact": "breaking",
+	"pull_request_changes": false,
+	"proposed_changeset_bump": "none",
+	"release_floor": "major",
+	"review_required": false
+}
+```
+
+The classification report contract advances to `schema_version` `0.3` (`SCHEMA_VERSION` regenerated with a frozen `classification.v0.3.schema.json`; the shipped v0.1 and v0.2 assets are untouched, and the schemas reference page lists the new asset). `decision.pull_request_changes` is new, and `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.review_required` can be lower for a package this pull request does not touch.
+
+No configuration change is required. Re-run `monochange change classify` to pick up the pull-request-scoped verdict.
+
+#### Add `publish` to the skill's generated command inventory
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)
+
+The generated command inventory in `commands.md` now lists the built-in `publish` command, so an assistant following the skill sees `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` alongside the existing `monochange step *` entries.
+
+The `next` and `next-versions` commands are aliases rather than distinct clap command literals, so they follow the same rule as the other top-level step aliases and stay out of this literal inventory.
+
+#### Serve the agent skill from the binary without the `skills` CLI
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+`monochange skill` no longer shells out to `npx`, `pnpm dlx`, or `bunx`. The skill bundle is embedded in the binary, so the command works offline and without Node tooling:
+
+- `monochange skill` lists every bundled topic with its install path and description.
+- `monochange skill read <topic>` prints one document verbatim to stdout, with no terminal rendering or added framing.
+- `monochange skill install --dir <dir> [--force]` writes `SKILL.md` and every reference into an agent runtime skill directory and refuses to replace an existing skill unless `--force` is passed.
+
+The forwarded-argument surface (`monochange skill --list`, `-a`, `-y`, and the other `skills add` flags) and the `MONOCHANGE_SKILL_SOURCE` and `MONOCHANGE_SKILL_RUNNER` environment variables are removed. `crates/monochange/skill/` is a committed copy of `packages/monochange__skill`, kept in sync by `scripts/docs/sync-skill.mjs` and verified by `docs:check`.
+
+Migration: replace the forwarded-argument invocation with an explicit install directory, or read individual topics:
+
+```bash
+# Before
+monochange skill -a pi -y
+
+# After
+monochange skill install --dir ~/.claude/skills/monochange
+monochange skill read configuration
+```
+
+#### Fix verified factual errors in the monochange agent skill
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+The bundled skill (`packages/monochange__skill`, served by `monochange skill read`) taught several commands and fields that do not match the current binary. Each fix was reproduced against the debug binary before editing:
+
+- **`monochange versions`**: the skill now documents the supported subcommands. `monochange versions list` is a read-only inventory (`--format text|json|json-min`), and `monochange versions sync` rewrites internal dependency constraints (`--dry-run`, `--format`, `--strategy default|exact|caret|compatible`). `--strategy` belongs to `sync` only. Bare `monochange versions` is deprecated and prints a warning, so skill examples no longer use it.
+- **Cross-stream changesets**: `monochange step validate` and `monochange check` both pass for a file that mixes `default`-stream and `user`-stream targets; only a release plan command rejects it. The skill now names `monochange preview` (or `monochange prepare --dry-run` / `monochange step prepare-release --dry-run`) and states the observed failure: exit 1 with `changeset targets resolve to multiple changelog streams: <streams>; split the changes into one file per stream`.
+- **Compatibility field**: replaced the stale `compatibilityEvidence` name. The release plan exposes `compatibility_evidence`, and the classification report's verdict is `decision.compatibility_impact`.
+- **Top-level command surface**: `commands.md` and `SKILL.md` now document the short built-ins (`create`, `discover`, `config`, `preview`, `prepare`, `affected`, `diagnose`, `next`, `next-versions`, `publish packages|readiness|placeholder`, `versions list|sync`) with the step each one runs, the preferred order (configured workflow, then short built-in, then `monochange step <name>`), and the steps that remain step-only (`validate`, `commit-release`, `tag-release`, and others). The generated inventory keeps owning the clap-literal and step-name sections.
+- **Python and Go version writing**: configuring a `python` package does not rewrite its own `[project].version` unless a `versioned_files` entry lists `version` in `fields`. Without it, `monochange prepare` plans the version and rewrites internal constraints but leaves the manifest stale. Go modules carry no version field; `go` packages resolve their baseline from release tags, so `tag = true` plus `initial_version` is required and no `versioned_files` entry can write a module version.
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### 🐛 Fixed

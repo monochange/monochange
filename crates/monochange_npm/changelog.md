@@ -4,6 +4,71 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 🐛 Fixed
+
+#### Versioned file validation dispatches through the ecosystem registry
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #728](https://github.com/monochange/monochange/pull/728) · _Related issues:_ [#138](https://github.com/monochange/monochange/issues/138)
+
+`monochange_config` parsed TOML, JSON, and YAML itself to decide whether a configured `versioned_files` entry pointed at a readable version field, duplicating every ecosystem's format knowledge inside the config crate. That validation now dispatches through the `EcosystemRegistry` from `monochange_core`, so each ecosystem adapter owns parsing for its own manifest format and the config crate only adds the owning package or group to the resulting error.
+
+`validate_versioned_files_content` and `validate_versioned_files_content_with_config` take the registry as a third argument. Callers that invoke them directly must now pass one:
+
+```rust
+// before
+monochange_config::validate_versioned_files_content_with_config(root, &configuration)?;
+
+// after
+let ecosystems = monochange_core::EcosystemRegistry::new();
+ecosystems.push_adapter(Box::new(monochange_cargo::adapter()));
+monochange_config::validate_versioned_files_content_with_config(root, &configuration, &ecosystems)?;
+```
+
+The CLI builds the registry from its enabled ecosystem features, so `monochange check` behavior is unchanged apart from the fixes below.
+
+##### Two validation bugs fixed
+
+Both previously made `monochange check` reject configurations that `monochange prepare` accepts:
+
+- Custom `fields` entries that address a nested path, such as `metadata.bin.monochange.version` in `package.json`, were compared against the root object as a literal key and always failed.
+- Only the first entry of `fields` was checked, so a typo in a second or later field passed validation.
+
+A `versioned_files` entry with `fields = ["version", "dependencies"]` now validates both entries, and a Dart dependency section resolves instead of being read as a string. Cargo keeps accepting any of `package.version`, `workspace.package.version`, or `version` when `fields` is unset. Python and Go files keep skipping field validation: a `pyproject.toml` may derive its version dynamically, and a module's version comes from its git tag rather than `go.mod`.
+
+`monochange_dart` renames the third parameter of `validate_versioned_file` from `_custom_fields` to `custom_fields`, which the API classifier records as a modified public item; the `major` bump reflects that signature change even though callers pass the same arguments.
+
+#### Rewrite quoted dependency keys when updating lockfiles and manifests
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+pnpm quotes scoped package names in `pnpm-lock.yaml` (`'@acme/api':`), and YAML permits quoted keys in a `pubspec.yaml` dependency section. `monochange prepare` reported those lockfiles as changed but wrote the file back unchanged, leaving the lockfile pinned to the old version while the manifest moved. Any npm or pnpm workspace with a scoped internal dependency, and any Dart workspace that quotes a dependency key, was affected.
+
+The cause was line parsing that split on the first `:` without stripping YAML quoting, so the lookup key (`'@acme/api'`) never matched the bare package name in the version map. Quoted keys are now parsed as YAML scalars, which also handles the doubled-quote escapes (`''` inside single quotes, `\"` inside double quotes). Only the lookup key is unquoted: the original quoting is preserved byte for byte when the line is rewritten, because pnpm regenerates and compares these files.
+
+**Before (lockfile contents after `monochange prepare` with a `minor` changeset for `@acme/api`):**
+
+```yaml
+importers:
+  .:
+    dependencies:
+      "@acme/api": 2.3.1
+```
+
+**After:**
+
+```yaml
+importers:
+  .:
+    dependencies:
+      "@acme/api": 2.4.0
+```
+
+The same unquoting fixes the `monochange_dart` dependency-sorted lint rule, which compares source key order against the parsed mapping. A sorted section that quoted its keys was reported as unsorted forever.
+
+`link:` and `workspace:` references are still skipped, including quoted and double-quoted forms.
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### Changed

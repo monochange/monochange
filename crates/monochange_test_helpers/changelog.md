@@ -86,6 +86,25 @@ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #207](https://gith
 
 - No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.0.3.
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 🐛 Fixed
+
+#### Detect fixture edits that keep the same file size and modification time
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #731](https://github.com/monochange/monochange/pull/731) · _Closed issues:_ [#702](https://github.com/monochange/monochange/issues/702)
+
+`copy_directory` in `monochange_test_helpers` used `fs::copy`, which preserves the source modification time. Fixtures that stage a `before` tree, commit it, and then overwrite it with an `after` tree produced files whose contents differed but whose size and modification time were effectively unchanged.
+
+Git trusts its stat cache for entries where size and modification time match, so `git add` sometimes recorded the previous contents. A fixture that bumps `version = "0.1.0"` to `version = "0.1.1"` has an identical byte length, which made the committed manifest depend on which nanosecond the copy landed in:
+
+```
+before: version = "0.1.0"   (43 bytes)
+after:  version = "0.1.1"   (43 bytes)
+```
+
+`copy_directory` now sets a fresh modification time on every copied file, so `git add` always re-hashes the copied contents. Test helpers are internal, but this removes an intermittent failure for any fixture using the `before`/`after` layout.
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### Changed

@@ -4,6 +4,101 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 🚀 Feature
+
+#### Scope the classified bump to the pull request
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #730](https://github.com/monochange/monochange/pull/730) · _Closed issues:_ [#706](https://github.com/monochange/monochange/issues/706)
+
+- `decision.pull_request_changes` reports whether this contribution touches the package. When it is `false`, every finding came from the `release` or `releaseToDefault` interval, so `decision.proposed_changeset_bump` and `decision.enforceable_minimum` are `none`, `decision.review_required` is `false`, and the accumulated change appears only in `decision.release_floor` and `decision.release_impact`. The net candidate and the local working tree set the flag; the release comparisons never do.
+- A pending changeset for a package the pull request does not modify still reports `action: review` with the summary `the pull request does not change this package; the pending changeset intent needs review`, because a changeset can intentionally describe a consumer-facing effect implemented in another package. It no longer escalates the bump or the review verdict for work an earlier merge introduced.
+- The Cargo analyzer classifies a pure append to a public `const`/`static` whose declared type is `&[T]`, `[T; N]`, or `Vec<T>` and whose initializer is a literal as `additive`/`minor` with high confidence, matching `cargo semver-checks`. A removal, a reorder, an element edit, a changed element type, or a non-literal initializer stays conservative.
+
+```json
+{
+	"compatibility_impact": "compatible",
+	"release_impact": "breaking",
+	"pull_request_changes": false,
+	"proposed_changeset_bump": "none",
+	"release_floor": "major",
+	"review_required": false
+}
+```
+
+The classification report contract advances to `schema_version` `0.3` (`SCHEMA_VERSION` regenerated with a frozen `classification.v0.3.schema.json`; the shipped v0.1 and v0.2 assets are untouched, and the schemas reference page lists the new asset). `decision.pull_request_changes` is new, and `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.review_required` can be lower for a package this pull request does not touch.
+
+No configuration change is required. Re-run `monochange change classify` to pick up the pull-request-scoped verdict.
+
+### 🐛 Fixed
+
+#### Versioned file validation dispatches through the ecosystem registry
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #728](https://github.com/monochange/monochange/pull/728) · _Related issues:_ [#138](https://github.com/monochange/monochange/issues/138)
+
+`monochange_config` parsed TOML, JSON, and YAML itself to decide whether a configured `versioned_files` entry pointed at a readable version field, duplicating every ecosystem's format knowledge inside the config crate. That validation now dispatches through the `EcosystemRegistry` from `monochange_core`, so each ecosystem adapter owns parsing for its own manifest format and the config crate only adds the owning package or group to the resulting error.
+
+`validate_versioned_files_content` and `validate_versioned_files_content_with_config` take the registry as a third argument. Callers that invoke them directly must now pass one:
+
+```rust
+// before
+monochange_config::validate_versioned_files_content_with_config(root, &configuration)?;
+
+// after
+let ecosystems = monochange_core::EcosystemRegistry::new();
+ecosystems.push_adapter(Box::new(monochange_cargo::adapter()));
+monochange_config::validate_versioned_files_content_with_config(root, &configuration, &ecosystems)?;
+```
+
+The CLI builds the registry from its enabled ecosystem features, so `monochange check` behavior is unchanged apart from the fixes below.
+
+##### Two validation bugs fixed
+
+Both previously made `monochange check` reject configurations that `monochange prepare` accepts:
+
+- Custom `fields` entries that address a nested path, such as `metadata.bin.monochange.version` in `package.json`, were compared against the root object as a literal key and always failed.
+- Only the first entry of `fields` was checked, so a typo in a second or later field passed validation.
+
+A `versioned_files` entry with `fields = ["version", "dependencies"]` now validates both entries, and a Dart dependency section resolves instead of being read as a string. Cargo keeps accepting any of `package.version`, `workspace.package.version`, or `version` when `fields` is unset. Python and Go files keep skipping field validation: a `pyproject.toml` may derive its version dynamically, and a module's version comes from its git tag rather than `go.mod`.
+
+`monochange_dart` renames the third parameter of `validate_versioned_file` from `_custom_fields` to `custom_fields`, which the API classifier records as a modified public item; the `major` bump reflects that signature change even though callers pass the same arguments.
+
+#### Discover every standalone package that has no workspace root
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #731](https://github.com/monochange/monochange/pull/731) · _Closed issues:_ [#702](https://github.com/monochange/monochange/issues/702)
+
+Repositories that contain several independent packages without a workspace manifest between them only ever reported one package per ecosystem, because discovery gave each standalone manifest an id derived from its own directory:
+
+```
+before:  cargo:Cargo.toml, dart:pubspec.yaml, deno:deno.json, python:pyproject.toml
+after:   cargo:crates/alpha/Cargo.toml, cargo:crates/beta/Cargo.toml, cargo:crates/gamma/Cargo.toml, ...
+```
+
+Every standalone manifest now produces an id relative to the discovery root, so `monochange step discover`, `monochange versions list`, release planning, change classification, and changeset-policy matching all see the full set. Given a repository with no root manifest:
+
+```text
+crates/alpha/Cargo.toml
+crates/beta/Cargo.toml
+crates/gamma/Cargo.toml
+```
+
+```bash
+monochange step discover --format json
+```
+
+```json
+{
+	"packages": [
+		{ "id": "cargo:crates/alpha/Cargo.toml", "name": "alpha" },
+		{ "id": "cargo:crates/beta/Cargo.toml", "name": "beta" },
+		{ "id": "cargo:crates/gamma/Cargo.toml", "name": "gamma" }
+	]
+}
+```
+
+Cargo, Dart, Deno, and Python discovery shared the defect and are all fixed. Go was unaffected because it already derived ids from the discovery root, and npm normalizes ids during discovery. Workspace members keep their existing ids, so a root `[workspace]` manifest with `members = ["crates/*"]` behaves exactly as before.
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### Changed

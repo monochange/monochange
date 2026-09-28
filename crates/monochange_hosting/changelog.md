@@ -4,6 +4,153 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 💥 Breaking Change
+
+#### Merge grouped release notes into one deduplicated change list
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725) · _Related issues:_ [#725](https://github.com/monochange/monochange/issues/725)
+
+Grouped releases rendered one section per member package, so a change shared by several packages was printed once per package under a repeated `## Features` heading. A group release now lists every change once, in its configured section, with the packages it affects named in the entry itself.
+
+The `[changelog.style].package_label_placement` setting and its `release_notes` override are removed. Packages are always metadata about a change, rendered as a `_Packages:_` line directly above the `_Owner:_` line, so the single-package inline form (`- 🟠 **pkg**: summary`) and the `after_heading`/`after_change` values no longer exist. Remove the key from `monochange.toml`; the strict config parser rejects the unknown field.
+
+```toml
+[changelog.style]
+# Remove this key; package labels are always rendered above the owner line.
+# package_label_placement = "after_heading"
+```
+
+Affected packages keep their per-package bump symbols, so a merged entry still shows which package was major and which was minor. A compact entry keeps the package line beside the bullet text:
+
+```markdown
+## Fixes
+
+- **Fix shared bug.** _Packages:_ 🟠 _core_, 🟢 _cli_ _Owner:_ @ifiokjr · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725)
+```
+
+An expanded entry — a breaking change, or any change whose body has a code block or several paragraphs — renders the package line directly beneath its heading, above the explanation:
+
+```markdown
+### Split the release note renderer
+
+_Packages:_ 🔴 _core_, 🟠 _app_, 🟢 _cli_ _Owner:_ @ifiokjr · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725)
+
+One changeset targets three packages with three different change types, so the group release publishes it once in the breaking section.
+```
+
+The group `include` filter is unchanged for changelog files: `include = ["app"]` still curates the committed changelog. A provider release body is no longer derived from that filtered file, so a filter that hides internal notes from a changelog cannot publish a release that claims nothing happened. The `uncovered_member_changelogs`, `grouped_member_release_body`, and `push_member_changelogs` helpers are deleted from `monochange_hosting` and their duplicate in `monochange_github`.
+
+The published configuration contract changed, so the schemas advance to `v0.8`; the `0.7` → `0.8` migration edge accepts existing release records unchanged.
+
+### 🚀 Feature
+
+#### Bound the release request body so it cannot outgrow the provider limit
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #729](https://github.com/monochange/monochange/pull/729) · _Closed issues:_ [#724](https://github.com/monochange/monochange/issues/724)
+
+> **Breaking change:** `SourceChangeRequest` gained a required `body_truncation` field, so exhaustive struct literals no longer compile without it.
+>
+> Set it to `None` when you build a request by hand. The field is optional on the wire, so JSON written by an older version still deserializes, and provider request builders populate it for you.
+
+```rust
+let request = SourceChangeRequest {
+	// ...
+	body_truncation: None,
+};
+```
+
+A release pull request that stayed open while changesets kept merging grew its body through the update call, which providers do not bound the way they bound the create call. GitHub then rejected the create call that replaces the pull request with `status 422` and `body is too long (maximum: 65536 characters)`, at step 5/5 and with no mention of a setting that fixes it.
+
+Every provider now bounds the rendered body on both paths.
+
+Three public changes in `monochange_core`:
+
+```rust
+// before
+pub struct ProviderMergeRequestSettings {
+	pub enabled: bool,
+	pub branch_prefix: String,
+	pub base: String,
+	pub title: String,
+	pub commit_subject: Option<String>,
+	pub labels: Vec<String>,
+	pub auto_merge: bool,
+	pub verified_commits: bool,
+}
+
+// after
+pub struct ProviderMergeRequestSettings {
+	// ...
+	pub body_style: ProviderPullRequestBodyStyle,
+	pub max_body_chars: Option<usize>,
+}
+
+// New: how much of the release notes the request body carries.
+pub enum ProviderPullRequestBodyStyle {
+	Full,
+	Summary,
+}
+
+// New helper, plus a per-provider default on `SourceProvider`.
+let limit = settings.effective_max_body_chars(SourceProvider::GitHub); // Some(65_536)
+```
+
+`SourceChangeRequest` gained a `body_truncation: Option<SourceChangeRequestBodyTruncation>` field, so consumers of the JSON release request can see when and how much the body was shortened instead of inferring it from the length.
+
+```rust
+pub struct SourceChangeRequestBodyTruncation {
+	pub max_chars: usize,
+	pub original_chars: usize,
+	pub dropped_entries: usize,
+}
+```
+
+`monochange_hosting` gained `render_release_pull_request_body`, which returns the bounded body plus the truncation report, and `release_pull_request_body_for_source`, which applies the configured style and limit. `monochange_github` previously carried private copies of `release_pull_request_body` and `release_pull_request_branch` that were byte-identical to the shared versions; both now come from `monochange_hosting`, so the GitHub and non-GitHub renderers cannot drift apart again.
+
+When GitHub rejects a create call for body length, the error now names the setting instead of only echoing the API payload:
+
+```text
+GitHub API POST `/repos/{owner}/{repo}/pulls` failed: status 422; ...;
+the rendered release pull request body exceeded GitHub's 65536 character limit. Set
+`[source.pull_requests].body_style = "summary"` ... or lower `[source.pull_requests].max_body_chars`
+```
+
+`[source.pull_requests].max_body_chars` must be greater than `0`; `monochange_config` rejects a zero value at load time.
+
+### 🐛 Fixed
+
+#### Use h2 sections without version titles in provider release bodies
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725) · _Related issues:_ [#725](https://github.com/monochange/monochange/issues/725)
+
+Provider release bodies duplicated the release title (`## <version>`) that already ships as the release `name`, and rendered sections as `###` with expanded entries as `####`.
+
+The body now drops the version title header and promotes one level to match knope-style releases where the body starts at `## <section>`:
+
+```markdown
+Before (body duplicated the release name):
+
+## sdk 1.2.0 (2026-04-06)
+
+Group summary
+
+### Features
+
+- group feature
+
+After (title lives in the release name, body starts at h2):
+
+Group summary
+
+## Features
+
+- group feature
+```
+
+The release `name` is unchanged and still includes the date by default. Grouped fallbacks also drop the title and the member wrapper, listing each member package as an h2 section with its own h3 subsections. Changelog files keep the version title and h3 sections.
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### Changed
