@@ -1,0 +1,43 @@
+{
+	"id": "deno-adoption-and-version-write",
+	"title": "Adopt monochange for a Deno workspace and release both packages",
+	"fixture": "deno-workspace",
+	"prompt": "We want to start releasing our two Deno packages with monochange. Set it up so the whole workspace versions together, and record the slug helper we just added to @acme/shared so it goes out. The package versions in the deno.json files need to actually change when we release.",
+	"expectation": "Deno is a first-class ecosystem: `deno.json` members are discovered, the `version` field is written directly on release (unlike Python, which needs an explicit `versioned_files` entry naming `version`), and an internal `workspace:` reference is replaced with a real version constraint so the published manifest does not point at a workspace protocol consumers cannot resolve. Both packages release together because they share one version group.",
+	"setupCommands": [
+		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init"
+	],
+	"checks": [
+		{
+			"id": "workspace-versions-together",
+			"kind": "command",
+			"command": "monochange discover --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); t={p['name']: p['ecosystem'] for p in d['packages']}; assert t.get('@acme/shared')=='deno', t; assert t.get('@acme/cli')=='deno', t; print(t)\"",
+			"why": "Both workspace members must be discovered as deno packages; a config built on wrong ecosystem guesses would not write their manifests."
+		},
+		{
+			"id": "release-plan-covers-both-packages",
+			"kind": "command",
+			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); ids={t['id'] for t in d['release_targets']}; assert '@acme/shared' in str(d) or 'acme/shared' in str(d), ids; print(sorted(ids) if ids else d.get('released_packages'))\"",
+			"why": "The intent was recorded for one package but the group releases as a unit, so the plan must show the whole workspace moving."
+		},
+		{
+			"id": "version-field-actually-written",
+			"kind": "command",
+			"command": "monochange prepare >/dev/null 2>&1; python3 -c \"import json,pathlib; s=json.loads(pathlib.Path('packages/shared/deno.json').read_text()); c=json.loads(pathlib.Path('packages/cli/deno.json').read_text()); assert s['version']!='1.4.2', s['version']; assert s['version']==c['version'], (s['version'], c['version']); print('versions:', s['version'], c['version'])\"",
+			"why": "Deno has a built-in manifest version writer, so both deno.json files must carry the new version after a release. A config that only planned the bump without writing it is the failure this catches."
+		},
+		{
+			"id": "internal-reference-becomes-a-real-constraint",
+			"kind": "command",
+			"command": "python3 -c \"import json,pathlib; c=json.loads(pathlib.Path('packages/cli/deno.json').read_text()); dep=c['imports']['@acme/shared']; assert not dep.startswith('workspace:'), dep; assert '1.5.0' in dep or '1.6.0' in dep, dep; print('imports:', dep)\"",
+			"why": "A published manifest must not keep a `workspace:` protocol reference, because consumers outside the workspace cannot resolve it. The constraint must name the released version."
+		},
+		{
+			"id": "nothing-published",
+			"kind": "transcript",
+			"pattern": "deno publish|npm publish|jsr publish",
+			"absent": true,
+			"why": "The request was to set up releases and record a change, not to publish to JSR."
+		}
+	]
+}

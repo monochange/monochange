@@ -931,6 +931,23 @@ fn render_toml_string(value: &str) -> String {
 	toml::Value::String(value.to_string()).to_string()
 }
 
+/// Render `value` as a TOML table key.
+///
+/// Returns the value unchanged when it is a legal TOML bare key
+/// (`A-Za-z0-9_-`) and a double-quoted, escaped string otherwise, so ids like
+/// `@acme/sdk` render as `[package."@acme/sdk"]` instead of invalid TOML.
+fn render_toml_key(value: &str) -> String {
+	let is_bare_key = !value.is_empty()
+		&& value.chars().all(|character| {
+			character.is_ascii_alphanumeric() || character == '_' || character == '-'
+		});
+	if is_bare_key {
+		value.to_string()
+	} else {
+		render_toml_string(value)
+	}
+}
+
 /// The minijinja template for `monochange init`, loaded at compile time.
 ///
 /// SYNC: when configuration options are added, removed, or changed in
@@ -977,6 +994,7 @@ fn render_annotated_init_config(
 
 		let mut entry = BTreeMap::new();
 		entry.insert("id", json!(id));
+		entry.insert("toml_key", json!(render_toml_key(&id)));
 		entry.insert("path", json!(relative_dir.display().to_string()));
 		entry.insert("type", json!(type_str));
 
@@ -1345,6 +1363,18 @@ pub(crate) fn validate_cargo_workspace_version_groups(root: &Path) -> Monochange
 #[must_use = "the discovery result must be checked"]
 pub fn discover_workspace(root: &Path) -> MonochangeResult<DiscoveryReport> {
 	let configuration = load_workspace_configuration(root)?;
+	discover_workspace_with_configuration(root, &configuration)
+}
+
+/// Discover all packages for an already-loaded workspace configuration.
+///
+/// Sharing one configuration load across discovery and follow-up passes (such
+/// as `versions sync` tag seeding) keeps command dispatch from paying for
+/// repeated configuration parsing.
+pub(crate) fn discover_workspace_with_configuration(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+) -> MonochangeResult<DiscoveryReport> {
 	let discovery = build_ecosystem_registry().discover_all(root)?;
 	let mut warnings = discovery.warnings;
 	let mut packages = discovery.packages;
@@ -1353,7 +1383,7 @@ pub fn discover_workspace(root: &Path) -> MonochangeResult<DiscoveryReport> {
 	packages.dedup_by(|left, right| left.id == right.id);
 
 	let (version_groups, version_group_warnings) =
-		apply_version_groups(&mut packages, &configuration)?;
+		apply_version_groups(&mut packages, configuration)?;
 	warnings.extend(version_group_warnings);
 	let dependencies = materialize_dependency_edges(&packages);
 	tracing::info!(
@@ -1496,6 +1526,23 @@ async fn seed_versions_from_release_tags(
 	seed_versions_from_tag_list(configuration, discovery, &sorted_tags);
 }
 
+/// Load release tags sorted by version (newest first) without an async runtime.
+///
+/// Commands like `monochange versions sync` run outside the async release
+/// pipeline, so they need a blocking variant of `load_sorted_tags`.
+pub(crate) fn load_sorted_tags_sync(root: &Path) -> Vec<String> {
+	let Ok(output) = monochange_core::git::git_command(root)
+		.args(["tag", "--list", "--sort=-v:refname"])
+		.output()
+	else {
+		return Vec::new();
+	};
+	if !output.status.success() {
+		return Vec::new();
+	}
+	parse_sorted_tag_lines(&output.stdout)
+}
+
 /// Whether release planning resolves `package`'s baseline from git tags.
 fn package_reads_version_from_tags(
 	package: &PackageRecord,
@@ -1512,7 +1559,8 @@ fn package_reads_version_from_tags(
 		|| package.ecosystem.versions_from_tags()
 }
 
-fn seed_versions_from_tag_list(
+/// Seed tag-resolved versions into `discovery` for tag-versioned packages.
+pub(crate) fn seed_versions_from_tag_list(
 	configuration: &monochange_core::WorkspaceConfiguration,
 	discovery: &mut DiscoveryReport,
 	sorted_tags: &[String],
@@ -1567,11 +1615,24 @@ pub struct AddChangeFileRequest<'a> {
 	pub output: Option<&'a Path>,
 }
 
-/// Create a changeset markdown file for one or more package or group ids.
-pub fn add_change_file(
+/// A rendered changeset file that has not been written to disk.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlannedChangeFile {
+	/// Path the changeset would be written to, relative resolution included.
+	pub path: PathBuf,
+	/// Rendered changeset markdown content.
+	pub content: String,
+}
+
+/// Plan a changeset markdown file for one or more package or group ids
+/// without writing anything to disk.
+///
+/// Runs the same validation and rendering as [`add_change_file`] so a planned
+/// file is guaranteed to be writable when the write is performed later.
+pub fn plan_change_file(
 	root: &Path,
 	request: AddChangeFileRequest<'_>,
-) -> MonochangeResult<PathBuf> {
+) -> MonochangeResult<PlannedChangeFile> {
 	let configuration = load_workspace_configuration(root)?;
 	let discovery = discover_workspace(root)?;
 	let packages = canonical_change_packages(
@@ -1584,12 +1645,6 @@ pub fn add_change_file(
 	let output_path = request
 		.output
 		.map_or_else(|| default_change_path(root, &packages), Path::to_path_buf);
-
-	if let Some(parent) = output_path.parent() {
-		fs::create_dir_all(parent).map_err(|error| {
-			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
-		})?;
-	}
 
 	if let Some(version) = request.version {
 		Version::parse(version).map_err(|error| {
@@ -1610,21 +1665,41 @@ pub fn add_change_file(
 		request.details,
 	)?;
 
-	fs::write(&output_path, content).map_err(|error| {
+	Ok(PlannedChangeFile {
+		path: output_path,
+		content,
+	})
+}
+
+/// Create a changeset markdown file for one or more package or group ids.
+pub fn add_change_file(
+	root: &Path,
+	request: AddChangeFileRequest<'_>,
+) -> MonochangeResult<PathBuf> {
+	let planned = plan_change_file(root, request)?;
+
+	if let Some(parent) = planned.path.parent() {
+		fs::create_dir_all(parent).map_err(|error| {
+			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
+		})?;
+	}
+
+	fs::write(&planned.path, planned.content).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to write {}: {error}",
-			output_path.display()
+			planned.path.display()
 		))
 	})?;
 
-	Ok(output_path)
+	Ok(planned.path)
 }
 
-pub(crate) fn add_interactive_change_file(
+/// Plan an interactive changeset markdown file without writing anything to disk.
+pub(crate) fn plan_interactive_change_file(
 	root: &Path,
 	result: &interactive::InteractiveChangeResult,
 	output: Option<&Path>,
-) -> MonochangeResult<PathBuf> {
+) -> MonochangeResult<PlannedChangeFile> {
 	let output_path = output.map_or_else(
 		|| {
 			default_change_path_for_ref(
@@ -1635,23 +1710,36 @@ pub(crate) fn add_interactive_change_file(
 		Path::to_path_buf,
 	);
 
-	if let Some(parent) = output_path.parent() {
+	let configuration = load_workspace_configuration(root)?;
+	let content = render_interactive_changeset_markdown(&configuration, result)?;
+
+	Ok(PlannedChangeFile {
+		path: output_path,
+		content,
+	})
+}
+
+pub(crate) fn add_interactive_change_file(
+	root: &Path,
+	result: &interactive::InteractiveChangeResult,
+	output: Option<&Path>,
+) -> MonochangeResult<PathBuf> {
+	let planned = plan_interactive_change_file(root, result, output)?;
+
+	if let Some(parent) = planned.path.parent() {
 		fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
 		})?;
 	}
 
-	let configuration = load_workspace_configuration(root)?;
-	let content = render_interactive_changeset_markdown(&configuration, result)?;
-
-	fs::write(&output_path, content).map_err(|error| {
+	fs::write(&planned.path, planned.content).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to write {}: {error}",
-			output_path.display()
+			planned.path.display()
 		))
 	})?;
 
-	Ok(output_path)
+	Ok(planned.path)
 }
 
 pub(crate) fn change_type_default_bump(

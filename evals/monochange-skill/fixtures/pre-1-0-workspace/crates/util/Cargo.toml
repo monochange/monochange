@@ -1,0 +1,9 @@
+[package]
+name = "acme-util"
+version = "0.4.2"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/acme/inventory"
+description = "Quantity parsing and formatting helpers for the Acme inventory stack"
+
+[dependencies]

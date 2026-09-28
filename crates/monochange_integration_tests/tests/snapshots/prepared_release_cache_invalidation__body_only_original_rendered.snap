@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/prepared_release_cache_invalidation.rs
+expression: rendered_changelog(&original)
+---
+## alpha 1.1.0 (2026-04-06)
+
+### Features
+
+- **Add the alpha feature.**

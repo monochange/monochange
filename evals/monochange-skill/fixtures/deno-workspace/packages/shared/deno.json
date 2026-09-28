@@ -1,0 +1,10 @@
+{
+	"name": "@acme/shared",
+	"version": "1.4.2",
+	"exports": {
+		".": "./src/mod.ts"
+	},
+	"imports": {
+		"@std/text": "jsr:@std/text@^1.0.0"
+	}
+}

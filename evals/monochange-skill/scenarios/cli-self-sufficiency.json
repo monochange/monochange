@@ -1,0 +1,98 @@
+{
+	"id": "cli-self-sufficiency",
+	"title": "The CLI alone carries the guidance (no agent, no skill installed)",
+	"fixture": "rust-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "An agent holding only the binary, with no skill installed and no network, must be able to reach the guidance from the CLI itself: `monochange --help` advertises the skill surface, `monochange skill` lists the bundled topics, `monochange skill read <topic>` serves the document verbatim as raw Markdown, `monochange skill install --dir` writes a usable tree and refuses to clobber an existing one, and an unknown topic exits non-zero. These are deterministic properties, so they are pinned here rather than graded from a stochastic agent run.",
+	"checks": [
+		{
+			"id": "root-help-advertises-skill",
+			"kind": "command",
+			"command": "monochange --help",
+			"expectOutput": ["skill"],
+			"why": "Discovery starts at `monochange --help`, the first thing the skill tells an agent to inspect."
+		},
+		{
+			"id": "skill-lists-bundled-topics",
+			"kind": "command",
+			"command": "monochange skill",
+			"expectOutput": [
+				"monochange",
+				"configuration",
+				"changesets",
+				"commands",
+				"change-classification",
+				"monochange skill read",
+				"monochange skill install"
+			],
+			"why": "The listing is the index an agent scans before choosing what to read, and it must advertise both actions."
+		},
+		{
+			"id": "entrypoint-is-the-shipped-skill",
+			"kind": "command",
+			"command": "monochange skill read monochange",
+			"expectOutput": [
+				"name: monochange",
+				"Source-of-truth rules",
+				"Fast workflow"
+			],
+			"why": "The entrypoint must carry the routing and the guardrails, byte for byte as published."
+		},
+		{
+			"id": "configuration-topic-carries-the-hard-rules",
+			"kind": "command",
+			"command": "monochange skill read configuration",
+			"expectOutput": [
+				"versioned_files",
+				"dependency_version_prefix",
+				"package."
+			],
+			"why": "These are the facts the evaluations showed agents need: how to declare packages, and how versioned files and dependency prefixes are configured."
+		},
+		{
+			"id": "changesets-topic-carries-the-format-rules",
+			"kind": "command",
+			"command": "monochange skill read changesets",
+			"expectOutput": [".changeset", "caused_by"],
+			"why": "The changeset file shape and the propagation escape hatch are the two things an agent must get right when recording release intent."
+		},
+		{
+			"id": "read-is-raw-markdown",
+			"kind": "command",
+			"command": "monochange skill read monochange | head -1",
+			"expectOutput": ["---"],
+			"why": "Agents parse the document itself, so terminal rendering would corrupt frontmatter and code blocks."
+		},
+		{
+			"id": "read-and-install-serve-identical-bytes",
+			"kind": "command",
+			"command": "rm -rf .work-bytes && monochange skill install --dir .work-bytes/monochange >/dev/null && monochange skill read configuration > .work-config.md && cmp -s .work-config.md .work-bytes/monochange/skills/configuration.md",
+			"why": "An agent that reads a topic and an agent that installs the skill must receive the same document; otherwise one channel silently serves different guidance."
+		},
+		{
+			"id": "install-writes-the-whole-tree",
+			"kind": "command",
+			"command": "rm -rf .work-install && monochange skill install --dir .work-install/monochange && test -f .work-install/monochange/SKILL.md && test -f .work-install/monochange/skills/configuration.md && head -1 .work-install/monochange/SKILL.md | grep -qx -- '---'",
+			"why": "An install must produce the whole skill tree with the entrypoint intact, not just the entrypoint."
+		},
+		{
+			"id": "install-refuses-to-clobber",
+			"kind": "command",
+			"command": "monochange skill install --dir .work-install/monochange; test $? -eq 1",
+			"why": "Replacing a curated skill is not a side effect an install may have without --force."
+		},
+		{
+			"id": "install-force-replaces-and-cleans-up",
+			"kind": "command",
+			"command": "monochange skill install --dir .work-install/monochange --force && rm -rf .work-install .work-bytes .work-config.md",
+			"why": "The explicit override must exist and work, and the run workdir must be left clean."
+		},
+		{
+			"id": "unknown-topic-exits-nonzero",
+			"kind": "command",
+			"command": "monochange skill read not-a-real-topic; test $? -eq 1",
+			"why": "A scripting agent relies on exit status, not prose, to notice a misspelled topic."
+		}
+	]
+}

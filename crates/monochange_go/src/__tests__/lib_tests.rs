@@ -421,7 +421,10 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 )
 ";
-	let deps = BTreeMap::from([("shared".to_string(), "v1.3.0".to_string())]);
+	let deps = BTreeMap::from([(
+		"github.com/example/monorepo/shared".to_string(),
+		"v1.3.0".to_string(),
+	)]);
 	let result = update_go_mod_text(input, &deps);
 
 	assert!(
@@ -441,7 +444,7 @@ require (
 #[test]
 fn update_go_mod_text_preserves_comments() {
 	let input = "module github.com/example/app\n\nrequire golang.org/x/sys v0.15.0 // indirect\n";
-	let deps = BTreeMap::from([("sys".to_string(), "v0.16.0".to_string())]);
+	let deps = BTreeMap::from([("golang.org/x/sys".to_string(), "v0.16.0".to_string())]);
 	let result = update_go_mod_text(input, &deps);
 	assert!(result.contains("golang.org/x/sys v0.16.0 // indirect"));
 }
@@ -449,7 +452,10 @@ fn update_go_mod_text_preserves_comments() {
 #[test]
 fn update_go_mod_text_handles_single_line_require() {
 	let input = "module github.com/example/app\n\nrequire github.com/example/shared v1.0.0\n";
-	let deps = BTreeMap::from([("shared".to_string(), "v2.0.0".to_string())]);
+	let deps = BTreeMap::from([(
+		"github.com/example/shared".to_string(),
+		"v2.0.0".to_string(),
+	)]);
 	let result = update_go_mod_text(input, &deps);
 	assert!(result.contains("require github.com/example/shared v2.0.0"));
 }
@@ -457,7 +463,7 @@ fn update_go_mod_text_handles_single_line_require() {
 #[test]
 fn update_go_mod_text_adds_v_prefix_when_missing() {
 	let input = "module github.com/example/app\n\nrequire github.com/example/shared v1.0.0\n";
-	let deps = BTreeMap::from([("shared".to_string(), "2.0.0".to_string())]);
+	let deps = BTreeMap::from([("github.com/example/shared".to_string(), "2.0.0".to_string())]);
 	let result = update_go_mod_text(input, &deps);
 	assert!(result.contains("require github.com/example/shared v2.0.0"));
 }
@@ -466,7 +472,10 @@ fn update_go_mod_text_adds_v_prefix_when_missing() {
 fn update_go_mod_text_preserves_module_and_go_directives() {
 	let input =
 		"module github.com/example/app\n\ngo 1.22\n\nrequire github.com/example/shared v1.0.0\n";
-	let deps = BTreeMap::from([("shared".to_string(), "v2.0.0".to_string())]);
+	let deps = BTreeMap::from([(
+		"github.com/example/shared".to_string(),
+		"v2.0.0".to_string(),
+	)]);
 	let result = update_go_mod_text(input, &deps);
 	assert!(result.contains("module github.com/example/app"));
 	assert!(result.contains("go 1.22"));
@@ -487,10 +496,151 @@ require github.com/example/shared v1.0.0
 
 replace github.com/example/shared => ../shared
 ";
-	let deps = BTreeMap::from([("shared".to_string(), "v2.0.0".to_string())]);
+	let deps = BTreeMap::from([(
+		"github.com/example/shared".to_string(),
+		"v2.0.0".to_string(),
+	)]);
 	let result = update_go_mod_text(input, &deps);
 	assert!(result.contains("replace github.com/example/shared => ../shared"));
 	assert!(result.contains("require github.com/example/shared v2.0.0"));
+}
+
+#[test]
+fn update_go_mod_text_matches_full_module_path_keys() {
+	let input = "module github.com/example/app\n\nrequire github.com/example/shared v1.0.0\n";
+	let deps = BTreeMap::from([(
+		"github.com/example/shared".to_string(),
+		"v1.3.0".to_string(),
+	)]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(
+		result.contains("require github.com/example/shared v1.3.0"),
+		"full module path key should rewrite the require: {result}"
+	);
+}
+
+#[test]
+fn update_go_mod_text_full_path_keys_leave_external_modules_untouched() {
+	let input = "module github.com/example/app\n\nrequire github.com/example/shared v1.0.0\nrequire github.com/other/shared v9.0.0\n";
+	let deps = BTreeMap::from([(
+		"github.com/example/shared".to_string(),
+		"v1.3.0".to_string(),
+	)]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(result.contains("require github.com/example/shared v1.3.0"));
+	assert!(
+		result.contains("require github.com/other/shared v9.0.0"),
+		"an external module sharing the last segment must not be rewritten: {result}"
+	);
+}
+
+#[test]
+fn update_go_mod_text_keeps_shared_last_segment_modules_distinct() {
+	let input =
+		"module app\n\nrequire github.com/a/core v1.0.0\nrequire github.com/b/core v2.0.0\n";
+	let deps = BTreeMap::from([
+		("github.com/a/core".to_string(), "v1.1.0".to_string()),
+		("github.com/b/core".to_string(), "v2.1.0".to_string()),
+	]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(result.contains("require github.com/a/core v1.1.0"));
+	assert!(result.contains("require github.com/b/core v2.1.0"));
+}
+
+#[test]
+fn update_go_mod_text_major_version_suffix_require_matches_full_path_key() {
+	let input = "module app\n\nrequire github.com/example/shared/v2 v2.0.0\n";
+	let deps = BTreeMap::from([(
+		"github.com/example/shared/v2".to_string(),
+		"v2.1.0".to_string(),
+	)]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(
+		result.contains("require github.com/example/shared/v2 v2.1.0"),
+		"require with a major version suffix should still rewrite: {result}"
+	);
+}
+
+#[test]
+fn update_go_mod_text_full_path_key_leaves_unrelated_block_module_untouched() {
+	let input = "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\tgithub.com/acme/core v1.2.0\n\tgithub.com/other/core v0.9.0\n)\n";
+	let deps = BTreeMap::from([("github.com/acme/core".to_string(), "v1.3.0".to_string())]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(
+		result.contains("\tgithub.com/acme/core v1.3.0"),
+		"the workspace module should be rewritten: {result}"
+	);
+	assert!(
+		result.contains("\tgithub.com/other/core v0.9.0"),
+		"an unrelated module that shares the last segment must not be rewritten: {result}"
+	);
+}
+
+#[test]
+fn update_go_mod_text_full_path_key_leaves_unrelated_single_line_module_untouched() {
+	let input = "module github.com/acme/service\n\ngo 1.22\n\nrequire github.com/acme/core v1.2.0\nrequire github.com/other/core v0.9.0\n";
+	let deps = BTreeMap::from([("github.com/acme/core".to_string(), "v1.3.0".to_string())]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(
+		result.contains("require github.com/acme/core v1.3.0"),
+		"the workspace module should be rewritten: {result}"
+	);
+	assert!(
+		result.contains("require github.com/other/core v0.9.0"),
+		"an unrelated module that shares the last segment must not be rewritten: {result}"
+	);
+}
+
+#[test]
+fn update_go_mod_text_bare_name_key_does_not_match_longer_unrelated_path() {
+	// A bare package name only identifies a module whose own path is that name.
+	// Matching by last segment would rewrite any module that happens to end in
+	// `/core`, silently corrupting a third-party pin, so the line is skipped
+	// unless the caller supplies the authoritative module path.
+	let input = "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\tgithub.com/acme/core v1.2.0\n\tgithub.com/other/core v0.9.0\n)\n";
+	let deps = BTreeMap::from([("core".to_string(), "v1.3.0".to_string())]);
+	let result = update_go_mod_text(input, &deps);
+	assert_eq!(
+		result, input,
+		"a bare name key must not rewrite longer module paths: {result}"
+	);
+}
+
+#[test]
+fn update_go_mod_text_bare_name_key_still_matches_bare_require() {
+	let input = "module github.com/acme/service\n\ngo 1.22\n\nrequire core v1.0.0\n";
+	let deps = BTreeMap::from([("core".to_string(), "v1.3.0".to_string())]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(
+		result.contains("require core v1.3.0"),
+		"a genuinely bare module path should still match its bare name: {result}"
+	);
+}
+
+#[test]
+fn update_go_mod_text_major_version_suffix_key_leaves_unrelated_module_untouched() {
+	let input = "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\tgithub.com/acme/sdk/v2 v2.0.0\n\tgithub.com/other/sdk/v2 v0.1.0\n)\n";
+	let deps = BTreeMap::from([("github.com/acme/sdk/v2".to_string(), "v2.1.0".to_string())]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(
+		result.contains("\tgithub.com/acme/sdk/v2 v2.1.0"),
+		"the workspace module with a major version suffix should be rewritten: {result}"
+	);
+	assert!(
+		result.contains("\tgithub.com/other/sdk/v2 v0.1.0"),
+		"an unrelated module sharing the major version suffix must not be rewritten: {result}"
+	);
+}
+
+#[test]
+fn update_go_mod_text_preserves_quoted_module_path_and_trailing_comment() {
+	let input = "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\t\"github.com/acme/core\" v1.2.0 // pinned\n)\n";
+	let deps = BTreeMap::from([("github.com/acme/core".to_string(), "v1.3.0".to_string())]);
+	let result = update_go_mod_text(input, &deps);
+	assert!(
+		result.contains("\t\"github.com/acme/core\" v1.3.0 // pinned"),
+		"quotes, tab indentation, and the trailing comment must survive: {result}"
+	);
 }
 
 // -- should_descend --
@@ -548,7 +698,10 @@ fn parse_require_directives_handles_malformed_entries() {
 #[test]
 fn update_go_mod_text_preserves_content_without_trailing_newline() {
 	let input = "module github.com/example/app\n\nrequire github.com/example/shared v1.0.0";
-	let deps = BTreeMap::from([("shared".to_string(), "v2.0.0".to_string())]);
+	let deps = BTreeMap::from([(
+		"github.com/example/shared".to_string(),
+		"v2.0.0".to_string(),
+	)]);
 	let result = update_go_mod_text(input, &deps);
 	assert!(!result.ends_with('\n'), "should not add trailing newline");
 	assert!(result.contains("github.com/example/shared v2.0.0"));
@@ -557,7 +710,10 @@ fn update_go_mod_text_preserves_content_without_trailing_newline() {
 #[test]
 fn update_go_mod_text_handles_versioned_module_require() {
 	let input = "module github.com/example/app\n\nrequire github.com/example/sdk/v2 v2.0.0\n";
-	let deps = BTreeMap::from([("sdk".to_string(), "v2.1.0".to_string())]);
+	let deps = BTreeMap::from([(
+		"github.com/example/sdk/v2".to_string(),
+		"v2.1.0".to_string(),
+	)]);
 	let result = update_go_mod_text(input, &deps);
 	assert!(
 		result.contains("github.com/example/sdk/v2 v2.1.0"),
@@ -570,7 +726,10 @@ fn update_go_mod_text_skips_single_line_require_without_version() {
 	let input = "module github.com/example/app\n\nrequire github.com/example/shared\n";
 	let result = update_go_mod_text(
 		input,
-		&BTreeMap::from([("shared".to_string(), "v2.0.0".to_string())]),
+		&BTreeMap::from([(
+			"github.com/example/shared".to_string(),
+			"v2.0.0".to_string(),
+		)]),
 	);
 
 	assert_eq!(result, input);

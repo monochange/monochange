@@ -58,11 +58,11 @@ When you want reusable agent guidance for Pi or other assistants, install the bu
 ```bash
 monochange help skill
 monochange skill
-monochange skill --list
-monochange skill -a pi -y
+monochange skill read configuration
+monochange skill install --dir ./.claude/skills/monochange
 ```
 
-`monochange skill` forwards the remaining arguments to the upstream `skills add` flow, so you can keep the interactive prompts or pass the native `--agent`, `--skill`, `--copy`, `--all`, `--global`, and `--yes` flags directly.
+The skill ships inside the binary, so it needs no network access or npm install. `monochange skill read` serves any bundled topic as raw Markdown, and `monochange skill install --dir` writes the whole tree into an agent runtime's skills directory.
 
 <!-- {=assistantSkillBundleContents} -->
 

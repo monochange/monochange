@@ -1,0 +1,30 @@
+#:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
+#
+# Release planning for the Acme inventory stack.
+#
+# Both crates are pre-1.0 (`0.4.2`) and publish to crates.io independently.
+# Versions are declared per crate instead of through `version.workspace = true`
+# so the fixture stays self-contained. Below 1.0.0 a `minor` change plans a
+# patch release and a `major` change plans a minor release.
+
+[defaults]
+parent_bump = "patch"
+
+[changelog.types]
+feat = { bump = "minor", section = "feat", description = "New functionality or capabilities added to the package" }
+fix = { bump = "patch", section = "fix", description = "Bug fixes and error corrections" }
+docs = { bump = "none", section = "docs", description = "Documentation updates and clarifications only" }
+
+[package.acme-util]
+path = "crates/util"
+type = "cargo"
+
+[package.acme-tool]
+path = "crates/tool"
+type = "cargo"
+
+[lints]
+use = ["cargo/baseline", "changesets/recommended"]
+
+[ecosystems.cargo]
+enabled = true

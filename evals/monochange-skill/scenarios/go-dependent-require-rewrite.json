@@ -1,0 +1,54 @@
+{
+	"id": "go-dependent-require-rewrite",
+	"title": "A Go dependent's require follows the library, and stays isolated",
+	"fixture": "go-modules",
+	"agent": false,
+	"prompt": "",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n\n[package.core]\npath = \"core\"\ntype = \"go\"\ntag = true\nversion_format = \"namespaced\"\ninitial_version = \"1.2.0\"\n\n[package.service]\npath = \"service\"\ntype = \"go\"\ntag = true\nversion_format = \"namespaced\"\ninitial_version = \"1.0.0\"\n\n[ecosystems.go]\nenabled = true\n",
+		".changeset/add-helper.md": "---\ncore: minor\n---\n\nAdd a document helper\n",
+		"service/go.mod": "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\tgithub.com/acme/core v1.2.0\n\tgithub.com/other/core v0.9.0\n)\n\nreplace github.com/acme/core => ../core\n"
+	},
+	"setupCommands": [
+		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init && git tag core/v1.2.0 && git tag service/v1.0.0"
+	],
+	"expectation": "Go versions come from git tags, so both modules need `tag = true` and `initial_version` before anything is planned; nothing is written into `go.mod` as a package version. A minor change to `core` moves it to 1.3.0, propagates to `service`, and rewrites the internal `require` directive so the service does not ship pinned to a core version that no longer exists. `replace` directives are untouched, and a module that merely shares a last path segment (`github.com/other/core`) is not mistaken for the workspace's `core` — the rewrite resolves full module paths against workspace modules and skips anything ambiguous.",
+	"checks": [
+		{
+			"id": "both-modules-are-planned",
+			"kind": "command",
+			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; assert t.get('core')=='1.3.0', t; assert t.get('service')=='1.0.1', t; print(t)\"",
+			"why": "Tag-seeded versions are the only reason Go plans anything; a missing `tag = true` or `initial_version` makes the release empty, which is the failure this scenario exists to catch."
+		},
+		{
+			"id": "prepare-rewrites-the-internal-require",
+			"kind": "command",
+			"command": "monochange prepare >/dev/null 2>&1; grep -q 'github.com/acme/core v1.3.0' service/go.mod",
+			"why": "The bug this pins: the plan moved `core` to 1.3.0 while the service kept requiring 1.2.0, so the released service pointed at a version that no longer existed."
+		},
+		{
+			"id": "replace-directive-untouched",
+			"kind": "command",
+			"command": "grep -q 'replace github.com/acme/core => ../core' service/go.mod",
+			"why": "The `replace` is a local development override. Rewriting it would break the workspace layout the repository depends on."
+		},
+		{
+			"id": "unrelated-module-sharing-a-name-is-not-rewritten",
+			"kind": "command",
+			"command": "grep -q 'github.com/other/core v0.9.0' service/go.mod",
+			"why": "The ambiguity guard. Resolving by last path segment alone would rewrite an unrelated dependency to the workspace's version, silently corrupting a third-party pin."
+		},
+		{
+			"id": "changed-files-name-the-module-file",
+			"kind": "command",
+			"command": "git checkout -q service/go.mod; git checkout -q -- . 2>/dev/null; mkdir -p .changeset; printf -- '---\\ncore: minor\\n---\\n\\nAdd a document helper\\n' > .changeset/grader.md; monochange prepare --format json > .p.json 2>&1; grep -q 'service/go.mod' .p.json; rc=$?; rm -f .p.json; test $rc -eq 0",
+			"why": "A rewrite that is not reported as a changed file would be invisible to the release commit and to review. The module file is restored and a fresh changeset written first, because an earlier check already ran `prepare`, which consumes changesets and rewrites the file in place."
+		},
+		{
+			"id": "no-version-field-written-into-go-mod",
+			"kind": "command",
+			"command": "test -z \"$(grep -E '^version' core/go.mod)\"",
+			"why": "Go has no manifest version field; pinning its absence stops a future change from inventing one that Go tooling would reject."
+		}
+	]
+}

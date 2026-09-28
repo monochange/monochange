@@ -1,0 +1,42 @@
+#:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
+#
+# Release configuration for the Acme platform services.
+#
+# `@acme/api` carries a committed release history: `v1.0.0` points at the
+# import commit and later releases add `.monochange/releases/<id>/release.json`
+# records plus their tags. The lifecycle steps (`step tag-release`,
+# `step release-record`, `step publish-readiness`, `step retarget-release`)
+# read that history from git. Provider release objects are created elsewhere,
+# so the group tags releases without opening one (`release = false`).
+
+[defaults]
+parent_bump = "patch"
+
+[defaults.changelog]
+path = "{{ path }}/CHANGELOG.md"
+format = "keep_a_changelog"
+
+[changelog.types]
+feat = { bump = "minor", section = "feat", description = "New functionality or capabilities added to the package" }
+fix = { bump = "patch", section = "fix", description = "Bug fixes and error corrections" }
+docs = { bump = "none", section = "docs", description = "Documentation updates and clarifications only" }
+
+[package."@acme/api"]
+path = "packages/api"
+type = "npm"
+
+[group.main]
+packages = [
+	"@acme/api",
+]
+tag = true
+release = false
+version_format = "primary"
+
+[lints.rules]
+# pnpm links workspace packages by matching semver ranges, so caret ranges are
+# intentional; the workspace protocol is not required here.
+"npm/workspace-protocol" = "off"
+
+[ecosystems.npm]
+enabled = true

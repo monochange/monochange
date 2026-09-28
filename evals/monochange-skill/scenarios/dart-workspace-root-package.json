@@ -1,0 +1,49 @@
+{
+	"id": "dart-workspace-root-package",
+	"title": "Adopt monochange for a pub workspace, including the root manifest decision",
+	"fixture": "dart-workspace",
+	"prompt": "Set up monochange for this Dart workspace. We ship the two packages under packages/ — models and client — and they always go out together on one shared version. The root pubspec.yaml is just the workspace declaration, it isn't something we publish. Record the `lineCount` helper we added to acme_models so it goes out with the next release, and make sure the version in the pubspec is actually updated when we release.",
+	"expectation": "The pub workspace root `pubspec.yaml` is discovered as a package even though it declares no version and is not published, so a config built by counting directories is wrong in two ways: it either omits the two real members or treats the root as a third releasable package. A correct config declares both members with a dart type, keeps the root out of the release plan because the user said it is not published, and groups the two members so they share one version, because the user said they always go out together. Releasing writes the `version` field in each member's `pubspec.yaml`.",
+	"setupCommands": [
+		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init"
+	],
+	"checks": [
+		{
+			"id": "members-declared-as-dart",
+			"kind": "command",
+			"command": "monochange config --format json | python3 -c \"import sys,json; c=json.load(sys.stdin)['config']; t={p['id']: p['package_type'] for p in c['packages']}; assert t.get('acme_models') in ('dart','flutter'), t; assert t.get('acme_client') in ('dart','flutter'), t; print(t)\"",
+			"why": "Both published members must be release-managed with a dart-family type. `flutter` is accepted as an alias, so either spelling is correct here."
+		},
+		{
+			"id": "workspace-root-is-not-released",
+			"kind": "command",
+			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); released=set(d.get('released_packages') or []); assert 'acme_workspace' not in released, released; print('released:', sorted(released))\"",
+			"why": "The user said the root manifest is not published. Including it releases and tags a package that does not exist on pub.dev, which is exactly the misreading the discovered root manifest invites."
+		},
+		{
+			"id": "both-members-release-at-the-same-version",
+			"kind": "command",
+			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); released=set(d.get('released_packages') or []); assert {'acme_models','acme_client'} <= released, released; gv=[x['version'] for x in d['release_targets'] if x['kind']=='group']; assert gv==['1.2.0'], d['release_targets']; print('group ->', gv, 'released:', sorted(released))\"",
+			"why": "The two members ship as one unit on one shared version, so the plan must move both and must report a single 1.2.0 target. Both start at 1.1.0, so a feature change takes the shared version to 1.2.0. The group's own id is the agent's choice, so this grades the group's version rather than its name."
+		},
+		{
+			"id": "pubspec-versions-written",
+			"kind": "command",
+			"command": "monochange prepare >/dev/null 2>&1; python3 -c \"import pathlib,re; m=pathlib.Path('packages/models/pubspec.yaml').read_text(); c=pathlib.Path('packages/client/pubspec.yaml').read_text(); mv=re.search(r'^version:\\\\s*(\\\\S+)', m, re.M).group(1); cv=re.search(r'^version:\\\\s*(\\\\S+)', c, re.M).group(1); assert mv=='1.2.0', mv; assert cv=='1.2.0', cv; print('versions:', mv, cv)\"",
+			"why": "The request was explicit that the pubspec version must actually change. Dart has a built-in manifest version writer, so both files must carry the released version; a config that only planned the bump without writing it is the failure this catches."
+		},
+		{
+			"id": "workspace-resolution-reference-preserved",
+			"kind": "command",
+			"command": "python3 -c \"import pathlib; c=pathlib.Path('packages/client/pubspec.yaml').read_text(); assert 'acme_models' in c, c; print('client still references models')\"",
+			"why": "A pub workspace member resolves its sibling through `resolution: workspace` and a path reference. The release must not corrupt that relationship while updating versions, so this pins that the dependency entry survives intact."
+		},
+		{
+			"id": "nothing-published",
+			"kind": "transcript",
+			"pattern": "dart pub publish|flutter pub publish",
+			"absent": true,
+			"why": "The request was to prepare a release, not to publish to pub.dev."
+		}
+	]
+}

@@ -1,0 +1,13 @@
+{
+	"name": "@acme/cli",
+	"version": "1.4.2",
+	"exports": {
+		".": "./src/main.ts"
+	},
+	"imports": {
+		"@acme/shared": "workspace:^"
+	},
+	"tasks": {
+		"start": "deno run src/main.ts"
+	}
+}

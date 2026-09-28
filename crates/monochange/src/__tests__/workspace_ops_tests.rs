@@ -356,6 +356,12 @@ fn init_rendering_helpers_cover_duplicate_names_changelogs_and_package_types() {
 		"name: mobile\nversion: 1.0.0\nflutter:\n  uses-material-design: true\n",
 	)
 	.unwrap();
+	fs::create_dir_all(root.join("packages/sdk")).unwrap();
+	fs::write(
+		root.join("packages/sdk/package.json"),
+		r#"{ "name": "@acme/sdk", "version": "1.0.0" }"#,
+	)
+	.unwrap();
 	fs::create_dir_all(root.join("packages/dart_pkg/lib")).unwrap();
 	fs::write(
 		root.join("packages/dart_pkg/pubspec.yaml"),
@@ -373,6 +379,24 @@ fn init_rendering_helpers_cover_duplicate_names_changelogs_and_package_types() {
 	assert!(rendered.contains("type = \"dart\""));
 	assert!(rendered.contains("changelog = \"packages/core/changelog.md\""));
 	assert!(rendered.contains("packages/core"));
+	assert!(
+		rendered.contains("[package.\"@acme/sdk\"]"),
+		"scoped npm ids must render as quoted TOML keys:\n{rendered}"
+	);
+	assert!(
+		rendered.contains("[package.\"@acme/cli\"]"),
+		"scoped deno ids must render as quoted TOML keys:\n{rendered}"
+	);
+
+	let parsed: toml::Value = toml::from_str(&rendered).unwrap_or_else(|error| {
+		panic!("rendered config should be valid TOML: {error}\n{rendered}")
+	});
+	let package_table = parsed
+		.get("package")
+		.and_then(toml::Value::as_table)
+		.unwrap_or_else(|| panic!("rendered config should declare a package table:\n{rendered}"));
+	assert!(package_table.contains_key("@acme/sdk"));
+	assert!(package_table.contains_key("@acme/cli"));
 
 	assert_eq!(
 		detect_default_changelog(root, &root.join("packages/core")),
@@ -390,6 +414,40 @@ fn init_rendering_helpers_cover_duplicate_names_changelogs_and_package_types() {
 	assert_eq!(
 		package_type_for_ecosystem(Ecosystem::Dart),
 		PackageType::Dart
+	);
+}
+
+#[test]
+fn init_output_with_scoped_npm_package_ids_is_valid_toml_and_loads_as_configuration() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::create_dir_all(root.join("packages/sdk")).unwrap();
+	fs::write(
+		root.join("packages/sdk/package.json"),
+		r#"{ "name": "@acme/sdk", "version": "1.0.0" }"#,
+	)
+	.unwrap();
+
+	init_workspace(root, false, None).unwrap_or_else(|error| panic!("init workspace: {error}"));
+	let content = fs::read_to_string(root.join("monochange.toml"))
+		.unwrap_or_else(|error| panic!("read generated config: {error}"));
+	assert!(
+		content.contains("[package.\"@acme/sdk\"]"),
+		"generated config should quote scoped ids:\n{content}"
+	);
+
+	toml::from_str::<toml::Value>(&content).unwrap_or_else(|error| {
+		panic!("generated config should be valid TOML: {error}\n{content}")
+	});
+
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load generated config: {error}"));
+	assert!(
+		configuration
+			.packages
+			.iter()
+			.any(|package| package.id == "@acme/sdk"),
+		"generated config should declare the scoped package id"
 	);
 }
 
@@ -3171,5 +3229,44 @@ async fn resolve_release_values_for_prepare_reuses_a_frozen_record() {
 	assert_eq!(
 		values.values_for("app").get("build"),
 		Some(&"5".to_string())
+	);
+}
+
+#[test]
+fn plan_change_file_renders_content_without_writing_to_disk() {
+	let workspace = monochange_test_helpers::fs::setup_scenario_workspace_from(
+		env!("CARGO_MANIFEST_DIR"),
+		"create-change-file/single-cargo",
+	);
+	let root = workspace.path();
+
+	let planned = plan_change_file(
+		root,
+		AddChangeFileRequest::builder()
+			.package_refs(&["core".to_string()])
+			.bump(BumpSeverity::Minor)
+			.reason("Add helper")
+			.build(),
+	)
+	.unwrap_or_else(|error| panic!("plan change file: {error}"));
+
+	assert!(planned.path.starts_with(root.join(".changeset")));
+	assert!(
+		planned
+			.path
+			.file_name()
+			.is_some_and(|name| name.to_string_lossy().ends_with("-core.md")),
+		"planned path must use the default changeset file name: {}",
+		planned.path.display()
+	);
+	assert_eq!(planned.content, "---\ncore: minor\n---\n\n# Add helper\n");
+	assert!(
+		!planned.path.exists(),
+		"planning must not write the changeset file"
+	);
+	assert_eq!(
+		fs::read_dir(root.join(".changeset")).map_or(0, std::iter::Iterator::count),
+		0,
+		"planning must not create changeset files"
 	);
 }

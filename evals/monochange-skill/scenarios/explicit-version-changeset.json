@@ -1,0 +1,47 @@
+{
+	"id": "explicit-version-changeset",
+	"title": "An explicit version in a changeset overrides the computed bump",
+	"fixture": "npm-monorepo",
+	"agent": false,
+	"prompt": "",
+	"expectation": "A changeset may pin an exact version instead of naming a severity. The object form carries `version` alongside `bump` and `type`, and the pinned version wins over the computed one: the group sits at 2.3.1, so a computed minor would plan 2.4.0, but an explicit 2.5.0 must plan 2.5.0. The same pin works through `monochange create --version`, which writes the `version` key into the frontmatter, and `--dry-run` previews the rendered file without writing anything.",
+	"setupFiles": {
+		".changeset/explicit.md": "---\n\"@acme/api\":\n  bump: minor\n  type: feat\n  version: \"2.5.0\"\n---\n\nRework the request input object\n"
+	},
+	"checks": [
+		{
+			"id": "explicit-version-planned",
+			"kind": "command",
+			"command": "monochange preview --format json",
+			"expectOutput": [
+				"\"version\": \"2.5.0\"",
+				"\"group_version\": \"2.5.0\""
+			],
+			"why": "The pinned version must win over the computed one. A computed minor on the 2.3.1 group would plan 2.4.0, so planning 2.5.0 proves the explicit value was honored rather than recomputed."
+		},
+		{
+			"id": "computed-version-does-not-appear",
+			"kind": "command",
+			"command": "monochange preview --format json | grep -c '2.4.0'; test \"$?\" -eq 1",
+			"why": "Guards the same assertion from the other side: if 2.4.0 (the computed minor) also appeared, the pin would not actually be in control of the plan."
+		},
+		{
+			"id": "validate-accepts-object-form",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The object form with `bump`, `type`, and `version` together is valid release intent."
+		},
+		{
+			"id": "create-writes-explicit-version",
+			"kind": "command",
+			"command": "rm -f .changeset/created-*.md; monochange create --package @acme/api --version 2.5.0 --reason \"Rework the request input\" >/dev/null 2>&1; grep -l 'version: \"2.5.0\"' .changeset/*.md >/dev/null; rc=$?; rm -f .changeset/*.md; exit $rc",
+			"why": "The `--version` input must reach the file as the explicit `version` key, not be dropped in favor of a computed bump. The created file is removed so later checks start clean."
+		},
+		{
+			"id": "create-version-dry-run-writes-nothing",
+			"kind": "command",
+			"command": "monochange create --package @acme/api --version 2.5.0 --reason \"Rework the request input\" --dry-run > .dry.out 2>&1; rc=$?; grep -q 'would write change file' .dry.out; grep_rc=$?; count=$(ls .changeset/*.md 2>/dev/null | wc -l | tr -d ' '); rm -f .dry.out .changeset/*.md; test $rc -eq 0 -a $grep_rc -eq 0 -a \"$count\" = \"0\"",
+			"why": "Dry-run must preview the render and write nothing. This pins the freshly fixed behavior on the path most likely to regress, because `--version` changes what the rendered file looks like."
+		}
+	]
+}

@@ -1,0 +1,33 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange skill read
+
+Print one bundled skill document as raw Markdown on stdout. The output is the document itself, with no terminal rendering or added framing, so YAML frontmatter and code blocks survive verbatim. Omit TOPIC to list every bundled topic.
+
+[1m[97mUsage:[0m [93mmonochange skill read[0m [95m[OPTIONS][0m [95m[TOPIC][0m
+
+[1m[96mArguments:[0m
+  [95m[TOPIC][0m
+          Topic to print; omit to list every bundled topic
+
+[1m[96mOptions:[0m
+  [93m-h[0m, [93m--help[0m
+          Print help (see a summary with '-h')
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress result, progress, and diagnostic output without changing execution
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

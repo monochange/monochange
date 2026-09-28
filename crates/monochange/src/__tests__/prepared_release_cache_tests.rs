@@ -69,6 +69,73 @@ fn explicit_artifact_path(root: &Path) -> PathBuf {
 	root.join(".monochange/local/unit-prepared-release.json")
 }
 
+fn setup_cache_invalidation_repo() -> TempDir {
+	let tempdir = setup_scenario_workspace_from(
+		env!("CARGO_MANIFEST_DIR"),
+		"prepared-release/cache-invalidation",
+	);
+	let root = tempdir.path();
+	git(root, &["init", "-b", "main"]);
+	git(root, &["config", "user.name", "monochange tests"]);
+	git(root, &["config", "user.email", "monochange@example.com"]);
+	git(root, &["config", "commit.gpgsign", "false"]);
+	git(root, &["add", "."]);
+	git(
+		root,
+		&["-c", "commit.gpgsign=false", "commit", "-m", "initial"],
+	);
+	tempdir
+}
+
+/// Copy a checked-in fixture payload into the workspace as a changeset.
+fn install_changeset_payload(root: &Path, payload: &str, changeset_name: &str) -> PathBuf {
+	let source = monochange_test_helpers::fs::fixture_path_from(
+		env!("CARGO_MANIFEST_DIR"),
+		"prepared-release/cache-invalidation/payloads",
+	)
+	.join(payload);
+	let destination = root.join(".changeset").join(changeset_name);
+	fs::create_dir_all(destination.parent().unwrap_or(root))
+		.unwrap_or_else(|error| panic!("create changeset directory: {error}"));
+	fs::copy(&source, &destination).unwrap_or_else(|error| {
+		panic!(
+			"copy fixture payload {} to {}: {error}",
+			source.display(),
+			destination.display()
+		)
+	});
+	destination
+}
+
+/// Overwrite an installed changeset with another checked-in fixture payload.
+fn replace_changeset_payload(root: &Path, payload: &str, changeset_name: &str) {
+	install_changeset_payload(root, payload, changeset_name);
+}
+
+fn planned_versions(prepared_release: &PreparedRelease) -> Vec<(String, String)> {
+	prepared_release
+		.release_targets
+		.iter()
+		.map(|target| (target.id.clone(), target.version.clone()))
+		.collect()
+}
+
+async fn prepare_with_configuration(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+) -> PreparedRelease {
+	crate::workspace_ops::prepare_release_execution_with_configuration(
+		root,
+		configuration,
+		true,
+		false,
+		false,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("prepare release execution: {error}"))
+	.prepared_release
+}
+
 async fn save_artifact(root: &Path, dry_run: bool, explicit_path: &Path) -> WorkspaceConfiguration {
 	let configuration = load_workspace_configuration(root)
 		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
@@ -773,4 +840,416 @@ async fn tracked_path_snapshots_hashes_existing_changed_files() {
 		PreparedReleaseTrackedPathState::File
 	);
 	assert!(tracked_paths[0].hash.is_some());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn implicit_cache_invalidates_when_untracked_changeset_severity_changes_in_place() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let original = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &original, &[], None)
+		.await
+		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
+
+	replace_changeset_payload(root, "alpha-major.md", "feature.md");
+	let expected = prepare_with_configuration(root, &configuration).await;
+	assert_ne!(
+		planned_versions(&original),
+		planned_versions(&expected),
+		"fixture must plan a different version for the rewritten severity"
+	);
+
+	let loaded = maybe_load_prepared_release_execution(root, &configuration, None, true, false)
+		.await
+		.unwrap_or_else(|error| panic!("maybe load prepared release execution: {error}"));
+
+	assert!(
+		loaded.is_none(),
+		"a rewritten untracked changeset must not reuse the cached plan; loaded {loaded:?}"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn implicit_cache_invalidates_when_changeset_body_changes_without_severity_change() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let original = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &original, &[], None)
+		.await
+		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
+
+	replace_changeset_payload(root, "alpha-minor-rewritten.md", "feature.md");
+	let expected = prepare_with_configuration(root, &configuration).await;
+	assert_eq!(
+		planned_versions(&original),
+		planned_versions(&expected),
+		"fixture must keep the same severity so only the body changes"
+	);
+	assert_ne!(
+		original.changesets, expected.changesets,
+		"fixture must change the rendered changeset text"
+	);
+
+	let loaded = maybe_load_prepared_release_execution(root, &configuration, None, true, false)
+		.await
+		.unwrap_or_else(|error| panic!("maybe load prepared release execution: {error}"));
+
+	assert!(
+		loaded.is_none(),
+		"a rewritten changeset body must not reuse the cached plan"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn implicit_cache_invalidates_when_changeset_is_added() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "alpha-minor.md");
+
+	let original = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &original, &[], None)
+		.await
+		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
+
+	install_changeset_payload(root, "beta-patch.md", "beta-patch.md");
+	let expected_with_beta = prepare_with_configuration(root, &configuration).await;
+	assert_ne!(
+		planned_versions(&original),
+		planned_versions(&expected_with_beta),
+		"fixture must plan a different target set once the second changeset exists"
+	);
+
+	let loaded = maybe_load_prepared_release_execution(root, &configuration, None, true, false)
+		.await
+		.unwrap_or_else(|error| panic!("maybe load prepared release execution: {error}"));
+	assert!(
+		loaded.is_none(),
+		"adding a changeset must not reuse the cached plan"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn implicit_cache_invalidates_when_changeset_is_removed() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "alpha-minor.md");
+	let removed = install_changeset_payload(root, "beta-patch.md", "beta-patch.md");
+
+	let original = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &original, &[], None)
+		.await
+		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
+
+	fs::remove_file(&removed).unwrap_or_else(|error| panic!("remove changeset: {error}"));
+	let expected_without_beta = prepare_with_configuration(root, &configuration).await;
+	assert_ne!(
+		planned_versions(&original),
+		planned_versions(&expected_without_beta),
+		"fixture must plan a different target set once the second changeset is gone"
+	);
+
+	let loaded = maybe_load_prepared_release_execution(root, &configuration, None, true, false)
+		.await
+		.unwrap_or_else(|error| panic!("maybe load prepared release execution: {error}"));
+	assert!(
+		loaded.is_none(),
+		"removing a changeset must not reuse the cached plan"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn implicit_cache_hits_when_every_input_is_unchanged() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let prepared = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &prepared, &[], None)
+		.await
+		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
+
+	let first = maybe_load_prepared_release_execution(root, &configuration, None, true, false)
+		.await
+		.unwrap_or_else(|error| panic!("load prepared release execution: {error}"))
+		.unwrap_or_else(|| panic!("an unchanged workspace must reuse the cached plan"));
+	assert_eq!(first.execution.prepared_release, prepared);
+
+	let second = maybe_load_prepared_release_execution(root, &configuration, None, true, false)
+		.await
+		.unwrap_or_else(|error| panic!("load prepared release execution: {error}"))
+		.unwrap_or_else(|| panic!("repeated identical runs must keep hitting the cache"));
+	assert_eq!(second.execution.prepared_release, prepared);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn implicit_cache_invalidates_when_manifest_changes_without_a_status_change() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+	let beta_manifest = root.join("crates/beta/Cargo.toml");
+
+	// Dirty the manifest before saving so the workspace status line is already
+	// present; a second edit keeps the same status letter and bytes are the only
+	// signal left.
+	fs::write(
+		&beta_manifest,
+		"# first edit\n[package]\nname = \"beta\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write first manifest edit: {error}"));
+	let prepared = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &prepared, &[], None)
+		.await
+		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
+
+	fs::write(
+		&beta_manifest,
+		"# second edit\n[package]\nname = \"beta\"\nversion = \"2.0.0\"\nedition = \"2021\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write second manifest edit: {error}"));
+
+	let loaded = maybe_load_prepared_release_execution(root, &configuration, None, true, false)
+		.await
+		.unwrap_or_else(|error| panic!("maybe load prepared release execution: {error}"));
+
+	assert!(
+		loaded.is_none(),
+		"a changed package manifest must not reuse the cached plan"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn explicit_prepared_release_artifact_still_loads() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let artifact_path = explicit_artifact_path(root);
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let prepared = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &prepared, &[], Some(&artifact_path))
+		.await
+		.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
+
+	let loaded =
+		load_prepared_release_execution(root, &configuration, Some(&artifact_path), true, false)
+			.await
+			.unwrap_or_else(|error| panic!("explicit artifact must load: {error}"))
+			.unwrap_or_else(|| {
+				panic!("an explicit artifact is a deliberate override and must load")
+			});
+
+	assert_eq!(loaded.execution.prepared_release, prepared);
+	assert!(loaded.message.contains("reused prepared release artifact"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn implicit_cache_rejects_an_artifact_written_before_input_fingerprinting() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let prepared = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &prepared, &[], None)
+		.await
+		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
+
+	// Drop the fingerprint to imitate an artifact written by a binary that
+	// predates input fingerprinting.
+	let artifact_path = default_prepared_release_cache_path(root);
+	let mut artifact = read_prepared_release_artifact(&artifact_path)
+		.unwrap_or_else(|error| panic!("read prepared release artifact: {error}"));
+	artifact.input_fingerprint = None;
+	fs::write(
+		&artifact_path,
+		serde_json::to_string_pretty(&artifact)
+			.unwrap_or_else(|error| panic!("serialize artifact: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("rewrite artifact: {error}"));
+
+	let error = load_prepared_release_execution(root, &configuration, None, true, false)
+		.await
+		.expect_err("an artifact without a fingerprint cannot prove its plan is current");
+	assert!(
+		error
+			.to_string()
+			.contains("predates input fingerprinting and cannot prove its plan is current")
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn explicit_artifact_without_a_fingerprint_still_loads() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let artifact_path = explicit_artifact_path(root);
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let prepared = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &prepared, &[], Some(&artifact_path))
+		.await
+		.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
+
+	let mut artifact = read_prepared_release_artifact(&artifact_path)
+		.unwrap_or_else(|error| panic!("read prepared release artifact: {error}"));
+	artifact.input_fingerprint = None;
+	fs::write(
+		&artifact_path,
+		serde_json::to_string_pretty(&artifact)
+			.unwrap_or_else(|error| panic!("serialize artifact: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("rewrite artifact: {error}"));
+
+	let loaded =
+		load_prepared_release_execution(root, &configuration, Some(&artifact_path), true, false)
+			.await
+			.unwrap_or_else(|error| panic!("explicit artifact must load: {error}"))
+			.unwrap_or_else(|| panic!("an explicit artifact is a deliberate override"));
+
+	assert_eq!(loaded.execution.prepared_release, prepared);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn explicit_artifact_with_a_drifted_fingerprint_still_loads() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let artifact_path = explicit_artifact_path(root);
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let prepared = prepare_with_configuration(root, &configuration).await;
+	save_prepared_release_execution(root, &configuration, &prepared, &[], Some(&artifact_path))
+		.await
+		.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
+
+	// Change the workspace inputs after the artifact was written.
+	replace_changeset_payload(root, "alpha-major.md", "feature.md");
+
+	let loaded =
+		load_prepared_release_execution(root, &configuration, Some(&artifact_path), true, false)
+			.await
+			.unwrap_or_else(|error| panic!("explicit artifact must load: {error}"))
+			.unwrap_or_else(|| panic!("an explicit artifact is a deliberate override"));
+
+	assert_eq!(
+		loaded.execution.prepared_release, prepared,
+		"an explicit artifact must return the saved plan even after the inputs drift"
+	);
+}
+
+#[test]
+fn package_manifest_names_cover_every_package_type() {
+	for (package_type, expected) in [
+		(PackageType::Cargo, vec!["Cargo.toml"]),
+		(PackageType::Npm, vec!["package.json"]),
+		(PackageType::Deno, vec!["deno.json", "deno.jsonc"]),
+		(PackageType::Dart, vec!["pubspec.yaml"]),
+		(PackageType::Python, vec!["pyproject.toml"]),
+		(PackageType::Go, vec!["go.mod"]),
+		(
+			PackageType::GitHubActions,
+			vec!["action.yml", "action.yaml"],
+		),
+	] {
+		assert_eq!(
+			package_manifest_names(package_type),
+			expected,
+			"manifest names for `{}`",
+			package_type.as_str()
+		);
+	}
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn input_fingerprint_tracks_changeset_bytes_and_the_workspace_configuration() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let baseline = prepared_release_input_fingerprint(root, &configuration)
+		.unwrap_or_else(|error| panic!("fingerprint inputs: {error}"));
+	assert!(baseline.starts_with("fnv1a64:"));
+
+	// Recomputing without touching anything must produce the same fingerprint so
+	// the fast path keeps working.
+	let repeated = prepared_release_input_fingerprint(root, &configuration)
+		.unwrap_or_else(|error| panic!("fingerprint inputs twice: {error}"));
+	assert_eq!(baseline, repeated);
+
+	replace_changeset_payload(root, "alpha-major.md", "feature.md");
+	let after_changeset_edit = prepared_release_input_fingerprint(root, &configuration)
+		.unwrap_or_else(|error| panic!("fingerprint after changeset edit: {error}"));
+	assert_ne!(
+		baseline, after_changeset_edit,
+		"changeset bytes must feed the fingerprint"
+	);
+
+	fs::remove_file(root.join(".changeset/feature.md"))
+		.unwrap_or_else(|error| panic!("remove changeset: {error}"));
+	let after_removal = prepared_release_input_fingerprint(root, &configuration)
+		.unwrap_or_else(|error| panic!("fingerprint after removal: {error}"));
+	assert_ne!(
+		after_changeset_edit, after_removal,
+		"the changeset set must feed the fingerprint"
+	);
+
+	fs::write(
+		root.join("monochange.toml"),
+		fs::read_to_string(root.join("monochange.toml"))
+			.unwrap_or_else(|error| panic!("read monochange.toml: {error}"))
+			.replace("changelog = ", "# rewritten\nchangelog = "),
+	)
+	.unwrap_or_else(|error| panic!("rewrite monochange.toml: {error}"));
+	let after_configuration_edit = prepared_release_input_fingerprint(root, &configuration)
+		.unwrap_or_else(|error| panic!("fingerprint after configuration edit: {error}"));
+	assert_ne!(
+		after_removal, after_configuration_edit,
+		"the workspace configuration must feed the fingerprint"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn input_fingerprint_is_stable_across_equivalent_workspace_locations() {
+	let first = setup_cache_invalidation_repo();
+	let second = setup_cache_invalidation_repo();
+	let first_configuration = load_workspace_configuration(first.path())
+		.unwrap_or_else(|error| panic!("load first configuration: {error}"));
+	let second_configuration = load_workspace_configuration(second.path())
+		.unwrap_or_else(|error| panic!("load second configuration: {error}"));
+	for root in [first.path(), second.path()] {
+		install_changeset_payload(root, "alpha-minor.md", "feature.md");
+	}
+
+	let first_fingerprint = prepared_release_input_fingerprint(first.path(), &first_configuration)
+		.unwrap_or_else(|error| panic!("fingerprint first workspace: {error}"));
+	let second_fingerprint =
+		prepared_release_input_fingerprint(second.path(), &second_configuration)
+			.unwrap_or_else(|error| panic!("fingerprint second workspace: {error}"));
+
+	assert_eq!(
+		first_fingerprint, second_fingerprint,
+		"the fingerprint must be workspace-relative so identical checkouts match"
+	);
 }

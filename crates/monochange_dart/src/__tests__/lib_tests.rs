@@ -324,6 +324,91 @@ dev_dependencies:
 }
 
 #[test]
+fn parse_yaml_line_strips_key_quoting() {
+	let contents = "'dependencies':\n  'core': ^1.0.0\n  \"other\": ^2.0.0\n  bare: ^3.0.0\n";
+	let ranges = crate::yaml_line_ranges(contents);
+	let keys = ranges
+		.iter()
+		.filter_map(|range| crate::parse_yaml_line(contents, *range))
+		.map(|line| line.key.to_string())
+		.collect::<Vec<_>>();
+	assert_eq!(keys, vec!["dependencies", "core", "other", "bare"]);
+}
+
+#[test]
+fn unquote_yaml_key_keeps_bare_and_malformed_keys() {
+	assert_eq!(crate::unquote_yaml_key("core"), "core");
+	assert_eq!(crate::unquote_yaml_key("'core'"), "core");
+	assert_eq!(crate::unquote_yaml_key("\"core\""), "core");
+	assert_eq!(crate::unquote_yaml_key("'"), "'");
+	assert_eq!(crate::unquote_yaml_key("'core"), "'core");
+	assert_eq!(crate::unquote_yaml_key("'core' tail"), "'core' tail");
+	assert_eq!(crate::unquote_yaml_key("'a' 'b'"), "'a' 'b'");
+}
+
+#[test]
+fn update_manifest_text_updates_quoted_dependency_keys_and_keeps_quotes() {
+	let manifest = r#"name: sample_app
+version: '1.0.0'
+
+dependencies:
+  'shared': ^1.0.0
+  "other": ^1.0.0
+  bare: ^1.0.0
+"#;
+	let updated = update_manifest_text(
+		manifest,
+		None,
+		&["dependencies"],
+		&BTreeMap::from([
+			("shared".to_string(), "^2.0.0".to_string()),
+			("other".to_string(), "^2.0.0".to_string()),
+			("bare".to_string(), "^2.0.0".to_string()),
+		]),
+	)
+	.unwrap_or_else(|error| panic!("update pubspec text: {error}"));
+	assert_eq!(
+		updated,
+		r#"name: sample_app
+version: '1.0.0'
+
+dependencies:
+  'shared': ^2.0.0
+  "other": ^2.0.0
+  bare: ^2.0.0
+"#
+	);
+}
+
+#[test]
+fn update_manifest_text_updates_quoted_nested_dependency_versions() {
+	let manifest = r"name: sample_app
+
+dependencies:
+  'shared':
+    path: ../shared
+    version: ^1.0.0
+";
+	let updated = update_manifest_text(
+		manifest,
+		None,
+		&["dependencies"],
+		&BTreeMap::from([("shared".to_string(), "^2.0.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update pubspec text: {error}"));
+	assert_eq!(
+		updated,
+		r"name: sample_app
+
+dependencies:
+  'shared':
+    path: ../shared
+    version: ^2.0.0
+"
+	);
+}
+
+#[test]
 fn yaml_helper_functions_cover_missing_and_inline_paths() {
 	let contents = "version: # comment only\n\n  nested: value\nshared:\n  path: ../shared\n";
 	let ranges = crate::yaml_line_ranges(contents);

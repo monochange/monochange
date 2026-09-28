@@ -235,6 +235,36 @@ fn sdk_constraint_modern_rule_reports_legacy_and_overly_broad_constraints() {
 }
 
 #[test]
+fn unquote_yaml_key_keeps_bare_and_malformed_keys() {
+	assert_eq!(unquote_yaml_key("core"), "core");
+	assert_eq!(unquote_yaml_key("'core'"), "core");
+	assert_eq!(unquote_yaml_key("\"core\""), "core");
+	assert_eq!(unquote_yaml_key("'"), "'");
+	assert_eq!(unquote_yaml_key("'core"), "'core");
+	assert_eq!(unquote_yaml_key("'core' tail"), "'core' tail");
+}
+
+#[test]
+fn source_key_order_unquotes_quoted_dependency_keys() {
+	// YAML allows quoted mapping keys, and the parsed mapping the rule compares
+	// against always holds unquoted names. Without unquoting, a sorted section
+	// that quotes its keys looks unsorted forever.
+	let contents = r#"dependencies:
+  'alpha': ^1.0.0
+  "beta": ^1.0.0
+  gamma: ^1.0.0
+"#;
+	assert_eq!(
+		source_key_order(contents, "dependencies"),
+		Some(vec![
+			"alpha".to_string(),
+			"beta".to_string(),
+			"gamma".to_string()
+		])
+	);
+}
+
+#[test]
 fn dependency_sorted_rule_reports_unsorted_sections_and_emits_parseable_fix() {
 	let targets = sdk_dependency_hygiene_targets();
 	let target = find_target(&targets, "unsorted_deps");

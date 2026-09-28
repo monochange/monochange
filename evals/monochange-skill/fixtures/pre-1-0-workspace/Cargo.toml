@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = ["crates/util", "crates/tool"]
+
+[workspace.dependencies]
+acme-util = { path = "crates/util", version = "0.4.2" }

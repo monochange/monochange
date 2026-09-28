@@ -1,0 +1,16 @@
+// Deno workspace for the Acme text tools. The `workspace` member list is what
+// makes Deno (and monochange) treat `packages/*` as one versioned repository.
+{
+	"workspace": ["packages/*"],
+	"compilerOptions": {
+		"strict": true
+	},
+	"fmt": {
+		"lineWidth": 100
+	},
+	"lint": {
+		"rules": {
+			"tags": ["recommended"]
+		}
+	}
+}

@@ -255,6 +255,28 @@ in
       description = "Run the focused agent-style eval coverage for machine-readable workflows.";
       binary = "bash";
     };
+    # The skill evaluations drive a real coding agent in a throwaway monorepo and
+    # cost real time and money, so they are opt-in rather than part of `test:all`.
+    # See evals/monochange-skill/README.md before running them.
+    "eval:skill" = {
+      exec = ''
+        set -euo pipefail
+        cargo build --package monochange
+        node evals/monochange-skill/run.ts "$@"
+      '';
+      description = "Run the monochange skill evaluations (narrow with --scenario, list with --list).";
+      binary = "bash";
+    };
+    "eval:skill:contract" = {
+      exec = ''
+        set -euo pipefail
+        cargo build --package monochange
+        # Agent-free contracts only: no model calls, no cost.
+        node evals/monochange-skill/run.ts --scenario cli-self-sufficiency
+      '';
+      description = "Run the deterministic skill-eval contracts without invoking an agent.";
+      binary = "bash";
+    };
     "coverage:all" = {
       exec = ''
         set -euo pipefail
@@ -573,6 +595,10 @@ in
         set -euo pipefail
         mdt check
         cargo xtask skill commands check
+        # The agent skill ships inside the CLI binary (`monochange skill read`),
+        # so a skill edit without a matching committed copy would serve stale
+        # text. The copy lives in `crates/monochange/skill/`.
+        node scripts/docs/sync-skill.mjs --check
         pnpm node scripts/check-agent-surface.ts
       '';
       description = "Check that shared documentation blocks are synchronized and agent-facing docs stay aligned with the repo surface.";
@@ -583,6 +609,7 @@ in
         set -euo pipefail
         mdt update
         cargo xtask skill commands update
+        node scripts/docs/sync-skill.mjs
       '';
       description = "Update shared documentation blocks and generated skill command inventory.";
       binary = "bash";

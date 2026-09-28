@@ -27,6 +27,9 @@ use toml_edit::Value as TomlValue;
 
 use crate::OutputFormat;
 use crate::discover_workspace;
+use crate::workspace_ops::discover_workspace_with_configuration;
+use crate::workspace_ops::load_sorted_tags_sync;
+use crate::workspace_ops::seed_versions_from_tag_list;
 
 /// Flat package and group version inventory for a workspace.
 pub type VersionInventory = BTreeMap<String, String>;
@@ -98,6 +101,7 @@ type DetectVersionSyncChanges = fn(
 	&str,
 	&BTreeMap<String, String>,
 	&BTreeSet<String>,
+	&BTreeMap<String, String>,
 	VersionStrategy,
 ) -> MonochangeResult<Vec<DependencySyncChange>>;
 
@@ -176,11 +180,19 @@ pub fn sync_workspace_versions(
 }
 
 /// Build a version sync plan without writing files.
+///
+/// Tag-versioned packages (currently Go) carry no version in their manifests,
+/// so the plan seeds their canonical versions from release tags — the same
+/// baselines release planning resolves — before detecting stale internal
+/// dependency references. Without this pass a pure Go workspace would have an
+/// empty version map and `versions sync` would never report anything.
 pub fn plan_workspace_versions(
 	root: &Path,
 	strategy: VersionStrategy,
 ) -> MonochangeResult<VersionSyncPlan> {
-	let discovery = discover_workspace(root)?;
+	let configuration = monochange_config::load_workspace_configuration(root)?;
+	let mut discovery = discover_workspace_with_configuration(root, &configuration)?;
+	seed_versions_from_tag_list(&configuration, &mut discovery, &load_sorted_tags_sync(root));
 	plan_discovered_workspace_versions(root, strategy, &discovery)
 }
 
@@ -206,6 +218,7 @@ pub(crate) fn plan_discovered_workspace_versions_with_overrides(
 	manifest_contents: &BTreeMap<PathBuf, String>,
 ) -> MonochangeResult<VersionSyncPlan> {
 	let workspace_package_names = workspace_package_names(discovery);
+	let workspace_go_module_paths = workspace_go_module_paths(discovery);
 	let mut files = Vec::with_capacity(discovery.packages.len());
 	let skipped = Vec::new();
 
@@ -221,11 +234,16 @@ pub(crate) fn plan_discovered_workspace_versions_with_overrides(
 			.get(&manifest_path)
 			.cloned()
 			.map_or_else(|| read_manifest(&manifest_path), Ok)?;
-		let changes =
-			(adapter.detect_changes)(&contents, version_map, &workspace_package_names, strategy)
-				.map_err(|error| {
-					sync_context_error("detect", adapter.ecosystem, &package.manifest_path, &error)
-				})?;
+		let changes = (adapter.detect_changes)(
+			&contents,
+			version_map,
+			&workspace_package_names,
+			&workspace_go_module_paths,
+			strategy,
+		)
+		.map_err(|error| {
+			sync_context_error("detect", adapter.ecosystem, &package.manifest_path, &error)
+		})?;
 
 		if changes.is_empty() {
 			continue;
@@ -298,6 +316,29 @@ fn workspace_package_names(discovery: &DiscoveryReport) -> BTreeSet<String> {
 		.packages
 		.iter()
 		.map(|package| package.name.clone())
+		.collect()
+}
+
+/// Map a workspace package name to the Go module path declared by its `go.mod`.
+///
+/// A Go module's identity is its full module path (`github.com/acme/core`), not
+/// the derived short name (`core`). Matching a `require` directive by short name
+/// alone would rewrite an unrelated module that happens to end in the same
+/// segment, so `detect_go_changes` resolves against these paths.
+fn workspace_go_module_paths(discovery: &DiscoveryReport) -> BTreeMap<String, String> {
+	discovery
+		.packages
+		.iter()
+		.filter(|package| package.ecosystem == Ecosystem::Go)
+		.filter_map(|package| {
+			let manifest = std::fs::read_to_string(&package.manifest_path).ok()?;
+			let module_path = manifest.lines().find_map(|line| {
+				line.trim()
+					.strip_prefix("module ")
+					.map(|rest| rest.trim().trim_matches('"').to_string())
+			})?;
+			Some((package.name.clone(), module_path))
+		})
 		.collect()
 }
 
@@ -456,6 +497,7 @@ pub(crate) fn detect_cargo_changes(
 	contents: &str,
 	version_map: &BTreeMap<String, String>,
 	workspace_package_names: &BTreeSet<String>,
+	_workspace_go_module_paths: &BTreeMap<String, String>,
 	strategy: VersionStrategy,
 ) -> MonochangeResult<Vec<DependencySyncChange>> {
 	detect_toml_dependency_changes(
@@ -472,6 +514,7 @@ pub(crate) fn detect_python_changes(
 	contents: &str,
 	version_map: &BTreeMap<String, String>,
 	workspace_package_names: &BTreeSet<String>,
+	_workspace_go_module_paths: &BTreeMap<String, String>,
 	strategy: VersionStrategy,
 ) -> MonochangeResult<Vec<DependencySyncChange>> {
 	let document = contents.parse::<DocumentMut>().map_err(|error| {
@@ -517,6 +560,7 @@ pub(crate) fn detect_go_changes(
 	contents: &str,
 	version_map: &BTreeMap<String, String>,
 	workspace_package_names: &BTreeSet<String>,
+	workspace_go_module_paths: &BTreeMap<String, String>,
 	strategy: VersionStrategy,
 ) -> MonochangeResult<Vec<DependencySyncChange>> {
 	let contents = std::str::from_utf8(contents.as_bytes())
@@ -525,7 +569,7 @@ pub(crate) fn detect_go_changes(
 	for line in contents.lines() {
 		let trimmed = line.trim();
 		let parts = trimmed.split_whitespace().collect::<Vec<_>>();
-		let (Some(dep_name), Some(old_value)) = (match parts.as_slice() {
+		let (Some(module_path), Some(old_value)) = (match parts.as_slice() {
 			["require", name, version] | [name, version] | [name, version, "//", "indirect"] => {
 				(Some(*name), Some(*version))
 			}
@@ -533,15 +577,19 @@ pub(crate) fn detect_go_changes(
 		}) else {
 			continue;
 		};
-		if !workspace_package_names.contains(dep_name) {
+		let Some(workspace_name) = resolve_go_workspace_package(
+			module_path,
+			workspace_package_names,
+			workspace_go_module_paths,
+		) else {
 			continue;
-		}
-		let Some(version) = version_map.get(dep_name) else {
+		};
+		let Some(version) = version_map.get(&workspace_name) else {
 			continue;
 		};
 		push_change(
 			&mut changes,
-			dep_name,
+			module_path,
 			"require",
 			old_value,
 			target_constraint(Ecosystem::Go, version, strategy),
@@ -550,10 +598,38 @@ pub(crate) fn detect_go_changes(
 	Ok(changes)
 }
 
+/// Resolve a `require` module path to a workspace package name.
+///
+/// A Go module is identified by its full module path (`github.com/acme/core`),
+/// which the workspace's own `go.mod` declares. Matching by derived short name
+/// instead would treat any module ending in the same segment as a workspace
+/// member — `github.com/other/core` would be mistaken for `core` and rewritten
+/// to the workspace's version, silently corrupting an unrelated pin. So only an
+/// exact module-path match resolves; a package named literally `core` still
+/// matches a `require core` line through the short-name set.
+pub(crate) fn resolve_go_workspace_package(
+	module_path: &str,
+	workspace_package_names: &BTreeSet<String>,
+	workspace_go_module_paths: &BTreeMap<String, String>,
+) -> Option<String> {
+	if let Some((name, _)) = workspace_go_module_paths
+		.iter()
+		.find(|(_, path)| path.as_str() == module_path)
+	{
+		return Some(name.clone());
+	}
+	// A module whose own path is a bare name (`module core`) is identified by
+	// that name directly.
+	workspace_package_names
+		.contains(module_path)
+		.then(|| module_path.to_string())
+}
+
 pub(crate) fn detect_deno_changes(
 	contents: &str,
 	version_map: &BTreeMap<String, String>,
 	workspace_package_names: &BTreeSet<String>,
+	_workspace_go_module_paths: &BTreeMap<String, String>,
 	strategy: VersionStrategy,
 ) -> MonochangeResult<Vec<DependencySyncChange>> {
 	let normalized = monochange_core::strip_json_comments(contents);
@@ -588,6 +664,7 @@ pub(crate) fn detect_dart_changes(
 	contents: &str,
 	version_map: &BTreeMap<String, String>,
 	workspace_package_names: &BTreeSet<String>,
+	_workspace_go_module_paths: &BTreeMap<String, String>,
 	strategy: VersionStrategy,
 ) -> MonochangeResult<Vec<DependencySyncChange>> {
 	monochange_dart::sync_internal_dependency_versions(
@@ -602,6 +679,7 @@ fn detect_npm_changes(
 	contents: &str,
 	version_map: &BTreeMap<String, String>,
 	workspace_package_names: &BTreeSet<String>,
+	_workspace_go_module_paths: &BTreeMap<String, String>,
 	strategy: VersionStrategy,
 ) -> MonochangeResult<Vec<DependencySyncChange>> {
 	monochange_npm::sync_internal_dependency_versions(
@@ -643,12 +721,11 @@ fn apply_deno_changes(
 fn apply_go_changes(contents: &str, changes: &[DependencySyncChange]) -> MonochangeResult<String> {
 	let contents = std::str::from_utf8(contents.as_bytes())
 		.map_err(|error| MonochangeError::Config(format!("failed to read go.mod text: {error}")))?;
-	let mut versioned_deps = versioned_deps_from_changes(changes);
-	for change in changes {
-		if let Some(module_name) = change.dependency_name.rsplit('/').next() {
-			versioned_deps.insert(module_name.to_string(), change.new_value.clone());
-		}
-	}
+	// Changes are keyed by the full module path from the `require` directive, so
+	// `update_go_mod_text` matches each line by exact module path and never
+	// rewrites an external module that happens to share a last segment with a
+	// workspace package.
+	let versioned_deps = versioned_deps_from_changes(changes);
 	Ok(monochange_go::update_go_mod_text(contents, &versioned_deps))
 }
 

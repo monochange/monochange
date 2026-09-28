@@ -1,0 +1,34 @@
+{
+	"id": "invalid-changeset-diagnostics",
+	"title": "Invalid changesets fail with diagnostics an agent can recover from",
+	"fixture": "rust-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "Three distinct authoring mistakes each fail `monochange step validate` with exit 1 and a message that names the problem: an unknown target id says `unknown package or group`; an unquoted scoped id fails frontmatter parsing rather than silently targeting nothing; a bump value that is not a configured type names the invalid scalar and lists the valid types. A valid changeset still exits 0. These messages are how an agent recovers from a mistake, so their exit codes and key fragments are pinned.",
+	"checks": [
+		{
+			"id": "unknown-target-is-rejected",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\n\"@acme/nope\": feat\\n---\\n\\nBad\\n' > .changeset/bad.md; monochange step validate > .diag.out 2>&1; rc=$?; grep -q 'unknown package or group' .diag.out; found=$?; rm -f .changeset/bad.md .diag.out; test $rc -eq 1 -a $found -eq 0",
+			"why": "A target that is not a configured package or group must be rejected rather than silently ignored, and the message must name the category of mistake."
+		},
+		{
+			"id": "unquoted-scoped-id-is-a-parse-error",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\n@acme/api: feat\\n---\\n\\nBad\\n' > .changeset/bad.md; monochange step validate > .diag.out 2>&1; rc=$?; grep -q 'frontmatter parse error' .diag.out; found=$?; rm -f .changeset/bad.md .diag.out; test $rc -eq 1 -a $found -eq 0",
+			"why": "A scoped id is not a valid YAML key unquoted. The failure must be a frontmatter parse error rather than a silent pass, because a silent pass would record release intent against nothing."
+		},
+		{
+			"id": "invalid-bump-names-the-valid-types",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\n\"acme-core\": huge\\n---\\n\\nBad\\n' > .changeset/bad.md; monochange step validate > .diag.out 2>&1; rc=$?; grep -q 'invalid scalar change type' .diag.out; a=$?; grep -q 'valid types' .diag.out; b=$?; rm -f .changeset/bad.md .diag.out; test $rc -eq 1 -a $a -eq 0 -a $b -eq 0",
+			"why": "An unconfigured severity must be rejected, and the message must both echo the invalid value and list what is valid, which is the difference between an agent fixing the file and an agent guessing again."
+		},
+		{
+			"id": "valid-changeset-still-passes",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\nacme-core: feat\\n---\\n\\nAdd a helper\\n' > .changeset/ok.md; monochange step validate > .diag.out 2>&1; rc=$?; rm -f .changeset/ok.md .diag.out; exit $rc",
+			"why": "The rejection checks above must not come from a harness or configuration problem; a correct changeset still validates cleanly in the same workdir."
+		}
+	]
+}

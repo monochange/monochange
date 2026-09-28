@@ -10,7 +10,7 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, and Dart/Flutter, then coordinates version bumps, changelogs, and release automation from a single monochange.toml config.
+monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Python, and Go, then coordinates version bumps, changelogs, and release automation from a single monochange.toml config.
 
 Usage: monochange [OPTIONS] <COMMAND>
 
@@ -19,7 +19,7 @@ Built-in Commands:
   init           Generate monochange.toml with detected packages, groups, and default CLI commands
   populate       Add any missing built-in CLI commands to monochange.toml so you can customize them
   command        Open an interactive dashboard for adding or editing config-defined CLI commands
-  skill          Install the monochange skill bundle into the current project with the skills CLI
+  skill          Read or install the bundled monochange agent skill
   subagents      Generate repo-local monochange subagents and agent guidance files
   change         Determine the release severity of repository changes
   api            Inspect lower-level API diffs
