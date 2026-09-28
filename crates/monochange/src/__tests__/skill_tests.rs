@@ -1,5 +1,6 @@
 #![allow(clippy::disallowed_methods)]
 use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -316,4 +317,111 @@ fn suggested_destinations_are_named_monochange_under_known_runtimes() {
 			path.display()
 		);
 	}
+}
+
+/// A writer whose every operation fails, so the verbatim write paths are
+/// exercised without needing a closed stdout.
+struct FailingWriter;
+
+impl std::io::Write for FailingWriter {
+	fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+		Err(std::io::Error::other("write refused"))
+	}
+
+	fn flush(&mut self) -> std::io::Result<()> {
+		Err(std::io::Error::other("flush refused"))
+	}
+}
+
+#[test]
+fn write_verbatim_reports_writer_and_flush_failures() {
+	let write_error = write_verbatim_to(&mut FailingWriter, "document")
+		.err()
+		.unwrap_or_else(|| panic!("expected a write failure"));
+	assert!(
+		write_error
+			.to_string()
+			.contains("failed to write the skill document"),
+		"unexpected write error: {write_error}"
+	);
+
+	// A writer that accepts the bytes but cannot flush covers the second path.
+	struct Unflushable;
+	impl std::io::Write for Unflushable {
+		fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+			Ok(bytes.len())
+		}
+
+		fn flush(&mut self) -> std::io::Result<()> {
+			Err(std::io::Error::other("flush refused"))
+		}
+	}
+	let flush_error = write_verbatim_to(&mut Unflushable, "document")
+		.err()
+		.unwrap_or_else(|| panic!("expected a flush failure"));
+	assert!(
+		flush_error
+			.to_string()
+			.contains("failed to flush the skill document"),
+		"unexpected flush error: {flush_error}"
+	);
+}
+
+#[test]
+fn install_reports_a_write_failure_instead_of_claiming_success() {
+	let directory = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let destination = directory.path().join("monochange");
+
+	// Install once so the tree exists, then make one document read-only. A
+	// read-only *directory* is not enough on every platform, because rewriting
+	// an existing file needs no directory write permission; a read-only file
+	// fails `fs::write` deterministically.
+	run_skill(SkillAction::Install {
+		destination: Some(destination.clone()),
+		force: false,
+	})
+	.unwrap_or_else(|error| panic!("initial install: {error}"));
+
+	let document = destination.join("SKILL.md");
+	let mode = std::fs::metadata(&document)
+		.unwrap_or_else(|error| panic!("metadata: {error}"))
+		.permissions()
+		.mode();
+	std::fs::set_permissions(&document, PermissionsExt::from_mode(0o444))
+		.unwrap_or_else(|error| panic!("read-only: {error}"));
+
+	let error = run_skill(SkillAction::Install {
+		destination: Some(destination),
+		force: true,
+	})
+	.err()
+	.unwrap_or_else(|| panic!("expected the read-only install to fail"));
+
+	std::fs::set_permissions(&document, PermissionsExt::from_mode(mode))
+		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
+	assert!(
+		error.to_string().contains("failed to write"),
+		"expected a write failure, got: {error}"
+	);
+}
+
+#[test]
+fn install_reports_a_create_failure_when_a_path_component_is_a_file() {
+	let directory = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
+	// A regular file where a directory component belongs makes `create_dir_all`
+	// fail, so the failure comes from creating the parent rather than writing.
+	let blocker = directory.path().join("blocker");
+	fs::write(&blocker, b"not a directory").unwrap_or_else(|error| panic!("blocker: {error}"));
+
+	let error = run_skill(SkillAction::Install {
+		destination: Some(blocker.join("monochange")),
+		force: false,
+	})
+	.err()
+	.unwrap_or_else(|| panic!("expected the blocked install to fail"));
+	assert!(
+		error.to_string().contains("failed to create"),
+		"unexpected error: {error}"
+	);
 }

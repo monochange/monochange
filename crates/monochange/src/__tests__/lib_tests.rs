@@ -17099,3 +17099,54 @@ fn cli_snapshot_classification_renders_json_output() {
 	assert!(output.contains("cli snapshot recommendation: minor"));
 	assert!(output.contains("command `deploy` was added"));
 }
+
+#[test]
+fn skill_command_honors_quiet_without_changing_execution() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("--quiet"),
+			OsString::from("skill"),
+			OsString::from("read"),
+			OsString::from("monochange"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("quiet skill read: {error}"));
+	assert!(
+		output.trim().is_empty(),
+		"--quiet must suppress the skill document output, got: {output:?}"
+	);
+}
+
+#[test]
+fn add_interactive_change_file_reports_a_create_failure_when_a_parent_is_a_file() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("changeset-target-metadata/render-workspace", tempdir.path());
+
+	// A regular file where a parent directory belongs makes `create_dir_all`
+	// fail before the interactive change file can be written.
+	let blocker = tempdir.path().join("blocker.md");
+	fs::write(&blocker, b"not a directory").unwrap_or_else(|error| panic!("blocker: {error}"));
+	let output = blocker.join("nested.md");
+
+	let result = InteractiveChangeResult {
+		targets: vec![InteractiveTarget {
+			id: "core".to_string(),
+			bump: BumpSeverity::Minor,
+			version: None,
+			change_type: None,
+		}],
+		caused_by: Vec::new(),
+		reason: "Add a helper".to_string(),
+		details: None,
+	};
+	let error = add_interactive_change_file(tempdir.path(), &result, Some(&output))
+		.err()
+		.unwrap_or_else(|| panic!("expected the blocked create to fail"));
+	assert!(
+		error.to_string().contains("failed to create"),
+		"unexpected error: {error}"
+	);
+}

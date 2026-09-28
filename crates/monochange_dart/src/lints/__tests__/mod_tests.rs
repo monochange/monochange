@@ -242,6 +242,8 @@ fn unquote_yaml_key_keeps_bare_and_malformed_keys() {
 	assert_eq!(unquote_yaml_key("'"), "'");
 	assert_eq!(unquote_yaml_key("'core"), "'core");
 	assert_eq!(unquote_yaml_key("'core' tail"), "'core' tail");
+	assert_eq!(unquote_yaml_key("'a' 'b'"), "'a' 'b'");
+	assert_eq!(unquote_yaml_key(r#""\q""#), r#""\q""#);
 }
 
 #[test]

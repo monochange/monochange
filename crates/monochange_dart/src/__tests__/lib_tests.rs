@@ -344,6 +344,9 @@ fn unquote_yaml_key_keeps_bare_and_malformed_keys() {
 	assert_eq!(crate::unquote_yaml_key("'core"), "'core");
 	assert_eq!(crate::unquote_yaml_key("'core' tail"), "'core' tail");
 	assert_eq!(crate::unquote_yaml_key("'a' 'b'"), "'a' 'b'");
+	// A quoted key with an invalid escape cannot be parsed as a YAML scalar, so
+	// the raw text is kept rather than guessed at.
+	assert_eq!(crate::unquote_yaml_key(r#""\q""#), r#""\q""#);
 }
 
 #[test]

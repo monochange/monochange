@@ -1531,10 +1531,19 @@ async fn seed_versions_from_release_tags(
 /// Commands like `monochange versions sync` run outside the async release
 /// pipeline, so they need a blocking variant of `load_sorted_tags`.
 pub(crate) fn load_sorted_tags_sync(root: &Path) -> Vec<String> {
-	let Ok(output) = monochange_core::git::git_command(root)
+	let output = monochange_core::git::git_command(root)
 		.args(["tag", "--list", "--sort=-v:refname"])
-		.output()
-	else {
+		.output();
+	sorted_tags_from_git_output(output)
+}
+
+/// Turn a `git tag` result into the sorted tag list.
+///
+/// Split from `load_sorted_tags_sync` so both failure shapes — a command that
+/// could not run at all, and a command that ran and failed — are reachable from
+/// a test without needing to make `git` disappear from the machine.
+fn sorted_tags_from_git_output(output: std::io::Result<std::process::Output>) -> Vec<String> {
+	let Ok(output) = output else {
 		return Vec::new();
 	};
 	if !output.status.success() {
@@ -1679,9 +1688,10 @@ pub fn add_change_file(
 	let planned = plan_change_file(root, request)?;
 
 	if let Some(parent) = planned.path.parent() {
-		fs::create_dir_all(parent).map_err(|error| {
+		let created = fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
-		})?;
+		});
+		created?;
 	}
 
 	fs::write(&planned.path, planned.content).map_err(|error| {
@@ -1727,9 +1737,10 @@ pub(crate) fn add_interactive_change_file(
 	let planned = plan_interactive_change_file(root, result, output)?;
 
 	if let Some(parent) = planned.path.parent() {
-		fs::create_dir_all(parent).map_err(|error| {
+		let created = fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
-		})?;
+		});
+		created?;
 	}
 
 	fs::write(&planned.path, planned.content).map_err(|error| {

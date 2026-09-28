@@ -1253,3 +1253,63 @@ async fn input_fingerprint_is_stable_across_equivalent_workspace_locations() {
 		"the fingerprint must be workspace-relative so identical checkouts match"
 	);
 }
+
+#[test]
+fn fingerprint_fails_when_a_changeset_input_cannot_be_read() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+
+	// A directory named like a changeset is discovered as an input but cannot be
+	// read as a file, so the fingerprint reports the unreadable input instead of
+	// silently hashing around it.
+	let trap = root.join(".changeset").join("trap.md");
+	fs::create_dir_all(&trap).unwrap_or_else(|error| panic!("create trap: {error}"));
+
+	let error = prepared_release_input_fingerprint(root, &configuration)
+		.err()
+		.unwrap_or_else(|| panic!("expected the unreadable input to fail the fingerprint"));
+	assert!(
+		error
+			.to_string()
+			.contains("failed to read prepared release input"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn package_manifest_inputs_stop_at_the_repository_root() {
+	// An absolute package path that does not sit under the root must not walk
+	// ancestors outside the workspace: the loop breaks before reading anything.
+	let mut inputs = BTreeSet::new();
+	let escaping = PackageDefinition {
+		id: "escape".to_string(),
+		path: PathBuf::from("/definitely/not/under/root"),
+		package_type: PackageType::Cargo,
+		changelog: None,
+		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		ignore_ecosystem_versioned_files: false,
+		ignored_paths: Vec::new(),
+		additional_paths: Vec::new(),
+		tag: false,
+		release: false,
+		version_format: monochange_core::VersionFormat::Namespaced,
+		version_source: monochange_core::VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+		floating_tags: Vec::new(),
+		publish: monochange_core::PublishSettings::default(),
+		cli: None,
+		values: std::collections::BTreeMap::new(),
+		display_version: None,
+	};
+	insert_package_manifest_inputs(&mut inputs, Path::new("."), &escaping);
+	assert!(inputs.is_empty(), "unexpected inputs: {inputs:?}");
+}

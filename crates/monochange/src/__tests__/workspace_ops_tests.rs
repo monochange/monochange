@@ -3270,3 +3270,102 @@ fn plan_change_file_renders_content_without_writing_to_disk() {
 		"planning must not create changeset files"
 	);
 }
+
+#[test]
+fn load_sorted_tags_sync_returns_empty_when_git_fails() {
+	// A directory with no repository makes `git tag` exit non-zero, which the
+	// blocking tag loader treats as "no tags" rather than an error.
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let tags = load_sorted_tags_sync(tempdir.path());
+	assert!(
+		tags.is_empty(),
+		"unexpected tags outside a repository: {tags:?}"
+	);
+}
+
+#[test]
+fn add_change_file_reports_a_write_failure() {
+	let tempdir = monochange_test_helpers::fs::setup_scenario_workspace_from(
+		env!("CARGO_MANIFEST_DIR"),
+		"create-change-file/single-cargo",
+	);
+	let root = tempdir.path();
+
+	// A directory named like the changeset file makes `fs::write` fail while the
+	// parent directory still exists, so the failure comes from the write itself.
+	let blocked = root.join(".changeset").join("blocked.md");
+	std::fs::create_dir_all(&blocked).unwrap_or_else(|error| panic!("blocker: {error}"));
+
+	let request = AddChangeFileRequest {
+		package_refs: &["core".to_string()],
+		bump: monochange_core::BumpSeverity::Minor,
+		reason: "Add a helper",
+		version: None,
+		change_type: None,
+		caused_by: &[],
+		details: None,
+		output: Some(blocked.as_path()),
+	};
+	let error = add_change_file(root, request)
+		.err()
+		.unwrap_or_else(|| panic!("expected the blocked write to fail"));
+	assert!(
+		error.to_string().contains("failed to write"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn sorted_tags_from_git_output_handles_both_failure_shapes() {
+	// A command that could not run at all contributes no tags.
+	let spawn_failure = sorted_tags_from_git_output(Err(std::io::Error::other("no git")));
+	assert!(
+		spawn_failure.is_empty(),
+		"unexpected tags: {spawn_failure:?}"
+	);
+
+	// A command that ran and failed also contributes no tags.
+	let failed = std::process::Command::new("false")
+		.output()
+		.unwrap_or_else(|error| panic!("run false: {error}"));
+	assert!(sorted_tags_from_git_output(Ok(failed)).is_empty());
+
+	// A successful empty listing round-trips to an empty list.
+	let empty = std::process::Command::new("true")
+		.output()
+		.unwrap_or_else(|error| panic!("run true: {error}"));
+	assert!(sorted_tags_from_git_output(Ok(empty)).is_empty());
+}
+
+#[test]
+fn add_change_file_reports_a_create_failure_when_a_parent_component_is_a_file() {
+	let tempdir = monochange_test_helpers::fs::setup_scenario_workspace_from(
+		env!("CARGO_MANIFEST_DIR"),
+		"create-change-file/single-cargo",
+	);
+	let root = tempdir.path();
+
+	// A regular file where a parent directory belongs makes `create_dir_all`
+	// fail before any write is attempted.
+	let blocker = root.join("blocker.md");
+	std::fs::write(&blocker, b"not a directory").unwrap_or_else(|error| panic!("blocker: {error}"));
+	let nested = blocker.join("nested.md");
+
+	let request = AddChangeFileRequest {
+		package_refs: &["core".to_string()],
+		bump: monochange_core::BumpSeverity::Minor,
+		reason: "Add a helper",
+		version: None,
+		change_type: None,
+		caused_by: &[],
+		details: None,
+		output: Some(nested.as_path()),
+	};
+	let error = add_change_file(root, request)
+		.err()
+		.unwrap_or_else(|| panic!("expected the blocked create to fail"));
+	assert!(
+		error.to_string().contains("failed to create"),
+		"unexpected error: {error}"
+	);
+}

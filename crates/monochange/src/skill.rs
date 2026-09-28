@@ -20,7 +20,6 @@
 //! the relative links written in the documents keep resolving after install.
 
 use std::fmt::Write as _;
-use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -284,6 +283,8 @@ fn install(destination: Option<PathBuf>, force: bool) -> MonochangeResult<SkillO
 			destination.display()
 		)));
 	}
+	// `write_tree` names the exact file that failed; the destination is added
+	// here so an agent knows which install directory was being populated.
 	let files = write_tree(&destination).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to write the skill into {}: {error}",
@@ -294,16 +295,21 @@ fn install(destination: Option<PathBuf>, force: bool) -> MonochangeResult<SkillO
 }
 
 /// Write every bundled document under `directory`, returning the file count.
-fn write_tree(directory: &Path) -> std::io::Result<usize> {
+fn write_tree(directory: &Path) -> MonochangeResult<usize> {
 	let mut written = 0usize;
 	for topic in topics() {
 		// The install paths come from the static table, never from input, so a
 		// plain join cannot escape the destination.
 		let path = directory.join(topic.file);
 		if let Some(parent) = path.parent() {
-			std::fs::create_dir_all(parent)?;
+			let created = std::fs::create_dir_all(parent).map_err(|error| {
+				MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
+			});
+			created?;
 		}
-		std::fs::write(path, topic.content)?;
+		std::fs::write(&path, topic.content).map_err(|error| {
+			MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
+		})?;
 		written += 1;
 	}
 	Ok(written)
@@ -313,10 +319,19 @@ fn write_tree(directory: &Path) -> std::io::Result<usize> {
 fn write_verbatim(content: &str) -> MonochangeResult<()> {
 	let stdout = std::io::stdout();
 	let mut handle = stdout.lock();
-	handle.write_all(content.as_bytes()).map_err(|error| {
+	write_verbatim_to(&mut handle, content)
+}
+
+/// Write a document verbatim to any writer.
+///
+/// Split out from [`write_verbatim`] so the write and flush failures are
+/// reachable from a test with a failing writer rather than only from a closed
+/// stdout.
+fn write_verbatim_to(writer: &mut dyn std::io::Write, content: &str) -> MonochangeResult<()> {
+	writer.write_all(content.as_bytes()).map_err(|error| {
 		MonochangeError::Io(format!("failed to write the skill document: {error}"))
 	})?;
-	handle.flush().map_err(|error| {
+	writer.flush().map_err(|error| {
 		MonochangeError::Io(format!("failed to flush the skill document: {error}"))
 	})
 }

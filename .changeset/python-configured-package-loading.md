@@ -1,6 +1,6 @@
 ---
 "monochange": fix
-"monochange_python": fix
+"monochange_python": minor
 ---
 
 # Release explicitly configured Python packages

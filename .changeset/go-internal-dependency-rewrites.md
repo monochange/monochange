@@ -1,6 +1,6 @@
 ---
 "monochange": fix
-"monochange_go": fix
+"monochange_go": minor
 ---
 
 # Rewrite internal Go `require` directives during release preparation
