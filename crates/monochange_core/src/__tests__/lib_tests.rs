@@ -5277,3 +5277,54 @@ fn validate_floating_tag_template_variables_rejects_unknown_variables() {
 	assert!(validate_floating_tag_template_variables("v{{ beta }}", "test").is_err());
 	assert!(validate_floating_tag_template_variables("v{{", "test").is_err());
 }
+
+#[test]
+fn package_record_rebase_id_uses_the_discovery_root() {
+	// Standalone manifests carry their own directory as the workspace root, so
+	// without rebasing every package in a repository would share one id.
+	let root = PathBuf::from("fixtures/tests/standalone-discovery/no-workspace-root");
+	let mut alpha = PackageRecord::new(
+		Ecosystem::Cargo,
+		"alpha",
+		root.join("crates/alpha/Cargo.toml"),
+		root.join("crates/alpha"),
+		Some(Version::new(0, 1, 0)),
+		PublishState::Public,
+	);
+	let mut beta = PackageRecord::new(
+		Ecosystem::Cargo,
+		"beta",
+		root.join("crates/beta/Cargo.toml"),
+		root.join("crates/beta"),
+		Some(Version::new(0, 1, 0)),
+		PublishState::Public,
+	);
+
+	assert_eq!(alpha.id, "cargo:Cargo.toml");
+	assert_eq!(beta.id, "cargo:Cargo.toml");
+
+	alpha.rebase_id(&root);
+	beta.rebase_id(&root);
+
+	assert_eq!(alpha.id, "cargo:crates/alpha/Cargo.toml");
+	assert_eq!(beta.id, "cargo:crates/beta/Cargo.toml");
+}
+
+#[test]
+fn package_record_rebase_id_keeps_the_id_when_the_manifest_is_outside_the_root() {
+	let mut package = PackageRecord::new(
+		Ecosystem::Cargo,
+		"external",
+		PathBuf::from("fixtures/cargo/workspace/crates/core/Cargo.toml"),
+		PathBuf::from("fixtures/cargo/workspace"),
+		Some(Version::new(1, 0, 0)),
+		PublishState::Public,
+	);
+	let original_id = package.id.clone();
+
+	package.rebase_id(Path::new(
+		"fixtures/tests/standalone-discovery/no-workspace-root",
+	));
+
+	assert_eq!(package.id, original_id);
+}

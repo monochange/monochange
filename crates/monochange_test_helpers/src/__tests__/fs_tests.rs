@@ -74,3 +74,28 @@ fn copy_directory_refreshes_modification_times() {
 		"copied file must get a fresh mtime, copied={copied_mtime:?} source={source_mtime:?}"
 	);
 }
+
+#[test]
+fn copy_directory_survives_files_that_cannot_be_reopened_for_writing() {
+	// The mtime refresh must never fail the copy. Copying a file that cannot be
+	// reopened for writing still produces the destination file.
+	let source = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let destination = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let locked = source.path().join("locked.txt");
+	fs::write(&locked, "contents").unwrap_or_else(|error| panic!("write locked file: {error}"));
+
+	let mut permissions = fs::metadata(&locked)
+		.unwrap_or_else(|error| panic!("metadata locked file: {error}"))
+		.permissions();
+	permissions.set_readonly(true);
+	fs::set_permissions(&locked, permissions)
+		.unwrap_or_else(|error| panic!("make locked file readonly: {error}"));
+
+	copy_directory(source.path(), destination.path());
+
+	assert_eq!(
+		fs::read_to_string(destination.path().join("locked.txt"))
+			.unwrap_or_else(|error| panic!("read copied file: {error}")),
+		"contents"
+	);
+}
