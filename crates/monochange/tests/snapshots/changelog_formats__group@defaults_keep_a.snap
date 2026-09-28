@@ -15,4 +15,5 @@ Grouped release for `sdk`.
 
 ### Features
 
-- 🟠 **core**: **add keep a changelog support.**
+- **add keep a changelog support.**
+  _Packages:_ 🟠 _core_

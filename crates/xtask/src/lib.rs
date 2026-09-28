@@ -278,7 +278,6 @@ struct ConfigVariant {
 	group_release: bool,
 	with_changelog: bool,
 	changelog_style: String,
-	package_label_placement: String,
 	with_ecosystems: bool,
 	enabled_ecosystem: String,
 	with_changesets_affected: bool,
@@ -693,7 +692,6 @@ fn current_config_variants() -> Vec<ConfigVariant> {
 			any::<bool>(),
 			any::<bool>(),
 			prop::sample::select(&["plain", "details"][..]),
-			prop::sample::select(&["after_heading", "after_change"][..]),
 			any::<bool>(),
 			prop::sample::select(&["cargo", "npm", "deno", "dart", "python", "go"][..]),
 			any::<bool>(),
@@ -721,7 +719,6 @@ fn current_config_variants() -> Vec<ConfigVariant> {
 					group_release,
 					with_changelog,
 					changelog_style,
-					package_label_placement,
 					with_ecosystems,
 					enabled_ecosystem,
 					with_changesets_affected,
@@ -749,7 +746,6 @@ fn current_config_variants() -> Vec<ConfigVariant> {
 					group_release,
 					with_changelog,
 					changelog_style: changelog_style.to_string(),
-					package_label_placement: package_label_placement.to_string(),
 					with_ecosystems,
 					enabled_ecosystem: enabled_ecosystem.to_string(),
 					with_changesets_affected,
@@ -1088,10 +1084,6 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 		let mut changelog = Map::new();
 		let mut style = Map::new();
 		style.insert("section_separator".to_string(), json!("thematic_break"));
-		style.insert(
-			"package_label_placement".to_string(),
-			json!(&variant.package_label_placement),
-		);
 		style.insert(
 			"collapsed_section_style".to_string(),
 			json!(&variant.changelog_style),

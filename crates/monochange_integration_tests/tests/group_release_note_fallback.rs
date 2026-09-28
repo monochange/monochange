@@ -17,6 +17,7 @@ const CASES: &[&str] = &[
 	"group-empty-members-empty",
 	"group-empty-one-member-note",
 	"group-real-member-note",
+	"group-shared-changeset",
 	"ungrouped-empty-package",
 ];
 
@@ -258,4 +259,56 @@ fn group_release_note_fallback_scenarios_snapshot_generated_changelogs() {
 	}
 
 	assert_json_snapshot!(Value::Object(snapshots));
+}
+
+#[test]
+fn one_shared_changeset_publishes_once_in_the_group_release_body() {
+	let tempdir = setup_case("group-shared-changeset");
+	let output = publish_release_dry_run(tempdir.path());
+	let bodies = release_bodies(&output);
+	let body = bodies
+		.first()
+		.unwrap_or_else(|| panic!("expected a group release body: {output:#?}"));
+	let body = normalize_commit_links(body);
+
+	// One changeset targets core as breaking, app as a feature, and cli as a fix.
+	// It must publish once, in the highest-priority section, naming every package.
+	assert_eq!(
+		body.matches("Split the release note renderer").count(),
+		1,
+		"the shared change must appear exactly once:\n{body}"
+	);
+	assert_eq!(
+		body.matches("_Packages:_").count(),
+		1,
+		"the package line must appear exactly once:\n{body}"
+	);
+	assert!(
+		body.contains("_Packages:_ 🔴 _core_, 🟠 _app_, 🟢 _cli_"),
+		"every affected package must keep its own bump symbol:\n{body}"
+	);
+	assert!(
+		!body.contains("## `core`") && !body.contains("## `app`") && !body.contains("## `cli`"),
+		"the group body must not nest a section per member package:\n{body}"
+	);
+
+	// A multi-line change renders as a heading with the package line directly
+	// beneath it, so a reader learns what changed and what it affects before
+	// reading the explanation.
+	let heading = body
+		.find("### Split the release note renderer")
+		.unwrap_or_else(|| panic!("missing entry heading:\n{body}"));
+	let packages = body
+		.find("_Packages:_")
+		.unwrap_or_else(|| panic!("missing package line:\n{body}"));
+	let owner = body
+		.find("_Owner:_")
+		.unwrap_or_else(|| panic!("missing owner line:\n{body}"));
+	let explanation = body
+		.find("One changeset targets three packages")
+		.unwrap_or_else(|| panic!("missing explanation:\n{body}"));
+	assert!(
+		heading < packages && packages < owner && owner < explanation,
+		"expected heading < packages < owner < explanation:\n{body}"
+	);
 }

@@ -1514,3 +1514,34 @@ fn validate_versioned_file_rejects_missing_file() {
 	assert!(result.is_err());
 	assert!(result.unwrap_err().to_string().contains("not readable"));
 }
+
+#[test]
+fn standalone_crates_without_workspace_root_keep_distinct_ids() {
+	// Regression: every standalone manifest was parsed with its own directory as
+	// the workspace root, so all three crates produced the id `cargo:Cargo.toml`
+	// and the sort+dedup kept only one of them.
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/standalone-discovery/no-workspace-root");
+	let discovery = discover_cargo_packages(&fixture_root)
+		.unwrap_or_else(|error| panic!("cargo discovery: {error}"));
+
+	let names = discovery
+		.packages
+		.iter()
+		.map(|package| package.name.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(names, vec!["alpha", "beta", "gamma"]);
+	let ids = discovery
+		.packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		ids,
+		vec![
+			"cargo:crates/alpha/Cargo.toml",
+			"cargo:crates/beta/Cargo.toml",
+			"cargo:crates/gamma/Cargo.toml",
+		]
+	);
+}

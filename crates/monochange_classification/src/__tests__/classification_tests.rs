@@ -453,7 +453,7 @@ fn pull_request_break_against_an_unreleased_api_is_not_a_release_break() {
 	assert_eq!(decision.finding_ids, vec!["current".to_string()]);
 	assert_eq!(decision.confidence, ClassificationConfidence::High);
 	assert!(
-		recommendation_summary(&decision, &[current.clone(), release.clone()])
+		recommendation_summary(&decision, &[current.clone(), release.clone()], 0)
 			.contains("the break applies to the default branch, not the latest release")
 	);
 }
@@ -485,6 +485,100 @@ fn release_floor_keeps_a_break_an_earlier_merge_introduced() {
 	assert_eq!(decision.enforceable_minimum, BumpSeverity::Minor);
 	assert_eq!(decision.release_floor, BumpSeverity::Major);
 	assert_eq!(decision.release_impact, Some(CompatibilityImpact::Breaking));
+}
+
+#[test]
+fn default_branch_findings_do_not_propose_a_bump_for_an_untouched_package() {
+	// The pull request never modified this package. Both findings come from the
+	// `release`/`releaseToDefault` intervals, which describe what the default
+	// branch already accumulated, so the package proposes nothing here while the
+	// release floor still reports the accumulated break.
+	let mut release = finding_from_semantic_change(
+		"release".to_string(),
+		"cargo/public-api",
+		&removed_api_change(),
+		DetectionLevel::Signature,
+	);
+	release.comparisons = [ComparisonKind::Release, ComparisonKind::ReleaseToDefault]
+		.into_iter()
+		.collect();
+
+	let decision = build_recommendation(&[release], false, true, None, true);
+
+	assert!(!decision.pull_request_changes);
+	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::None);
+	assert_eq!(decision.enforceable_minimum, BumpSeverity::None);
+	assert_eq!(decision.release_floor, BumpSeverity::Major);
+	assert_eq!(decision.release_impact, Some(CompatibilityImpact::Breaking));
+	assert_eq!(
+		decision.compatibility_impact,
+		CompatibilityImpact::Compatible
+	);
+	assert_eq!(decision.completeness, AnalysisCompleteness::Complete);
+	assert!(!decision.review_required);
+	assert!(decision.finding_ids.is_empty());
+}
+
+#[test]
+fn a_pull_request_finding_reaching_into_the_release_interval_still_proposes() {
+	// The same evidence exists in the pull request and release intervals, so the
+	// change belongs to this pull request as well.
+	let mut current = finding_from_semantic_change(
+		"current".to_string(),
+		"cargo/public-api",
+		&removed_api_change(),
+		DetectionLevel::Signature,
+	);
+	current.comparisons = [
+		ComparisonKind::PullRequest,
+		ComparisonKind::Release,
+		ComparisonKind::ReleaseToDefault,
+	]
+	.into_iter()
+	.collect();
+
+	let decision = build_recommendation(&[current], true, true, None, true);
+
+	assert!(decision.pull_request_changes);
+	assert_eq!(decision.proposed_changeset_bump, BumpSeverity::Major);
+	assert_eq!(decision.release_floor, BumpSeverity::Major);
+	assert_eq!(decision.finding_ids, vec!["current".to_string()]);
+}
+
+#[test]
+fn an_untouched_package_with_pending_intent_reports_the_unmatched_intent() {
+	let mut release = finding_from_semantic_change(
+		"release".to_string(),
+		"cargo/public-api",
+		&removed_api_change(),
+		DetectionLevel::Signature,
+	);
+	release.comparisons = [ComparisonKind::Release].into_iter().collect();
+	let decision = build_recommendation(&[release.clone()], false, true, None, true);
+
+	let summary = recommendation_summary(&decision, &[release], 1);
+
+	assert_eq!(
+		summary,
+		"the pull request does not change this package; the pending changeset intent needs review"
+	);
+}
+
+#[test]
+fn an_untouched_package_without_pending_intent_is_unaffected() {
+	let mut release = finding_from_semantic_change(
+		"release".to_string(),
+		"cargo/public-api",
+		&removed_api_change(),
+		DetectionLevel::Signature,
+	);
+	release.comparisons = [ComparisonKind::Release].into_iter().collect();
+	let decision = build_recommendation(&[release.clone()], false, true, None, true);
+
+	assert_eq!(
+		recommendation_summary(&decision, &[release], 0),
+		"no package change requires a changeset"
+	);
 }
 
 #[test]
@@ -829,20 +923,22 @@ fn fallback_findings_and_summaries_make_uncertainty_explicit() {
 	);
 
 	let patch = build_recommendation(&findings, true, false, None, true);
-	assert!(recommendation_summary(&patch, &findings).contains("unclassified"));
+	assert!(recommendation_summary(&patch, &findings, 0).contains("unclassified"));
 	let mut compatible_findings = findings.clone();
 	compatible_findings[0].impact = CompatibilityImpact::Compatible;
 	let compatible_patch = build_recommendation(&compatible_findings, true, false, None, true);
-	assert!(recommendation_summary(&compatible_patch, &compatible_findings).contains("compatible"));
+	assert!(
+		recommendation_summary(&compatible_patch, &compatible_findings, 0).contains("compatible")
+	);
 
 	let no_change = no_change_recommendation();
 	assert_eq!(
-		recommendation_summary(&no_change, &[]),
+		recommendation_summary(&no_change, &[], 0),
 		"no package change requires a changeset"
 	);
 	let mut review = no_change;
 	review.review_required = true;
-	assert!(recommendation_summary(&review, &[]).contains("requires review"));
+	assert!(recommendation_summary(&review, &[], 0).contains("requires review"));
 
 	assert!(analyzer_coverage_note("npm/exports").contains("TypeScript assignability"));
 	assert!(analyzer_coverage_note("deno/exports").contains("TypeScript assignability"));
@@ -1035,6 +1131,7 @@ fn no_change_recommendation() -> ChangeRecommendation {
 	ChangeRecommendation {
 		compatibility_impact: CompatibilityImpact::Compatible,
 		release_impact: None,
+		pull_request_changes: false,
 		proposed_changeset_bump: BumpSeverity::None,
 		enforceable_minimum: BumpSeverity::None,
 		release_floor: BumpSeverity::None,

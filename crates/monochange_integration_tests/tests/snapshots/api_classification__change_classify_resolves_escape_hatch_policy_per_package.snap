@@ -64,6 +64,7 @@ expression: report
           "cargo/public-api/public_api/removed/function/removed_greeting"
         ],
         "proposed_changeset_bump": "major",
+        "pull_request_changes": true,
         "release_floor": "major",
         "review_required": true
       },
@@ -156,6 +157,7 @@ expression: report
           "cargo/public-api/public_api/removed/function/removed_greeting"
         ],
         "proposed_changeset_bump": "patch",
+        "pull_request_changes": true,
         "release_floor": "patch",
         "review_required": true
       },
@@ -248,6 +250,7 @@ expression: report
           "cargo/public-api/public_api/removed/function/removed_greeting"
         ],
         "proposed_changeset_bump": "patch",
+        "pull_request_changes": true,
         "release_floor": "patch",
         "review_required": true
       },

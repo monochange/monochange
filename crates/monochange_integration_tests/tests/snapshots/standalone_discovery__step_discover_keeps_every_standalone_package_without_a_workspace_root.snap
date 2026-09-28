@@ -1,0 +1,18 @@
+---
+source: crates/monochange_integration_tests/tests/standalone_discovery.rs
+expression: discovery_summary(&value)
+---
+{
+  "package_ids": [
+    "cargo:crates/alpha/Cargo.toml",
+    "cargo:crates/beta/Cargo.toml",
+    "cargo:crates/gamma/Cargo.toml",
+    "dart:dart/mobile_sdk/pubspec.yaml",
+    "dart:dart/mobile_ui/pubspec.yaml",
+    "deno:deno/helper/deno.json",
+    "deno:deno/tool/deno.json",
+    "python:python/cli/pyproject.toml",
+    "python:python/core/pyproject.toml"
+  ],
+  "warnings": []
+}

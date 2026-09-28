@@ -626,3 +626,33 @@ fn validate_versioned_file_rejects_missing_file() {
 	assert!(result.is_err());
 	assert!(result.unwrap_err().to_string().contains("not readable"));
 }
+
+#[test]
+fn standalone_dart_packages_without_workspace_root_keep_distinct_ids() {
+	// Regression: standalone manifests were parsed with their own directory as
+	// the workspace root, so every package produced the id `dart:pubspec.yaml`
+	// and the sort+dedup kept only one of them.
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/standalone-discovery/no-workspace-root");
+	let discovery = discover_dart_packages(&fixture_root)
+		.unwrap_or_else(|error| panic!("dart discovery: {error}"));
+
+	let names = discovery
+		.packages
+		.iter()
+		.map(|package| package.name.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(names, vec!["mobile_sdk", "mobile_ui"]);
+	let ids = discovery
+		.packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		ids,
+		vec![
+			"dart:dart/mobile_sdk/pubspec.yaml",
+			"dart:dart/mobile_ui/pubspec.yaml",
+		]
+	);
+}

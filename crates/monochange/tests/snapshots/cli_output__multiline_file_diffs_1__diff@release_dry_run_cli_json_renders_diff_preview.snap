@@ -4,7 +4,7 @@ expression: contents
 ---
 --- a/changelog.md
 +++ b/changelog.md
-@@ -1 +1,9 @@
+@@ -1 +1,10 @@
  # Changelog
 +
 +## 1.1.0 ([DATE])
@@ -13,4 +13,5 @@ expression: contents
 +
 +### Features
 +
-+- 🟠 **core**: **add feature.**
++- **add feature.**
++  _Packages:_ 🟠 _core_

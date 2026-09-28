@@ -1,6 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/release_values.rs
-expression: "serde_json::json!({\n    \"has_values\": !manifest.values.is_empty(), \"has_labels\":\n    !manifest.labels.is_empty(), \"labels\": manifest.labels,\n})"
+expression: shape
 ---
 {
   "has_labels": true,

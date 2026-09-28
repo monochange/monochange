@@ -14,4 +14,5 @@ Grouped release for `sdk`.
 
 ### Features
 
-- 🟠 **core**: **explain grouped changelog formatting.** This release note needs more than one line.
+- **explain grouped changelog formatting.** This release note needs more than one line.
+  _Packages:_ 🟠 _core_

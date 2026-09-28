@@ -2098,92 +2098,34 @@ fn monochange_release_body(
 			&& changelog.owner_kind == target.kind
 			&& changelog.output == output
 	});
-	let member_changelogs = uncovered_member_changelogs(manifest, target, target_changelog, output);
 
-	match (target_changelog, member_changelogs.is_empty()) {
-		(Some(changelog), _) if changelog_has_release_notes(changelog) => {
-			changelog.rendered.clone()
+	match target_changelog {
+		Some(changelog) if changelog_has_release_notes(changelog) => {
+			provider_body_from_changelog_rendered(&changelog.rendered)
 		}
-		(_, false) => grouped_member_release_body(target, &member_changelogs),
-		(_, true) => minimal_release_body(manifest, target),
+		_ => minimal_release_body(manifest, target),
 	}
 }
 
-fn uncovered_member_changelogs<'a>(
-	manifest: &'a ReleaseManifest,
-	target: &ReleaseManifestTarget,
-	target_changelog: Option<&ReleaseManifestChangelog>,
-	output: &str,
-) -> Vec<&'a ReleaseManifestChangelog> {
-	if target.kind != ReleaseOwnerKind::Group {
-		return Vec::new();
-	}
-
-	manifest
-		.changelogs
-		.iter()
-		.filter(|changelog| {
-			changelog.owner_kind == ReleaseOwnerKind::Package
-				&& target.members.contains(&changelog.owner_id)
-				&& changelog.output == output
-				&& changelog_has_release_notes(changelog)
-				&& changelog_has_uncovered_notes(changelog, target_changelog)
-		})
-		.collect()
-}
-
-fn grouped_member_release_body(
-	target: &ReleaseManifestTarget,
-	member_changelogs: &[&ReleaseManifestChangelog],
-) -> String {
-	let title = if target.rendered_changelog_title.is_empty() {
-		target.rendered_title.as_str()
-	} else {
-		target.rendered_changelog_title.as_str()
-	};
-	let title = if title.is_empty() {
-		target.tag_name.as_str()
-	} else {
-		title
-	};
-	let mut lines = vec![format!("## {title}"), String::new()];
-	lines.push(format!("Grouped release for `{}`.", target.id));
-	lines.push(String::new());
-	push_member_changelogs(&mut lines, member_changelogs);
-	lines.join("\n")
-}
-
-fn push_member_changelogs(lines: &mut Vec<String>, changelogs: &[&ReleaseManifestChangelog]) {
-	lines.push("## Member package changelogs".to_string());
-
-	for changelog in changelogs {
-		lines.push(String::new());
-		lines.push(format!("### `{}`", changelog.owner_id));
-		push_changelog_notes(lines, changelog);
-	}
-}
-
-fn push_changelog_notes(lines: &mut Vec<String>, changelog: &ReleaseManifestChangelog) {
-	for paragraph in &changelog.notes.summary {
-		lines.push(String::new());
-		lines.push(paragraph.clone());
-	}
-
-	for section in &changelog.notes.sections {
-		let entries = section
-			.entries
-			.iter()
-			.filter(|entry| !is_empty_release_note(entry))
-			.cloned()
-			.collect::<Vec<_>>();
-		if entries.is_empty() {
-			continue;
+fn provider_body_from_changelog_rendered(rendered: &str) -> String {
+	let mut lines = rendered.lines().collect::<Vec<_>>();
+	if lines.first().is_some_and(|first| first.starts_with("## ")) {
+		lines.remove(0);
+		while lines.first().is_some_and(|line| line.trim().is_empty()) {
+			lines.remove(0);
 		}
-		lines.push(String::new());
-		lines.push(format!("#### {}", section.title));
-		lines.push(String::new());
-		push_body_entries(lines, &entries);
 	}
+	let mut promoted = Vec::with_capacity(lines.len());
+	for line in lines {
+		if let Some(rest) = line.strip_prefix("#### ") {
+			promoted.push(format!("### {rest}"));
+		} else if let Some(rest) = line.strip_prefix("### ") {
+			promoted.push(format!("## {rest}"));
+		} else {
+			promoted.push(line.to_string());
+		}
+	}
+	promoted.join("\n")
 }
 
 fn changelog_has_release_notes(changelog: &ReleaseManifestChangelog) -> bool {
@@ -2199,40 +2141,6 @@ fn is_empty_release_note(entry: &str) -> bool {
 	entry.contains("No group-facing notes were recorded for this release")
 		|| entry.contains("No package-specific changes were recorded")
 		|| entry.contains("No significant changes")
-}
-
-fn changelog_has_uncovered_notes(
-	changelog: &ReleaseManifestChangelog,
-	target_changelog: Option<&ReleaseManifestChangelog>,
-) -> bool {
-	let Some(target_changelog) = target_changelog else {
-		return true;
-	};
-	let covered_entries = target_changelog
-		.notes
-		.sections
-		.iter()
-		.flat_map(|section| &section.entries)
-		.map(|entry| normalized_release_entry(entry))
-		.collect::<Vec<_>>();
-
-	changelog
-		.notes
-		.sections
-		.iter()
-		.flat_map(|section| &section.entries)
-		.filter(|entry| !is_empty_release_note(entry))
-		.any(|entry| !covered_entries.contains(&normalized_release_entry(entry)))
-}
-
-fn normalized_release_entry(entry: &str) -> String {
-	entry
-		.lines()
-		.filter(|line| !line.trim_start().starts_with("_Packages:"))
-		.collect::<Vec<_>>()
-		.join("\n")
-		.trim()
-		.to_string()
 }
 
 fn release_pull_request_branch(branch_prefix: &str, command: &str) -> String {

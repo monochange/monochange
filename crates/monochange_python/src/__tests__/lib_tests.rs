@@ -1219,3 +1219,32 @@ fn validate_versioned_file_returns_ok_for_missing_file() {
 	let path = tempdir.path().join("missing.toml");
 	assert!(super::validate_versioned_file(&path, "missing.toml", None).is_ok());
 }
+
+#[test]
+fn standalone_python_packages_without_workspace_root_keep_distinct_ids() {
+	// Regression: standalone manifests were parsed with their own directory as
+	// the workspace root, so every package produced the id
+	// `python:pyproject.toml` and the sort+dedup kept only one of them.
+	let root = fixture_path("standalone-discovery/no-workspace-root");
+	let discovery =
+		discover_python_packages(&root).unwrap_or_else(|error| panic!("discover: {error}"));
+
+	let names = discovery
+		.packages
+		.iter()
+		.map(|package| package.name.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(names, vec!["py-cli", "py-core"]);
+	let ids = discovery
+		.packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		ids,
+		vec![
+			"python:python/cli/pyproject.toml",
+			"python:python/core/pyproject.toml",
+		]
+	);
+}

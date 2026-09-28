@@ -391,6 +391,10 @@ pub fn discover_python_packages(root: &Path) -> MonochangeResult<AdapterDiscover
 		}
 	}
 
+	for package in &mut packages {
+		package.rebase_id(root);
+	}
+
 	packages.sort_by(|left, right| left.id.cmp(&right.id));
 	packages.dedup_by(|left, right| left.id == right.id);
 
