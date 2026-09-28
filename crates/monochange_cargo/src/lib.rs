@@ -1384,8 +1384,11 @@ pub fn extract_workspace_package_table(parsed: &TomlValue) -> Option<WorkspacePa
 		.cloned()
 }
 
-/// Return the default dependency-version prefix for this ecosystem.
-/// Validate that a Cargo versioned file contains a readable version field.
+/// Validate that a Cargo versioned file is readable and declares usable fields.
+///
+/// With no `custom_fields`, one of `package.version`, `workspace.package.version`,
+/// or `version` must be a string. With `custom_fields`, every declared field must
+/// resolve to a value the update path can write.
 pub fn validate_versioned_file(
 	full_path: &Path,
 	display_path: &str,
@@ -1402,28 +1405,45 @@ pub fn validate_versioned_file(
 		))
 	})?;
 
-	let field_paths = match custom_fields {
-		Some(fields) if !fields.is_empty() => fields.iter().map(String::as_str).collect::<Vec<_>>(),
-		_ => vec!["package.version", "workspace.package.version", "version"],
-	};
-
-	if !field_paths.iter().any(|field_path| {
-		let mut current = &doc;
-		for part in field_path.split('.') {
-			let Some(next) = current.get(part) else {
-				return false;
-			};
-			current = next;
+	match custom_fields.filter(|fields| !fields.is_empty()) {
+		None => {
+			let field_paths = ["package.version", "workspace.package.version", "version"];
+			let has_version = field_paths
+				.iter()
+				.any(|field_path| resolve_field(&doc, field_path).is_some_and(Value::is_str));
+			if !has_version {
+				return Err(MonochangeError::Config(format!(
+					"versioned file `{display_path}` does not contain a readable version field (checked: {})",
+					field_paths.join(", ")
+				)));
+			}
 		}
-		current.is_str()
-	}) {
-		return Err(MonochangeError::Config(format!(
-			"versioned file `{display_path}` does not contain a readable version field (checked: {})",
-			field_paths.join(", ")
-		)));
+		Some(fields) => {
+			for field in fields {
+				let writable = resolve_field(&doc, field)
+					.is_some_and(|value| value.is_str() || value.is_table() || value.is_array());
+				if !writable {
+					return Err(MonochangeError::Config(format!(
+						"versioned file `{display_path}` does not contain a `{field}` string field"
+					)));
+				}
+			}
+		}
 	}
 
 	Ok(())
+}
+
+/// Resolve a dotted `field` path against a parsed manifest.
+///
+/// Custom fields may address a nested scalar (`package.version`) or a whole
+/// section (`dependencies`), so this only reports whether the path resolves.
+fn resolve_field<'a>(doc: &'a Value, field: &str) -> Option<&'a Value> {
+	let mut current = doc;
+	for segment in field.split('.') {
+		current = current.get(segment)?;
+	}
+	Some(current)
 }
 
 #[must_use]
