@@ -182,6 +182,7 @@ expression: projected
           "monochange/unclassified-source/plain"
         ],
         "proposed_changeset_bump": "patch",
+        "pull_request_changes": true,
         "release_floor": "patch",
         "review_required": true
       },
