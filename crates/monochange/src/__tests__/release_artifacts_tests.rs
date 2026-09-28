@@ -883,6 +883,7 @@ async fn release_manifest_and_source_helpers_cover_provider_specific_paths() {
 			labels: vec!["release".to_string()],
 			auto_merge: false,
 			commit_message: build_release_commit_message(Some(&gitea), &manifest),
+			body_truncation: None,
 		},
 		&manifest.changed_files,
 		false,

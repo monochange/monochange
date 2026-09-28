@@ -9342,6 +9342,7 @@ async fn release_follow_up_helpers_render_real_operation_outputs() {
 			subject: "subject".to_string(),
 			body: Some("body".to_string()),
 		},
+		body_truncation: None,
 	};
 	let release_request_result =
 		crate::cli_runtime::build_release_request_result(false, &release_request, || {

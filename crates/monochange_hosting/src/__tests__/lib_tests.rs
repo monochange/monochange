@@ -309,6 +309,82 @@ fn release_pull_request_body_includes_command_and_targets() {
 }
 
 #[test]
+fn render_release_pull_request_body_summary_points_at_the_notes_command_without_changelogs() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target("core")];
+	manifest.changelogs = Vec::new();
+
+	let summary =
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Summary, None);
+
+	assert_eq!(summary.truncation, None);
+	assert!(summary.body.contains("## Full release notes"));
+	assert!(
+		summary.body.contains("monochange notes --output <id>"),
+		"a summary with no changelog paths still tells the reader how to find the notes"
+	);
+}
+
+#[test]
+fn release_pull_request_changelog_paths_skip_targets_without_a_changelog() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target("core"), minimal_target("missing")];
+	manifest.changelogs = vec![changelog_with_entries(
+		"core",
+		"crates/core/CHANGELOG.md",
+		vec![("Features", vec!["an entry"])],
+	)];
+
+	let paths = release_pull_request_changelog_paths(&manifest);
+
+	assert_eq!(paths, vec!["crates/core/CHANGELOG.md".to_string()]);
+}
+
+#[test]
+fn render_release_pull_request_body_matches_the_legacy_render_when_unbounded() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target("core")];
+	manifest.changed_files = vec![PathBuf::from("Cargo.toml")];
+	manifest.changelogs = vec![changelog_with_entries(
+		"core",
+		"crates/core/CHANGELOG.md",
+		vec![("Features", vec!["an entry"])],
+	)];
+
+	let legacy = release_pull_request_body(&manifest);
+	let rendered =
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, None);
+
+	assert_eq!(rendered.body, legacy);
+	assert_eq!(rendered.truncation, None);
+	assert!(
+		!legacy.contains("## Full release notes"),
+		"an unbounded body gains no pointer"
+	);
+}
+
+#[test]
+fn render_release_pull_request_body_keeps_the_release_notes_heading_when_bounded_with_no_targets() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![];
+	manifest.changelogs = vec![];
+
+	let rendered = render_release_pull_request_body(
+		&manifest,
+		ProviderPullRequestBodyStyle::Full,
+		Some(10_000),
+	);
+
+	assert_eq!(rendered.truncation, None);
+	assert!(rendered.body.contains("no outward release targets"));
+	assert!(
+		rendered.body.contains("## Release notes"),
+		"a body that fits keeps the legacy heading even with no targets"
+	);
+	assert!(!rendered.body.contains("## Full release notes"));
+}
+
+#[test]
 fn release_pull_request_body_shows_no_outward_targets_when_none_release() {
 	let mut manifest = sample_manifest();
 	manifest.release_targets = vec![ReleaseManifestTarget {
@@ -357,6 +433,217 @@ fn release_pull_request_body_lists_changed_files() {
 	let body = release_pull_request_body(&manifest);
 	assert!(body.contains("## Changed files"));
 	assert!(body.contains("src/main.rs"));
+}
+
+fn changelog_with_entries(
+	owner_id: &str,
+	path: &str,
+	sections: Vec<(&str, Vec<&str>)>,
+) -> ReleaseManifestChangelog {
+	ReleaseManifestChangelog {
+		owner_id: owner_id.to_string(),
+		owner_kind: ReleaseOwnerKind::Package,
+		output: "default".to_string(),
+		stream: "default".to_string(),
+		path: PathBuf::from(path),
+		format: monochange_core::ChangelogFormat::Monochange,
+		notes: ReleaseNotesDocument {
+			title: "0.1.0".to_string(),
+			summary: Vec::new(),
+			sections: sections
+				.into_iter()
+				.map(|(title, entries)| {
+					ReleaseNotesSection {
+						title: title.to_string(),
+						collapsed: false,
+						entries: entries.into_iter().map(str::to_string).collect(),
+					}
+				})
+				.collect(),
+		},
+		rendered: String::new(),
+	}
+}
+
+#[test]
+fn render_release_pull_request_body_bounds_an_oversized_body() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target("core"), minimal_target("abi")];
+	manifest.changed_files = vec![PathBuf::from("Cargo.toml")];
+	manifest.changelogs = vec![
+		changelog_with_entries(
+			"core",
+			"crates/core/CHANGELOG.md",
+			vec![(
+				"Features",
+				vec![
+					"first core entry that is long enough to matter",
+					"second core entry that is long enough to matter",
+				],
+			)],
+		),
+		changelog_with_entries(
+			"abi",
+			"crates/abi/CHANGELOG.md",
+			vec![(
+				"Features",
+				vec![
+					"first abi entry that is long enough to matter",
+					"second abi entry that is long enough to matter",
+				],
+			)],
+		),
+	];
+
+	let unbounded =
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, None);
+	assert_eq!(unbounded.truncation, None);
+	assert!(!unbounded.body.contains("## Full release notes"));
+
+	// The smallest achievable body is the header plus the truncation notice; a
+	// limit above that always fits, because every note can be dropped.
+	let floor =
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, Some(1));
+	let limit = floor.body.chars().count() + 40;
+	assert!(limit < unbounded.body.chars().count());
+
+	let bounded = render_release_pull_request_body(
+		&manifest,
+		ProviderPullRequestBodyStyle::Full,
+		Some(limit),
+	);
+	let truncation = bounded
+		.truncation
+		.unwrap_or_else(|| panic!("expected a truncation report"));
+	assert!(bounded.body.chars().count() <= limit);
+	assert_eq!(truncation.original_chars, unbounded.body.chars().count());
+	assert_eq!(truncation.max_chars, limit);
+	assert!(truncation.dropped_entries > 0);
+	// The header, the target list, and the changelog pointer always survive.
+	assert!(bounded.body.contains("## Prepared release"));
+	assert!(bounded.body.contains("core"));
+	assert!(bounded.body.contains("abi"));
+	assert!(bounded.body.contains("crates/core/CHANGELOG.md"));
+	assert!(bounded.body.contains("crates/abi/CHANGELOG.md"));
+}
+
+#[test]
+fn render_release_pull_request_body_bounds_to_a_tiny_limit_without_panicking() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target("core")];
+	manifest.changelogs = vec![changelog_with_entries(
+		"core",
+		"crates/core/CHANGELOG.md",
+		vec![("Features", vec!["an entry"])],
+	)];
+
+	let bounded =
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, Some(1));
+	let truncation = bounded
+		.truncation
+		.unwrap_or_else(|| panic!("expected a truncation report"));
+	assert!(
+		truncation.dropped_entries >= 1,
+		"every note is dropped once the limit cannot fit a single entry"
+	);
+	assert!(bounded.body.contains("## Prepared release"));
+}
+
+#[test]
+fn render_release_pull_request_body_summary_style_omits_inline_notes() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target("core")];
+	manifest.changelogs = vec![changelog_with_entries(
+		"core",
+		"crates/core/CHANGELOG.md",
+		vec![("Features", vec!["an inline entry that must not render"])],
+	)];
+
+	let summary =
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Summary, None);
+	assert_eq!(summary.truncation, None);
+	assert!(
+		!summary
+			.body
+			.contains("an inline entry that must not render")
+	);
+	assert!(summary.body.contains("## Prepared release"));
+	assert!(summary.body.contains("crates/core/CHANGELOG.md"));
+}
+
+#[test]
+fn render_release_pull_request_body_reports_what_was_dropped() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target("core")];
+	manifest.changelogs = vec![changelog_with_entries(
+		"core",
+		"crates/core/CHANGELOG.md",
+		vec![(
+			"Features",
+			vec![
+				"a first entry with enough characters to exceed a small limit",
+				"a second entry with enough characters to exceed a small limit",
+			],
+		)],
+	)];
+
+	let floored =
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, Some(1));
+	let truncation = floored
+		.truncation
+		.unwrap_or_else(|| panic!("expected a truncation report"));
+	assert_eq!(truncation.dropped_entries, 2);
+	assert!(
+		floored.body.contains("2 entries omitted"),
+		"the shortened body states how much was dropped"
+	);
+	assert!(floored.body.contains("crates/core/CHANGELOG.md"));
+}
+
+#[test]
+fn release_pull_request_body_for_source_uses_the_config_limit() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target("core")];
+	manifest.changelogs = vec![changelog_with_entries(
+		"core",
+		"crates/core/CHANGELOG.md",
+		vec![(
+			"Features",
+			vec![
+				"a first entry with enough characters to exceed a small limit",
+				"a second entry with enough characters to exceed a small limit",
+			],
+		)],
+	)];
+
+	let mut source = SourceConfiguration {
+		provider: monochange_core::SourceProvider::GitHub,
+		owner: "ifiokjr".to_string(),
+		repo: "monochange".to_string(),
+		host: None,
+		api_url: None,
+		releases: monochange_core::ProviderReleaseSettings::default(),
+		pull_requests: monochange_core::ProviderMergeRequestSettings::default(),
+	};
+	assert!(
+		release_pull_request_body_for_source(&source, &manifest)
+			.truncation
+			.is_none(),
+		"a body below the GitHub default limit is rendered unchanged"
+	);
+
+	let unbounded = release_pull_request_body_for_source(&source, &manifest);
+	let smallest =
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, Some(1));
+	let limit = smallest.body.chars().count() + 40;
+	assert!(limit < unbounded.body.chars().count());
+	source.pull_requests.max_body_chars = Some(limit);
+	let bounded = release_pull_request_body_for_source(&source, &manifest);
+	let truncation = bounded
+		.truncation
+		.unwrap_or_else(|| panic!("expected the configured limit to apply"));
+	assert_eq!(truncation.max_chars, limit);
+	assert!(bounded.body.chars().count() <= limit);
 }
 
 #[test]

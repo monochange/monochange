@@ -33,7 +33,7 @@ use monochange_hosting::git_commit_paths;
 use monochange_hosting::git_push_branch;
 use monochange_hosting::git_stage_paths;
 use monochange_hosting::release_body;
-use monochange_hosting::release_pull_request_body;
+use monochange_hosting::release_pull_request_body_for_source;
 use monochange_hosting::release_pull_request_branch;
 use reqwest::Client;
 use reqwest::StatusCode;
@@ -377,6 +377,7 @@ pub fn build_release_pull_request_request(
 	manifest: &ReleaseManifest,
 ) -> SourceChangeRequest {
 	let repository = format!("{}/{}", source.owner, source.repo);
+	let rendered = release_pull_request_body_for_source(source, manifest);
 	SourceChangeRequest {
 		provider: SourceProvider::Forgejo,
 		repository: repository.clone(),
@@ -388,13 +389,14 @@ pub fn build_release_pull_request_request(
 			&manifest.command,
 		),
 		title: source.pull_requests.title.clone(),
-		body: release_pull_request_body(manifest),
+		body: rendered.body,
 		labels: source.pull_requests.labels.clone(),
 		auto_merge: source.pull_requests.auto_merge,
 		commit_message: CommitMessage {
 			subject: source.pull_requests.effective_commit_subject(),
 			body: None,
 		},
+		body_truncation: rendered.truncation,
 	}
 }
 

@@ -1017,6 +1017,14 @@ title = "chore(release): prepare release"
 # commit_subject = "chore(release): prepare release"
 labels = ["release", "automated"]
 auto_merge = false
+# How much of the release notes the release PR body carries.
+# "full" inlines every target's notes; "summary" renders only the header,
+# the target list, and the changelog paths.
+body_style = "full"
+# Optional: cap the rendered release PR body in characters. Defaults to the
+# provider's own limit (65536 for GitHub). Notes that do not fit are dropped
+# from the end and replaced with a pointer to the changelog files.
+# max_body_chars = 65536
 
 [changesets.affected]
 enabled = true

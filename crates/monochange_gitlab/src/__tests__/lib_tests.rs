@@ -571,14 +571,15 @@ fn release_body_supports_generated_notes_and_minimal_fallback() {
 }
 
 #[test]
-fn release_pull_request_body_uses_minimal_notes_when_changelog_is_missing() {
+fn release_pull_request_request_uses_minimal_notes_when_changelog_is_missing() {
 	let manifest = sample_manifest_without_changelog();
-	let body = release_pull_request_body(&manifest);
+	let request = build_release_pull_request_request(&sample_source(None), &manifest);
 
 	assert_snapshot!(
-		"release_pull_request_body_uses_minimal_notes_when_changelog_is_missing__body",
-		body
+		"release_pull_request_request_uses_minimal_notes_when_changelog_is_missing__body",
+		request.body
 	);
+	assert_eq!(request.body_truncation, None);
 }
 
 #[test]

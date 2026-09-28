@@ -1,6 +1,7 @@
 ---
-source: crates/monochange_gitlab/src/__tests__/lib_tests.rs
-expression: body
+source: crates/monochange_forgejo/src/__tests__/lib_tests.rs
+assertion_line: 677
+expression: request.body
 ---
 ## Prepared release
 
