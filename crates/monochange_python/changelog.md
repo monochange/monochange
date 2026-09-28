@@ -4,6 +4,63 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 🚀 Feature
+
+#### Release explicitly configured Python packages
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+`monochange init` on a Python (uv or Poetry) repository generates `monochange.toml` entries that declare each workspace member with `type = "python"`. That configuration passed `monochange step validate`, but every release command failed:
+
+```text
+error[workspace.discovery_failed]: configured package `acme-report` at packages/report could not be discovered
+```
+
+The release-time workspace loader asks each ecosystem adapter to load its explicitly configured packages, and the Python adapter answered `Ok(None)` unconditionally — so a configured Python package was never loaded and `preview`, `prepare`, and `next` all refused to run. Validation never calls that loader, which is why the broken config looked healthy until the first real release.
+
+The adapter now resolves the configured path to its `pyproject.toml` (accepting either the package directory or a direct manifest path), returns `Ok(None)` only when no manifest exists there, and otherwise loads the package through the same parser the discovery path uses. Both PEP 621 `[project]` and Poetry `[tool.poetry]` manifests load, and the failure is now limited to a genuinely missing or nameless manifest rather than every Python repository.
+
+A Python package's own `version` field is still only rewritten when a `versioned_files` entry names it in `fields` — that is unchanged behavior, and the agent skill now documents it.
+
+### 🐛 Fixed
+
+#### Discover every standalone package that has no workspace root
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #731](https://github.com/monochange/monochange/pull/731) · _Closed issues:_ [#702](https://github.com/monochange/monochange/issues/702)
+
+Repositories that contain several independent packages without a workspace manifest between them only ever reported one package per ecosystem, because discovery gave each standalone manifest an id derived from its own directory:
+
+```
+before:  cargo:Cargo.toml, dart:pubspec.yaml, deno:deno.json, python:pyproject.toml
+after:   cargo:crates/alpha/Cargo.toml, cargo:crates/beta/Cargo.toml, cargo:crates/gamma/Cargo.toml, ...
+```
+
+Every standalone manifest now produces an id relative to the discovery root, so `monochange step discover`, `monochange versions list`, release planning, change classification, and changeset-policy matching all see the full set. Given a repository with no root manifest:
+
+```text
+crates/alpha/Cargo.toml
+crates/beta/Cargo.toml
+crates/gamma/Cargo.toml
+```
+
+```bash
+monochange step discover --format json
+```
+
+```json
+{
+	"packages": [
+		{ "id": "cargo:crates/alpha/Cargo.toml", "name": "alpha" },
+		{ "id": "cargo:crates/beta/Cargo.toml", "name": "beta" },
+		{ "id": "cargo:crates/gamma/Cargo.toml", "name": "gamma" }
+	]
+}
+```
+
+Cargo, Dart, Deno, and Python discovery shared the defect and are all fixed. Go was unaffected because it already derived ids from the discovery root, and npm normalizes ids during discovery. Workspace members keep their existing ids, so a root `[workspace]` manifest with `members = ["crates/*"]` behaves exactly as before.
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### Changed

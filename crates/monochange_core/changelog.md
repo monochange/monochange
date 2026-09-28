@@ -4,6 +4,266 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 💥 Breaking Change
+
+#### Merge grouped release notes into one deduplicated change list
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725) · _Related issues:_ [#725](https://github.com/monochange/monochange/issues/725)
+
+Grouped releases rendered one section per member package, so a change shared by several packages was printed once per package under a repeated `## Features` heading. A group release now lists every change once, in its configured section, with the packages it affects named in the entry itself.
+
+The `[changelog.style].package_label_placement` setting and its `release_notes` override are removed. Packages are always metadata about a change, rendered as a `_Packages:_` line directly above the `_Owner:_` line, so the single-package inline form (`- 🟠 **pkg**: summary`) and the `after_heading`/`after_change` values no longer exist. Remove the key from `monochange.toml`; the strict config parser rejects the unknown field.
+
+```toml
+[changelog.style]
+# Remove this key; package labels are always rendered above the owner line.
+# package_label_placement = "after_heading"
+```
+
+Affected packages keep their per-package bump symbols, so a merged entry still shows which package was major and which was minor. A compact entry keeps the package line beside the bullet text:
+
+```markdown
+## Fixes
+
+- **Fix shared bug.** _Packages:_ 🟠 _core_, 🟢 _cli_ _Owner:_ @ifiokjr · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725)
+```
+
+An expanded entry — a breaking change, or any change whose body has a code block or several paragraphs — renders the package line directly beneath its heading, above the explanation:
+
+```markdown
+### Split the release note renderer
+
+_Packages:_ 🔴 _core_, 🟠 _app_, 🟢 _cli_ _Owner:_ @ifiokjr · _Review:_ [PR #725](https://github.com/monochange/monochange/pull/725)
+
+One changeset targets three packages with three different change types, so the group release publishes it once in the breaking section.
+```
+
+The group `include` filter is unchanged for changelog files: `include = ["app"]` still curates the committed changelog. A provider release body is no longer derived from that filtered file, so a filter that hides internal notes from a changelog cannot publish a release that claims nothing happened. The `uncovered_member_changelogs`, `grouped_member_release_body`, and `push_member_changelogs` helpers are deleted from `monochange_hosting` and their duplicate in `monochange_github`.
+
+The published configuration contract changed, so the schemas advance to `v0.8`; the `0.7` → `0.8` migration edge accepts existing release records unchanged.
+
+#### Bound the release request body so it cannot outgrow the provider limit
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #729](https://github.com/monochange/monochange/pull/729) · _Closed issues:_ [#724](https://github.com/monochange/monochange/issues/724)
+
+> **Breaking change:** `SourceChangeRequest` gained a required `body_truncation` field, so exhaustive struct literals no longer compile without it.
+>
+> Set it to `None` when you build a request by hand. The field is optional on the wire, so JSON written by an older version still deserializes, and provider request builders populate it for you.
+
+```rust
+let request = SourceChangeRequest {
+	// ...
+	body_truncation: None,
+};
+```
+
+A release pull request that stayed open while changesets kept merging grew its body through the update call, which providers do not bound the way they bound the create call. GitHub then rejected the create call that replaces the pull request with `status 422` and `body is too long (maximum: 65536 characters)`, at step 5/5 and with no mention of a setting that fixes it.
+
+Every provider now bounds the rendered body on both paths.
+
+Three public changes in `monochange_core`:
+
+```rust
+// before
+pub struct ProviderMergeRequestSettings {
+	pub enabled: bool,
+	pub branch_prefix: String,
+	pub base: String,
+	pub title: String,
+	pub commit_subject: Option<String>,
+	pub labels: Vec<String>,
+	pub auto_merge: bool,
+	pub verified_commits: bool,
+}
+
+// after
+pub struct ProviderMergeRequestSettings {
+	// ...
+	pub body_style: ProviderPullRequestBodyStyle,
+	pub max_body_chars: Option<usize>,
+}
+
+// New: how much of the release notes the request body carries.
+pub enum ProviderPullRequestBodyStyle {
+	Full,
+	Summary,
+}
+
+// New helper, plus a per-provider default on `SourceProvider`.
+let limit = settings.effective_max_body_chars(SourceProvider::GitHub); // Some(65_536)
+```
+
+`SourceChangeRequest` gained a `body_truncation: Option<SourceChangeRequestBodyTruncation>` field, so consumers of the JSON release request can see when and how much the body was shortened instead of inferring it from the length.
+
+```rust
+pub struct SourceChangeRequestBodyTruncation {
+	pub max_chars: usize,
+	pub original_chars: usize,
+	pub dropped_entries: usize,
+}
+```
+
+`monochange_hosting` gained `render_release_pull_request_body`, which returns the bounded body plus the truncation report, and `release_pull_request_body_for_source`, which applies the configured style and limit. `monochange_github` previously carried private copies of `release_pull_request_body` and `release_pull_request_branch` that were byte-identical to the shared versions; both now come from `monochange_hosting`, so the GitHub and non-GitHub renderers cannot drift apart again.
+
+When GitHub rejects a create call for body length, the error now names the setting instead of only echoing the API payload:
+
+```text
+GitHub API POST `/repos/{owner}/{repo}/pulls` failed: status 422; ...;
+the rendered release pull request body exceeded GitHub's 65536 character limit. Set
+`[source.pull_requests].body_style = "summary"` ... or lower `[source.pull_requests].max_body_chars`
+```
+
+`[source.pull_requests].max_body_chars` must be greater than `0`; `monochange_config` rejects a zero value at load time.
+
+#### Declare release values and version schemes for counters and calendar labels
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)
+
+Release planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.
+
+Two new configuration surfaces address this.
+
+**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:
+
+```toml
+[version_scheme.calver]
+template = "{{ year }}.{{ month_padded }}.{{ release_of_month }}"
+
+[package.app]
+display_version = "calver"
+```
+
+**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:
+
+```toml
+[package.app.values.build]
+file = "build.json" # you create and commit this: {"build": 0}
+field = "build"
+on_release = "increment" # or { add = { amount = 10 } } or "none"
+reset = "version" # iOS release trains; "never" for Play/macOS
+
+[package.app.values.artifact]
+hash = "artifacts/app.aab" # sha256 over a file
+encoding = "base36" # hex, base32, base36, or digits
+length = 8
+
+[package.app.values.run]
+env = "GITHUB_RUN_NUMBER"
+
+[package.app.values.rev]
+git = "commit_count" # or short_hash
+
+[package.app.values.when]
+timestamp = "commit" # or now
+```
+
+A declared value reaching a store-facing file uses `value_template` instead of a plain version:
+
+```toml
+[[package.app.versioned_files]]
+path = "pubspec.yaml"
+type = "dart"
+value_template = "{{ identity }}+{{ build }}"
+```
+
+Template variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.
+
+Resolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.
+
+##### Breaking change
+
+`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:
+
+```rust
+ReleaseManifest {
+	// ...existing fields...
+	values: std::collections::BTreeMap::new(),
+	labels: std::collections::BTreeMap::new(),
+	label_inputs: monochange_core::versioning::LabelInputs::default(),
+	plan: /* ... */,
+}
+```
+
+Deserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.
+
+##### Ordering guarantees
+
+Values fall into three classes. Only counters and ordinals are monotonic; identifiers are not:
+
+- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;
+- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;
+- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.
+
+A hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.
+
+##### Counter files
+
+Counter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:
+
+```text
+counter file `build.json` does not exist; create it with its starting value, for example {"build": 0}
+```
+
+Adopting monochange in a repository whose app already has a production build number means creating the file once with the current value.
+
+Packages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.
+
+##### Validation
+
+- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);
+- `display_version` must reference a declared scheme, and scheme templates may only use available variables;
+- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.
+
+That last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:
+
+```toml
+[[package.app.versioned_files]]
+path = "pubspec.yaml"
+type = "dart"
+value_template = "{{ identity }}+{{ build }}"
+```
+
+A template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.
+
+### 🐛 Fixed
+
+#### Discover every standalone package that has no workspace root
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #731](https://github.com/monochange/monochange/pull/731) · _Closed issues:_ [#702](https://github.com/monochange/monochange/issues/702)
+
+Repositories that contain several independent packages without a workspace manifest between them only ever reported one package per ecosystem, because discovery gave each standalone manifest an id derived from its own directory:
+
+```
+before:  cargo:Cargo.toml, dart:pubspec.yaml, deno:deno.json, python:pyproject.toml
+after:   cargo:crates/alpha/Cargo.toml, cargo:crates/beta/Cargo.toml, cargo:crates/gamma/Cargo.toml, ...
+```
+
+Every standalone manifest now produces an id relative to the discovery root, so `monochange step discover`, `monochange versions list`, release planning, change classification, and changeset-policy matching all see the full set. Given a repository with no root manifest:
+
+```text
+crates/alpha/Cargo.toml
+crates/beta/Cargo.toml
+crates/gamma/Cargo.toml
+```
+
+```bash
+monochange step discover --format json
+```
+
+```json
+{
+	"packages": [
+		{ "id": "cargo:crates/alpha/Cargo.toml", "name": "alpha" },
+		{ "id": "cargo:crates/beta/Cargo.toml", "name": "beta" },
+		{ "id": "cargo:crates/gamma/Cargo.toml", "name": "gamma" }
+	]
+}
+```
+
+Cargo, Dart, Deno, and Python discovery shared the defect and are all fixed. Go was unaffected because it already derived ids from the discovery root, and npm normalizes ids during discovery. Workspace members keep their existing ids, so a root `[workspace]` manifest with `members = ["crates/*"]` behaves exactly as before.
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### 💥 Breaking Change

@@ -4,6 +4,596 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 💥 Breaking Change
+
+#### Bound the release request body so it cannot outgrow the provider limit
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #729](https://github.com/monochange/monochange/pull/729) · _Closed issues:_ [#724](https://github.com/monochange/monochange/issues/724)
+
+> **Breaking change:** `SourceChangeRequest` gained a required `body_truncation` field, so exhaustive struct literals no longer compile without it.
+>
+> Set it to `None` when you build a request by hand. The field is optional on the wire, so JSON written by an older version still deserializes, and provider request builders populate it for you.
+
+```rust
+let request = SourceChangeRequest {
+	// ...
+	body_truncation: None,
+};
+```
+
+A release pull request that stayed open while changesets kept merging grew its body through the update call, which providers do not bound the way they bound the create call. GitHub then rejected the create call that replaces the pull request with `status 422` and `body is too long (maximum: 65536 characters)`, at step 5/5 and with no mention of a setting that fixes it.
+
+Every provider now bounds the rendered body on both paths.
+
+Three public changes in `monochange_core`:
+
+```rust
+// before
+pub struct ProviderMergeRequestSettings {
+	pub enabled: bool,
+	pub branch_prefix: String,
+	pub base: String,
+	pub title: String,
+	pub commit_subject: Option<String>,
+	pub labels: Vec<String>,
+	pub auto_merge: bool,
+	pub verified_commits: bool,
+}
+
+// after
+pub struct ProviderMergeRequestSettings {
+	// ...
+	pub body_style: ProviderPullRequestBodyStyle,
+	pub max_body_chars: Option<usize>,
+}
+
+// New: how much of the release notes the request body carries.
+pub enum ProviderPullRequestBodyStyle {
+	Full,
+	Summary,
+}
+
+// New helper, plus a per-provider default on `SourceProvider`.
+let limit = settings.effective_max_body_chars(SourceProvider::GitHub); // Some(65_536)
+```
+
+`SourceChangeRequest` gained a `body_truncation: Option<SourceChangeRequestBodyTruncation>` field, so consumers of the JSON release request can see when and how much the body was shortened instead of inferring it from the length.
+
+```rust
+pub struct SourceChangeRequestBodyTruncation {
+	pub max_chars: usize,
+	pub original_chars: usize,
+	pub dropped_entries: usize,
+}
+```
+
+`monochange_hosting` gained `render_release_pull_request_body`, which returns the bounded body plus the truncation report, and `release_pull_request_body_for_source`, which applies the configured style and limit. `monochange_github` previously carried private copies of `release_pull_request_body` and `release_pull_request_branch` that were byte-identical to the shared versions; both now come from `monochange_hosting`, so the GitHub and non-GitHub renderers cannot drift apart again.
+
+When GitHub rejects a create call for body length, the error now names the setting instead of only echoing the API payload:
+
+```text
+GitHub API POST `/repos/{owner}/{repo}/pulls` failed: status 422; ...;
+the rendered release pull request body exceeded GitHub's 65536 character limit. Set
+`[source.pull_requests].body_style = "summary"` ... or lower `[source.pull_requests].max_body_chars`
+```
+
+`[source.pull_requests].max_body_chars` must be greater than `0`; `monochange_config` rejects a zero value at load time.
+
+#### Declare release values and version schemes for counters and calendar labels
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)
+
+Release planning tracked one version axis per release owner: a `SemVer` core. Delivery targets that need a second monotonic number (Apple `CFBundleVersion`, Google Play `versionCode`) or a human-facing display version (`2026.9`, `24.04`) had no way to express either.
+
+Two new configuration surfaces address this.
+
+**`[version_scheme.<id>]`** renders a display label from calendar parts, release ordinals, and declared values:
+
+```toml
+[version_scheme.calver]
+template = "{{ year }}.{{ month_padded }}.{{ release_of_month }}"
+
+[package.app]
+display_version = "calver"
+```
+
+**`[package.<id>.values.<id>]`** declares a value, which becomes a template variable and, for file counters, is stamped on every release. Every declaration names exactly one source:
+
+```toml
+[package.app.values.build]
+file = "build.json" # you create and commit this: {"build": 0}
+field = "build"
+on_release = "increment" # or { add = { amount = 10 } } or "none"
+reset = "version" # iOS release trains; "never" for Play/macOS
+
+[package.app.values.artifact]
+hash = "artifacts/app.aab" # sha256 over a file
+encoding = "base36" # hex, base32, base36, or digits
+length = 8
+
+[package.app.values.run]
+env = "GITHUB_RUN_NUMBER"
+
+[package.app.values.rev]
+git = "commit_count" # or short_hash
+
+[package.app.values.when]
+timestamp = "commit" # or now
+```
+
+A declared value reaching a store-facing file uses `value_template` instead of a plain version:
+
+```toml
+[[package.app.versioned_files]]
+path = "pubspec.yaml"
+type = "dart"
+value_template = "{{ identity }}+{{ build }}"
+```
+
+Template variables now include `identity`, `prerelease`, `year`, `year_short`, `month`, `month_padded`, `quarter`, `day`, `date`, `time`, `release_of_month`, `release_of_quarter`, `release_of_year`, `label`, and every declared value id. `label` is the package's own rendered scheme.
+
+Resolved values and labels are frozen into `ReleaseManifest` and `ReleaseRecord`, so re-rendering a historical release cannot pick up a different timestamp, hash, or counter. The new fields are optional and default to empty, so an existing release record parses unchanged and no migration edge is needed.
+
+##### Breaking change
+
+`PreparedRelease`, `ReleaseManifest`, `ReleaseRecord`, `PackageDefinition`, `VersionedFileDefinition`, and `WorkspaceConfiguration` each gain public fields. Any code that constructs these structs with a struct literal must add the new fields:
+
+```rust
+ReleaseManifest {
+	// ...existing fields...
+	values: std::collections::BTreeMap::new(),
+	labels: std::collections::BTreeMap::new(),
+	label_inputs: monochange_core::versioning::LabelInputs::default(),
+	plan: /* ... */,
+}
+```
+
+Deserialization is unaffected: every new field carries `#[serde(default)]`, so existing JSON artifacts and configuration files continue to load without edits.
+
+##### Ordering guarantees
+
+Values fall into three classes. Only counters and ordinals are monotonic; identifiers are not:
+
+- **counters** (`file` with `on_release`) are monotonic within their `reset` policy;
+- **ordinals** (`release_of_*`) chain from the previous release record and restart in a new month, quarter, or year;
+- **identifiers** (`hash`, `env`, `git`, `timestamp`) carry no ordering guarantee at all.
+
+A hash-derived value is therefore valid in a display label but must not be relied on for ordering. A scheme that uses one is treated as non-monotonic rather than pretending otherwise.
+
+##### Counter files
+
+Counter files are yours to create and commit; monochange reads the declared dotted field and rewrites only that value, preserving surrounding formatting and comments. A missing file, a missing field, or a non-integer value is a blocking configuration error naming the path, field, and expected shape — there are no silent zeros:
+
+```text
+counter file `build.json` does not exist; create it with its starting value, for example {"build": 0}
+```
+
+Adopting monochange in a repository whose app already has a production build number means creating the file once with the current value.
+
+Packages without declared values and without `display_version` behave exactly as before: no counter files are written, no extra fields appear in the manifest, and no state file is created.
+
+##### Validation
+
+- a value id may not shadow a context variable name (`year`, `identity`, `label`, …);
+- `display_version` must reference a declared scheme, and scheme templates may only use available variables;
+- a `value_template` on a package's ecosystem manifest must render a valid `SemVer`, checked by rendering the template and parsing the result.
+
+That last rule permits what Dart and Flutter actually need. A `pubspec.yaml` carries `1.2.3+4`, which is valid `SemVer` build metadata, so a counter appended to the identity is accepted:
+
+```toml
+[[package.app.versioned_files]]
+path = "pubspec.yaml"
+type = "dart"
+value_template = "{{ identity }}+{{ build }}"
+```
+
+A template that could never parse is still rejected. Calendar versions (`{{ year }}.{{ month }}`), and letter-bearing values such as a `base36` hash in a numeric position, fail with a message naming the offending template.
+
+#### Serve the agent skill from the binary without the `skills` CLI
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+`monochange skill` no longer shells out to `npx`, `pnpm dlx`, or `bunx`. The skill bundle is embedded in the binary, so the command works offline and without Node tooling:
+
+- `monochange skill` lists every bundled topic with its install path and description.
+- `monochange skill read <topic>` prints one document verbatim to stdout, with no terminal rendering or added framing.
+- `monochange skill install --dir <dir> [--force]` writes `SKILL.md` and every reference into an agent runtime skill directory and refuses to replace an existing skill unless `--force` is passed.
+
+The forwarded-argument surface (`monochange skill --list`, `-a`, `-y`, and the other `skills add` flags) and the `MONOCHANGE_SKILL_SOURCE` and `MONOCHANGE_SKILL_RUNNER` environment variables are removed. `crates/monochange/skill/` is a committed copy of `packages/monochange__skill`, kept in sync by `scripts/docs/sync-skill.mjs` and verified by `docs:check`.
+
+Migration: replace the forwarded-argument invocation with an explicit install directory, or read individual topics:
+
+```bash
+# Before
+monochange skill -a pi -y
+
+# After
+monochange skill install --dir ~/.claude/skills/monochange
+monochange skill read configuration
+```
+
+### 🚀 Feature
+
+#### Scope the classified bump to the pull request
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #730](https://github.com/monochange/monochange/pull/730) · _Closed issues:_ [#706](https://github.com/monochange/monochange/issues/706)
+
+- `decision.pull_request_changes` reports whether this contribution touches the package. When it is `false`, every finding came from the `release` or `releaseToDefault` interval, so `decision.proposed_changeset_bump` and `decision.enforceable_minimum` are `none`, `decision.review_required` is `false`, and the accumulated change appears only in `decision.release_floor` and `decision.release_impact`. The net candidate and the local working tree set the flag; the release comparisons never do.
+- A pending changeset for a package the pull request does not modify still reports `action: review` with the summary `the pull request does not change this package; the pending changeset intent needs review`, because a changeset can intentionally describe a consumer-facing effect implemented in another package. It no longer escalates the bump or the review verdict for work an earlier merge introduced.
+- The Cargo analyzer classifies a pure append to a public `const`/`static` whose declared type is `&[T]`, `[T; N]`, or `Vec<T>` and whose initializer is a literal as `additive`/`minor` with high confidence, matching `cargo semver-checks`. A removal, a reorder, an element edit, a changed element type, or a non-literal initializer stays conservative.
+
+```json
+{
+	"compatibility_impact": "compatible",
+	"release_impact": "breaking",
+	"pull_request_changes": false,
+	"proposed_changeset_bump": "none",
+	"release_floor": "major",
+	"review_required": false
+}
+```
+
+The classification report contract advances to `schema_version` `0.3` (`SCHEMA_VERSION` regenerated with a frozen `classification.v0.3.schema.json`; the shipped v0.1 and v0.2 assets are untouched, and the schemas reference page lists the new asset). `decision.pull_request_changes` is new, and `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.review_required` can be lower for a package this pull request does not touch.
+
+No configuration change is required. Re-run `monochange change classify` to pick up the pull-request-scoped verdict.
+
+#### Check the next version with `monochange next`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)
+
+Answering "what version will this release be" required knowing that `monochange step display-versions` existed. There is now a top-level command for it:
+
+```bash
+monochange next
+```
+
+```text
+group versions:
+- sdk: 1.1.0
+package versions:
+- cargo:crates/sdk-a/Cargo.toml: 1.1.0
+- cargo:crates/sdk-b/Cargo.toml: 1.1.0
+- cargo:crates/tool/Cargo.toml: 1.0.1
+```
+
+It reports one version per release group plus one version for every package that releases independently, and accepts `--format text|json|json-min|md` for scripting:
+
+```bash
+monochange next --format json
+```
+
+```json
+{
+	"packages": {
+		"cargo:crates/sdk-a/Cargo.toml": "1.1.0",
+		"cargo:crates/tool/Cargo.toml": "1.0.1"
+	},
+	"groups": {
+		"sdk": "1.1.0"
+	}
+}
+```
+
+`monochange next-versions` is an alias that resolves to the same command. Both are read-only aliases for `monochange step display-versions`: no `release.json`, no prepared-release cache under `.monochange/local/`, and no changes to manifests, changelogs, or changesets, so the command leaves a clean working tree and is safe in a pre-commit check or a reporting-only CI job.
+
+For contrast, `monochange versions list` reports the versions recorded in the workspace today, while `monochange next` reports the versions planned from pending changesets.
+
+#### Group the publish steps behind `monochange publish`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)
+
+The publishing steps were only reachable through long `monochange step *` invocations, which made them hard to discover and awkward to type. The three publishing operations are now also available as subcommands of a built-in `monochange publish` command:
+
+```bash
+# before
+monochange step publish-packages --output publish.json
+monochange step publish-readiness --from HEAD --output readiness.json
+monochange step placeholder-publish --format json
+
+# after (equivalent)
+monochange publish packages --output publish.json
+monochange publish readiness --from HEAD --output readiness.json
+monochange publish placeholder --format json
+```
+
+Each subcommand runs the exact same built-in step with the same inputs and output formats, so `--format`, `--output`, `--from`, `--package`, `--group`, `--ecosystem`, `--resume`, `--all`, `--show-all`, `--stream-output`, `--fail-on-duplicate`, and `--otp` keep working unchanged. Diagnostics name the command you typed, so a failure reports `command: monochange publish readiness` rather than the bare step name.
+
+The `monochange step *` forms remain supported and unchanged. Config-defined commands are unaffected: a `[cli.publish]` workflow in `monochange.toml` still runs as `monochange run publish`, because config commands and built-in command groups are separate namespaces.
+
+#### Keep long-lived release pull requests openable
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #729](https://github.com/monochange/monochange/pull/729) · _Closed issues:_ [#724](https://github.com/monochange/monochange/issues/724)
+
+A release pull request that stayed open for days could grow until GitHub refused to create its replacement, which left the release blocked until someone worked out why. The cause was the pull request body: monochange inlined every release note for every release target and only GitHub's create call enforced a size limit, so the body grew silently through updates.
+
+Release pull request bodies are now bounded. Two settings control the result, and the default fixes the failure without any configuration change:
+
+```toml
+[source.pull_requests]
+# "full" inlines the release notes (the default). "summary" renders only the
+# prepared-release header, the target list, and the changelog paths.
+body_style = "full"
+# Optional. Defaults to the provider's own limit, which is 65536 characters for GitHub.
+# max_body_chars = 65536
+```
+
+When the notes do not fit, the body keeps the header and the target list, drops entries from the end, and ends with a pointer to the changelog files that still carry everything:
+
+```text
+## Full release notes
+
+3 entries omitted to fit the body limit. The complete notes are in:
+
+- `crates/app/CHANGELOG.md`
+- `crates/core/CHANGELOG.md`
+```
+
+The step reports the same thing, so the shortening is visible before the next create call rather than at the point GitHub rejects it:
+
+```text
+release request warnings:
+- release request body shortened to 500 characters (from 1498); 3 release-note entries were dropped.
+  Set `[source.pull_requests].max_body_chars` or `[source.pull_requests].body_style = "summary"` to control the limit.
+```
+
+No release notes are lost: they are also written to `changelog.md`, the per-crate changelogs, the GitHub release body, and every configured changelog output. Set `body_style = "summary"` if you would rather keep the review surface small on purpose, and raise `max_body_chars` for a self-hosted provider that accepts a larger body.
+
+#### Version your app with store build numbers and calendar labels
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #720](https://github.com/monochange/monochange/pull/720)
+
+Repositories that ship an app alongside their libraries can now give the app its own delivery numbers without changing how anything else is versioned.
+
+Two additions:
+
+- **A build number per app.** Declare a counter in a file you own and commit, and monochange advances it on every release. This is the number the App Store and Google Play expect, and it is separate from the version your users see.
+- **A calendar-style display version.** Render labels such as `2026.09.2` from the release date and how many times you have released that month.
+
+The two settings that matter most:
+
+- `reset = "version"` restarts the build number when the version changes. This matches the iOS App Store, where each new version can start again from build 1.
+- `reset = "never"` never restarts. This matches Google Play, where a version code that has been used once can never be used again.
+
+Set up looks like this:
+
+```toml
+[version_scheme.calver]
+template = "{{ year }}.{{ month_padded }}.{{ release_of_month }}"
+
+[package.app]
+display_version = "calver"
+
+[package.app.values.build]
+file = "build.json"
+field = "build"
+on_release = "increment"
+reset = "never"
+
+[[package.app.versioned_files]]
+path = "pubspec.yaml"
+type = "dart"
+value_template = "{{ identity }}+{{ build }}"
+```
+
+##### What you have to do
+
+Create the counter file yourself and commit it, with the number to start from:
+
+```json
+{ "build": 0 }
+```
+
+If your app is already published, put its current build number there instead of `0`, so the next release continues from where you are. If the file is missing, monochange stops with an error naming the file and field rather than guessing a starting point — a wrong guess would produce a build the stores reject as a duplicate.
+
+Nothing changes for projects that do not configure any of this.
+
+### 🐛 Fixed
+
+- **Stop `monochange create --dry-run` from writing the changeset file.** `create` (and any configured `[cli.*]` command that binds the `CreateChangeFile` step, such as `monochange run change`) ignored the `--dry-run` flag and wrote the changeset file anyway while printing `wrote change file`, so a preview silently changed release intent for the next `prepare`. Dry-run now performs the same validation and target resolution, prints `would write change file <path>` followed by the rendered changeset content, and writes nothing; the non-dry-run output remains `wrote change file <path>`. The new `monochange::plan_change_file` library API exposes the validated plan (path plus rendered content) without touching the filesystem. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+#### Report no planned versions instead of failing when no changesets are pending
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)
+
+`DisplayVersions` required at least one changeset, so asking for the next version between releases failed with a configuration error:
+
+```bash
+monochange next
+# before: error[config.invalid]: no markdown changesets found under .changeset  (exit 1)
+# after:  no package or group versions were planned                             (exit 0)
+```
+
+An empty `.changeset` directory is a normal state, and the command now reports it in the selected format rather than treating it as an error. `text` prints `no package or group versions were planned`, `markdown` prints `No package or group versions were planned.`, and `json` emits empty maps:
+
+```json
+{
+	"packages": {},
+	"groups": {}
+}
+```
+
+`PrepareRelease` is unchanged: it still requires changesets unless a command sets `allow_empty_changesets = true`.
+
+#### Versioned file validation dispatches through the ecosystem registry
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #728](https://github.com/monochange/monochange/pull/728) · _Related issues:_ [#138](https://github.com/monochange/monochange/issues/138)
+
+`monochange_config` parsed TOML, JSON, and YAML itself to decide whether a configured `versioned_files` entry pointed at a readable version field, duplicating every ecosystem's format knowledge inside the config crate. That validation now dispatches through the `EcosystemRegistry` from `monochange_core`, so each ecosystem adapter owns parsing for its own manifest format and the config crate only adds the owning package or group to the resulting error.
+
+`validate_versioned_files_content` and `validate_versioned_files_content_with_config` take the registry as a third argument. Callers that invoke them directly must now pass one:
+
+```rust
+// before
+monochange_config::validate_versioned_files_content_with_config(root, &configuration)?;
+
+// after
+let ecosystems = monochange_core::EcosystemRegistry::new();
+ecosystems.push_adapter(Box::new(monochange_cargo::adapter()));
+monochange_config::validate_versioned_files_content_with_config(root, &configuration, &ecosystems)?;
+```
+
+The CLI builds the registry from its enabled ecosystem features, so `monochange check` behavior is unchanged apart from the fixes below.
+
+##### Two validation bugs fixed
+
+Both previously made `monochange check` reject configurations that `monochange prepare` accepts:
+
+- Custom `fields` entries that address a nested path, such as `metadata.bin.monochange.version` in `package.json`, were compared against the root object as a literal key and always failed.
+- Only the first entry of `fields` was checked, so a typo in a second or later field passed validation.
+
+A `versioned_files` entry with `fields = ["version", "dependencies"]` now validates both entries, and a Dart dependency section resolves instead of being read as a string. Cargo keeps accepting any of `package.version`, `workspace.package.version`, or `version` when `fields` is unset. Python and Go files keep skipping field validation: a `pyproject.toml` may derive its version dynamically, and a module's version comes from its git tag rather than `go.mod`.
+
+`monochange_dart` renames the third parameter of `validate_versioned_file` from `_custom_fields` to `custom_fields`, which the API classifier records as a modified public item; the `major` bump reflects that signature change even though callers pass the same arguments.
+
+#### Rewrite internal Go `require` directives during release preparation
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+A Go monorepo could release an internal module while its dependents kept requiring a version that no longer existed. `monochange prepare` rewrote internal dependency constraints for cargo, npm, deno, and dart workspaces, but a `require github.com/acme/core v1.2.0` line in `service/go.mod` stayed stale after `core` moved to `v1.3.0`.
+
+A Go module is identified by the full path its own `go.mod` declares, so the rewrite now reads each workspace package's `module` directive and resolves a `require` against those paths exactly. Rewrites carry Go's `v` prefix, preserve `replace` directives, quoted module paths, and trailing comments, and handle `/v2`-style major suffixes.
+
+Matching by anything looser is unsafe: resolving a `require` on its last path segment alone rewrites an unrelated third-party module that happens to share it, so `github.com/other/core` would receive the workspace's version while `github.com/acme/core` was the intended target. A `require` that no workspace module path resolves exactly is left untouched rather than guessed at.
+
+`monochange versions sync` had the same matching defect, and on a pure Go workspace it never reported anything because tag-versioned packages carry no manifest version for the version map. The sync plan now seeds canonical versions for tag-versioned packages from release tags — the same baselines release planning resolves — before detecting stale constraints, and reports changes keyed by the full module path (`github.com/acme/core`), matching what `apply` rewrites.
+
+#### Quote scoped package ids in the config `monochange init` generates
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+`monochange init` in a repository with scoped npm packages wrote the package table header unquoted:
+
+```toml
+[package.@acme/sdk]      # generated before — not a legal TOML key
+path = "packages/sdk"
+type = "npm"
+```
+
+TOML bare keys may only contain letters, digits, `-`, and `_`, so the config the command had just written failed to parse on the next run:
+
+```text
+error[config.invalid]: TOML parse error ... invalid unquoted key, expected letters, numbers, `-`, `_`
+```
+
+This affected every monorepo using scoped npm package names, including this repository's own npm fixtures, and `init` is the first command a new user runs.
+
+Package ids are now rendered through a TOML key escaper: a legal bare key stays bare (`[package.acme-cli]`) and anything else is emitted quoted (`[package."@acme/sdk"]`). The group member list already quoted correctly, and the init-generated config now passes `monochange step validate` for mixed cargo and scoped-npm repositories.
+
+#### Invalidate the implicit prepared-release cache when a changeset's bytes change
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+`monochange preview` could reuse `.monochange/local/prepared-release-cache.json` after a pending changeset was edited in place, so the reviewed plan (and the changelog rendered from it) kept the old severity and version. The cache recorded `head_commit`, worktree status lines, and content hashes for the _planned output_ paths only, so an edit to an untracked or already-dirty changeset left every signal unchanged.
+
+The cache now stores a content fingerprint over the inputs the plan depends on — the pending changeset bytes and set, package manifests plus ancestor workspace manifests, `monochange.toml`, `.monochange/prerelease-state.json`, and release records — and rejects an implicit cache whose fingerprint differs. Rewriting a changeset's severity, editing only its body, adding or removing a changeset, and editing a manifest now all replan. An unchanged workspace still hits the cache, and an explicit `--prepared-release <PATH>` is still honored as a deliberate override.
+
+#### Release explicitly configured Python packages
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+`monochange init` on a Python (uv or Poetry) repository generates `monochange.toml` entries that declare each workspace member with `type = "python"`. That configuration passed `monochange step validate`, but every release command failed:
+
+```text
+error[workspace.discovery_failed]: configured package `acme-report` at packages/report could not be discovered
+```
+
+The release-time workspace loader asks each ecosystem adapter to load its explicitly configured packages, and the Python adapter answered `Ok(None)` unconditionally — so a configured Python package was never loaded and `preview`, `prepare`, and `next` all refused to run. Validation never calls that loader, which is why the broken config looked healthy until the first real release.
+
+The adapter now resolves the configured path to its `pyproject.toml` (accepting either the package directory or a direct manifest path), returns `Ok(None)` only when no manifest exists there, and otherwise loads the package through the same parser the discovery path uses. Both PEP 621 `[project]` and Poetry `[tool.poetry]` manifests load, and the failure is now limited to a genuinely missing or nameless manifest rather than every Python repository.
+
+A Python package's own `version` field is still only rewritten when a `versioned_files` entry names it in `fields` — that is unchanged behavior, and the agent skill now documents it.
+
+#### Rewrite quoted dependency keys when updating lockfiles and manifests
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+pnpm quotes scoped package names in `pnpm-lock.yaml` (`'@acme/api':`), and YAML permits quoted keys in a `pubspec.yaml` dependency section. `monochange prepare` reported those lockfiles as changed but wrote the file back unchanged, leaving the lockfile pinned to the old version while the manifest moved. Any npm or pnpm workspace with a scoped internal dependency, and any Dart workspace that quotes a dependency key, was affected.
+
+The cause was line parsing that split on the first `:` without stripping YAML quoting, so the lookup key (`'@acme/api'`) never matched the bare package name in the version map. Quoted keys are now parsed as YAML scalars, which also handles the doubled-quote escapes (`''` inside single quotes, `\"` inside double quotes). Only the lookup key is unquoted: the original quoting is preserved byte for byte when the line is rewritten, because pnpm regenerates and compares these files.
+
+**Before (lockfile contents after `monochange prepare` with a `minor` changeset for `@acme/api`):**
+
+```yaml
+importers:
+  .:
+    dependencies:
+      "@acme/api": 2.3.1
+```
+
+**After:**
+
+```yaml
+importers:
+  .:
+    dependencies:
+      "@acme/api": 2.4.0
+```
+
+The same unquoting fixes the `monochange_dart` dependency-sorted lint rule, which compares source key order against the parsed mapping. A sorted section that quoted its keys was reported as unsorted forever.
+
+`link:` and `workspace:` references are still skipped, including quoted and double-quoted forms.
+
+#### Fix verified factual errors in the monochange agent skill
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+The bundled skill (`packages/monochange__skill`, served by `monochange skill read`) taught several commands and fields that do not match the current binary. Each fix was reproduced against the debug binary before editing:
+
+- **`monochange versions`**: the skill now documents the supported subcommands. `monochange versions list` is a read-only inventory (`--format text|json|json-min`), and `monochange versions sync` rewrites internal dependency constraints (`--dry-run`, `--format`, `--strategy default|exact|caret|compatible`). `--strategy` belongs to `sync` only. Bare `monochange versions` is deprecated and prints a warning, so skill examples no longer use it.
+- **Cross-stream changesets**: `monochange step validate` and `monochange check` both pass for a file that mixes `default`-stream and `user`-stream targets; only a release plan command rejects it. The skill now names `monochange preview` (or `monochange prepare --dry-run` / `monochange step prepare-release --dry-run`) and states the observed failure: exit 1 with `changeset targets resolve to multiple changelog streams: <streams>; split the changes into one file per stream`.
+- **Compatibility field**: replaced the stale `compatibilityEvidence` name. The release plan exposes `compatibility_evidence`, and the classification report's verdict is `decision.compatibility_impact`.
+- **Top-level command surface**: `commands.md` and `SKILL.md` now document the short built-ins (`create`, `discover`, `config`, `preview`, `prepare`, `affected`, `diagnose`, `next`, `next-versions`, `publish packages|readiness|placeholder`, `versions list|sync`) with the step each one runs, the preferred order (configured workflow, then short built-in, then `monochange step <name>`), and the steps that remain step-only (`validate`, `commit-release`, `tag-release`, and others). The generated inventory keeps owning the clap-literal and step-name sections.
+- **Python and Go version writing**: configuring a `python` package does not rewrite its own `[project].version` unless a `versioned_files` entry lists `version` in `fields`. Without it, `monochange prepare` plans the version and rewrites internal constraints but leaves the manifest stale. Go modules carry no version field; `go` packages resolve their baseline from release tags, so `tag = true` plus `initial_version` is required and no `versioned_files` entry can write a module version.
+
+#### Discover every standalone package that has no workspace root
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #731](https://github.com/monochange/monochange/pull/731) · _Closed issues:_ [#702](https://github.com/monochange/monochange/issues/702)
+
+Repositories that contain several independent packages without a workspace manifest between them only ever reported one package per ecosystem, because discovery gave each standalone manifest an id derived from its own directory:
+
+```
+before:  cargo:Cargo.toml, dart:pubspec.yaml, deno:deno.json, python:pyproject.toml
+after:   cargo:crates/alpha/Cargo.toml, cargo:crates/beta/Cargo.toml, cargo:crates/gamma/Cargo.toml, ...
+```
+
+Every standalone manifest now produces an id relative to the discovery root, so `monochange step discover`, `monochange versions list`, release planning, change classification, and changeset-policy matching all see the full set. Given a repository with no root manifest:
+
+```text
+crates/alpha/Cargo.toml
+crates/beta/Cargo.toml
+crates/gamma/Cargo.toml
+```
+
+```bash
+monochange step discover --format json
+```
+
+```json
+{
+	"packages": [
+		{ "id": "cargo:crates/alpha/Cargo.toml", "name": "alpha" },
+		{ "id": "cargo:crates/beta/Cargo.toml", "name": "beta" },
+		{ "id": "cargo:crates/gamma/Cargo.toml", "name": "gamma" }
+	]
+}
+```
+
+Cargo, Dart, Deno, and Python discovery shared the defect and are all fixed. Go was unaffected because it already derived ids from the discovery root, and npm normalizes ids during discovery. Workspace members keep their existing ids, so a root `[workspace]` manifest with `members = ["crates/*"]` behaves exactly as before.
+
+#### Point generated subagent guidance at `monochange skill`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+`monochange subagents` generated agent files that never mentioned the bundled skill and taught only the `monochange step <name>` forms. The shared instructions written to the Claude, VS Code, GitHub Copilot, Pi, Codex, and Cursor targets now open by telling the agent to read the skill with `monochange skill` and `monochange skill read monochange`, and name the focused topics (`commands`, `changesets`, `change-classification`, `configuration`, `multi-package-publishing`) plus `monochange skill install --dir <dir>`.
+
+The inspection list and recommended workflow now use the first-class commands (`monochange discover`, `monochange diagnose`, `monochange preview`, `monochange next`, `monochange versions list|sync`, `monochange publish packages|readiness|placeholder`) while keeping `monochange step <name>` as the portable fallback that `[cli.*]` step types bind to. Command choice follows the preferred order: the configured `monochange run <name>` workflow when `monochange run --help` lists it, then the short built-in, then `monochange step <name>`.
+
+Two stale claims are corrected at the same time: the classification report field is `existing_changesets` (not `existingChangesets`), and configured workflows are listed by `monochange run --help` (or `monochange help run`), not by bare `monochange help`.
+
+Regenerate existing files with `monochange subagents --all --force` to pick up the new text.
+
 ## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
 
 ### 🚀 Feature
