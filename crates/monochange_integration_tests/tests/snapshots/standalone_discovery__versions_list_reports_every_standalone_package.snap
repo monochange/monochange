@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/standalone_discovery.rs
+expression: value
+---
+{
+  "alpha": "0.1.0",
+  "beta": "0.1.0",
+  "deno-helper": "2.0.0",
+  "deno-tool": "1.0.0",
+  "gamma": "0.1.0",
+  "mobile-sdk": "1.0.0",
+  "mobile-ui": "3.0.0",
+  "py-cli": "4.0.0",
+  "py-core": "1.0.0"
+}

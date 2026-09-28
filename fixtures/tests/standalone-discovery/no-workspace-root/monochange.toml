@@ -1,0 +1,42 @@
+# Four standalone ecosystems with no workspace root manifest between them.
+# Every package is its own top-level unit, so discovery must report one entry
+# per manifest instead of collapsing them onto a shared id.
+
+[defaults.changelog]
+path = "{{ path }}/changelog.md"
+
+[package.alpha]
+path = "crates/alpha"
+type = "cargo"
+
+[package.beta]
+path = "crates/beta"
+type = "cargo"
+
+[package.gamma]
+path = "crates/gamma"
+type = "cargo"
+
+[package.deno-tool]
+path = "deno/tool"
+type = "deno"
+
+[package.deno-helper]
+path = "deno/helper"
+type = "deno"
+
+[package.mobile-sdk]
+path = "dart/mobile_sdk"
+type = "dart"
+
+[package.mobile-ui]
+path = "dart/mobile_ui"
+type = "dart"
+
+[package.py-core]
+path = "python/core"
+type = "python"
+
+[package.py-cli]
+path = "python/cli"
+type = "python"

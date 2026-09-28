@@ -547,6 +547,24 @@ impl PackageRecord {
 	pub fn relative_manifest_path(&self, root: &Path) -> Option<PathBuf> {
 		relative_to_root(root, &self.manifest_path)
 	}
+
+	/// Rebase this record's id onto `root` using the manifest path.
+	///
+	/// A record built without a workspace manifest carries its own directory as
+	/// `workspace_root`, so every standalone package in a repository would
+	/// otherwise share one id. Rebasing on the discovery root gives each
+	/// standalone manifest a distinct id and keeps workspace members stable.
+	pub fn rebase_id(&mut self, root: &Path) {
+		let Some(relative_manifest) = relative_to_root(root, &self.manifest_path) else {
+			return;
+		};
+
+		self.id = format!(
+			"{}:{}",
+			self.ecosystem.as_str(),
+			relative_manifest.display()
+		);
+	}
 }
 
 /// Normalize a path to an absolute, canonicalized path when possible.

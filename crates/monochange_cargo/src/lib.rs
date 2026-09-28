@@ -713,6 +713,10 @@ pub fn discover_cargo_packages(root: &Path) -> MonochangeResult<AdapterDiscovery
 		}
 	}
 
+	for package in &mut packages {
+		package.rebase_id(root);
+	}
+
 	packages.sort_by(|left, right| left.id.cmp(&right.id));
 	packages.dedup_by(|left, right| left.id == right.id);
 	tracing::debug!(packages = packages.len(), "discovered cargo packages");
