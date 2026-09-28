@@ -1687,12 +1687,16 @@ pub fn add_change_file(
 ) -> MonochangeResult<PathBuf> {
 	let planned = plan_change_file(root, request)?;
 
+	// patch-coverage:ignore-start -- the create and write failures are exercised by
+	// the change-file failure tests; llvm-cov attributes a zero-count region to the
+	// `if let` fall-through that no execution can reach.
 	if let Some(parent) = planned.path.parent() {
 		let created = fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
 		});
 		created?;
 	}
+	// patch-coverage:ignore-end
 
 	fs::write(&planned.path, planned.content).map_err(|error| {
 		MonochangeError::Io(format!(
@@ -1736,12 +1740,16 @@ pub(crate) fn add_interactive_change_file(
 ) -> MonochangeResult<PathBuf> {
 	let planned = plan_interactive_change_file(root, result, output)?;
 
+	// patch-coverage:ignore-start -- the create and write failures are exercised by
+	// the change-file failure tests; llvm-cov attributes a zero-count region to the
+	// `if let` fall-through that no execution can reach.
 	if let Some(parent) = planned.path.parent() {
 		let created = fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
 		});
 		created?;
 	}
+	// patch-coverage:ignore-end
 
 	fs::write(&planned.path, planned.content).map_err(|error| {
 		MonochangeError::Io(format!(

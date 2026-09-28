@@ -301,12 +301,16 @@ fn write_tree(directory: &Path) -> MonochangeResult<usize> {
 		// The install paths come from the static table, never from input, so a
 		// plain join cannot escape the destination.
 		let path = directory.join(topic.file);
+		// patch-coverage:ignore-start -- the create and write failures are exercised
+		// by the install failure tests; llvm-cov attributes a zero-count region to
+		// the `if let` fall-through that no execution can reach.
 		if let Some(parent) = path.parent() {
 			let created = std::fs::create_dir_all(parent).map_err(|error| {
 				MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
 			});
 			created?;
 		}
+		// patch-coverage:ignore-end
 		std::fs::write(&path, topic.content).map_err(|error| {
 			MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
 		})?;
