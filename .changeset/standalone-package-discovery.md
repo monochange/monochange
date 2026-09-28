@@ -1,5 +1,10 @@
 ---
 "monochange": patch
+"monochange_core": patch
+"monochange_cargo": patch
+"monochange_dart": patch
+"monochange_deno": patch
+"monochange_python": patch
 ---
 
 # Discover every standalone package that has no workspace root

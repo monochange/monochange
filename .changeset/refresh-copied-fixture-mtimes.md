@@ -1,5 +1,5 @@
 ---
-"monochange": patch
+"monochange_test_helpers": patch
 ---
 
 # Detect fixture edits that keep the same file size and modification time
