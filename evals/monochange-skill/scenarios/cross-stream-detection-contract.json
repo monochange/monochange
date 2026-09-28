@@ -1,0 +1,42 @@
+{
+	"id": "cross-stream-detection-contract",
+	"title": "Per-command contract for a cross-stream changeset (validate and check pass, preview rejects)",
+	"fixture": "npm-monorepo",
+	"agent": false,
+	"prompt": "",
+	"expectation": "One changeset file whose targets cross changelog streams — a default-stream `feat` on `@acme/api` plus the user-stream `feature` on `@acme/ui` — must pass `monochange step validate` and `monochange check`: neither command resolves streams, so both accept the file. Only `monochange preview` rejects it, exiting 1 with `changeset targets resolve to multiple changelog streams` and the corrective `split the changes into one file per stream`. Splitting the two targets into one file per stream makes `preview` accept the plan. These are deterministic command properties, so they are pinned here rather than graded from a stochastic agent run.",
+	"setupFiles": {
+		".changeset/mixed-stream.md": "---\n\"@acme/api\": feat\n\"@acme/ui\": feature\n---\n\nOne file carrying both the developer refactor and the customer-facing feature, which is exactly the trap.\n"
+	},
+	"checks": [
+		{
+			"id": "validate-passes-mixed-stream",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The trap: `step validate` only parses frontmatter and resolves targets, so a cross-stream file passes it and the author sees no problem."
+		},
+		{
+			"id": "check-passes-mixed-stream",
+			"kind": "command",
+			"command": "monochange check",
+			"why": "The lint pass does not resolve streams either, so `check` accepting the file must not be read as release readiness."
+		},
+		{
+			"id": "preview-rejects-mixed-stream",
+			"kind": "command",
+			"command": "monochange preview",
+			"expectExit": 1,
+			"expectOutput": [
+				"changeset targets resolve to multiple changelog streams",
+				"split the changes into one file per stream"
+			],
+			"why": "Release planning is where stream separation is enforced, and the error must name both the problem and the remedy."
+		},
+		{
+			"id": "split-streams-preview-passes",
+			"kind": "command",
+			"command": "rm .changeset/mixed-stream.md\ncat > .changeset/api-feat.md <<'EOF'\n---\n\"@acme/api\": feat\n---\n\nInternal request builder refactor for SDK maintainers.\nEOF\ncat > .changeset/ui-feature.md <<'EOF'\n---\n\"@acme/ui\": feature\n---\n\nCopy link button on the profile screen.\nEOF\nmonochange preview --format json >/dev/null 2>&1\nrc=$?\nrm -f .changeset/api-feat.md .changeset/ui-feature.md\nexit $rc",
+			"why": "The positive half of the contract: one stream per file is sufficient, so `preview` plans the group once the audiences are split."
+		}
+	]
+}

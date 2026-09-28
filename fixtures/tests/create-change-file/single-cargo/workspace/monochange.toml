@@ -1,0 +1,47 @@
+[defaults]
+parent_bump = "patch"
+
+[package.core]
+path = "core"
+type = "cargo"
+
+[cli.change]
+
+[[cli.change.inputs]]
+name = "interactive"
+type = "boolean"
+short = "i"
+
+[[cli.change.inputs]]
+name = "package"
+type = "string_list"
+
+[[cli.change.inputs]]
+name = "bump"
+type = "choice"
+choices = ["none", "patch", "minor", "major"]
+default = "patch"
+
+[[cli.change.inputs]]
+name = "version"
+type = "string"
+
+[[cli.change.inputs]]
+name = "reason"
+type = "string"
+
+[[cli.change.inputs]]
+name = "type"
+type = "string"
+
+[[cli.change.inputs]]
+name = "details"
+type = "string"
+
+[[cli.change.inputs]]
+name = "output"
+type = "path"
+
+[[cli.change.steps]]
+type = "CreateChangeFile"
+inputs = ["interactive", "package", "bump", "version", "reason", "type", "details", "output"]

@@ -1,0 +1,52 @@
+{
+	"id": "dependency-propagation",
+	"title": "A library feature must not strand the dependent binary",
+	"fixture": "rust-workspace",
+	"setupFiles": {
+		"crates/core/src/lib.rs": "//! Parsing and validation primitives shared by the Acme toolchain.\n\n/// A parsed configuration document.\n#[derive(Debug, Clone, PartialEq, Eq)]\npub struct Document {\n\t/// Raw source text the document was parsed from.\n\tpub source: String,\n}\n\nimpl Document {\n\t/// Parse a document from source text.\n\tpub fn parse(source: &str) -> Self {\n\t\tSelf { source: source.to_string() }\n\t}\n\n\t/// Return the number of non-empty lines in the document.\n\tpub fn line_count(&self) -> usize {\n\t\tself.source.lines().filter(|line| !line.trim().is_empty()).count()\n\t}\n\n\t/// Return whether the document has no non-empty lines.\n\tpub fn is_empty(&self) -> bool {\n\t\tself.line_count() == 0\n\t}\n}\n\n/// Validate a document, returning every problem found.\npub fn validate(document: &Document) -> Vec<String> {\n\tif document.is_empty() {\n\t\treturn vec![\"document is empty\".to_string()];\n\t}\n\tVec::new()\n}\n"
+	},
+	"prompt": "I just added `Document::is_empty()` to acme-core, which is the library other teams depend on. Record the release so the library ships the new method, and make sure acme-cli doesn't get left behind — the binary depends on the library, so it needs to move too.",
+	"expectation": "`acme-core` gained a new public method, which is additive, so the library takes a minor release: 1.4.0 to 1.5.0. `acme-cli` depends on `acme-core` and the repository propagates a patch bump to dependents, so the CLI moves as well even though its own source did not change. The two crates are deliberately not version-grouped, so the CLI is not dragged to the library's version. A correct solution records release intent for the library and leaves the release plan showing both packages moving.",
+	"setupCommands": [
+		"git init -q && git add -A && git -c user.email=eval@example.com -c user.name=eval commit -qm 'initial commit'"
+	],
+	"checks": [
+		{
+			"id": "library-takes-a-minor-release",
+			"kind": "command",
+			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; assert t.get('acme-core')=='1.5.0', f\\\"acme-core planned {t.get('acme-core')}, expected 1.5.0 from a minor change on 1.4.0\\\"; print('acme-core ->', t['acme-core'])\"",
+			"why": "An added public method is additive. A patch release would hide the new capability, and a major release would be wrong."
+		},
+		{
+			"id": "dependent-binary-releases-too",
+			"kind": "command",
+			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); ids={x['id'] for x in d['release_targets']}; assert 'acme-cli' in ids, f'acme-cli was left out of the release plan: {sorted(ids)}'; print('released:', sorted(ids))\"",
+			"why": "The user's explicit concern. acme-cli depends on acme-core, so the repository propagates a bump to it; dropping it would publish a library whose dependent is pinned to the old version."
+		},
+		{
+			"id": "dependent-is-not-dragged-to-the-library-version",
+			"kind": "command",
+			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; v=t.get('acme-cli'); assert v and v.startswith('1.4.'), f'acme-cli planned {v}; these crates are not version-grouped, so it should take a dependent bump, not the library version'; print('acme-cli ->', v)\"",
+			"why": "Grouping and dependency propagation are different mechanisms. Treating the two crates as one version would silently couple releases the repository deliberately keeps independent."
+		},
+		{
+			"id": "release-intent-targets-the-library",
+			"kind": "command",
+			"command": "grep -l 'acme-core' .changeset/*.md >/dev/null",
+			"why": "The change happened in the library; that is where the release intent belongs."
+		},
+		{
+			"id": "validate-passes",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "Release intent that does not resolve against configured ids cannot ship."
+		},
+		{
+			"id": "no-manifests-hand-edited",
+			"kind": "transcript",
+			"pattern": "(Write|Edit|MultiEdit)[^\\n]*crates/(core|cli)/Cargo\\.toml",
+			"absent": true,
+			"why": "Versions are computed from release intent; hand-editing the manifests would desynchronise the plan from the tree."
+		}
+	]
+}

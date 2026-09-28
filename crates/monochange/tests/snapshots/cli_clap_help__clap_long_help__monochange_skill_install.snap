@@ -1,0 +1,35 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange skill install
+
+Write SKILL.md and every bundled reference into a directory the agent runtime reads as a skill. The directory is normally named `monochange` inside the runtime's skills folder. An existing skill is never replaced unless --force is passed.
+
+[1m[97mUsage:[0m [93mmonochange skill install[0m [95m[OPTIONS][0m
+
+[1m[96mOptions:[0m
+      [93m--dir[0m[95m [0m[95m<DIR>[0m
+          Skill directory to write, for example ~/.claude/skills/monochange
+
+      [93m--force[0m
+          Replace an existing skill in the destination
+
+  [93m-h[0m, [93m--help[0m
+          Print help (see a summary with '-h')
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress result, progress, and diagnostic output without changing execution
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

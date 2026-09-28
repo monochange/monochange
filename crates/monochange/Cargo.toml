@@ -10,6 +10,7 @@ include = [
 	"src/**/*.yml",
 	"src/**/*.toml",
 	"src/**/*.template",
+	"skill/**/*.md",
 	"tests/**/*.rs",
 	"benches/**/*.rs",
 	"Cargo.toml",

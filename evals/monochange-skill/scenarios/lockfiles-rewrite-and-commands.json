@@ -1,0 +1,40 @@
+{
+	"id": "lockfiles-rewrite-and-commands",
+	"title": "Lockfiles rewrite in place, and lockfile_commands replace that rewrite",
+	"fixture": "npm-monorepo",
+	"agent": false,
+	"prompt": "",
+	"setupFiles": {
+		"pnpm-lock.yaml": "lockfileVersion: '9.0'\n\nimporters:\n  .:\n    dependencies:\n      '@acme/api':\n        specifier: ^2.3.1\n        version: 2.3.1\n"
+	},
+	"setupCommands": [
+		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init"
+	],
+	"expectation": "A workspace lockfile is refreshed as part of the release, so a dependent pinned to the old version does not survive the bump. The lockfile is rewritten in place and its quoting preserved, because pnpm regenerates and compares these files. Configuring `[ecosystems.<name>].lockfile_commands` replaces that built-in rewrite rather than adding to it: the configured command owns the refresh entirely.",
+	"checks": [
+		{
+			"id": "lockfile-listed-as-changed",
+			"kind": "command",
+			"command": "cp monochange.toml .cfg.bak; python3 -c \"import pathlib; p=pathlib.Path('monochange.toml'); s=p.read_text(); s=s.replace('[package.\\\"@acme/api\\\"]\\npath = \\\"packages/api\\\"\\ntype = \\\"npm\\\"', '[package.\\\"@acme/api\\\"]\\npath = \\\"packages/api\\\"\\ntype = \\\"npm\\\"\\nversioned_files = [{ path = \\\"pnpm-lock.yaml\\\", type = \\\"npm\\\", fields = [\\\"dependencies\\\"] }]'); p.write_text(s)\"; mkdir -p .changeset; printf -- '---\\n\"@acme/api\": minor\\n---\\n\\nAdd a timeout option\\n' > .changeset/t.md; monochange prepare --format json > .plan.json 2>&1; rc=$?; grep -q 'pnpm-lock.yaml' .plan.json; listed=$?; mv .cfg.bak monochange.toml; rm -f .plan.json; test $rc -eq 0 -a $listed -eq 0",
+			"why": "The lockfile must be part of the release plan. If it is absent from the changed-file list, no refresh is happening and the dependent stays pinned to a version that no longer exists."
+		},
+		{
+			"id": "lockfile-content-actually-advanced",
+			"kind": "command",
+			"command": "cp monochange.toml .cfg.bak; python3 -c \"import pathlib; p=pathlib.Path('monochange.toml'); s=p.read_text(); s=s.replace('[package.\\\"@acme/api\\\"]\\npath = \\\"packages/api\\\"\\ntype = \\\"npm\\\"', '[package.\\\"@acme/api\\\"]\\npath = \\\"packages/api\\\"\\ntype = \\\"npm\\\"\\nversioned_files = [{ path = \\\"pnpm-lock.yaml\\\", type = \\\"npm\\\", fields = [\\\"dependencies\\\"] }]'); p.write_text(s)\"; mkdir -p .changeset; printf -- '---\\n\"@acme/api\": minor\\n---\\n\\nAdd a timeout option\\n' > .changeset/t.md; monochange prepare >/dev/null 2>&1; rc=$?; python3 -c \"import json,pathlib,re; v=json.loads(pathlib.Path('packages/api/package.json').read_text())['version']; lock=pathlib.Path('pnpm-lock.yaml').read_text(); assert re.search(r\\\"version: \\\"+re.escape(v), lock), f'lockfile does not carry the released {v}: {lock}'; assert \\\"'@acme/api':\\\" in lock, 'the quoted scoped key was not preserved'; print('lockfile ->', v)\"; j=$?; mv .cfg.bak monochange.toml; test $rc -eq 0 -a $j -eq 0",
+			"why": "The decisive check. Being listed is not the same as being written: a lockfile can appear in changed_files while its bytes are written back unchanged. It grades the invariant rather than a literal version — the lockfile must carry whatever version the manifest now declares, and the quoted scoped key must survive the rewrite, since real pnpm lockfiles quote scoped names. Grading the literal would break as soon as an earlier check advanced the version."
+		},
+		{
+			"id": "lockfile-commands-replace-the-built-in-rewrite",
+			"kind": "command",
+			"command": "cp monochange.toml .cfg.bak; python3 -c \"import pathlib; p=pathlib.Path('monochange.toml'); s=p.read_text(); before=s; s=s.replace('[ecosystems.npm]\\\\nenabled = true', '[ecosystems.npm]\\\\nenabled = true\\\\nlockfile_commands = [{ command = \\\"echo sentinel >> pnpm-lock.yaml\\\", shell = true }]'); assert s!=before, 'config shape changed'; p.write_text(s)\"; python3 -c \"import json,pathlib; print(json.loads(pathlib.Path('packages/api/package.json').read_text())['version'])\" > .ver.before; mkdir -p .changeset; printf -- '---\\n\\\"@acme/api\\\": minor\\n---\\n\\nAdd a timeout option\\n' > .changeset/t.md; monochange prepare >/dev/null 2>&1; rc=$?; sentinel=$(grep -c '^sentinel$' pnpm-lock.yaml); python3 -c \"import json,pathlib,re; v=json.loads(pathlib.Path('packages/api/package.json').read_text())['version']; lock=pathlib.Path('pnpm-lock.yaml').read_text(); assert not re.search(r'version: '+re.escape(v), lock), f'the built-in writer also fired for {v}'; print('built-in writer deferred to the command')\"; deferred=$?; mv .cfg.bak monochange.toml; rm -f .ver.before; test $rc -eq 0 -a \"$sentinel\" -ge 1 -a $deferred -eq 0",
+			"why": "Configuring a lockfile command replaces the built-in rewrite instead of adding to it: the command runs, and the direct writer does not also fire. Both halves matter, because a reader could otherwise assume the two compose. The built-in writer is detected by absence of the released version, so the check does not depend on which version this run planned. The command needs `shell = true` to use a shell redirection; without it the command is exec'd directly and `>>` is just another argument."
+		},
+		{
+			"id": "no-registry-or-network-access",
+			"kind": "command",
+			"command": "test ! -d node_modules",
+			"why": "Lockfile handling must not depend on a package-manager install having run; the built-in rewrite is what keeps ordinary releases on the fast path."
+		}
+	]
+}

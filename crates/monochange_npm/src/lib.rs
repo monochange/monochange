@@ -8,6 +8,7 @@ pub mod analysis;
 pub mod lints;
 mod typescript;
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
@@ -327,7 +328,7 @@ fn collect_pnpm_section_replacements(
 			if nested_line.indent <= entry_indent {
 				break;
 			}
-			if is_pnpm_dependency_field(nested_line.key) {
+			if is_pnpm_dependency_field(&nested_line.key) {
 				collect_pnpm_dependency_replacements(
 					contents,
 					line_ranges,
@@ -363,7 +364,7 @@ fn collect_pnpm_dependency_replacements(
 		if line.indent <= section.indent {
 			break;
 		}
-		let Some(version) = raw_versions.get(line.key) else {
+		let Some(version) = raw_versions.get(line.key.as_ref()) else {
 			index += 1;
 			continue;
 		};
@@ -454,8 +455,33 @@ fn find_yaml_key_line(
 
 struct ParsedYamlLine<'a> {
 	indent: usize,
-	key: &'a str,
+	key: Cow<'a, str>,
 	value_span: Option<(usize, usize)>,
+}
+
+/// Strip YAML quoting from a line key so bare and quoted keys resolve alike.
+///
+/// # Why this exists
+///
+/// pnpm quotes scoped package names (`'@acme/api':`), while the version map is
+/// keyed by the bare package name. Without this the lookup misses and the
+/// lockfile ships pinned to the old version even though it is reported as a
+/// changed file. Only quoted keys are parsed: bare keys keep their raw text so
+/// keys that are not standalone YAML scalars (for example `1.0.0`) behave
+/// exactly as before.
+fn unquote_yaml_key(key: &str) -> Cow<'_, str> {
+	let Some(quote) = key
+		.chars()
+		.next()
+		.filter(|quote| *quote == '\'' || *quote == '"')
+	else {
+		return Cow::Borrowed(key);
+	};
+	if key.len() < 2 || !key.ends_with(quote) {
+		return Cow::Borrowed(key);
+	}
+
+	serde_yaml_ng::from_str::<String>(key).map_or(Cow::Borrowed(key), Cow::Owned)
 }
 
 fn parse_yaml_line(contents: &str, range: (usize, usize)) -> Option<ParsedYamlLine<'_>> {
@@ -466,7 +492,7 @@ fn parse_yaml_line(contents: &str, range: (usize, usize)) -> Option<ParsedYamlLi
 	}
 	let indent = line.len() - trimmed.len();
 	let colon = trimmed.find(':')?;
-	let key = trimmed.get(..colon)?.trim();
+	let key = unquote_yaml_key(trimmed.get(..colon)?.trim());
 	if key.is_empty() {
 		return None;
 	}

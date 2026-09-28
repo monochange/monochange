@@ -1,0 +1,19 @@
+# Fixture for rewriting quoted keys in a real pnpm lockfile.
+#
+# Real pnpm lockfiles quote scoped package names, and pnpm regenerates and
+# compares these files, so a release must rewrite the pinned version while
+# leaving the key's quoting untouched.
+[defaults]
+parent_bump = "patch"
+
+[package."@acme/api"]
+path = "packages/api"
+type = "npm"
+versioned_files = [{ path = "pnpm-lock.yaml", type = "npm", fields = ["dependencies"] }]
+
+[package."@acme/consumer"]
+path = "packages/consumer"
+type = "npm"
+
+[ecosystems.npm]
+enabled = true

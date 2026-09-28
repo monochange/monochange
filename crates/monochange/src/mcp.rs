@@ -371,8 +371,9 @@ impl ServerHandler for MonochangeMcpServer {
 	fn get_info(&self) -> ServerConfig {
 		let mut info = ServerConfig::default();
 		info.instructions = Some(
-			"monochange manages versions and releases across Cargo, npm, Deno, and Dart/Flutter \
-			 workspaces. Prefer validation and dry-run planning before mutating release state. \
+			"monochange manages versions and releases across Cargo, npm, Deno, Dart/Flutter, \
+			 Python, and Go workspaces. Prefer validation and dry-run planning before mutating \
+			 release state. \
 			 Read monochange.toml first, inspect the normalized model with discover, classify \
 			 the pull request and latest-release comparisons with classify_changes, use change \
 			 to write explicit .changeset files, validate the chosen severity, and use release \

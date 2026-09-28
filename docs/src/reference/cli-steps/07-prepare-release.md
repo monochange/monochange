@@ -153,7 +153,7 @@ monochange step prepare-release
 monochange step open-release-request --dry-run
 ```
 
-The first `PrepareRelease` step stores prepared state in `.monochange/local/prepared-release-cache.json`, and later commands with a `PrepareRelease` step reuse it when the git `HEAD`, workspace status, tracked release inputs, and relevant configuration still match.
+The first `PrepareRelease` step stores prepared state in `.monochange/local/prepared-release-cache.json`, and later commands with a `PrepareRelease` step reuse it only while every input it was computed from still matches: the pending changeset bytes and set, package manifests and their ancestor workspace manifests, `monochange.toml`, prerelease state, release records, the git `HEAD`, and the workspace status. Because the changeset bytes are fingerprinted, editing a changeset's severity or body in place — even when it is untracked or already dirty — replans instead of reusing the stale plan.
 
 `.monochange/local/` is the only directory under `.monochange/` that should be gitignored. monochange adds it to `.git/info/exclude` automatically, so reusable prepared state, the cached release manifest, and other local release metadata do not pollute reviewable commits.
 

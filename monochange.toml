@@ -634,7 +634,7 @@ ignored_paths = [
 #
 [lints]
 use = ["cargo/recommended", "npm/recommended"]
-exclude = ["examples/**", "fixtures/**"]
+exclude = ["examples/**", "evals/**", "fixtures/**"]
 
 [lints.rules]
 "cargo/dependency-field-order" = "error"

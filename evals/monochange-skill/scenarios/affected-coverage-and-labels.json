@@ -1,0 +1,40 @@
+{
+	"id": "affected-coverage-and-labels",
+	"title": "Changeset coverage is enforced, and a skip label releases the requirement",
+	"fixture": "rust-workspace",
+	"agent": false,
+	"prompt": "",
+	"setupFiles": {
+		"crates/core/src/lib.rs": "//! Parsing and validation primitives shared by the Acme toolchain.\n\n/// A parsed configuration document.\n#[derive(Debug, Clone, PartialEq, Eq)]\npub struct Document {\n\t/// Raw source text the document was parsed from.\n\tpub source: String,\n}\n\nimpl Document {\n\t/// Parse a document from source text.\n\tpub fn parse(source: &str) -> Self {\n\t\tSelf { source: source.to_string() }\n\t}\n\n\t/// Return the number of non-empty lines in the document.\n\tpub fn line_count(&self) -> usize {\n\t\tself.source.lines().filter(|line| !line.trim().is_empty()).count()\n\t}\n\n\t/// Return whether the document has no non-empty lines.\n\tpub fn is_empty(&self) -> bool {\n\t\tself.line_count() == 0\n\t}\n}\n\n/// Validate a document, returning every problem found.\npub fn validate(document: &Document) -> Vec<String> {\n\tif document.is_empty() {\n\t\treturn vec![\"document is empty\".to_string()];\n\t}\n\tVec::new()\n}\n"
+	},
+	"setupCommands": [
+		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init && printf -- '\\n// local edit\\n' >> crates/core/src/lib.rs"
+	],
+	"expectation": "A change under a package's path without a changeset is a policy failure, not a warning: `monochange affected --verify` exits nonzero and names the uncovered package. Adding release intent for that package satisfies the same command, so the check is about coverage rather than about the diff. A configured skip label releases the requirement without a changeset, which is how a maintainer marks a change as needing no release note.",
+	"checks": [
+		{
+			"id": "verify-fails-on-an-uncovered-change",
+			"kind": "command",
+			"command": "monochange affected --verify --changed-paths crates/core/src/lib.rs > .a.out 2>&1; rc=$?; grep -q 'changeset verification failed' .a.out; a=$?; grep -q 'acme-core' .a.out; b=$?; rm -f .a.out; test $rc -eq 1 -a $a -eq 0 -a $b -eq 0",
+			"why": "The gate that stops an uncovered change from merging. Both the failure and the package name must be present, because an agent recovers by reading which package it forgot."
+		},
+		{
+			"id": "coverage-satisfied-by-a-changeset",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\nacme-core: patch\\n---\\n\\nTighten the empty-document check\\n' > .changeset/grader.md; monochange affected --verify --changed-paths crates/core/src/lib.rs --changed-paths .changeset/grader.md > .a.out 2>&1; rc=$?; rm -f .changeset/grader.md .a.out; exit $rc",
+			"why": "The positive half: the same gate passes once the change is accompanied by release intent. Both paths must be passed because a changeset only counts when it is part of the change set being evaluated — it is the diff that carries it, which is how the check behaves in CI."
+		},
+		{
+			"id": "coverage-is-per-package",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\nacme-cli: patch\\n---\\n\\nUnrelated CLI fix\\n' > .changeset/grader.md; monochange affected --verify --changed-paths crates/core/src/lib.rs > .a.out 2>&1; rc=$?; rm -f .changeset/grader.md .a.out; test $rc -eq 1",
+			"why": "A changeset for a different package must not satisfy coverage for the changed one. Without this, the gate passes on any changeset at all and stops meaning anything."
+		},
+		{
+			"id": "skip-label-releases-the-requirement",
+			"kind": "command",
+			"command": "cp monochange.toml .cfg.bak; printf '\\n[changesets.affected]\\nenabled = true\\nrequired = true\\nskip_labels = [\"no-release-note\"]\\n' >> monochange.toml; monochange affected --verify --label no-release-note --changed-paths crates/core/src/lib.rs > .a.out 2>&1; rc=$?; grep -q 'changeset verification skipped' .a.out; a=$?; mv .cfg.bak monochange.toml; rm -f .a.out; test $rc -eq 0 -a $a -eq 0",
+			"why": "The escape hatch a maintainer uses to mark a change as needing no release note. Pinning both the exit code and the skip message keeps the gate from becoming unconditional, which would push people to write meaningless changesets."
+		}
+	]
+}

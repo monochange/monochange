@@ -1,0 +1,21 @@
+---
+source: crates/monochange_integration_tests/tests/npm_quoted_pnpm_lock.rs
+expression: summary
+---
+{
+  "changed_files": [
+    "packages/api/package.json",
+    "packages/consumer/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "targets": [
+    {
+      "id": "@acme/api",
+      "version": "2.4.0"
+    },
+    {
+      "id": "@acme/consumer",
+      "version": "1.0.1"
+    }
+  ]
+}

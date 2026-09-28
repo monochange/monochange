@@ -1,0 +1,42 @@
+{
+	"id": "gitignore-release-state",
+	"title": "Release state stays committed while local scratch stays out of git",
+	"fixture": "rust-workspace",
+	"prompt": "Before we wire up CI, tidy up what monochange writes into this repo. Anything that is part of the release record needs to be committed so our automation and the publish job can read it. Scratch files that monochange writes for the local machine should stay out of git.",
+	"expectation": "`.monochange/releases/<id>/release.json` and `.monochange/prerelease-state.json` are release state that `CommitRelease`, `publish-readiness`, `tag-release`, and provider automation read back from git history, so ignoring them makes releases unpublishable. Only `.monochange/local/` is local scratch and may be ignored. A correct solution ignores the local directory specifically and leaves the rest of `.monochange/` tracked; ignoring the whole directory is the failure this scenario exists to catch.",
+	"setupCommands": [
+		"git init -q && git add -A && git -c user.email=eval@example.com -c user.name=eval commit -qm 'initial commit'"
+	],
+	"checks": [
+		{
+			"id": "local-scratch-is-ignored",
+			"kind": "command",
+			"command": "mkdir -p .monochange/local && : > .monochange/local/scratch.json && git check-ignore -q .monochange/local/scratch.json",
+			"why": "Local artifacts are the one part of the tree that must not be committed."
+		},
+		{
+			"id": "release-records-stay-tracked",
+			"kind": "command",
+			"command": "mkdir -p .monochange/releases/abc123 && printf '{}' > .monochange/releases/abc123/release.json && ! git check-ignore -q .monochange/releases/abc123/release.json",
+			"why": "The decisive check. `release.json` is read from git history by publish-readiness and tag-release; if it is ignored those steps find no release to publish."
+		},
+		{
+			"id": "prerelease-state-stays-tracked",
+			"kind": "command",
+			"command": "mkdir -p .monochange && printf '{}' > .monochange/prerelease-state.json && ! git check-ignore -q .monochange/prerelease-state.json",
+			"why": "Prerelease state is committed release state too, and is read back during publish readiness."
+		},
+		{
+			"id": "whole-directory-is-not-ignored",
+			"kind": "command",
+			"command": "! git check-ignore -q .monochange/releases/abc123 && ! git check-ignore -q .monochange",
+			"why": "A rule such as `.monochange/` or `.monochange` would swallow the release record along with the scratch directory, which is the specific mistake the skill warns about."
+		},
+		{
+			"id": "cleanup",
+			"kind": "command",
+			"command": "rm -rf .monochange",
+			"why": "The probe files are grading scaffolding, not part of the agent's answer."
+		}
+	]
+}

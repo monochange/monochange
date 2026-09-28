@@ -22,7 +22,7 @@ Reach for this crate when you want one API and CLI surface that discovers packag
 
 ```bash
 monochange init
-monochange skill -a pi -y
+monochange skill install --dir ~/.claude/skills/monochange
 monochange step discover --format json
 monochange run change --package monochange --bump patch --reason "describe the change"
 monochange step prepare-release --dry-run --format json

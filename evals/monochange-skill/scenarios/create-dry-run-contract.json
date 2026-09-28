@@ -1,0 +1,65 @@
+{
+	"id": "create-dry-run-contract",
+	"title": "create --dry-run plans a changeset without writing it, on both spellings",
+	"fixture": "rust-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "`monochange create --dry-run` and `monochange step create-change-file --dry-run` exit 0, print `would write change file` plus the rendered changeset body, and leave no `.changeset/*.md` behind — the dry-run discipline the skill teaches agents to rely on. Without `--dry-run`, `create` writes the file and prints `wrote change file`. `monochange run change` errors while the fixture defines no `[cli.change]`, because `run` subcommands come only from `[cli.*]` config; once a `[cli.change]` wrapper is appended, it honors `--dry-run` exactly like the built-in spelling. The wrapper block is appended and the config restored inside the last check.",
+	"setupFiles": {
+		".mc-cli-change-block.toml": "[cli.change]\n\n[[cli.change.inputs]]\nname = \"interactive\"\ntype = \"boolean\"\nshort = \"i\"\n\n[[cli.change.inputs]]\nname = \"package\"\ntype = \"string_list\"\n\n[[cli.change.inputs]]\nname = \"bump\"\ntype = \"choice\"\nchoices = [\"none\", \"patch\", \"minor\", \"major\"]\ndefault = \"patch\"\n\n[[cli.change.inputs]]\nname = \"reason\"\ntype = \"string\"\n\n[[cli.change.inputs]]\nname = \"type\"\ntype = \"string\"\n\n[[cli.change.inputs]]\nname = \"details\"\ntype = \"string\"\n\n[[cli.change.steps]]\ntype = \"CreateChangeFile\"\ninputs = [\"interactive\", \"package\", \"bump\", \"reason\", \"type\", \"details\"]\n"
+	},
+	"checks": [
+		{
+			"id": "create-dry-run-writes-nothing",
+			"kind": "command",
+			"command": "monochange create --package acme-core --bump minor --reason \"Add streaming parser support\" --dry-run; rc=$?; left=$(ls .changeset/*.md 2>/dev/null); rm -rf .changeset; test $rc -eq 0 && test -z \"$left\"",
+			"expectOutput": [
+				"would write change file",
+				"acme-core: minor",
+				"Add streaming parser support"
+			],
+			"why": "A dry run must exit 0, print the path it would write plus the rendered body, and leave no changeset file — a regression here is exactly the mutation agents were told cannot happen."
+		},
+		{
+			"id": "step-spelling-dry-run-writes-nothing",
+			"kind": "command",
+			"command": "monochange step create-change-file --dry-run --package acme-core --bump minor --reason \"Step spelling dry run\"; rc=$?; left=$(ls .changeset/*.md 2>/dev/null); rm -rf .changeset; test $rc -eq 0 && test -z \"$left\"",
+			"expectOutput": [
+				"would write change file",
+				"acme-core: minor",
+				"Step spelling dry run"
+			],
+			"why": "The `step create-change-file` spelling runs the same step and must obey the same dry-run discipline; the skill still teaches both spellings."
+		},
+		{
+			"id": "create-write-writes-the-file",
+			"kind": "command",
+			"command": "monochange create --package acme-core --bump minor --reason \"Create writes a real changeset\" && test -n \"$(ls .changeset/*.md 2>/dev/null)\" && grep -q \"Create writes a real changeset\" .changeset/*.md; rc=$?; rm -rf .changeset; exit $rc",
+			"expectOutput": ["wrote change file"],
+			"why": "The non-dry-run spelling must actually write the changeset with the requested target, bump, and body, so the dry-run contrast is real rather than vacuous."
+		},
+		{
+			"id": "run-change-errors-without-cli-config",
+			"kind": "command",
+			"command": "monochange run change",
+			"expectExit": 1,
+			"expectOutput": [
+				"error[config.invalid]",
+				"unexpected argument 'change' found"
+			],
+			"why": "Run subcommands come only from `[cli.*]` config; while the fixture defines none, `change` is not even a parseable argument, and an agent relying on `run change` must see this failure."
+		},
+		{
+			"id": "cli-change-wrapper-honors-dry-run",
+			"kind": "command",
+			"command": "cp monochange.toml .mc-config-backup && cat .mc-cli-change-block.toml >> monochange.toml && monochange run change --dry-run --package acme-core --bump minor --reason \"Wrapped dry run\"; rc=$?; left=$(ls .changeset/*.md 2>/dev/null); mv .mc-config-backup monochange.toml; rm -rf .changeset .mc-cli-change-block.toml; test $rc -eq 0 && test -z \"$left\"",
+			"expectOutput": [
+				"would write change file",
+				"acme-core: minor",
+				"Wrapped dry run",
+				"running `change` (dry-run)"
+			],
+			"why": "Once `[cli.change]` wraps the CreateChangeFile step, the configured workflow must honor `--dry-run` identically — the wrapper is what repository CI actually invokes."
+		}
+	]
+}

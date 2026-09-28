@@ -3896,3 +3896,105 @@ fn build_issue_comment_results_formats_skipped_missing_outcomes() {
 		vec!["ifiokjr/monochange #7 (skipped_missing)".to_string()]
 	);
 }
+
+#[test]
+fn create_change_file_command_dry_run_does_not_write_changeset() {
+	let workspace = monochange_test_helpers::fs::setup_scenario_workspace_from(
+		env!("CARGO_MANIFEST_DIR"),
+		"create-change-file/single-cargo",
+	);
+	let root = workspace.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	let cli_command = CliCommandDefinition {
+		name: "create".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![
+			CliStepDefinition::CreateChangeFile {
+				name: None,
+				when: None,
+				always_run: false,
+				show_progress: None,
+				inputs: BTreeMap::new(),
+			}
+			.with_inherited_step_inputs(),
+		],
+		dry_run: false,
+	};
+	let mut inputs = BTreeMap::new();
+	inputs.insert("package".to_string(), vec!["core".to_string()]);
+	inputs.insert("bump".to_string(), vec!["minor".to_string()]);
+	inputs.insert("reason".to_string(), vec!["Add helper".to_string()]);
+
+	let output = block_on_in_context(execute_cli_command(
+		root,
+		&configuration,
+		&cli_command,
+		true,
+		inputs,
+	))
+	.unwrap_or_else(|error| panic!("dry-run create: {error}"));
+
+	let changeset_file_count =
+		fs::read_dir(root.join(".changeset")).map_or(0, std::iter::Iterator::count);
+	assert_eq!(
+		changeset_file_count, 0,
+		"dry run must not write changeset files"
+	);
+	assert!(
+		output.contains("would write change file"),
+		"dry run must report the path it would write instead of writing: {output}"
+	);
+}
+
+#[test]
+fn create_change_file_command_without_dry_run_writes_changeset() {
+	let workspace = monochange_test_helpers::fs::setup_scenario_workspace_from(
+		env!("CARGO_MANIFEST_DIR"),
+		"create-change-file/single-cargo",
+	);
+	let root = workspace.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	let cli_command = CliCommandDefinition {
+		name: "create".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![
+			CliStepDefinition::CreateChangeFile {
+				name: None,
+				when: None,
+				always_run: false,
+				show_progress: None,
+				inputs: BTreeMap::new(),
+			}
+			.with_inherited_step_inputs(),
+		],
+		dry_run: false,
+	};
+	let mut inputs = BTreeMap::new();
+	inputs.insert("package".to_string(), vec!["core".to_string()]);
+	inputs.insert("bump".to_string(), vec!["minor".to_string()]);
+	inputs.insert("reason".to_string(), vec!["Add helper".to_string()]);
+
+	let output = block_on_in_context(execute_cli_command(
+		root,
+		&configuration,
+		&cli_command,
+		false,
+		inputs,
+	))
+	.unwrap_or_else(|error| panic!("create: {error}"));
+
+	let changeset_file_count =
+		fs::read_dir(root.join(".changeset")).map_or(0, std::iter::Iterator::count);
+	assert_eq!(
+		changeset_file_count, 1,
+		"create without dry run must write exactly one changeset file"
+	);
+	assert!(
+		output.contains("wrote change file"),
+		"create must report the file it wrote: {output}"
+	);
+}

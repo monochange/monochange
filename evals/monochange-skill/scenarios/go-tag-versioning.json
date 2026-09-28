@@ -1,0 +1,49 @@
+{
+	"id": "go-tag-versioning",
+	"title": "Go versions come from tags, and a dependent follows the library",
+	"fixture": "go-modules",
+	"prompt": "We want to cut a release for our two Go modules. The engine picked up a `Normalize` helper since the last release. Get monochange set up so it can plan versions for these modules and record that change, then show me what would ship. Note that Go doesn't carry a version inside the module file.",
+	"expectation": "Go is the one ecosystem whose packages carry no version field: versions come from git tags, so a Go package only plans a release once `tag = true` and `initial_version` are configured, and the git history is tagged. Getting this wrong produces an empty release plan even though the config validates. Once planning works, the dependent service's `require` directive is rewritten to the released core version — a Go dependent that keeps requiring the old version ships broken — while `replace` directives are left alone and an unrelated module that shares a last path segment is untouched.",
+	"setupCommands": [
+		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init && git tag core/v1.2.0 && git tag service/v1.0.0"
+	],
+	"checks": [
+		{
+			"id": "both-modules-configured-for-tag-versions",
+			"kind": "command",
+			"command": "monochange config --format json | python3 -c \"import sys,json; c=json.load(sys.stdin)['config']; t={p['id']: p['package_type'] for p in c['packages']}; assert t.get('core')=='go', t; assert t.get('service')=='go', t; print(t)\"",
+			"why": "Both modules must be release-managed with the go type; a config that omits one leaves that module unreleased and its dependents pinned to a stale version."
+		},
+		{
+			"id": "a-release-is-actually-planned",
+			"kind": "command",
+			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; assert t.get('core')=='1.3.0', t; assert t.get('service')=='1.0.1', t; print(t)\"",
+			"why": "The decisive check for tag versioning. Without `tag = true` and `initial_version` the plan is empty, so an agent that treats Go like Cargo would report a successful setup that releases nothing. The seeded versions are 1.2.0 and 1.0.0."
+		},
+		{
+			"id": "no-version-field-written-into-the-module-file",
+			"kind": "command",
+			"command": "test -z \"$(grep -E '^version' core/go.mod)\" && test -z \"$(grep -E '^version' service/go.mod)\"",
+			"why": "Go has no manifest version field, and inventing one produces a file the toolchain rejects. This is the misconception the scenario is built to catch."
+		},
+		{
+			"id": "dependent-require-follows-the-library",
+			"kind": "command",
+			"command": "monochange prepare >/dev/null 2>&1; grep -q 'github.com/acme/core v1.3.0' service/go.mod",
+			"why": "The service depends on the engine, so its require directive has to name the released version. Leaving it behind ships a service pinned to a core version that no longer exists."
+		},
+		{
+			"id": "replace-directive-untouched",
+			"kind": "command",
+			"command": "grep -q 'replace github.com/acme/core => ../core' service/go.mod",
+			"why": "The replace is a local development override. Rewriting it would break the workspace layout the modules depend on."
+		},
+		{
+			"id": "nothing-published",
+			"kind": "transcript",
+			"pattern": "go publish|cargo publish|npm publish|git push",
+			"absent": true,
+			"why": "The request was to plan a release and show what would ship, not to publish or push tags."
+		}
+	]
+}

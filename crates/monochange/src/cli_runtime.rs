@@ -841,6 +841,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						progress,
 						step_index,
 						step,
+						context.dry_run,
 					)?);
 					Ok(())
 				}
@@ -4417,7 +4418,22 @@ fn execute_create_change_file_step(
 	progress: &mut ProgressReporter,
 	step_index: usize,
 	step: &CliStepDefinition,
+	dry_run: bool,
 ) -> MonochangeResult<String> {
+	let render_preview = |planned: PlannedChangeFile| {
+		if dry_run {
+			format!(
+				"would write change file {}\n\n{}",
+				root_relative(root, &planned.path).display(),
+				planned.content
+			)
+		} else {
+			format!(
+				"wrote change file {}",
+				root_relative(root, &planned.path).display()
+			)
+		}
+	};
 	let is_interactive = step_input_is_true(step_inputs, "interactive");
 
 	if is_interactive {
@@ -4437,17 +4453,28 @@ fn execute_create_change_file_step(
 		let spinner_was_active = progress.pause_spinner();
 		let result = interactive::run_interactive_change(configuration, &options)?;
 		if spinner_was_active {
-			progress.step_status(step_index, step, "writing change file");
+			let status = if dry_run {
+				"rendering change file preview"
+			} else {
+				"writing change file"
+			};
+			progress.step_status(step_index, step, status);
 		}
 		let output_path = step_inputs
 			.get("output")
 			.and_then(|values| values.first())
 			.map(PathBuf::from);
-		let path = add_interactive_change_file(root, &result, output_path.as_deref())?;
-		Ok(format!(
-			"wrote change file {}",
-			root_relative(root, &path).display()
-		))
+		if dry_run {
+			let planned =
+				workspace_ops::plan_interactive_change_file(root, &result, output_path.as_deref())?;
+			Ok(render_preview(planned))
+		} else {
+			let path = add_interactive_change_file(root, &result, output_path.as_deref())?;
+			Ok(format!(
+				"wrote change file {}",
+				root_relative(root, &path).display()
+			))
+		}
 	} else {
 		let package_refs = step_inputs.get("package").cloned().unwrap_or_default();
 		if package_refs.is_empty() {
@@ -4491,23 +4518,26 @@ fn execute_create_change_file_step(
 			.get("output")
 			.and_then(|values| values.first())
 			.map(PathBuf::from);
-		let path = add_change_file(
-			root,
-			AddChangeFileRequest::builder()
-				.package_refs(&package_refs)
-				.bump(bump.into())
-				.reason(&reason)
-				.version(version.as_deref())
-				.change_type(change_type.as_deref())
-				.caused_by(&caused_by)
-				.details(details.as_deref())
-				.output(output_path.as_deref())
-				.build(),
-		)?;
-		Ok(format!(
-			"wrote change file {}",
-			root_relative(root, &path).display()
-		))
+		let request = AddChangeFileRequest::builder()
+			.package_refs(&package_refs)
+			.bump(bump.into())
+			.reason(&reason)
+			.version(version.as_deref())
+			.change_type(change_type.as_deref())
+			.caused_by(&caused_by)
+			.details(details.as_deref())
+			.output(output_path.as_deref())
+			.build();
+		if dry_run {
+			let planned = plan_change_file(root, request)?;
+			Ok(render_preview(planned))
+		} else {
+			let path = add_change_file(root, request)?;
+			Ok(format!(
+				"wrote change file {}",
+				root_relative(root, &path).display()
+			))
+		}
 	}
 }
 

@@ -48,10 +48,11 @@ For full rule-by-rule behavior, see the manifest linting reference and `monochan
 
 ## Important distinction
 
-The CLI has three command classes:
+The CLI has four command classes:
 
 1. **Binary commands** wired by the binary, such as `monochange init`, `monochange check`, and `monochange mcp`; typed operations such as validation and publish readiness are exposed as `monochange step *` commands.
 2. **Step commands** generated from built-in step variants, such as `monochange step discover` and `monochange step prepare-release`.
-3. **User-defined workflow commands** created by `[cli.<name>]` in `monochange.toml`, such as `monochange run release` or `monochange run publish` in repositories that define them.
+3. **Short top-level step aliases**, such as `monochange discover`, `monochange preview`, and `monochange publish readiness`, which run the same step with the same inputs as their `monochange step *` equivalent.
+4. **User-defined workflow commands** created by `[cli.<name>]` in `monochange.toml`, such as `monochange run release` or `monochange run publish` in repositories that define them.
 
-Always inspect `monochange help` or `monochange.toml` before assuming a user-defined workflow command exists. A repository can expose friendly commands such as `monochange run release`, `monochange run change`, or `monochange run publish`, but those names are configuration, not CLI guarantees. The step commands remain the portable fallback.
+Always inspect `monochange help` or `monochange.toml` before assuming a user-defined workflow command exists. A repository can expose friendly commands such as `monochange run release`, `monochange run change`, or `monochange run publish`, but those names are configuration, not CLI guarantees. The step commands remain the portable fallback, including for steps that have no short alias.

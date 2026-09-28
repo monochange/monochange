@@ -130,7 +130,7 @@ fn monochange_styles() -> clap::builder::Styles {
 
 const GLOBAL_OPTIONS_HELP_HEADING: &str = "Global Options";
 const RELEASE_OPTIONS_HELP_HEADING: &str = "Release Options";
-const ROOT_LONG_ABOUT: &str = "monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, and Dart/Flutter, then coordinates version bumps, changelogs, and release automation from a single monochange.toml config.";
+const ROOT_LONG_ABOUT: &str = "monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Python, and Go, then coordinates version bumps, changelogs, and release automation from a single monochange.toml config.";
 const ROOT_AFTER_LONG_HELP_MARKDOWN: &str = include_str!("cli_after_long_help.md");
 
 fn root_after_long_help() -> String {
@@ -616,40 +616,61 @@ pub(crate) fn build_command_wizard_subcommand() -> Command {
 
 pub(crate) fn build_skill_subcommand() -> Command {
 	Command::new("skill")
-		.about("Install the monochange skill bundle into the current project with the skills CLI")
+		.about("Read or install the bundled monochange agent skill")
+		.long_about(
+			"The monochange agent skill ships inside this binary, so it works without network \
+			 access, an npm package, or a cloned repository. `monochange skill read` prints a topic \
+			 as raw Markdown for an agent to consume, and `monochange skill install --dir` writes \
+			 the whole skill into an agent runtime's skill directory. Bare `monochange skill` lists \
+			 every bundled topic.",
+		)
 		.after_help(
 			r"Examples:
-  monochange help skill
   monochange skill
-  monochange skill --list
-  monochange skill -a claude-code -a codex
-  monochange skill --skill monochange --copy -y
-  monochange skill -g -a pi -y
+  monochange skill read monochange
+  monochange skill read configuration
+  monochange skill install --dir ./.claude/skills/monochange
+  monochange skill install --dir ~/.codex/skills/monochange --force
 
-This command forwards all remaining arguments to:
-  skills add <monochange-source>
-
-Common forwarded flags from the upstream `skills add` command include:
-  -g, --global            install to the user-level agent directories
-  -a, --agent <AGENT>     target specific agent harnesses
-  -s, --skill <SKILL>     install specific skills from the source
-  -l, --list              list the available skills without installing
-      --copy              copy files instead of symlinking
-  -y, --yes               skip confirmation prompts
-      --all               install all skills to all supported agents
-
-Runner selection is automatic. monochange prefers:
-  1. npx
-  2. pnpm dlx
-  3. bunx",
+The skill directory is normally named `monochange` inside a runtime's skills
+folder. Existing skills are never replaced unless --force is passed.",
 		)
-		.arg(
-			Arg::new("args")
-				.help("Arguments forwarded to `skills add` after the monochange skill source")
-				.num_args(0..)
-				.action(ArgAction::Append)
-				.trailing_var_arg(true)
-				.allow_hyphen_values(true),
+		.subcommand(
+			Command::new("read")
+				.about("Print a bundled skill topic as raw Markdown")
+				.long_about(
+					"Print one bundled skill document as raw Markdown on stdout. The output is the \
+					 document itself, with no terminal rendering or added framing, so YAML \
+					 frontmatter and code blocks survive verbatim. Omit TOPIC to list every bundled \
+					 topic.",
+				)
+				.arg(
+					Arg::new("topic")
+						.value_name("TOPIC")
+						.help("Topic to print; omit to list every bundled topic"),
+				),
+		)
+		.subcommand(
+			Command::new("install")
+				.about("Write the bundled skill into an agent runtime's skill directory")
+				.long_about(
+					"Write SKILL.md and every bundled reference into a directory the agent runtime \
+					 reads as a skill. The directory is normally named `monochange` inside the \
+					 runtime's skills folder. An existing skill is never replaced unless --force is \
+					 passed.",
+				)
+				.arg(
+					Arg::new("dir")
+						.long("dir")
+						.value_name("DIR")
+						.help("Skill directory to write, for example ~/.claude/skills/monochange"),
+				)
+				.arg(
+					Arg::new("force")
+						.long("force")
+						.action(ArgAction::SetTrue)
+						.help("Replace an existing skill in the destination"),
+				),
 		)
 }
 

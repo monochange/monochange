@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs;
 use std::io::BufReader;
 use std::io::BufWriter;
@@ -8,6 +9,8 @@ use std::time::Instant;
 
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+use monochange_core::PackageDefinition;
+use monochange_core::PackageType;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::git::git_command_output;
 use monochange_core::git::git_error_detail;
@@ -24,10 +27,26 @@ use crate::PreparedReleaseExecution;
 use crate::StepPhaseTiming;
 use crate::resolve_config_path;
 
+/// Version of the prepared-release artifact wire format.
+///
+/// `input_fingerprint` was added as an optional, additive field, so version 1
+/// artifacts written by older binaries still deserialize. The implicit cache
+/// rejects one that carries no fingerprint because it cannot prove its plan
+/// still matches the workspace inputs; an explicitly supplied artifact keeps
+/// loading.
 const PREPARED_RELEASE_ARTIFACT_SCHEMA_VERSION: u32 = 1;
 const DEFAULT_PREPARED_RELEASE_CACHE_PATH: &str = ".monochange/local/prepared-release-cache.json";
 const CONFIGURATION_SNAPSHOT_ERROR: &str =
 	"failed to serialize workspace configuration for prepared release caching";
+const INPUT_FINGERPRINT_DOMAIN: &[u8] = b"monochange.preparedRelease.inputs.v1";
+const CONFIG_FILE_NAME: &str = "monochange.toml";
+const CHANGESET_DIR_NAME: &str = ".changeset";
+const CHANGESET_EXTENSION: &str = "md";
+const PRERELEASE_STATE_PATH: &str = ".monochange/prerelease-state.json";
+const RELEASE_RECORDS_DIR_NAME: &str = ".monochange/releases";
+const RELEASE_RECORD_FILE_NAME: &str = "release.json";
+const FNV_OFFSET_BASIS: u64 = 14_695_981_039_346_656_037;
+const FNV_PRIME: u64 = 1_099_511_628_211;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) struct LoadedPreparedReleaseExecution {
@@ -40,6 +59,14 @@ pub(crate) struct LoadedPreparedReleaseExecution {
 struct PreparedReleaseArtifact {
 	schema_version: u32,
 	configuration_snapshot: String,
+	/// Content fingerprint over every input the plan was computed from.
+	///
+	/// Optional so artifacts written before input fingerprinting still
+	/// deserialize: the implicit cache rejects one without a fingerprint because
+	/// it cannot prove its plan still matches the workspace inputs, while an
+	/// explicit `--prepared-release <PATH>` keeps loading.
+	#[serde(default)]
+	input_fingerprint: Option<String>,
 	head_commit: String,
 	worktree_status: Vec<String>,
 	tracked_paths: Vec<PreparedReleaseTrackedPath>,
@@ -53,6 +80,7 @@ struct PreparedReleaseArtifact {
 struct PreparedReleaseArtifactRef<'a> {
 	schema_version: u32,
 	configuration_snapshot: String,
+	input_fingerprint: String,
 	head_commit: String,
 	worktree_status: Vec<String>,
 	tracked_paths: Vec<PreparedReleaseTrackedPath>,
@@ -146,6 +174,7 @@ pub(crate) async fn load_prepared_release_execution(
 		&artifact,
 		current_dry_run,
 		build_file_diffs,
+		explicit_path,
 	)
 	.await?;
 
@@ -227,6 +256,7 @@ pub(crate) async fn save_prepared_release_execution(
 	let artifact = PreparedReleaseArtifactRef {
 		schema_version: PREPARED_RELEASE_ARTIFACT_SCHEMA_VERSION,
 		configuration_snapshot: configuration_snapshot(configuration)?,
+		input_fingerprint: prepared_release_input_fingerprint(root, configuration)?,
 		head_commit: git_head_commit(root).await?,
 		worktree_status: git_status_snapshot(root, Some(&artifact_path)).await?,
 		tracked_paths: tracked_path_snapshots(root, prepared_release).await?,
@@ -288,6 +318,7 @@ async fn validate_prepared_release_artifact(
 	artifact: &PreparedReleaseArtifact,
 	current_dry_run: bool,
 	build_file_diffs: bool,
+	explicit_path: Option<&Path>,
 ) -> MonochangeResult<()> {
 	if artifact.schema_version != PREPARED_RELEASE_ARTIFACT_SCHEMA_VERSION {
 		return Err(stale_artifact_error(
@@ -311,6 +342,18 @@ async fn validate_prepared_release_artifact(
 			artifact_path,
 			"workspace configuration changed",
 		));
+	}
+
+	// Content-based invalidation: the plan depends on the bytes of the pending
+	// changesets, the changeset set, the relevant manifests, and the workspace
+	// configuration. Git status cannot see an edit to an untracked or already
+	// dirty file, so hash the inputs directly.
+	//
+	// An explicit `--prepared-release <PATH>` is a deliberate user override, so
+	// it bypasses this check and loads even when its fingerprint is missing (an
+	// artifact written by an older binary) or no longer matches.
+	if explicit_path.is_none() {
+		validate_prepared_release_input_fingerprint(root, configuration, artifact_path, artifact)?;
 	}
 
 	let current_head = git_head_commit(root).await?;
@@ -356,6 +399,166 @@ fn stale_artifact_error(path: &Path, detail: impl AsRef<str>) -> MonochangeError
 		path.display(),
 		detail.as_ref()
 	))
+}
+
+/// Reject an implicit cache whose inputs no longer match the saved plan.
+///
+/// The implicit cache must never serve a stale plan, so both a missing
+/// fingerprint (written by a binary that predates input fingerprinting) and a
+/// changed one are stale.
+fn validate_prepared_release_input_fingerprint(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	artifact_path: &Path,
+	artifact: &PreparedReleaseArtifact,
+) -> MonochangeResult<()> {
+	let Some(saved) = artifact.input_fingerprint.as_deref() else {
+		return Err(stale_artifact_error(
+			artifact_path,
+			"the saved prepared release predates input fingerprinting and cannot prove its plan is current",
+		));
+	};
+
+	let current = prepared_release_input_fingerprint(root, configuration)?;
+	if saved == current {
+		return Ok(());
+	}
+
+	Err(stale_artifact_error(
+		artifact_path,
+		"workspace inputs changed since the saved prepared release",
+	))
+}
+
+/// Fingerprint every workspace input the release plan is computed from.
+///
+/// The plan reads the pending changeset bytes, the changeset set, package
+/// manifests (including workspace-level manifests that supply inherited
+/// versions), the workspace configuration, prerelease state, and release
+/// records. Git status is not a substitute: an untracked or already-dirty file
+/// keeps the same status line when its bytes change, so a severity or body edit
+/// would otherwise be served from a stale plan.
+///
+/// Paths are workspace-relative so the fingerprint does not depend on where the
+/// checkout lives, and each record is length-delimited so adjacent files cannot
+/// collide.
+fn prepared_release_input_fingerprint(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+) -> MonochangeResult<String> {
+	let mut inputs = BTreeSet::new();
+	insert_existing_file(&mut inputs, root.join(CONFIG_FILE_NAME));
+	insert_existing_file(&mut inputs, root.join(PRERELEASE_STATE_PATH));
+	insert_changeset_inputs(&mut inputs, root);
+
+	for package in &configuration.packages {
+		insert_package_manifest_inputs(&mut inputs, root, package);
+	}
+	insert_release_record_inputs(&mut inputs, root);
+
+	let mut hash = FNV_OFFSET_BASIS;
+	hash = update_input_fingerprint_hash(hash, INPUT_FINGERPRINT_DOMAIN);
+	hash = update_input_fingerprint_hash(hash, b"\0");
+
+	for path in &inputs {
+		let relative = root_relative(root, path)
+			.to_string_lossy()
+			.replace('\\', "/");
+		let contents = fs::read(path).map_err(|error| {
+			MonochangeError::Io(format!(
+				"failed to read prepared release input {}: {error}",
+				path.display()
+			))
+		})?;
+		hash = update_input_fingerprint_hash(hash, relative.as_bytes());
+		hash = update_input_fingerprint_hash(hash, b"\0");
+		hash = update_input_fingerprint_hash(hash, contents.len().to_string().as_bytes());
+		hash = update_input_fingerprint_hash(hash, b"\0");
+		hash = update_input_fingerprint_hash(hash, &contents);
+		hash = update_input_fingerprint_hash(hash, b"\0");
+	}
+
+	Ok(format!("fnv1a64:{hash:016x}"))
+}
+
+fn insert_changeset_inputs(inputs: &mut BTreeSet<PathBuf>, root: &Path) {
+	let changeset_dir = root.join(CHANGESET_DIR_NAME);
+	let Ok(entries) = fs::read_dir(&changeset_dir) else {
+		// A workspace without a changeset directory plans nothing to release, so
+		// there are no changeset inputs to fingerprint.
+		return;
+	};
+
+	for entry in entries.flatten() {
+		let path = entry.path();
+		if path.extension().and_then(|value| value.to_str()) == Some(CHANGESET_EXTENSION) {
+			inputs.insert(path);
+		}
+	}
+}
+
+fn insert_package_manifest_inputs(
+	inputs: &mut BTreeSet<PathBuf>,
+	root: &Path,
+	package: &PackageDefinition,
+) {
+	let package_root = root.join(&package.path);
+	let manifest_names = package_manifest_names(package.package_type);
+
+	// Package manifests and every ancestor manifest up to the repository root:
+	// workspace manifests carry inherited versions and dependency constraints
+	// that release planning reads through the package record.
+	let mut directory = Some(package_root.as_path());
+	while let Some(current) = directory {
+		if !current.starts_with(root) {
+			break;
+		}
+		for manifest_name in &manifest_names {
+			insert_existing_file(inputs, current.join(manifest_name));
+		}
+		if current == root {
+			break;
+		}
+		directory = current.parent();
+	}
+}
+
+fn insert_release_record_inputs(inputs: &mut BTreeSet<PathBuf>, root: &Path) {
+	let releases_dir = root.join(RELEASE_RECORDS_DIR_NAME);
+	let Ok(entries) = fs::read_dir(&releases_dir) else {
+		return;
+	};
+
+	for entry in entries.flatten() {
+		insert_existing_file(inputs, entry.path().join(RELEASE_RECORD_FILE_NAME));
+	}
+}
+
+fn insert_existing_file(inputs: &mut BTreeSet<PathBuf>, path: PathBuf) {
+	if path.is_file() {
+		inputs.insert(path);
+	}
+}
+
+/// Manifest file names whose bytes feed release planning for `package_type`.
+///
+/// Deno and GitHub Actions accept more than one manifest name, so they cannot
+/// be derived from [`PackageType::manifest_file_name`] alone. Every other
+/// ecosystem delegates to that method, which keeps the two lists from drifting.
+fn package_manifest_names(package_type: PackageType) -> Vec<&'static str> {
+	match package_type {
+		PackageType::Deno => vec!["deno.json", "deno.jsonc"],
+		PackageType::GitHubActions => vec!["action.yml", "action.yaml"],
+		_ => package_type.manifest_file_name().into_iter().collect(),
+	}
+}
+
+fn update_input_fingerprint_hash(mut hash: u64, bytes: &[u8]) -> u64 {
+	for byte in bytes {
+		hash ^= u64::from(*byte);
+		hash = hash.wrapping_mul(FNV_PRIME);
+	}
+	hash
 }
 
 fn configuration_snapshot(configuration: &WorkspaceConfiguration) -> MonochangeResult<String> {

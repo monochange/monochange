@@ -1,0 +1,60 @@
+#:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
+#
+# Release configuration for the Acme web packages. The three packages are
+# published together and share one release group, so a single `vX.Y.Z` tag and
+# GitHub release covers a group release.
+
+[defaults]
+parent_bump = "patch"
+
+[defaults.changelog]
+path = "{{ path }}/CHANGELOG.md"
+format = "keep_a_changelog"
+
+[changelog.types]
+feat = { bump = "minor", section = "feat", description = "New functionality or capabilities added to the package" }
+fix = { bump = "patch", section = "fix", description = "Bug fixes and error corrections" }
+docs = { bump = "none", section = "docs", description = "Documentation updates and clarifications only" }
+feature = { bump = "minor", section = "feat", description = "User-visible capability described for customers", stream = "user" }
+
+[package."@acme/api"]
+path = "packages/api"
+type = "npm"
+
+[package."@acme/ui"]
+path = "packages/ui"
+type = "npm"
+
+[package."@acme/tokens"]
+path = "packages/tokens"
+type = "npm"
+
+[group.main]
+packages = [
+	"@acme/api",
+	"@acme/tokens",
+	"@acme/ui",
+]
+tag = true
+release = true
+version_format = "primary"
+
+[lints.rules]
+# pnpm links workspace packages by matching semver ranges, so the caret ranges
+# in this repo are intentional; the workspace protocol is not required here.
+"npm/workspace-protocol" = "off"
+
+[ecosystems.npm]
+enabled = true
+
+# Product-facing notes for Acme customers, rendered separately from the
+# developer-facing default stream.
+[changelog.streams.user]
+description = "Product-facing release notes for Acme customers"
+
+[changelog.outputs.user]
+stream = "user"
+targets = ["main"]
+path = "release-notes/{{ version }}.md"
+format = "monochange"
+mode = "release"

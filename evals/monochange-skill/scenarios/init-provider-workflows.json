@@ -1,0 +1,66 @@
+{
+	"id": "init-provider-workflows",
+	"title": "init generates provider config and workflows on a bare repository",
+	"fixture": "empty-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "On a repository with no manifests, `monochange init --provider github` writes `monochange.toml` plus `.github/workflows/changeset-policy.yml` and `.github/workflows/release.yml`, activates a `[source]` table with `provider = \"github\"`, and ships no `[cli.*]` tables; the generated config passes `monochange step validate` even with zero packages. Plain `init` writes a provider-neutral config with no active `[source]` table. A second `init` refuses without `--force` and succeeds with it. Workflows are github-only: `--provider gitlab` writes config without `.github/`. `init` accepts only `github|gitlab|gitea` — `forgejo`, which `[source]` config itself accepts, is rejected with exit 1 and writes nothing. Every check removes what it generates so later checks start from the bare fixture.",
+	"setupCommands": [
+		"git init -q && git add -A && git -c user.email=eval@example.com -c user.name=eval commit -qm 'initial commit'"
+	],
+	"checks": [
+		{
+			"id": "init-github-writes-config-and-both-workflows",
+			"kind": "command",
+			"command": "monochange init --provider github && test -f monochange.toml && test -f .github/workflows/changeset-policy.yml && test -f .github/workflows/release.yml; rc=$?; rm -f monochange.toml; rm -rf .github; exit $rc",
+			"expectOutput": ["wrote", "changeset-policy.yml", "release.yml"],
+			"why": "The github provider must scaffold the release automation CI together with the config; a workflow that stops being written is a silent regression no later step catches."
+		},
+		{
+			"id": "init-github-config-activates-source-without-cli-tables",
+			"kind": "command",
+			"command": "monochange init --provider github >/dev/null 2>&1 && grep -q '^provider = \"github\"' monochange.toml && ! grep -q '^\\[cli\\.' monochange.toml; rc=$?; rm -f monochange.toml; rm -rf .github; exit $rc",
+			"why": "The generated `[source]` table must be active (not commented out), and the documented starter shape is minimal: no `[cli.*]` command aliases."
+		},
+		{
+			"id": "init-github-config-validates-in-empty-workspace",
+			"kind": "command",
+			"command": "monochange init --provider github >/dev/null 2>&1 && monochange step validate; rc=$?; rm -f monochange.toml; rm -rf .github; exit $rc",
+			"expectOutput": ["workspace validation passed"],
+			"why": "The first config a new user receives must parse and validate even before any package exists."
+		},
+		{
+			"id": "init-without-provider-omits-active-source",
+			"kind": "command",
+			"command": "monochange init >/dev/null 2>&1 && test -f monochange.toml && ! grep -q '^\\[source\\]' monochange.toml; rc=$?; rm -f monochange.toml; rm -rf .github; exit $rc",
+			"why": "Without `--provider` the starter config is provider-neutral: no active `[source]` table, so no release automation silently targets github."
+		},
+		{
+			"id": "init-refuses-to-overwrite-without-force",
+			"kind": "command",
+			"command": "monochange init >/dev/null 2>&1 && monochange init --provider github; rc=$?; rm -f monochange.toml; rm -rf .github; test $rc -ne 0",
+			"expectOutput": ["--force to overwrite"],
+			"why": "A starter-config generator must never clobber an existing `monochange.toml` without the explicit override, and must say which flag supplies it."
+		},
+		{
+			"id": "init-force-overwrites",
+			"kind": "command",
+			"command": "monochange init >/dev/null 2>&1 && monochange init --provider github --force; rc=$?; rm -f monochange.toml; rm -rf .github; exit $rc",
+			"expectOutput": ["wrote"],
+			"why": "The explicit override must exist and regenerate the full scaffold over an existing config."
+		},
+		{
+			"id": "init-gitlab-writes-config-without-github-workflows",
+			"kind": "command",
+			"command": "monochange init --provider gitlab >/dev/null 2>&1 && grep -q '^provider = \"gitlab\"' monochange.toml && test ! -e .github; rc=$?; rm -f monochange.toml; rm -rf .github; exit $rc",
+			"why": "Actions workflows are github-only: gitlab (and gitea) get provider config and settings without a `.github/` tree that could never run."
+		},
+		{
+			"id": "init-rejects-provider-outside-its-set",
+			"kind": "command",
+			"command": "monochange init --provider forgejo; rc=$?; rm -f monochange.toml; rm -rf .github; test $rc -ne 0",
+			"expectOutput": ["invalid value 'forgejo'", "github, gitlab, gitea"],
+			"why": "`[source]` config accepts forgejo but `init` does not; pinning the real boundary means any widening or narrowing of the provider set is a deliberate change."
+		}
+	]
+}

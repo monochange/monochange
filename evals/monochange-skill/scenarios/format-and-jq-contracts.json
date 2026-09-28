@@ -1,0 +1,74 @@
+{
+	"id": "format-and-jq-contracts",
+	"title": "Output formats, the restricted --jq subset, --quiet, and run-without-config",
+	"fixture": "rust-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "`monochange discover` emits parseable JSON under `--format json`, exactly one line of JSON under `--format json-min`, and a markdown report under `--format md`; an unknown format is rejected with exit 1. The restricted `--jq` subset keeps field access and `select` working on `config --format json`, while `length` and comma-separated filters print nothing but still exit 0 (FINDINGS defect 6) — pinned so a jq upgrade that starts emitting values is caught. `--quiet` on `step validate` suppresses all output without changing execution. Bare `monochange run` errors while no `[cli.*]` commands are configured. Nothing the checks run mutates the workspace; the one scratch file is removed by the check that created it.",
+	"checks": [
+		{
+			"id": "discover-json-parses",
+			"kind": "command",
+			"command": "monochange discover --format json 2>/dev/null | python3 -c \"import sys, json; d = json.load(sys.stdin); assert d['packages'], d; print('discover json ok')\"",
+			"why": "Discovery JSON is what agents and scripts parse for package ids; it must stay machine-readable end to end."
+		},
+		{
+			"id": "discover-json-min-is-one-line-of-json",
+			"kind": "command",
+			"command": "monochange discover --format json-min > .mc-jmin.json 2>/dev/null && python3 -c \"import json, pathlib; t = pathlib.Path('.mc-jmin.json').read_text(); assert len(t.splitlines()) == 1, f'expected one line, got {len(t.splitlines())}'; json.loads(t); print('json-min ok')\"; rc=$?; rm -f .mc-jmin.json; exit $rc",
+			"why": "The minified format exists for line-oriented tooling, so its whole payload must be a single line of valid JSON."
+		},
+		{
+			"id": "discover-md-renders-a-markdown-report",
+			"kind": "command",
+			"command": "monochange discover --format md 2>/dev/null",
+			"expectOutput": ["Workspace discovery for", "Packages: 2", "- cargo: 2"],
+			"why": "The markdown format is the human-readable channel; pin what it actually renders (a summary heading plus list bullets) so drift is visible."
+		},
+		{
+			"id": "unknown-format-is-rejected",
+			"kind": "command",
+			"command": "monochange discover --format bogus",
+			"expectExit": 1,
+			"expectOutput": [
+				"invalid value 'bogus' for '--format <FORMAT>'",
+				"text, json, json-min, md"
+			],
+			"why": "The rejected value's error must name the accepted set, because agents recover from exactly this message."
+		},
+		{
+			"id": "jq-field-access-filters-config-output",
+			"kind": "command",
+			"command": "monochange config --format json --jq '.config.packages[].id' 2>/dev/null",
+			"expectOutput": ["acme-core", "acme-cli"],
+			"why": "Plain field access is the documented happy path of the restricted `--jq` subset; both fixture package ids must come through."
+		},
+		{
+			"id": "jq-select-still-filters",
+			"kind": "command",
+			"command": "monochange config --format json --jq '.config.packages[] | select(.id == \"acme-core\") | .id' 2>/dev/null",
+			"expectOutput": ["acme-core"],
+			"why": "`select` is the other supported construct; pinning it marks the boundary between what the subset does and does not evaluate."
+		},
+		{
+			"id": "jq-length-and-comma-filters-stay-silent",
+			"kind": "command",
+			"command": "out=$(monochange config --format json --jq '.config.groups | length' 2>/dev/null); rc1=$?; out2=$(monochange config --format json --jq '.config.packages[].id, .config.groups[].id' 2>/dev/null); rc2=$?; test $rc1 -eq 0 && test $rc2 -eq 0 && test -z \"$out\" && test -z \"$out2\"",
+			"why": "The restricted subset silently prints nothing for `length` and comma-separated filters while exiting 0 — a known trap, pinned so a jq upgrade that starts emitting values for them is a loud change, not a silent one."
+		},
+		{
+			"id": "quiet-silences-validate-without-changing-execution",
+			"kind": "command",
+			"command": "quiet=$(monochange step validate --quiet 2>&1); qrc=$?; loud=$(monochange step validate 2>&1); lrc=$?; test $qrc -eq 0 && test $lrc -eq 0 && test -z \"$quiet\" && test -n \"$loud\"",
+			"why": "`--quiet` must suppress progress and result output completely while the command still runs and exits 0, or scripts capturing its output break."
+		},
+		{
+			"id": "run-without-cli-config-errors",
+			"kind": "command",
+			"command": "monochange run",
+			"expectExit": 1,
+			"expectOutput": ["error[config.invalid]"],
+			"why": "There is nothing to run when no `[cli.*]` commands are configured, so bare `run` must fail loudly with a config error rather than exit 0 on an empty plan."
+		}
+	]
+}

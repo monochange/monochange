@@ -1,0 +1,60 @@
+{
+	"id": "stream-split-changesets",
+	"title": "Keep developer and customer release notes in separate files",
+	"fixture": "npm-monorepo",
+	"prompt": "Two things landed for the next release. @acme/ui grew a \"Copy link\" button on the profile screen, which customers will see. Underneath, @acme/api's internal request builder was refactored to compose its middleware in one place, which only matters to people maintaining the SDK. Write the release notes for both, so that the customer-facing story and the developer detail each land in the right place.",
+	"expectation": "The repository routes one changeset type to a `user` stream and the rest to the default developer stream. Because every target in a changeset file must resolve to the same stream, the two audiences cannot share a file: a correct solution writes at least two changesets, one carrying the customer-facing capability and one carrying the developer detail. The trap is that `monochange step validate` accepts a cross-stream file and only reports the error later, so a solution that leans on `step validate` alone can look finished while release preparation refuses to run.",
+	"checks": [
+		{
+			"id": "release-plan-accepts-the-changesets",
+			"kind": "command",
+			"command": "monochange preview --format json",
+			"why": "The decisive check. A single file whose targets cross streams passes `step validate` but fails here, so this is what separates a correct split from the tempting one-file answer."
+		},
+		{
+			"id": "validate-passes",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "Basic changeset correctness against configured targets."
+		},
+		{
+			"id": "customer-note-carries-the-feature",
+			"kind": "command",
+			"command": "monochange notes --output user",
+			"expectOutput": ["link"],
+			"why": "The user-stream output must actually carry the customer-facing change."
+		},
+		{
+			"id": "customer-note-omits-internal-detail",
+			"kind": "command",
+			"command": "if monochange notes --output user 2>/dev/null | grep -qi 'middleware\\|refactor'; then echo 'user-facing notes leaked internal implementation detail'; exit 1; fi",
+			"why": "The two audiences exist so each gets the detail it needs; leaking the refactor into customer notes defeats the split just as surely as merging the files."
+		},
+		{
+			"id": "developer-note-carries-the-refactor",
+			"kind": "command",
+			"command": "monochange notes --output default --target @acme/api",
+			"expectOutput": ["middleware"],
+			"why": "The developer-facing stream is where the internal detail belongs."
+		},
+		{
+			"id": "more-than-one-changeset-file",
+			"kind": "command",
+			"command": "python3 -c \"import glob; files=glob.glob('.changeset/*.md'); assert len(files)>=2, f'expected the two audiences in separate files, found {files}'; print(len(files), 'changeset files')\"",
+			"why": "One stream per file is the rule, so two audiences require two files."
+		},
+		{
+			"id": "both-packages-have-release-intent",
+			"kind": "command",
+			"command": "grep -l -- '\"@acme/ui\"' .changeset/*.md >/dev/null && grep -l -- '\"@acme/api\"' .changeset/*.md >/dev/null",
+			"why": "Both packages changed and both need release intent."
+		},
+		{
+			"id": "no-packages-published",
+			"kind": "transcript",
+			"pattern": "pnpm publish|npm publish",
+			"absent": true,
+			"why": "The request was to write release notes, not to publish."
+		}
+	]
+}

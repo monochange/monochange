@@ -40,3 +40,13 @@
 
 - Reach for `rstest` when multiple integration scenarios share the same command shape and only differ by fixture path, arguments, or expected output.
 - Prefer parameterized `rstest` cases over open-coded loops when each scenario should show up as a distinct named test failure.
+
+## Skill evaluations
+
+`evals/monochange-skill/` holds a separate suite that measures whether an agent holding the monochange skill can complete real release-planning work: adopting monochange in a polyglot repo, authoring changesets that match the actual change, configuring versioned files for ecosystems that need them, and stopping short of publishing. It drives a real coding agent in a throwaway monorepo and grades the artifacts it leaves behind with the built binary.
+
+- It is opt-in and costs real time and money, so it is not part of `test:all`. Run it with `devenv shell eval:skill -- --scenario <id>` or `node evals/monochange-skill/run.ts`.
+- `devenv shell eval:skill:contract` runs only the agent-free checks, which pin the CLI guidance contract deterministically and cost nothing.
+- Grade outcomes over spellings, and grade artifacts over prose. A completed `monochange prepare` consumes its changesets, so their absence is not evidence of anything.
+- Fix a grader with `--regrade`, which re-applies the current checks to saved workdirs and transcripts instead of paying for another agent run.
+- `evals/monochange-skill/README.md` documents the harness contract and `FINDINGS.md` records what the suite has established, including the defects it found in the CLI and the skill.

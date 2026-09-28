@@ -1,0 +1,49 @@
+{
+	"id": "versioned-file-fields-rule",
+	"title": "A python manifest version is written only when the versioned_files entry declares the version field",
+	"fixture": "python-uv",
+	"agent": false,
+	"prompt": "",
+	"expectation": "Python has no built-in manifest version writer, so `[project].version` is rewritten only when the config declares a typed `versioned_files` entry whose `fields` contains `version`. The setup config carries the correct typed entry for `acme-insight` and none for `acme-report`, plus a `minor` changeset on `acme-insight`. Default propagation pulls `acme-report` into the release (both plan `0.5.3`, because a minor below 1.0 shifts to patch), `prepare` advances `packages/insight/pyproject.toml` to `0.5.3`, leaves `packages/report/pyproject.toml` `[project].version` stale at `0.5.2`, and still rewrites report's dependency constraint to `acme-insight>=0.5.3` — proving only the version write was skipped. That asymmetric outcome is the silent-wrong-release regression this scenario pins.",
+	"setupFiles": {
+		"monochange.toml": "# Release configuration for the Acme analytics workspace.\n#\n# Only acme-insight declares a versioned_files entry, and its `fields` names\n# `version`, which is the only way a python manifest's [project].version gets\n# written. acme-report deliberately has no entry.\n\n[package.acme-insight]\npath = \"packages/insight\"\ntype = \"python\"\n\n[[package.acme-insight.versioned_files]]\npath = \"packages/insight/pyproject.toml\"\ntype = \"python\"\nfields = [\"version\"]\n\n[package.acme-report]\npath = \"packages/report\"\ntype = \"python\"\n\n[ecosystems.python]\nenabled = true\n",
+		".changeset/insight-minor.md": "---\nacme-insight: minor\n---\n\nAdd rolling window aggregation to the insight sampler.\n"
+	},
+	"setupCommands": [
+		"git init -b main",
+		"git add -A",
+		"git -c user.name=\"Acme Maintainer\" -c user.email=\"maintainer@acme.dev\" commit -m \"chore: initial import of the Acme analytics workspace\""
+	],
+	"checks": [
+		{
+			"id": "preview-plans-propagated-release",
+			"kind": "command",
+			"command": "monochange preview --format json 2>/dev/null | python3 -c \"import sys,json; p=json.load(sys.stdin); t={x['id']:x['version'] for x in p['release_targets']}; assert t=={'acme-insight':'0.5.3','acme-report':'0.5.3'}, t; print('plan moves both packages to 0.5.3')\"",
+			"why": "The minor on insight plans 0.5.3 (pre-1.0 shift) and default propagation pulls report into the release, so report's manifest is in scope for writes even though it has no changeset."
+		},
+		{
+			"id": "prepare-writes-the-tree",
+			"kind": "command",
+			"command": "monochange prepare",
+			"why": "The contract is about what a real release writes, so the preparation must actually run rather than be previewed."
+		},
+		{
+			"id": "insight-version-advanced",
+			"kind": "command",
+			"command": "python3 -c \"import tomllib,pathlib; m=tomllib.loads(pathlib.Path('packages/insight/pyproject.toml').read_text()); assert m['project']['version']=='0.5.3', m['project']['version']; print('insight [project].version advanced')\"",
+			"why": "The typed entry with `fields = [\"version\"]` is the positive half: this manifest's version must be written."
+		},
+		{
+			"id": "report-version-left-stale",
+			"kind": "command",
+			"command": "python3 -c \"import tomllib,pathlib; m=tomllib.loads(pathlib.Path('packages/report/pyproject.toml').read_text()); assert m['project']['version']=='0.5.2', m['project']['version']; print('report [project].version stays stale')\"",
+			"why": "The negative half and the defect being pinned: without a versioned_files entry naming `version`, report's own version is never written, even though report releases."
+		},
+		{
+			"id": "report-dependency-constraint-advanced",
+			"kind": "command",
+			"command": "python3 -c \"import tomllib,pathlib; m=tomllib.loads(pathlib.Path('packages/report/pyproject.toml').read_text()); deps=m['project']['dependencies']; assert 'acme-insight>=0.5.3' in deps, deps; print('dependency constraint advanced')\"",
+			"why": "Proves `prepare` ran and reached report's manifest: only the version write was skipped, the internal dependency constraint still moved to the released version."
+		}
+	]
+}
