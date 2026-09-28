@@ -13,6 +13,7 @@ use crate::PythonAdapter;
 use crate::PythonVersionedFileKind;
 use crate::discover_python_packages;
 use crate::extract_version_constraint;
+use crate::load_configured_python_package;
 use crate::normalize_python_package_name;
 use crate::parse_dependency_name;
 use crate::parse_pep440_as_semver;
@@ -430,6 +431,75 @@ fn adapter_discover_delegates_to_discover_python_packages() {
 		.unwrap_or_else(|error| panic!("discover: {error}"));
 	assert_eq!(discovery.packages.len(), 1);
 	assert_eq!(discovery.packages.first().unwrap().name, "standalone-tool");
+}
+
+// -- load_configured_python_package --
+
+#[test]
+fn load_configured_python_package_loads_configured_uv_workspace_member() {
+	use monochange_core::EcosystemAdapter;
+	let root = fixture_path("python/uv-workspace");
+	let package = PythonAdapter
+		.load_configured(&root, &root.join("packages/core"))
+		.unwrap_or_else(|error| panic!("load configured: {error}"))
+		.unwrap_or_else(|| panic!("expected the configured package to be loaded"));
+	assert_eq!(package.name, "my-core");
+	assert_eq!(package.ecosystem, Ecosystem::Python);
+	assert_eq!(package.current_version, Some(Version::new(1, 0, 0)));
+	assert!(
+		package
+			.manifest_path
+			.ends_with("packages/core/pyproject.toml")
+	);
+	assert!(
+		!package.declared_dependencies.is_empty(),
+		"configured package should keep discovered dependencies"
+	);
+}
+
+#[test]
+fn load_configured_python_package_loads_configured_poetry_package() {
+	use monochange_core::EcosystemAdapter;
+	let root = fixture_path("python/poetry-project");
+	let package = PythonAdapter
+		.load_configured(&root, &root)
+		.unwrap_or_else(|error| panic!("load configured: {error}"))
+		.unwrap_or_else(|| panic!("expected the configured package to be loaded"));
+	assert_eq!(package.name, "poetry-app");
+	assert_eq!(package.current_version, Some(Version::new(3, 1, 0)));
+}
+
+#[test]
+fn load_configured_python_package_accepts_manifest_file_path() {
+	let root = fixture_path("python/standalone");
+	let package = load_configured_python_package(&root, &root.join("pyproject.toml"))
+		.unwrap_or_else(|error| panic!("load configured: {error}"))
+		.unwrap_or_else(|| panic!("expected the configured package to be loaded"));
+	assert_eq!(package.name, "standalone-tool");
+	assert_eq!(package.current_version, Some(Version::new(2, 5, 0)));
+}
+
+#[test]
+fn load_configured_python_package_returns_none_without_manifest() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let missing_path = tempdir.path().join("packages/missing");
+	let package = load_configured_python_package(tempdir.path(), &missing_path)
+		.unwrap_or_else(|error| panic!("load configured: {error}"));
+	assert!(
+		package.is_none(),
+		"a configured path without a manifest should not produce a record"
+	);
+}
+
+#[test]
+fn load_configured_python_package_returns_none_for_manifest_without_project() {
+	let root = fixture_path("python/no-project-section");
+	let package = load_configured_python_package(&root, &root)
+		.unwrap_or_else(|error| panic!("load configured: {error}"));
+	assert!(
+		package.is_none(),
+		"a pyproject.toml without [project] or [tool.poetry] should not produce a record"
+	);
 }
 
 // -- discover_lockfiles with real lockfiles --
@@ -1148,4 +1218,33 @@ fn validate_versioned_file_returns_ok_for_missing_file() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let path = tempdir.path().join("missing.toml");
 	assert!(super::validate_versioned_file(&path, "missing.toml", None).is_ok());
+}
+
+#[test]
+fn standalone_python_packages_without_workspace_root_keep_distinct_ids() {
+	// Regression: standalone manifests were parsed with their own directory as
+	// the workspace root, so every package produced the id
+	// `python:pyproject.toml` and the sort+dedup kept only one of them.
+	let root = fixture_path("standalone-discovery/no-workspace-root");
+	let discovery =
+		discover_python_packages(&root).unwrap_or_else(|error| panic!("discover: {error}"));
+
+	let names = discovery
+		.packages
+		.iter()
+		.map(|package| package.name.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(names, vec!["py-cli", "py-core"]);
+	let ids = discovery
+		.packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		ids,
+		vec![
+			"python:python/cli/pyproject.toml",
+			"python:python/core/pyproject.toml",
+		]
+	);
 }

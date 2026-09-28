@@ -1,0 +1,9 @@
+name: acme_client
+version: 1.1.0
+resolution: workspace
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+dependencies:
+  acme_models:
+    path: ../models
+dev_dependencies: {}

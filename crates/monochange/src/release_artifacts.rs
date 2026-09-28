@@ -419,7 +419,12 @@ pub(crate) async fn load_sorted_tags(root: &Path) -> Vec<String> {
 		Ok(output) if output.status.success() => output,
 		_ => return Vec::new(),
 	};
-	String::from_utf8_lossy(&output.stdout)
+	parse_sorted_tag_lines(&output.stdout)
+}
+
+/// Parse `git tag --list` output into trimmed, non-empty tag names.
+pub(crate) fn parse_sorted_tag_lines(stdout: &[u8]) -> Vec<String> {
+	String::from_utf8_lossy(stdout)
 		.lines()
 		.map(str::trim)
 		.filter(|tag| !tag.is_empty())

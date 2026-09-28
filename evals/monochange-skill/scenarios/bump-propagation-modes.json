@@ -1,0 +1,43 @@
+{
+	"id": "bump-propagation-modes",
+	"title": "Bump propagation modes: none isolates, minor floors, inherit+max clamps, max without inherit is a config error",
+	"fixture": "rust-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "`acme-cli` depends on `acme-core` and the crates are not version-grouped, so `bump_propagation` decides whether a core release moves the CLI. With `bump_propagation = \"none\"` on `acme-core`, a minor changeset plans `acme-core` at `1.5.0` and `acme-cli` gets no release target at all. With the `minor` mode the CLI is floored at `1.5.0`. With `bump_propagation = \"inherit\"` plus `bump_propagation_max = \"minor\"` and a major changeset, core plans `2.0.0` while the CLI is clamped to `1.5.0` — distinct from both the floor and an unclamped inherit. Setting `bump_propagation_max` without `bump_propagation = \"inherit\"` is a config error that fails even `step validate` with `bump_propagation_max without inherit`. Checks swap the config per behavior and restore it, so each pins one point of the mode matrix.",
+	"setupFiles": {
+		"monochange.toml": "# Release planning for the Acme toolchain.\n#\n# The crates are deliberately NOT version-grouped; propagation policy lives on\n# the depended-on package. This variant disables propagation entirely.\n\n[defaults]\nparent_bump = \"patch\"\n\n[changelog.types]\nfeat = { bump = \"minor\", section = \"feat\", description = \"New functionality or capabilities added to the package\" }\nfix = { bump = \"patch\", section = \"fix\", description = \"Bug fixes and error corrections\" }\ndocs = { bump = \"none\", section = \"docs\", description = \"Documentation updates and clarifications only\" }\n\n[package.acme-core]\npath = \"crates/core\"\ntype = \"cargo\"\nbump_propagation = \"none\"\n\n[package.acme-cli]\npath = \"crates/cli\"\ntype = \"cargo\"\n\n[ecosystems.cargo]\nenabled = true\n",
+		".changeset/feature-stream-parser.md": "---\nacme-core: minor\n---\n\nAdd a streaming parser to the core primitives.\n"
+	},
+	"checks": [
+		{
+			"id": "none-mode-plans-only-the-changed-package",
+			"kind": "command",
+			"command": "monochange preview --format json 2>/dev/null | python3 -c \"import sys,json; p=json.load(sys.stdin); t={x['id']:x['version'] for x in p['release_targets']}; assert t=={'acme-core':'1.5.0'}, t; print('none plans only acme-core at 1.5.0')\"",
+			"why": "`none` means dependents do not release because of this target, so the CLI must be absent from the plan entirely."
+		},
+		{
+			"id": "minor-mode-floors-dependents-at-minor",
+			"kind": "command",
+			"command": "cp monochange.toml .grader-config-bak\ncat > monochange.toml <<'EOF'\n[defaults]\nparent_bump = \"patch\"\n\n[package.acme-core]\npath = \"crates/core\"\ntype = \"cargo\"\nbump_propagation = \"minor\"\n\n[package.acme-cli]\npath = \"crates/cli\"\ntype = \"cargo\"\n\n[ecosystems.cargo]\nenabled = true\nEOF\nmonochange preview --format json 2>/dev/null | python3 -c \"import sys,json; p=json.load(sys.stdin); t={x['id']:x['version'] for x in p['release_targets']}; assert t=={'acme-cli':'1.5.0','acme-core':'1.5.0'}, t; print('minor floor moves acme-cli to 1.5.0')\"\nrc=$?\nmv .grader-config-bak monochange.toml\nexit $rc",
+			"why": "The `minor` mode is a floor, not a match: the dependent with no changeset of its own must still release at least one minor."
+		},
+		{
+			"id": "inherit-with-max-clamps-dependents",
+			"kind": "command",
+			"command": "cp monochange.toml .grader-config-bak\ncat > monochange.toml <<'EOF'\n[defaults]\nparent_bump = \"patch\"\n\n[package.acme-core]\npath = \"crates/core\"\ntype = \"cargo\"\nbump_propagation = \"inherit\"\nbump_propagation_max = \"minor\"\n\n[package.acme-cli]\npath = \"crates/cli\"\ntype = \"cargo\"\n\n[ecosystems.cargo]\nenabled = true\nEOF\nprintf -- '---\\nacme-core: major\\n---\\n\\nBreaking parser rewrite.\\n' > .changeset/breaking-rewrite.md\nmonochange preview --format json 2>/dev/null | python3 -c \"import sys,json; p=json.load(sys.stdin); t={x['id']:x['version'] for x in p['release_targets']}; assert t=={'acme-cli':'1.5.0','acme-core':'2.0.0'}, t; print('clamp keeps acme-cli at 1.5.0 while acme-core breaks to 2.0.0')\"\nrc=$?\nmv .grader-config-bak monochange.toml\nrm -f .changeset/breaking-rewrite.md\nexit $rc",
+			"why": "Inherit would copy the major to the CLI; the `bump_propagation_max = \"minor\"` clamp must hold it at 1.5.0, a result distinct from both the floor and the unclamped mode."
+		},
+		{
+			"id": "max-without-inherit-is-a-config-error",
+			"kind": "command",
+			"command": "cp monochange.toml .grader-config-bak\ncat > monochange.toml <<'EOF'\n[defaults]\nparent_bump = \"patch\"\nbump_propagation_max = \"minor\"\n\n[package.acme-core]\npath = \"crates/core\"\ntype = \"cargo\"\n\n[package.acme-cli]\npath = \"crates/cli\"\ntype = \"cargo\"\n\n[ecosystems.cargo]\nenabled = true\nEOF\nmonochange step validate\nrc=$?\nmv .grader-config-bak monochange.toml\nexit $rc",
+			"expectExit": 1,
+			"expectOutput": [
+				"bump_propagation_max without inherit",
+				"set `bump_propagation = \"inherit\"` to clamp with `bump_propagation_max`"
+			],
+			"why": "The clamp is only meaningful with `inherit`, so the config must be rejected at load with a diagnostic that names the remedy."
+		}
+	]
+}

@@ -841,6 +841,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						progress,
 						step_index,
 						step,
+						context.dry_run,
 					)?);
 					Ok(())
 				}
@@ -3838,6 +3839,11 @@ fn render_prepared_release_summary(
 		lines.push("release request:".to_string());
 		lines.push(format!("- {release_request_result}"));
 	}
+	let request_warnings = release_request_warning_lines(context.release_request.as_ref());
+	if !request_warnings.is_empty() {
+		lines.push("release request warnings:".to_string());
+		lines.extend(request_warnings);
+	}
 
 	if !context.issue_comment_results.is_empty() {
 		lines.push("issue comments:".to_string());
@@ -4196,6 +4202,14 @@ pub(crate) fn render_cli_command_markdown_result(
 				color,
 			));
 		}
+		let request_warnings = release_request_warning_lines(context.release_request.as_ref());
+		if !request_warnings.is_empty() {
+			sections.push(render_markdown_section(
+				"Release request warnings",
+				&request_warnings,
+				color,
+			));
+		}
 		if !context.issue_comment_results.is_empty() {
 			let lines = context
 				.issue_comment_results
@@ -4301,6 +4315,20 @@ fn paint_markdown_inline(text: &str, style: MarkdownStyle, color: bool) -> Strin
 	format!("\u{1b}[{code}m{text}\u{1b}[0m")
 }
 
+/// Warn when the rendered release request body was shortened to fit a provider limit.
+///
+/// Reports before the next create call, because a body that keeps growing through
+/// the update path is otherwise only discovered when the provider rejects a create.
+fn release_request_warning_lines(request: Option<&SourceChangeRequest>) -> Vec<String> {
+	let Some(truncation) = request.and_then(|request| request.body_truncation.as_ref()) else {
+		return Vec::new();
+	};
+	vec![format!(
+		"- release request body shortened to {} characters (from {}); {} release-note entries were dropped. Set `[source.pull_requests].max_body_chars` or `[source.pull_requests].body_style = \"summary\"` to control the limit.",
+		truncation.max_chars, truncation.original_chars, truncation.dropped_entries
+	)]
+}
+
 fn render_markdown_section(title: &str, lines: &[String], color: bool) -> String {
 	if lines.is_empty() {
 		return format!(
@@ -4390,7 +4418,22 @@ fn execute_create_change_file_step(
 	progress: &mut ProgressReporter,
 	step_index: usize,
 	step: &CliStepDefinition,
+	dry_run: bool,
 ) -> MonochangeResult<String> {
+	let render_preview = |planned: PlannedChangeFile| {
+		if dry_run {
+			format!(
+				"would write change file {}\n\n{}",
+				root_relative(root, &planned.path).display(),
+				planned.content
+			)
+		} else {
+			format!(
+				"wrote change file {}",
+				root_relative(root, &planned.path).display()
+			)
+		}
+	};
 	let is_interactive = step_input_is_true(step_inputs, "interactive");
 
 	if is_interactive {
@@ -4410,17 +4453,28 @@ fn execute_create_change_file_step(
 		let spinner_was_active = progress.pause_spinner();
 		let result = interactive::run_interactive_change(configuration, &options)?;
 		if spinner_was_active {
-			progress.step_status(step_index, step, "writing change file");
+			let status = if dry_run {
+				"rendering change file preview"
+			} else {
+				"writing change file"
+			};
+			progress.step_status(step_index, step, status);
 		}
 		let output_path = step_inputs
 			.get("output")
 			.and_then(|values| values.first())
 			.map(PathBuf::from);
-		let path = add_interactive_change_file(root, &result, output_path.as_deref())?;
-		Ok(format!(
-			"wrote change file {}",
-			root_relative(root, &path).display()
-		))
+		if dry_run {
+			let planned =
+				workspace_ops::plan_interactive_change_file(root, &result, output_path.as_deref())?;
+			Ok(render_preview(planned))
+		} else {
+			let path = add_interactive_change_file(root, &result, output_path.as_deref())?;
+			Ok(format!(
+				"wrote change file {}",
+				root_relative(root, &path).display()
+			))
+		}
 	} else {
 		let package_refs = step_inputs.get("package").cloned().unwrap_or_default();
 		if package_refs.is_empty() {
@@ -4464,23 +4518,26 @@ fn execute_create_change_file_step(
 			.get("output")
 			.and_then(|values| values.first())
 			.map(PathBuf::from);
-		let path = add_change_file(
-			root,
-			AddChangeFileRequest::builder()
-				.package_refs(&package_refs)
-				.bump(bump.into())
-				.reason(&reason)
-				.version(version.as_deref())
-				.change_type(change_type.as_deref())
-				.caused_by(&caused_by)
-				.details(details.as_deref())
-				.output(output_path.as_deref())
-				.build(),
-		)?;
-		Ok(format!(
-			"wrote change file {}",
-			root_relative(root, &path).display()
-		))
+		let request = AddChangeFileRequest::builder()
+			.package_refs(&package_refs)
+			.bump(bump.into())
+			.reason(&reason)
+			.version(version.as_deref())
+			.change_type(change_type.as_deref())
+			.caused_by(&caused_by)
+			.details(details.as_deref())
+			.output(output_path.as_deref())
+			.build();
+		if dry_run {
+			let planned = plan_change_file(root, request)?;
+			Ok(render_preview(planned))
+		} else {
+			let path = add_change_file(root, request)?;
+			Ok(format!(
+				"wrote change file {}",
+				root_relative(root, &path).display()
+			))
+		}
 	}
 }
 

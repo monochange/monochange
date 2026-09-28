@@ -1,0 +1,13 @@
+[defaults]
+package_type = "cargo"
+
+[package.core]
+path = "crates/core"
+
+[source]
+provider = "github"
+owner = "ifiokjr"
+repo = "monochange"
+
+[source.pull_requests]
+max_body_chars = 0

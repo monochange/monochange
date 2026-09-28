@@ -1,0 +1,11 @@
+---
+source: crates/monochange_integration_tests/tests/create_change_file.rs
+expression: normalize_timestamps(&stdout)
+---
+would write change file .changeset/[timestamp]-core.md
+
+---
+core: minor
+---
+
+# Add helper

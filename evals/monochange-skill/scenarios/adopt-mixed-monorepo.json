@@ -1,0 +1,65 @@
+{
+	"id": "adopt-mixed-monorepo",
+	"title": "Adopt monochange in a polyglot repo and get a config that actually loads",
+	"fixture": "mixed-monorepo",
+	"prompt": "This repo ships a Rust engine, a Rust CLI, and two npm packages, and we want to start planning releases with monochange. Set it up so we can. The whole product versions together as one release, and every one of the four packages should be under release management. Don't change the package sources.",
+	"expectation": "The agent creates a `monochange.toml` that declares all four packages with the right package types (`cargo` for the crates, `npm` for the scoped npm packages), enables both ecosystems, and puts all four in one version group so they share a release version. Because two of the ids are scoped (`@acme/sdk`, `@acme/widgets`), the config only parses if those ids are emitted as quoted TOML keys. `monochange step validate` passing is not enough on its own: the config must also survive the release-time workspace load, which `monochange preview` exercises. No package sources are modified.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "Adoption means the repository is configured."
+		},
+		{
+			"id": "config-parses-and-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "`step validate` is the cheapest gate that the config parses and every declared target exists."
+		},
+		{
+			"id": "all-four-packages-configured-with-types",
+			"kind": "command",
+			"command": "monochange config --format json 2>/dev/null | python3 -c \"import sys,json; c=json.load(sys.stdin)['config']; t={p['id']: p['package_type'] for p in c['packages']}; want={'acme-engine':'cargo','acme-cli':'cargo','@acme/sdk':'npm','@acme/widgets':'npm'}; bad={k:(t.get(k),v) for k,v in want.items() if t.get(k)!=v}; assert not bad, f'wrong or missing: {bad}'; print('package types ok')\"",
+			"why": "Every release-managed package must be declared with the correct type, including the scoped npm ids that only parse when quoted."
+		},
+		{
+			"id": "both-ecosystems-enabled",
+			"kind": "command",
+			"command": "monochange config --format json 2>/dev/null | python3 -c \"import sys,json; c=json.load(sys.stdin)['config']; assert c['cargo']['enabled'] and c['npm']['enabled'], f\\\"cargo={c['cargo']['enabled']} npm={c['npm']['enabled']}\\\"; print('ecosystems enabled')\"",
+			"why": "A polyglot repo needs both ecosystems active for discovery, lockfile handling, and publishing."
+		},
+		{
+			"id": "one-group-covers-every-package",
+			"kind": "command",
+			"command": "monochange config --format json 2>/dev/null | python3 -c \"import sys,json; c=json.load(sys.stdin)['config']; g=c['groups']; assert len(g)==1, f'expected one group, found {len(g)}'; want={'acme-engine','acme-cli','@acme/sdk','@acme/widgets'}; got=set(g[0]['packages']); assert got==want, f'group members {sorted(got)}'; print('single group covers all four')\"",
+			"why": "The request was explicitly that the product versions together, so one group must own all four packages."
+		},
+		{
+			"id": "config-loads-at-release-time",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\nacme-engine: patch\\n---\\n\\nAdoption smoke check\\n' > .changeset/grader-smoke.md; monochange preview --format json > .grader-preview.json 2>&1; rc=$?; test $rc -eq 0 || { cat .grader-preview.json; }; rm -f .changeset/grader-smoke.md .grader-preview.json; exit $rc",
+			"why": "The real gate. `step validate` does not perform the release-time workspace load, so a config can validate and still fail on the first real release command."
+		},
+		{
+			"id": "release-plan-sees-every-package",
+			"kind": "command",
+			"command": "monochange versions list --format json",
+			"expectOutput": ["acme-engine", "acme-cli", "@acme/sdk", "@acme/widgets"],
+			"why": "A config that loads but resolves only some packages would still produce an incomplete release."
+		},
+		{
+			"id": "package-sources-untouched",
+			"kind": "command",
+			"command": "python3 -c \"import json,tomllib,pathlib; m=tomllib.loads(pathlib.Path('crates/engine/Cargo.toml').read_text()); assert m['package']['version']=='0.6.2', m['package']['version']; s=json.loads(pathlib.Path('packages/sdk/package.json').read_text()); assert s['version']=='0.9.4', s['version']; print('manifests unchanged')\"",
+			"why": "The task was configuration only; rewriting manifests would change release state silently."
+		},
+		{
+			"id": "no-packages-published",
+			"kind": "transcript",
+			"pattern": "cargo publish|npm publish|pnpm publish",
+			"absent": true,
+			"why": "Adoption never includes publishing, and the request was only to set up release planning."
+		}
+	]
+}

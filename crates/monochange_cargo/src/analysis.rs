@@ -3,8 +3,10 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use monochange_core::AnalyzedFileChange;
+use monochange_core::ApiConfidence;
 use monochange_core::ApiItem;
 use monochange_core::ApiSnapshot;
+use monochange_core::BumpSeverity;
 use monochange_core::CargoSemverChecksSettings;
 use monochange_core::DetectionLevel;
 use monochange_core::Ecosystem;
@@ -14,8 +16,12 @@ use monochange_core::PackageAnalysisResult;
 use monochange_core::PackageRecord;
 use monochange_core::PackageSnapshot;
 use monochange_core::PackageSnapshotFile;
+use monochange_core::SemanticAnalysisCompleteness;
+use monochange_core::SemanticAnalysisOutcome;
 use monochange_core::SemanticAnalyzer;
+use monochange_core::SemanticAnalyzerEvidence;
 use monochange_core::SemanticChange;
+use monochange_core::SemanticChangeAssessment;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
 use quote::ToTokens;
@@ -179,7 +185,29 @@ struct PublicSymbol {
 	item_kind: String,
 	item_path: String,
 	signature: String,
+	/// Element sequence of a slice literal initializer, when the declared type
+	/// is a growable slice. Used to recognize a pure append.
+	initializer: Option<SliceInitializer>,
 	file_path: PathBuf,
+}
+
+/// Element type and literal elements of a public `const`/`static` slice.
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+struct SliceInitializer {
+	element_type: String,
+	elements: Vec<String>,
+}
+
+impl SliceInitializer {
+	/// Return whether `self` becomes `after` by appending elements in order.
+	///
+	/// A removal, a reorder, or an element edit changes an existing element
+	/// position, so only a strict prefix relationship qualifies.
+	fn appends_into(&self, after: &Self) -> bool {
+		self.element_type == after.element_type
+			&& after.elements.len() > self.elements.len()
+			&& after.elements.starts_with(&self.elements)
+	}
 }
 
 fn snapshot_public_symbols(
@@ -267,6 +295,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.ident.to_string(),
 					render_signature(item),
+					slice_initializer(&item.ty, &item.expr),
 					file_path,
 				);
 			}
@@ -277,6 +306,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.ident.to_string(),
 					render_signature(item),
+					None,
 					file_path,
 				);
 			}
@@ -287,6 +317,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.sig.ident.to_string(),
 					render_signature(&item.sig),
+					None,
 					file_path,
 				);
 			}
@@ -297,6 +328,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.ident.to_string(),
 					render_signature(item),
+					None,
 					file_path,
 				);
 
@@ -318,6 +350,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.ident.to_string(),
 					render_signature(item),
+					slice_initializer(&item.ty, &item.expr),
 					file_path,
 				);
 			}
@@ -328,6 +361,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.ident.to_string(),
 					render_signature(item),
+					None,
 					file_path,
 				);
 			}
@@ -338,6 +372,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.ident.to_string(),
 					render_signature(item),
+					None,
 					file_path,
 				);
 			}
@@ -348,6 +383,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.ident.to_string(),
 					render_signature(item),
+					None,
 					file_path,
 				);
 			}
@@ -358,6 +394,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					item.ident.to_string(),
 					render_signature(item),
+					None,
 					file_path,
 				);
 			}
@@ -369,6 +406,7 @@ fn collect_public_symbols_from_items(
 					module_prefix,
 					use_tree.clone(),
 					format!("pub use {use_tree};"),
+					None,
 					file_path,
 				);
 			}
@@ -384,6 +422,7 @@ fn push_symbol(
 	module_prefix: &[String],
 	item_name: String,
 	signature: String,
+	initializer: Option<SliceInitializer>,
 	file_path: &Path,
 ) {
 	let item_path = if module_prefix.is_empty() {
@@ -396,6 +435,7 @@ fn push_symbol(
 		item_kind: item_kind.to_string(),
 		item_path,
 		signature,
+		initializer,
 		file_path: file_path.to_path_buf(),
 	});
 }
@@ -406,6 +446,79 @@ fn is_public(visibility: &syn::Visibility) -> bool {
 
 fn render_signature(value: &impl ToTokens) -> String {
 	value.to_token_stream().to_string()
+}
+
+/// Extract the element sequence of a public slice literal.
+///
+/// Only `const`/`static` items whose declared type is a slice, `Vec`, or
+/// fixed-size array and whose initializer is a literal produce a sequence.
+/// Everything else returns `None`, which keeps the diff conservative.
+fn slice_initializer(
+	declared_type: &syn::Type,
+	expression: &syn::Expr,
+) -> Option<SliceInitializer> {
+	let element_type = slice_element_type(declared_type)?;
+
+	Some(SliceInitializer {
+		element_type,
+		elements: literal_elements(expression)?,
+	})
+}
+
+/// Return the literal elements of a slice or `vec![]` initializer.
+fn literal_elements(expression: &syn::Expr) -> Option<Vec<String>> {
+	match expression {
+		// `&[..]` is how a `&[T]` constant is written.
+		syn::Expr::Reference(reference) => literal_elements(&reference.expr),
+		syn::Expr::Array(array) => Some(array.elems.iter().map(render_signature).collect()),
+		syn::Expr::Macro(expression) if expression.mac.path.is_ident("vec") => {
+			// The repeat form `vec![value; count]` is not an element sequence,
+			// so a failed parse falls through to the conservative default.
+			expression
+				.mac
+				.parse_body_with(
+					syn::punctuated::Punctuated::<syn::Expr, syn::Token![,]>::parse_terminated,
+				)
+				.ok()
+				.map(|elements| elements.iter().map(render_signature).collect())
+		}
+		_ => None,
+	}
+}
+
+/// Return the element type of a slice-shaped declared type.
+fn slice_element_type(declared_type: &syn::Type) -> Option<String> {
+	let declared_type = match declared_type {
+		// `&[T]` is how a slice constant is written; the reference itself is not
+		// part of the element type.
+		syn::Type::Reference(reference) => reference.elem.as_ref(),
+		other => other,
+	};
+	match declared_type {
+		syn::Type::Slice(slice) => Some(render_signature(&slice.elem)),
+		syn::Type::Array(array) => Some(render_signature(&array.elem)),
+		syn::Type::Path(path) => vec_element_type(path),
+		// Includes every other declared type such as a tuple or a pointer.
+		_ => None,
+	}
+}
+
+/// Return the element type of a `Vec<T>` path.
+fn vec_element_type(path: &syn::TypePath) -> Option<String> {
+	let segment = path.path.segments.last()?;
+	if segment.ident != "Vec" {
+		return None;
+	}
+	let syn::PathArguments::AngleBracketed(arguments) = &segment.arguments else {
+		return None;
+	};
+	arguments.args.iter().find_map(|argument| {
+		match argument {
+			syn::GenericArgument::Type(inner) => Some(render_signature(inner)),
+			// A lifetime or const argument is not an element type.
+			_ => None,
+		}
+	})
 }
 
 fn module_prefix_for_file(path: &Path) -> Vec<String> {
@@ -450,12 +563,16 @@ fn diff_public_symbols(
 				));
 			}
 			Some(before_symbol) if before_symbol.signature != after_symbol.signature => {
-				changes.push(build_symbol_change(
+				let mut change = build_symbol_change(
 					SemanticChangeKind::Modified,
 					after_symbol,
 					Some(before_symbol.signature.clone()),
 					Some(after_symbol.signature.clone()),
-				));
+				);
+				if let Some(assessment) = slice_append_assessment(before_symbol, after_symbol) {
+					change.assessment = Some(assessment);
+				}
+				changes.push(change);
 			}
 			Some(_) => {}
 		}
@@ -502,6 +619,39 @@ fn build_symbol_change(
 	change.before_signature = before_signature;
 	change.after_signature = after_signature;
 	change
+}
+
+/// Assess a slice literal that only gained elements as additive.
+///
+/// The whole-item signature cannot distinguish an append from a removal or an
+/// element edit, so this inspects the parsed element sequence instead. A
+/// removal, a reorder, an element edit, or a changed element type keeps the
+/// conservative `major` mapping that `monochange_semver` derives from
+/// `(PublicApi, Modified)`.
+fn slice_append_assessment(
+	before_symbol: &PublicSymbol,
+	after_symbol: &PublicSymbol,
+) -> Option<SemanticChangeAssessment> {
+	let before = before_symbol.initializer.as_ref()?;
+	let after = after_symbol.initializer.as_ref()?;
+	if !before.appends_into(after) {
+		return None;
+	}
+
+	Some(SemanticChangeAssessment::new(
+		SemanticAnalysisOutcome::Additive,
+		BumpSeverity::Minor,
+		ApiConfidence::High,
+		SemanticAnalyzerEvidence::new(
+			"cargo/public-api",
+			"monochange",
+			SemanticAnalysisCompleteness::Complete,
+			format!(
+				"{} `{}` appends elements to a public `{}` slice literal; the element type and the existing element order are unchanged",
+				after_symbol.item_kind, after_symbol.item_path, before.element_type
+			),
+		),
+	))
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]

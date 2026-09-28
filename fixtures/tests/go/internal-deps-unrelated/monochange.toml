@@ -1,0 +1,33 @@
+[defaults]
+parent_bump = "patch"
+
+[package.core]
+path = "core"
+type = "go"
+tag = true
+version_format = "namespaced"
+initial_version = "1.2.0"
+
+[package.sdk]
+path = "sdk"
+type = "go"
+tag = true
+version_format = "namespaced"
+initial_version = "2.0.0"
+
+[package.service]
+path = "service"
+type = "go"
+tag = true
+version_format = "namespaced"
+initial_version = "1.0.0"
+
+[package.tools]
+path = "tools"
+type = "go"
+tag = true
+version_format = "namespaced"
+initial_version = "0.4.0"
+
+[ecosystems.go]
+enabled = true

@@ -1,0 +1,17 @@
+{
+  "name": "@acme/api",
+  "version": "2.3.1",
+  "description": "Typed HTTP client primitives shared by Acme front ends",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acme/acme-web.git",
+    "directory": "packages/api"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src"
+  ]
+}

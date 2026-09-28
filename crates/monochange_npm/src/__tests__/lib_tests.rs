@@ -489,6 +489,159 @@ snapshots:
 }
 
 #[test]
+fn parse_yaml_line_strips_key_quoting() {
+	let contents = "'importers':\n  .:\n    dependencies:\n      'core': 1.0.0\n      \"other\": 2.0.0\n      bare: 3.0.0\n";
+	let ranges = crate::yaml_line_ranges(contents);
+	let keys = ranges
+		.iter()
+		.filter_map(|range| crate::parse_yaml_line(contents, *range))
+		.map(|line| line.key.to_string())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		keys,
+		vec!["importers", ".", "dependencies", "core", "other", "bare"]
+	);
+}
+
+#[test]
+fn unquote_yaml_key_keeps_bare_and_malformed_keys() {
+	assert_eq!(crate::unquote_yaml_key("core"), "core");
+	assert_eq!(crate::unquote_yaml_key("'core'"), "core");
+	assert_eq!(crate::unquote_yaml_key("\"core\""), "core");
+	assert_eq!(crate::unquote_yaml_key("'"), "'");
+	assert_eq!(crate::unquote_yaml_key("'core"), "'core");
+	assert_eq!(crate::unquote_yaml_key("'core' tail"), "'core' tail");
+	assert_eq!(crate::unquote_yaml_key("'a' 'b'"), "'a' 'b'");
+}
+
+#[test]
+fn update_pnpm_lock_text_updates_single_quoted_keys_and_keeps_quotes() {
+	let lock =
+		"lockfileVersion: '9.0'\n\nimporters:\n  .:\n    dependencies:\n      'core': 1.0.0\n";
+	let updated = update_pnpm_lock_text(
+		lock,
+		&BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update pnpm lock text: {error}"));
+	assert_eq!(
+		updated,
+		"lockfileVersion: '9.0'\n\nimporters:\n  .:\n    dependencies:\n      'core': 2.0.0\n"
+	);
+}
+
+#[test]
+fn update_pnpm_lock_text_updates_double_quoted_keys_and_keeps_quotes() {
+	let lock =
+		"lockfileVersion: \"9.0\"\n\nimporters:\n  .:\n    dependencies:\n      \"core\": 1.0.0\n";
+	let updated = update_pnpm_lock_text(
+		lock,
+		&BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update pnpm lock text: {error}"));
+	assert_eq!(
+		updated,
+		"lockfileVersion: \"9.0\"\n\nimporters:\n  .:\n    dependencies:\n      \"core\": 2.0.0\n"
+	);
+}
+
+#[test]
+fn update_pnpm_lock_text_updates_bare_keys() {
+	let lock = "importers:\n  .:\n    dependencies:\n      core: 1.0.0\n";
+	let updated = update_pnpm_lock_text(
+		lock,
+		&BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update pnpm lock text: {error}"));
+	assert_eq!(
+		updated,
+		"importers:\n  .:\n    dependencies:\n      core: 2.0.0\n"
+	);
+}
+
+#[test]
+fn update_pnpm_lock_text_updates_quoted_scoped_keys_in_inline_and_nested_forms() {
+	let lock = r"lockfileVersion: '9.0'
+
+importers:
+  .:
+    dependencies:
+      '@acme/api': 2.3.1
+
+  packages/consumer:
+    dependencies:
+      '@acme/api':
+        specifier: ^2.3.1
+        version: 2.3.1
+";
+	let updated = update_pnpm_lock_text(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update pnpm lock text: {error}"));
+	assert_eq!(
+		updated,
+		r"lockfileVersion: '9.0'
+
+importers:
+  .:
+    dependencies:
+      '@acme/api': 2.4.0
+
+  packages/consumer:
+    dependencies:
+      '@acme/api':
+        specifier: ^2.3.1
+        version: 2.4.0
+"
+	);
+}
+
+#[test]
+fn update_pnpm_lock_text_skips_quoted_link_and_workspace_references() {
+	let lock = r#"lockfileVersion: '9.0'
+
+importers:
+  packages/linked-consumer:
+    dependencies:
+      '@acme/api': 'link:../api'
+
+  packages/workspace-consumer:
+    dependencies:
+      '@acme/api': "workspace:*"
+
+  packages/nested-consumer:
+    dependencies:
+      '@acme/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+"#;
+	let updated = update_pnpm_lock_text(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update pnpm lock text: {error}"));
+	assert_eq!(updated, lock);
+}
+
+#[test]
+fn update_pnpm_lock_text_updates_keys_with_yaml_quote_escapes() {
+	let lock =
+		"importers:\n  .:\n    dependencies:\n      'core''s': 1.0.0\n      \"core\\\"s\": 1.0.0\n";
+	let updated = update_pnpm_lock_text(
+		lock,
+		&BTreeMap::from([
+			("core's".to_string(), "2.0.0".to_string()),
+			("core\"s".to_string(), "2.0.0".to_string()),
+		]),
+	)
+	.unwrap_or_else(|error| panic!("update pnpm lock text: {error}"));
+	assert_eq!(
+		updated,
+		"importers:\n  .:\n    dependencies:\n      'core''s': 2.0.0\n      \"core\\\"s\": 2.0.0\n"
+	);
+}
+
+#[test]
 fn pnpm_replacement_helpers_skip_invalid_spans_and_blank_lines() {
 	let mut replacements = Vec::new();
 	crate::push_pnpm_scalar_replacement("link:../linked", (0, 14), "2.0.0", &mut replacements);

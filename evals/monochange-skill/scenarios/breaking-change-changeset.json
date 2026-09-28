@@ -1,0 +1,50 @@
+{
+	"id": "breaking-change-changeset",
+	"title": "Record a breaking API change at the right severity",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"packages/api/src/index.ts": "/**\n * Small typed HTTP client shared by the Acme front ends.\n *\n * The client is deliberately transport-only: it builds URLs, merges headers,\n * and decodes JSON without knowing anything about the API's resources.\n */\n\n/** HTTP verbs the client supports. */\nexport type HttpMethod = \"GET\" | \"POST\" | \"PUT\" | \"DELETE\";\n\n/** Options accepted by {@link request}. */\nexport interface RequestOptions {\n  /** HTTP verb to use. Defaults to `GET`. */\n  method?: HttpMethod;\n  /** Headers merged over the client defaults. */\n  headers?: Record<string, string>;\n  /** JSON-serializable request body. */\n  body?: unknown;\n  /** Abort signal forwarded to `fetch`. */\n  signal?: AbortSignal;\n}\n\n/** Fields accepted by {@link request}. */\nexport interface RequestInput {\n  /** Absolute or workspace-relative base URL. */\n  baseUrl: string;\n  /** Path appended to `baseUrl`. */\n  path: string;\n  /** Transport options for this request. */\n  options?: RequestOptions;\n}\n\n/** Response returned by {@link request}. */\nexport interface ApiResponse<T> {\n  /** HTTP status code from the server. */\n  status: number;\n  /** Decoded JSON payload. */\n  data: T;\n  /** Response headers keyed by lowercase name. */\n  headers: Record<string, string>;\n}\n\nconst DEFAULT_HEADERS: Record<string, string> = {\n  accept: \"application/json\",\n};\n\n/** Join a base URL and path without doubling or dropping the slash. */\nexport function joinUrl(baseUrl: string, path: string): string {\n  return `${baseUrl.replace(/\\/+$/, \"\")}/${path.replace(/^\\/+/, \"\")}`;\n}\n\n/** Merge caller headers over the client defaults. */\nexport function withHeaders(overrides: Record<string, string> = {}): Record<string, string> {\n  return { ...DEFAULT_HEADERS, ...overrides };\n}\n\n/** Perform a JSON request and return the decoded response. */\nexport async function request<T>(input: RequestInput): Promise<ApiResponse<T>> {\n  const response = await fetch(joinUrl(input.baseUrl, input.path), {\n    method: input.options?.method ?? \"GET\",\n    headers: withHeaders(input.options?.headers),\n    body: input.options?.body === undefined ? undefined : JSON.stringify(input.options.body),\n    signal: input.options?.signal,\n  });\n\n  if (!response.ok) {\n    throw new Error(`${response.status} ${response.statusText}: ${input.path}`);\n  }\n\n  const data = (await response.json()) as T;\n  const headers: Record<string, string> = {};\n  response.headers.forEach((value, key) => {\n    headers[key] = value;\n  });\n\n  return { status: response.status, data, headers };\n}\n"
+	},
+	"prompt": "We want to cut a release. Since the last one, the `request` helper in @acme/api was reworked to take a single options object instead of positional arguments — `request(baseUrl, path, options)` is gone, and every caller in the wild has to change. Record that in the release so it ships as the right kind of version, and tell me what version goes out.",
+	"expectation": "The change removes and incompatibly modifies a public exported signature, so it is a breaking change and the release must be a major one. The agent records it as a changeset targeting `@acme/api` with a major bump (either `major`, or a configured type whose bump is major), leaves `monochange step validate` passing, and reports the resulting version. Because the three npm packages share one version group that is currently at 2.3.1, a major bump in a member takes the group to 3.0.0. The scoped id must be quoted in the changeset frontmatter.",
+	"checks": [
+		{
+			"id": "changeset-file-created",
+			"kind": "command",
+			"command": "ls .changeset/*.md",
+			"why": "Release intent belongs in a file, not only in the agent's reply."
+		},
+		{
+			"id": "release-is-major",
+			"kind": "command",
+			"command": "monochange preview --format json",
+			"expectOutput": ["\"version\": \"3.0.0\""],
+			"why": "Removing a public signature is a breaking change. A minor or patch release would ship a break to consumers on a compatible version, which is the failure this scenario exists to catch. The group sits at 2.3.1, so major is the only severity that produces 3.0.0."
+		},
+		{
+			"id": "validate-passes",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "A changeset that does not resolve against configured ids is not release intent."
+		},
+		{
+			"id": "targets-the-api-package-not-the-group",
+			"kind": "command",
+			"command": "grep -l -- '\"@acme/api\"' .changeset/*.md",
+			"why": "The break is in @acme/api. Recording it against the group obscures which package broke and mislabels the changelog entry."
+		},
+		{
+			"id": "every-checked-id-is-quoted",
+			"kind": "command",
+			"command": "python3 -c \"import glob,re,sys; files=glob.glob('.changeset/*.md'); bad=[]\nfor f in files:\n    head=open(f).read().split('---')[1]\n    for line in head.splitlines():\n        line=line.strip()\n        if not line or line.startswith('#'): continue\n        key=line.split(':')[0]\n        if ('@' in key or '/' in key or '@' in line) and not key.startswith('\\\"'): bad.append((f,line))\nassert not bad, f'unquoted or malformed target lines: {bad}'; print('frontmatter targets quoted')\"",
+			"why": "A scoped id is not a valid YAML key unquoted; the file only parses when it is quoted."
+		},
+		{
+			"id": "no-version-fields-hand-edited",
+			"kind": "transcript",
+			"pattern": "(Write|Edit|MultiEdit)[^\\n]*packages/(api|ui|tokens)/package\\.json",
+			"absent": true,
+			"why": "Versions are computed from release intent; hand-editing manifests defeats the release plan and desynchronises the group."
+		}
+	]
+}

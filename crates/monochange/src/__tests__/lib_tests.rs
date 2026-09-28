@@ -5320,19 +5320,6 @@ fn with_path_prefixed<T>(root: &Path, action: impl FnOnce() -> T) -> T {
 	temp_env::with_var("PATH", Some(new_path), action)
 }
 
-fn with_fixture_path_only<T>(root: &Path, action: impl FnOnce() -> T) -> T {
-	let bin_dir = root.join("tools/bin");
-	for tool in ["cargo", "npm", "npx", "pnpm", "bun", "bunx", "custom-lock"] {
-		let candidate = bin_dir.join(tool);
-		if candidate.exists() {
-			make_executable(&candidate);
-		}
-	}
-	let path = std::env::join_paths([bin_dir])
-		.unwrap_or_else(|error| panic!("join isolated PATH entries: {error}"));
-	temp_env::with_var("PATH", Some(path), action)
-}
-
 fn copy_fixture(fixture_relative: &str, dest: &Path) {
 	copy_directory(&fixture_path(fixture_relative), dest);
 }
@@ -9342,6 +9329,7 @@ async fn release_follow_up_helpers_render_real_operation_outputs() {
 			subject: "subject".to_string(),
 			body: Some("body".to_string()),
 		},
+		body_truncation: None,
 	};
 	let release_request_result =
 		crate::cli_runtime::build_release_request_result(false, &release_request, || {
@@ -13399,31 +13387,65 @@ fn cli_commands_for_root_uses_workspace_cli_when_configuration_load_succeeds() {
 }
 
 #[test]
-fn build_skill_subcommand_forwards_native_add_flags() {
+fn build_skill_subcommand_parses_read_and_install_actions() {
 	let command = Command::new("monochange").subcommand(build_skill_subcommand());
-	let matches = command
+
+	let bare = command
+		.clone()
+		.try_get_matches_from([OsString::from("monochange"), OsString::from("skill")])
+		.unwrap_or_else(|error| panic!("bare skill matches: {error}"));
+	let (_, bare_skill) = bare
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected skill subcommand"));
+	assert!(
+		bare_skill.subcommand().is_none(),
+		"bare `monochange skill` must fall back to the listing"
+	);
+
+	let read = command
 		.clone()
 		.try_get_matches_from([
 			OsString::from("monochange"),
 			OsString::from("skill"),
-			OsString::from("--list"),
-			OsString::from("--copy"),
-			OsString::from("-a"),
-			OsString::from("pi"),
-			OsString::from("-y"),
+			OsString::from("read"),
+			OsString::from("configuration"),
 		])
-		.unwrap_or_else(|error| panic!("skill matches: {error}"));
-	let (_, skill_matches) = matches
+		.unwrap_or_else(|error| panic!("skill read matches: {error}"));
+	let (_, read_skill) = read
 		.subcommand()
 		.unwrap_or_else(|| panic!("expected skill subcommand"));
+	let (name, read_matches) = read_skill
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected read subcommand"));
+	assert_eq!(name, "read");
 	assert_eq!(
-		skill_matches
-			.get_many::<String>("args")
-			.unwrap_or_else(|| panic!("missing forwarded skill args"))
-			.map(String::as_str)
-			.collect::<Vec<_>>(),
-		vec!["--list", "--copy", "-a", "pi", "-y"]
+		read_matches.get_one::<String>("topic").map(String::as_str),
+		Some("configuration")
 	);
+
+	let install = command
+		.clone()
+		.try_get_matches_from([
+			OsString::from("monochange"),
+			OsString::from("skill"),
+			OsString::from("install"),
+			OsString::from("--dir"),
+			OsString::from("./skills/monochange"),
+			OsString::from("--force"),
+		])
+		.unwrap_or_else(|error| panic!("skill install matches: {error}"));
+	let (_, install_skill) = install
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected skill subcommand"));
+	let (name, install_matches) = install_skill
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected install subcommand"));
+	assert_eq!(name, "install");
+	assert_eq!(
+		install_matches.get_one::<String>("dir").map(String::as_str),
+		Some("./skills/monochange")
+	);
+	assert!(install_matches.get_flag("force"));
 
 	let help = command
 		.try_get_matches_from([
@@ -13434,224 +13456,112 @@ fn build_skill_subcommand_forwards_native_add_flags() {
 		.err()
 		.unwrap_or_else(|| panic!("expected skill help output"));
 	assert_eq!(help.kind(), clap::error::ErrorKind::DisplayHelp);
-	assert!(help.to_string().contains("skills add <monochange-source>"));
+	assert!(help.to_string().contains("monochange agent skill"));
+	assert!(help.to_string().contains("install"));
+	assert!(!help.to_string().contains("skills add"));
 }
 
 #[test]
-fn skill_command_runs_skills_add_with_npx_by_default() {
-	let fixture = setup_scenario_workspace("skill/basic");
-	let source = fixture.path().join("skill-source");
-	let output = with_path_prefixed(fixture.path(), || {
-		temp_env::with_var(
-			"MONOCHANGE_SKILL_SOURCE",
-			Some(source.to_string_lossy().to_string()),
-			|| {
-				run_cli(
-					fixture.path(),
-					[
-						OsString::from("monochange"),
-						OsString::from("skill"),
-						OsString::from("--list"),
-						OsString::from("--copy"),
-					],
-				)
-			},
-		)
-	})
-	.unwrap_or_else(|error| panic!("run skill through npx: {error}"));
-	assert_eq!(output, "");
-	let log = fs::read_to_string(fixture.path().join(".skill-command.log"))
-		.unwrap_or_else(|error| panic!("read skill command log: {error}"));
-	assert_eq!(
-		log.lines().collect::<Vec<_>>(),
-		vec![
-			"runner=npx",
-			"arg=-y",
-			"arg=skills",
-			"arg=add",
-			&format!("arg={}", source.display()),
-			"arg=--list",
-			"arg=--copy",
-		]
-	);
+fn skill_command_lists_every_bundled_topic_from_the_real_entry_point() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let output = run_cli(
+		tempdir.path(),
+		[OsString::from("monochange"), OsString::from("skill")],
+	)
+	.unwrap_or_else(|error| panic!("list skill topics: {error}"));
+	assert!(output.contains("monochange skill read <topic>"));
+	assert!(output.contains("monochange skill install --dir <dir>"));
+	assert!(output.contains("SKILL.md"));
+	assert!(output.contains("skills/configuration.md"));
+	assert!(output.contains("examples/quickstart.md"));
+	assert!(output.contains("example-quickstart"));
 }
 
 #[test]
-fn skill_command_falls_back_to_pnpm_dlx_when_npx_is_missing() {
-	let fixture = setup_scenario_workspace("skill/basic");
-	let npx = fixture.path().join("tools/bin/npx");
-	fs::remove_file(&npx)
-		.unwrap_or_else(|error| panic!("remove fake npx {}: {error}", npx.display()));
-	let source = fixture.path().join("skill-source");
-	with_path_prefixed(fixture.path(), || {
-		temp_env::with_vars(
-			[
-				("MONOCHANGE_SKILL_RUNNER", Some("pnpm".to_string())),
-				(
-					"MONOCHANGE_SKILL_SOURCE",
-					Some(source.to_string_lossy().to_string()),
-				),
-			],
-			|| {
-				run_cli(
-					fixture.path(),
-					[
-						OsString::from("monochange"),
-						OsString::from("skill"),
-						OsString::from("-y"),
-					],
-				)
-			},
-		)
-	})
-	.unwrap_or_else(|error| panic!("run skill through pnpm dlx: {error}"));
-	let log = fs::read_to_string(fixture.path().join(".skill-command.log"))
-		.unwrap_or_else(|error| panic!("read skill command log after pnpm fallback: {error}"));
-	assert_eq!(
-		log.lines().collect::<Vec<_>>(),
-		vec![
-			"runner=pnpm",
-			"arg=dlx",
-			"arg=skills",
-			"arg=add",
-			&format!("arg={}", source.display()),
-			"arg=-y",
-		]
-	);
-}
-
-#[test]
-fn skill_command_reports_invalid_runner_override() {
-	let fixture = setup_scenario_workspace("skill/basic");
-	let source = fixture.path().join("skill-source");
-	let error = with_path_prefixed(fixture.path(), || {
-		temp_env::with_vars(
-			[
-				("MONOCHANGE_SKILL_RUNNER", Some("nope".to_string())),
-				(
-					"MONOCHANGE_SKILL_SOURCE",
-					Some(source.to_string_lossy().to_string()),
-				),
-			],
-			|| {
-				run_cli(
-					fixture.path(),
-					[OsString::from("monochange"), OsString::from("skill")],
-				)
-			},
-		)
-	})
-	.err()
-	.unwrap_or_else(|| panic!("expected invalid skill runner override error"));
+fn skill_command_reads_a_topic_verbatim_from_the_real_entry_point() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("skill"),
+			OsString::from("read"),
+			OsString::from("example-readme"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("read skill topic: {error}"));
 	assert!(
-		error
-			.to_string()
-			.contains("unsupported skill runner `nope`")
+		output.is_empty(),
+		"raw documents are written straight to stdout without a second copy"
 	);
 }
 
 #[test]
-fn skill_command_reports_missing_forced_runner() {
-	let fixture = setup_scenario_workspace("skill/basic");
-	let npx = fixture.path().join("tools/bin/npx");
-	fs::remove_file(&npx)
-		.unwrap_or_else(|error| panic!("remove fake npx {}: {error}", npx.display()));
-	let source = fixture.path().join("skill-source");
-	let error = with_fixture_path_only(fixture.path(), || {
-		temp_env::with_vars(
-			[
-				("MONOCHANGE_SKILL_RUNNER", Some("npx".to_string())),
-				(
-					"MONOCHANGE_SKILL_SOURCE",
-					Some(source.to_string_lossy().to_string()),
-				),
-			],
-			|| {
-				run_cli(
-					fixture.path(),
-					[OsString::from("monochange"), OsString::from("skill")],
-				)
-			},
-		)
-	})
+fn skill_command_rejects_an_unknown_topic() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("skill"),
+			OsString::from("read"),
+			OsString::from("anchor"),
+		],
+	)
 	.err()
-	.unwrap_or_else(|| panic!("expected missing forced skill runner error"));
-	assert!(
-		error
-			.to_string()
-			.contains("configured skill runner `npx` was not found in PATH")
-	);
+	.unwrap_or_else(|| panic!("unknown skill topic must fail"));
+	assert!(error.to_string().contains("unknown skill topic `anchor`"));
+	assert!(error.to_string().contains("configuration"));
 }
 
 #[test]
-fn skill_command_runs_skills_add_with_bunx_when_forced() {
-	let fixture = setup_scenario_workspace("skill/basic");
-	let source = fixture.path().join("skill-source");
-	with_path_prefixed(fixture.path(), || {
-		temp_env::with_vars(
-			[
-				("MONOCHANGE_SKILL_RUNNER", Some("bunx".to_string())),
-				(
-					"MONOCHANGE_SKILL_SOURCE",
-					Some(source.to_string_lossy().to_string()),
-				),
-			],
-			|| {
-				run_cli(
-					fixture.path(),
-					[
-						OsString::from("monochange"),
-						OsString::from("skill"),
-						OsString::from("--list"),
-					],
-				)
-			},
-		)
-	})
-	.unwrap_or_else(|error| panic!("run skill through bunx: {error}"));
-	let log = fs::read_to_string(fixture.path().join(".skill-command.log"))
-		.unwrap_or_else(|error| panic!("read skill command log after bunx override: {error}"));
-	assert_eq!(
-		log.lines().collect::<Vec<_>>(),
-		vec![
-			"runner=bunx",
-			"arg=skills",
-			"arg=add",
-			&format!("arg={}", source.display()),
-			"arg=--list",
+fn skill_command_installs_a_tree_and_refuses_to_clobber_without_force() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let destination = tempdir.path().join("skills").join("monochange");
+
+	let install_args = || {
+		[
+			OsString::from("monochange"),
+			OsString::from("skill"),
+			OsString::from("install"),
+			OsString::from("--dir"),
+			destination.as_os_str().to_owned(),
 		]
-	);
+	};
+	let summary = run_cli(tempdir.path(), install_args())
+		.unwrap_or_else(|error| panic!("install skill: {error}"));
+	assert!(summary.contains("Installed 18 files"));
+	assert!(destination.join("SKILL.md").is_file());
+	assert!(destination.join("skills/configuration.md").is_file());
+	assert!(destination.join("examples/quickstart.md").is_file());
+
+	let error = run_cli(tempdir.path(), install_args())
+		.err()
+		.unwrap_or_else(|| panic!("a second install must refuse to clobber"));
+	assert!(error.to_string().contains("already contains a skill"));
+	assert!(error.to_string().contains("--force"));
+
+	let mut forced_args = install_args().to_vec();
+	forced_args.push(OsString::from("--force"));
+	let forced = run_cli(tempdir.path(), forced_args)
+		.unwrap_or_else(|error| panic!("forced install: {error}"));
+	assert!(forced.contains("Installed 18 files"));
 }
 
 #[test]
-fn skill_command_reports_nonzero_exit_status_from_runner() {
-	let fixture = setup_scenario_workspace("skill/basic");
-	let source = fixture.path().join("skill-source");
-	let error = with_path_prefixed(fixture.path(), || {
-		temp_env::with_vars(
-			[
-				(
-					"MONOCHANGE_SKILL_SOURCE",
-					Some(source.to_string_lossy().to_string()),
-				),
-				("MONOCHANGE_SKILL_FAKE_EXIT", Some("7".to_string())),
-			],
-			|| {
-				run_cli(
-					fixture.path(),
-					[
-						OsString::from("monochange"),
-						OsString::from("skill"),
-						OsString::from("--list"),
-					],
-				)
-			},
-		)
-	})
+fn skill_command_reports_a_missing_install_destination() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("skill"),
+			OsString::from("install"),
+		],
+	)
 	.err()
-	.unwrap_or_else(|| panic!("expected non-zero skill runner error"));
-	assert!(error.to_string().contains("`npx -y skills add"));
-	assert!(error.to_string().contains("exit status: 7"));
+	.unwrap_or_else(|| panic!("install without --dir must fail"));
+	assert!(error.to_string().contains("monochange skill install --dir"));
 }
 
 #[test]
@@ -17189,4 +17099,55 @@ fn cli_snapshot_classification_renders_json_output() {
 		.unwrap_or_else(|| panic!("text classification output"));
 	assert!(output.contains("cli snapshot recommendation: minor"));
 	assert!(output.contains("command `deploy` was added"));
+}
+
+#[test]
+fn skill_command_honors_quiet_without_changing_execution() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("--quiet"),
+			OsString::from("skill"),
+			OsString::from("read"),
+			OsString::from("monochange"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("quiet skill read: {error}"));
+	assert!(
+		output.trim().is_empty(),
+		"--quiet must suppress the skill document output, got: {output:?}"
+	);
+}
+
+#[test]
+fn add_interactive_change_file_reports_a_create_failure_when_a_parent_is_a_file() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_fixture("changeset-target-metadata/render-workspace", tempdir.path());
+
+	// A regular file where a parent directory belongs makes `create_dir_all`
+	// fail before the interactive change file can be written.
+	let blocker = tempdir.path().join("blocker.md");
+	fs::write(&blocker, b"not a directory").unwrap_or_else(|error| panic!("blocker: {error}"));
+	let output = blocker.join("nested.md");
+
+	let result = InteractiveChangeResult {
+		targets: vec![InteractiveTarget {
+			id: "core".to_string(),
+			bump: BumpSeverity::Minor,
+			version: None,
+			change_type: None,
+		}],
+		caused_by: Vec::new(),
+		reason: "Add a helper".to_string(),
+		details: None,
+	};
+	let error = add_interactive_change_file(tempdir.path(), &result, Some(&output))
+		.err()
+		.unwrap_or_else(|| panic!("expected the blocked create to fail"));
+	assert!(
+		error.to_string().contains("failed to create"),
+		"unexpected error: {error}"
+	);
 }

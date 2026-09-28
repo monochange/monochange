@@ -71,6 +71,7 @@ expression: projected
           "monochange/cli-surface/option-removed/check"
         ],
         "proposed_changeset_bump": "major",
+        "pull_request_changes": true,
         "release_floor": "major",
         "review_required": false
       },
@@ -137,6 +138,92 @@ expression: projected
         "latest_release": null
       },
       "summary": "1 breaking finding(s) propose a major changeset",
+      "warnings": []
+    },
+    {
+      "action": "create",
+      "comparisons": [
+        {
+          "base": "HEAD~1",
+          "head": "merge-tree:[SHA]",
+          "kind": "pull_request",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": "[SHA]",
+          "head": "HEAD",
+          "kind": "source_delta",
+          "note": null,
+          "status": "analyzed"
+        },
+        {
+          "base": null,
+          "head": "merge-tree:[SHA]",
+          "kind": "release",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        },
+        {
+          "base": null,
+          "head": "HEAD~1",
+          "kind": "release_to_default",
+          "note": "no reachable release tag matched this package",
+          "status": "unavailable"
+        }
+      ],
+      "decision": {
+        "classification_enforced": true,
+        "compatibility_impact": "unmodeled",
+        "completeness": "partial",
+        "confidence": "low",
+        "enforceable_minimum": "none",
+        "finding_ids": [
+          "monochange/unclassified-source/plain"
+        ],
+        "proposed_changeset_bump": "patch",
+        "pull_request_changes": true,
+        "release_floor": "patch",
+        "review_required": true
+      },
+      "ecosystem": "cargo",
+      "existing_changesets": [],
+      "findings": [
+        {
+          "after": null,
+          "analyzer": {
+            "id": "cargo/fallback",
+            "version": "1"
+          },
+          "before": null,
+          "bump": "patch",
+          "change": "modified",
+          "comparisons": [
+            "pull_request"
+          ],
+          "confidence": "low",
+          "coverage": {
+            "completeness": "partial",
+            "detection_level": "signature",
+            "note": "changed package files produced no modeled compatibility finding"
+          },
+          "id": "monochange/unclassified-source/plain",
+          "impact": "unmodeled",
+          "location": "Cargo.toml",
+          "rule_id": "monochange/unclassified-source",
+          "summary": "package files changed outside the analyzer's modeled public surface",
+          "surface": "source"
+        }
+      ],
+      "package_id": "plain",
+      "package_name": "plain",
+      "recommendation": "patch",
+      "release_owner": {
+        "id": "plain",
+        "kind": "package",
+        "latest_release": null
+      },
+      "summary": "unclassified package changes propose a patch changeset and require review",
       "warnings": []
     }
   ],

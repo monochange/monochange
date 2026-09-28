@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "acme-insight"
+version = "0.5.2"
+description = "Signal aggregation primitives for the Acme analytics stack"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.27.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/acme_insight"]

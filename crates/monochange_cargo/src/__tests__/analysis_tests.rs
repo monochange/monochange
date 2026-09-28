@@ -248,6 +248,7 @@ fn module_prefix_and_symbol_diff_cover_root_removed_and_unchanged_paths() {
 				item_kind: "function".to_string(),
 				item_path: "greet".to_string(),
 				signature: "pub fn greet()".to_string(),
+				initializer: None,
 				file_path: PathBuf::from("src/lib.rs"),
 			},
 		),
@@ -257,6 +258,7 @@ fn module_prefix_and_symbol_diff_cover_root_removed_and_unchanged_paths() {
 				item_kind: "struct".to_string(),
 				item_path: "Greeter".to_string(),
 				signature: "pub struct Greeter;".to_string(),
+				initializer: None,
 				file_path: PathBuf::from("src/lib.rs"),
 			},
 		),
@@ -268,6 +270,7 @@ fn module_prefix_and_symbol_diff_cover_root_removed_and_unchanged_paths() {
 				item_kind: "function".to_string(),
 				item_path: "greet".to_string(),
 				signature: "pub fn greet(name: &str)".to_string(),
+				initializer: None,
 				file_path: PathBuf::from("src/lib.rs"),
 			},
 		),
@@ -277,6 +280,7 @@ fn module_prefix_and_symbol_diff_cover_root_removed_and_unchanged_paths() {
 				item_kind: "constant".to_string(),
 				item_path: "LIMIT".to_string(),
 				signature: "pub const LIMIT: usize = 3;".to_string(),
+				initializer: None,
 				file_path: PathBuf::from("src/lib.rs"),
 			},
 		),
@@ -299,6 +303,344 @@ fn module_prefix_and_symbol_diff_cover_root_removed_and_unchanged_paths() {
 			|| change.summary.contains("modified")
 			|| change.summary.contains("removed")
 	}));
+}
+
+#[test]
+fn appending_to_a_public_slice_is_assessed_as_additive() {
+	let before = collect_public_symbols(&PackageSnapshotFile {
+		path: PathBuf::from("src/lib.rs"),
+		contents: concat!(
+			"pub const LINT_NAMES: &[&str] = &[\"a\", \"b\"];\n",
+			"pub static LINTS: &[&str] = &[\"a\", \"b\"];\n",
+			"pub const VALUES: &[u8] = &[1, 2];\n",
+		)
+		.to_string(),
+	})
+	.unwrap_or_else(|error| panic!("before symbols should parse: {error}"));
+	let after = collect_public_symbols(&PackageSnapshotFile {
+		path: PathBuf::from("src/lib.rs"),
+		contents: concat!(
+			"pub const LINT_NAMES: &[&str] = &[\"a\", \"b\", \"c\"];\n",
+			"pub static LINTS: &[&str] = &[\"a\", \"b\", \"c\"];\n",
+			"pub const VALUES: &[u8] = &[1, 2];\n",
+		)
+		.to_string(),
+	})
+	.unwrap_or_else(|error| panic!("after symbols should parse: {error}"));
+	let before = before
+		.into_iter()
+		.map(|symbol| ((symbol.item_kind.clone(), symbol.item_path.clone()), symbol))
+		.collect::<BTreeMap<_, _>>();
+	let after = after
+		.into_iter()
+		.map(|symbol| ((symbol.item_kind.clone(), symbol.item_path.clone()), symbol))
+		.collect::<BTreeMap<_, _>>();
+
+	let changes = diff_public_symbols(&before, &after);
+
+	assert_eq!(changes.len(), 2);
+	for change in &changes {
+		assert_eq!(change.kind, SemanticChangeKind::Modified);
+		let assessment = change
+			.assessment
+			.as_ref()
+			.unwrap_or_else(|| panic!("slice append should carry an assessment: {change:?}"));
+		assert_eq!(assessment.outcome, SemanticAnalysisOutcome::Additive);
+		assert_eq!(assessment.suggested_bump, BumpSeverity::Minor);
+		assert_eq!(assessment.confidence, ApiConfidence::High);
+		assert!(
+			assessment.evidence.coverage.contains("appends elements"),
+			"coverage note should name the append rule: {}",
+			assessment.evidence.coverage
+		);
+	}
+	assert_eq!(
+		monochange_semver::semantic_change_severity(&changes[0]),
+		BumpSeverity::Minor
+	);
+}
+
+#[test]
+fn slice_modifications_that_are_not_pure_appends_stay_conservative() {
+	let cases = [
+		// A removal is not an append.
+		(
+			"pub const NAMES: &[&str] = &[\"a\", \"b\", \"c\"];\n",
+			"pub const NAMES: &[&str] = &[\"a\", \"b\"];\n",
+		),
+		// Reordering keeps the same elements but changes observable order.
+		(
+			"pub const NAMES: &[&str] = &[\"a\", \"b\"];\n",
+			"pub const NAMES: &[&str] = &[\"b\", \"a\"];\n",
+		),
+		// Editing an element is not an append.
+		(
+			"pub const NAMES: &[&str] = &[\"a\", \"b\"];\n",
+			"pub const NAMES: &[&str] = &[\"a\", \"z\"];\n",
+		),
+		// An append after a removal is not a pure append.
+		(
+			"pub const NAMES: &[&str] = &[\"a\", \"b\"];\n",
+			"pub const NAMES: &[&str] = &[\"b\", \"c\"];\n",
+		),
+	];
+
+	for (before_source, after_source) in cases {
+		let change = diff_one_constant(before_source, after_source);
+
+		assert_eq!(change.kind, SemanticChangeKind::Modified);
+		assert!(
+			change.assessment.is_none(),
+			"`{before_source}` to `{after_source}` must not be assessed additive: {change:?}"
+		);
+		assert_eq!(
+			monochange_semver::semantic_change_severity(&change),
+			BumpSeverity::Major,
+			"`{before_source}` to `{after_source}` must stay conservative"
+		);
+	}
+}
+
+#[test]
+fn slice_append_assessment_requires_a_slice_literal() {
+	// A scalar constant is never treated as a slice append.
+	let change = diff_one_constant(
+		"pub const LIMIT: usize = 3;\n",
+		"pub const LIMIT: usize = 4;\n",
+	);
+
+	assert_eq!(change.kind, SemanticChangeKind::Modified);
+	assert!(change.assessment.is_none());
+	assert_eq!(
+		monochange_semver::semantic_change_severity(&change),
+		BumpSeverity::Major
+	);
+}
+
+#[test]
+fn slice_append_detection_ignores_non_literal_initializers() {
+	// A path initializer has no element sequence to compare.
+	let change = diff_one_constant(
+		"pub const NAMES: &[&str] = NAMES_V1;\n",
+		"pub const NAMES: &[&str] = NAMES_V2;\n",
+	);
+
+	assert_eq!(change.kind, SemanticChangeKind::Modified);
+	assert!(change.assessment.is_none());
+	assert_eq!(
+		monochange_semver::semantic_change_severity(&change),
+		BumpSeverity::Major
+	);
+}
+
+#[test]
+fn slice_append_requires_a_growing_literal_sequence() {
+	// Both endpoints are slice literals, but the after literal is shorter.
+	let change = diff_one_constant(
+		"pub const NAMES: &[&str] = &[\"a\", \"b\"];\n",
+		"pub const NAMES: &[&str] = &[\"a\"];\n",
+	);
+
+	assert_eq!(change.kind, SemanticChangeKind::Modified);
+	assert!(change.assessment.is_none());
+}
+
+#[test]
+fn slice_append_ignores_a_changed_declared_element_type() {
+	// `Vec<T>` uses the same literal shape, so the declared element type is the
+	// only signal that the collection contract changed.
+	let change = diff_one_constant(
+		"pub const NAMES: &[&str] = &[\"a\", \"b\"];\n",
+		"pub const NAMES: Vec<String> = vec![\"a\", \"b\", \"c\"];\n",
+	);
+
+	assert_eq!(change.kind, SemanticChangeKind::Modified);
+	assert!(change.assessment.is_none());
+	assert_eq!(
+		monochange_semver::semantic_change_severity(&change),
+		BumpSeverity::Major
+	);
+}
+
+#[test]
+fn slice_append_covers_vec_and_fixed_size_array_declarations() {
+	let appends = [
+		(
+			"pub const A: [u8; 2] = [1, 2];\n",
+			"pub const A: [u8; 3] = [1, 2, 3];\n",
+		),
+		(
+			"pub const B: &[u8] = &[1, 2];\n",
+			"pub const B: &[u8] = &[1, 2, 3];\n",
+		),
+		(
+			"pub static C: Vec<u8> = vec![1, 2];\n",
+			"pub static C: Vec<u8> = vec![1, 2, 3];\n",
+		),
+	];
+
+	for (before_source, after_source) in appends {
+		let change = diff_one_constant(before_source, after_source);
+		let assessment = change
+			.assessment
+			.as_ref()
+			.unwrap_or_else(|| panic!("`{after_source}` should be an assessed append: {change:?}"));
+
+		assert_eq!(assessment.outcome, SemanticAnalysisOutcome::Additive);
+		assert_eq!(assessment.suggested_bump, BumpSeverity::Minor);
+		assert_eq!(
+			monochange_semver::semantic_change_severity(&change),
+			BumpSeverity::Minor
+		);
+	}
+}
+
+#[test]
+fn slice_initializer_requires_a_slice_shaped_declared_type() {
+	let cases = [
+		// A reference to something that is not a slice.
+		(
+			"pub const NAMES: &str = \"a\";\n",
+			"pub const NAMES: &str = \"b\";\n",
+		),
+		// A plain scalar path type.
+		(
+			"pub const NAMES: String = String::new();\n",
+			"pub const NAMES: String = String::from(\"a\");\n",
+		),
+		// A generic path type that is not `Vec`.
+		(
+			"pub const NAMES: Option<u8> = None;\n",
+			"pub const NAMES: Option<u8> = Some(1);\n",
+		),
+		// A `Vec` whose only argument is a lifetime, not an element type.
+		(
+			"pub const NAMES: Vec<'a> = Vec::new();\n",
+			"pub const NAMES: Vec<'a> = Vec::new();\n",
+		),
+		// A tuple type, which is neither a slice nor a `Vec`.
+		(
+			"pub const NAMES: (u8, u8) = (1, 2);\n",
+			"pub const NAMES: (u8, u8) = (1, 3);\n",
+		),
+	];
+
+	for (before_source, after_source) in cases {
+		if before_source == after_source {
+			// Identical sources produce no change to inspect.
+			assert!(
+				diff_public_symbols_allow_empty(before_source, after_source).is_empty(),
+				"`{before_source}` should produce no symbol change"
+			);
+			continue;
+		}
+
+		let change = diff_one_constant(before_source, after_source);
+
+		assert!(
+			change.assessment.is_none(),
+			"`{before_source}` is not a slice literal: {change:?}"
+		);
+		assert_eq!(
+			monochange_semver::semantic_change_severity(&change),
+			BumpSeverity::Major
+		);
+	}
+}
+
+/// Return every symbol change between two single-item sources.
+fn diff_public_symbols_allow_empty(before_source: &str, after_source: &str) -> Vec<SemanticChange> {
+	let key = |symbol: PublicSymbol| (symbol.item_kind.clone(), symbol.item_path.clone());
+	let before = collect_public_symbols(&PackageSnapshotFile {
+		path: PathBuf::from("src/lib.rs"),
+		contents: before_source.to_string(),
+	})
+	.unwrap_or_else(|error| panic!("before symbols should parse: {error}"))
+	.into_iter()
+	.map(|symbol| (key(symbol.clone()), symbol))
+	.collect::<BTreeMap<_, _>>();
+	let after = collect_public_symbols(&PackageSnapshotFile {
+		path: PathBuf::from("src/lib.rs"),
+		contents: after_source.to_string(),
+	})
+	.unwrap_or_else(|error| panic!("after symbols should parse: {error}"))
+	.into_iter()
+	.map(|symbol| (key(symbol.clone()), symbol))
+	.collect::<BTreeMap<_, _>>();
+
+	diff_public_symbols(&before, &after)
+}
+
+#[test]
+fn slice_initializer_ignores_a_vec_type_without_angle_arguments() {
+	let change = diff_one_constant(
+		"pub const NAMES: Vec = Vec::new();\n",
+		"pub const NAMES: Vec = Vec::with_capacity(4);\n",
+	);
+
+	assert!(change.assessment.is_none());
+	assert_eq!(
+		monochange_semver::semantic_change_severity(&change),
+		BumpSeverity::Major
+	);
+}
+
+#[test]
+fn slice_initializer_ignores_a_repeat_macro() {
+	// `vec![value; count]` has no element sequence, so the parse fails and the
+	// diff keeps the conservative verdict.
+	let change = diff_one_constant(
+		"pub static NAMES: Vec<u8> = vec![0; 2];\n",
+		"pub static NAMES: Vec<u8> = vec![0; 3];\n",
+	);
+
+	assert!(change.assessment.is_none());
+	assert_eq!(
+		monochange_semver::semantic_change_severity(&change),
+		BumpSeverity::Major
+	);
+}
+
+#[test]
+fn slice_initializer_ignores_a_non_vec_macro() {
+	let change = diff_one_constant(
+		"pub static NAMES: Vec<u8> = make_names();\n",
+		"pub static NAMES: Vec<u8> = make_more_names();\n",
+	);
+
+	assert!(change.assessment.is_none());
+	assert_eq!(
+		monochange_semver::semantic_change_severity(&change),
+		BumpSeverity::Major
+	);
+}
+
+/// Diff one constant (or static) between two single-item sources.
+fn diff_one_constant(before_source: &str, after_source: &str) -> SemanticChange {
+	let before = collect_public_symbols(&PackageSnapshotFile {
+		path: PathBuf::from("src/lib.rs"),
+		contents: before_source.to_string(),
+	})
+	.unwrap_or_else(|error| panic!("before symbols should parse: {error}"));
+	let after = collect_public_symbols(&PackageSnapshotFile {
+		path: PathBuf::from("src/lib.rs"),
+		contents: after_source.to_string(),
+	})
+	.unwrap_or_else(|error| panic!("after symbols should parse: {error}"));
+	let key = |symbol: PublicSymbol| (symbol.item_kind.clone(), symbol.item_path.clone());
+	let before = before
+		.into_iter()
+		.map(|symbol| (key(symbol.clone()), symbol))
+		.collect::<BTreeMap<_, _>>();
+	let after = after
+		.into_iter()
+		.map(|symbol| (key(symbol.clone()), symbol))
+		.collect::<BTreeMap<_, _>>();
+
+	let mut changes = diff_public_symbols(&before, &after);
+
+	assert_eq!(changes.len(), 1, "expected exactly one symbol change");
+	changes.remove(0)
 }
 
 #[test]
@@ -381,6 +723,7 @@ fn module_prefix_diff_and_manifest_helpers_cover_remaining_branches() {
 				item_kind: "function".to_string(),
 				item_path: "greet".to_string(),
 				signature: "pub fn greet()".to_string(),
+				initializer: None,
 				file_path: PathBuf::from("src/lib.rs"),
 			},
 		),
@@ -390,6 +733,7 @@ fn module_prefix_diff_and_manifest_helpers_cover_remaining_branches() {
 				item_kind: "struct".to_string(),
 				item_path: "Greeter".to_string(),
 				signature: "pub struct Greeter;".to_string(),
+				initializer: None,
 				file_path: PathBuf::from("src/lib.rs"),
 			},
 		),
@@ -400,6 +744,7 @@ fn module_prefix_diff_and_manifest_helpers_cover_remaining_branches() {
 			item_kind: "function".to_string(),
 			item_path: "greet".to_string(),
 			signature: "pub fn greet()".to_string(),
+			initializer: None,
 			file_path: PathBuf::from("src/lib.rs"),
 		},
 	)]);

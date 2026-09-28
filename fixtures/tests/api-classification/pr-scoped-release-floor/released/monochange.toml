@@ -1,0 +1,10 @@
+[defaults]
+package_type = "cargo"
+
+[package.core]
+path = "crates/core"
+tag = true
+
+[package.lints]
+path = "crates/lints"
+tag = true

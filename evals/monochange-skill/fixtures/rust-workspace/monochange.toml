@@ -1,0 +1,30 @@
+#:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
+#
+# Release planning for the Acme toolchain.
+#
+# Both crates are published to crates.io and release independently: `acme-core`
+# is a library other teams depend on, and `acme-cli` ships the binary. They are
+# deliberately NOT version-grouped, because the CLI is allowed to release more
+# often than the library.
+
+[defaults]
+parent_bump = "patch"
+
+[changelog.types]
+feat = { bump = "minor", section = "feat", description = "New functionality or capabilities added to the package" }
+fix = { bump = "patch", section = "fix", description = "Bug fixes and error corrections" }
+docs = { bump = "none", section = "docs", description = "Documentation updates and clarifications only" }
+
+[package.acme-core]
+path = "crates/core"
+type = "cargo"
+
+[package.acme-cli]
+path = "crates/cli"
+type = "cargo"
+
+[lints]
+use = ["cargo/baseline", "changesets/recommended"]
+
+[ecosystems.cargo]
+enabled = true

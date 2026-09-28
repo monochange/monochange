@@ -276,7 +276,7 @@ fn get_info_exposes_tool_instructions_and_capabilities() {
 	let info = MonochangeMcpServer::new().get_info();
 	assert!(info.instructions.as_ref().is_some_and(|text| {
 		text.contains(
-			"monochange manages versions and releases across Cargo, npm, Deno, and Dart/Flutter workspaces",
+			"monochange manages versions and releases across Cargo, npm, Deno, Dart/Flutter, Python, and Go workspaces",
 		) && text.contains("classify_changes")
 	}));
 	assert!(info.capabilities.tools.is_some());

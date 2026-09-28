@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/create_change_file.rs
+expression: content
+---
+---
+core: minor
+---
+
+# Add helper

@@ -144,18 +144,21 @@ pub use release_record::retarget_release;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
-use skill::SkillOptions;
+use skill::SkillAction;
+use skill::render_outcome as render_skill_outcome;
 use skill::run_skill;
 use subagents::SubagentOptions;
 use subagents::run_subagents;
 pub(crate) use versioned_files::*;
 pub use workspace_ops::AddChangeFileRequest;
+pub use workspace_ops::PlannedChangeFile;
 use workspace_ops::PopulateWorkspaceResult;
 pub use workspace_ops::add_change_file;
 pub(crate) use workspace_ops::add_interactive_change_file;
 pub(crate) use workspace_ops::discover_release_workspace;
 pub use workspace_ops::discover_workspace;
 use workspace_ops::init_workspace;
+pub use workspace_ops::plan_change_file;
 pub use workspace_ops::plan_release;
 use workspace_ops::populate_workspace;
 pub use workspace_ops::prepare_release;
@@ -796,6 +799,23 @@ fn render_snapshot_request(
 		.map_err(|error| MonochangeError::Config(format!("failed to render snapshot: {error}")))
 }
 
+fn skill_action_from_matches(matches: &clap::ArgMatches) -> SkillAction {
+	match matches.subcommand() {
+		Some(("read", read_matches)) => {
+			SkillAction::Read {
+				topic: read_matches.get_one::<String>("topic").cloned(),
+			}
+		}
+		Some(("install", install_matches)) => {
+			SkillAction::Install {
+				destination: install_matches.get_one::<String>("dir").map(PathBuf::from),
+				force: install_matches.get_flag("force"),
+			}
+		}
+		_ => SkillAction::List,
+	}
+}
+
 fn command_path_from_matches(matches: &clap::ArgMatches) -> Vec<String> {
 	let mut path = Vec::new();
 	let mut current = matches;
@@ -1376,14 +1396,12 @@ async fn run_with_args_in_dir_with_progress(
 		}
 		Some(("command", _)) => run_command_wizard_for_cli(root, quiet),
 		Some(("skill", skill_matches)) => {
-			let forwarded_args = skill_matches
-				.get_many::<String>("args")
-				.into_iter()
-				.flatten()
-				.cloned()
-				.collect();
-			let options = SkillOptions { forwarded_args };
-			run_skill(root, &options)
+			let outcome = run_skill(skill_action_from_matches(skill_matches))?;
+			if quiet {
+				Ok(String::new())
+			} else {
+				render_skill_outcome(outcome)
+			}
 		}
 		Some(("subagents", subagent_matches)) => {
 			let targets = if subagent_matches.get_flag("all") {

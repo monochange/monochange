@@ -1,0 +1,28 @@
+{
+	"id": "pre-1.0-bump-shift",
+	"title": "Below 1.0.0 the bump severity shifts down one level",
+	"fixture": "pre-1-0-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "A release that has not reached 1.0.0 shifts each severity down one level, because pre-1.0 consumers read every release as potentially breaking: a `minor` change on 0.4.2 plans 0.4.3, not 0.5.0, and a `major` change plans 0.5.0, not 1.0.0. Above 1.0.0 the same changes behave normally. The dependent crate follows through dependency propagation in both cases.",
+	"checks": [
+		{
+			"id": "minor-plans-a-patch-on-a-0.x-version",
+			"kind": "command",
+			"command": "rm -f .changeset/*.md; mkdir -p .changeset; printf -- '---\\nacme-util: minor\\n---\\n\\nAdd a helper\\n' > .changeset/grader-minor.md; monochange preview --format json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; assert t.get('acme-util')=='0.4.3', t; assert t.get('acme-tool')=='0.4.3', t; print(t)\"; j=$?; rm -f .changeset/grader-minor.md; exit $j",
+			"why": "The shift is easy to mistake for a bug and easy to 'fix' by accident. On 0.4.2 a minor must move the patch position; a plan of 0.5.0 would mean the shift was dropped."
+		},
+		{
+			"id": "major-plans-a-minor-on-a-0.x-version",
+			"kind": "command",
+			"command": "rm -f .changeset/*.md; mkdir -p .changeset; printf -- '---\\nacme-util: major\\n---\\n\\nBreak the API\\n' > .changeset/grader-major.md; monochange preview --format json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; assert t.get('acme-util')=='0.5.0', t; print(t)\"; j=$?; rm -f .changeset/grader-major.md; exit $j",
+			"why": "The upper half of the same rule: a breaking change on 0.x moves the minor position rather than jumping to 1.0.0, because reaching 1.0.0 is a deliberate product decision rather than something a severity chooses."
+		},
+		{
+			"id": "no-shift-above-1.0.0",
+			"kind": "command",
+			"command": "cp crates/util/Cargo.toml .util.bak; python3 -c \"import pathlib; p=pathlib.Path('crates/util/Cargo.toml'); p.write_text(p.read_text().replace('version = \\\"0.4.2\\\"', 'version = \\\"1.4.2\\\"'))\"; rm -f .changeset/*.md; mkdir -p .changeset; printf -- '---\\nacme-util: minor\\n---\\n\\nAdd a helper\\n' > .changeset/grader-minor.md; monochange preview --format json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; assert t.get('acme-util')=='1.5.0', t; print(t)\"; j=$?; mv .util.bak crates/util/Cargo.toml; rm -f .changeset/grader-minor.md; exit $j",
+			"why": "The counterpart that makes the rule a rule rather than a constant: at 1.4.2 the same minor change must move the minor position. Without this, a fix that shifted every version would still pass the two checks above."
+		}
+	]
+}

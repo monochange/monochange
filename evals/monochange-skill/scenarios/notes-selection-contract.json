@@ -1,0 +1,50 @@
+{
+	"id": "notes-selection-contract",
+	"title": "notes selects outputs without consuming release intent",
+	"fixture": "npm-monorepo",
+	"agent": false,
+	"prompt": "",
+	"setupFiles": {
+		".changeset/ui-feature.md": "---\n\"@acme/ui\": feature\n---\n\nCopy link button on the profile screen\n",
+		".changeset/api-fix.md": "---\n\"@acme/api\": fix\n---\n\nHonor the caller's abort signal\n"
+	},
+	"expectation": "`monochange notes` is read-only: `--output` selects a configured output, `--target` narrows it to one release owner, `--file` redirects the render to exactly the named path (stdout stays empty — it is a redirect, not a tee), and `--file -` is stdout. A user-stream output renders only user-stream changes and a default-stream target renders only its own, so neither note leaks the other audience. Unknown output ids fail with the valid names. Nothing is consumed: the changeset files are still on disk afterwards, which is what makes notes safe to run repeatedly while drafting.",
+	"checks": [
+		{
+			"id": "user-output-carries-only-the-user-change",
+			"kind": "command",
+			"command": "monochange notes --output user > .n.out 2>/dev/null; rc=$?; grep -q 'Copy link button' .n.out; a=$?; grep -q 'abort signal' .n.out; b=$?; rm -f .n.out; test $rc -eq 0 -a $a -eq 0 -a $b -eq 1",
+			"why": "The user stream must carry the customer-facing change and must not leak the developer detail; both halves matter, since a leak defeats the split as surely as an omission."
+		},
+		{
+			"id": "target-narrows-the-default-output",
+			"kind": "command",
+			"command": "monochange notes --output default --target @acme/api > .n.out 2>/dev/null; rc=$?; grep -q 'abort signal' .n.out; a=$?; grep -q 'Copy link button' .n.out; b=$?; rm -f .n.out; test $rc -eq 0 -a $a -eq 0 -a $b -eq 1",
+			"why": "The default output spans several owners, so without `--target` it refuses with an ambiguity error; with the target it must render that package's change only."
+		},
+		{
+			"id": "unknown-output-fails-naming-valid-outputs",
+			"kind": "command",
+			"command": "monochange notes --output does-not-exist > .n.out 2>&1; rc=$?; grep -q 'user' .n.out; a=$?; rm -f .n.out; test $rc -eq 1 -a $a -eq 0",
+			"why": "A misspelled output id must fail loudly and name what does exist, which is how an agent recovers instead of assuming the note was rendered."
+		},
+		{
+			"id": "file-writes-exactly-the-named-path",
+			"kind": "command",
+			"command": "monochange notes --output user --file notes.md > .stdout.out 2>/dev/null; rc=$?; test -f notes.md; a=$?; grep -q 'Copy link button' notes.md; b=$?; test ! -s .stdout.out; c=$?; rm -f notes.md .stdout.out; test $rc -eq 0 -a $a -eq 0 -a $b -eq 0 -a $c -eq 0",
+			"why": "`--file` is a redirect, not a tee: the note goes to the named path and stdout stays empty, so a CI consumer cannot double-print the artifact. Pinning the redirect keeps an agent from assuming it will also see the note on stdout."
+		},
+		{
+			"id": "notes-consume-nothing",
+			"kind": "command",
+			"command": "count=$(ls .changeset/*.md 2>/dev/null | wc -l | tr -d ' '); test \"$count\" = \"2\"",
+			"why": "Unlike `prepare`, notes is a read over release intent. Both changeset files must still be present after every check above ran, which is what makes the command safe to iterate on."
+		},
+		{
+			"id": "file-dash-selects-stdout",
+			"kind": "command",
+			"command": "monochange notes --output user --file - > .n.out 2>/dev/null; rc=$?; grep -q 'Copy link button' .n.out; a=$?; rm -f .n.out; test $rc -eq 0 -a $a -eq 0",
+			"why": "`--file -` is the explicit stdout form; pinning it stops an agent from inventing a redirection convention the CLI does not document."
+		}
+	]
+}

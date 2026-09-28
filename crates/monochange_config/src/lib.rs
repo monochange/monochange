@@ -5435,6 +5435,11 @@ fn validate_source_configuration(source: Option<&SourceConfiguration>) -> Monoch
 			"[source.pull_requests].labels must not include empty values".to_string(),
 		));
 	}
+	if source.pull_requests.max_body_chars == Some(0) {
+		return Err(MonochangeError::Config(
+			"[source.pull_requests].max_body_chars must be greater than 0".to_string(),
+		));
+	}
 	if let Some(api_url) = &source.api_url {
 		validate_api_url_host(api_url, source.provider)?;
 	}

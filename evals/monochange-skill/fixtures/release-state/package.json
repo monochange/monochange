@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

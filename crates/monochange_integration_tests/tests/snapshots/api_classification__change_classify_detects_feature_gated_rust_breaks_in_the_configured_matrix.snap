@@ -65,6 +65,7 @@ expression: snapshot
           "cargo/public-api/public_api/modified/trait/ExperimentalApi"
         ],
         "proposed_changeset_bump": "major",
+        "pull_request_changes": true,
         "release_floor": "major",
         "review_required": false
       },

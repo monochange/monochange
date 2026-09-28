@@ -10,6 +10,11 @@
 devenv.local.nix
 .monochange/local/
 
+# monochange skill evaluation scratch space: throwaway run workdirs and the
+# generated reports/transcripts that reference them.
+/evals/monochange-skill/.work/
+/evals/monochange-skill/results/
+
 packages/monochange__cli/bin/
 packages/monochange__cli-darwin-arm64/bin/
 packages/monochange__cli-darwin-x64/bin/

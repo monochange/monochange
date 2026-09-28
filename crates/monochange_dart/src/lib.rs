@@ -6,6 +6,7 @@
 #![doc = include_str!("crate_docs.md")]
 pub mod analysis;
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
@@ -330,8 +331,32 @@ fn find_yaml_dependency_scalar(
 
 struct ParsedYamlLine<'a> {
 	indent: usize,
-	key: &'a str,
+	key: Cow<'a, str>,
 	value_span: Option<(usize, usize)>,
+}
+
+/// Strip YAML quoting from a line key so bare and quoted keys resolve alike.
+///
+/// # Why this exists
+///
+/// pubspec dependency sections may quote a key (`'shared':`), while the
+/// version map is keyed by the bare package name. Without this the lookup
+/// misses and the dependency keeps its old constraint. Only quoted keys are
+/// parsed: bare keys keep their raw text so keys that are not standalone YAML
+/// scalars (for example `1.0.0`) behave exactly as before.
+fn unquote_yaml_key(key: &str) -> Cow<'_, str> {
+	let Some(quote) = key
+		.chars()
+		.next()
+		.filter(|quote| *quote == '\'' || *quote == '"')
+	else {
+		return Cow::Borrowed(key);
+	};
+	if key.len() < 2 || !key.ends_with(quote) {
+		return Cow::Borrowed(key);
+	}
+
+	serde_yaml_ng::from_str::<String>(key).map_or(Cow::Borrowed(key), Cow::Owned)
 }
 
 fn parse_yaml_line(contents: &str, range: (usize, usize)) -> Option<ParsedYamlLine<'_>> {
@@ -342,7 +367,7 @@ fn parse_yaml_line(contents: &str, range: (usize, usize)) -> Option<ParsedYamlLi
 	}
 	let indent = line.len() - trimmed.len();
 	let colon = trimmed.find(':')?;
-	let key = trimmed[..colon].trim();
+	let key = unquote_yaml_key(trimmed[..colon].trim());
 	if key.is_empty() {
 		return None;
 	}
@@ -498,6 +523,10 @@ pub fn discover_dart_packages(root: &Path) -> MonochangeResult<AdapterDiscovery>
 		{
 			packages.push(package);
 		}
+	}
+
+	for package in &mut packages {
+		package.rebase_id(root);
 	}
 
 	packages.sort_by(|left, right| left.id.cmp(&right.id));

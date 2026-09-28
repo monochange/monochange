@@ -1,0 +1,49 @@
+{
+	"id": "python-release-version-write",
+	"title": "Adopt monochange for a Python workspace so releases actually write versions",
+	"fixture": "python-uv",
+	"prompt": "We want to release our two Python packages with monochange. Set it up and make sure a release really works end to end. We just added a rolling-window helper to acme-insight, so record that too. When we cut a release, the version in each package's pyproject.toml has to actually change — we tried another tool once and it left the manifests untouched.",
+	"expectation": "The agent configures both `pyproject.toml` packages as `python` and, crucially, discovers that Python has no built-in manifest version writer: the package's own `[project].version` is only rewritten through an explicit `versioned_files` entry whose `fields` include `version`. Without that entry the release plans a new version, rewrites only internal dependency constraints, and leaves `[project].version` stale. A correct solution adds typed `versioned_files` entries (or otherwise makes the write happen), records a minor changeset for `acme-insight`, and leaves `monochange prepare` actually changing both version fields.",
+	"setupCommands": [
+		"git init -q && git add -A && git -c user.email=eval@example.com -c user.name=eval commit -qm 'initial commit'"
+	],
+	"checks": [
+		{
+			"id": "config-exists-and-validates",
+			"kind": "command",
+			"command": "test -f monochange.toml && monochange step validate",
+			"why": "Adoption means a config that the CLI accepts."
+		},
+		{
+			"id": "both-python-packages-configured",
+			"kind": "command",
+			"command": "monochange config --format json 2>/dev/null | python3 -c \"import sys,json; c=json.load(sys.stdin)['config']; t={p['id']: p['package_type'] for p in c['packages']}; want={'acme-insight':'python','acme-report':'python'}; bad={k:(t.get(k),v) for k,v in want.items() if t.get(k)!=v}; assert not bad, f'wrong or missing: {bad}'; print('python packages ok')\"",
+			"why": "Both workspace members must be under release management with the python type."
+		},
+		{
+			"id": "intent-recorded-through-the-changeset-mechanism",
+			"kind": "transcript",
+			"pattern": "\\.changeset|monochange create|create-change-file",
+			"why": "Release intent has to travel through a changeset file rather than a hand-edited manifest. This is graded from the transcript because a completed `monochange prepare` legitimately consumes and deletes the changeset, so the file's absence afterwards is not evidence of anything."
+		},
+		{
+			"id": "prepare-changes-package-versions",
+			"kind": "command",
+			"command": "monochange prepare >/dev/null 2>&1; python3 -c \"import tomllib,pathlib; a=tomllib.loads(pathlib.Path('packages/insight/pyproject.toml').read_text())['project']['version']; b=tomllib.loads(pathlib.Path('packages/report/pyproject.toml').read_text())['project']['version']; assert a!='0.5.2', f'acme-insight version not written: {a}'; assert b!='0.5.2', f'acme-report version not written: {b}'; print('versions written:', a, b)\"",
+			"why": "The whole point of the request. Python has no built-in manifest version writer, so a config without explicit versioned_files plans a release and leaves both manifests stale."
+		},
+		{
+			"id": "dependency-constraint-follows-version",
+			"kind": "command",
+			"command": "python3 -c \"import tomllib,pathlib,re; rep=tomllib.loads(pathlib.Path('packages/report/pyproject.toml').read_text())['project']; dep=[d for d in rep['dependencies'] if d.startswith('acme-insight')][0]; ins=tomllib.loads(pathlib.Path('packages/insight/pyproject.toml').read_text())['project']['version']; assert ins in dep, f'dependency constraint {dep!r} does not reference {ins!r}'; print('constraint ok:', dep)\"",
+			"why": "A version bump that leaves the internal dependency pin behind produces an uninstallable release."
+		},
+		{
+			"id": "no-packages-published",
+			"kind": "transcript",
+			"pattern": "uv publish|twine upload",
+			"absent": true,
+			"why": "The request was to make releases work, not to publish to PyPI."
+		}
+	]
+}

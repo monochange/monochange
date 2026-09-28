@@ -1,0 +1,56 @@
+{
+	"id": "subagents-generation",
+	"title": "Generated subagent guidance routes through the skill and names only real fields and commands",
+	"fixture": "mixed-monorepo",
+	"agent": false,
+	"prompt": "",
+	"expectation": "`monochange subagents claude --dry-run` exits 0, lists `.claude/agents/monochange-release-agent.md` and `.mcp.json`, and writes nothing. The real run creates both files. The generated guidance is skill-first (`monochange skill read monochange`), names the real classification-report fields (`existing_changesets`, `decision.proposed_changeset_bump`), and does not resurrect the stale `existingChangesets` spelling (FINDINGS defect 5). `.mcp.json` is valid JSON registering a `monochange` server; `--no-mcp` skips it. Every command spelling the guidance pins (`preview`, `discover`, `versions list`) must still exist in the CLI. Each check cleans up the files it generated.",
+	"checks": [
+		{
+			"id": "subagents-dry-run-writes-nothing",
+			"kind": "command",
+			"command": "monochange subagents claude --dry-run && test ! -e .claude && test ! -e .mcp.json",
+			"expectOutput": [
+				"create .claude/agents/monochange-release-agent.md",
+				"create .mcp.json",
+				"Dry run only. No files were written."
+			],
+			"why": "Generation must preview its full file plan and stay read-only; an agent asking for a preview must not mutate the repository."
+		},
+		{
+			"id": "subagents-writes-agent-file-and-mcp-json",
+			"kind": "command",
+			"command": "rm -rf .claude .mcp.json && monochange subagents claude && test -f .claude/agents/monochange-release-agent.md && test -f .mcp.json",
+			"expectOutput": [
+				"create .claude/agents/monochange-release-agent.md",
+				"create .mcp.json"
+			],
+			"why": "The real run must land the agent guidance at the claude agents path and the MCP registration at the repository root."
+		},
+		{
+			"id": "agent-guidance-is-skill-first-with-real-fields",
+			"kind": "command",
+			"command": "test -f .claude/agents/monochange-release-agent.md && grep -q 'monochange skill read monochange' .claude/agents/monochange-release-agent.md && grep -q 'existing_changesets' .claude/agents/monochange-release-agent.md && grep -q 'decision.proposed_changeset_bump' .claude/agents/monochange-release-agent.md && ! grep -q 'existingChangesets' .claude/agents/monochange-release-agent.md",
+			"why": "Defect 5 regression: generated guidance must route through the bundled skill first, teach the real report field names, and never drift back to the nonexistent camelCase spelling."
+		},
+		{
+			"id": "mcp-json-registers-the-monochange-server",
+			"kind": "command",
+			"command": "python3 -c \"import json; s = json.load(open('.mcp.json'))['mcpServers']['monochange']; assert s.get('command'), s; print('mcp server entry ok')\"",
+			"why": "An unparseable `.mcp.json` is silently dropped by agent runtimes, so the JSON shape is part of the contract."
+		},
+		{
+			"id": "no-mcp-skips-mcp-json",
+			"kind": "command",
+			"command": "rm -rf .claude .mcp.json && monochange subagents claude --no-mcp && test -f .claude/agents/monochange-release-agent.md && test ! -e .mcp.json",
+			"expectOutput": ["create .claude/agents/monochange-release-agent.md"],
+			"why": "Repositories that manage MCP registration themselves need the documented opt-out to skip exactly the `.mcp.json` half."
+		},
+		{
+			"id": "generated-guidance-names-existing-commands",
+			"kind": "command",
+			"command": "test -f .claude/agents/monochange-release-agent.md && grep -q 'monochange preview' .claude/agents/monochange-release-agent.md && grep -q 'monochange discover' .claude/agents/monochange-release-agent.md && grep -q 'monochange versions list' .claude/agents/monochange-release-agent.md && monochange preview --help >/dev/null 2>&1 && monochange discover --help >/dev/null 2>&1 && monochange versions list --help >/dev/null 2>&1; rc=$?; rm -rf .claude .mcp.json; exit $rc",
+			"why": "Defect 5's other half: the guidance may only name commands that exist. These are the load-bearing ones a generated agent runs first, so each must both appear in the guidance and resolve in the CLI."
+		}
+	]
+}

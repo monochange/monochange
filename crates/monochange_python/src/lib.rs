@@ -112,10 +112,10 @@ impl EcosystemAdapter for PythonAdapter {
 
 	fn load_configured(
 		&self,
-		_root: &Path,
-		_package_path: &Path,
+		root: &Path,
+		package_path: &Path,
 	) -> MonochangeResult<Option<PackageRecord>> {
-		Ok(None)
+		load_configured_python_package(root, package_path)
 	}
 
 	fn supported_versioned_file_kind(&self, path: &Path) -> bool {
@@ -391,12 +391,38 @@ pub fn discover_python_packages(root: &Path) -> MonochangeResult<AdapterDiscover
 		}
 	}
 
+	for package in &mut packages {
+		package.rebase_id(root);
+	}
+
 	packages.sort_by(|left, right| left.id.cmp(&right.id));
 	packages.dedup_by(|left, right| left.id == right.id);
 
 	tracing::debug!(packages = packages.len(), "discovered python packages");
 
 	Ok(AdapterDiscovery { packages, warnings })
+}
+
+/// Load the package record for an explicitly configured Python package.
+///
+/// `package_path` is the configured package directory (the loader joins the
+/// repository root with the package `path`), but a direct `pyproject.toml`
+/// path is accepted too. Returns `Ok(None)` when no manifest exists at that
+/// path so the caller reports the missing configured package.
+pub fn load_configured_python_package(
+	root: &Path,
+	package_path: &Path,
+) -> MonochangeResult<Option<PackageRecord>> {
+	let manifest_path =
+		if package_path.file_name().and_then(|name| name.to_str()) == Some(PYPROJECT_FILE) {
+			package_path.to_path_buf()
+		} else {
+			package_path.join(PYPROJECT_FILE)
+		};
+	if !manifest_path.is_file() {
+		return Ok(None);
+	}
+	parse_python_package(&manifest_path, root)
 }
 
 fn parse_uv_workspace_members(manifest_path: &Path) -> MonochangeResult<Option<Vec<String>>> {

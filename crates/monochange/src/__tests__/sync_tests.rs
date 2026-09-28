@@ -1,5 +1,6 @@
 //! Tests for sync module types and functions.
 
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 
 use clap::Command;
@@ -243,6 +244,7 @@ fn detect_supported_ecosystem_changes() {
 		"[package]\nname = \"app\"\nversion = \"1.0.0\"\n\n[dependencies]\ncore = \"1.0.0\"\n",
 		&versions,
 		&names,
+		&BTreeMap::new(),
 		VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect cargo: {error}"));
@@ -252,6 +254,7 @@ fn detect_supported_ecosystem_changes() {
 		"[project]\nname = \"app\"\nversion = \"1.0.0\"\ndependencies = [\"core>=1.0.0\"]\n",
 		&versions,
 		&names,
+		&BTreeMap::new(),
 		VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect python: {error}"));
@@ -261,6 +264,7 @@ fn detect_supported_ecosystem_changes() {
 		"module app\n\nrequire core v1.0.0\n",
 		&versions,
 		&names,
+		&BTreeMap::new(),
 		VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect go: {error}"));
@@ -270,6 +274,7 @@ fn detect_supported_ecosystem_changes() {
 		r#"{"imports":{"core":"^1.0.0"}}"#,
 		&versions,
 		&names,
+		&BTreeMap::new(),
 		VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect deno: {error}"));
@@ -1114,6 +1119,7 @@ fn detect_python_changes_with_empty_dep_name_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
@@ -1132,10 +1138,240 @@ fn detect_go_changes_with_non_workspace_require_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
 	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_go_changes_resolves_nested_module_path_to_workspace_package() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("core".to_string(), "1.3.0".to_string());
+	let names = std::collections::BTreeSet::from(["core".to_string(), "service".to_string()]);
+	// The workspace module paths, read from each package's own go.mod.
+	let modules = std::collections::BTreeMap::from([(
+		"core".to_string(),
+		"github.com/acme/core".to_string(),
+	)]);
+	let contents = "module github.com/acme/service\n\ngo 1.22\n\nrequire github.com/acme/core v1.2.0\n\nreplace github.com/acme/core => ../core\n";
+	let result = sync::detect_go_changes(
+		contents,
+		&version_map,
+		&names,
+		&modules,
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
+	assert_eq!(result.len(), 1);
+	assert_eq!(result[0].dependency_name, "github.com/acme/core");
+	assert_eq!(result[0].section, "require");
+	assert_eq!(result[0].old_value, "v1.2.0");
+	assert_eq!(result[0].new_value, "v1.3.0");
+}
+
+#[test]
+fn detect_go_changes_skips_when_module_identity_is_ambiguous() {
+	let mut version_map = std::collections::BTreeMap::new();
+	version_map.insert("core".to_string(), "1.3.0".to_string());
+	// Two workspace identities that both derive to `core`: picking either could
+	// rewrite the require with the wrong package's version.
+	let names = std::collections::BTreeSet::from(["core".to_string(), "core/v2".to_string()]);
+	let contents = "module test\n\nrequire github.com/acme/core v1.2.0\n";
+	let result = sync::detect_go_changes(
+		contents,
+		&version_map,
+		&names,
+		&BTreeMap::new(),
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
+	assert!(result.is_empty());
+}
+
+#[test]
+fn detect_go_changes_with_bare_workspace_name_does_not_match_longer_require_path() {
+	// The workspace package is named `core`, but its module path is unknown to
+	// this adapter (no manifest metadata). A bare name must not be assumed to
+	// cover every required path that ends in `/core`, because that rewrites an
+	// unrelated third-party module to the workspace version.
+	let version_map = std::collections::BTreeMap::from([("core".to_string(), "1.3.0".to_string())]);
+	let names = std::collections::BTreeSet::from(["core".to_string(), "service".to_string()]);
+	let contents = "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\tgithub.com/acme/core v1.2.0\n\tgithub.com/other/core v0.9.0\n)\n";
+	// With no module path known for `core`, neither require resolves: guessing from
+	// the last segment is exactly the bug that rewrote third-party pins.
+	let result = sync::detect_go_changes(
+		contents,
+		&version_map,
+		&names,
+		&BTreeMap::new(),
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
+	assert!(
+		result.is_empty(),
+		"a bare package name must not resolve an unknown module path: {result:?}"
+	);
+}
+
+#[test]
+fn resolve_go_workspace_package_does_not_guess_from_last_segment() {
+	// A bare package name is not the module path of `github.com/acme/core`.
+	// Resolving it to `core` here is what corrupts unrelated third-party pins.
+	let names = std::collections::BTreeSet::from(["core".to_string()]);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/core", &names, &BTreeMap::new()),
+		None,
+		"a nested module path must not be resolved from a bare package name"
+	);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/core/v2", &names, &BTreeMap::new()),
+		None,
+		"a versioned nested module path must not be resolved from a bare package name"
+	);
+}
+
+#[test]
+fn resolve_go_workspace_package_matches_the_same_module_path() {
+	let names = std::collections::BTreeSet::from([
+		"github.com/acme/core".to_string(),
+		"github.com/acme/sdk/v2".to_string(),
+	]);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/core", &names, &BTreeMap::new()),
+		Some("github.com/acme/core".to_string())
+	);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/sdk/v2", &names, &BTreeMap::new()),
+		Some("github.com/acme/sdk/v2".to_string())
+	);
+}
+
+#[test]
+fn detect_go_changes_matches_workspace_module_paths_by_full_path() {
+	let version_map = std::collections::BTreeMap::from([
+		("github.com/acme/core".to_string(), "1.3.0".to_string()),
+		("github.com/acme/sdk/v2".to_string(), "2.1.0".to_string()),
+	]);
+	let names = std::collections::BTreeSet::from([
+		"github.com/acme/core".to_string(),
+		"github.com/acme/sdk/v2".to_string(),
+		"github.com/acme/service".to_string(),
+	]);
+	let contents = "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\tgithub.com/acme/core v1.2.0\n\tgithub.com/other/core v0.9.0\n\tgithub.com/acme/sdk/v2 v2.0.0\n\tgithub.com/other/sdk/v2 v0.1.0\n)\n";
+	let result = sync::detect_go_changes(
+		contents,
+		&version_map,
+		&names,
+		&BTreeMap::new(),
+		monochange_core::VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
+	let module_paths = result
+		.iter()
+		.map(|change| change.dependency_name.as_str())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		module_paths,
+		vec!["github.com/acme/core", "github.com/acme/sdk/v2"],
+		"only workspace modules should be reported: {result:?}"
+	);
+}
+
+#[test]
+fn apply_go_changes_full_path_keys_rewrite_only_the_named_module() {
+	let contents = "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\tgithub.com/acme/core v1.2.0\n\tgithub.com/other/core v0.9.0\n)\n";
+	let changes = vec![DependencySyncChange {
+		dependency_name: "github.com/acme/core".to_string(),
+		section: "require".to_string(),
+		old_value: "v1.2.0".to_string(),
+		new_value: "v1.3.0".to_string(),
+	}];
+	let result = sync::apply_sync_changes(contents, &changes, monochange_core::Ecosystem::Go)
+		.unwrap_or_else(|error| panic!("apply go changes: {error}"));
+	assert!(
+		result.contains("\tgithub.com/acme/core v1.3.0"),
+		"the workspace require should be rewritten: {result}"
+	);
+	assert!(
+		result.contains("\tgithub.com/other/core v0.9.0"),
+		"the unrelated require must stay untouched: {result}"
+	);
+}
+
+#[test]
+fn resolve_go_workspace_package_prefers_exact_match() {
+	let names =
+		std::collections::BTreeSet::from(["core".to_string(), "github.com/acme/core".to_string()]);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/core", &names, &BTreeMap::new()),
+		Some("github.com/acme/core".to_string())
+	);
+}
+
+#[test]
+fn resolve_go_workspace_package_ignores_a_bare_name_for_a_nested_path() {
+	// A workspace package named `core` does not own `github.com/acme/core` unless
+	// its own go.mod declares that module path. Resolving on the derived segment
+	// is what rewrote unrelated third-party modules.
+	let names = std::collections::BTreeSet::from(["core".to_string()]);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/core", &names, &BTreeMap::new()),
+		None
+	);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/core/v2", &names, &BTreeMap::new()),
+		None
+	);
+	// The module path from the package's own go.mod does resolve it.
+	let modules = std::collections::BTreeMap::from([(
+		"core".to_string(),
+		"github.com/acme/core".to_string(),
+	)]);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/core", &names, &modules),
+		Some("core".to_string())
+	);
+}
+
+#[test]
+fn resolve_go_workspace_package_skips_ambiguous_identities() {
+	let names = std::collections::BTreeSet::from(["core".to_string(), "core/v2".to_string()]);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/acme/core", &names, &BTreeMap::new()),
+		None
+	);
+}
+
+#[test]
+fn resolve_go_workspace_package_skips_unknown_module_paths() {
+	let names = std::collections::BTreeSet::from(["service".to_string()]);
+	assert_eq!(
+		sync::resolve_go_workspace_package("github.com/other/pkg", &names, &BTreeMap::new()),
+		None
+	);
+}
+
+#[test]
+fn apply_go_changes_full_path_keys_leave_external_modules_untouched() {
+	let contents = "module github.com/acme/service\n\nrequire github.com/acme/core v1.2.0\nrequire github.com/other/core v9.0.0\n";
+	let changes = vec![DependencySyncChange {
+		dependency_name: "github.com/acme/core".to_string(),
+		section: "require".to_string(),
+		old_value: "v1.2.0".to_string(),
+		new_value: "v1.3.0".to_string(),
+	}];
+	let result = sync::apply_sync_changes(contents, &changes, monochange_core::Ecosystem::Go)
+		.unwrap_or_else(|error| panic!("apply go changes: {error}"));
+	assert!(
+		result.contains("require github.com/acme/core v1.3.0"),
+		"workspace require should be rewritten: {result}"
+	);
+	assert!(
+		result.contains("require github.com/other/core v9.0.0"),
+		"external module sharing the last segment should stay untouched: {result}"
+	);
 }
 
 #[test]
@@ -1150,6 +1386,7 @@ fn detect_deno_changes_with_non_string_import_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_deno_changes: {error}"));
@@ -1175,6 +1412,7 @@ fn detect_python_changes_with_invalid_toml_returns_error() {
 		"not valid toml [[[[",
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	);
 	assert!(result.is_err());
@@ -1191,6 +1429,7 @@ fn detect_python_changes_with_non_matching_dep_name_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
@@ -1207,6 +1446,7 @@ fn detect_python_changes_with_no_version_in_map_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
@@ -1224,6 +1464,7 @@ fn detect_go_changes_with_no_matching_require_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
@@ -1241,6 +1482,7 @@ fn detect_deno_changes_with_non_matching_import_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_deno_changes: {error}"));
@@ -1399,6 +1641,7 @@ fn detect_cargo_changes_with_invalid_toml_returns_error() {
 		"not valid toml [[[[",
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	);
 	assert!(result.is_err());
@@ -1415,6 +1658,7 @@ fn detect_cargo_changes_with_missing_table_returns_empty() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
@@ -1432,6 +1676,7 @@ fn detect_cargo_changes_with_missing_dep_returns_empty() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
@@ -1448,6 +1693,7 @@ fn detect_cargo_changes_with_missing_version_in_map_returns_empty() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
@@ -1465,6 +1711,7 @@ fn detect_cargo_changes_with_inline_table_version() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
@@ -1483,6 +1730,7 @@ fn detect_python_changes_with_missing_project_section_returns_empty() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
@@ -1500,6 +1748,7 @@ fn detect_python_changes_with_missing_dependencies_returns_empty() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_python_changes: {error}"));
@@ -1517,6 +1766,7 @@ fn detect_go_changes_with_package_not_in_workspace_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
@@ -1529,6 +1779,7 @@ fn detect_deno_changes_with_invalid_json_returns_error() {
 		"not json",
 		&std::collections::BTreeMap::new(),
 		&std::collections::BTreeSet::new(),
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	);
 	assert!(result.is_err());
@@ -1544,6 +1795,7 @@ fn detect_deno_changes_with_version_not_in_map_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_deno_changes: {error}"));
@@ -1561,6 +1813,7 @@ fn detect_cargo_changes_with_inline_table_without_version_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_cargo_changes: {error}"));
@@ -1577,6 +1830,7 @@ fn detect_go_changes_with_version_not_in_map_skips() {
 		contents,
 		&version_map,
 		&names,
+		&BTreeMap::new(),
 		monochange_core::VersionStrategy::Default,
 	)
 	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));

@@ -337,6 +337,18 @@ Dry runs never create commits, push branches, or call the provider APIs. Non-Git
 
 <!-- {/cliStepOpenReleaseRequestGitHubActionsVerifiedCommitBehavior} -->
 
+<!-- {@cliStepOpenReleaseRequestBodyBounding} -->
+
+The release request body is the rendered release notes for every outward release target, and every provider bounds it so a long-lived release pull request cannot grow past its own limit.
+
+- `[source.pull_requests].body_style = "full"` (the default) inlines the notes for every target, capped at the provider limit.
+- `[source.pull_requests].body_style = "summary"` renders only the prepared-release header, the outward target list, and the changelog paths, which keeps the body small when a release pull request stays open for a long time.
+- `[source.pull_requests].max_body_chars` overrides the provider limit. Without it, GitHub is capped at 65536 characters, because GitHub rejects a larger body when it creates a pull request. GitLab, Gitea, and Forgejo document no comparable limit and stay unbounded unless you set one.
+
+When the notes do not fit, entries are dropped from the end of the body, a pointer to the changelog files replaces them, and the step reports how many entries were dropped. The complete notes are always written to `changelog.md`, the per-package changelogs, the hosted release body, and every configured changelog output, so a shortened body never loses notes from anywhere a reader looks for them.
+
+<!-- {/cliStepOpenReleaseRequestBodyBounding} -->
+
 <!-- {@cliStepCommentReleasedIssuesExample} -->
 
 ```toml

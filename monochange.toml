@@ -634,7 +634,7 @@ ignored_paths = [
 #
 [lints]
 use = ["cargo/recommended", "npm/recommended"]
-exclude = ["examples/**", "fixtures/**"]
+exclude = ["examples/**", "evals/**", "fixtures/**"]
 
 [lints.rules]
 "cargo/dependency-field-order" = "error"
@@ -770,9 +770,17 @@ source = "monochange"
 #   branch_prefix — branch name prefix for release PRs (default: "monochange/release")
 #   base          — target branch for the release PR (default: "main")
 #   title         — PR title template (default: "chore(release): prepare release")
+#   commit_subject   — override the release commit subject while keeping `title`
+#                      for the PR title (default: falls back to `title`)
 #   labels           — labels applied to the release PR (default: ["release", "automated"])
 #   auto_merge       — enable auto-merge on the PR when supported (default: false)
 #   verified_commits — opt in to provider-verified release PR commits when supported (default: false)
+#   body_style       — notes rendered into the PR body: "full" inlines every target's
+#                      notes, "summary" renders only the header, the target list, and
+#                      the changelog paths (default: "full")
+#   max_body_chars   — hard cap for the PR body in characters; defaults to the provider
+#                      limit (65536 for GitHub). Notes that do not fit are dropped from
+#                      the end and replaced with a pointer to the changelog files
 [source.pull_requests]
 enabled = true
 branch_prefix = "monochange/release"
@@ -781,6 +789,7 @@ title = "chore(release): prepare release"
 labels = ["release", "automated"]
 auto_merge = false
 verified_commits = true
+body_style = "full"
 
 # =============================================================================
 # [cli.*] — user-defined CLI commands

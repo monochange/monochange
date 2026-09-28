@@ -6,10 +6,10 @@
   options change.
 
   Template context:
-    packages         -- list of { id, path, type, changelog? }
+    packages         -- list of { id, toml_key, path, type, changelog? }
     has_group        -- true when more than one package was discovered
     package_ids_toml -- pre-formatted TOML array contents
-    has_cargo / has_npm / has_deno / has_dart / has_python -- ecosystem detected flags
+    has_cargo / has_npm / has_deno / has_dart / has_python / has_go -- ecosystem detected flags
 #}
 #:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
 # =============================================================================
@@ -52,7 +52,8 @@ warn_on_group_mismatch = true
 # Default package type for all packages that don't declare their own `type`.
 # Setting this avoids repeating `type = "cargo"` on every [package.*] entry.
 #
-# Options: "cargo", "npm", "deno", "dart", "flutter", "python"
+# Options: "cargo", "npm", "deno", "dart", "flutter", "python", "go",
+#          "github_actions"
 # Default: none (each package must declare its own type)
 # package_type = "cargo"
 
@@ -357,7 +358,8 @@ warn_on_group_mismatch = true
 #   path  - relative path from repo root to the package directory
 #
 # Optional fields:
-#   type                    - "cargo", "npm", "deno", "dart", "flutter", "python"
+#   type                    - "cargo", "npm", "deno", "dart", "flutter", "python",
+#                             "go", "github_actions"
 #                             (not needed when defaults.package_type is set)
 #   changelog               - true, false, "path/to/changelog.md", or a table
 #                             with { path, format, initial_header }; overrides
@@ -432,24 +434,24 @@ warn_on_group_mismatch = true
 #                             may use "primary"
 
 {% for pkg in packages %}
-[package.{{ pkg.id }}]
+[package.{{ pkg.toml_key }}]
 path = "{{ pkg.path }}"
 type = "{{ pkg.type }}"
 {% if pkg.changelog %}
 changelog = "{{ pkg.changelog }}"
 {% endif %}
-# [package.{{ pkg.id }}.publish]
+# [package.{{ pkg.toml_key }}.publish]
 # enabled = true
 # mode = "builtin"
 # trusted_publishing = true
-# [package.{{ pkg.id }}.publish.trusted_publishing]
+# [package.{{ pkg.toml_key }}.publish.trusted_publishing]
 # enabled = true
 # repository = "owner/repo"
 # workflow = "publish.yml"
 # environment = "release"
 # registry = "{{ pkg.type == "cargo" and "crates_io" or pkg.type == "npm" and "npm" or pkg.type == "deno" and "jsr" or "pub_dev" }}"
 
-# [package.{{ pkg.id }}.publish.placeholder]
+# [package.{{ pkg.toml_key }}.publish.placeholder]
 # readme = "This package is a placeholder published by monochange until the first real release."
 # readme_file = "docs/{{ pkg.id }}-placeholder.md"
 
@@ -714,6 +716,14 @@ enabled = true
 # enabled = true
 {% endif %}
 
+{% if has_go %}
+[ecosystems.go]
+enabled = true
+{% else %}
+# [ecosystems.go]
+# enabled = true
+{% endif %}
+
 # =============================================================================
 # [source] - source-control provider configuration
 # =============================================================================
@@ -763,6 +773,21 @@ base = "main"
 title = "chore(release): prepare release"
 labels = ["release", "automated"]
 auto_merge = false
+# How much of the release notes the release PR body carries.
+#
+# "full" inlines the notes for every target, bounded by the provider's own body
+# limit. "summary" renders only the prepared-release header, the target list,
+# and the changelog paths, which keeps the body small for long-lived release PRs.
+# Default: "full"
+body_style = "full"
+# Hard cap for the rendered release PR body in characters.
+#
+# Defaults to the provider's limit (65536 for GitHub, which rejects a larger
+# body when it creates a pull request). Lower it to keep the review surface
+# short, or raise it for a self-hosted provider that accepts more. When the
+# notes do not fit, entries are dropped from the end and a pointer to the
+# changelog files replaces them.
+# max_body_chars = 65536
 {% else %}
 #
 # [source]
@@ -819,6 +844,13 @@ auto_merge = false
 #                    for the PR title; falls back to `title` when omitted
 #   labels         - labels applied to the release PR (default: ["release", "automated"]
 #   auto_merge     - enable auto-merge on the PR when supported (default: false)
+#   body_style     - notes rendered into the PR body: "full" inlines every
+#                    target's notes, "summary" renders only the header, target
+#                    list, and changelog paths (default: "full")
+#   max_body_chars - hard cap for the PR body in characters; defaults to the
+#                    provider's limit (65536 for GitHub). Notes that do not fit
+#                    are dropped from the end and replaced with a pointer to the
+#                    changelog files
 #
 # [source.pull_requests]
 # enabled = true
@@ -828,6 +860,8 @@ auto_merge = false
 # commit_subject = "🔖 chore(release): prepare release"
 # labels = ["release", "automated"]
 # auto_merge = false
+# body_style = "full"
+# max_body_chars = 65536
 
 {% endif %}
 

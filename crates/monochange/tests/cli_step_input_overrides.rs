@@ -48,13 +48,33 @@ fn cli_step_override_json_scenarios_match_snapshot(#[case] fixture: &str, #[case
 }
 
 #[test]
-fn create_change_file_step_can_hardcode_inputs_without_cli_inputs() {
+fn create_change_file_step_dry_run_previews_hardcoded_inputs_without_writing() {
 	let mut settings = snapshot_settings();
 	settings.set_snapshot_suffix(current_test_name());
 	let _guard = settings.bind_to_scope();
 
 	let tempdir = setup_scenario_workspace("cli-step-input-overrides/workspace");
 	let output = run_command(tempdir.path(), "change");
+	assert!(
+		output.status.success(),
+		"{}",
+		String::from_utf8_lossy(&output.stderr)
+	);
+	assert!(
+		!tempdir.path().join(".changeset/hardcoded.md").exists(),
+		"dry run must not write the hardcoded change file"
+	);
+	assert_snapshot!("stdout", String::from_utf8_lossy(&output.stdout));
+}
+
+#[test]
+fn create_change_file_step_writes_hardcoded_inputs_without_dry_run() {
+	let mut settings = snapshot_settings();
+	settings.set_snapshot_suffix(current_test_name());
+	let _guard = settings.bind_to_scope();
+
+	let tempdir = setup_scenario_workspace("cli-step-input-overrides/workspace");
+	let output = run_command_args_without_dry_run(tempdir.path(), &["change"]);
 	assert!(
 		output.status.success(),
 		"{}",

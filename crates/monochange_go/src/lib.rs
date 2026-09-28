@@ -144,9 +144,16 @@ pub fn update_go_mod_text(
 		return contents.to_string();
 	}
 
+	// Resolve short dependency keys against the module paths this file actually
+	// requires. A short key (`shared`) names the module whose own identity is
+	// that key, but only when exactly one required path claims it: when both
+	// `github.com/acme/core` and `github.com/other/core` are required, a `core`
+	// key cannot say which one the release owns, so neither is rewritten.
+	let resolved = resolve_short_dependency_keys(contents, versioned_deps);
+
 	let mut result = String::with_capacity(contents.len());
 	for line in contents.lines() {
-		let updated = update_require_line(line, versioned_deps);
+		let updated = update_require_line(line, versioned_deps, &resolved);
 		result.push_str(&updated);
 		result.push('\n');
 	}
@@ -157,15 +164,88 @@ pub fn update_go_mod_text(
 	result
 }
 
+/// Map each short dependency key to the single module path it unambiguously names.
+///
+/// Returns nothing for a key that more than one required path could satisfy, so
+/// callers skip rather than guess.
+fn resolve_short_dependency_keys(
+	contents: &str,
+	versioned_deps: &std::collections::BTreeMap<String, String>,
+) -> std::collections::BTreeMap<String, String> {
+	let mut candidates =
+		std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
+	for line in contents.lines() {
+		let Some(module_path) = required_module_path(line) else {
+			continue;
+		};
+		let identity = derive_module_name(&module_path);
+		for key in versioned_deps.keys() {
+			if identity == *key {
+				candidates
+					.entry(key.clone())
+					.or_default()
+					.insert(module_path.clone());
+			}
+		}
+	}
+	candidates
+		.into_iter()
+		.filter_map(|(key, paths)| {
+			let mut paths = paths.into_iter();
+			let first = paths.next()?;
+			paths.next().is_none().then_some((key, first))
+		})
+		.collect()
+}
+
+/// The module path a `require` line names, with quotes removed.
+fn required_module_path(line: &str) -> Option<String> {
+	let trimmed = line.trim();
+	if trimmed.starts_with("//")
+		|| trimmed.starts_with("module ")
+		|| trimmed.starts_with("go ")
+		|| trimmed.starts_with("replace ")
+		|| trimmed.starts_with("exclude ")
+		|| trimmed.starts_with("retract ")
+		|| trimmed == "require ("
+		|| trimmed == ")"
+		|| trimmed == "require"
+	{
+		return None;
+	}
+	let parts: Vec<&str> = match trimmed.strip_prefix("require ") {
+		Some(rest) => rest.split_whitespace().collect(),
+		None => trimmed.split_whitespace().collect(),
+	};
+	let raw = parts.first().copied()?;
+	if parts.len() < 2 {
+		return None;
+	}
+	Some(unquote_module_path(raw).to_string())
+}
+
+/// Strip the quotes Go allows around a module path.
+fn unquote_module_path(path: &str) -> &str {
+	path.strip_prefix('"')
+		.and_then(|rest| rest.strip_suffix('"'))
+		.unwrap_or(path)
+}
+
 /// Update a single `require` line if it matches a versioned dependency.
 ///
 /// Handles both standalone require lines and lines inside a require block:
 /// - `require github.com/org/shared v1.0.0`
 /// - `  github.com/org/shared v1.0.0`
 /// - `  github.com/org/shared v1.0.0 // indirect`
+///
+/// Entries are matched by full module path first so two workspace modules that
+/// share a last segment (or an external module whose last segment collides with
+/// a workspace package name) never rewrite each other. A short key is honored
+/// only when `resolved` says exactly one required path claims it.
 fn update_require_line(
 	line: &str,
 	versioned_deps: &std::collections::BTreeMap<String, String>,
+	resolved: &std::collections::BTreeMap<String, String>,
 ) -> String {
 	let trimmed = line.trim();
 
@@ -196,7 +276,12 @@ fn update_require_line(
 		return line.to_string();
 	}
 
-	let module_path = parts.first().copied().unwrap_or_default();
+	let raw_module_path = parts.first().copied().unwrap_or_default();
+
+	// A quoted module path (`"github.com/acme/core"`) is legal Go. Unquote it for
+	// matching so a quoted require resolves like a bare one, while the original
+	// spelling is what gets written back.
+	let module_path = unquote_module_path(raw_module_path);
 
 	// Extract the module name (last path segment) for matching
 	let module_name = module_path.rsplit('/').next().unwrap_or(module_path);
@@ -213,7 +298,17 @@ fn update_require_line(
 			module_path.rsplit('/').nth(1).unwrap_or(module_path)
 		});
 
-	if let Some(new_version) = versioned_deps.get(clean_name) {
+	// The authoritative full module path wins. A short key applies only when the
+	// document made it unambiguous (see `resolve_short_dependency_keys`), so a
+	// key of `core` never rewrites `github.com/other/core` while
+	// `github.com/acme/core` is also required.
+	let resolved_short = resolved
+		.get(clean_name)
+		.filter(|path| path.as_str() == module_path);
+	let direct = versioned_deps.get(module_path);
+	let via_short = resolved_short.and_then(|_| versioned_deps.get(clean_name));
+
+	if let Some(new_version) = direct.or(via_short) {
 		// Ensure the version has a `v` prefix for Go
 		let go_version = if new_version.starts_with('v') {
 			new_version.clone()
@@ -230,10 +325,11 @@ fn update_require_line(
 			String::new()
 		};
 
+		// Write the module path back exactly as it appeared, quotes included.
 		if trimmed.starts_with("require ") {
-			format!("{prefix}require {module_path} {go_version}{comment}")
+			format!("{prefix}require {raw_module_path} {go_version}{comment}")
 		} else {
-			format!("{prefix}{module_path} {go_version}{comment}")
+			format!("{prefix}{raw_module_path} {go_version}{comment}")
 		}
 	} else {
 		line.to_string()
@@ -344,10 +440,14 @@ fn parse_module_path(contents: &str) -> Option<String> {
 
 /// Derive a human-friendly module name from a Go module path.
 ///
+/// This is also the identity `require` directive matching uses: the last
+/// non-major-version segment of the module path.
+///
 /// `github.com/org/repo` → `repo`
 /// `github.com/org/repo/api` → `api`
 /// `github.com/org/repo/api/v2` → `api`
-fn derive_module_name(module_path: &str) -> String {
+#[must_use]
+pub fn derive_module_name(module_path: &str) -> String {
 	let segments: Vec<&str> = module_path.split('/').collect();
 
 	// Walk backwards to find the first non-version segment

@@ -13,11 +13,13 @@ use std::time::Duration;
 use monochange_core::CommitMessage;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+use monochange_core::ProviderPullRequestBodyStyle;
 use monochange_core::ProviderReleaseNotesSource;
 use monochange_core::ReleaseManifest;
 use monochange_core::ReleaseManifestChangelog;
 use monochange_core::ReleaseManifestTarget;
 use monochange_core::ReleaseOwnerKind;
+use monochange_core::SourceChangeRequestBodyTruncation;
 use monochange_core::SourceConfiguration;
 use monochange_core::git::git_checkout_branch_command;
 use monochange_core::git::git_current_branch;
@@ -135,6 +137,115 @@ pub fn release_pull_request_branch(branch_prefix: &str, command: &str) -> String
 
 /// Render the markdown body used for provider release requests.
 pub fn release_pull_request_body(manifest: &ReleaseManifest) -> String {
+	render_release_pull_request_body(manifest, ProviderPullRequestBodyStyle::Full, None).body
+}
+
+/// Render the release request body using the configured style and provider limit.
+pub fn release_pull_request_body_for_source(
+	source: &SourceConfiguration,
+	manifest: &ReleaseManifest,
+) -> RenderedReleasePullRequestBody {
+	render_release_pull_request_body(
+		manifest,
+		source.pull_requests.body_style,
+		source
+			.pull_requests
+			.effective_max_body_chars(source.provider),
+	)
+}
+
+/// Render the markdown body used for provider release requests, bounded to a provider limit.
+///
+/// The prepared-release header and the outward target list always survive. When
+/// the body would exceed `max_chars`, release-note sections are dropped from the
+/// end until it fits and a pointer to the changelog files that still carry every
+/// note is appended, so a shortened body never reads as complete. A body that
+/// already fits renders exactly as before, with no added pointer.
+///
+/// [`ProviderPullRequestBodyStyle::Summary`] skips the notes entirely and always
+/// renders the pointer, leaving them to the changelog files and hosted release body.
+pub fn render_release_pull_request_body(
+	manifest: &ReleaseManifest,
+	style: ProviderPullRequestBodyStyle,
+	max_chars: Option<usize>,
+) -> RenderedReleasePullRequestBody {
+	let header = release_pull_request_header(manifest);
+	let summary_style = matches!(style, ProviderPullRequestBodyStyle::Summary);
+	let sections = if summary_style {
+		Vec::new()
+	} else {
+		release_pull_request_sections(manifest)
+	};
+	let original_chars =
+		assemble_release_pull_request_body(&header, &sections, sections.len(), None, manifest)
+			.chars()
+			.count();
+
+	let mut kept = sections.len();
+	if let Some(max_chars) = max_chars {
+		while kept > 0
+			&& assemble_release_pull_request_body(
+				&header,
+				&sections,
+				kept,
+				Some(dropped_release_note_entries(&sections, kept)),
+				manifest,
+			)
+			.chars()
+			.count() > max_chars
+		{
+			kept -= 1;
+		}
+	}
+
+	let truncated = kept < sections.len();
+	let dropped_entries = dropped_release_note_entries(&sections, kept);
+	// The pointer is added when content was dropped, or when the summary style
+	// deliberately omits the notes. An unbounded full-style body is never
+	// altered, so existing output is preserved byte-for-byte.
+	let shows_pointer = truncated || summary_style;
+	let body = assemble_release_pull_request_body(
+		&header,
+		&sections,
+		kept,
+		shows_pointer.then_some(dropped_entries),
+		manifest,
+	);
+	let truncation = truncated.then(|| {
+		SourceChangeRequestBodyTruncation {
+			max_chars: max_chars.unwrap_or_default(),
+			original_chars,
+			dropped_entries,
+		}
+	});
+	RenderedReleasePullRequestBody { body, truncation }
+}
+
+/// A rendered release request body and, when it was shortened, what was lost.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct RenderedReleasePullRequestBody {
+	pub body: String,
+	/// Set when the body was shortened to stay inside the provider limit.
+	pub truncation: Option<SourceChangeRequestBodyTruncation>,
+}
+
+/// One droppable span of release-request content.
+struct ReleaseBodySection {
+	text: String,
+	/// Release-note entries the section carries, reported when it is dropped.
+	entries: usize,
+	/// Whether the section renders under the `## Release notes` heading.
+	notes: bool,
+	/// Release target the section belongs to, so a kept target heading is never
+	/// left without the notes that explain it.
+	group: usize,
+	/// Whether the section is only a target heading and, without summary
+	/// paragraphs of its own, reads as empty when its group is dropped.
+	heading_only: bool,
+}
+
+/// Render the prepared-release header and the outward target list.
+fn release_pull_request_header(manifest: &ReleaseManifest) -> Vec<String> {
 	let mut lines = vec!["## Prepared release".to_string(), String::new()];
 	lines.push(format!("- command: `{}`", manifest.command));
 
@@ -153,51 +264,181 @@ pub fn release_pull_request_body(manifest: &ReleaseManifest) -> String {
 		lines.push("- no outward release targets".to_string());
 	}
 
-	lines.push(String::new());
-	lines.push("## Release notes".to_string());
+	lines
+}
 
+/// Render every droppable span of release content, in body order.
+fn release_pull_request_sections(manifest: &ReleaseManifest) -> Vec<ReleaseBodySection> {
+	let mut sections = Vec::new();
+	for (group, target) in manifest
+		.release_targets
+		.iter()
+		.filter(|target| target.release)
+		.enumerate()
+	{
+		let Some(changelog) = manifest.changelogs.iter().find(|changelog| {
+			changelog.owner_id == target.id && changelog.owner_kind == target.kind
+		}) else {
+			let mut lines = vec![format!("### {} {}", target.id, target.version)];
+			lines.push(String::new());
+			lines.push(minimal_release_body(manifest, target));
+			sections.push(ReleaseBodySection {
+				text: lines.join("\n"),
+				entries: 1,
+				notes: true,
+				group,
+				heading_only: false,
+			});
+			continue;
+		};
+
+		let mut intro = vec![format!("### {} {}", target.id, target.version)];
+		for paragraph in &changelog.notes.summary {
+			intro.push(String::new());
+			intro.push(paragraph.clone());
+		}
+		sections.push(ReleaseBodySection {
+			text: intro.join("\n"),
+			entries: 0,
+			notes: true,
+			group,
+			heading_only: changelog.notes.summary.is_empty(),
+		});
+
+		for section in &changelog.notes.sections {
+			if section.entries.is_empty() {
+				continue;
+			}
+			let mut lines = vec![format!("### {}", section.title), String::new()];
+			push_body_entries(&mut lines, &section.entries);
+			sections.push(ReleaseBodySection {
+				text: lines.join("\n"),
+				entries: section.entries.len(),
+				notes: true,
+				group,
+				heading_only: false,
+			});
+		}
+	}
+
+	if !manifest.changed_files.is_empty() {
+		let mut lines = vec!["## Changed files".to_string(), String::new()];
+		for path in &manifest.changed_files {
+			lines.push(format!("- {}", path.display()));
+		}
+		sections.push(ReleaseBodySection {
+			text: lines.join("\n"),
+			entries: 0,
+			notes: false,
+			group: usize::MAX,
+			heading_only: false,
+		});
+	}
+
+	sections
+}
+
+/// Join the header, the first `kept` sections, and an optional changelog pointer.
+fn assemble_release_pull_request_body(
+	header: &[String],
+	sections: &[ReleaseBodySection],
+	kept: usize,
+	pointer: Option<usize>,
+	manifest: &ReleaseManifest,
+) -> String {
+	let mut lines = header.to_vec();
+	let kept = sections.iter().take(kept).collect::<Vec<_>>();
+	let filled_groups = kept
+		.iter()
+		.filter(|section| !section.heading_only)
+		.map(|section| section.group)
+		.collect::<Vec<_>>();
+	let notes = kept
+		.iter()
+		.filter(|section| section.notes)
+		.filter(|section| !section.heading_only || filled_groups.contains(&section.group))
+		.collect::<Vec<_>>();
+	// Without a pointer the body is the unbounded render, which keeps the
+	// `## Release notes` heading even when a release has no outward targets.
+	if !notes.is_empty() || pointer.is_none() {
+		lines.push(String::new());
+		lines.push("## Release notes".to_string());
+		for section in notes {
+			lines.push(String::new());
+			lines.push(section.text.clone());
+		}
+	}
+	for section in kept.iter().filter(|section| !section.notes) {
+		lines.push(String::new());
+		lines.push(section.text.clone());
+	}
+	if let Some(dropped_entries) = pointer {
+		push_release_pull_request_changelog_pointer(&mut lines, manifest, dropped_entries);
+	}
+	lines.join("\n")
+}
+
+/// Append a pointer to the changelog files that carry the complete release notes.
+///
+/// The notice stays short on purpose: it is appended to every shortened body, so
+/// its length is the floor the truncation loop cannot go below.
+fn push_release_pull_request_changelog_pointer(
+	lines: &mut Vec<String>,
+	manifest: &ReleaseManifest,
+	dropped_entries: usize,
+) {
+	lines.push(String::new());
+	lines.push("## Full release notes".to_string());
+	lines.push(String::new());
+	if dropped_entries > 0 {
+		lines.push(format!(
+			"{dropped_entries} entries omitted to fit the body limit. The complete notes are in:"
+		));
+	} else {
+		lines.push("The notes are omitted here. Find them in:".to_string());
+	}
+
+	let paths = release_pull_request_changelog_paths(manifest);
+	if paths.is_empty() {
+		lines.push(String::new());
+		lines.push("Run `monochange notes --output <id>` to read them.".to_string());
+		return;
+	}
+
+	lines.push(String::new());
+	for path in paths {
+		lines.push(format!("- `{path}`"));
+	}
+}
+
+/// Collect the changelog paths for outward release targets, in target order.
+fn release_pull_request_changelog_paths(manifest: &ReleaseManifest) -> Vec<String> {
+	let mut paths = Vec::new();
 	for target in manifest
 		.release_targets
 		.iter()
 		.filter(|target| target.release)
 	{
-		lines.push(String::new());
-		lines.push(format!("### {} {}", target.id, target.version));
-
-		if let Some(changelog) = manifest.changelogs.iter().find(|changelog| {
+		let Some(changelog) = manifest.changelogs.iter().find(|changelog| {
 			changelog.owner_id == target.id && changelog.owner_kind == target.kind
-		}) {
-			for paragraph in &changelog.notes.summary {
-				lines.push(String::new());
-				lines.push(paragraph.clone());
-			}
-
-			for section in &changelog.notes.sections {
-				if section.entries.is_empty() {
-					continue;
-				}
-				lines.push(String::new());
-				lines.push(format!("### {}", section.title));
-				lines.push(String::new());
-				push_body_entries(&mut lines, &section.entries);
-			}
-		} else {
-			lines.push(String::new());
-			lines.push(minimal_release_body(manifest, target));
+		}) else {
+			continue;
+		};
+		let path = changelog.path.display().to_string();
+		if !paths.contains(&path) {
+			paths.push(path);
 		}
 	}
+	paths
+}
 
-	if !manifest.changed_files.is_empty() {
-		lines.push(String::new());
-		lines.push("## Changed files".to_string());
-		lines.push(String::new());
-
-		for path in &manifest.changed_files {
-			lines.push(format!("- {}", path.display()));
-		}
-	}
-
-	lines.join("\n")
+/// Count the release-note entries carried by the sections after `kept`.
+fn dropped_release_note_entries(sections: &[ReleaseBodySection], kept: usize) -> usize {
+	sections
+		.iter()
+		.skip(kept)
+		.map(|section| section.entries)
+		.sum()
 }
 
 /// Resolve the provider release body for one outward release target.

@@ -1,0 +1,20 @@
+---
+source: crates/monochange_integration_tests/tests/prepared_release_cache_invalidation.rs
+expression: "preview_summary(&restored, false)"
+---
+{
+  "changed_files": [
+    "Cargo.toml",
+    "crates/alpha/CHANGELOG.md",
+    "crates/alpha/Cargo.toml"
+  ],
+  "changelog_entries": [
+    "- **Add the alpha feature.**"
+  ],
+  "release_targets": {
+    "alpha": "1.1.0"
+  },
+  "released_packages": [
+    "alpha"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "declaration": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@acme/api": ["packages/api/src/index.ts"],
+      "@acme/tokens": ["packages/tokens/src/index.ts"],
+      "@acme/ui": ["packages/ui/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src"]
+}

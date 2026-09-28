@@ -47,6 +47,10 @@
 				"proposed_changeset_bump": {
 					"$ref": "#/$defs/BumpSeverity"
 				},
+				"pull_request_changes": {
+					"description": "Whether this contribution touches the package. The net candidate and the\nlocal working tree are pull request evidence; the `release` and\n`releaseToDefault` comparisons describe the default branch and do not set\nthis flag. When false, `proposed_changeset_bump` and\n`enforceable_minimum` are `none` and the accumulated change appears only\nin `release_floor` and `release_impact`.",
+					"type": "boolean"
+				},
 				"release_floor": {
 					"$ref": "#/$defs/BumpSeverity"
 				},
@@ -67,6 +71,7 @@
 			},
 			"required": [
 				"compatibility_impact",
+				"pull_request_changes",
 				"proposed_changeset_bump",
 				"enforceable_minimum",
 				"release_floor",

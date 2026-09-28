@@ -1,0 +1,10 @@
+[package]
+name = "acme-tool"
+version = "0.4.2"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/acme/inventory"
+description = "Command line interface for the Acme inventory stack"
+
+[dependencies]
+acme-util = { workspace = true }

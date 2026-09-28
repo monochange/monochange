@@ -1,0 +1,12 @@
+{
+  "name": "@acme/sdk",
+  "version": "0.9.4",
+  "description": "JavaScript SDK for the Acme rule engine",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src"
+  ]
+}

@@ -1,0 +1,24 @@
+---
+source: crates/monochange_integration_tests/tests/prepared_release_cache_invalidation.rs
+expression: "preview_summary(&alpha_and_beta, false)"
+---
+{
+  "changed_files": [
+    "crates/alpha/CHANGELOG.md",
+    "crates/alpha/Cargo.toml",
+    "crates/beta/CHANGELOG.md",
+    "crates/beta/Cargo.toml"
+  ],
+  "changelog_entries": [
+    "- **Add the alpha feature.**",
+    "- **Fix the beta parser.**"
+  ],
+  "release_targets": {
+    "alpha": "1.1.0",
+    "beta": "1.0.1"
+  },
+  "released_packages": [
+    "alpha",
+    "beta"
+  ]
+}
