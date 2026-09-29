@@ -4089,6 +4089,9 @@ fn sample_release_record() -> ReleaseRecord {
 			tag: true,
 			release: true,
 			tag_name: "v1.2.3".to_string(),
+			rendered_title: "main v1.2.3 (2026-04-06)".to_string(),
+			rendered_changelog_title: "[1.2.3](https://example.com/v1.2.3) (2026-04-06)"
+				.to_string(),
 			members: vec![
 				"monochange".to_string(),
 				"monochange_core".to_string(),
@@ -4351,6 +4354,75 @@ fn release_record_discovery_serializes_with_snake_case_keys() {
 }
 
 #[test]
+fn release_record_target_titles_round_trip_and_default_empty() {
+	let target = sample_release_record()
+		.release_targets
+		.into_iter()
+		.next()
+		.unwrap_or_else(|| panic!("expected a sample record target"));
+
+	let value = serde_json::to_value(&target)
+		.unwrap_or_else(|error| panic!("serialize record target: {error}"));
+	assert_eq!(value["rendered_title"], json!("main v1.2.3 (2026-04-06)"));
+	assert_eq!(
+		value["rendered_changelog_title"],
+		json!("[1.2.3](https://example.com/v1.2.3) (2026-04-06)")
+	);
+	let parsed: ReleaseRecordTarget = serde_json::from_value(value)
+		.unwrap_or_else(|error| panic!("deserialize record target: {error}"));
+	assert_eq!(parsed, target);
+
+	// Records written before schema v0.9 carry no title fields; they must
+	// deserialize with empty titles so publishing synthesizes a fallback.
+	let legacy = json!({
+		"id": "sdk",
+		"kind": "group",
+		"version": "1.1.0",
+		"version_format": "primary",
+		"tag": true,
+		"release": true,
+		"tag_name": "v1.1.0",
+		"members": []
+	});
+	let legacy: ReleaseRecordTarget = serde_json::from_value(legacy)
+		.unwrap_or_else(|error| panic!("deserialize legacy record target: {error}"));
+	assert_eq!(legacy.rendered_title, "");
+	assert_eq!(legacy.rendered_changelog_title, "");
+
+	// Empty titles round-trip without emitting the fields, so migrating an
+	// old record and re-serializing it keeps the v0.8 payload shape.
+	let mut empty_titles = target;
+	empty_titles.rendered_title = String::new();
+	empty_titles.rendered_changelog_title = String::new();
+	let empty_value = serde_json::to_value(&empty_titles)
+		.unwrap_or_else(|error| panic!("serialize empty titles: {error}"));
+	assert!(empty_value.get("rendered_title").is_none());
+	assert!(empty_value.get("rendered_changelog_title").is_none());
+}
+
+#[test]
+fn default_release_titles_follow_the_version_format() {
+	// Primary versioning has one release axis, so the title is the tag-style
+	// version plus the date; namespaced versioning names the release owner so
+	// simultaneous releases stay distinguishable.
+	assert_eq!(
+		crate::DEFAULT_RELEASE_TITLE_PRIMARY,
+		"v{{ version }} ({{ date }})"
+	);
+	assert_eq!(
+		crate::DEFAULT_RELEASE_TITLE_NAMESPACED,
+		"{{ id }} v{{ version }} ({{ date }})"
+	);
+	// Changelog titles keep linking the bare version: the changelog file spans
+	// many versions, so its title stays distinct from the provider release
+	// title that names one release.
+	assert_eq!(
+		crate::DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY,
+		"{% if tag_url %}[{{ version }}]({{ tag_url }}){% else %}{{ version }}{% endif %} ({{ date }})"
+	);
+}
+
+#[test]
 fn release_record_tag_helpers_deduplicate_tags() {
 	let mut record = sample_release_record();
 	record.release_targets.push(ReleaseRecordTarget {
@@ -4361,6 +4433,8 @@ fn release_record_tag_helpers_deduplicate_tags() {
 		tag: true,
 		release: true,
 		tag_name: "v1.2.3".to_string(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
 		members: Vec::new(),
 		floating_tags: Vec::new(),
 	});

@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/release_pull_requests.rs
-assertion_line: 55
 expression: body
 ---
 ## Prepared release

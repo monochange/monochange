@@ -92,10 +92,16 @@ use versioning::ValueDefinition;
 
 pub type MonochangeResult<T> = Result<T, MonochangeError>;
 
-/// Default release title template for primary versioning: `1.2.3 (2026-04-06)`.
-pub const DEFAULT_RELEASE_TITLE_PRIMARY: &str = "{{ version }} ({{ date }})";
-/// Default release title template for namespaced versioning: `my-pkg 1.2.3 (2026-04-06)`.
-pub const DEFAULT_RELEASE_TITLE_NAMESPACED: &str = "{{ id }} {{ version }} ({{ date }})";
+/// Default release title template for primary versioning: `v1.2.3 (2026-04-06)`.
+///
+/// A primary release axis has one version line, so the title carries the
+/// tag-style version with the date instead of repeating the release owner.
+pub const DEFAULT_RELEASE_TITLE_PRIMARY: &str = "v{{ version }} ({{ date }})";
+/// Default release title template for namespaced versioning: `my-pkg v1.2.3 (2026-04-06)`.
+///
+/// Namespaced tags already carry the owner, and a workspace releases several
+/// axes at once, so the title names the package or group the release belongs to.
+pub const DEFAULT_RELEASE_TITLE_NAMESPACED: &str = "{{ id }} v{{ version }} ({{ date }})";
 /// Default changelog version title for primary versioning (markdown-linked when source configured).
 pub const DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY: &str =
 	"{% if tag_url %}[{{ version }}]({{ tag_url }}){% else %}{{ version }}{% endif %} ({{ date }})";
@@ -5715,6 +5721,14 @@ pub struct ReleaseRecordTarget {
 	pub tag: bool,
 	pub release: bool,
 	pub tag_name: String,
+	/// Release title rendered at prepare time; publishing from the record
+	/// replays it so provider release names keep the prepare-time date even
+	/// when the release is published from git history.
+	#[serde(default, skip_serializing_if = "String::is_empty")]
+	pub rendered_title: String,
+	/// Changelog version title rendered at prepare time.
+	#[serde(default, skip_serializing_if = "String::is_empty")]
+	pub rendered_changelog_title: String,
 	#[serde(default)]
 	pub members: Vec<String>,
 	/// Floating tag aliases moved to this target's release tag.

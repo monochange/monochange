@@ -8,6 +8,7 @@ mod release_record_0_4_to_0_5;
 mod release_record_0_5_to_0_6;
 mod release_record_0_6_to_0_7;
 mod release_record_0_7_to_0_8;
+mod release_record_0_8_to_0_9;
 
 use serde_json::Value;
 
@@ -63,6 +64,11 @@ const RELEASE_RECORD_EDGES: &[MigrationEdge] = &[
 		to: SchemaVersion::new(0, 8),
 		apply: release_record_0_7_to_0_8::apply,
 	},
+	MigrationEdge {
+		from: SchemaVersion::new(0, 8),
+		to: SchemaVersion::new(0, 9),
+		apply: release_record_0_8_to_0_9::apply,
+	},
 ];
 
 pub(crate) fn normalize_release_record_shape(value: &mut Value) -> Result<(), SchemaError> {
@@ -70,7 +76,8 @@ pub(crate) fn normalize_release_record_shape(value: &mut Value) -> Result<(), Sc
 	release_record_0_4_to_0_5::apply(value)?;
 	release_record_0_5_to_0_6::apply(value)?;
 	release_record_0_6_to_0_7::apply(value)?;
-	release_record_0_7_to_0_8::apply(value)
+	release_record_0_7_to_0_8::apply(value)?;
+	release_record_0_8_to_0_9::apply(value)
 }
 
 pub(crate) fn apply_release_record_edges(
@@ -137,6 +144,7 @@ pub(crate) fn release_record_edge_versions() -> &'static [(SchemaVersion, Schema
 		(SchemaVersion::new(0, 5), SchemaVersion::new(0, 6)),
 		(SchemaVersion::new(0, 6), SchemaVersion::new(0, 7)),
 		(SchemaVersion::new(0, 7), SchemaVersion::new(0, 8)),
+		(SchemaVersion::new(0, 8), SchemaVersion::new(0, 9)),
 	];
 	VERSIONS
 }

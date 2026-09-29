@@ -26,7 +26,7 @@ Runs use `--setting-sources project` and `--strict-mcp-config` so the operator's
 
 ## Result
 
-The suite grew to 28 scenarios and 158 checks covering all six ecosystems, version computation, changesets, versioned files, lockfiles, the release lifecycle, publishing gates, changelog outputs, linting, CLI surface contracts, safety, and provider configuration. Eleven scenarios drive an agent; seventeen are agent-free contracts that run in CI at no cost.
+The suite grew to 29 scenarios and 162 checks covering all six ecosystems, version computation, changesets, versioned files, lockfiles, the release lifecycle, release title templates, publishing gates, changelog outputs, linting, CLI surface contracts, safety, and provider configuration. Twelve scenarios drive an agent; seventeen are agent-free contracts that run in CI at no cost.
 
 Every check passes against the shipped skill once the defects below were fixed: 28 runs, no failing checks, 143k tokens, about $10 of agent time. One model, one run per cell, so the pass rate is a regression baseline rather than a precision measurement.
 

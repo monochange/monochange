@@ -1,0 +1,84 @@
+{
+	"changesets": {
+		"affected": {
+			"changed_paths": [
+				"crates/lqchacyd/"
+			],
+			"comment_on_failure": true,
+			"enabled": true,
+			"ignored_paths": [
+				"**/*.md"
+			],
+			"required": true,
+			"skip_labels": [
+				"skip-changeset"
+			]
+		}
+	},
+	"defaults": {
+		"changelog_version_title": "v{{version}} — lqchacyd release",
+		"empty_update_message": "No significant changes for lqchacyd packages.",
+		"include_private": false,
+		"package_type": "python",
+		"parent_bump": "major",
+		"release_title": "lqchacyd release",
+		"strict_version_conflicts": false,
+		"warn_on_group_mismatch": false
+	},
+	"package": {
+		"lqchacyd_0": {
+			"path": "crates/lqchacyd_0",
+			"release": true,
+			"tag": true,
+			"type": "python",
+			"version_format": "namespaced"
+		},
+		"lqchacyd_1": {
+			"path": "crates/lqchacyd_1",
+			"release": false,
+			"tag": false,
+			"type": "python",
+			"version_format": "namespaced"
+		},
+		"lqchacyd_2": {
+			"path": "crates/lqchacyd_2",
+			"release": false,
+			"tag": false,
+			"type": "python",
+			"version_format": "namespaced"
+		},
+		"lqchacyd_3": {
+			"path": "crates/lqchacyd_3",
+			"release": false,
+			"tag": false,
+			"type": "python",
+			"version_format": "namespaced"
+		},
+		"lqchacyd_4": {
+			"path": "crates/lqchacyd_4",
+			"release": false,
+			"tag": false,
+			"type": "python",
+			"version_format": "namespaced"
+		}
+	},
+	"source": {
+		"api_url": "api.forgejo.example.com",
+		"host": "forgejo.example.com",
+		"owner": "lqchacyd",
+		"provider": "forgejo",
+		"pull_requests": {
+			"auto_merge": true,
+			"base": "main",
+			"branch_prefix": "lqchacyd/release",
+			"enabled": true,
+			"labels": [
+				"release",
+				"automated"
+			],
+			"title": "chore(release): prepare lqchacyd release",
+			"verified_commits": false
+		},
+		"repo": "uxhjr"
+	}
+}

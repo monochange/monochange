@@ -498,7 +498,26 @@ impl TitleRenderContext {
 		tag_name: &str,
 		previous_tag_name: Option<&str>,
 	) -> Self {
-		let now = resolve_release_datetime();
+		Self::with_datetime(
+			id,
+			version,
+			changes_count,
+			source,
+			tag_name,
+			previous_tag_name,
+			resolve_release_datetime(),
+		)
+	}
+
+	fn with_datetime(
+		id: &str,
+		version: &str,
+		changes_count: usize,
+		source: Option<&SourceConfiguration>,
+		tag_name: &str,
+		previous_tag_name: Option<&str>,
+		now: chrono::NaiveDateTime,
+	) -> Self {
 		let date = now.format("%Y-%m-%d").to_string();
 		let time = now.format("%H:%M:%S").to_string();
 		let datetime = now.format("%Y-%m-%dT%H:%M:%S").to_string();
@@ -1005,8 +1024,8 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 					version_format: target.version_format.clone(),
 					tag_name: target.tag_name.clone(),
 					members: target.members.clone(),
-					rendered_title: String::new(),
-					rendered_changelog_title: String::new(),
+					rendered_title: record_release_title(record, target),
+					rendered_changelog_title: target.rendered_changelog_title.clone(),
 					floating_tags: target.floating_tags.clone(),
 				}
 			})
@@ -1051,6 +1070,31 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 	}
 }
 
+/// Release title for a record target, replaying the title rendered at
+/// prepare time.
+///
+/// Records that predate persisted titles (schema v0.8 and earlier) carry an
+/// empty `rendered_title`; those synthesize the built-in default title for
+/// the target's version format, dated from the record's creation, so the
+/// provider release name still differs from the bare tag name.
+fn record_release_title(record: &ReleaseRecord, target: &ReleaseRecordTarget) -> String {
+	if !target.rendered_title.is_empty() {
+		return target.rendered_title.clone();
+	}
+	let created_at = chrono::DateTime::parse_from_rfc3339(&record.created_at)
+		.map_or_else(|_| resolve_release_datetime(), |parsed| parsed.naive_utc());
+	TitleRenderContext::with_datetime(
+		&target.id,
+		&target.version,
+		record.changesets.len(),
+		None,
+		&target.tag_name,
+		None,
+		created_at,
+	)
+	.render(default_release_title_for_format(&target.version_format))
+}
+
 fn release_record_versions(release_targets: &[ReleaseManifestTarget]) -> BTreeMap<String, String> {
 	release_targets
 		.iter()
@@ -1083,6 +1127,8 @@ pub(crate) fn build_release_record(
 					tag: target.tag,
 					release: target.release,
 					tag_name: target.tag_name.clone(),
+					rendered_title: target.rendered_title.clone(),
+					rendered_changelog_title: target.rendered_changelog_title.clone(),
 					members: target.members.clone(),
 					floating_tags: target.floating_tags.clone(),
 				}

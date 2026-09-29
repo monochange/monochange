@@ -133,7 +133,7 @@ fn prepare_release_rewrites_internal_go_require_directives() {
 
 	let service_go_mod = std::fs::read_to_string(tempdir.path().join("service/go.mod"))
 		.unwrap_or_else(|error| panic!("read service/go.mod: {error}"));
-	assert_snapshot!(service_go_mod, @r#"
+	assert_snapshot!(service_go_mod, @"
 	module github.com/acme/service
 
 	go 1.22
@@ -141,7 +141,7 @@ fn prepare_release_rewrites_internal_go_require_directives() {
 	require github.com/acme/core v1.3.0
 
 	replace github.com/acme/core => ../core
-	"#);
+	");
 }
 
 #[test]
@@ -257,7 +257,7 @@ fn prepare_release_leaves_unrelated_modules_sharing_a_last_segment_untouched() {
 
 	let service_go_mod = std::fs::read_to_string(tempdir.path().join("service/go.mod"))
 		.unwrap_or_else(|error| panic!("read service/go.mod: {error}"));
-	assert_snapshot!(service_go_mod, @r#"
+	assert_snapshot!(service_go_mod, @"
 	module github.com/acme/service
 
 	go 1.22
@@ -270,11 +270,11 @@ fn prepare_release_leaves_unrelated_modules_sharing_a_last_segment_untouched() {
 	)
 
 	replace github.com/acme/core => ../core
-	"#);
+	");
 
 	let tools_go_mod = std::fs::read_to_string(tempdir.path().join("tools/go.mod"))
 		.unwrap_or_else(|error| panic!("read tools/go.mod: {error}"));
-	assert_snapshot!(tools_go_mod, @r"
+	assert_snapshot!(tools_go_mod, @"
 	module github.com/acme/tools
 
 	go 1.22

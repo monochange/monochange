@@ -517,6 +517,8 @@ fn commit_release_record(root: &Path, publications: Vec<PackagePublicationTarget
 			release: true,
 			version_format: monochange_core::VersionFormat::Primary,
 			tag_name: "pkg-v1.2.3".to_string(),
+			rendered_title: String::new(),
+			rendered_changelog_title: String::new(),
 			members: Vec::new(),
 			floating_tags: Vec::new(),
 		}],

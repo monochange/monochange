@@ -241,6 +241,7 @@ fn release_record_rust_migration_edges_are_explicit_and_ordered() {
 			(SchemaVersion::new(0, 5), SchemaVersion::new(0, 6)),
 			(SchemaVersion::new(0, 6), SchemaVersion::new(0, 7)),
 			(SchemaVersion::new(0, 7), SchemaVersion::new(0, 8)),
+			(SchemaVersion::new(0, 8), SchemaVersion::new(0, 9)),
 		]
 	);
 }
@@ -319,6 +320,45 @@ fn release_record_v0_7_migration_accepts_payloads_unchanged() {
 	let mut expected = payload;
 	expected["schema_version"] = json!(CURRENT_SCHEMA_VERSION_TEXT);
 	assert_eq!(migrated, expected);
+}
+
+#[test]
+fn release_record_v0_8_migration_preserves_targets_and_adds_no_titles() {
+	let payload = json!({
+		"schema_version": "0.8",
+		"kind": release_record::KIND,
+		"created_at": "2026-04-06T12:00:00Z",
+		"command": "release",
+		"release_targets": [
+			{
+				"id": "sdk",
+				"kind": "group",
+				"version": "1.1.0",
+				"version_format": "primary",
+				"tag": true,
+				"release": true,
+				"tag_name": "v1.1.0",
+				"members": ["app", "core"]
+			}
+		],
+		"released_packages": ["app"],
+		"changed_files": [],
+		"changelogs": []
+	});
+	let migrated = release_record::migrate_value(payload.clone())
+		.unwrap_or_else(|error| panic!("migrate v0.8 release record: {error}"));
+
+	// The v0.9 change makes rendered titles optional on record targets; a v0.8
+	// record migrates with every field intact and without synthesized titles,
+	// because publishing derives the fallback title from the record itself.
+	let mut expected = payload;
+	expected["schema_version"] = json!(CURRENT_SCHEMA_VERSION_TEXT);
+	assert_eq!(migrated, expected);
+	assert!(
+		migrated["release_targets"][0]
+			.get("rendered_title")
+			.is_none()
+	);
 }
 
 #[test]

@@ -1064,6 +1064,8 @@ fn deduplicate_uses_persistent_index_to_skip_scan() {
 		tag: true,
 		release: true,
 		tag_name: "v2.0.0".to_string(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
 		members: vec![],
 		floating_tags: Vec::new(),
 	};
@@ -1091,6 +1093,8 @@ fn deduplicate_skips_current_record_dir_during_overlap_scan() {
 		tag: true,
 		release: true,
 		tag_name: "v1.2.3".to_string(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
 		members: vec![],
 		floating_tags: Vec::new(),
 	};
@@ -1504,4 +1508,137 @@ fn build_release_manifest_freezes_rendered_values_and_label_inputs() {
 	assert_eq!(manifest.labels.get("core"), Some(&"2026.9.1".to_string()));
 	assert_eq!(manifest.label_inputs.date, "2026-09-19");
 	assert!(!manifest.label_inputs.is_empty());
+}
+
+fn legacy_record(
+	created_at: &str,
+	targets: Vec<ReleaseRecordTarget>,
+) -> monochange_core::ReleaseRecord {
+	monochange_core::ReleaseRecord {
+		schema_version: monochange_core::RELEASE_RECORD_SCHEMA_VERSION.to_string(),
+		kind: monochange_core::RELEASE_RECORD_KIND.to_string(),
+		created_at: created_at.to_string(),
+		command: "release".to_string(),
+		version: Some("1.1.0".to_string()),
+		versions: BTreeMap::new(),
+		release_targets: targets,
+		released_packages: Vec::new(),
+		changed_files: Vec::new(),
+		package_publications: Vec::new(),
+		updated_changelogs: Vec::new(),
+		deleted_changesets: Vec::new(),
+		changesets: Vec::new(),
+		changelogs: Vec::new(),
+		values: BTreeMap::new(),
+		labels: BTreeMap::new(),
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		provider: None,
+	}
+}
+
+#[test]
+fn build_release_record_persists_rendered_titles() {
+	let manifest = minimal_manifest_with_target("sdk", "1.1.0");
+	let record = build_release_record(None, &manifest);
+
+	let target = record
+		.release_targets
+		.first()
+		.unwrap_or_else(|| panic!("expected a record target"));
+	assert_eq!(target.rendered_title, "Release sdk 1.1.0");
+	assert_eq!(target.rendered_changelog_title, "sdk 1.1.0");
+}
+
+#[test]
+fn manifest_from_record_replays_persisted_release_title() {
+	let manifest = minimal_manifest_with_target("sdk", "1.1.0");
+	let record = build_release_record(None, &manifest);
+
+	let replayed = build_release_manifest_from_record(&record);
+	let target = replayed
+		.release_targets
+		.first()
+		.unwrap_or_else(|| panic!("expected a replayed target"));
+	assert_eq!(target.rendered_title, "Release sdk 1.1.0");
+	assert_eq!(target.rendered_changelog_title, "sdk 1.1.0");
+}
+
+#[test]
+fn manifest_from_record_synthesizes_format_default_title_for_legacy_records() {
+	let record = legacy_record(
+		"2026-04-06T12:30:45Z",
+		vec![
+			ReleaseRecordTarget {
+				id: "sdk".to_string(),
+				kind: ReleaseOwnerKind::Group,
+				version: "1.1.0".to_string(),
+				version_format: VersionFormat::Primary,
+				tag: true,
+				release: true,
+				tag_name: "v1.1.0".to_string(),
+				rendered_title: String::new(),
+				rendered_changelog_title: String::new(),
+				members: Vec::new(),
+				floating_tags: Vec::new(),
+			},
+			ReleaseRecordTarget {
+				id: "core".to_string(),
+				kind: ReleaseOwnerKind::Package,
+				version: "0.4.2".to_string(),
+				version_format: VersionFormat::Namespaced,
+				tag: true,
+				release: true,
+				tag_name: "core/v0.4.2".to_string(),
+				rendered_title: String::new(),
+				rendered_changelog_title: String::new(),
+				members: Vec::new(),
+				floating_tags: Vec::new(),
+			},
+		],
+	);
+
+	let manifest = build_release_manifest_from_record(&record);
+	let titles = manifest
+		.release_targets
+		.iter()
+		.map(|target| (target.id.as_str(), target.rendered_title.as_str()))
+		.collect::<Vec<_>>();
+
+	// Legacy records still render each format's default title with the
+	// record's release date — the tag-style version for primary, the
+	// owner-named form for namespaced — instead of the bare tag name.
+	assert_eq!(
+		titles,
+		vec![
+			("sdk", "v1.1.0 (2026-04-06)"),
+			("core", "core v0.4.2 (2026-04-06)"),
+		]
+	);
+}
+
+#[test]
+fn manifest_from_record_synthesis_survives_invalid_created_at() {
+	let record = legacy_record(
+		"not-a-timestamp",
+		vec![ReleaseRecordTarget {
+			id: "sdk".to_string(),
+			kind: ReleaseOwnerKind::Group,
+			version: "1.1.0".to_string(),
+			version_format: VersionFormat::Primary,
+			tag: true,
+			release: true,
+			tag_name: "v1.1.0".to_string(),
+			rendered_title: String::new(),
+			rendered_changelog_title: String::new(),
+			members: Vec::new(),
+			floating_tags: Vec::new(),
+		}],
+	);
+
+	let manifest = build_release_manifest_from_record(&record);
+	let title = manifest.release_targets[0].rendered_title.clone();
+	assert!(
+		title.starts_with("v1.1.0 (") && title.ends_with(')'),
+		"synthesized title should keep the tag-style version with a date: {title}"
+	);
 }

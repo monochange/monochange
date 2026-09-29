@@ -160,7 +160,7 @@ expression: redacted
           ],
           "release": false,
           "rendered_changelog_title": "core 1.0.1 ([DATE])",
-          "rendered_title": "core 1.0.1 ([DATE])",
+          "rendered_title": "core v1.0.1 ([DATE])",
           "tag": false,
           "tag_name": "core/v1.0.1",
           "version": "1.0.1",

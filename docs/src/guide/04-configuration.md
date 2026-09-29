@@ -970,6 +970,38 @@ Performance tip: keep the default `monochange run release` path focused on built
 
 See [Repairable releases](./12-repairable-releases.md) for when to use `monochange step retarget-release` versus publishing a new patch release.
 
+## Release titles
+
+Every release renders two titles from minijinja templates: the **release title** becomes the provider release name (the GitHub, GitLab, Gitea, or Forgejo release heading), and the **changelog version title** becomes the `##` heading at the top of that release's entry in each changelog file. They answer different questions — the provider release is attached to its tag and covers one release, while a changelog file spans every version — so they are configured separately.
+
+Each title resolves most-specific-first: `release_title` (or `changelog_version_title`) on the package or group, then `[defaults].release_title` (or `[defaults].changelog_version_title`), then a built-in default chosen by the owner's `version_format`:
+
+| Owner version format | Built-in release title                 | Built-in changelog version title                                                                                                    |
+| -------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `primary`            | `v{{ version }} ({{ date }})`          | `[{{ version }}]({{ tag_url }}) ({{ date }})` when a source is configured, otherwise `{{ version }} ({{ date }})`                   |
+| `namespaced`         | `{{ id }} v{{ version }} ({{ date }})` | `{{ id }} [{{ version }}]({{ tag_url }}) ({{ date }})` when a source is configured, otherwise `{{ id }} {{ version }} ({{ date }})` |
+
+Both templates render with these variables:
+
+- `{{ id }}` — the release owner: the package or group id
+- `{{ version }}` — the planned version, without a `v` prefix
+- `{{ previous_version }}` — the version of the previous release tag, empty for a first release
+- `{{ date }}`, `{{ time }}`, `{{ datetime }}` — the release date and time
+- `{{ changes_count }}` — the number of changesets in the release
+- `{{ tag_url }}` — the URL of the release tag on the provider
+- `{{ compare_url }}` — the provider comparison URL between the previous tag and this one
+
+```toml
+[defaults]
+# Name every release after its owner with the tag-style version.
+release_title = "{{ id }} v{{ version }} ({{ date }})"
+
+[group.sdk]
+release_title = "SDK {{ version }} ({{ date }})" # override for one group
+```
+
+Titles are rendered once, when the release is prepared. The rendered release title is persisted in the release record, so publishing the provider release from git history (`monochange step publish-release --from-ref HEAD`) replays the exact prepare-time title and date; records written before schema v0.9 carry no persisted title and fall back to the built-in default for the target's version format, dated from the record.
+
 ## GitHub release settings
 
 Use `[source]` plus `[source.releases]` when you want command steps such as `PublishRelease` to derive repository release payloads from the prepared release. GitHub remains the default provider when `provider` is omitted. Add `[source.releases]` to restrict tag and publish operations to commits reachable from allowed release branches; `branches` accepts multiple names and glob patterns such as `release/*`.

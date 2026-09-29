@@ -1,0 +1,21 @@
+---
+source: crates/monochange_integration_tests/tests/publish_release_from_record.rs
+expression: normalize_commit_links(&release.body)
+---
+Grouped release for `sdk`.
+
+## Features
+
+### Add expanded feature
+
+_Packages:_ 🟠 _core_
+
+_Owner:_ monochange-tests · _Introduced in:_ [4bb5b69](https://github.com/ifiokjr/monochange/commit/4bb5b699acf1f1e1ad3dd12a84c593241b056bc1)
+
+Details paragraph one.
+
+Details paragraph two with a migration note.
+
+- **add feature.**
+  _Packages:_ 🟠 _core_
+  _Owner:_ monochange-tests · _Introduced in:_ [4bb5b69](https://github.com/ifiokjr/monochange/commit/4bb5b699acf1f1e1ad3dd12a84c593241b056bc1)
