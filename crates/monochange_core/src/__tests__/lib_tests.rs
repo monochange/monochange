@@ -4401,22 +4401,21 @@ fn release_record_target_titles_round_trip_and_default_empty() {
 }
 
 #[test]
-fn default_release_titles_name_the_owner_across_version_formats() {
-	assert_eq!(
-		crate::DEFAULT_RELEASE_TITLE,
-		"{{ id }} v{{ version }} ({{ date }})"
-	);
+fn default_release_titles_follow_the_version_format() {
+	// Primary versioning has one release axis, so the title is the tag-style
+	// version plus the date; namespaced versioning names the release owner so
+	// simultaneous releases stay distinguishable.
 	assert_eq!(
 		crate::DEFAULT_RELEASE_TITLE_PRIMARY,
-		crate::DEFAULT_RELEASE_TITLE
+		"v{{ version }} ({{ date }})"
 	);
 	assert_eq!(
 		crate::DEFAULT_RELEASE_TITLE_NAMESPACED,
-		crate::DEFAULT_RELEASE_TITLE
+		"{{ id }} v{{ version }} ({{ date }})"
 	);
 	// Changelog titles keep linking the bare version: the changelog file spans
 	// many versions, so its title stays distinct from the provider release
-	// title that names one release owner.
+	// title that names one release.
 	assert_eq!(
 		crate::DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY,
 		"{% if tag_url %}[{{ version }}]({{ tag_url }}){% else %}{{ version }}{% endif %} ({{ date }})"

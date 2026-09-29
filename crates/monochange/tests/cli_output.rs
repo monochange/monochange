@@ -253,6 +253,10 @@ fn change_cli_writes_requested_file_contents() {
 	let tempdir = setup_scenario_workspace("cli-output/ungrouped-basic");
 	let output_path = tempdir.path().join("feature.md");
 
+	// The recorded command args embed every `--output` value verbatim, so the
+	// test passes a workspace-relative path; an absolute tempdir path would
+	// rewrite a fresh random directory into the committed snapshot on every
+	// regeneration.
 	assert_cmd_snapshot!(
 		monochange_command(None)
 			.current_dir(tempdir.path())
@@ -265,7 +269,7 @@ fn change_cli_writes_requested_file_contents() {
 			.arg("--reason")
 			.arg("document cli snapshots")
 			.arg("--output")
-			.arg(&output_path)
+			.arg("feature.md")
 	);
 
 	let change_file =
@@ -282,6 +286,8 @@ fn change_cli_writes_explicit_versions_when_requested() {
 	let tempdir = setup_scenario_workspace("cli-output/ungrouped-basic");
 	let output_path = tempdir.path().join("versioned.md");
 
+	// Relative `--output` keeps the recorded args out of the machine's
+	// tempdir; see `change_cli_writes_requested_file_contents`.
 	assert_cmd_snapshot!(
 		monochange_command(None)
 			.current_dir(tempdir.path())
@@ -296,7 +302,7 @@ fn change_cli_writes_explicit_versions_when_requested() {
 			.arg("--reason")
 			.arg("promote to stable")
 			.arg("--output")
-			.arg(&output_path)
+			.arg("versioned.md")
 	);
 
 	let change_file =

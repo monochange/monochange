@@ -92,16 +92,16 @@ use versioning::ValueDefinition;
 
 pub type MonochangeResult<T> = Result<T, MonochangeError>;
 
-/// Default release title template shared by every version format:
-/// `core v1.2.3 (2026-04-06)`.
+/// Default release title template for primary versioning: `v1.2.3 (2026-04-06)`.
 ///
-/// Provider releases are attached to their tag, so the title names the release
-/// owner (package or group id) instead of repeating the tag.
-pub const DEFAULT_RELEASE_TITLE: &str = "{{ id }} v{{ version }} ({{ date }})";
-/// Default release title template for primary versioning: `core v1.2.3 (2026-04-06)`.
-pub const DEFAULT_RELEASE_TITLE_PRIMARY: &str = DEFAULT_RELEASE_TITLE;
+/// A primary release axis has one version line, so the title carries the
+/// tag-style version with the date instead of repeating the release owner.
+pub const DEFAULT_RELEASE_TITLE_PRIMARY: &str = "v{{ version }} ({{ date }})";
 /// Default release title template for namespaced versioning: `my-pkg v1.2.3 (2026-04-06)`.
-pub const DEFAULT_RELEASE_TITLE_NAMESPACED: &str = DEFAULT_RELEASE_TITLE;
+///
+/// Namespaced tags already carry the owner, and a workspace releases several
+/// axes at once, so the title names the package or group the release belongs to.
+pub const DEFAULT_RELEASE_TITLE_NAMESPACED: &str = "{{ id }} v{{ version }} ({{ date }})";
 /// Default changelog version title for primary versioning (markdown-linked when source configured).
 pub const DEFAULT_CHANGELOG_VERSION_TITLE_PRIMARY: &str =
 	"{% if tag_url %}[{{ version }}]({{ tag_url }}){% else %}{{ version }}{% endif %} ({{ date }})";

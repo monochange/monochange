@@ -66,7 +66,7 @@ The workspace `monochange` binary is prepended to the child's `PATH`, so `monoch
 
 ## Scenario inventory
 
-28 scenarios, 158 checks: 11 agent scenarios and 17 agent-free contracts. `node evals/monochange-skill/run.ts --list` prints the current set.
+29 scenarios, 162 checks: 12 agent scenarios and 17 agent-free contracts. `node evals/monochange-skill/run.ts --list` prints the current set.
 
 `COVERAGE.md` maps every CLI decision surface to the scenario that pins it and records what is deliberately not tested. Run that file before adding a scenario, both to avoid duplicating a check and to find the gaps it lists.
 

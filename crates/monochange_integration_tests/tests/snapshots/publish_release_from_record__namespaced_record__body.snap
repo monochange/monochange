@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/publish_release_from_record.rs
+expression: normalize_commit_links(&release.body)
+---
+## Features
+
+- **add feature.**
+  _Owner:_ monochange-tests · _Introduced in:_ [cd1a712](https://github.com/ifiokjr/monochange/commit/cd1a71255f21e58c5da6c9fb69efd3a928895730)

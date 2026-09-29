@@ -1564,7 +1564,7 @@ fn manifest_from_record_replays_persisted_release_title() {
 }
 
 #[test]
-fn manifest_from_record_synthesizes_owner_named_title_for_legacy_records() {
+fn manifest_from_record_synthesizes_format_default_title_for_legacy_records() {
 	let record = legacy_record(
 		"2026-04-06T12:30:45Z",
 		vec![
@@ -1604,12 +1604,13 @@ fn manifest_from_record_synthesizes_owner_named_title_for_legacy_records() {
 		.map(|target| (target.id.as_str(), target.rendered_title.as_str()))
 		.collect::<Vec<_>>();
 
-	// Legacy records still name the release owner with the record's release
-	// date, in both version formats, instead of degrading to the tag name.
+	// Legacy records still render each format's default title with the
+	// record's release date — the tag-style version for primary, the
+	// owner-named form for namespaced — instead of the bare tag name.
 	assert_eq!(
 		titles,
 		vec![
-			("sdk", "sdk v1.1.0 (2026-04-06)"),
+			("sdk", "v1.1.0 (2026-04-06)"),
 			("core", "core v0.4.2 (2026-04-06)"),
 		]
 	);
@@ -1637,7 +1638,7 @@ fn manifest_from_record_synthesis_survives_invalid_created_at() {
 	let manifest = build_release_manifest_from_record(&record);
 	let title = manifest.release_targets[0].rendered_title.clone();
 	assert!(
-		title.starts_with("sdk v1.1.0 (") && title.ends_with(')'),
-		"synthesized title should keep the owner and version with a date: {title}"
+		title.starts_with("v1.1.0 (") && title.ends_with(')'),
+		"synthesized title should keep the tag-style version with a date: {title}"
 	);
 }

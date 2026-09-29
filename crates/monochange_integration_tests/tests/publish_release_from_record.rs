@@ -8,9 +8,11 @@
 //! records every request body, so the tests assert the exact release `name`
 //! and `body` monochange sends:
 //!
-//! - the `name` names the release owner (`sdk v1.1.0 (2026-04-06)`), never the
-//!   bare tag, both for current records (persisted titles) and for v0.8-era
-//!   records that predate persisted titles (synthesized from the record's
+//! - the `name` carries the tag-style version with the date for primary
+//!   targets (`v1.1.0 (2026-04-06)`) and names the release owner for
+//!   namespaced targets (`core v1.1.0 (2026-04-06)`) — never the bare tag —
+//!   both for current records (persisted titles) and for v0.8-era records
+//!   that predate persisted titles (synthesized from the record's
 //!   `created_at`);
 //! - the `body` drops the changelog's version title, keeps the group summary,
 //!   and promotes sections to `##` with expanded entries as `###`.
@@ -279,22 +281,26 @@ fn read_exact_bytes(
 	body
 }
 
-fn fixture_path() -> PathBuf {
-	Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/github-releases/group")
+fn fixture_path(scenario: &str) -> PathBuf {
+	Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/github-releases")
+		.join(scenario)
 }
 
-fn setup_workspace() -> TempDir {
+fn setup_workspace(scenario: &str) -> TempDir {
 	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	copy_directory(&fixture_path(), root);
-	// The fixture's changeset renders as a compact bullet; a second changeset
-	// with multiline details exercises the expanded entry style, whose heading
-	// is what provider bodies promote from `####` to `###`.
-	std::fs::write(
-		root.join(".changeset/expanded-feature.md"),
-		"---\ncore: minor\n---\n\n# Add expanded feature\n\nDetails paragraph one.\n\nDetails paragraph two with a migration note.\n",
-	)
-	.unwrap_or_else(|error| panic!("write expanded changeset: {error}"));
+	copy_directory(&fixture_path(scenario), root);
+	if scenario == "group" {
+		// The fixture's changeset renders as a compact bullet; a second
+		// changeset with multiline details exercises the expanded entry style,
+		// whose heading is what provider bodies promote from `####` to `###`.
+		std::fs::write(
+			root.join(".changeset/expanded-feature.md"),
+			"---\ncore: minor\n---\n\n# Add expanded feature\n\nDetails paragraph one.\n\nDetails paragraph two with a migration note.\n",
+		)
+		.unwrap_or_else(|error| panic!("write expanded changeset: {error}"));
+	}
 	git(root, &["init", "-b", "main"]);
 	git(root, &["config", "user.name", "monochange-tests"]);
 	git(
@@ -428,27 +434,30 @@ struct PublishedRelease {
 	tag_name: String,
 }
 
-fn single_published_release(server: &MockGithubServer) -> PublishedRelease {
+fn published_release_for_tag(server: &MockGithubServer, tag_name: &str) -> PublishedRelease {
 	let bodies = server.post_bodies_under(&format!("/repos/{OWNER}/{REPO}/releases"));
-	let payload = bodies.first().unwrap_or_else(|| {
-		let captured = server
-			.requests
-			.lock()
-			.unwrap()
-			.iter()
-			.map(|request| {
-				format!(
-					"{} {} ({} bytes): {}",
-					request.method,
-					request.path,
-					request.body.len(),
-					&request.body[..request.body.len().min(300)]
-				)
-			})
-			.collect::<Vec<_>>()
-			.join("\n");
-		panic!("expected one release create, captured requests:\n{captured}")
-	});
+	let payload = bodies
+		.iter()
+		.find(|payload| payload["tag_name"].as_str() == Some(tag_name))
+		.unwrap_or_else(|| {
+			let captured = server
+				.requests
+				.lock()
+				.unwrap()
+				.iter()
+				.map(|request| {
+					format!(
+						"{} {} ({} bytes): {}",
+						request.method,
+						request.path,
+						request.body.len(),
+						&request.body[..request.body.len().min(300)]
+					)
+				})
+				.collect::<Vec<_>>()
+				.join("\n");
+			panic!("expected a release create for {tag_name}, captured requests:\n{captured}")
+		});
 	PublishedRelease {
 		name: payload["name"]
 			.as_str()
@@ -479,29 +488,34 @@ fn normalize_commit_links(contents: &str) -> String {
 		.join("\n")
 }
 
-fn assert_release_notes_shape(release: &PublishedRelease) {
-	// The release names its owner — package or group — not the bare tag.
-	assert_eq!(
-		release.name, "sdk v1.1.0 (2026-04-06)",
-		"release name should name the release owner with the version and date"
-	);
-	assert_ne!(release.name, release.tag_name);
-
-	// The body is attached to the tag, so it drops the linked version title
-	// and promotes the changelog's headings one level.
+/// Assertions shared by every provider release body: the body is attached to
+/// the tag, so it drops the changelog's linked version title and promotes
+/// sections to `##`.
+fn assert_promoted_body(release: &PublishedRelease) {
 	assert!(
 		!release.body.contains("## [1.1.0]"),
 		"body should not repeat the version title:\n{}",
 		release.body
 	);
 	assert!(
-		release.body.starts_with("Grouped release for `sdk`."),
-		"grouped body should open with the summary:\n{}",
-		release.body
-	);
-	assert!(
 		release.body.contains("## "),
 		"sections should render as h2:\n{}",
+		release.body
+	);
+	assert_ne!(release.name, release.tag_name);
+}
+
+fn assert_release_notes_shape(release: &PublishedRelease) {
+	// A primary release axis has one version line, so the name carries the
+	// tag-style version with the date — never the bare tag.
+	assert_eq!(
+		release.name, "v1.1.0 (2026-04-06)",
+		"primary release name should carry the tag-style version and date"
+	);
+	assert_promoted_body(release);
+	assert!(
+		release.body.starts_with("Grouped release for `sdk`."),
+		"grouped body should open with the summary:\n{}",
 		release.body
 	);
 	assert!(
@@ -513,23 +527,22 @@ fn assert_release_notes_shape(release: &PublishedRelease) {
 
 #[test]
 fn publish_release_from_record_names_owner_and_promotes_body_headings() {
-	let tempdir = setup_workspace();
+	let tempdir = setup_workspace("group");
 	let root = tempdir.path();
 	commit_release_record(root);
 
 	let server = spawn_mock_github_server();
 	publish_release_from_record(root, &server.base_url);
 
-	let release = single_published_release(&server);
-	assert_eq!(release.tag_name, "v1.1.0");
+	let release = published_release_for_tag(&server, "v1.1.0");
 	assert_release_notes_shape(&release);
 	assert_snapshot!("record_replay__name", release.name);
 	assert_snapshot!("record_replay__body", normalize_commit_links(&release.body));
 }
 
 #[test]
-fn publish_release_from_legacy_record_synthesizes_owner_named_title() {
-	let tempdir = setup_workspace();
+fn publish_release_from_legacy_record_synthesizes_format_default_title() {
+	let tempdir = setup_workspace("group");
 	let root = tempdir.path();
 	let record_path = commit_release_record(root);
 
@@ -560,7 +573,31 @@ fn publish_release_from_legacy_record_synthesizes_owner_named_title() {
 	let server = spawn_mock_github_server();
 	publish_release_from_record(root, &server.base_url);
 
-	let release = single_published_release(&server);
+	let release = published_release_for_tag(&server, "v1.1.0");
 	assert_release_notes_shape(&release);
 	assert_snapshot!("legacy_record__name", release.name);
+}
+
+#[test]
+fn publish_release_from_record_names_owner_for_namespaced_targets() {
+	let tempdir = setup_workspace("ungrouped");
+	let root = tempdir.path();
+	commit_release_record(root);
+
+	let server = spawn_mock_github_server();
+	publish_release_from_record(root, &server.base_url);
+
+	// Namespaced workspaces release several axes at once, so the title names
+	// the package the release belongs to.
+	let release = published_release_for_tag(&server, "core/v1.1.0");
+	assert_eq!(
+		release.name, "core v1.1.0 (2026-04-06)",
+		"namespaced release name should name the release owner"
+	);
+	assert_promoted_body(&release);
+	assert_snapshot!("namespaced_record__name", release.name);
+	assert_snapshot!(
+		"namespaced_record__body",
+		normalize_commit_links(&release.body)
+	);
 }

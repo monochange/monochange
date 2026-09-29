@@ -1074,10 +1074,9 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 /// prepare time.
 ///
 /// Records that predate persisted titles (schema v0.8 and earlier) carry an
-/// empty `rendered_title`; those synthesize the built-in default title from
-/// the target id, version, and the record's creation date so the provider
-/// release name still names the release owner instead of degrading to the tag
-/// name.
+/// empty `rendered_title`; those synthesize the built-in default title for
+/// the target's version format, dated from the record's creation, so the
+/// provider release name still differs from the bare tag name.
 fn record_release_title(record: &ReleaseRecord, target: &ReleaseRecordTarget) -> String {
 	if !target.rendered_title.is_empty() {
 		return target.rendered_title.clone();

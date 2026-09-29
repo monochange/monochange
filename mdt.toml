@@ -10,4 +10,8 @@ patterns = ["docs/book/"]
 markdown_codeblocks = true
 
 [data]
-schemaIndex = { command = "node scripts/schema-versions.ts", format = "text", watch = ["scripts/schema-versions.ts"] }
+# The schema index is derived from the committed versioned schema assets, so
+# the watch list covers the assets directory as well as the generator script;
+# otherwise `mdt check` reuses cached output until the script itself changes
+# and reports stale blocks only in CI, where the cache starts empty.
+schemaIndex = { command = "node scripts/schema-versions.ts", format = "text", watch = ["scripts/schema-versions.ts", "docs/src/schemas"] }

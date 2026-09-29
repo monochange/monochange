@@ -61,7 +61,7 @@ expression: "Value::Object(snapshots)"
         ],
         "release": true,
         "rendered_changelog_title": "[1.0.1](https://github.com/ifiokjr/monochange/releases/tag/v1.0.1) (2026-04-06)",
-        "rendered_title": "sdk v1.0.1 (2026-04-06)",
+        "rendered_title": "v1.0.1 (2026-04-06)",
         "tag": true,
         "tag_name": "v1.0.1",
         "version": "1.0.1",
@@ -71,7 +71,7 @@ expression: "Value::Object(snapshots)"
     "releases": [
       {
         "body": "[see string snapshot]",
-        "name": "sdk v1.0.1 (2026-04-06)",
+        "name": "v1.0.1 (2026-04-06)",
         "tag_name": "v1.0.1",
         "targetId": "sdk",
         "targetKind": "group"
@@ -136,7 +136,7 @@ expression: "Value::Object(snapshots)"
         ],
         "release": true,
         "rendered_changelog_title": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) (2026-04-06)",
-        "rendered_title": "sdk v1.1.0 (2026-04-06)",
+        "rendered_title": "v1.1.0 (2026-04-06)",
         "tag": true,
         "tag_name": "v1.1.0",
         "version": "1.1.0",
@@ -146,7 +146,7 @@ expression: "Value::Object(snapshots)"
     "releases": [
       {
         "body": "[see string snapshot]",
-        "name": "sdk v1.1.0 (2026-04-06)",
+        "name": "v1.1.0 (2026-04-06)",
         "tag_name": "v1.1.0",
         "targetId": "sdk",
         "targetKind": "group"
@@ -211,7 +211,7 @@ expression: "Value::Object(snapshots)"
         ],
         "release": true,
         "rendered_changelog_title": "[1.1.0](https://github.com/ifiokjr/monochange/releases/tag/v1.1.0) (2026-04-06)",
-        "rendered_title": "sdk v1.1.0 (2026-04-06)",
+        "rendered_title": "v1.1.0 (2026-04-06)",
         "tag": true,
         "tag_name": "v1.1.0",
         "version": "1.1.0",
@@ -221,7 +221,7 @@ expression: "Value::Object(snapshots)"
     "releases": [
       {
         "body": "[see string snapshot]",
-        "name": "sdk v1.1.0 (2026-04-06)",
+        "name": "v1.1.0 (2026-04-06)",
         "tag_name": "v1.1.0",
         "targetId": "sdk",
         "targetKind": "group"
@@ -302,7 +302,7 @@ expression: "Value::Object(snapshots)"
         ],
         "release": true,
         "rendered_changelog_title": "[2.0.0](https://github.com/ifiokjr/monochange/releases/tag/v2.0.0) (2026-04-06)",
-        "rendered_title": "sdk v2.0.0 (2026-04-06)",
+        "rendered_title": "v2.0.0 (2026-04-06)",
         "tag": true,
         "tag_name": "v2.0.0",
         "version": "2.0.0",
@@ -312,7 +312,7 @@ expression: "Value::Object(snapshots)"
     "releases": [
       {
         "body": "[see string snapshot]",
-        "name": "sdk v2.0.0 (2026-04-06)",
+        "name": "v2.0.0 (2026-04-06)",
         "tag_name": "v2.0.0",
         "targetId": "sdk",
         "targetKind": "group"

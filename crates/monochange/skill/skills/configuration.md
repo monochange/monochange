@@ -109,6 +109,26 @@ version_format = "{{ ecosystem }}/{{ name }}/v{{ version }}" # cargo/cli/v1.2.3
 
 Only one package or group may use `primary`.
 
+## Release titles
+
+Each release renders two titles: the **release title** becomes the provider release name (the GitHub release heading), and the **changelog version title** becomes the `##` heading for that release in each changelog file. Both accept minijinja templates and resolve most-specific-first: the field on the package or group, then `[defaults]`, then a built-in default chosen by the owner's `version_format`:
+
+- `primary` release title: `v{{ version }} ({{ date }})`
+- `namespaced` release title: `{{ id }} v{{ version }} ({{ date }})`
+- changelog titles link the bare version, for example `[{{ version }}]({{ tag_url }}) ({{ date }})` for primary owners
+
+Available variables: `{{ id }}` (package or group id), `{{ version }}`, `{{ previous_version }}`, `{{ date }}`, `{{ time }}`, `{{ datetime }}`, `{{ changes_count }}`, `{{ tag_url }}`, and `{{ compare_url }}`.
+
+```toml
+[defaults]
+release_title = "Acme API v{{ version }} ({{ date }})"
+
+[group.sdk]
+changelog_version_title = "SDK {{ version }} ({{ date }})"
+```
+
+Titles render once, when the release is prepared. The rendered release title is persisted in the release record and replayed when the provider release is published from git history, so editing the template does not change the names of already-prepared releases.
+
 ## Tag-versioned packages
 
 By default, release planning reads the current version from the package manifest. Set `version_source = "tag"` when the version lives in the Git tag instead, which is common for GitHub Actions repositories and other packages whose manifest carries no version:
