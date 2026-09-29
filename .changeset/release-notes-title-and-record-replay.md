@@ -2,6 +2,7 @@
 "monochange": minor
 "monochange_core": major
 monochange_schema: major
+"@monochange/skill": patch
 ---
 
 # Name release-record replays and format-specific default release titles
@@ -21,3 +22,5 @@ release_title = "{{ id }} {{ version }} ({{ date }})"
 ```
 
 `ReleaseRecordTarget` gains `rendered_title` and `rendered_changelog_title` (optional, empty-string defaults), which is a breaking change for struct literals; deserialize and serialize round-trips of existing records are unchanged. The release-record artifact schema advances to v0.9 with a no-op migration edge, so v0.8 records migrate unchanged.
+
+The agent skill's configuration topic now documents the release title templates — the defaults per version format, the available variables, precedence, and the record replay — and `@monochange/skill` republishes that guidance.
