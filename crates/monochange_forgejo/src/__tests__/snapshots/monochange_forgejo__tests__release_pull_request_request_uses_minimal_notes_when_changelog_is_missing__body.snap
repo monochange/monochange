@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_forgejo/src/__tests__/lib_tests.rs
-assertion_line: 677
 expression: request.body
 ---
 ## Prepared release

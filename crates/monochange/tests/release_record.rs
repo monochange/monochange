@@ -333,6 +333,8 @@ fn tag_release_command_json_snapshots_entire_report() {
 		tag: true,
 		release: true,
 		tag_name: "cli/v2.0.0".to_string(),
+		rendered_title: String::new(),
+		rendered_changelog_title: String::new(),
 		members: Vec::new(),
 		floating_tags: Vec::new(),
 	});
@@ -836,6 +838,8 @@ fn sample_release_record() -> ReleaseRecord {
 			tag: true,
 			release: true,
 			tag_name: "v1.2.3".to_string(),
+			rendered_title: String::new(),
+			rendered_changelog_title: String::new(),
 			members: vec!["monochange".to_string(), "monochange_core".to_string()],
 			floating_tags: Vec::new(),
 		}],

@@ -790,6 +790,14 @@
 				"release": {
 					"type": "boolean"
 				},
+				"rendered_changelog_title": {
+					"description": "Changelog version title rendered at prepare time.",
+					"type": "string"
+				},
+				"rendered_title": {
+					"description": "Release title rendered at prepare time; publishing from the record\nreplays it so provider release names keep the prepare-time date even\nwhen the release is published from git history.",
+					"type": "string"
+				},
 				"tag": {
 					"type": "boolean"
 				},
@@ -957,7 +965,7 @@
 			"type": "array"
 		},
 		"schema_version": {
-			"default": "0.8",
+			"default": "0.9",
 			"type": "string"
 		},
 		"updated_changelogs": {

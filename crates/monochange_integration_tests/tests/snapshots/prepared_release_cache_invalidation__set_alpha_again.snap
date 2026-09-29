@@ -1,6 +1,6 @@
 ---
 source: crates/monochange_integration_tests/tests/prepared_release_cache_invalidation.rs
-expression: "preview_summary(&alpha_again, false)"
+expression: preview_summary(&alpha_again)
 ---
 {
   "changed_files": [

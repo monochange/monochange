@@ -41,6 +41,7 @@ fn init_release_repo() -> TempDir {
 		root,
 		&["config", "user.email", "monochange-tests@example.com"],
 	);
+	git(root, &["config", "commit.gpgsign", "false"]);
 	fs::write(root.join("README.md"), "# test\n")
 		.unwrap_or_else(|error| panic!("write readme: {error}"));
 	git(root, &["add", "."]);
@@ -68,6 +69,8 @@ fn floating_tags_record(
 			tag: true,
 			release: true,
 			tag_name: tag_name.to_string(),
+			rendered_title: String::new(),
+			rendered_changelog_title: String::new(),
 			members: vec!["actions".to_string()],
 			floating_tags: floating_tags
 				.iter()
