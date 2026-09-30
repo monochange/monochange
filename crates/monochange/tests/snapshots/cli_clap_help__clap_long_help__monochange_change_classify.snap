@@ -5,13 +5,13 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange change classify
 
-Compare a merge candidate with the default branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.
+Compare a merge candidate with its base branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.
 
 [1m[97mUsage:[0m [93mmonochange change classify[0m [95m[OPTIONS][0m
 
 [1m[96mOptions:[0m
       [93m--base[0m[95m [0m[95m<REF>[0m
-          Override the automatically detected default branch ref
+          Base branch to compare with; defaults to the remote default branch, so pass the pull request base for a stacked branch
 
       [93m--head[0m[95m [0m[95m<REF>[0m
           Pull request head ref to classify

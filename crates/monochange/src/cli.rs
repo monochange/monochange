@@ -558,13 +558,13 @@ fn build_classify_subcommand() -> Command {
 	Command::new("classify")
 		.about("Compare the pull request and latest release, then propose package bumps")
 		.long_about(
-			"Compare a merge candidate with the default branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.",
+			"Compare a merge candidate with its base branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.",
 		)
 		.arg(
 			Arg::new("base")
 				.long("base")
 				.value_name("REF")
-				.help("Override the automatically detected default branch ref"),
+				.help("Base branch to compare with; defaults to the remote default branch, so pass the pull request base for a stacked branch"),
 		)
 		.arg(
 			Arg::new("head")

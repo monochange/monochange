@@ -2032,3 +2032,132 @@ fn schema_module_generates_the_classification_report_schema() {
 	assert!(json["properties"]["schema_version"].is_object());
 	assert!(json["properties"]["packages"].is_object());
 }
+
+#[test]
+fn resolve_commit_records_the_commit_behind_a_ref_and_rejects_unknown_refs() {
+	let tempdir = init_classification_repo();
+	let root = tempdir.path();
+
+	let resolved =
+		resolve_commit(root, "main").unwrap_or_else(|error| panic!("resolve main: {error}"));
+	let expected = run_git(root, &["rev-parse", "HEAD"])
+		.unwrap_or_else(|error| panic!("rev-parse HEAD: {error}"))
+		.trim()
+		.to_string();
+	assert_eq!(resolved, expected);
+	assert_eq!(resolved.len(), 40);
+
+	let error = resolve_commit(root, "missing")
+		.expect_err("an unknown ref must not resolve")
+		.render();
+	assert!(
+		error.contains("could not resolve `missing` to a commit"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn pull_request_findings_exclude_evidence_seen_only_since_the_release() {
+	let mut current = finding_from_semantic_change(
+		"current".to_string(),
+		"cargo/public-api",
+		&added_api_change(),
+		DetectionLevel::Signature,
+	);
+	current.comparisons = [ComparisonKind::PullRequest, ComparisonKind::Release]
+		.into_iter()
+		.collect();
+	let mut inherited = finding_from_semantic_change(
+		"inherited".to_string(),
+		"cargo/public-api",
+		&removed_api_change(),
+		DetectionLevel::Signature,
+	);
+	inherited.comparisons = [ComparisonKind::Release, ComparisonKind::ReleaseToDefault]
+		.into_iter()
+		.collect();
+	let mut local = finding_from_semantic_change(
+		"local".to_string(),
+		"cargo/public-api",
+		&modified_api_change(),
+		DetectionLevel::Signature,
+	);
+	local.comparisons = [ComparisonKind::WorkingTree].into_iter().collect();
+	let unattributed = finding_from_semantic_change(
+		"unattributed".to_string(),
+		"cargo/public-api",
+		&added_export_change(),
+		DetectionLevel::Signature,
+	);
+
+	assert!(is_pull_request_finding(&current));
+	assert!(!is_pull_request_finding(&inherited));
+	assert!(is_pull_request_finding(&local));
+	assert!(is_pull_request_finding(&unattributed));
+
+	let findings = [current, inherited, local, unattributed];
+	let (pull_request, release_only) = partition_findings(&findings);
+	let ids = |findings: &[&ClassificationFinding]| {
+		findings
+			.iter()
+			.map(|finding| finding.id.clone())
+			.collect::<Vec<_>>()
+	};
+	assert_eq!(ids(&pull_request), ["current", "local", "unattributed"]);
+	assert_eq!(ids(&release_only), ["inherited"]);
+}
+
+#[test]
+fn reports_list_inherited_base_branch_findings_apart_from_the_pull_request() {
+	let mut report = report_with_one_breaking_change();
+
+	let markdown = render_markdown_report(&report);
+	assert!(markdown.contains("- Base branch: `origin/main`\n"));
+	assert!(!markdown.contains("Head commit"));
+	assert!(!markdown.contains("not part of this pull request"));
+	assert!(render_text_report(&report).contains("Base branch: origin/main\n"));
+
+	report.base_commit = Some("0123456789abcdef0123456789abcdef01234567".to_string());
+	report.head_commit = Some("fedcba9876543210fedcba9876543210fedcba98".to_string());
+	let package = report
+		.packages
+		.first_mut()
+		.unwrap_or_else(|| panic!("the sample report has one package"));
+	let mut inherited = finding_from_semantic_change(
+		"inherited".to_string(),
+		"cargo/public-api",
+		&modified_api_change(),
+		DetectionLevel::Signature,
+	);
+	inherited.comparisons = [ComparisonKind::Release, ComparisonKind::ReleaseToDefault]
+		.into_iter()
+		.collect();
+	package.findings.push(inherited);
+
+	let markdown = render_markdown_report(&report);
+	assert!(markdown.contains("- Base branch: `origin/main` (`0123456789ab`)\n"));
+	assert!(markdown.contains("- Head commit: `fedcba987654`\n"));
+	assert!(markdown.contains("- Findings: 1\n"));
+	let inherited_header = markdown
+		.find("- Unreleased changes already on `origin/main` (not part of this pull request): 1\n")
+		.unwrap_or_else(|| panic!("inherited findings header missing: {markdown}"));
+	let current_line = markdown
+		.find("- `cargo/public-api/public_api/removed/function/crate::old`:")
+		.unwrap_or_else(|| panic!("pull request finding missing: {markdown}"));
+	let inherited_line = markdown
+		.find("- `inherited`:")
+		.unwrap_or_else(|| panic!("inherited finding missing: {markdown}"));
+	assert!(
+		current_line < inherited_header && inherited_header < inherited_line,
+		"pull request findings must precede inherited findings: {markdown}"
+	);
+
+	let text = render_text_report(&report);
+	assert!(text.contains("Base branch: origin/main (0123456789ab)\n"));
+	assert!(text.contains("Head commit: fedcba987654\n"));
+	assert!(text.contains("  Findings: 1\n"));
+	assert!(text.contains(
+		"  Unreleased changes already on origin/main (not part of this pull request): 1\n"
+	));
+	assert!(!text.contains('`'));
+}

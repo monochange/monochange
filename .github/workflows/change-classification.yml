@@ -6,6 +6,9 @@ on:
       - opened
       - synchronize
       - reopened
+      # A retargeted pull request (for example a stacked pull request whose
+      # parent merged) must be classified again against its new base.
+      - edited
 
 concurrency:
   group: change-classification-${{ github.event.pull_request.number || github.ref }}
@@ -13,6 +16,7 @@ concurrency:
 
 jobs:
   classify:
+    if: ${{ github.event.action != 'edited' || github.event.changes.base }}
     timeout-minutes: 60
     runs-on: ubuntu-latest
     permissions:
@@ -36,6 +40,11 @@ jobs:
         uses: monochange/actions/change-classification@6866cbbd35932bdfb496f5b144578c9274d36ca0 # v0.10.0
         with:
           setup-monochange: devenv shell monochange
+          # Compare with the branch this pull request targets, not the default
+          # branch, so a stacked pull request does not inherit its parent's
+          # changes, and classify the exact head commit of this push.
+          base: origin/${{ github.event.pull_request.base.ref }}
+          head: ${{ github.event.pull_request.head.sha }}
           detection-level: signature
           dependency-propagation: public
           github-token: ${{ secrets.GITHUB_TOKEN }}

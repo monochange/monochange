@@ -8,6 +8,7 @@
 - v0.1: <https://monochange.github.io/monochange/schemas/classification.v0.1.schema.json>
 - v0.2: <https://monochange.github.io/monochange/schemas/classification.v0.2.schema.json>
 - v0.3: <https://monochange.github.io/monochange/schemas/classification.v0.3.schema.json>
+- v0.4: <https://monochange.github.io/monochange/schemas/classification.v0.4.schema.json>
 
 **`command-snapshot.schema.json`**
 

@@ -311,7 +311,18 @@ pub struct ReleaseOwner {
 #[serde(rename_all = "snake_case")]
 pub struct ChangeClassificationReport {
 	pub schema_version: String,
+	/// The base ref the candidate was compared with: `--base`, or the remote
+	/// default branch. A stacked pull request passes its own base branch here.
 	pub default_branch: String,
+	/// Commit the base ref resolved to when the report was built, so a reader
+	/// can tell whether the base moved since. Absent when the report was
+	/// built from a single analysis frame or the run was skipped.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub base_commit: Option<String>,
+	/// Commit `--head` resolved to. When local changes were materialized into
+	/// the candidate, this is the committed `HEAD` they were applied on.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub head_commit: Option<String>,
 	pub candidate: String,
 	pub comparisons: Vec<ResolvedComparison>,
 	pub recommendation: BumpSeverity,
@@ -514,6 +525,8 @@ pub fn build_change_classification_report(
 		.base
 		.clone()
 		.map_or_else(|| resolve_default_branch_ref(root), Ok)?;
+	let base_commit = resolve_commit(root, &default_branch)?;
+	let head_commit = resolve_commit(root, &options.head)?;
 	let candidate = resolve_candidate(root, &default_branch, &options.head)?;
 	let analysis_config = AnalysisConfig {
 		detection_level: options.detection_level,
@@ -831,6 +844,8 @@ pub fn build_change_classification_report(
 	Ok(ChangeClassificationReport {
 		schema_version: SCHEMA_VERSION.to_string(),
 		default_branch,
+		base_commit: Some(base_commit),
+		head_commit: Some(head_commit),
 		candidate: candidate.display,
 		comparisons,
 		recommendation,
@@ -877,6 +892,8 @@ fn skipped_classification(
 	Ok(Some(ChangeClassificationReport {
 		schema_version: SCHEMA_VERSION.to_string(),
 		default_branch,
+		base_commit: None,
+		head_commit: None,
 		candidate: options.head.clone(),
 		comparisons: Vec::new(),
 		recommendation: BumpSeverity::None,
@@ -960,6 +977,8 @@ pub fn classification_report(
 	ChangeClassificationReport {
 		schema_version: SCHEMA_VERSION.to_string(),
 		default_branch: analysis.frame.base_revision().unwrap_or("HEAD").to_string(),
+		base_commit: None,
+		head_commit: None,
 		candidate: analysis
 			.frame
 			.head_revision()
@@ -1157,6 +1176,22 @@ fn resolve_merge_base(root: &Path, base: &str, head: &str) -> Option<String> {
 		.ok()
 		.map(|value| value.trim().to_string())
 		.filter(|value| !value.is_empty())
+}
+
+/// Resolve a ref to the commit it names, so the report records the exact
+/// endpoints it compared rather than branch names that keep moving.
+fn resolve_commit(root: &Path, reference: &str) -> MonochangeResult<String> {
+	let revision = format!("{reference}^{{commit}}");
+	run_git(
+		root,
+		&["rev-parse", "--verify", "--end-of-options", &revision],
+	)
+	.map(|value| value.trim().to_string())
+	.map_err(|error| {
+		MonochangeError::Discovery(format!(
+			"could not resolve `{reference}` to a commit for change classification: {error}"
+		))
+	})
 }
 
 fn git_revision_exists(root: &Path, revision: &str) -> bool {
@@ -2423,6 +2458,110 @@ fn preferred_report_package_id(package: &PackageRecord) -> String {
 		.unwrap_or_else(|| package.id.clone())
 }
 
+/// Whether a finding was observed in an interval this contribution owns: the
+/// net candidate, the branch delta, or the local working tree. A finding seen
+/// only in the `release` and `releaseToDefault` intervals describes work the
+/// base branch already carries, so reports list it apart from the pull
+/// request's own findings.
+fn is_pull_request_finding(finding: &ClassificationFinding) -> bool {
+	finding.comparisons.is_empty()
+		|| finding.comparisons.iter().any(|kind| {
+			matches!(
+				kind,
+				ComparisonKind::PullRequest
+					| ComparisonKind::SourceDelta
+					| ComparisonKind::WorkingTree
+			)
+		})
+}
+
+/// Split a package's findings into the ones this pull request produced and
+/// the ones inherited from the base branch since the latest release.
+fn partition_findings(
+	findings: &[ClassificationFinding],
+) -> (Vec<&ClassificationFinding>, Vec<&ClassificationFinding>) {
+	findings
+		.iter()
+		.partition(|finding| is_pull_request_finding(finding))
+}
+
+fn inherited_findings_label(base: &str) -> String {
+	format!("Unreleased changes already on `{base}` (not part of this pull request)")
+}
+
+fn finding_comparisons(finding: &ClassificationFinding) -> String {
+	finding
+		.comparisons
+		.iter()
+		.map(|comparison| comparison_kind_name(*comparison))
+		.collect::<Vec<_>>()
+		.join(", ")
+}
+
+fn markdown_ref_with_commit(reference: &str, commit: Option<&str>) -> String {
+	match commit {
+		Some(commit) => format!("`{reference}` (`{}`)", short_revision(commit)),
+		None => format!("`{reference}`"),
+	}
+}
+
+fn text_ref_with_commit(reference: &str, commit: Option<&str>) -> String {
+	match commit {
+		Some(commit) => format!("{reference} ({})", short_revision(commit)),
+		None => reference.to_string(),
+	}
+}
+
+#[coverage(off)]
+fn push_markdown_findings(lines: &mut Vec<String>, findings: &[&ClassificationFinding]) {
+	if findings.is_empty() {
+		return;
+	}
+	lines.push(String::new());
+	for finding in findings.iter().take(10) {
+		lines.push(format!(
+			"- `{}`: {} (`{}`, impact `{}`, bump `{}`, confidence `{}`, comparisons `{}`)",
+			finding.id,
+			finding.summary,
+			finding.location.display(),
+			compatibility_impact_name(finding.impact),
+			finding.bump,
+			classification_confidence_name(finding.confidence),
+			finding_comparisons(finding)
+		));
+		lines.push(format!(
+			"  - Evidence: {}",
+			markdown_finding_evidence(finding)
+		));
+	}
+	if findings.len() > 10 {
+		lines.push(format!("- {} more findings", findings.len() - 10));
+	}
+}
+
+#[coverage(off)]
+fn push_text_findings(lines: &mut Vec<String>, findings: &[&ClassificationFinding]) {
+	for finding in findings.iter().take(10) {
+		lines.push(format!(
+			"  - {}: {} ({}, impact {}, bump {}, confidence {}, comparisons {})",
+			finding.id,
+			plain_text_fragment(&finding.summary),
+			finding.location.display(),
+			compatibility_impact_name(finding.impact),
+			finding.bump,
+			classification_confidence_name(finding.confidence),
+			finding_comparisons(finding)
+		));
+		lines.push(format!(
+			"    Evidence: {}",
+			plain_text_fragment(&finding_evidence(finding))
+		));
+	}
+	if findings.len() > 10 {
+		lines.push(format!("  - {} more findings", findings.len() - 10));
+	}
+}
+
 #[coverage(off)]
 fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 	let mut lines = vec!["# Change classification".to_string(), String::new()];
@@ -2436,7 +2575,13 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 		return lines.join("\n");
 	}
 	lines.push(format!("- Schema version: `{}`", report.schema_version));
-	lines.push(format!("- Default branch: `{}`", report.default_branch));
+	lines.push(format!(
+		"- Base branch: {}",
+		markdown_ref_with_commit(&report.default_branch, report.base_commit.as_deref())
+	));
+	if let Some(head_commit) = &report.head_commit {
+		lines.push(format!("- Head commit: `{}`", short_revision(head_commit)));
+	}
 	lines.push(format!("- Candidate: `{}`", report.candidate));
 	lines.push(format!("- Recommended bump: `{}`", report.recommendation));
 	lines.push(format!("- Packages analyzed: {}", report.packages.len()));
@@ -2521,33 +2666,16 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 					));
 				}
 			}
-			lines.push(format!("- Findings: {}", package.findings.len()));
-			if !package.findings.is_empty() {
-				lines.push(String::new());
-				for finding in package.findings.iter().take(10) {
-					let comparisons = finding
-						.comparisons
-						.iter()
-						.map(|comparison| comparison_kind_name(*comparison))
-						.collect::<Vec<_>>()
-						.join(", ");
-					lines.push(format!(
-						"- `{}`: {} (`{}`, impact `{}`, bump `{}`, confidence `{}`, comparisons `{comparisons}`)",
-						finding.id,
-						finding.summary,
-						finding.location.display(),
-						compatibility_impact_name(finding.impact),
-						finding.bump,
-						classification_confidence_name(finding.confidence)
-					));
-					lines.push(format!(
-						"  - Evidence: {}",
-						markdown_finding_evidence(finding)
-					));
-				}
-			}
-			if package.findings.len() > 10 {
-				lines.push(format!("- {} more findings", package.findings.len() - 10));
+			let (current, inherited) = partition_findings(&package.findings);
+			lines.push(format!("- Findings: {}", current.len()));
+			push_markdown_findings(&mut lines, &current);
+			if !inherited.is_empty() {
+				lines.push(format!(
+					"- {}: {}",
+					inherited_findings_label(&report.default_branch),
+					inherited.len()
+				));
+				push_markdown_findings(&mut lines, &inherited);
 			}
 			lines.push(String::new());
 		}
@@ -2577,7 +2705,13 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 		return lines.join("\n");
 	}
 	lines.push(format!("Schema version: {}", report.schema_version));
-	lines.push(format!("Default branch: {}", report.default_branch));
+	lines.push(format!(
+		"Base branch: {}",
+		text_ref_with_commit(&report.default_branch, report.base_commit.as_deref())
+	));
+	if let Some(head_commit) = &report.head_commit {
+		lines.push(format!("Head commit: {}", short_revision(head_commit)));
+	}
 	lines.push(format!("Candidate: {}", report.candidate));
 	lines.push(format!("Recommended bump: {}", report.recommendation));
 	lines.push(format!("Packages analyzed: {}", report.packages.len()));
@@ -2667,30 +2801,16 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 					));
 				}
 			}
-			lines.push(format!("  Findings: {}", package.findings.len()));
-			for finding in package.findings.iter().take(10) {
-				let comparisons = finding
-					.comparisons
-					.iter()
-					.map(|comparison| comparison_kind_name(*comparison))
-					.collect::<Vec<_>>()
-					.join(", ");
+			let (current, inherited) = partition_findings(&package.findings);
+			lines.push(format!("  Findings: {}", current.len()));
+			push_text_findings(&mut lines, &current);
+			if !inherited.is_empty() {
 				lines.push(format!(
-					"  - {}: {} ({}, impact {}, bump {}, confidence {}, comparisons {comparisons})",
-					finding.id,
-					plain_text_fragment(&finding.summary),
-					finding.location.display(),
-					compatibility_impact_name(finding.impact),
-					finding.bump,
-					classification_confidence_name(finding.confidence)
+					"  {}: {}",
+					plain_text_fragment(&inherited_findings_label(&report.default_branch)),
+					inherited.len()
 				));
-				lines.push(format!(
-					"    Evidence: {}",
-					plain_text_fragment(&finding_evidence(finding))
-				));
-			}
-			if package.findings.len() > 10 {
-				lines.push(format!("  - {} more findings", package.findings.len() - 10));
+				push_text_findings(&mut lines, &inherited);
 			}
 		}
 	}
