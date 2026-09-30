@@ -25,6 +25,8 @@ use monochange_core::SemanticChangeAssessment;
 use monochange_core::SemanticChangeCategory;
 use monochange_core::SemanticChangeKind;
 use quote::ToTokens;
+use syn::parse::Parser as _;
+use syn::visit_mut::VisitMut as _;
 use toml::Value;
 
 use crate::CARGO_MANIFEST_FILE;
@@ -273,11 +275,61 @@ fn is_rust_source_file(file: &PackageSnapshotFile) -> bool {
 
 fn collect_public_symbols(file: &PackageSnapshotFile) -> Result<Vec<PublicSymbol>, String> {
 	let module_prefix = module_prefix_for_file(&file.path);
-	let parsed = syn::parse_file(&file.contents)
+	let mut parsed = syn::parse_file(&file.contents)
 		.map_err(|error| format!("failed to parse {}: {error}", file.path.display()))?;
 	let mut symbols = Vec::new();
+	RemoveDocumentation.visit_file_mut(&mut parsed);
 	collect_public_symbols_from_items(&parsed.items, &module_prefix, &file.path, &mut symbols);
 	Ok(symbols)
+}
+
+/// Documentation changes do not change Rust API or ABI signatures.
+struct RemoveDocumentation;
+
+impl syn::visit_mut::VisitMut for RemoveDocumentation {
+	fn visit_attributes_mut(&mut self, attributes: &mut Vec<syn::Attribute>) {
+		attributes.retain_mut(|attribute| retain_api_attribute(&mut attribute.meta));
+	}
+}
+
+/// Keep semantic attributes while removing documentation from conditional lists.
+fn retain_api_attribute(meta: &mut syn::Meta) -> bool {
+	if meta.path().is_ident("doc") {
+		return false;
+	}
+
+	let syn::Meta::List(list) = meta else {
+		return true;
+	};
+
+	if !list.path.is_ident("cfg_attr") {
+		return true;
+	}
+
+	let parser = syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated;
+	let Ok(arguments) = parser.parse2(list.tokens.clone()) else {
+		// Preserve unfamiliar attribute syntax rather than hiding API changes.
+		return true;
+	};
+
+	let mut arguments = arguments.into_iter();
+	let Some(condition) = arguments.next() else {
+		return true;
+	};
+	let Some(first_attribute) = arguments.next() else {
+		return true;
+	};
+	let attributes = std::iter::once(first_attribute)
+		.chain(arguments)
+		.filter_map(|mut attribute| retain_api_attribute(&mut attribute).then_some(attribute))
+		.collect::<Vec<_>>();
+
+	if attributes.is_empty() {
+		return false;
+	}
+
+	list.tokens = quote::quote!(#condition, #(#attributes),*);
+	true
 }
 
 fn collect_public_symbols_from_items(

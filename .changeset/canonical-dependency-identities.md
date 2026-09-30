@@ -1,5 +1,5 @@
 ---
-monochange_core: patch
+monochange_core: minor
 monochange_python: patch
 ---
 

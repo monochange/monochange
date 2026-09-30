@@ -1,6 +1,6 @@
 ---
 monochange: patch
-monochange_core: patch
+monochange_core: minor
 ---
 
 # Preserve explicit dependency rules during release preparation

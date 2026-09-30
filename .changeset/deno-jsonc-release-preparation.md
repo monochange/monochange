@@ -1,7 +1,7 @@
 ---
 monochange: patch
 monochange_config: patch
-monochange_deno: patch
+monochange_deno: minor
 ---
 
 # Prepare releases from Deno JSONC manifests
