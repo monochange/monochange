@@ -77,7 +77,7 @@ expression: report
       ],
       "findings": [
         {
-          "after": "# [doc = \" The `floats` reexport moved to `pinapod`, so the old alias is gone.\"] pub mod pod { pub struct PodF32 ; }",
+          "after": "pub mod pod { pub struct PodF32 ; }",
           "analyzer": {
             "id": "cargo/public-api",
             "version": "1"
