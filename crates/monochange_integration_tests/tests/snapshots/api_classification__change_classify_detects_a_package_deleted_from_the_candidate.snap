@@ -3,6 +3,7 @@ source: crates/monochange_integration_tests/tests/api_classification.rs
 expression: report
 ---
 {
+  "base_commit": "[SHA]",
   "candidate": "merge-tree:[SHA]",
   "comparisons": [
     {
@@ -21,6 +22,7 @@ expression: report
     }
   ],
   "default_branch": "HEAD~1",
+  "head_commit": "[SHA]",
   "packages": [
     {
       "action": "create",

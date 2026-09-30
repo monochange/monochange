@@ -3,6 +3,7 @@ source: crates/monochange_integration_tests/tests/cli_surface_classification.rs
 expression: projected
 ---
 {
+  "base_commit": "[SHA]",
   "candidate": "merge-tree:[SHA]",
   "comparisons": [
     {
@@ -21,6 +22,7 @@ expression: projected
     }
   ],
   "default_branch": "HEAD~1",
+  "head_commit": "[SHA]",
   "packages": [
     {
       "action": "create",

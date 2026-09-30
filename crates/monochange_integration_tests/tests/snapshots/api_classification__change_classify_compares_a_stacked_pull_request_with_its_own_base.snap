@@ -1,0 +1,72 @@
+---
+source: crates/monochange_integration_tests/tests/api_classification.rs
+expression: markdown
+---
+# Change classification
+
+- Schema version: `0.4`
+- Base branch: `parent` (`[SHA]`)
+- Head commit: `[SHA]`
+- Candidate: `merge-tree:[SHA]`
+- Recommended bump: `minor`
+- Packages analyzed: 2
+
+## Comparisons
+
+- `pullRequest`: `parent` to `merge-tree:[SHA]` (analyzed)
+- `sourceDelta`: `[SHA]` to `HEAD` (analyzed)
+
+## Packages
+
+### `core`
+
+- Ecosystem: `cargo`
+- Proposed changeset bump: `none`
+- Enforceable minimum: `none`
+- Release floor: `major`
+- compatibility impact: `compatible`
+- release impact: `breaking`
+- confidence: `high`
+- completeness: `complete`
+- Review required: `false`
+- changeset action: `review`
+- Summary: the pull request does not change this package; the pending changeset intent needs review
+- Release owner: `package` `core`
+- Latest release: `core/v1.0.0`
+- Existing changesets:
+  - `.changeset/security-lints.md`: `minor`
+- Findings: 0
+- Unreleased changes already on `parent` (not part of this pull request): 3
+
+- `cargo/public-api/public_api/added/module/pod`: module `pod` added (`src/lib.rs`, impact `additive`, bump `minor`, confidence `medium`, comparisons `release, releaseToDefault`)
+  - Evidence: cargo/public-api 1; coverage partial: syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete
+- `cargo/public-api/public_api/added/struct/pod::PodF32`: struct `pod::PodF32` added (`src/lib.rs`, impact `additive`, bump `minor`, confidence `medium`, comparisons `release, releaseToDefault`)
+  - Evidence: cargo/public-api 1; coverage partial: syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete
+- `cargo/public-api/public_api/removed/reexport/Pod as OldPod`: reexport `Pod as OldPod` removed (`src/lib.rs`, impact `breaking`, bump `major`, confidence `medium`, comparisons `release, releaseToDefault`)
+  - Evidence: cargo/public-api 1; coverage partial: syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete
+
+### `lints`
+
+- Ecosystem: `cargo`
+- Proposed changeset bump: `minor`
+- Enforceable minimum: `minor`
+- Release floor: `minor`
+- compatibility impact: `additive`
+- release impact: `additive`
+- confidence: `high`
+- completeness: `complete`
+- Review required: `false`
+- changeset action: `create`
+- Summary: 2 additive finding(s) propose a minor changeset
+- Release owner: `package` `lints`
+- Latest release: `lints/v1.0.0`
+- Findings: 2
+
+- `cargo/public-api/public_api/modified/constant/LINT_NAMES`: constant `LINT_NAMES` modified (`src/lib.rs`, impact `additive`, bump `minor`, confidence `high`, comparisons `pullRequest, release, sourceDelta`)
+  - Evidence: cargo/public-api via monochange 1; coverage complete: constant \`LINT\_NAMES\` appends elements to a public \`& str\` slice literal; the element type and the existing element order are unchanged
+- `cargo/public-api/public_api/modified/static/LINTS`: static `LINTS` modified (`src/lib.rs`, impact `additive`, bump `minor`, confidence `high`, comparisons `pullRequest, release, sourceDelta`)
+  - Evidence: cargo/public-api via monochange 1; coverage complete: static \`LINTS\` appends elements to a public \`& str\` slice literal; the element type and the existing element order are unchanged
+
+## Warnings
+
+- changed path `.changeset/security-lints.md` did not match any configured package

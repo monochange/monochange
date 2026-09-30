@@ -660,6 +660,13 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"description": "JSON Schema for monochange.toml workspace configuration files.",
 	"properties": {
+		"base_commit": {
+			"description": "Commit the base ref resolved to when the report was built, so a reader\ncan tell whether the base moved since. Absent when the report was\nbuilt from a single analysis frame or the run was skipped.",
+			"type": [
+				"string",
+				"null"
+			]
+		},
 		"candidate": {
 			"type": "string"
 		},
@@ -670,7 +677,15 @@
 			"type": "array"
 		},
 		"default_branch": {
+			"description": "The base ref the candidate was compared with: `--base`, or the remote\ndefault branch. A stacked pull request passes its own base branch here.",
 			"type": "string"
+		},
+		"head_commit": {
+			"description": "Commit `--head` resolved to. When local changes were materialized into\nthe candidate, this is the committed `HEAD` they were applied on.",
+			"type": [
+				"string",
+				"null"
+			]
 		},
 		"matched_skip_labels": {
 			"description": "Configured skip labels that matched labels on this pull request.",

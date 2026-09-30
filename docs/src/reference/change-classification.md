@@ -8,7 +8,7 @@ The classifier resolves these comparisons:
 
 | Kind               | Base                                                                         | Head                                                | Purpose                                                     |
 | ------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------- |
-| `pullRequest`      | The remote default branch, or `--base`                                       | The synthetic merge result of the base and `--head` | Changes introduced after the pull request merges            |
+| `pullRequest`      | `--base`, or the remote default branch                                       | The synthetic merge result of the base and `--head` | Changes introduced after the pull request merges            |
 | `sourceDelta`      | The merge base of the default branch and the source candidate                | The source candidate                                | Changes authored on the pull request branch                 |
 | `workingTree`      | `HEAD`                                                                       | The staged, unstaged, deleted, and untracked files  | A diagnostic view of local changes                          |
 | `release`          | The highest SemVer tag matching the owner's `version_format`, or `--release` | The synthetic merge result                          | Accumulated change since the latest release                 |
@@ -21,6 +21,10 @@ Tag baselines use the highest semantic version among repository tags that match 
 <!-- {/tagBaselinePolicy} -->
 
 `pullRequest` and `release` are exact two-endpoint comparisons. `sourceDelta` uses the merge base only to identify work authored on the branch. When `--head` is `HEAD`, the source candidate materializes committed and local changes into one temporary Git commit. The bump comes from the net candidate comparison, while `workingTree` remains a diagnostic view. A local edit that reverses a committed breaking change therefore removes that break from the proposal instead of adding a second, contradictory signal.
+
+A stacked pull request must pass its own base branch with `--base`. Without it, the classifier compares the branch with the remote default branch and attributes every change from the branch below it to this pull request.
+
+The report records the commit each endpoint resolved to in `base_commit` and `head_commit`. A reader can match `head_commit` with the pull request head to confirm a report is current, and a changed `base_commit` shows that the base branch moved since the report was built.
 
 The candidate is a tree object created by `git merge-tree --write-tree`. monochange uses a temporary index for local changes and does not change the real index or worktree. If Git cannot create the merge tree, the report marks the comparison as `conflicted`, falls back to the source candidate, and requires human review.
 
@@ -71,6 +75,8 @@ When any configured label is present, the report sets `skipped: true`, analyzes 
 Each finding records its `rule_id`, API surface, change kind, compatibility impact, bump, confidence, analyzer id, engine and version, coverage note, optional fallback reason, source location, before and after signatures, and comparison membership. Markdown and text reports print the evidence directly below each finding so pull request comments retain the same provenance as JSON.
 
 `unmodeled` means the change is real but sits outside the public surface the analyzer models, so no compatibility verdict applies. The package is supported; only that file change is outside the model. A changed package with no modeled finding receives the low-confidence `monochange/unclassified-source` fallback, which proposes `patch` and requires review because no analyzer can rule out a break.
+
+A package keeps findings from every comparison in `findings`, because the release floor needs the inherited evidence. A finding whose `comparisons` include `pullRequest`, `sourceDelta`, or `workingTree` belongs to this pull request. A finding seen only in `release` and `releaseToDefault` describes work the base branch already carries. Markdown and text reports list those findings under "Unreleased changes already on `<base>` (not part of this pull request)" instead of counting them as the package's findings.
 
 Identical evidence found in several comparisons shares one finding and lists every comparison. If the same item has different before or after signatures across the pull-request and release intervals, monochange emits distinct comparison-qualified finding ids so that an agent never applies one interval's signature evidence to another interval.
 
@@ -178,6 +184,7 @@ monochange change classify --format markdown --dependency-propagation public
 
 JSON is the stable agent and automation interface. The top-level `schema_version` changes when the JSON contract changes:
 
+- **0.4** adds the top-level `base_commit` and `head_commit` fields. Markdown and text reports list only pull request findings under each package and move findings seen only in the `release` and `releaseToDefault` comparisons to a separate "not part of this pull request" list.
 - **0.3** adds `decision.pull_request_changes` and scopes `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.review_required` to packages the pull request actually touches.
 - **0.2** adds `decision.release_impact` and caps `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.release_floor` with the release comparison.
 - **0.1** is the first contract published by the `monochange_classification` crate: snake_case keys, `unmodeled` instead of `unknown`, and the top-level `skipped`, `summary`, and `matched_skip_labels` fields.
@@ -223,7 +230,19 @@ steps:
       dependency-propagation: public
 ```
 
-Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`. The action accepts every report with classification `schema_version` `0.1` or newer. The evidence fields the action reads (packages, decisions, findings) are stable across those schema versions.
+Checking out the pull request head SHA keeps GitHub's synthetic test-merge commit out of the source candidate. The action passes the pull request base branch as `--base` and the pull request head SHA as `--head`, so a stacked pull request is compared with the branch it targets. Add the `edited` event with a guard on `github.event.changes.base` so a retargeted pull request is classified again against its new base:
+
+```yaml
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  classify:
+    if: ${{ github.event.action != 'edited' || github.event.changes.base }}
+```
+
+The comment names the classified head commit and base commit. Every new push re-runs the job and replaces the comment, so a comment whose head commit differs from the pull request head is stale. The action exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. Use `recommendation` for routing, but inspect the package decisions in `json` before writing changesets whenever `review-required` is `true`. The action accepts every report with classification `schema_version` `0.1` or newer. The evidence fields the action reads (packages, decisions, findings) are stable across those schema versions.
 
 For complete TypeScript evidence, install the repository dependencies before this step. For configured Rust target cells, install those targets before the action. Keep the workflow on `pull_request`; the analyzer may execute changed build scripts and procedural macros. Comment creation is best-effort. Fork pull requests with read-only tokens still receive the action outputs and job summary.
 

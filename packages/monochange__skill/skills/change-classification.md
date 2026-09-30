@@ -14,7 +14,7 @@ Use this workflow before you create or edit a changeset for code, configuration,
 3. If the CLI is unavailable and the monochange MCP server is configured, call `monochange_classify_changes` with `packages: []`, `detection_level: "semantic"`, `include_unchanged: false`, and `dependency_propagation: "public"`.
 4. Read every returned package. Finish only after each affected package has release intent or a documented review decision.
 
-The command detects the remote default branch. Pass `--base <ref>` only when the detected branch is wrong. Pass `--release <ref>` to reproduce a known release baseline. Use repeated `--package <id-or-name>` flags only to narrow an investigation; classify the full change before final validation.
+The command detects the remote default branch. Pass `--base <ref>` when the pull request targets another branch, such as a stacked pull request, or when the detected branch is wrong. Pass `--release <ref>` to reproduce a known release baseline. Use repeated `--package <id-or-name>` flags only to narrow an investigation; classify the full change before final validation.
 
 With the default `--head HEAD`, monochange materializes committed, staged, unstaged, deleted, and untracked files into one temporary Git candidate without changing the real index or worktree. Base the bump on `pullRequest`, which describes the net result after merge. Use `workingTree` only to explain the local part of that result; do not add its severity to the pull-request severity a second time.
 
@@ -23,6 +23,8 @@ With the default `--head HEAD`, monochange materializes committed, staged, unsta
 Use `decision.proposed_changeset_bump` as the starting bump for the current pull request. It is already capped by the release comparison: a modeled finding never proposes more than the release-relative bump for the package, because nobody holding the latest release can observe a break in an API the release never shipped. Use `decision.release_impact` to read that release-relative verdict, and `decision.release_floor` to understand all unreleased changes since the latest release. Do not copy `release_floor` into the current changeset when an earlier merged change caused it.
 
 Use `decision.pull_request_changes` to tell whether this contribution touched the package at all. When it is `false`, every finding came from the `release`/`releaseToDefault` intervals, so `proposed_changeset_bump` is `none`, `review_required` is `false`, and the accumulated change appears only in `release_floor` and `release_impact`. Report the package as unaffected by this pull request and do not write a bump for it. An `action` of `review` on such a package means a pending changeset describes a cross-package consumer effect, not that the package needs a breaking bump, and the summary says so.
+
+Findings whose `comparisons` contain only `release` and `releaseToDefault` describe work already on the base branch. Never attribute them to the current pull request; the Markdown report lists them separately as "not part of this pull request". Compare `head_commit` with the commit you are classifying before trusting a saved report.
 
 Trace `decision.finding_ids` into `findings`. Confirm the source location, before and after signatures, and `comparisons` for each finding that determines a `major` or `minor` proposal.
 
@@ -138,7 +140,7 @@ steps:
       dependency-propagation: public
 ```
 
-Keep `fetch-depth: 0` so the classifier can resolve the merge base, default branch, and release tags. Check out the pull request head SHA so the candidate excludes GitHub's synthetic test-merge commit.
+Keep `fetch-depth: 0` so the classifier can resolve the merge base, default branch, and release tags. Check out the pull request head SHA so the candidate excludes GitHub's synthetic test-merge commit. The action compares the pull request with its own base branch, so stacked pull requests do not inherit the changes of the branch below them.
 
 Install repository dependencies before the classification step when TypeScript packages publish declarations. The action writes the full report to the job summary and exposes `json`, `markdown`, `recommendation`, `review-required`, and `summary` outputs. With `post-comment: true`, it also updates one marker comment rather than adding a new comment on every run. The comment includes analyzer engine, version, completeness, coverage, and fallback reasons beneath each finding. Treat `recommendation` as a routing hint only: read `json` and resolve every package whose `review_required` is true before writing its changeset. Comment creation is best-effort so fork pull requests with read-only tokens still produce outputs and a job summary.
 

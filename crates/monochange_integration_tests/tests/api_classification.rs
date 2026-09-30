@@ -5,6 +5,7 @@ use std::path::Path;
 use std::process::Command;
 
 use insta::assert_json_snapshot;
+use insta::assert_snapshot;
 use monochange_test_helpers::copy_directory;
 use monochange_test_helpers::git;
 use monochange_test_helpers::snapshot_settings;
@@ -239,7 +240,7 @@ fn change_classify_detects_rust_typescript_and_javascript_api_impacts() {
 	);
 
 	assert_eq!(report["recommendation"], "major");
-	assert_eq!(report["schema_version"], "0.3");
+	assert_eq!(report["schema_version"], "0.4");
 	assert_package_recommendation(&report, "rust_core", "major");
 	assert_package_recommendation(&report, "ts_client", "minor");
 	assert_package_recommendation(&report, "js_utils", "patch");
@@ -884,7 +885,7 @@ fn change_classify_supports_global_jq_and_equals_options() {
 		],
 	);
 
-	assert_eq!(output, "0.3");
+	assert_eq!(output, "0.4");
 }
 
 #[test]
@@ -912,7 +913,7 @@ fn changeset_api_validation_writes_the_requested_report() {
 	assert_eq!(
 		serde_json::from_str::<Value>(&written)
 			.unwrap_or_else(|error| panic!("parse written report: {error}"))["schema_version"],
-		"0.3"
+		"0.4"
 	);
 }
 
@@ -1200,4 +1201,114 @@ fn changeset_api_validation_exempts_escaped_packages() {
 		!error.contains("package `group_policy`"),
 		"unexpected error: {error}"
 	);
+}
+
+fn rev_parse(root: &Path, reference: &str) -> String {
+	let output = Command::new("git")
+		.current_dir(root)
+		.args(["rev-parse", reference])
+		.output()
+		.unwrap_or_else(|error| panic!("git rev-parse {reference}: {error}"));
+	assert!(output.status.success(), "git rev-parse {reference} failed");
+	String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
+/// Build a stacked pull request from the pull-request-scope fixture: `main`
+/// stays at the release, `parent` renames the public `core` reexport, and
+/// `child` appends the security lints on top of `parent`.
+fn setup_stacked_pull_request_fixture() -> TempDir {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/api-classification/pr-scoped-release-floor");
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
+	copy_directory(&fixture_root.join("released"), tempdir.path());
+	git(tempdir.path(), &["init"]);
+	git(tempdir.path(), &["config", "user.name", "monochange-tests"]);
+	git(
+		tempdir.path(),
+		&["config", "user.email", "monochange-tests@example.com"],
+	);
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "release"]);
+	git(tempdir.path(), &["branch", "-M", "main"]);
+	git(tempdir.path(), &["tag", "core/v1.0.0"]);
+	git(tempdir.path(), &["tag", "lints/v1.0.0"]);
+
+	git(tempdir.path(), &["checkout", "-b", "parent"]);
+	copy_directory(&fixture_root.join("default-branch"), tempdir.path());
+	git(tempdir.path(), &["add", "."]);
+	git(
+		tempdir.path(),
+		&["commit", "-m", "rename the core reexport"],
+	);
+
+	git(tempdir.path(), &["checkout", "-b", "child"]);
+	copy_directory(&fixture_root.join("pull-request"), tempdir.path());
+	git(tempdir.path(), &["add", "."]);
+	git(tempdir.path(), &["commit", "-m", "append security lints"]);
+
+	tempdir
+}
+
+#[test]
+fn change_classify_compares_a_stacked_pull_request_with_its_own_base() {
+	let fixture = setup_stacked_pull_request_fixture();
+	let root = fixture.path();
+
+	let report = run_json(
+		root,
+		&[
+			"change", "classify", "--base", "parent", "--head", "HEAD", "--format", "json",
+		],
+	);
+
+	// The report names the exact endpoints it compared, so a reader can match
+	// the comment with the pull request head and notice when the base moved.
+	assert_eq!(report["default_branch"], "parent");
+	assert_eq!(report["base_commit"], rev_parse(root, "parent"));
+	assert_eq!(report["head_commit"], rev_parse(root, "HEAD"));
+
+	// The rename lives on `parent`, below this pull request, so `core` is
+	// unaffected here while its release floor still carries the break.
+	let core = package(&report, "core");
+	assert_eq!(core["decision"]["pull_request_changes"], false);
+	assert_eq!(core["decision"]["proposed_changeset_bump"], "none");
+	assert_eq!(core["decision"]["release_floor"], "major");
+	let lints = package(&report, "lints");
+	assert_eq!(lints["decision"]["pull_request_changes"], true);
+	assert_eq!(lints["decision"]["proposed_changeset_bump"], "minor");
+	assert_eq!(report["recommendation"], "minor");
+
+	// Comparing with the default branch instead attributes the parent's rename
+	// to this pull request, which is the stacked-branch misreport.
+	let against_main = run_json(
+		root,
+		&[
+			"change", "classify", "--base", "main", "--head", "HEAD", "--format", "json",
+		],
+	);
+	assert_eq!(against_main["default_branch"], "main");
+	assert_eq!(against_main["base_commit"], rev_parse(root, "main"));
+	let core = package(&against_main, "core");
+	assert_eq!(core["decision"]["pull_request_changes"], true);
+	assert_eq!(core["decision"]["proposed_changeset_bump"], "major");
+	assert_eq!(against_main["recommendation"], "major");
+
+	let markdown = run_mc(
+		root,
+		&[
+			"change",
+			"classify",
+			"--base",
+			"parent",
+			"--head",
+			"HEAD",
+			"--format",
+			"markdown",
+			"--skip-cli-snapshots",
+		],
+	);
+	snapshot_settings().bind(|| {
+		assert_snapshot!(markdown);
+	});
 }
