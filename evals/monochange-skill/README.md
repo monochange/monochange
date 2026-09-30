@@ -158,7 +158,7 @@ The completed formal comparisons record these outcomes:
 | 38-task first pass                 | 114                   | 36/38    | 36/38   | 34/38 (`expanded-initial`) |
 | Three focused tasks, three repeats | 27                    | 9/9      | 8/9     | 7/9 (`expanded-revised`)   |
 
-The 141 original invocations recorded 1,415,300 input plus output tokens excluding cache tokens and $92.73. Regrades made no new agent calls. [FINDINGS.md](FINDINGS.md) and the [first-pass](reports/first-pass.json) and [follow-up](reports/follow-up.json) evidence describe corrected grader outcomes, exact artifacts, remaining failures, and why these exploratory results do not establish a causal winner. The [final-build contract evidence](reports/contracts.json) separately records 22 passing scenarios and 106 passing checks against the final executable; it does not rerun the paid agent matrix or all 315 authored checks.
+The 141 original invocations recorded 1,415,300 input plus output tokens excluding cache tokens and $92.73. Regrades made no new agent calls. [FINDINGS.md](FINDINGS.md) and the [first-pass](reports/first-pass.json) and [follow-up](reports/follow-up.json) evidence describe corrected grader outcomes, exact artifacts, remaining failures, and why these exploratory results do not establish a causal winner. The [current contract evidence](reports/contracts.json) records 22 passing scenarios and 106 passing checks against the rebuilt executable after the CI-discovered Rustdoc correction. [Earlier contract evidence](reports/contracts-before-ci-fix.json) preserves the prior build's results. These phases do not rerun the paid agent matrix or all 315 authored checks.
 
 ## Re-grading without re-running the agent
 

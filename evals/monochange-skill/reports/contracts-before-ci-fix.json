@@ -1,18 +1,16 @@
 {
 	"schemaVersion": 1,
-	"phase": "post-ci-fix-agent-free-contracts",
+	"phase": "final-agent-free-contracts",
 	"source": {
-		"path": "evals/monochange-skill/results/report-2026-09-30T08-57-21-432Z.json",
-		"sha256": "a82058fd3877209005914814c036135d9269556c802b4e3c8a7acfd968fbed22",
-		"startedAt": "2026-09-30T08:57:21.432Z",
-		"finishedAt": "2026-09-30T08:58:44.008Z"
+		"path": "evals/monochange-skill/results/report-2026-09-30T08-05-29-217Z.json",
+		"sha256": "fa1d2e741c0c11d6789822351d71b7bd5749d65b82d5bd417d8a3cdb11503d64",
+		"startedAt": "2026-09-30T08:05:29.217Z",
+		"finishedAt": "2026-09-30T08:05:47.412Z"
 	},
 	"provenance": {
-		"checkoutCommit": "b05f2b2ef4a8f2c490e91798b069d07403a74c83",
-		"cliSha256": "9406d48fa3befe8d242d35f6062177f06a68885d3a43e5ebf4c410ff1a1699f8"
+		"checkoutCommit": "937cea83f537d3ae6d61e0f89de9a2e54cdee11c",
+		"cliSha256": "a59c7657c9a2f28aab4303760ac0f3cb6ed4f5c042e7392feaa748f4e661d13f"
 	},
-	"sourceCommit": "46990b74ceb81155e066996c47f8f234e50ef07b",
-	"previousEvidence": "evals/monochange-skill/reports/contracts-before-ci-fix.json",
 	"trials": 22,
 	"passed": 22,
 	"checks": 106,
@@ -749,5 +747,5 @@
 			]
 		}
 	],
-	"scope": "All 22 agent-free scenarios against the rebuilt binary containing the CI-discovered Rustdoc correction. This does not execute the 38 agent tasks or every one of the 315 authored checks, and variant labels do not score skill quality."
+	"scope": "All 22 agent-free scenarios against the final rebuilt binary. This does not execute the 38 agent tasks or every one of the 315 authored checks, and variant labels do not score skill quality."
 }
