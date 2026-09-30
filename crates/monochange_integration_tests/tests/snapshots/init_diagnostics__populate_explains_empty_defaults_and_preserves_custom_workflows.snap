@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/init_diagnostics.rs
+expression: output
+---
+left [workspace]/monochange.toml unchanged; this version provides no default CLI workflow aliases. Use `monochange command` to define custom workflows

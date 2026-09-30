@@ -1,0 +1,88 @@
+---
+source: crates/monochange/src/__tests__/lib_tests.rs
+expression: help
+---
+monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Python, and Go, then coordinates version bumps, changelogs, and release automation from a single monochange.toml config.
+
+Usage: monochange [OPTIONS] <COMMAND>
+
+Built-in Commands:
+  snapshot       Print a normalized JSON snapshot of the CLI surface
+  init           Generate monochange.toml with detected packages and groups
+  populate       Check for default CLI workflow aliases (none are provided in this version)
+  command        Open an interactive dashboard for adding or editing config-defined CLI commands
+  skill          Read or install the bundled monochange agent skill
+  subagents      Generate repo-local monochange subagents and agent guidance files
+  change         Determine the release severity of repository changes
+  api            Inspect lower-level API diffs
+  changeset      Inspect and validate pending changeset intent
+  analyze        Analyze semantic changes for one package across main, head, and optional release baselines
+  notes          Render one configured release-note output without modifying release files
+  migrate        Audit or migrate release metadata for monochange repositories
+  lint           Inspect and scaffold manifest lint rules
+  versions       List package and group versions or sync internal dependency constraints
+  publish        Publish packages and inspect registry publishing state
+  create         Create a changeset file for one or more packages
+  discover       Discover packages across supported ecosystems
+  config         Render resolved monochange configuration and workspace metadata
+  preview        Preview planned version bumps, changelogs, and release artifacts without writing files
+  prepare        Prepare version bumps, changelogs, and release artifacts
+  affected       Evaluate affected packages and changeset coverage
+  diagnose       Inspect changeset provenance and review metadata
+  next           Show the next version for each release group and package without writing files
+  next-versions  Show the next version for each release group and package without writing files
+  mcp            Start the monochange MCP (Model Context Protocol) server over stdin/stdout
+  check          Validate configuration, changesets, and run manifest lint rules
+  help           Show detailed help for a command
+  step           Run built-in release workflow steps
+  run            Run workflow commands defined in monochange.toml
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+
+Global Options:
+  -q, --quiet
+          Suppress result, progress, and diagnostic output without changing execution
+
+      --progress-format <FORMAT>
+          Control progress output on stderr
+          
+          [possible values: auto, unicode, ascii, json]
+
+      --jq <EXPRESSION>
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
+
+      --snapshot
+          Print a normalized JSON snapshot for this command subtree
+
+Quick Start
+
+1. Create or update monochange.toml for your workspace:
+
+  monochange init
+
+2. Validate configuration and changeset targets before making release changes:
+
+  monochange step validate
+
+3. Inspect detected package ids and groups when authoring changesets or workflow inputs:
+
+  monochange step discover --format json
+
+4. Check what the next version will be before preparing a release. This reads pending changesets and writes nothing:
+
+  monochange next
+  monochange next --format json
+
+5. Use repository-defined workflows through monochange run <command> when they exist in your config, or call immutable built-in steps directly with monochange step <name>.
+
+6. Preview before mutating files, publishing packages, creating tags, or opening release requests:
+
+  monochange run release --dry-run --diff
+  monochange step prepare-release --dry-run --diff
+
+Run monochange help <command> or monochange help step <name> for command-specific options.

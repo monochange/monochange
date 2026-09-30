@@ -158,6 +158,27 @@ floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
 
 Alias templates support `{{ major }}`, `{{ minor }}`, `{{ patch }}`, plus the `version_format` variables. Floating tags are skipped for prereleases, never receive provider releases, and are excluded from baseline and previous-tag resolution.
 
+## Prerelease mode
+
+Use `[prerelease]` for a repeatable alpha, beta, or rc series before a stable release:
+
+```toml
+[prerelease]
+enabled = true
+channel = "alpha"
+numbering = "increment" # increment | date | datetime
+base = "planned" # planned | current-stable | fixed
+keep_changesets = true
+changelog = false
+release_notes = true
+publish_packages = false
+write_manifests = true
+```
+
+`planned` computes the stable base from changesets; `current-stable` uses the original stable version; `fixed` requires `base_version`. Optional `branches` overrides the stable release branch policy for prerelease tag/publish checks. `[source.releases].prerelease` only marks provider release objects; it does not enable this version-planning mode.
+
+`monochange preview --format json` checks the plan before local preparation. Repeated `monochange prepare` runs advance the series using committed `.monochange/prerelease-state.json`, preserve changesets by default, and skip changelog file writes by default. Hosted release notes still render, with only changesets added since the preceding prerelease in that series. Changing `channel` restarts increment numbering and the notes delta. Keep state outside `.monochange/local/`; do not discard it to work around diagnostics. Disable prerelease mode when preparing the final stable release; successful stable preparation removes the state file. See the [configuration guide](https://monochange.github.io/monochange/guide/04-configuration.html#prerelease-mode) for the complete state and notes lifecycle.
+
 ## Bump propagation to dependents
 
 `bump_propagation` declares what this target's own changes mean for the packages that depend on it:
@@ -215,6 +236,8 @@ include = ["@acme/cli"]
 
 With a list, a member-targeted changeset appears only when every target in that changeset is listed.
 
+This filter applies only to the group's changelog file. `monochange notes` and provider release notes render the complete release content for their selected stream/output; they do not inherit `changelog.include`.
+
 Use a group only for packages that genuinely release as one unit. A group collapses several package releases into a single outward release identity, so unrelated packages should stay out.
 
 ## Versioned files
@@ -253,7 +276,32 @@ versioned_files = [
 ]
 ```
 
-Accepted prefixes are `^`, `~`, `>=`, `=`, `v`, and `""`. Without one, the ecosystem default applies: `^` for npm, deno, and dart, `>=` for python, `v` for go, and empty for cargo. Override the ecosystem default with `[ecosystems.<name>] dependency_version_prefix`. The prefix affects internal dependency references only; a package's own `version` field is always written bare. See [Python and Go version writing](#python-and-go-version-writing) for ecosystems that have no built-in version writer. `format` and `regex` entries do not accept `prefix`.
+Accepted prefixes are `^`, `~`, `>=`, `=`, `v`, and `""`. Without one, typed entries use the ecosystem default: `^` for npm, deno, and dart, `>=` for python, `v` for go, and empty for cargo. `[ecosystems.<name>] dependency_version_prefix` overrides this default for typed `versioned_files` entries only. Automatic native dependency synchronization during preparation uses its own default strategy; changing the ecosystem prefix alone does not change native manifests. Add a typed entry for each native manifest whose dependency prefix you want to override. Selected entries run after native synchronization and before lockfile commands. The prefix affects internal dependency references only; a package's own `version` field is always written bare. See [Python and Go version writing](#python-and-go-version-writing) for ecosystems that have no built-in version writer. `format` and `regex` entries do not accept `prefix`.
+
+For a package-owned typed entry, a dependency field such as `fields = ["dependencies"]` selects that package's native manifest name by default; it does not update every dependency in the field. Entries run when their owning package releases. A `name` override accepts a configured package id, resolved to its native manifest name, or a literal native name. Dependency references use the selected dependency's planned release version; selecting another package does not stamp it with the owner's version. The selected dependency must also be in the release plan.
+
+For example, suppose `core` has native npm name `@acme/core`, and both `packages/api/package.json` and `deploy/package.json` contain an `@acme/core` dependency:
+
+```toml
+[ecosystems.npm]
+dependency_version_prefix = "~"
+
+[package.core]
+path = "packages/core"
+type = "npm"
+versioned_files = [
+	# Override native synchronization in this registered package manifest.
+	{ path = "packages/api/package.json", type = "npm", fields = ["dependencies"] },
+	# The configured id resolves to @acme/core; this entry overrides the default.
+	{ path = "deploy/package.json", type = "npm", fields = ["dependencies"], name = "core", prefix = "=" },
+]
+
+[package.api]
+path = "packages/api"
+type = "npm"
+```
+
+Releasing `core` at `1.2.3` writes `~1.2.3` in the API manifest and `=1.2.3` in the deployment manifest. Dependency-only entries preserve each file's own root `version`. Paths are workspace-relative. Run `monochange preview --format json` and inspect `changed_files`, then `monochange preview --diff` to confirm the selected key, prefix, and version before preparation.
 
 Use `format` for structured files that should not receive ecosystem-specific handling:
 
@@ -295,7 +343,7 @@ Regex entries cannot set `type`, `prefix`, `fields`, or `name`, because they ope
 
 Native manifest version fields are rewritten automatically for Cargo (`Cargo.toml`), npm (`package.json`), Deno (`deno.json`), and Dart (`pubspec.yaml`). Python and Go have no built-in manifest version writer, so a release can plan a new version and rewrite internal dependency constraints while leaving the package's own version untouched unless you configure it.
 
-**Python**: `pyproject.toml` `[project].version` is only rewritten when a `versioned_files` entry for that file lists `version` in `fields`:
+**Python**: `pyproject.toml` `[project].version` or Poetry `[tool.poetry].version` is only rewritten when a typed `versioned_files` entry for that file lists `version` in `fields`:
 
 ```toml
 [package.acme-insight]
@@ -308,26 +356,27 @@ type = "python"
 fields = ["version"]
 ```
 
-Without that entry, `monochange prepare` plans the new version and rewrites internal dependency references such as `acme-insight>=0.5.3` in dependent manifests, but `[project].version` stays at its old value. A bare string entry such as `versioned_files = ["packages/insight/pyproject.toml"]` does not write `version`; `fields` must name it explicitly, the same rule every `versioned_files` entry follows.
+Without that entry, `monochange prepare` plans the new version and rewrites internal dependency references such as `acme-insight>=0.5.3` in dependent manifests, but the package's own version stays at its old value. A bare string entry such as `versioned_files = ["packages/insight/pyproject.toml"]` does not write `version`; `fields` must name it explicitly, the same rule every `versioned_files` entry follows. PEP 621 takes precedence when both tables exist; dynamic versions remain externally owned. Verify that the preview's `changed_files` includes the expected `pyproject.toml` and that its diff changes the intended version. An empty write list can reveal a missing writer even when the release plan computes a new version.
 
-**Go**: a module's own version is not stored in `go.mod`, so there is no manifest field to write. A `go` package resolves its baseline from release tags, so set `tag = true` and provide `initial_version` so a package with no matching tag still gets a release target:
+**Go**: a module's own version is not stored in `go.mod`, so there is no manifest field to write. A `go` package resolves its baseline from release tags, so set `tag = true` and provide `initial_version` as a fallback when no matching tag exists. Inspect local tags with `git tag --list` before selecting release ids. For an existing `core/v1.2.0` tag and native module path `github.com/acme/core`, preserve the namespace with:
 
 ```toml
-[package."github.com/acme/core"]
+[package.core]
 path = "core"
 type = "go"
 tag = true
+version_format = "namespaced"
 initial_version = "1.2.0"
 ```
 
-Intra-workspace `require` directives are rewritten to the released version during release preparation when the required module path matches a workspace package name. The Go toolchain refreshes `go.sum` through the inferred `go mod tidy` lockfile command rather than through monochange directly.
+The configured release id and native Go module path serve different purposes. `namespaced` uses the release owner id, so changing it to the full module path changes the tag prefix. Group membership can also change the release owner. Verify the resolved baseline and preview `tag_name`, rather than accepting a version supplied by the fallback. Intra-workspace `require` directives are rewritten to the released version during release preparation when the required module path matches a workspace package name. The Go toolchain refreshes `go.sum` through the inferred `go mod tidy` lockfile command rather than through monochange directly.
 
 ## Ecosystem settings
 
 ```toml
 [ecosystems.cargo]
 enabled = true
-roots = ["crates/*"] # globs to scan for manifests
+roots = ["crates/*"] # declared intent; does not filter discovery or ownership
 exclude = ["crates/experimental/*"]
 dependency_version_prefix = "^"
 versioned_files = ["Cargo.toml"]
@@ -347,7 +396,19 @@ lockfile_commands = [
 
 Each `lockfile_commands` entry is a table with `command`, optional `cwd`, and optional `shell`. A bare string is rejected. `shell = false` runs the executable directly, `shell = true` runs through `sh -c`, and `shell = "bash"` uses that binary.
 
+`monochange discover` is the raw inventory: it scans all supported ecosystems regardless of `enabled`, `roots`, or `exclude`. Those fields are parsed but do not filter discovery or registered package ownership. Use explicit `[package.*]` entries or auto-discovery registration instead:
+
+```toml
+[ecosystems.npm.auto_discover]
+include = ["packages/*"]
+exclude = ["packages/internal/*"]
+```
+
+Auto-discovery `include` and `exclude` govern which packages are registered in the resolved configuration shown by `monochange config`. They do not remove explicit package entries. To narrow an adoption produced by `init`, edit its generated `[package.*]` tables and group membership as well as any auto-discovery settings; merely setting `exclude` leaves the explicit registrations in place. Verify ownership with `monochange config --format json`, and use `discover` to inspect the wider inventory.
+
 Configuring `lockfile_commands` for an ecosystem replaces monochange's built-in direct lockfile rewrite for that ecosystem, so the commands own lockfile refresh entirely.
+
+Python lockfiles use native package-manager commands: `uv.lock` infers `uv lock`, and `poetry.lock` infers `poetry lock`. Poetry 2 preserves existing locked versions by default; do not add its removed `--no-update` option. Unknown Python lockfiles are skipped. Explicit Python `lockfile_commands` replace the inferred commands.
 
 ## Rust semantic compatibility
 
@@ -490,6 +551,8 @@ fixes = { heading = "Fixes", priority = 30 }
 docs = { heading = "Documentation", priority = 40 }
 ```
 
+A type's `section` references a section id, such as the built-in `feat` or `fix`, or a custom id declared under `[changelog.sections]`. Display headings such as `Added` or `Fixed` are labels, not ids: declare `added = { heading = "Added", priority = 20 }` before using `section = "added"`. Types and sections inherit built-in definitions, so they do not need restating when no override is required.
+
 `initial_header` is rendered only when a changelog file is created from empty content. Existing preambles are preserved. Section `priority` decides ordering and how the changelog collapses low-priority sections:
 
 ```toml
@@ -540,7 +603,7 @@ section = "breaking"
 
 [changelog.types.app_feature]
 bump = "minor"
-section = "features"
+section = "feat"
 stream = "user"
 
 [changelog.outputs.user]
@@ -556,6 +619,8 @@ changelog_output = "user"
 ```
 
 Each changeset file resolves to exactly one stream. When one implementation needs both developer detail and user-facing wording, write two changesets rather than mixing audiences in one file, then run a release preview (`monochange preview --format json`, `monochange prepare --dry-run`, or `monochange step prepare-release --dry-run`) to catch a file whose targets cross streams. `monochange step validate` and `monochange check` validate configuration and target resolution but do not detect mixed-stream files.
+
+Stream and output ids must start with a lowercase letter and contain only lowercase letters, digits, and underscores. Use `user_notes`, not `user-notes`. The same identifier rule applies to type and section keys.
 
 `[changelog.outputs.<id>]` supports `stream`, `targets`, `path`, `format`, `mode`, and `initial_header`. Formats are `monochange`, `keep_a_changelog`, `json`, and `text`; JSON and text require `mode = "release"`, while `append` maintains a cumulative Markdown file. A package or group changelog is the implicit output named `default`.
 

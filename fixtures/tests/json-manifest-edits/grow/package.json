@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "dependencies": {
+    "api": "^1.0.0",
+    "external": "^9.0.0"
+  },
+  "metadata": { "version": "4.0.0" }
+}

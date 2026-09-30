@@ -29,7 +29,7 @@ Generate a starter config from the packages monochange detects:
 monochange init
 ```
 
-`monochange init` writes an annotated, minimal `monochange.toml` without default `[cli.*]` workflow aliases. The binary exposes immutable `monochange step *` commands for every built-in step when you need a direct, config-free entry point; add `[cli.*]` tables only for repository-specific named workflows.
+`monochange init` writes an annotated, minimal `monochange.toml` without default `[cli.*]` workflow aliases. Use short built-ins such as `monochange create`, `monochange preview`, and `monochange prepare` immediately; every built-in step is also exposed as `monochange step <name>`. Add `[cli.*]` tables for repository-specific named workflows, or use `monochange command` to edit them interactively. The legacy `monochange populate` command currently adds nothing because the default workflow set is empty. `init --force` replaces the config rather than incrementally updating it.
 
 For automated CI setup, include the `--provider` flag:
 
@@ -54,7 +54,7 @@ monochange step discover --format json
 Create one change file for a package id:
 
 ```bash
-monochange run change --package <id> --bump patch --reason "describe the change"
+monochange create --package <id> --bump patch --reason "describe the change"
 ```
 
 Most changes should target a package id. Use group ids only when the change is intentionally owned by the whole group.
@@ -62,24 +62,24 @@ Most changes should target a package id. Use group ids only when the change is i
 When a package is only changing because another dependency or version group moved first, author that context explicitly instead of relying on anonymous propagation:
 
 ```bash
-monochange run change --package <dependent-id> --bump none --caused-by <upstream-id> --reason "dependency-only follow-up"
+monochange create --package <dependent-id> --bump none --caused-by <upstream-id> --reason "dependency-only follow-up"
 ```
 
 Preview the release plan safely:
 
 ```bash
-monochange run release --dry-run --format json
+monochange preview --format json
 ```
 
 Add `--diff` when you want unified file previews for version and changelog updates without mutating the workspace:
 
 ```bash
-monochange run release --dry-run --diff
+monochange preview --diff
 ```
 
 This first run is safe: nothing is published. Stop here until you are ready to prepare release files locally.
 
-When you are ready to prepare the release locally, run `monochange run release`.
+When you are ready to prepare the release locally, run `monochange prepare`. Preparation updates versioned files and changelogs and consumes applied changesets. Use `monochange run release` instead when your repository defines a release workflow and its steps match the task.
 
 <!-- {/projectCoreWorkflow} -->
 
@@ -121,28 +121,28 @@ Recent `monochange` improvements made package publishing guidance and diagnostic
 
 <!-- {=projectCommandAutomationMatrix} -->
 
-These are common commands for repositories using monochange. With the current CLI model, workflow names such as `discover`, `change`, `release`, and `affected` come from optional `[cli.*]` tables in `monochange.toml` and run as `monochange run <name>`; binary commands such as `check`, `init`, `versions`, `publish`, and `mcp` stay built in, while typed built-in operations such as validation are exposed as immutable `monochange step *` commands.
+These are common commands for repositories using monochange. Optional `[cli.*]` workflows run as `monochange run <name>`; built-ins such as `discover`, `create`, `preview`, `prepare`, and `affected` work without those definitions. Every built-in step is also exposed as `monochange step <name>`.
 
-| Goal                             | Command                                                                                  | Use it when                                                                                                                        |
-| -------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Validate config and changesets   | `monochange step validate`                                                               | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
-| Inspect package ids and groups   | `monochange step discover --format json`                                                 | You need the normalized workspace model                                                                                            |
-| Sync internal dependency ranges  | `monochange versions --dry-run`                                                          | You want internal dependency references to match canonical workspace package versions                                              |
-| Check the next version           | `monochange next`                                                                        | You want the next release group and package versions from pending changesets, without writing any release state                    |
-| Create release intent            | `monochange run change --package <id> --bump <severity> --reason "..."`                  | You need a new `.changeset/*.md` file                                                                                              |
-| Audit pending release context    | `monochange step diagnose-changesets --format json`                                      | You need git provenance, PR/MR links, or related issues                                                                            |
-| Preview the release plan         | `monochange run release --dry-run --diff` or `monochange step prepare-release --dry-run` | You want changelog/version patches without mutating the repo                                                                       |
-| Create a durable release commit  | `monochange step commit-release`                                                         | You want a monochange-managed release commit with an embedded `ReleaseRecord`                                                      |
-| Open or update a release request | `monochange step open-release-request`                                                   | You want a long-lived release PR/MR branch updated from current release state                                                      |
-| Inspect a past release commit    | `monochange step release-record --from <ref>`                                            | You need the durable release declaration from git history                                                                          |
-| Check package publish readiness  | `monochange publish readiness --from HEAD --output <path>`                               | You want a non-mutating preflight report before package publication                                                                |
-| Dry-run configured publishing    | `monochange run publish-check`                                                           | This repository, or another repo with a similar `[cli.publish-check]`, should exercise publishing in CI without registry mutations |
-| Plan ready package publishing    | `monochange step plan-publish-rate-limits --readiness <path>`                            | You want rate-limit batches that exclude non-ready package work                                                                    |
-| Publish packages to registries   | `monochange publish packages --output <path>`                                            | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication                           |
-| Bootstrap release packages       | `monochange publish placeholder`                                                         | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
-| Create post-merge release tags   | `monochange step tag-release --from HEAD`                                                | You merged a monochange release commit and now need to create and push its declared tag set                                        |
-| Repair a recent release          | `monochange step retarget-release --from <tag> --target <commit>`                        | You need to retarget a just-created release to a later commit                                                                      |
-| Publish hosted/provider releases | `monochange step publish-release`                                                        | You want GitHub/GitLab/Gitea release objects from prepared release state                                                           |
+| Goal                             | Command                                                             | Use it when                                                                                                                        |
+| -------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Validate config and changesets   | `monochange step validate`                                          | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
+| Inspect package ids and groups   | `monochange step discover --format json`                            | You need the normalized workspace model                                                                                            |
+| Sync internal dependency ranges  | `monochange versions sync --dry-run`                                | You want internal dependency references to match canonical workspace package versions                                              |
+| Check the next version           | `monochange next`                                                   | You want the next release group and package versions from pending changesets, without writing any release state                    |
+| Create release intent            | `monochange create --package <id> --bump <severity> --reason "..."` | You need a new `.changeset/*.md` file                                                                                              |
+| Audit pending release context    | `monochange step diagnose-changesets --format json`                 | You need git provenance, PR/MR links, or related issues                                                                            |
+| Preview the release plan         | `monochange preview --diff`                                         | You want changelog/version patches without mutating the repo                                                                       |
+| Create a durable release commit  | `monochange step commit-release`                                    | You want a monochange-managed release commit with an embedded `ReleaseRecord`                                                      |
+| Open or update a release request | `monochange step open-release-request`                              | You want a long-lived release PR/MR branch updated from current release state                                                      |
+| Inspect a past release commit    | `monochange step release-record --from <ref>`                       | You need the durable release declaration from git history                                                                          |
+| Check package publish readiness  | `monochange publish readiness --from HEAD --output <path>`          | You want a non-mutating preflight report before package publication                                                                |
+| Dry-run configured publishing    | `monochange run publish-check`                                      | This repository, or another repo with a similar `[cli.publish-check]`, should exercise publishing in CI without registry mutations |
+| Plan ready package publishing    | `monochange step plan-publish-rate-limits --readiness <path>`       | You want rate-limit batches that exclude non-ready package work                                                                    |
+| Publish packages to registries   | `monochange publish packages --output <path>`                       | You want `cargo publish`, `npm publish`, `deno publish`, or `dart pub publish` style package publication                           |
+| Bootstrap release packages       | `monochange publish placeholder`                                    | You need a release-record-scoped placeholder bootstrap artifact before rerunning readiness                                         |
+| Create post-merge release tags   | `monochange step tag-release --from HEAD`                           | You merged a monochange release commit and now need to create and push its declared tag set                                        |
+| Repair a recent release          | `monochange step retarget-release --from <tag> --target <commit>`   | You need to retarget a just-created release to a later commit                                                                      |
+| Publish hosted/provider releases | `monochange step publish-release`                                   | You want GitHub/GitLab/Gitea release objects from prepared release state                                                           |
 
 <!-- {/projectCommandAutomationMatrix} -->
 

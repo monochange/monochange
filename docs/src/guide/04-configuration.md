@@ -728,7 +728,11 @@ Built-in direct lockfile updates cover:
 - Deno: `deno.lock`
 - Dart / Flutter: `pubspec.lock`
 
-For Python projects, monochange infers package-manager lockfile commands instead of mutating lockfiles directly: `uv.lock` uses `uv lock`, and `poetry.lock` uses `poetry lock --no-update`. Unknown Python lockfile names are skipped rather than guessed.
+<!-- {=pythonLockfileCommandInference} -->
+
+For Python projects, monochange infers package-manager commands instead of mutating lockfiles directly: `uv.lock` uses `uv lock`, and `poetry.lock` uses `poetry lock`. Poetry 2 preserves existing locked versions by default; its removed `--no-update` option must not be added. Unknown Python lockfile names are skipped rather than guessed.
+
+<!-- {/pythonLockfileCommandInference} -->
 
 If you configure `lockfile_commands` for an ecosystem, monochange stops using the built-in direct updater for that ecosystem and those commands fully own lockfile refresh. Use that escape hatch only when your workspace needs package-manager-side regeneration beyond version rewrites.
 
@@ -1123,7 +1127,7 @@ lockfile_commands = [{ command = "flutter pub get", cwd = "packages/mobile" }]
 [ecosystems.python]
 enabled = true
 # Without an explicit command, `uv.lock` uses `uv lock` and `poetry.lock` uses
-# `poetry lock --no-update`. Other lockfile names are skipped.
+# `poetry lock`. Other lockfile names are skipped.
 lockfile_commands = [{ command = "uv lock" }]
 
 [ecosystems.go]
@@ -1150,6 +1154,8 @@ Defaults can set a repository-wide changelog path pattern and format, while pack
 ### Release-note streams and outputs
 
 Streams separate the wording intended for different audiences without changing the changeset syntax. The built-in `default` stream always exists and preserves the current developer-oriented changelog behavior. A custom type opts into another stream with `stream`; types that omit it continue to use `default`.
+
+Stream, output, type, and section ids must start with a lowercase letter and contain only lowercase letters, digits, and underscores. Use `user_notes`, not `user-notes`.
 
 Each changeset file resolves to exactly one stream. If one implementation needs both developer-facing detail and user-facing wording, author two small changesets and choose a type from each stream. This keeps each entry understandable on its own and prevents internal details from leaking into product notes.
 
@@ -1195,6 +1201,8 @@ This example makes `native` a major bump in the default stream and `app_feature`
 ### Configured sections and types extend the built-in set
 
 `[changelog.sections]` and `[changelog.types]` add to the built-in vocabulary. A declared key overrides the built-in entry of the same name; every other built-in key stays available.
+
+A type's `section` references an id such as built-in `feat` or `fix`, not a display label such as `Added` or `Fixed`. To use a custom label, declare the section first, for example `added = { heading = "Added", priority = 20 }` under `[changelog.sections]`, then set the type's `section = "added"`.
 
 The built-in types include the semantic aliases and the stream types:
 
@@ -1414,7 +1422,7 @@ Use a group id only when the change is intentionally owned by the whole group an
 Implementation notes:
 
 - `[defaults].include_private` is parsed and validated, but discovery reports private packages either way. Rely on `include_private` only for release planning, not for filtering what `step discover` prints.
-- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated, but discovery still scans every supported ecosystem. A package found by discovery appears regardless of those settings.
+- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated but do not filter raw discovery or registered package ownership. `monochange discover` inventories all supported ecosystems. `[ecosystems.<name>.auto_discover].include` and `.exclude` select registrations in the resolved configuration shown by `monochange config`; explicit `[package.*]` entries remain registered even when auto-discovery excludes their paths. To narrow an `init` adoption, edit its generated package tables and group membership as well as any auto-discovery settings, then verify ownership with `monochange config --format json`.
 - `[defaults].strict_version_conflicts` controls conflicting explicit `version` entries across changesets. The default warns and picks the highest; setting it to `true` fails planning instead.
 - Source automation reads `[source]`, provider release settings under `[source.releases]`, pull request settings under `[source.pull_requests]`, and affected-package policy under `[changesets.affected]`. GitHub is the default provider.
 - Live GitHub release and release-request publishing uses `octocrab` with `GITHUB_TOKEN` or `GH_TOKEN`, falling back to the authenticated GitHub CLI credential from `gh auth token` when neither variable is set. GitLab and Gitea use direct HTTP APIs.

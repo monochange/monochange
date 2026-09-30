@@ -1456,18 +1456,32 @@ pub(crate) fn discover_packages_from_ecosystem(
 	let include_patterns: Vec<Pattern> = auto_discover
 		.include
 		.iter()
-		.filter_map(|p| Pattern::new(p).ok())
-		.collect();
-
-	if include_patterns.is_empty() {
-		return Ok(Vec::new());
-	}
+		.map(|pattern| {
+			Pattern::new(pattern).map_err(|error| {
+				MonochangeError::Config(format!(
+					"[ecosystems.{}.auto_discover].include contains invalid glob pattern `{pattern}`: {error}",
+					ecosystem_name(ecosystem_type)
+				))
+			})
+		})
+		.collect::<MonochangeResult<_>>()?;
 
 	let exclude_patterns: Vec<Pattern> = auto_discover
 		.exclude
 		.iter()
-		.filter_map(|p| Pattern::new(p).ok())
-		.collect();
+		.map(|pattern| {
+			Pattern::new(pattern).map_err(|error| {
+				MonochangeError::Config(format!(
+					"[ecosystems.{}.auto_discover].exclude contains invalid glob pattern `{pattern}`: {error}",
+					ecosystem_name(ecosystem_type)
+				))
+			})
+		})
+		.collect::<MonochangeResult<_>>()?;
+
+	if include_patterns.is_empty() {
+		return Ok(Vec::new());
+	}
 
 	let mut discovered = Vec::new();
 	let mut seen_paths = HashSet::<PathBuf>::new();
@@ -4115,9 +4129,15 @@ fn validate_package_and_group_definitions_with_cache(
 				Some("declare each package path exactly once".to_string()),
 			));
 		}
-		if let Some(manifest_name) = expected_manifest_name(package.package_type) {
+		let manifest_names = expected_manifest_names(package.package_type);
+
+		if let Some(manifest_name) = manifest_names.first() {
 			let expected_manifest = resolved_path.join(manifest_name);
-			if !expected_manifest.exists() {
+
+			if !manifest_names
+				.iter()
+				.any(|name| resolved_path.join(name).is_file())
+			{
 				return Err(config_diagnostic(
 					config_contents,
 					format!(
@@ -4447,10 +4467,8 @@ fn path_is_supported_for_ecosystem(path: &Path, ecosystem_type: EcosystemType) -
 				|| file_name == "Cargo.lock"
 		}
 		EcosystemType::Npm => {
-			matches!(
-				file_name,
-				"package.json" | "package-lock.json" | "pnpm-lock.yaml" | "bun.lock" | "bun.lockb"
-			)
+			path.extension().and_then(|extension| extension.to_str()) == Some("json")
+				|| matches!(file_name, "pnpm-lock.yaml" | "bun.lock" | "bun.lockb")
 		}
 		EcosystemType::Deno => matches!(file_name, "deno.json" | "deno.jsonc" | "deno.lock"),
 		EcosystemType::Dart => matches!(file_name, "pubspec.yaml" | "pubspec.yml" | "pubspec.lock"),
@@ -4719,9 +4737,13 @@ fn validate_package_cli_definitions(
 	Ok(())
 }
 
-#[allow(clippy::match_same_arms)]
-fn expected_manifest_name(package_type: PackageType) -> Option<&'static str> {
-	package_type.manifest_file_name()
+/// Return every accepted identity-bearing manifest for a package type.
+fn expected_manifest_names(package_type: PackageType) -> &'static [&'static str] {
+	if package_type.manifest_file_name().is_none() {
+		return &[];
+	}
+
+	manifest_file_for_ecosystem(package_type_to_ecosystem_type(package_type))
 }
 
 /// Resolve `[version_scheme.<id>]` tables into their domain form.
@@ -4840,13 +4862,17 @@ fn validate_version_values(
 		}
 		// Compare on the literal path text so `path = "."` and a bare manifest
 		// name still match; `join` would produce `./package.json`.
-		let manifest_path = package.package_type.manifest_file_name().map(|manifest| {
-			let joined = package.path.join(manifest);
-			joined
-				.to_string_lossy()
-				.trim_start_matches("./")
-				.to_string()
-		});
+		let manifest_paths = expected_manifest_names(package.package_type)
+			.iter()
+			.map(|manifest| {
+				package
+					.path
+					.join(manifest)
+					.to_string_lossy()
+					.trim_start_matches("./")
+					.to_string()
+			})
+			.collect::<Vec<_>>();
 		for versioned_file in &package.versioned_files {
 			let Some(template) = versioned_file.value_template.as_deref() else {
 				continue;
@@ -4858,10 +4884,7 @@ fn validate_version_values(
 			validate_template_variables(template, &available, &surface)?;
 			// The identity-bearing manifest must stay a bare pre-release-aware
 			// SemVer: calendar, ordinal, and counter values are not valid there.
-			if manifest_path
-				.as_deref()
-				.is_some_and(|manifest| versioned_file.path == manifest)
-			{
+			if manifest_paths.contains(&versioned_file.path) {
 				validate_manifest_value_template(contents, &surface, template, package)?;
 			}
 		}

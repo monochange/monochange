@@ -11,7 +11,7 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-Generate monochange.toml with detected packages, groups, and default CLI commands
+Generate monochange.toml with detected packages and groups
 
 Usage: monochange init [OPTIONS]
 

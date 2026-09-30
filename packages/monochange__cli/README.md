@@ -49,7 +49,7 @@ Generate a starter config from the packages monochange detects:
 monochange init
 ```
 
-`monochange init` writes an annotated, minimal `monochange.toml` without default `[cli.*]` workflow aliases. The binary exposes immutable `monochange step *` commands for every built-in step when you need a direct, config-free entry point; add `[cli.*]` tables only for repository-specific named workflows.
+`monochange init` writes an annotated, minimal `monochange.toml` without default `[cli.*]` workflow aliases. Use short built-ins such as `monochange create`, `monochange preview`, and `monochange prepare` immediately; every built-in step is also exposed as `monochange step <name>`. Add `[cli.*]` tables for repository-specific named workflows, or use `monochange command` to edit them interactively. The legacy `monochange populate` command currently adds nothing because the default workflow set is empty. `init --force` replaces the config rather than incrementally updating it.
 
 For automated CI setup, include the `--provider` flag:
 
@@ -74,7 +74,7 @@ monochange step discover --format json
 Create one change file for a package id:
 
 ```bash
-monochange run change --package <id> --bump patch --reason "describe the change"
+monochange create --package <id> --bump patch --reason "describe the change"
 ```
 
 Most changes should target a package id. Use group ids only when the change is intentionally owned by the whole group.
@@ -82,24 +82,24 @@ Most changes should target a package id. Use group ids only when the change is i
 When a package is only changing because another dependency or version group moved first, author that context explicitly instead of relying on anonymous propagation:
 
 ```bash
-monochange run change --package <dependent-id> --bump none --caused-by <upstream-id> --reason "dependency-only follow-up"
+monochange create --package <dependent-id> --bump none --caused-by <upstream-id> --reason "dependency-only follow-up"
 ```
 
 Preview the release plan safely:
 
 ```bash
-monochange run release --dry-run --format json
+monochange preview --format json
 ```
 
 Add `--diff` when you want unified file previews for version and changelog updates without mutating the workspace:
 
 ```bash
-monochange run release --dry-run --diff
+monochange preview --diff
 ```
 
 This first run is safe: nothing is published. Stop here until you are ready to prepare release files locally.
 
-When you are ready to prepare the release locally, run `monochange run release`.
+When you are ready to prepare the release locally, run `monochange prepare`. Preparation updates versioned files and changelogs and consumes applied changesets. Use `monochange run release` instead when your repository defines a release workflow and its steps match the task.
 
 <!-- {/projectCoreWorkflow} -->
 

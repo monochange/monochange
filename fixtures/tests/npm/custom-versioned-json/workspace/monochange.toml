@@ -1,0 +1,7 @@
+[defaults]
+changelog = false
+
+[package.ui]
+path = "packages/ui"
+type = "npm"
+versioned_files = [{ path = "packages/ui/constraints.json", type = "npm", fields = ["metadata.version"] }]

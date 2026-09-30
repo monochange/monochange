@@ -494,6 +494,14 @@ pub struct PackageDependency {
 	pub source_field: Option<String>,
 }
 
+/// Metadata key for an adapter-provided canonical dependency lookup name.
+///
+/// Adapters with equivalent package spellings can supply this alias while
+/// preserving `PackageRecord::name` for native manifests and display. Dependency
+/// edges match the alias alongside the native name; adapters must use the same
+/// canonical spelling in their declared dependency names.
+pub const PACKAGE_DEPENDENCY_NAME_METADATA_KEY: &str = "dependency_name";
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PackageRecord {
 	pub id: String,
@@ -1364,6 +1372,12 @@ pub fn strip_json_comments(contents: &str) -> String {
 }
 
 /// Update JSON manifest text while preserving most existing formatting.
+///
+/// Supplying an owner version updates the root `version` independently of
+/// `fields`, as required for native package manifests.
+/// Selected dependency paths use their matching dependency constraint, even
+/// when no owner version is supplied. Other selected string fields use the
+/// owner version when one is supplied.
 #[must_use = "the manifest update result must be checked"]
 pub fn update_json_manifest_text(
 	contents: &str,
@@ -1371,9 +1385,46 @@ pub fn update_json_manifest_text(
 	fields: &[&str],
 	versioned_deps: &BTreeMap<String, String>,
 ) -> MonochangeResult<String> {
+	update_json_manifest_fields_text(contents, owner_version, fields, versioned_deps, true)
+}
+
+/// Update explicitly selected JSON manifest fields while preserving formatting.
+///
+/// The root `version` changes only when `fields` contains `version`. Other
+/// selected string fields use the owner version, while selected dependency
+/// paths use their matching dependency constraint.
+///
+/// # Errors
+///
+/// Returns an error when the manifest cannot be parsed or a replacement cannot
+/// be encoded as a JSON string.
+#[must_use = "the manifest update result must be checked"]
+pub fn update_selected_json_manifest_text(
+	contents: &str,
+	owner_version: Option<&str>,
+	fields: &[&str],
+	versioned_deps: &BTreeMap<String, String>,
+) -> MonochangeResult<String> {
+	update_json_manifest_fields_text(
+		contents,
+		owner_version,
+		fields,
+		versioned_deps,
+		fields.contains(&"version"),
+	)
+}
+
+fn update_json_manifest_fields_text(
+	contents: &str,
+	owner_version: Option<&str>,
+	fields: &[&str],
+	versioned_deps: &BTreeMap<String, String>,
+	update_root_version: bool,
+) -> MonochangeResult<String> {
 	let root_start = json_root_object_start(contents)?;
 	let mut replacements = Vec::<(JsonSpan, String)>::new();
-	if let Some(owner_version) = owner_version
+	if update_root_version
+		&& let Some(owner_version) = owner_version
 		&& let Some(span) = find_json_object_field_value_span(contents, root_start, "version")?
 			.filter(|span| json_span_is_string(contents, *span))
 	{
@@ -1395,10 +1446,15 @@ pub fn update_json_manifest_text(
 			}
 			continue;
 		}
-		if let Some(owner_version) = owner_version
+		let dependency_version = field
+			.rsplit_once('.')
+			.and_then(|(_, name)| versioned_deps.get(name))
+			.map(String::as_str);
+
+		if let Some(version) = dependency_version.or(owner_version)
 			&& json_span_is_string(contents, field_span)
 		{
-			replacements.push((field_span, render_json_string(owner_version)?));
+			replacements.push((field_span, render_json_string(version)?));
 		}
 	}
 	apply_json_replacements(contents, replacements)
@@ -1412,7 +1468,17 @@ fn apply_json_replacements(
 	contents: &str,
 	mut replacements: Vec<(JsonSpan, String)>,
 ) -> MonochangeResult<String> {
-	replacements.sort_by_key(|right| std::cmp::Reverse(right.0.start));
+	replacements.sort_by_key(|(span, _)| std::cmp::Reverse((span.start, span.end)));
+	replacements.dedup();
+
+	for ((right, _), (left, _)) in replacements.iter().zip(replacements.iter().skip(1)) {
+		if left.end > right.start {
+			return Err(MonochangeError::Config(
+				"json edit ranges overlap or conflict".to_string(),
+			));
+		}
+	}
+
 	let mut updated = contents.to_string();
 	for (span, replacement) in replacements {
 		if span.start > span.end || span.end > updated.len() {
@@ -7353,10 +7419,20 @@ pub fn default_publish_order_dependency_fields(ecosystem: Ecosystem) -> &'static
 pub fn materialize_dependency_edges(packages: &[PackageRecord]) -> Vec<DependencyEdge> {
 	let mut package_ids_by_name = BTreeMap::<String, Vec<String>>::new();
 	for package in packages {
-		package_ids_by_name
-			.entry(package.name.clone())
-			.or_default()
-			.push(package.id.clone());
+		let names = std::iter::once(&package.name).chain(
+			package
+				.metadata
+				.get(PACKAGE_DEPENDENCY_NAME_METADATA_KEY)
+				.filter(|alias| *alias != &package.name),
+		);
+
+		for name in names {
+			let ids = package_ids_by_name.entry(name.clone()).or_default();
+
+			if !ids.contains(&package.id) {
+				ids.push(package.id.clone());
+			}
+		}
 	}
 
 	let mut edges = Vec::new();

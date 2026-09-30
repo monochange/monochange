@@ -1,0 +1,12 @@
+---
+source: crates/monochange/src/__tests__/versioned_files_tests.rs
+expression: contents
+---
+{
+  "name": "@acme/api",
+  "version": "3.0.0",
+  "dependencies": {
+    "@acme/api": "~2.4.0",
+    "external-lib": "^9.0.0"
+  }
+}

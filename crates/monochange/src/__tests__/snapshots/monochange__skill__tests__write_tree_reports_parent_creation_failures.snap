@@ -1,0 +1,5 @@
+---
+source: crates/monochange/src/__tests__/skill_tests.rs
+expression: error.to_string()
+---
+io error: failed to create [ROOT]/blocker/monochange: Not a directory (os error 20)

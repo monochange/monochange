@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/deno_jsonc_version.rs
+expression: preview
+---
+{
+  "groups": {},
+  "packages": {
+    "deno:deno.jsonc": "1.2.4"
+  }
+}

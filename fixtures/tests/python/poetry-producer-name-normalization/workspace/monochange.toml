@@ -1,0 +1,18 @@
+[package.py-core]
+path = "core"
+type = "python"
+versioned_files = [
+  { path = "core/pyproject.toml", type = "python", fields = ["version"] },
+  { path = "poetry/pyproject.toml", type = "python", fields = ["dependencies"] },
+  { path = "pep621/pyproject.toml", type = "python", fields = ["dependencies"] },
+]
+
+[package.poetry-cli]
+path = "poetry"
+type = "python"
+versioned_files = [{ path = "poetry/pyproject.toml", type = "python", fields = ["version"] }]
+
+[package.pep621-cli]
+path = "pep621"
+type = "python"
+versioned_files = [{ path = "pep621/pyproject.toml", type = "python", fields = ["version"] }]

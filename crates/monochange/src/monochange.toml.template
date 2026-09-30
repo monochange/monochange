@@ -543,10 +543,10 @@ version_format = "primary"
 # Each supported ecosystem can be configured independently.
 #
 # Fields:
-#   enabled  - opt-in/opt-out of discovery for this ecosystem (default: none,
-#              meaning discovery runs when manifests are found)
-#   roots    - restrict discovery to specific directories (default: scan entire repo)
-#   exclude  - glob patterns to exclude from discovery
+#   enabled / roots / exclude - declared intent only; currently do not filter
+#              discovery or configured package ownership. Discovery scans every
+#              supported ecosystem. Use auto_discover.include / .exclude to
+#              select registered packages instead, and inspect `monochange config`.
 #   dependency_version_prefix - default dependency prefix for typed versioned_files
 #   versioned_files - ecosystem-wide default versioned_files inherited by matching packages;
 #                     entries may be typed manifest updates (including

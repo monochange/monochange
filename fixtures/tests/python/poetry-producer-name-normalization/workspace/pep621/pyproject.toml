@@ -1,0 +1,4 @@
+[project]
+name = "pep621-cli"
+version = "2.0.0"
+dependencies = ["py_core>=1.0.0"] # Preserve the dependency's spelling.

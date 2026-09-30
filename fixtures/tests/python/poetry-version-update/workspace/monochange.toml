@@ -1,0 +1,4 @@
+[package.poetry-app]
+path = "."
+type = "python"
+versioned_files = [{ path = "pyproject.toml", type = "python", fields = ["version"] }]

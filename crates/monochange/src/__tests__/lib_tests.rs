@@ -2114,7 +2114,7 @@ fn init_requires_force_to_overwrite_existing_configuration() {
 }
 
 #[test]
-fn populate_adds_all_missing_default_cli_commands_to_an_existing_configuration() {
+fn populate_leaves_existing_configuration_unchanged_without_default_cli_commands() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	copy_fixture("monochange/populate-no-cli", tempdir.path());
 
@@ -2126,13 +2126,13 @@ fn populate_adds_all_missing_default_cli_commands_to_an_existing_configuration()
 	let config = fs::read_to_string(tempdir.path().join("monochange.toml"))
 		.unwrap_or_else(|error| panic!("config: {error}"));
 
-	assert!(output.contains("already defines all default CLI commands"));
+	assert!(output.contains("this version provides no default CLI workflow aliases"));
 	// With empty defaults, populate adds nothing
 	assert!(!config.contains("[cli.release]"));
 }
 
 #[test]
-fn populate_preserves_existing_cli_commands_and_only_adds_missing_defaults() {
+fn populate_preserves_existing_cli_commands_without_default_cli_commands() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	copy_fixture("monochange/populate-partial-cli", tempdir.path());
 
@@ -2144,7 +2144,7 @@ fn populate_preserves_existing_cli_commands_and_only_adds_missing_defaults() {
 	let config = fs::read_to_string(tempdir.path().join("monochange.toml"))
 		.unwrap_or_else(|error| panic!("config: {error}"));
 
-	assert!(output.contains("already defines all default CLI commands"));
+	assert!(output.contains("this version provides no default CLI workflow aliases"));
 	assert!(config.contains("help_text = \"Custom release pipeline\""));
 	assert_eq!(config.matches("[cli.release]").count(), 1);
 	// With empty defaults, no new tables are added beyond existing ones
@@ -2168,7 +2168,7 @@ fn populate_preserves_existing_cli_commands_and_only_adds_missing_defaults() {
 }
 
 #[test]
-fn populate_reports_when_all_default_cli_commands_are_already_present() {
+fn populate_reports_when_no_default_cli_commands_are_provided() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	copy_fixture("monochange/populate-all-defaults", tempdir.path());
 	let before = fs::read_to_string(tempdir.path().join("monochange.toml"))
@@ -2182,7 +2182,7 @@ fn populate_reports_when_all_default_cli_commands_are_already_present() {
 	let after = fs::read_to_string(tempdir.path().join("monochange.toml"))
 		.unwrap_or_else(|error| panic!("config after: {error}"));
 
-	assert!(output.contains("already defines all default CLI commands"));
+	assert!(output.contains("this version provides no default CLI workflow aliases"));
 	assert_eq!(after, before);
 }
 
@@ -2217,7 +2217,7 @@ fn populate_requires_an_existing_monochange_configuration_file() {
 
 #[cfg(unix)]
 #[test]
-fn populate_reports_write_failures_when_configuration_is_read_only() {
+fn populate_preserves_read_only_configuration_without_default_cli_commands() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	copy_fixture("monochange/populate-no-cli", tempdir.path());
 	let path = tempdir.path().join("monochange.toml");
@@ -2233,7 +2233,7 @@ fn populate_reports_write_failures_when_configuration_is_read_only() {
 		[OsString::from("monochange"), OsString::from("populate")],
 	)
 	.unwrap_or_else(|error| panic!("populate output: {error}"));
-	assert!(output.contains("already defines all default CLI commands"));
+	assert!(output.contains("this version provides no default CLI workflow aliases"));
 }
 
 #[test]
@@ -2268,7 +2268,7 @@ fn populate_rejects_non_file_configuration_paths() {
 }
 
 #[test]
-fn populate_adds_default_cli_commands_to_an_empty_configuration_file() {
+fn populate_preserves_empty_configuration_without_default_cli_commands() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	copy_fixture("monochange/populate-empty-config", tempdir.path());
 
@@ -2280,7 +2280,7 @@ fn populate_adds_default_cli_commands_to_an_empty_configuration_file() {
 	let config = fs::read_to_string(tempdir.path().join("monochange.toml"))
 		.unwrap_or_else(|error| panic!("config: {error}"));
 
-	assert!(output.contains("already defines all default CLI commands"));
+	assert!(output.contains("this version provides no default CLI workflow aliases"));
 	// With empty defaults, populate adds nothing
 	assert!(!config.contains("[cli.validate]"));
 }
@@ -4918,7 +4918,10 @@ fn configuration_guide_calls_out_current_implementation_limits() {
 
 	for expected in [
 		"- `[defaults].include_private` is parsed and validated, but discovery reports private packages either way",
-		"- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated, but discovery still scans every supported ecosystem",
+		"- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated but do not filter raw discovery or registered package ownership",
+		"`monochange discover` inventories all supported ecosystems",
+		"`[ecosystems.<name>.auto_discover].include` and `.exclude` select registrations in the resolved configuration shown by `monochange config`",
+		"explicit `[package.*]` entries remain registered even when auto-discovery excludes their paths",
 		"`PrepareRelease`",
 		"`RetargetRelease`",
 		"`Command`",
@@ -16690,21 +16693,7 @@ async fn version_and_root_help_skip_workspace_validation() {
 	];
 	assert_eq!(crate::command_help_request(&help_command), None);
 
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	std::fs::write(
-		tempdir.path().join("monochange.toml"),
-		r#"
-[cli.custom]
-help_text = "Custom command help"
-
-[package.missing]
-path = "missing"
-versioned_files = [
-	{ path = "**/not-a-manifest.txt", type = "cargo" },
-]
-"#,
-	)
-	.unwrap_or_else(|error| panic!("write config: {error}"));
+	let tempdir = monochange_test_helpers::setup_fixture!("monochange/help-invalid-workspace");
 
 	let version = run_with_args_in_dir(
 		"monochange",
@@ -16722,7 +16711,7 @@ versioned_files = [
 	)
 	.await
 	.unwrap_or_else(|error| panic!("help output: {error}"));
-	assert!(help.contains("custom"));
+	insta::assert_snapshot!("invalid_workspace_root_help", help);
 
 	let traced_help = run_with_args_in_dir(
 		"monochange",
@@ -16736,7 +16725,7 @@ versioned_files = [
 	)
 	.await
 	.unwrap_or_else(|error| panic!("traced help output: {error}"));
-	assert!(traced_help.contains("custom"));
+	assert_eq!(traced_help, help);
 }
 
 #[tokio::test(flavor = "multi_thread")]
