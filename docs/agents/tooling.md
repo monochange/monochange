@@ -5,6 +5,8 @@
 - Enter the reproducible development shell with `devenv shell` before using repo task commands.
 - Install workspace tooling with `install:all` when needed.
 
+Rust verification tasks (`test:cargo`, `test:cargo:expensive`, `test:docs`, `test:agent-evals`, `coverage:all`, `snapshot:check`, and `snapshot:update`) default `SSL_CERT_FILE` to the Nix CA certificate bundle. This avoids concurrent macOS trust-store discovery when GitHub test clients initialize TLS, including clients using mocked HTTP endpoints. Set a nonempty `SSL_CERT_FILE` before running a task to use your own certificate bundle; the tasks preserve that value. The default applies only within these tasks.
+
 ## Common commands
 
 - `monochange --help`

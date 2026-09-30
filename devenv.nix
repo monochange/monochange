@@ -9,6 +9,9 @@
 let
   currentDir = builtins.dirOf __curPos.file;
   custom = inputs.ifiokjr-nixpkgs.packages.${pkgs.stdenv.system};
+  rustTestCertificateEnvironment = ''
+    export SSL_CERT_FILE="''${SSL_CERT_FILE:-${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt}"
+  '';
 in
 {
   packages =
@@ -214,6 +217,7 @@ in
     "test:cargo" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo bin --install
         export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
         cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
@@ -224,6 +228,7 @@ in
     "test:cargo:expensive" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo bin --install
         export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
         MONOCHANGE_EXPENSIVE_TESTS=1 cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
@@ -234,6 +239,7 @@ in
     "test:docs" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo test --doc --workspace --exclude xtask --all-features
       '';
       description = "Run documentation tests.";
@@ -251,6 +257,7 @@ in
     "test:agent-evals" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo test --package monochange --all-features agent_eval_
       '';
       description = "Run the focused agent-style eval coverage for machine-readable workflows.";
@@ -281,6 +288,7 @@ in
     "coverage:all" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         mkdir -p target/coverage
         cargo bin cargo-llvm-cov clean --workspace
         cargo bin cargo-llvm-cov test --workspace --exclude xtask --all-features --lib --tests --no-report
@@ -627,6 +635,7 @@ in
     "snapshot:check" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo bin --install
         export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
         cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
@@ -637,6 +646,7 @@ in
     "snapshot:update" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo bin --install
         export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
         cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --force-update-snapshots --unreferenced=delete
