@@ -13,54 +13,44 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-analyze:
-  package: core (core)
-  package record: cargo:crates/core/Cargo.toml
-  ecosystem: cargo
-  manifest: crates/core/Cargo.toml
-  version group: sdk
-  release identity: group sdk
-  refs:
-    release: v1.0.0
-    main: main
-    head: HEAD
-  first release: no
+✔ Analyzed core · 1 semantic change main → HEAD
 
-main -> head:
-  frame: main..HEAD
-  semantic changes: 1
-  changed files:
-  - src/lib.rs
-  changes:
-  - function `shout` added (src/lib.rs)
+Package        core (core)
+Ecosystem      cargo
+Manifest       crates/core/Cargo.toml
+Version group  sdk
+Released as    group sdk
+Refs           release v1.0.0 · main main · head HEAD
 
-release -> main:
-  frame: v1.0.0..main
-  semantic changes: 6
-  changed files:
-  - Cargo.toml
-  - src/lib.rs
-  changes:
-  - struct `Greeter` added (src/lib.rs)
-  - function `greet` modified (src/lib.rs)
-  - dependency `tracing` added (Cargo.toml)
-  - feature `feature.cli` added (Cargo.toml)
-  - feature `feature.default` modified (Cargo.toml)
-  - manifest_field `package.edition` modified (Cargo.toml)
+main → head (1)
+  frame main..HEAD
+  function `shout` added  src/lib.rs
+  1 changed file:
+    src/lib.rs
 
-release -> head:
-  frame: v1.0.0..HEAD
-  semantic changes: 7
-  changed files:
-  - Cargo.toml
-  - src/lib.rs
-  changes:
-  - function `shout` added (src/lib.rs)
-  - struct `Greeter` added (src/lib.rs)
-  - function `greet` modified (src/lib.rs)
-  - dependency `tracing` added (Cargo.toml)
-  - feature `feature.cli` added (Cargo.toml)
-  - feature `feature.default` modified (Cargo.toml)
-  - manifest_field `package.edition` modified (Cargo.toml)
+release → main (6)
+  frame v1.0.0..main
+  struct `Greeter` added                     src/lib.rs
+  function `greet` modified                  src/lib.rs
+  dependency `tracing` added                 Cargo.toml
+  feature `feature.cli` added                Cargo.toml
+  feature `feature.default` modified         Cargo.toml
+  manifest_field `package.edition` modified  Cargo.toml
+  2 changed files:
+    Cargo.toml
+    src/lib.rs
+
+release → head (7)
+  frame v1.0.0..HEAD
+  function `shout` added                     src/lib.rs
+  struct `Greeter` added                     src/lib.rs
+  function `greet` modified                  src/lib.rs
+  dependency `tracing` added                 Cargo.toml
+  feature `feature.cli` added                Cargo.toml
+  feature `feature.default` modified         Cargo.toml
+  manifest_field `package.edition` modified  Cargo.toml
+  2 changed files:
+    Cargo.toml
+    src/lib.rs
 
 ----- stderr -----

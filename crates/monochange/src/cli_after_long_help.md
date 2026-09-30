@@ -27,7 +27,7 @@ monochange next
 monochange next --format json
 ```
 
-5. Use repository-defined workflows through `monochange run <command>` when they exist in your config, or call immutable built-in steps directly with `monochange step <name>`.
+5. Run repository-defined workflows as `monochange <command>` (or `monochange run <command>`, which also works when a built-in command shares the name), or call immutable built-in steps directly with `monochange step <name>`.
 
 6. Preview before mutating files, publishing packages, creating tags, or opening release requests:
 

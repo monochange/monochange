@@ -261,19 +261,29 @@ fn sync_versions_with_npm_internal_deps() {
 }
 
 #[test]
-fn versions_cli_sync_subcommand_matches_legacy_output() {
+fn bare_versions_command_reports_changes_without_writing_files() {
 	let fixture = setup_fixture("dart-lints", "advanced-workspace-flutter/workspace");
-	let legacy_output = run_versions_cli(fixture.path(), &["--dry-run"]);
-	let sync_output = run_versions_cli(fixture.path(), &["sync", "--dry-run"]);
+	let mismatch_path = fixture
+		.path()
+		.join("packages/version_mismatch/pubspec.yaml");
+	let original_contents = std::fs::read_to_string(&mismatch_path)
+		.unwrap_or_else(|error| panic!("read original: {error}"));
 
-	assert_eq!(sync_output, legacy_output);
-	assert_snapshot!(sync_output);
+	let output = run_versions_cli(fixture.path(), &[]);
+
+	let current_contents = std::fs::read_to_string(&mismatch_path)
+		.unwrap_or_else(|error| panic!("read current: {error}"));
+	assert_eq!(
+		current_contents, original_contents,
+		"bare `monochange versions` must not modify files"
+	);
+	assert_snapshot!(output);
 }
 
 #[test]
 fn versions_cli_dry_run_text_output_matches_snapshot() {
 	let fixture = setup_fixture("dart-lints", "advanced-workspace-flutter/workspace");
-	let output = run_versions_cli(fixture.path(), &["--dry-run"]);
+	let output = run_versions_cli(fixture.path(), &["sync", "--dry-run"]);
 	assert_snapshot!(output);
 }
 

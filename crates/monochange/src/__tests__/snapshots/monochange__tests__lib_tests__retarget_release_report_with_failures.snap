@@ -1,0 +1,16 @@
+---
+source: crates/monochange/src/__tests__/lib_tests.rs
+expression: render_retarget_release_report(&applied)
+---
+✖ Could not move 1 release tag to def5678 · forced
+
+Ref            v1.2.3 → abc1234
+Record commit  abc1234
+Target         def5678 · does not descend from the record commit
+Provider       not synced
+
+Tags (4)
+  v1.2.3-Moved            moved               abc1234 → def5678
+  v1.2.3-AlreadyUpToDate  already up to date  abc1234 → def5678
+  v1.2.3-Skipped          skipped             abc1234 → def5678
+  v1.2.3-Failed           failed              abc1234 → def5678  tag is protected

@@ -20,12 +20,20 @@ Done:
 - Text results (`output/text.rs`): headline-first reports for release/preview/prepare, `next`, `check`, `discover`, `diagnose`, `affected`, `validate`, `create`, and `versions sync`; lists truncate at 20 with a pointer to `--format json`.
 - `publish-release --from-ref` and `comment-released-issues` results are no longer dropped, and their `--format json` output is JSON.
 
+Follow-up in the same pull request, approved by the maintainer:
+
+- Bare `monochange versions` is a read-only check; `versions sync` writes.
+- `[cli.<name>]` workflows also run as `monochange <name>` when no built-in owns the name; root help groups commands by task and lists workflows separately; `next-versions` is hidden.
+- Global `--verbose` shows full lists and logs, every phase timing, and `note:` lines from monochange's `INFO` events.
+- `--progress-format json` reports failures as a `diagnostic` event; usage errors exit with status `2`; `--format markdown` output never carries ANSI styling.
+- `--format json` includes a `commands` array with each `Command` step's result.
+- `release-record`, `tag-release`, `retarget-release`, `publish readiness`, `analyze`, `migrate`, and `lint list`/`explain` use the headline-first layout.
+- The release pull request CI job no longer passes `--log-level=debug`.
+
 Still open:
 
-- `--format markdown` still adds ANSI styling on a TTY (PR 2).
-- `release-record`, `tag-release`, `publish readiness`, `analyze`, `migrate`, and `lint list` text renderers still use the older `key: value` layout.
-- The release pull request CI job can drop `--log-level=debug` now that warnings are visible.
 - Publish summaries (PR 3) and release-note structure (PR 5) are unchanged.
+- The verified release commit fallback (GitHub `POST /git/trees` 422 for deleted files) needs `"sha": null` for deletions in `monochange_github`.
 
 ## Assessment
 

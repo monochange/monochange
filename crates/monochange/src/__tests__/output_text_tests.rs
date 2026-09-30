@@ -1,11 +1,17 @@
 use super::*;
 
 fn plain() -> TextTheme {
-	TextTheme { color: false }
+	TextTheme {
+		color: false,
+		verbose: false,
+	}
 }
 
 fn colored() -> TextTheme {
-	TextTheme { color: true }
+	TextTheme {
+		color: true,
+		verbose: false,
+	}
 }
 
 #[test]
@@ -52,6 +58,33 @@ fn every_outcome_has_its_own_symbol() {
 	report.headline(Outcome::Neutral, "note", &[]);
 
 	assert_eq!(report.render(), "✔ ok\n\n▲ careful\n\n✖ broken\n\n• note");
+}
+
+#[test]
+fn verbose_themes_show_every_list_item() {
+	let verbose = TextTheme {
+		color: false,
+		verbose: true,
+	};
+	let mut report = TextReport::new(verbose);
+	assert!(report.is_verbose());
+	report.list(["a", "b", "c"].map(ToString::to_string), 1);
+
+	assert_eq!(report.render(), "  a\n  b\n  c");
+}
+
+#[test]
+fn verbosity_is_scoped_to_the_running_command() {
+	assert!(!verbose_output());
+	assert!(crate::tests::block_on_in_context(with_verbosity(
+		true,
+		async { TextTheme::for_stdout().verbose }
+	)));
+	assert!(!crate::tests::block_on_in_context(with_verbosity(
+		false,
+		async { verbose_output() }
+	)));
+	assert!(!TextTheme::for_stdout().verbose);
 }
 
 #[test]

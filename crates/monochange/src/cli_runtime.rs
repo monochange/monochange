@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::io::IsTerminal;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
@@ -651,6 +650,7 @@ pub(crate) async fn execute_cli_command_with_options(
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let mut output = None;
 	let command_started_at = Instant::now();
@@ -1953,7 +1953,7 @@ fn run_cli_command_command(
 	show_progress: bool,
 	options: CommandStepOptions<'_>,
 ) -> MonochangeResult<CommandStepOutcome> {
-	let Some(command_to_run) = resolve_command_step_command(context, &options) else {
+	let Some(command_to_run) = resolve_command_step_command(context, step, &options) else {
 		return Ok(CommandStepOutcome::SkippedForDryRun);
 	};
 	let interpolated = interpolate_cli_command_command(
@@ -1986,6 +1986,15 @@ fn run_cli_command_command(
 	ensure_command_succeeded(&output, &interpolated, streamed)?;
 	store_command_step_output(context, options.step_id, &output);
 	log_command_step_output(context, &interpolated, &output);
+	context.command_results.push(CommandStepResult {
+		step: step.display_name().to_string(),
+		id: options.step_id.map(ToString::to_string),
+		command: render_command_for_error(&interpolated),
+		status: "succeeded",
+		exit_code: output.status.code(),
+		stdout: String::from_utf8_lossy(&output.stdout).trim().to_string(),
+		stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+	});
 
 	Ok(CommandStepOutcome::Ran)
 }
@@ -2017,6 +2026,7 @@ fn record_skipped_cli_step(
 
 fn resolve_command_step_command<'a>(
 	context: &mut CliContext,
+	step: &CliStepDefinition,
 	options: &CommandStepOptions<'a>,
 ) -> Option<&'a str> {
 	if !context.dry_run {
@@ -2036,6 +2046,15 @@ fn resolve_command_step_command<'a>(
 	context
 		.command_logs
 		.push(format!("skipped command `{skipped}` (dry-run)"));
+	context.command_results.push(CommandStepResult {
+		step: step.display_name().to_string(),
+		id: options.step_id.map(ToString::to_string),
+		command: render_command_for_error(&skipped),
+		status: "skipped",
+		exit_code: None,
+		stdout: String::new(),
+		stderr: String::new(),
+	});
 
 	None
 }
@@ -3366,7 +3385,6 @@ fn append_markdown_output_block(lines: &mut Vec<String>, label: &str, value: Opt
 fn render_package_publish_report_markdown(
 	report: &package_publish::PackagePublishReport,
 	show_all_packages: bool,
-	color: bool,
 ) -> Vec<String> {
 	let summary = report.summary();
 	let mut lines = vec![format!("**{}**", package_publish_headline(report, summary))];
@@ -3382,22 +3400,8 @@ fn render_package_publish_report_markdown(
 		)
 	}) {
 		lines.push(format!(
-			"- **{}** {} via {}",
-			paint_markdown_inline(
-				&format!("`{}`", package.package),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.version),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.registry),
-				MarkdownStyle::Code,
-				color,
-			),
+			"- **`{}`** `{}` via `{}`",
+			package.package, package.version, package.registry
 		));
 	}
 
@@ -3406,14 +3410,12 @@ fn render_package_publish_report_markdown(
 		report,
 		package_publish::PackagePublishStatus::Failed,
 		"Failed",
-		color,
 	);
 	append_publish_problem_rows_markdown(
 		&mut lines,
 		report,
 		package_publish::PackagePublishStatus::Blocked,
 		"Blocked",
-		color,
 	);
 	lines.push(String::new());
 	lines.push(package_publish_counts(report, summary));
@@ -3426,23 +3428,11 @@ fn render_package_publish_report_markdown(
 	lines.push("### Details".to_string());
 	for package in &report.packages {
 		lines.push(format!(
-			"- **{}** {} via {} → {}",
-			paint_markdown_inline(
-				&format!("`{}`", package.package),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.version),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.registry),
-				MarkdownStyle::Code,
-				color,
-			),
-			package_publish_status_label(package.status),
+			"- **`{}`** `{}` via `{}` → {}",
+			package.package,
+			package.version,
+			package.registry,
+			package_publish_status_label(package.status)
 		));
 		lines.push(format!("- **Ecosystem:** {}", package.ecosystem));
 		lines.push(format!(
@@ -3464,25 +3454,19 @@ fn render_package_publish_report_markdown(
 			&mut lines,
 			"Repository",
 			package.trusted_publishing.repository.as_deref(),
-			color,
 		);
 		push_optional_markdown_code_detail(
 			&mut lines,
 			"Workflow",
 			package.trusted_publishing.workflow.as_deref(),
-			color,
 		);
 		push_optional_markdown_code_detail(
 			&mut lines,
 			"Environment",
 			package.trusted_publishing.environment.as_deref(),
-			color,
 		);
 		if let Some(setup_url) = &package.trusted_publishing.setup_url {
-			lines.push(format!(
-				"- **Setup:** {}",
-				paint_markdown_inline(&format!("`{setup_url}`"), MarkdownStyle::Code, color,)
-			));
+			lines.push(format!("- **Setup:** `{setup_url}`"));
 			lines.push(
 				"- **Next:** open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"
 					.to_string(),
@@ -3498,7 +3482,6 @@ fn append_publish_problem_rows_markdown(
 	report: &package_publish::PackagePublishReport,
 	status: package_publish::PackagePublishStatus,
 	title: &str,
-	color: bool,
 ) {
 	let packages = report
 		.packages
@@ -3512,23 +3495,8 @@ fn append_publish_problem_rows_markdown(
 	lines.push(format!("**{title}**"));
 	lines.extend(packages.into_iter().map(|package| {
 		format!(
-			"- **{}** {} via {} — {}",
-			paint_markdown_inline(
-				&format!("`{}`", package.package),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.version),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.registry),
-				MarkdownStyle::Code,
-				color,
-			),
-			package.message,
+			"- **`{}`** `{}` via `{}` — {}",
+			package.package, package.version, package.registry, package.message
 		)
 	}));
 }
@@ -3556,66 +3524,117 @@ fn trusted_publishing_status_label(
 }
 
 pub(crate) fn render_retarget_release_report(report: &RetargetReleaseReport) -> String {
-	let mut lines = vec!["repair release:".to_string()];
-	lines.push(format!("  from: {}", report.from));
-	lines.push(format!(
-		"  resolved commit: {}",
-		short_commit_sha(&report.resolved_from_commit)
-	));
-	lines.push(format!(
-		"  record commit: {}",
-		short_commit_sha(&report.record_commit)
-	));
-	lines.push(format!(
-		"  target: {}",
-		short_commit_sha(&report.target_commit)
-	));
-	lines.push(format!(
-		"  descendant: {}",
-		if report.is_descendant { "yes" } else { "no" }
-	));
-	lines.push(format!(
-		"  force: {}",
-		if report.force { "yes" } else { "no" }
-	));
-	if !report.git_tag_results.is_empty() {
-		lines.push("  tags to move:".to_string());
-		for tag_result in &report.git_tag_results {
-			lines.push(format!(
-				"    - {} ({} -> {}) [{}]",
-				tag_result.tag_name,
-				short_commit_sha(&tag_result.from_commit),
-				short_commit_sha(&tag_result.to_commit),
-				retarget_operation_label(tag_result.operation),
-			));
-		}
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let count = |operation: RetargetOperation| {
+		report
+			.git_tag_results
+			.iter()
+			.filter(|tag_result| tag_result.operation == operation)
+			.count()
+	};
+	let tags = |count: usize| plural(count, "release tag", "release tags");
+	let target = short_commit_sha(&report.target_commit);
+	let failed = count(RetargetOperation::Failed);
+	let (outcome, headline) = if report.dry_run {
+		(
+			Outcome::Neutral,
+			format!(
+				"Would move {} to {target}",
+				tags(count(RetargetOperation::Planned))
+			),
+		)
+	} else if failed > 0 {
+		(
+			Outcome::Failure,
+			format!("Could not move {} to {target}", tags(failed)),
+		)
+	} else {
+		(
+			Outcome::Success,
+			format!(
+				"Moved {} to {target}",
+				tags(count(RetargetOperation::Moved))
+			),
+		)
+	};
+	let mut details = Vec::new();
+	if report.force {
+		details.push("forced".to_string());
 	}
-	lines.push(format!(
-		"  provider sync: {}",
-		if !report.sync_provider {
-			"disabled".to_string()
-		} else if let Some(provider_result) = report.provider_results.first() {
-			provider_result.provider.to_string()
-		} else {
-			"none".to_string()
-		}
-	));
-	lines.push(format!("  status: {}", report.status.replace('_', "-")));
-	lines.join("\n")
+	if report.dry_run {
+		details.push("dry-run".to_string());
+	}
+	text.headline(outcome, &headline, &details);
+	let provider = if !report.sync_provider {
+		"not synced".to_string()
+	} else if let Some(provider_result) = report.provider_results.first() {
+		format!("{} releases synced", provider_result.provider)
+	} else {
+		"nothing to sync".to_string()
+	};
+	text.fields(&[
+		(
+			"Ref",
+			format!(
+				"{} → {}",
+				report.from,
+				short_commit_sha(&report.resolved_from_commit)
+			),
+		),
+		("Record commit", short_commit_sha(&report.record_commit)),
+		(
+			"Target",
+			format!(
+				"{target}{}",
+				if report.is_descendant {
+					" · descends from the record commit"
+				} else {
+					" · does not descend from the record commit"
+				}
+			),
+		),
+		("Provider", provider),
+	]);
+	if !report.git_tag_results.is_empty() {
+		text.section("Tags", Some(report.git_tag_results.len()));
+		let rows = report
+			.git_tag_results
+			.iter()
+			.map(|tag_result| {
+				vec![
+					TableCell::new(&tag_result.tag_name, Tone::Heading),
+					TableCell::new(
+						retarget_operation_label(tag_result.operation).replace('_', " "),
+						retarget_operation_tone(tag_result.operation),
+					),
+					TableCell::new(
+						format!(
+							"{} → {}",
+							short_commit_sha(&tag_result.from_commit),
+							short_commit_sha(&tag_result.to_commit)
+						),
+						Tone::Value,
+					),
+					TableCell::new(tag_result.message.clone().unwrap_or_default(), Tone::Muted),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
+	}
+	text.render()
 }
 
-fn push_optional_markdown_code_detail(
-	lines: &mut Vec<String>,
-	label: &str,
-	value: Option<&str>,
-	color: bool,
-) {
-	lines.extend(value.map(|value| {
-		format!(
-			"- **{label}:** {}",
-			paint_markdown_inline(&format!("`{value}`"), MarkdownStyle::Code, color,)
-		)
-	}));
+fn retarget_operation_tone(operation: RetargetOperation) -> Tone {
+	match operation {
+		RetargetOperation::Planned => Tone::Accent,
+		RetargetOperation::Moved => Tone::Success,
+		RetargetOperation::AlreadyUpToDate | RetargetOperation::Skipped => Tone::Muted,
+		RetargetOperation::Failed => Tone::Error,
+	}
+}
+
+fn push_optional_markdown_code_detail(lines: &mut Vec<String>, label: &str, value: Option<&str>) {
+	lines.extend(value.map(|value| format!("- **{label}:** `{value}`")));
 }
 
 pub(crate) fn retarget_operation_label(operation: RetargetOperation) -> &'static str {
@@ -3734,11 +3753,18 @@ pub(crate) fn render_cli_command_result(
 		&& (context.package_publish_report.is_none() || show_all_publish_details)
 	{
 		report.section("Log", None);
+		let verbose = report.is_verbose();
 		report.list(
 			context
 				.command_logs
 				.iter()
-				.map(|log| summarize_log(log))
+				.map(|log| {
+					if verbose {
+						log.trim().to_string()
+					} else {
+						summarize_log(log)
+					}
+				})
 				.filter(|log| !log.is_empty()),
 			COMMAND_LOG_LIMIT,
 		);
@@ -4296,7 +4322,6 @@ fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) 
 	if summary.groups.is_empty() && summary.packages.is_empty() {
 		return "No package or group versions were planned.".to_string();
 	}
-	let color = stdout_supports_color();
 	let mut sections = Vec::with_capacity(
 		usize::from(!summary.groups.is_empty()) + usize::from(!summary.packages.is_empty()),
 	);
@@ -4305,40 +4330,26 @@ fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) 
 			.groups
 			.iter()
 			.filter_map(|group| {
-				group.planned_version.as_ref().map(|version| {
-					format!(
-						"- {}: {}",
-						paint_markdown_inline(
-							&format!("`{}`", group.group_id),
-							MarkdownStyle::Code,
-							color,
-						),
-						paint_markdown_inline(&format!("`{version}`"), MarkdownStyle::Code, color,),
-					)
-				})
+				group
+					.planned_version
+					.as_ref()
+					.map(|version| format!("- `{}`: `{version}`", group.group_id))
 			})
 			.collect::<Vec<_>>();
-		sections.push(render_markdown_section("Group versions", &lines, color));
+		sections.push(render_markdown_section("Group versions", &lines));
 	}
 	if !summary.packages.is_empty() {
 		let lines = summary
 			.packages
 			.iter()
 			.filter_map(|decision| {
-				decision.planned_version.as_ref().map(|version| {
-					format!(
-						"- {}: {}",
-						paint_markdown_inline(
-							&format!("`{}`", decision.package_id),
-							MarkdownStyle::Code,
-							color,
-						),
-						paint_markdown_inline(&format!("`{version}`"), MarkdownStyle::Code, color,),
-					)
-				})
+				decision
+					.planned_version
+					.as_ref()
+					.map(|version| format!("- `{}`: `{version}`", decision.package_id))
 			})
 			.collect::<Vec<_>>();
-		sections.push(render_markdown_section("Package versions", &lines, color));
+		sections.push(render_markdown_section("Package versions", &lines));
 	}
 	sections.join("\n\n")
 }
@@ -4378,23 +4389,8 @@ pub(crate) fn render_cli_command_markdown_result(
 		return render_cli_command_result(cli_command, context);
 	}
 
-	let color = stdout_supports_color();
-	let mut sections = vec![format!(
-		"# {}{}",
-		paint_markdown_inline(
-			&format!("`{}`", cli_command.name),
-			MarkdownStyle::Title,
-			color
-		),
-		if context.dry_run {
-			format!(
-				" {}",
-				paint_markdown_inline("(dry-run)", MarkdownStyle::Muted, color)
-			)
-		} else {
-			String::new()
-		}
-	)];
+	let dry_run = if context.dry_run { " (dry-run)" } else { "" };
+	let mut sections = vec![format!("# `{}`{dry_run}", cli_command.name)];
 	if let Some(report) = &context.package_publish_report {
 		let title = match report.mode {
 			package_publish::PackagePublishRunMode::Placeholder => "Placeholder publishing",
@@ -4403,18 +4399,14 @@ pub(crate) fn render_cli_command_markdown_result(
 		let rendered = render_package_publish_report_markdown(
 			report,
 			boolean_step_input(&context.last_step_inputs, "show-all"),
-			color,
 		);
-		sections.push(render_markdown_section(title, &rendered, color));
+		sections.push(render_markdown_section(title, &rendered));
 	}
 
 	if let Some(prepared_release) = &context.prepared_release {
 		let mut summary = Vec::new();
 		if let Some(version) = &prepared_release.version {
-			summary.push(format!(
-				"- **Version:** {}",
-				paint_markdown_inline(&format!("`{version}`"), MarkdownStyle::Code, color)
-			));
+			summary.push(format!("- **Version:** `{version}`"));
 		}
 		if !prepared_release.released_packages.is_empty() {
 			summary.push(format!(
@@ -4422,28 +4414,20 @@ pub(crate) fn render_cli_command_markdown_result(
 				prepared_release
 					.released_packages
 					.iter()
-					.map(|package| {
-						paint_markdown_inline(&format!("`{package}`"), MarkdownStyle::Code, color)
-					})
+					.map(|package| format!("`{package}`"))
 					.collect::<Vec<_>>()
 					.join(", ")
 			));
 		}
 		if !summary.is_empty() {
-			sections.push(render_markdown_section("Summary", &summary, color));
+			sections.push(render_markdown_section("Summary", &summary));
 		}
 		if !prepared_release.release_targets.is_empty() {
 			let mut lines = Vec::new();
 			for target in &prepared_release.release_targets {
 				lines.push(format!(
-					"- **{} {}** → {}",
-					target.kind,
-					paint_markdown_inline(&format!("`{}`", target.id), MarkdownStyle::Code, color),
-					paint_markdown_inline(
-						&format!("`{}`", target.tag_name),
-						MarkdownStyle::Code,
-						color,
-					),
+					"- **{} `{}`** → `{}`",
+					target.kind, target.id, target.tag_name
 				));
 				lines.push(format!(
 					"  - tag: {} · release: {}",
@@ -4451,20 +4435,12 @@ pub(crate) fn render_cli_command_markdown_result(
 					yes_no(target.release)
 				));
 			}
-			sections.push(render_markdown_section("Release targets", &lines, color));
+			sections.push(render_markdown_section("Release targets", &lines));
 		}
 		if let Some(path) = &context.release_manifest_path {
 			sections.push(render_markdown_section(
 				"Release manifest",
-				&[format!(
-					"- {}",
-					paint_markdown_inline(
-						&format!("`{}`", path.display()),
-						MarkdownStyle::Code,
-						color,
-					)
-				)],
-				color,
+				&[format!("- `{}`", path.display())],
 			));
 		}
 		if !context.release_results.is_empty() {
@@ -4473,20 +4449,18 @@ pub(crate) fn render_cli_command_markdown_result(
 				.iter()
 				.map(|release| format!("- {release}"))
 				.collect::<Vec<_>>();
-			sections.push(render_markdown_section("Releases", &lines, color));
+			sections.push(render_markdown_section("Releases", &lines));
 		}
 		if let Some(release_commit_report) = &context.release_commit_report {
 			sections.push(render_markdown_section(
 				"Release commit",
-				&render_release_commit_report_markdown(release_commit_report, color),
-				color,
+				&render_release_commit_report_markdown(release_commit_report),
 			));
 		}
 		if let Some(release_request_result) = &context.release_request_result {
 			sections.push(render_markdown_section(
 				"Release request",
 				&[format!("- {release_request_result}")],
-				color,
 			));
 		}
 		let request_warnings = release_request_warning_lines(context.release_request.as_ref());
@@ -4494,7 +4468,6 @@ pub(crate) fn render_cli_command_markdown_result(
 			sections.push(render_markdown_section(
 				"Release request warnings",
 				&request_warnings,
-				color,
 			));
 		}
 		if !context.issue_comment_results.is_empty() {
@@ -4503,36 +4476,20 @@ pub(crate) fn render_cli_command_markdown_result(
 				.iter()
 				.map(|issue_comment| format!("- {issue_comment}"))
 				.collect::<Vec<_>>();
-			sections.push(render_markdown_section("Issue comments", &lines, color));
+			sections.push(render_markdown_section("Issue comments", &lines));
 		}
 		if !prepared_release.changed_files.is_empty() {
 			let lines = prepared_release
 				.changed_files
 				.iter()
-				.map(|path| {
-					format!(
-						"- {}",
-						paint_markdown_inline(
-							&format!("`{}`", path.display()),
-							MarkdownStyle::Code,
-							color,
-						)
-					)
-				})
+				.map(|path| format!("- `{}`", path.display()))
 				.collect::<Vec<_>>();
-			sections.push(render_markdown_section("Changed files", &lines, color));
+			sections.push(render_markdown_section("Changed files", &lines));
 		}
 		if context.show_diff && !context.prepared_file_diffs.is_empty() {
 			let mut lines = Vec::new();
 			for file_diff in &context.prepared_file_diffs {
-				lines.push(format!(
-					"### {}",
-					paint_markdown_inline(
-						&format!("`{}`", file_diff.path.display()),
-						MarkdownStyle::Subtitle,
-						color,
-					)
-				));
+				lines.push(format!("### `{}`", file_diff.path.display()));
 				lines.push("```diff".to_string());
 				lines.extend(file_diff.display_diff.lines().map(ToString::to_string));
 				lines.push("```".to_string());
@@ -4541,24 +4498,15 @@ pub(crate) fn render_cli_command_markdown_result(
 			while lines.last().is_some_and(String::is_empty) {
 				lines.pop();
 			}
-			sections.push(render_markdown_section("File diffs", &lines, color));
+			sections.push(render_markdown_section("File diffs", &lines));
 		}
 		if !prepared_release.deleted_changesets.is_empty() {
 			let lines = prepared_release
 				.deleted_changesets
 				.iter()
-				.map(|path| {
-					format!(
-						"- {}",
-						paint_markdown_inline(
-							&format!("`{}`", path.display()),
-							MarkdownStyle::Code,
-							color,
-						)
-					)
-				})
+				.map(|path| format!("- `{}`", path.display()))
 				.collect::<Vec<_>>();
-			sections.push(render_markdown_section("Deleted changesets", &lines, color));
+			sections.push(render_markdown_section("Deleted changesets", &lines));
 		}
 	}
 	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
@@ -4570,36 +4518,9 @@ pub(crate) fn render_cli_command_markdown_result(
 			.iter()
 			.map(|log| format!("- {log}"))
 			.collect::<Vec<_>>();
-		sections.push(render_markdown_section("Commands", &lines, color));
+		sections.push(render_markdown_section("Commands", &lines));
 	}
 	sections.join("\n\n")
-}
-
-#[derive(Clone, Copy)]
-enum MarkdownStyle {
-	Title,
-	Subtitle,
-	Code,
-	Muted,
-}
-
-fn stdout_supports_color() -> bool {
-	std::io::stdout().is_terminal()
-		&& std::env::var_os("NO_COLOR").is_none()
-		&& std::env::var("TERM").is_ok_and(|term| term != "dumb")
-}
-
-fn paint_markdown_inline(text: &str, style: MarkdownStyle, color: bool) -> String {
-	if !color {
-		return text.to_string();
-	}
-	let code = match style {
-		MarkdownStyle::Title => "36;1",
-		MarkdownStyle::Subtitle => "37;1",
-		MarkdownStyle::Code => "35",
-		MarkdownStyle::Muted => "2",
-	};
-	format!("\u{1b}[{code}m{text}\u{1b}[0m")
 }
 
 /// Warn when the rendered release request body was shortened to fit a provider limit.
@@ -4616,40 +4537,26 @@ fn release_request_warning_lines(request: Option<&SourceChangeRequest>) -> Vec<S
 	)]
 }
 
-fn render_markdown_section(title: &str, lines: &[String], color: bool) -> String {
+fn render_markdown_section(title: &str, lines: &[String]) -> String {
 	if lines.is_empty() {
-		return format!(
-			"## {}",
-			paint_markdown_inline(title, MarkdownStyle::Subtitle, color)
-		);
+		return format!("## {title}");
 	}
-	format!(
-		"## {}\n\n{}",
-		paint_markdown_inline(title, MarkdownStyle::Subtitle, color),
-		lines.join("\n")
-	)
+	format!("## {title}\n\n{}", lines.join("\n"))
 }
 
-fn render_release_commit_report_markdown(report: &CommitReleaseReport, color: bool) -> Vec<String> {
+fn render_release_commit_report_markdown(report: &CommitReleaseReport) -> Vec<String> {
 	let mut lines = vec![format!("- **Subject:** {}", report.subject)];
 	if let Some(commit) = &report.commit {
-		lines.push(format!(
-			"- **Commit:** {}",
-			paint_markdown_inline(
-				&format!("`{}`", short_commit_sha(commit)),
-				MarkdownStyle::Code,
-				color,
-			)
-		));
+		lines.push(format!("- **Commit:** `{}`", short_commit_sha(commit)));
 	}
 	if !report.tracked_paths.is_empty() {
 		lines.push("- **Tracked paths:**".to_string());
-		lines.extend(report.tracked_paths.iter().map(|path| {
-			format!(
-				"  - {}",
-				paint_markdown_inline(&format!("`{}`", path.display()), MarkdownStyle::Code, color,)
-			)
-		}));
+		lines.extend(
+			report
+				.tracked_paths
+				.iter()
+				.map(|path| format!("  - `{}`", path.display())),
+		);
 	}
 	lines.push(format!("- **Status:** {}", report.status.replace('_', "-")));
 	lines
@@ -4966,6 +4873,7 @@ fn resolve_command_output(
 						} else {
 							&[]
 						},
+						commands: &context.command_results,
 					},
 				)
 			}
@@ -5040,18 +4948,42 @@ fn resolve_command_output(
 		let format = context.output_format;
 		return match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
-				format.render_json_value(
-					&serde_json::json!({
-						"releases": context.release_requests,
-						"issue_comments": context.issue_comment_plans,
-					}),
-					"release automation result",
-				)
+				let mut value = serde_json::Map::new();
+				value.insert(
+					"releases".to_string(),
+					serde_json::json!(context.release_requests),
+				);
+				value.insert(
+					"issue_comments".to_string(),
+					serde_json::json!(context.issue_comment_plans),
+				);
+				if !context.command_results.is_empty() {
+					value.insert(
+						"commands".to_string(),
+						serde_json::json!(context.command_results),
+					);
+				}
+				format.render_json_value(&value, "release automation result")
 			}
 			OutputFormat::Markdown | OutputFormat::Text => {
 				Ok(render_cli_command_result(cli_command, context))
 			}
 		};
+	}
+	if matches!(
+		context.output_format,
+		OutputFormat::Json | OutputFormat::JsonMin
+	) && output.is_none()
+		&& !context.command_results.is_empty()
+	{
+		return context.output_format.render_json_value(
+			&serde_json::json!({
+				"command": cli_command.name,
+				"dry_run": dry_run,
+				"commands": context.command_results,
+			}),
+			"command results",
+		);
 	}
 	if !context.command_logs.is_empty() {
 		return Ok(render_cli_command_result(cli_command, context));

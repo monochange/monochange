@@ -1,0 +1,16 @@
+---
+source: crates/monochange/src/__tests__/publish_readiness_tests.rs
+expression: text
+---
+✖ Publishing is blocked · 1 of 3 packages blocked
+
+Ref            HEAD
+Record commit  record1
+
+Packages (3)
+  core  1.2.3  crates.io  blocked            version already exists with different content
+  app   1.2.3  crates.io  already published  ready to publish core 1.2.3
+  docs  1.2.3  crates.io  unsupported        ready to publish core 1.2.3
+
+Order findings (1)
+  ✖ core must publish before app

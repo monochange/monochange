@@ -36,6 +36,9 @@ List current package and version-group versions, or update internal workspace de
   [93m-q[0m, [93m--quiet[0m
           Suppress result, progress, and diagnostic output without changing execution
 
+  [93m-v[0m, [93m--verbose[0m
+          Show full result lists and logs, every step timing, and progress notes
+
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
 
@@ -53,4 +56,4 @@ Examples:
   monochange versions sync --dry-run --format json
   monochange versions sync --strategy exact
 
-Calling `monochange versions` without a subcommand still runs the legacy sync behavior, but it is deprecated and will be removed in a future version. Use `monochange versions sync` instead.
+Calling `monochange versions` without a subcommand checks whether internal dependency constraints match package versions without writing files. Run `monochange versions sync` to apply the changes.

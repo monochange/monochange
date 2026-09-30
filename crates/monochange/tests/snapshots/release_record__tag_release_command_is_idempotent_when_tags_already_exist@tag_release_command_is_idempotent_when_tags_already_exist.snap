@@ -2,11 +2,10 @@
 source: crates/monochange/tests/release_record.rs
 expression: "String::from_utf8(second.stdout).unwrap_or_else(|error|\npanic!(\"stdout utf8: {error}\"))"
 ---
-release tags:
-  from: HEAD
-  resolved commit: [SHA]
-  record commit: [SHA]
-  push: yes
-  tags:
-    - v1.2.3 (existing: [SHA], target: [SHA]) [already_up_to_date]
-  status: already-up-to-date
+✔ Release tags are already up to date · push enabled
+
+Ref            HEAD → [SHA]
+Record commit  [SHA] · at the requested ref
+
+Tags (1)
+  v1.2.3  up to date  → [SHA]  unchanged

@@ -1,0 +1,18 @@
+---
+source: crates/monochange/src/__tests__/analyze_tests.rs
+expression: rendered
+---
+✔ Analyzed core · 0 semantic changes main → HEAD · first release
+
+Package    core (core)
+Ecosystem  cargo
+Manifest   crates/core/Cargo.toml
+Refs       release none · main main · head HEAD
+
+Warnings (1)
+  ▲ package `core` has no configured release identity; analyzing only `main -> HEAD`
+
+main → head (0)
+  frame main..HEAD
+  No semantic changes detected for `core` in this frame.
+  ▲ frame warning

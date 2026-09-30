@@ -33,8 +33,8 @@ Codes are more specific. Scripts that search CI logs for the old codes should up
 
 Other improvements:
 
-- `monochange <name>` suggests `monochange run <name>` when `<name>` is defined in `monochange.toml`
 - a command group without a subcommand, such as `monochange changeset`, explains that it needs one and lists them
 - when `monochange.toml` cannot be loaded, its error is reported even for commands defined in that file
 - a failed `Command` step repeats only the last 20 lines of each stream when its output already streamed live
 - generic hints are omitted when the message already says what to do, and git failures suggest fetching full history and tags in CI
+- `monochange affected --verify` keeps the real failure summary (such as uncovered packages) instead of reporting that changeset bumps underestimate API impact whenever any error exists

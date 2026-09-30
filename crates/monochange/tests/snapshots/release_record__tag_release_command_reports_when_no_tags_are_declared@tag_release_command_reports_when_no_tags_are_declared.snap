@@ -2,10 +2,7 @@
 source: crates/monochange/tests/release_record.rs
 expression: "String::from_utf8(output.stdout).unwrap_or_else(|error|\npanic!(\"stdout utf8: {error}\"))"
 ---
-release tags:
-  from: HEAD
-  resolved commit: [SHA]
-  record commit: [SHA]
-  push: no
-  tags: none declared by release record
-  status: no-tags-declared
+• The release record declares no tags · push disabled
+
+Ref            HEAD → [SHA]
+Record commit  [SHA] · at the requested ref

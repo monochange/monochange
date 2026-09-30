@@ -1370,6 +1370,7 @@ pub(crate) struct ReleaseCliJsonSections<'a> {
 	pub package_publish: Option<&'a package_publish::PackagePublishReport>,
 	pub publish_rate_limits: Option<&'a monochange_core::PublishRateLimitReport>,
 	pub file_diffs: &'a [PreparedFileDiff],
+	pub commands: &'a [CommandStepResult],
 }
 
 pub(crate) fn render_release_cli_command_json(
@@ -1385,7 +1386,17 @@ pub(crate) fn render_release_cli_command_json(
 		&& sections.publish_rate_limits.is_none()
 		&& sections.file_diffs.is_empty()
 	{
-		return render_release_manifest_json(format, manifest);
+		if sections.commands.is_empty() {
+			return render_release_manifest_json(format, manifest);
+		}
+		// Keep the manifest shape and add `commands` beside its fields, so
+		// consumers reading manifest fields at the top level keep working.
+		let mut value = json!(manifest);
+		value
+			.as_object_mut()
+			.unwrap_or_else(|| panic!("release manifest json must stay object"))
+			.insert("commands".to_string(), json!(sections.commands));
+		return format.render_json_value(&value, "release manifest");
 	}
 	let mut value = json!({
 		"manifest": manifest,
@@ -1404,6 +1415,12 @@ pub(crate) fn render_release_cli_command_json(
 				"file_diffs".to_string(),
 				serde_json::to_value(sections.file_diffs).unwrap_or_default(),
 			);
+	}
+	if !sections.commands.is_empty() {
+		value
+			.as_object_mut()
+			.unwrap_or_else(|| panic!("release json wrapper must stay object"))
+			.insert("commands".to_string(), json!(sections.commands));
 	}
 	format.render_json_value(&value, "release command output")
 }

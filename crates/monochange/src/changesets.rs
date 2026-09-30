@@ -184,10 +184,16 @@ pub(crate) fn render_changeset_diagnostics(report: &ChangesetDiagnosticsReport) 
 			None => text.indented("(missing summary)", Tone::Warning),
 		}
 		if let Some(details) = &changeset.details {
-			text.indented(
-				&first_line_preview(details, DETAILS_PREVIEW_WIDTH),
-				Tone::Muted,
-			);
+			if text.is_verbose() {
+				for line in details.trim().lines() {
+					text.indented(line, Tone::Muted);
+				}
+			} else {
+				text.indented(
+					&first_line_preview(details, DETAILS_PREVIEW_WIDTH),
+					Tone::Muted,
+				);
+			}
 		}
 
 		if !changeset.targets.is_empty() {

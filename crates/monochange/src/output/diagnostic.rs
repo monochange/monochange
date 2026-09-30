@@ -111,6 +111,44 @@ impl CliDiagnostic {
 		output
 	}
 
+	/// Process exit status: `2` for command-line usage errors, `1` otherwise.
+	pub(crate) fn exit_code(&self) -> u8 {
+		if matches!(self.code, "cli.usage" | "cli.json_required") {
+			2
+		} else {
+			1
+		}
+	}
+
+	/// The diagnostic as JSON fields, for `--progress-format json` consumers
+	/// such as agents and CI tooling.
+	pub(crate) fn to_json_fields(&self) -> serde_json::Map<String, serde_json::Value> {
+		let mut fields = serde_json::Map::new();
+		fields.insert("code".to_string(), self.code.into());
+		fields.insert(
+			"summary".to_string(),
+			strip_terminal_controls(&self.summary).into(),
+		);
+		fields.insert(
+			"detail".to_string(),
+			self.body
+				.as_ref()
+				.map(|body| strip_terminal_controls(&body.text))
+				.into(),
+		);
+		fields.insert(
+			"context".to_string(),
+			self.context
+				.iter()
+				.map(|(label, value)| ((*label).to_string(), strip_terminal_controls(value).into()))
+				.collect::<serde_json::Map<_, _>>()
+				.into(),
+		);
+		fields.insert("hints".to_string(), self.hints.clone().into());
+		fields.insert("exit_code".to_string(), self.exit_code().into());
+		fields
+	}
+
 	pub(crate) fn render(&self, color: bool) -> String {
 		let clean = |text: &str| {
 			if color {

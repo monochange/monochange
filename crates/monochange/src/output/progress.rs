@@ -165,6 +165,7 @@ impl ProgressReporter {
 			quiet,
 			format,
 			tracing_enabled: false,
+			verbose: crate::output::text::verbose_output(),
 		};
 		let capabilities = TerminalCapabilities::detect(settings);
 		Self::with_output(
@@ -199,6 +200,7 @@ impl ProgressReporter {
 			quiet,
 			format,
 			tracing_enabled: false,
+			verbose: crate::output::text::verbose_output(),
 		};
 		let capabilities = TerminalCapabilities::detect(settings);
 		Self::with_context(
@@ -298,7 +300,12 @@ impl ProgressReporter {
 			ProgressRenderMode::Human if self.github => WarningMode::GitHub,
 			ProgressRenderMode::Human => WarningMode::Human,
 		};
-		Some(WarningSink::new(self.stderr.clone(), mode, self.color))
+		Some(WarningSink::new(
+			self.stderr.clone(),
+			mode,
+			self.color,
+			self.capabilities.verbose,
+		))
 	}
 
 	pub(crate) fn write_diagnostic(&self, diagnostic: CliDiagnostic) {
@@ -308,6 +315,10 @@ impl ProgressReporter {
 			Some(step) => diagnostic.with_step(step),
 			None => diagnostic,
 		};
+		if self.render_mode == ProgressRenderMode::Json {
+			self.emit_domain_json_event("diagnostic", diagnostic.to_json_fields());
+			return;
+		}
 		self.stderr
 			.write(format!("{}\n", diagnostic.render(self.color)).as_bytes());
 		if self.github {
@@ -735,10 +746,11 @@ impl ProgressReporter {
 			self.step_heading(step_index, step, true),
 			self.paint(&format_duration(duration), Style::Muted),
 		));
-		if duration < PHASE_TIMING_STEP_MINIMUM {
+		let verbose = self.capabilities.verbose;
+		if duration < PHASE_TIMING_STEP_MINIMUM && !verbose {
 			return;
 		}
-		let phases = summarized_phase_timings(phase_timings);
+		let phases = summarized_phase_timings(phase_timings, verbose);
 		let label_width = phases
 			.iter()
 			.map(|phase| display_width(&phase.label))
@@ -1819,14 +1831,21 @@ fn duration_millis(duration: Duration) -> u64 {
 	u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
 }
 
-fn summarized_phase_timings(phase_timings: &[StepPhaseTiming]) -> Vec<StepPhaseTiming> {
+/// The slowest phases worth listing under a finished step; `--verbose` lists
+/// every phase.
+fn summarized_phase_timings(
+	phase_timings: &[StepPhaseTiming],
+	verbose: bool,
+) -> Vec<StepPhaseTiming> {
 	let mut phase_timings = phase_timings
 		.iter()
-		.filter(|phase| phase.duration >= PHASE_TIMING_MINIMUM)
+		.filter(|phase| verbose || phase.duration >= PHASE_TIMING_MINIMUM)
 		.cloned()
 		.collect::<Vec<_>>();
 	phase_timings.sort_by_key(|phase| Reverse(phase.duration));
-	phase_timings.truncate(PHASE_TIMING_DETAIL_LIMIT);
+	if !verbose {
+		phase_timings.truncate(PHASE_TIMING_DETAIL_LIMIT);
+	}
 	phase_timings
 }
 

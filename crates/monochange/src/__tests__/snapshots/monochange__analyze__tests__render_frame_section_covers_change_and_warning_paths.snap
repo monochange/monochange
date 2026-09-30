@@ -1,0 +1,11 @@
+---
+source: crates/monochange/src/__tests__/analyze_tests.rs
+expression: text.render()
+---
+main → head (1)
+  frame main..HEAD
+  function `shout` added  src/lib.rs
+  1 changed file:
+    src/lib.rs
+  ▲ package warning
+  ▲ frame warning

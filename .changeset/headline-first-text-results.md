@@ -40,3 +40,9 @@ The same treatment applies to:
 - `monochange create`: `✔ Created changeset <path>`, or `Would create changeset <path>` with the rendered file for `--dry-run`
 - release commits: the short SHA and subject with a tracked-path count, instead of every tracked path
 - command step logs: each command's last output line, instead of its whole stdout
+- `monochange step release-record`: the record's version, release targets, and how far the record commit is behind the requested ref
+- `monochange step tag-release` and `monochange step retarget-release`: what happened to each tag, with short commit SHAs
+- `monochange publish readiness`: `✔ Ready to publish` or `✖ Publishing is blocked`, with packages, trusted publishing, and publish order in aligned sections
+- `monochange analyze`: the semantic changes per frame as a table, with package details as aligned fields
+- `monochange migrate audit` and `monochange migrate release-records`: a verdict headline, then signals, recommendations, numbered next steps, or per-record schema changes
+- `monochange lint list` and `monochange lint explain`: a count headline, then rules and presets with their category, maturity, and fixability

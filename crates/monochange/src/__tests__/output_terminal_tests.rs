@@ -37,6 +37,15 @@ fn progress_settings_parse_environment_independent_cli_values() {
 	]);
 	assert_eq!(settings.format, ProgressFormat::Json);
 	assert!(settings.tracing_enabled);
+	assert!(!settings.verbose);
+
+	let settings = ProgressSettings::from_args(&[
+		OsString::from("monochange"),
+		OsString::from("-v"),
+		OsString::from("next"),
+	]);
+	assert!(settings.verbose);
+	assert!(TerminalCapabilities::resolve(settings, probe()).verbose);
 }
 
 #[test]
@@ -45,6 +54,7 @@ fn terminal_capabilities_resolve_one_consistent_policy() {
 		quiet: false,
 		format: ProgressFormat::Auto,
 		tracing_enabled: false,
+		verbose: false,
 	};
 	let interactive = TerminalCapabilities::resolve(settings, probe());
 	assert!(interactive.stdout_is_terminal);
@@ -80,6 +90,7 @@ fn terminal_capabilities_resolve_one_consistent_policy() {
 			quiet: false,
 			format: ProgressFormat::Auto,
 			tracing_enabled: true,
+			verbose: false,
 		},
 		probe(),
 	);
@@ -113,6 +124,7 @@ fn github_actions_commands_are_only_used_by_the_human_renderer() {
 		quiet: false,
 		format: ProgressFormat::Auto,
 		tracing_enabled: false,
+		verbose: false,
 	};
 	let probe = TerminalProbe {
 		stderr_is_terminal: false,
@@ -121,6 +133,16 @@ fn github_actions_commands_are_only_used_by_the_human_renderer() {
 		..probe()
 	};
 	assert!(TerminalCapabilities::resolve(settings, probe).github_actions);
+	assert!(
+		!TerminalCapabilities::resolve(
+			settings,
+			TerminalProbe {
+				no_progress: true,
+				..probe
+			},
+		)
+		.github_actions
+	);
 	assert!(
 		!TerminalCapabilities::resolve(
 			ProgressSettings {
@@ -140,6 +162,7 @@ fn explicit_json_progress_never_uses_terminal_styling() {
 			quiet: false,
 			format: ProgressFormat::Json,
 			tracing_enabled: false,
+			verbose: false,
 		},
 		probe(),
 	);

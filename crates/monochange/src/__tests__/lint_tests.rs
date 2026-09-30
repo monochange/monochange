@@ -438,7 +438,8 @@ fn handle_lint_subcommand_dispatches_supported_commands() {
 		.try_get_matches_from(["lint", "list"])
 		.unwrap();
 	let list_output = handle_lint_subcommand(&root, &list_matches).unwrap();
-	assert!(list_output.contains("Rules:"));
+	assert!(list_output.contains("\nRules ("), "{list_output}");
+	assert!(list_output.contains("\nPresets ("), "{list_output}");
 
 	let explain_matches = build_lint_subcommand()
 		.try_get_matches_from(["lint", "explain", "cargo/recommended", "--format=json"])
@@ -571,4 +572,24 @@ fn scaffold_lint_rule_reports_write_failures() {
 	let error = scaffold_lint_rule(tempdir.path(), "cargo/no-path-dependencies")
 		.expect_err("expected fixture note write to fail");
 	assert!(!error.to_string().is_empty());
+}
+
+#[test]
+fn lint_explanations_lead_with_the_id_and_align_their_details() {
+	let rule_with_options = available_lint_rules()
+		.into_iter()
+		.find(|rule| !rule.options.is_empty())
+		.unwrap_or_else(|| panic!("expected a lint rule with options"));
+	let rule = render_lint_explanation(&rule_with_options.id, OutputFormat::Text).unwrap();
+	assert!(
+		rule.starts_with(&format!("• {} · ", rule_with_options.id)),
+		"{rule}"
+	);
+	assert!(rule.contains("\nCategory  "), "{rule}");
+	assert!(rule.contains("\nOptions ("), "{rule}");
+
+	let preset = render_lint_explanation("cargo/recommended", OutputFormat::Text).unwrap();
+	assert!(preset.starts_with("• cargo/recommended · "), "{preset}");
+	assert!(preset.contains("\nMaturity  "), "{preset}");
+	assert!(preset.contains("\nRules ("), "{preset}");
 }

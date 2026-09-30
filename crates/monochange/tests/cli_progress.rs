@@ -11,7 +11,6 @@ use test_support::TtyAction;
 use test_support::assert_readable_json_snapshot;
 use test_support::current_test_name;
 use test_support::monochange_command;
-use test_support::run_in_tty;
 use test_support::run_in_tty_with_env;
 use test_support::setup_fixture;
 use test_support::setup_scenario_workspace;
@@ -199,7 +198,16 @@ fn normalize_terminal_transcript(text: &str) -> String {
 
 #[cfg(unix)]
 fn run_tty_command_result(workspace: &Path, command_name: &str) -> (i32, String) {
-	let (status, transcript) = run_in_tty(workspace, &[command_name], None, &[]);
+	// Force the test-harness detection so the TTY renders the interactive
+	// layout even when CI variables are set (the coverage job runs plain
+	// `cargo llvm-cov test` in GitHub Actions).
+	let (status, transcript) = run_in_tty_with_env(
+		workspace,
+		&[command_name],
+		None,
+		&[("INSTA_WORKSPACE_ROOT", "1")],
+		&[],
+	);
 	(status, normalize_terminal_transcript(&transcript))
 }
 

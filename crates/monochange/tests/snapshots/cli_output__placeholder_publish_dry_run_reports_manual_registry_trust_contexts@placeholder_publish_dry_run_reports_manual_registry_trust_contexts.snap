@@ -10,24 +10,31 @@ info:
   env:
     GITHUB_JOB: release
     GITHUB_WORKFLOW_REF: ifiokjr/monochange/.github/workflows/publish.yml@refs/heads/main
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:37723"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:37723"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:34027"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:34027"
     MONOCHANGE_NO_PROGRESS: "1"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:37723"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:37723"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:34027"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:34027"
     NO_COLOR: "1"
 ---
-success: false
-exit_code: 1
+success: true
+exit_code: 0
 ----- stdout -----
+Would publish 2 placeholder packages
+
+  core     0.0.0  crates_io
+  npm_pkg  0.0.0  npm
+
+Checked 2 packages. No changes were made.
+
+Publish rate limits
+  crates_io placeholder_publish: 1 pending, 1 batch required, confidence High
+    limit 10 · per 60s · crates.io source enforces 10 uploads per minute for existing crates
+  npm placeholder_publish: 1 pending, 1 batch required, confidence Low
+    npm does not publish a precise package publish quota; use sequential CI publishing with retries
+
+Planned batches (2)
+  crates_io batch 1/1: core
+  npm batch 1/1: npm_pkg
 
 ----- stderr -----
-error[cli.usage]: unrecognized subcommand 'placeholder-publish'
-
-  tip: `placeholder-publish` is defined in monochange.toml; run it with `monochange run placeholder-publish`
-
-Usage: monochange [OPTIONS] <COMMAND>
-
-For more information, try '--help'.
-
-  command: monochange placeholder-publish

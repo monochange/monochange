@@ -279,6 +279,9 @@ pub fn monochange_command(release_date: Option<&str>) -> Command {
 	let mut command = Command::new(get_cargo_bin("monochange"));
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
+	// Tests that re-enable progress must not pick up GitHub workflow commands
+	// from the CI runner's environment.
+	command.env_remove("GITHUB_ACTIONS");
 	command.env("MONOCHANGE_NO_PROGRESS", "1");
 
 	if let Some(release_date) = release_date {
@@ -338,6 +341,7 @@ pub fn run_in_tty_with_env(
 	command.cwd(workspace);
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
+	command.env_remove("GITHUB_ACTIONS");
 	if let Some(release_date) = release_date {
 		command.env("MONOCHANGE_RELEASE_DATE", release_date);
 	}

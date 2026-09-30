@@ -175,10 +175,10 @@ async fn render_analyze_report_supports_first_release_fallback_and_text_warnings
 	.await
 	.unwrap_or_else(|error| panic!("render analyze text: {error}"));
 
-	assert!(rendered.contains("release: none"));
-	assert!(rendered.contains("first release: yes"));
+	assert!(rendered.contains("release none · main "), "{rendered}");
+	assert!(rendered.contains(" · first release"), "{rendered}");
 	assert!(rendered.contains("no prior release tag found for group `sdk`"));
-	assert!(rendered.contains("main -> head:"));
+	assert!(rendered.contains("\nmain → head ("), "{rendered}");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -254,7 +254,7 @@ fn release_owner_label_covers_package_and_group_variants() {
 
 #[test]
 fn render_frame_section_covers_change_and_warning_paths() {
-	let mut lines = Vec::new();
+	let mut text = TextReport::new(TextTheme::for_stdout());
 	let mut package_analyses = std::collections::BTreeMap::new();
 	package_analyses.insert(
 		"core".to_string(),
@@ -281,8 +281,8 @@ fn render_frame_section_covers_change_and_warning_paths() {
 		},
 	);
 	render_frame_section(
-		&mut lines,
-		"main -> head",
+		&mut text,
+		"main → head",
 		&ChangeAnalysis {
 			frame: ChangeFrame::CustomRange {
 				base: "main".to_string(),
@@ -295,12 +295,7 @@ fn render_frame_section_covers_change_and_warning_paths() {
 		},
 		"core",
 	);
-	let rendered = lines.join("\n");
-
-	assert!(rendered.contains("changed files:"));
-	assert!(rendered.contains("function `shout` added"));
-	assert!(rendered.contains("package warning"));
-	assert!(rendered.contains("frame warning"));
+	insta::assert_snapshot!(text.render());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -360,9 +355,7 @@ async fn latest_release_tag_and_text_rendering_cover_warning_branches() {
 		warnings: vec![first_release_warning("core", "main", "HEAD", None)],
 	});
 
-	assert!(rendered.contains("has no configured release identity"));
-	assert!(rendered.contains("no semantic changes detected for `core` in this frame"));
-	assert!(rendered.contains("frame warning"));
+	insta::assert_snapshot!(rendered);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -386,10 +379,10 @@ async fn render_analyze_report_propagates_workspace_errors() {
 
 #[test]
 fn render_frame_section_covers_empty_lists_and_missing_warning_paths() {
-	let mut lines = Vec::new();
+	let mut text = TextReport::new(TextTheme::for_stdout());
 	render_frame_section(
-		&mut lines,
-		"release -> main",
+		&mut text,
+		"release → main",
 		&ChangeAnalysis {
 			frame: ChangeFrame::CustomRange {
 				base: "v1.0.0".to_string(),
@@ -402,13 +395,13 @@ fn render_frame_section_covers_empty_lists_and_missing_warning_paths() {
 		},
 		"core",
 	);
-	let missing_package_rendered = lines.join("\n");
+	let missing_package_rendered = text.render();
 	assert!(
-		missing_package_rendered.contains("no semantic changes detected for `core` in this frame")
+		missing_package_rendered.contains("No semantic changes detected for `core` in this frame.")
 	);
-	assert!(!missing_package_rendered.contains("  warnings:"));
+	assert!(!missing_package_rendered.contains('▲'));
 
-	lines.clear();
+	let mut text = TextReport::new(TextTheme::for_stdout());
 	let mut package_analyses = std::collections::BTreeMap::new();
 	package_analyses.insert(
 		"core".to_string(),
@@ -425,8 +418,8 @@ fn render_frame_section_covers_empty_lists_and_missing_warning_paths() {
 		},
 	);
 	render_frame_section(
-		&mut lines,
-		"main -> head",
+		&mut text,
+		"main → head",
 		&ChangeAnalysis {
 			frame: ChangeFrame::CustomRange {
 				base: "main".to_string(),
@@ -439,10 +432,9 @@ fn render_frame_section_covers_empty_lists_and_missing_warning_paths() {
 		},
 		"core",
 	);
-	let empty_lists_rendered = lines.join("\n");
+	let empty_lists_rendered = text.render();
 
-	assert!(empty_lists_rendered.contains("semantic changes: 0"));
-	assert!(!empty_lists_rendered.contains("  changed files:"));
-	assert!(!empty_lists_rendered.contains("  changes:"));
-	assert!(!empty_lists_rendered.contains("  warnings:"));
+	assert!(empty_lists_rendered.starts_with("main → head (0)"));
+	assert!(!empty_lists_rendered.contains("changed file"));
+	assert!(!empty_lists_rendered.contains('▲'));
 }

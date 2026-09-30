@@ -104,6 +104,7 @@ fn cli_context() -> CliContext {
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	}
 }
 
@@ -904,7 +905,7 @@ fn render_helpers_cover_release_commit_and_markdown_sections() {
 	render_release_commit_section(&mut text, &untracked, Path::new("/repo"));
 	insta::assert_snapshot!("release_commit_sections", text.render());
 
-	let markdown_lines = render_release_commit_report_markdown(&report, true);
+	let markdown_lines = render_release_commit_report_markdown(&report);
 	assert!(
 		markdown_lines
 			.iter()
@@ -918,12 +919,7 @@ fn render_helpers_cover_release_commit_and_markdown_sections() {
 
 	assert_eq!(yes_no(true), "yes");
 	assert_eq!(yes_no(false), "no");
-	assert_eq!(
-		paint_markdown_inline("plain", MarkdownStyle::Muted, false),
-		"plain"
-	);
-	assert!(paint_markdown_inline("code", MarkdownStyle::Code, true).contains("\u{1b}[35m"));
-	assert!(render_markdown_section("Empty", &[], false).starts_with("## Empty"));
+	assert_eq!(render_markdown_section("Empty", &[]), "## Empty");
 }
 
 #[derive(Debug)]
@@ -1610,7 +1606,7 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 		vec!["No packages matched placeholder publishing criteria"]
 	);
 	assert_eq!(
-		render_package_publish_report_markdown(&empty_placeholder, false, false),
+		render_package_publish_report_markdown(&empty_placeholder, false),
 		vec!["**No packages matched placeholder publishing criteria**".to_string()]
 	);
 
@@ -1628,7 +1624,7 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 	assert!(text.contains("environment: release"));
 	assert!(text.contains("setup: https://docs.npmjs.com/cli/v11/commands/npm-trust"));
 
-	let markdown = render_package_publish_report_markdown(&detailed_report, true, false).join("\n");
+	let markdown = render_package_publish_report_markdown(&detailed_report, true).join("\n");
 	assert!(markdown.contains("**Repository:** `monochange/monochange`"));
 	assert!(markdown.contains("**Workflow:** `publish.yml`"));
 	assert!(markdown.contains("**Environment:** `release`"));
@@ -1648,7 +1644,7 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 			),
 		],
 	};
-	let markdown = render_package_publish_report_markdown(&problem_report, false, false).join("\n");
+	let markdown = render_package_publish_report_markdown(&problem_report, false).join("\n");
 	assert!(markdown.contains("**Failed**\n- **`@scope/pkg`** `1.2.3` via `npm`"));
 	assert!(markdown.contains("**Blocked**\n- **`@scope/pkg`** `1.2.3` via `npm`"));
 }
@@ -1678,7 +1674,7 @@ fn render_package_publish_reports_include_command_output_blocks() {
 	assert!(text.contains("stdout:\n    │ published\n    │ with provenance"));
 	assert!(text.contains("stderr:\n    │ npm notice package"));
 
-	let markdown = render_package_publish_report_markdown(&report, true, false).join("\n");
+	let markdown = render_package_publish_report_markdown(&report, true).join("\n");
 	assert!(markdown.contains("**Command:** `npm publish --access public`"));
 	assert!(markdown.contains("**stdout:**\n  ```text\n  published\n  with provenance\n  ```"));
 	assert!(markdown.contains("**stderr:**\n  ```text\n  npm notice package\n  ```"));
@@ -1721,7 +1717,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 		"next: open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"
 	));
 
-	let markdown = render_package_publish_report_markdown(&report, true, false).join("\n");
+	let markdown = render_package_publish_report_markdown(&report, true).join("\n");
 	assert!(markdown.contains("**Trusted publishing:** manual-action-required"));
 	assert!(
 		markdown.contains("**Trust message:** configure trusted publishing manually for `pkg`")
@@ -3489,23 +3485,6 @@ fn render_cli_command_result_and_markdown_include_release_target_details_without
 	assert!(markdown.contains("release: no"));
 	assert!(markdown.contains("## Changed files"));
 	assert!(!markdown.contains("## Commands"));
-}
-
-#[test]
-fn markdown_painting_covers_title_subtitle_and_muted_styles() {
-	assert!(paint_markdown_inline("title", MarkdownStyle::Title, true).contains("[36;1m"));
-	assert!(paint_markdown_inline("subtitle", MarkdownStyle::Subtitle, true).contains("[37;1m"));
-	assert!(paint_markdown_inline("muted", MarkdownStyle::Muted, true).contains("[2m"));
-
-	let _env_lock = TEST_ENV_LOCK
-		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
-	temp_env::with_vars(
-		[("NO_COLOR", Some("1")), ("TERM", Some("xterm-256color"))],
-		|| {
-			assert!(!stdout_supports_color());
-		},
-	);
 }
 
 #[tokio::test(flavor = "multi_thread")]

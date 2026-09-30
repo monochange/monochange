@@ -1,0 +1,20 @@
+---
+source: crates/monochange/src/__tests__/publish_readiness_tests.rs
+expression: text
+---
+✔ Ready to publish · 1 package
+
+Ref            HEAD
+Record commit  record1
+
+Packages (1)
+  core  1.2.3  crates.io  ready  ready to publish core 1.2.3
+
+Trusted publishing (1)
+  core  manual verification required  verify the registry-side trusted publisher configuration
+
+Publish order
+  core
+
+Order findings (1)
+  • release record publication order differs

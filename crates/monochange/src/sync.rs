@@ -798,11 +798,14 @@ pub fn apply_sync_changes(
 ///
 /// This function is separated from the main dispatch so it can be tested
 /// independently.
+///
+/// `check_only` marks the read-only `monochange versions` check, which points
+/// at `monochange versions sync` when constraints need updating.
 pub(crate) fn format_sync_result(
 	root: &Path,
 	result: &SyncResult,
 	dry_run: bool,
-	_quiet: bool,
+	check_only: bool,
 ) -> String {
 	let mut text = TextReport::new(TextTheme::for_stdout());
 	let change_count = result
@@ -822,7 +825,9 @@ pub(crate) fn format_sync_result(
 			format!("in {}", plural(result.changes.len(), "file", "files")),
 			strategy,
 		];
-		if dry_run {
+		if check_only {
+			details.push("no files were modified".to_string());
+		} else if dry_run {
 			details.push("dry-run, no files were modified".to_string());
 		}
 		let (outcome, verb) = if dry_run {
@@ -881,6 +886,12 @@ pub(crate) fn format_sync_result(
 		);
 	}
 
+	if check_only && change_count > 0 {
+		text.paragraph(
+			"Run `monochange versions sync` to write these changes.",
+			Tone::Plain,
+		);
+	}
 	text.paragraph(
 		"Strategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides.",
 		Tone::Muted,
@@ -900,12 +911,12 @@ pub(crate) fn format_sync_result_for_cli(
 	root: &Path,
 	result: &SyncResult,
 	dry_run: bool,
-	quiet: bool,
+	check_only: bool,
 	format: OutputFormat,
 ) -> String {
 	match format {
 		OutputFormat::Text | OutputFormat::Markdown => {
-			format_sync_result(root, result, dry_run, quiet)
+			format_sync_result(root, result, dry_run, check_only)
 		}
 		OutputFormat::Json | OutputFormat::JsonMin => format_sync_result_json(result, format),
 	}

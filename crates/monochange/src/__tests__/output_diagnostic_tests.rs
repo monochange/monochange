@@ -326,3 +326,38 @@ fn snippet_colors_only_apply_to_snippet_structure() {
 		"\u{1b}[36;1m12 |\u{1b}[0m - item"
 	);
 }
+
+#[test]
+fn usage_errors_exit_with_status_two_and_serialize_for_agents() {
+	let usage = CliDiagnostic::from_error(
+		&MonochangeError::Diagnostic(
+			"error: unrecognized subcommand 'relase'\n\nUsage: monochange [OPTIONS] <COMMAND>"
+				.to_string(),
+		),
+		Some("monochange relase"),
+	);
+	assert_eq!(usage.exit_code(), 2);
+
+	let failure = CliDiagnostic::from_error(
+		&MonochangeError::Discovery(
+			"command `cargo test` failed: exit status: 101\nstderr:\n\u{1b}[31mtest a ... FAILED\u{1b}[0m"
+				.to_string(),
+		),
+		Some("monochange run release"),
+	)
+	.with_step("[3/4] run tests".to_string());
+	assert_eq!(failure.exit_code(), 1);
+	let mut fields = failure.to_json_fields();
+	let detail = fields
+		.insert(
+			"detail".to_string(),
+			serde_json::Value::String("[multiline text]".to_string()),
+		)
+		.and_then(|detail| detail.as_str().map(ToString::to_string))
+		.unwrap_or_else(|| panic!("expected a detail string"));
+	insta::assert_json_snapshot!(
+		"command_failure_json_fields",
+		serde_json::Value::Object(fields)
+	);
+	insta::assert_snapshot!("command_failure_json_detail", detail);
+}

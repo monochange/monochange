@@ -2,17 +2,18 @@
 source: crates/monochange/tests/release_record.rs
 expression: "String::from_utf8(output.stdout).unwrap_or_else(|error|\npanic!(\"stdout utf8: {error}\"))"
 ---
-release record:
-  input ref: HEAD
-  resolved commit: [SHA]
-  record commit: [SHA]
-  distance: 2
-  version: 1.2.3
-  versions:
-    - sdk: 1.2.3
-  targets:
-    - group sdk -> 1.2.3 (tag: v1.2.3)
-  packages:
-    - monochange
-    - monochange_core
-  provider: github ifiokjr/monochange
+✔ Found release record · 1.2.3 · 1 release target
+
+Ref            HEAD → [SHA]
+Record commit  [SHA] · 2 commits back
+Provider       github ifiokjr/monochange
+
+Release targets (1)
+  sdk  group  1.2.3  tag v1.2.3
+
+Versions (1)
+  sdk  1.2.3
+
+Released packages (2)
+  monochange
+  monochange_core

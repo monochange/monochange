@@ -34,6 +34,8 @@ pub(crate) struct ProgressSettings {
 	pub(crate) quiet: bool,
 	pub(crate) format: ProgressFormat,
 	pub(crate) tracing_enabled: bool,
+	/// `--verbose`: show every phase timing and progress notes.
+	pub(crate) verbose: bool,
 }
 
 impl ProgressSettings {
@@ -41,6 +43,7 @@ impl ProgressSettings {
 		let quiet = args
 			.iter()
 			.any(|argument| matches!(argument.to_str(), Some("--quiet" | "-q")));
+		let verbose = verbose_requested(args);
 		let tracing_enabled = args
 			.iter()
 			.filter_map(|argument| argument.to_str())
@@ -69,8 +72,15 @@ impl ProgressSettings {
 			quiet,
 			format,
 			tracing_enabled,
+			verbose,
 		}
 	}
+}
+
+/// Whether the command line asks for `--verbose` output.
+pub(crate) fn verbose_requested(args: &[OsString]) -> bool {
+	args.iter()
+		.any(|argument| matches!(argument.to_str(), Some("--verbose" | "-v")))
 }
 
 #[allow(clippy::struct_excessive_bools)]
@@ -83,9 +93,11 @@ pub(crate) struct TerminalCapabilities {
 	pub(crate) color: bool,
 	pub(crate) animate: bool,
 	pub(crate) progress_enabled: bool,
-	/// GitHub Actions is running this process, so human progress may use
-	/// workflow commands to fold command output and annotate failures.
+	/// GitHub Actions is running this process and progress is enabled, so
+	/// human progress may use workflow commands to fold command output and
+	/// annotate failures.
 	pub(crate) github_actions: bool,
+	pub(crate) verbose: bool,
 }
 
 impl TerminalCapabilities {
@@ -123,7 +135,10 @@ impl TerminalCapabilities {
 			color,
 			animate,
 			progress_enabled,
-			github_actions: human && probe.github_actions,
+			// `MONOCHANGE_NO_PROGRESS` and `--quiet` also turn off workflow
+			// commands, so logs stay plain when progress output is disabled.
+			github_actions: human && progress_enabled && probe.github_actions,
+			verbose: settings.verbose,
 		}
 	}
 }

@@ -748,7 +748,7 @@ lockfile_commands = [
 
 ## CLI commands
 
-CLI workflow commands are user-defined commands that run as `monochange run <command>`. Each `[cli.<command>]` table in `monochange.toml` defines one workflow with its own help text, inputs, and ordered step list.
+CLI workflow commands are user-defined commands that run as `monochange run <command>`, or as `monochange <command>` when no built-in command has that name. Each `[cli.<command>]` table in `monochange.toml` defines one workflow with its own help text, inputs, and ordered step list.
 
 `monochange init` writes a minimal starter config and does not seed default `[cli.*]` workflow aliases. Add `[cli.<command>]` tables only for repository-specific workflows that need to chain multiple steps, expose custom names, or run shell `Command` steps.
 

@@ -484,11 +484,7 @@ fn render_report_supports_json_text_and_markdown() {
 
 	let text = render_report(&report, OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("text report: {error}"));
-	assert!(text.contains("publish readiness: ready"));
-	assert!(text.contains("release record: record123"));
-	assert!(text.contains("trusted publishing [manual_verification_required]"));
-	assert!(text.contains("publish order: core"));
-	assert!(text.contains("order finding [note]: release record publication order differs"));
+	insta::assert_snapshot!(text);
 	let markdown = render_report(&report, OutputFormat::Markdown)
 		.unwrap_or_else(|error| panic!("markdown report: {error}"));
 	assert!(markdown.contains("## Publish readiness"));
@@ -513,7 +509,10 @@ fn render_report_supports_json_text_and_markdown() {
 	}]);
 	let blocked_text = render_report(&blocked_report, OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("blocked text report: {error}"));
-	assert!(blocked_text.contains("trusted publishing [blocked]"));
+	assert!(
+		blocked_text.contains("Trusted publishing (1)\n  core  blocked  blocked"),
+		"{blocked_text}"
+	);
 
 	let disabled_report = sample_readiness_report(vec![PublishReadinessPackage {
 		trusted_publishing: Some(TrustedPublishingReadiness {
@@ -524,7 +523,10 @@ fn render_report_supports_json_text_and_markdown() {
 	}]);
 	let disabled_text = render_report(&disabled_report, OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("disabled text report: {error}"));
-	assert!(disabled_text.contains("trusted publishing [disabled]"));
+	assert!(
+		disabled_text.contains("  core  disabled  trusted publishing is disabled"),
+		"{disabled_text}"
+	);
 }
 
 #[test]
@@ -551,7 +553,10 @@ fn render_report_handles_empty_package_sections() {
 	let markdown = render_report(&report, OutputFormat::Markdown)
 		.unwrap_or_else(|error| panic!("empty markdown report: {error}"));
 
-	assert!(text.contains("packages: none"));
+	assert!(
+		text.contains("No packages are selected for publishing."),
+		"{text}"
+	);
 	assert!(markdown.contains("No packages selected for publishing."));
 }
 
@@ -1367,4 +1372,35 @@ async fn build_publish_readiness_report_handles_empty_release_publications() {
 	assert!(report.packages.is_empty());
 	assert!(report.publish_order.is_empty());
 	assert_eq!(report.status, PublishReadinessGlobalStatus::Ready);
+}
+
+#[test]
+fn blocked_readiness_reports_lead_with_the_blocked_count() {
+	let mut blocked = sample_readiness_package();
+	blocked.status = PublishReadinessPackageStatus::Blocked;
+	blocked.message = "version already exists with different content".to_string();
+	let mut published = sample_readiness_package();
+	published.package = "app".to_string();
+	published.status = PublishReadinessPackageStatus::AlreadyPublished;
+	let mut unsupported = sample_readiness_package();
+	unsupported.package = "docs".to_string();
+	unsupported.status = PublishReadinessPackageStatus::Unsupported;
+	let mut report = sample_readiness_report(vec![blocked, published, unsupported]);
+	report.status = PublishReadinessGlobalStatus::Blocked;
+	report.order_findings.push(PublishOrderFinding {
+		package: Some("core".to_string()),
+		message: "core must publish before app".to_string(),
+		blocking: true,
+	});
+
+	let text = render_report(&report, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("text report: {error}"));
+	insta::assert_snapshot!(text);
+
+	let empty = render_report(&sample_readiness_report(Vec::new()), OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("empty text report: {error}"));
+	assert!(
+		empty.contains("No packages are selected for publishing."),
+		"{empty}"
+	);
 }

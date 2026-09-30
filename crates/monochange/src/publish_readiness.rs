@@ -19,6 +19,12 @@ use serde::Serialize;
 use crate::OutputFormat;
 use crate::PreparedRelease;
 use crate::discover_release_record;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::plural;
 use crate::package_publish;
 use crate::trusted_publishing_readiness::TrustedPublishingReadiness;
 use crate::trusted_publishing_readiness::TrustedPublishingReadinessStatus;
@@ -877,50 +883,104 @@ fn render_report(
 	}
 }
 fn render_text_report(report: &PublishReadinessReport) -> String {
-	let mut output = String::new();
-	let _ = writeln!(
-		output,
-		"publish readiness: {}",
-		readiness_global_status_label(report.status)
-	);
-	let _ = writeln!(output, "release ref: {}", report.from);
-	let _ = writeln!(output, "release record: {}", report.record_commit);
-	if report.packages.is_empty() {
-		output.push_str("packages: none\n");
-	} else {
-		output.push_str("packages:\n");
-		for package in &report.packages {
-			let _ = writeln!(
-				output,
-				"- {} {} {} [{}]: {}",
-				package.package,
-				package.version,
-				package.registry,
-				readiness_package_status_label(package.status),
-				package.message
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let blocked = report
+		.packages
+		.iter()
+		.filter(|package| package.status == PublishReadinessPackageStatus::Blocked)
+		.count();
+	let packages = plural(report.packages.len(), "package", "packages");
+	match report.status {
+		PublishReadinessGlobalStatus::Ready => {
+			text.headline(Outcome::Success, "Ready to publish", &[packages]);
+		}
+		PublishReadinessGlobalStatus::Blocked => {
+			text.headline(
+				Outcome::Failure,
+				"Publishing is blocked",
+				&[format!("{blocked} of {packages} blocked")],
 			);
-			if let Some(trusted_publishing) = &package.trusted_publishing {
-				let _ = writeln!(
-					output,
-					"  trusted publishing [{}]: {}",
-					trust_readiness_status_label(trusted_publishing.status),
-					trusted_publishing.message
-				);
-			}
 		}
 	}
-	if !report.publish_order.is_empty() {
-		let _ = writeln!(output, "publish order: {}", report.publish_order.join(", "));
+	text.fields(&[
+		("Ref", report.from.clone()),
+		(
+			"Record commit",
+			crate::short_commit_sha(&report.record_commit),
+		),
+	]);
+
+	if report.packages.is_empty() {
+		text.paragraph("No packages are selected for publishing.", Tone::Muted);
+	} else {
+		text.section("Packages", Some(report.packages.len()));
+		let rows = report
+			.packages
+			.iter()
+			.map(|package| {
+				let (label, tone) = readiness_package_status_display(package.status);
+				vec![
+					TableCell::new(&package.package, Tone::Heading),
+					TableCell::new(&package.version, Tone::Value),
+					TableCell::new(&package.registry, Tone::Muted),
+					TableCell::new(label, tone),
+					TableCell::plain(&package.message),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
 	}
-	for finding in &report.order_findings {
-		let _ = writeln!(
-			output,
-			"order finding [{}]: {}",
-			if finding.blocking { "blocking" } else { "note" },
-			finding.message
+	let trusted = report
+		.packages
+		.iter()
+		.filter_map(|package| {
+			package
+				.trusted_publishing
+				.as_ref()
+				.map(|trust| (package, trust))
+		})
+		.collect::<Vec<_>>();
+	if !trusted.is_empty() {
+		text.section("Trusted publishing", Some(trusted.len()));
+		let rows = trusted
+			.iter()
+			.map(|(package, trust)| {
+				vec![
+					TableCell::new(&package.package, Tone::Heading),
+					TableCell::new(
+						trust_readiness_status_label(trust.status).replace('_', " "),
+						Tone::Muted,
+					),
+					TableCell::plain(&trust.message),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
+	}
+	if !report.publish_order.is_empty() {
+		text.section("Publish order", None);
+		text.indented(&report.publish_order.join(" → "), Tone::Plain);
+	}
+	if !report.order_findings.is_empty() {
+		text.section("Order findings", Some(report.order_findings.len()));
+		text.list(
+			report.order_findings.iter().map(|finding| {
+				let symbol = if finding.blocking { "✖" } else { "•" };
+				format!("{symbol} {}", finding.message)
+			}),
+			usize::MAX,
 		);
 	}
-	output
+	text.render()
+}
+
+fn readiness_package_status_display(status: PublishReadinessPackageStatus) -> (&'static str, Tone) {
+	match status {
+		PublishReadinessPackageStatus::Ready => ("ready", Tone::Success),
+		PublishReadinessPackageStatus::AlreadyPublished => ("already published", Tone::Muted),
+		PublishReadinessPackageStatus::Unsupported => ("unsupported", Tone::Warning),
+		PublishReadinessPackageStatus::Blocked => ("blocked", Tone::Error),
+	}
 }
 
 fn render_markdown_report(report: &PublishReadinessReport) -> String {

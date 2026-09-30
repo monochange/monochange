@@ -35,12 +35,13 @@ Visible top-level commands:
   mcp
   migrate
   next
-  next-versions
   notes
   populate
   prepare
   preview
   publish
+  publish-check
+  release
   run
   skill
   snapshot

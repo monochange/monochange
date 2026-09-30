@@ -36,6 +36,7 @@ fn progress_reporter(enabled: bool, color: bool) -> ProgressReporter {
 			animate: false,
 			progress_enabled: enabled,
 			github_actions: false,
+			verbose: false,
 		},
 		SharedStderr::with_writer(io::sink()),
 	)
@@ -96,6 +97,7 @@ fn recorded_reporter(format: ProgressFormat) -> (ProgressReporter, Arc<Mutex<Vec
 			animate: false,
 			progress_enabled: true,
 			github_actions: false,
+			verbose: false,
 		},
 		SharedStderr::with_writer(RecordedWriter(Arc::clone(&bytes))),
 	);
@@ -112,6 +114,7 @@ fn capabilities(animate: bool, github_actions: bool) -> TerminalCapabilities {
 		animate,
 		progress_enabled: true,
 		github_actions,
+		verbose: false,
 	}
 }
 
@@ -1130,4 +1133,49 @@ fn terminal_control_stripping_ignores_incomplete_or_unknown_escape_sequences() {
 	assert_eq!(strip_terminal_controls("a\u{1b}xb"), "ab");
 	assert_eq!(strip_terminal_controls("a\u{1b}"), "a");
 	assert_eq!(strip_terminal_controls("a\u{1b}]title\u{1b}\\b"), "ab");
+}
+
+#[test]
+fn verbose_progress_lists_every_phase_of_fast_steps() {
+	let step = named_command_step("plan release");
+	let (reporter, bytes) = recorded_reporter_with(
+		1,
+		TerminalCapabilities {
+			verbose: true,
+			..capabilities(false, false)
+		},
+		ProgressFormat::Unicode,
+	);
+	let phases = (1..=7)
+		.map(|index| {
+			StepPhaseTiming {
+				label: format!("phase {index}"),
+				duration: Duration::from_millis(index),
+			}
+		})
+		.collect::<Vec<_>>();
+	reporter.step_finished(0, &step, Duration::from_millis(40), &phases);
+
+	let text = recorded_text(&bytes);
+	assert_eq!(text.matches("phase ").count(), 7, "{text}");
+	assert!(text.contains("phase 1"), "{text}");
+}
+
+#[test]
+fn json_progress_reports_failures_as_diagnostic_events() {
+	let (reporter, bytes) = recorded_reporter(ProgressFormat::Json);
+	reporter.write_diagnostic(CliDiagnostic::from_error(
+		&monochange_core::MonochangeError::Config("bad input".to_string()),
+		Some("monochange run release"),
+	));
+
+	let text = recorded_text(&bytes);
+	let event: serde_json::Value = serde_json::from_str(text.trim())
+		.unwrap_or_else(|error| panic!("diagnostic event: {error}\n{text}"));
+	assert_eq!(event["event"], "diagnostic");
+	assert_eq!(event["code"], "config.invalid");
+	assert_eq!(event["summary"], "bad input");
+	assert_eq!(event["context"]["command"], "monochange run release");
+	assert_eq!(event["exit_code"], 1);
+	assert!(!text.contains("error["), "{text}");
 }

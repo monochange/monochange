@@ -26,7 +26,7 @@ The human renderer is designed to be read, both in an interactive terminal and i
 - a `Command` step shows the command it runs as `$ <command>` under the step instead of repeating the step line
 - command stdout and stderr stream under the active step, prefixed with `│`; stdout and stderr interleave in arrival order, so use `--progress-format json` when a consumer must tell the two streams apart
 - dry-run `Command` steps show as skipped, because the command was not run
-- steps slower than one second list their slowest phases, so slow phases are visible without a separate trace
+- steps slower than one second list their slowest phases, so slow phases are visible without a separate trace; `--verbose` lists every phase of every step
 - the interactive spinner shows how long a slow step has been running; captured and CI logs instead note that a silent command is still running after 30 seconds and then once a minute
 
 Captured command output looks like this:
@@ -53,7 +53,7 @@ The same events become complete, newline-terminated records when stderr is captu
 
 ### GitHub Actions
 
-When `GITHUB_ACTIONS=true`, the human renderer also uses GitHub workflow commands:
+When `GITHUB_ACTIONS=true`, the human renderer also uses GitHub workflow commands (unless `--quiet` or `MONOCHANGE_NO_PROGRESS=1` turns progress off):
 
 - each step's command output is folded into a collapsible `::group::` titled after the step, so long build logs do not bury the step results
 - warnings become `::warning` annotations and a failure adds an `::error` annotation, so both appear in the run summary and on the pull request
@@ -70,6 +70,8 @@ warning: could not create a verified release commit through the GitHub API; fall
 ```
 
 `--quiet` hides warnings. With `--progress-format json`, a warning is a `warning` event with `message` and `fields`.
+
+`--verbose` (`-v`) also shows progress notes from monochange's libraries, such as the verified release commit that was created or each package that was published, as `note:` lines (or `note` events with `--progress-format json`). It also shows complete result lists, full command-step logs, and full changeset details instead of the truncated summaries. It does not enable maintainer tracing.
 
 ## JSON event stream
 
@@ -104,6 +106,9 @@ Common lifecycle events:
 - `publish_package_published`
 - `publish_package_failed`
 - `publish_run_finished`
+- `warning`
+- `note` (with `--verbose`)
+- `diagnostic`
 
 Shared fields:
 
@@ -124,7 +129,8 @@ Event-specific fields:
 - `step_failed` adds `duration_ms` and `error`
 - `step_skipped` may add the backward-compatible `condition` field for conditional skips and `reason` for a human-readable explanation
 - `command_failed` adds `duration_ms` and `error`
-- `warning` adds `message`; warnings raised inside monochange's libraries also add `fields`
+- `warning` and `note` add `message`; events raised inside monochange's libraries also add `fields`
+- `diagnostic` replaces the human failure text and adds `code`, `summary`, `detail` (the multi-line cause, or `null`), `context` (such as `command`, `step`, and `path`), `hints`, and `exit_code`
 
 Example:
 
@@ -151,9 +157,9 @@ error[step.command_failed]: command `cargo test` failed: exit status: 101
   help:    Fix the failure shown in the command output, then rerun. To reproduce it on its own, run the command directly from the workspace root.
 ```
 
-Use the code when searching CI logs or reporting a recurring failure. Common codes:
+Use the code when searching CI logs or reporting a recurring failure. Usage errors (`cli.usage`, `cli.json_required`) exit with status `2`; every other failure exits with `1`. With `--progress-format json`, the diagnostic is a `diagnostic` event instead of text. Common codes:
 
-- `cli.usage`: the command line could not be parsed; the diagnostic keeps the usage line and suggestions, and points `monochange <name>` at `monochange run <name>` when `<name>` is defined in `monochange.toml`
+- `cli.usage`: the command line could not be parsed; the diagnostic keeps the usage line and suggestions, and the process exits with status `2`
 - `config.invalid`, `config.parse_failed`, `config.unknown_package`: `monochange.toml` or a changeset target needs fixing; source snippets show the exact location
 - `step.command_failed`: a `Command` step exited unsuccessfully; when its output already streamed above, only the last lines are repeated
 - `check.failed`, `command.failed`: the result printed above lists the failing items

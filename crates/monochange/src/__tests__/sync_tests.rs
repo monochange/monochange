@@ -363,7 +363,7 @@ fn format_sync_result_reports_constraints_that_are_already_in_sync() {
 		changes: vec![],
 		skipped: vec![],
 	};
-	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, true);
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, false);
 	assert_eq!(
 		output,
 		"✔ Internal dependency constraints are already in sync · strategy default\n\nStrategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides."
@@ -378,7 +378,7 @@ fn format_sync_result_groups_updates_by_relative_file() {
 		changes: vec![dart_sync_change()],
 		skipped: vec![],
 	};
-	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, true);
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, false);
 	insta::assert_snapshot!(output);
 }
 
@@ -390,8 +390,30 @@ fn format_sync_result_dry_run_says_what_would_change() {
 		changes: vec![dart_sync_change()],
 		skipped: vec![],
 	};
-	let output = sync::format_sync_result(Path::new("/workspace"), &result, true, true);
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, true, false);
 	insta::assert_snapshot!(output);
+}
+
+#[test]
+fn format_sync_result_check_points_at_versions_sync() {
+	let result = sync::SyncResult {
+		applied: false,
+		strategy: VersionStrategy::Default,
+		changes: vec![dart_sync_change()],
+		skipped: vec![],
+	};
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, true, true);
+	assert!(output.starts_with(
+		"• Would update 1 dependency constraint · in 1 file · strategy default · no files were modified"
+	));
+	assert!(output.contains("Run `monochange versions sync` to write these changes."));
+
+	let in_sync = sync::SyncResult {
+		changes: vec![],
+		..result
+	};
+	let output = sync::format_sync_result(Path::new("/workspace"), &in_sync, true, true);
+	assert!(!output.contains("monochange versions sync"));
 }
 
 #[test]
@@ -408,7 +430,7 @@ fn format_sync_result_with_changes_and_skips_separates_sections() {
 		}],
 	};
 
-	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, true);
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, false);
 	insta::assert_snapshot!(output);
 }
 
@@ -730,7 +752,7 @@ fn build_versions_subcommand_long_help_describes_examples() {
 	assert!(help.contains("monochange versions list --format json"));
 	assert!(help.contains("monochange versions sync --dry-run"));
 	assert!(help.contains("monochange versions sync --dry-run --format json"));
-	assert!(help.contains("deprecated and will be removed in a future version"));
+	assert!(help.contains("without writing files"));
 }
 
 #[test]
@@ -867,19 +889,25 @@ enabled = true
 		root,
 	)))
 	.unwrap_or_else(|error| panic!("versions sync: {error}"));
-	let legacy_output = crate::tests::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
+	assert!(sync_output.contains("dry-run, no files were modified"));
+	let check_output = crate::tests::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
 		"monochange",
 		[
 			OsString::from("monochange"),
 			OsString::from("versions"),
-			OsString::from("--dry-run"),
 			OsString::from("--strategy"),
 			OsString::from("exact"),
 		],
 		root,
 	)))
-	.unwrap_or_else(|error| panic!("legacy versions: {error}"));
-	assert_eq!(legacy_output, sync_output);
+	.unwrap_or_else(|error| panic!("versions check: {error}"));
+	assert!(check_output.contains("Run `monochange versions sync` to write these changes."));
+	assert_eq!(
+		std::fs::read_to_string(root.join("packages/app/pubspec.yaml"))
+			.unwrap_or_else(|error| panic!("read app pubspec: {error}")),
+		"name: app\nversion: 1.0.0\ndependencies:\n  core: ^1.0.0\n",
+		"bare `monochange versions` must not write files"
+	);
 
 	let list_output = crate::tests::block_on_in_context(Box::pin(crate::run_with_args_in_dir(
 		"monochange",

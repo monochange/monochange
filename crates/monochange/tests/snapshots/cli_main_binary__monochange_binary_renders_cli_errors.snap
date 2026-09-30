@@ -9,7 +9,7 @@ info:
     NO_COLOR: "1"
 ---
 success: false
-exit_code: 1
+exit_code: 2
 ----- stdout -----
 
 ----- stderr -----

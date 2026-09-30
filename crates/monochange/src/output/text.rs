@@ -3,9 +3,11 @@
 //! Every text result follows the same shape: a headline that answers the
 //! command's question, then titled sections with aligned tables or short
 //! lists. Long lists are truncated with a pointer to `--format json`, which
-//! always carries the complete data. Colour is applied only when stdout is an
-//! interactive terminal, so captured output and CI logs stay plain.
+//! always carries the complete data, and `--verbose` shows them in full.
+//! Colour is applied only when stdout is an interactive terminal, so captured
+//! output and CI logs stay plain.
 
+use std::future::Future;
 use std::io::IsTerminal;
 
 /// How a piece of result text is emphasized in a terminal.
@@ -21,10 +23,30 @@ pub(crate) enum Tone {
 	Value,
 }
 
-/// Whether result text on stdout may use ANSI styling.
+tokio::task_local! {
+	/// `--verbose` for the command running on this task.
+	static VERBOSE: bool;
+}
+
+/// Run `future` with `--verbose` result rendering turned on or off.
+///
+/// A task-local keeps concurrent invocations (such as parallel tests) from
+/// seeing each other's setting.
+pub(crate) async fn with_verbosity<F: Future>(verbose: bool, future: F) -> F::Output {
+	VERBOSE.scope(verbose, future).await
+}
+
+/// Whether the running command asked for `--verbose` output.
+pub(crate) fn verbose_output() -> bool {
+	VERBOSE.try_with(|verbose| *verbose).unwrap_or(false)
+}
+
+/// How result text on stdout is presented: ANSI styling, and whether long
+/// lists and logs are shown in full (`--verbose`).
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct TextTheme {
 	color: bool,
+	verbose: bool,
 }
 
 impl TextTheme {
@@ -35,6 +57,7 @@ impl TextTheme {
 				&& std::io::stdout().is_terminal()
 				&& std::env::var_os("NO_COLOR").is_none()
 				&& std::env::var("TERM").is_ok_and(|term| term != "dumb"),
+			verbose: verbose_output(),
 		}
 	}
 
@@ -174,11 +197,17 @@ impl TextReport {
 		}
 	}
 
-	/// Items indented under a section, truncated after `limit` entries.
+	/// Items indented under a section, truncated after `limit` entries
+	/// unless the theme is verbose.
 	pub(crate) fn list<I>(&mut self, items: I, limit: usize)
 	where
 		I: IntoIterator<Item = String>,
 	{
+		let limit = if self.theme.verbose {
+			usize::MAX
+		} else {
+			limit
+		};
 		let items = items.into_iter().collect::<Vec<_>>();
 		for item in items.iter().take(limit) {
 			let mut item_lines = item.lines();
@@ -246,6 +275,10 @@ impl TextReport {
 
 	pub(crate) fn is_empty(&self) -> bool {
 		self.lines.is_empty()
+	}
+
+	pub(crate) fn is_verbose(&self) -> bool {
+		self.theme.verbose
 	}
 
 	pub(crate) fn render(self) -> String {

@@ -39,7 +39,7 @@ All supported ecosystems feed the same planner. After discovery, monochange can:
 
 ## Syncing internal dependency versions
 
-`monochange versions sync` updates existing internal dependency references outside a release. (The bare `monochange versions` alias is deprecated.) It discovers workspace package versions, finds supported manifests that reference another workspace package, and rewrites those references to the canonical package version. Use `--dry-run` first to print the planned edits without writing files.
+`monochange versions sync` updates existing internal dependency references outside a release. (Bare `monochange versions` only reports what `sync` would change and never writes files.) It discovers workspace package versions, finds supported manifests that reference another workspace package, and rewrites those references to the canonical package version. Use `--dry-run` first to print the planned edits without writing files.
 
 ```nu
 monochange versions sync --dry-run

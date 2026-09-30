@@ -1,0 +1,13 @@
+---
+source: crates/monochange/src/__tests__/release_record_tests.rs
+expression: "text_release_tag_report(&sample_tag_report(\"dry_run\",\n&[ReleaseTagOperation::Planned]))"
+---
+• Would create 1 release tag · push disabled · dry-run
+
+Ref            HEAD → def5678
+Record commit  abc1234 · 1 commit back
+
+Tags (1)
+  v1.0.0  planned  → abc1234  new tag
+    v1    alias    → abc1234  was 0123456
+    v1.0  alias    → abc1234  new alias

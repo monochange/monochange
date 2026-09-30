@@ -42,8 +42,6 @@ pub(crate) use changeset_policy::normalize_changed_path;
 pub use changeset_policy::verify_changesets;
 pub(crate) use changesets::*;
 use clap::ValueEnum;
-use clap::error::ContextKind;
-use clap::error::ContextValue;
 use clap::error::ErrorKind;
 pub use cli::build_command;
 use cli::build_command_with_cli;
@@ -583,10 +581,26 @@ struct CliContext {
 	retarget_report: Option<RetargetReleaseReport>,
 	step_outputs: BTreeMap<String, CommandStepOutput>,
 	command_logs: Vec<String>,
+	command_results: Vec<CommandStepResult>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct CommandStepOutput {
+	stdout: String,
+	stderr: String,
+}
+
+/// What one `Command` step did, reported under `commands` in JSON output.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+struct CommandStepResult {
+	/// The step's `name`, or its command when the step is unnamed.
+	step: String,
+	/// The step's `id`, used to reference its output from later steps.
+	id: Option<String>,
+	command: String,
+	/// `succeeded`, or `skipped` when a dry run did not run the command.
+	status: &'static str,
+	exit_code: Option<i32>,
 	stdout: String,
 	stderr: String,
 }
@@ -644,15 +658,16 @@ pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
 			ExitCode::SUCCESS
 		}
 		Err(error) => {
+			let diagnostic =
+				output::CliDiagnostic::from_error(&error, command.as_deref()).with_root(&root);
+			let exit_code = diagnostic.exit_code();
 			if !quiet {
 				if let Some(output) = error.reported_output().filter(|output| !output.is_empty()) {
 					println!("{output}");
 				}
-				let diagnostic =
-					output::CliDiagnostic::from_error(&error, command.as_deref()).with_root(&root);
 				progress.write_diagnostic(diagnostic);
 			}
-			ExitCode::FAILURE
+			ExitCode::from(exit_code)
 		}
 	}
 }
@@ -687,7 +702,7 @@ fn command_args_after_globals(args: &[OsString]) -> impl Iterator<Item = &str> {
 				skip_value = true;
 				return true;
 			}
-			matches!(*arg, "--quiet" | "-q")
+			matches!(*arg, "--quiet" | "-q" | "--verbose" | "-v")
 		})
 }
 
@@ -924,16 +939,18 @@ fn render_cli_snapshot_classification_text(
 	output
 }
 
+/// Run `monochange versions sync`, or the read-only `monochange versions`
+/// check when `check_only` is set.
 fn run_versions_sync(
 	root: &Path,
 	matches: &clap::ArgMatches,
-	quiet: bool,
+	check_only: bool,
 ) -> MonochangeResult<String> {
 	let strategy_str = matches
 		.get_one::<String>("strategy")
 		.map_or("default", String::as_str);
 	let strategy = sync::parse_strategy(strategy_str);
-	let dry_run = matches.get_flag("dry-run");
+	let dry_run = check_only || matches.get_flag("dry-run");
 	let format_str = matches
 		.get_one::<String>("format")
 		.map_or("text", String::as_str);
@@ -941,7 +958,7 @@ fn run_versions_sync(
 	let result = sync_workspace_versions(root, strategy, dry_run)?;
 
 	Ok(sync::format_sync_result_for_cli(
-		root, &result, dry_run, quiet, format,
+		root, &result, dry_run, check_only, format,
 	))
 }
 
@@ -1029,11 +1046,7 @@ fn render_custom_command_argument_error(
 
 /// Turn a command-line parse failure into a diagnostic that keeps clap's own
 /// explanation, usage line, and suggestions.
-fn clap_usage_error(
-	error: &clap::Error,
-	cli: &[CliCommandDefinition],
-	command: Option<&str>,
-) -> MonochangeError {
+fn clap_usage_error(error: &clap::Error, command: Option<&str>) -> MonochangeError {
 	let rendered = error.to_string();
 	if matches!(
 		error.kind(),
@@ -1051,31 +1064,7 @@ fn clap_usage_error(
 			"error: `{command}` needs a subcommand\n\n{overview}\n\nFor more information, try '{command} --help'."
 		));
 	}
-	let Some(tip) = config_command_tip(error, cli) else {
-		return MonochangeError::Diagnostic(rendered.trim_end().to_string());
-	};
-	let mut lines = rendered.lines();
-	let first = lines.next().unwrap_or_default();
-	let rest = lines
-		.filter(|line| !line.trim_start().starts_with("tip:"))
-		.collect::<Vec<_>>()
-		.join("\n");
-	let mut message = format!("{first}\n\n  tip: {tip}\n\n{}", rest.trim());
-	while message.contains("\n\n\n") {
-		message = message.replace("\n\n\n", "\n\n");
-	}
-	MonochangeError::Diagnostic(message)
-}
-
-/// Point `monochange <name>` at `monochange run <name>` when `<name>` is a
-/// command defined in monochange.toml rather than a built-in command.
-fn config_command_tip(error: &clap::Error, cli: &[CliCommandDefinition]) -> Option<String> {
-	let ContextValue::String(name) = error.get(ContextKind::InvalidSubcommand)? else {
-		return None;
-	};
-	cli.iter().any(|command| command.name == *name).then(|| {
-		format!("`{name}` is defined in monochange.toml; run it with `monochange run {name}`")
-	})
+	MonochangeError::Diagnostic(rendered.trim_end().to_string())
 }
 
 fn help_command_requested(args: &[OsString]) -> bool {
@@ -1239,6 +1228,20 @@ async fn run_with_args_in_dir_with_progress(
 	root: &Path,
 	progress: &mut output::ProgressReporter,
 ) -> MonochangeResult<String> {
+	let verbose = output::terminal::verbose_requested(&args);
+	output::text::with_verbosity(
+		verbose,
+		Box::pin(dispatch_cli_args(bin_name, args, root, progress)),
+	)
+	.await
+}
+
+async fn dispatch_cli_args(
+	bin_name: &'static str,
+	args: Vec<OsString>,
+	root: &Path,
+	progress: &mut output::ProgressReporter,
+) -> MonochangeResult<String> {
 	let root_help_requested = is_root_help_request(&args);
 	if root_help_requested {
 		let cli = cli_commands_for_root(root);
@@ -1365,7 +1368,6 @@ async fn run_with_args_in_dir_with_progress(
 			}
 			return Err(clap_usage_error(
 				&error,
-				&cli,
 				cli_diagnostic_command(&args).as_deref(),
 			));
 		}
@@ -1606,18 +1608,13 @@ async fn run_with_args_in_dir_with_progress(
 
 					Ok(sync::format_version_inventory_for_cli(&inventory, format)?)
 				}
-				Some(("sync", sync_matches)) => run_versions_sync(root, sync_matches, quiet),
+				Some(("sync", sync_matches)) => run_versions_sync(root, sync_matches, false),
 				Some((name, _)) => {
 					Err(MonochangeError::Config(format!(
 						"unknown versions subcommand `{name}`"
 					)))
 				}
-				None => {
-					if !quiet {
-						progress.warning("`monochange versions` is deprecated and will be removed in a future version; use `monochange versions sync` instead");
-					}
-					run_versions_sync(root, versions_matches, quiet)
-				}
+				None => run_versions_sync(root, versions_matches, true),
 			}
 		}
 
@@ -1699,7 +1696,7 @@ async fn run_with_args_in_dir_with_progress(
 			)
 			.await
 		}
-		// patch-coverage:ignore-start -- clap only returns built-ins, generated aliases, or `run` commands handled above.
+		// Commands defined in monochange.toml, invoked as `monochange <name>`.
 		Some((cli_command_name, cli_command_matches)) => {
 			let configuration = configuration?;
 			execute_matches_with_progress(
@@ -1712,7 +1709,6 @@ async fn run_with_args_in_dir_with_progress(
 			)
 			.await
 		}
-		// patch-coverage:ignore-end
 		None => Err(MonochangeError::Config("Usage: monochange".to_string())),
 	}?;
 
@@ -1720,6 +1716,13 @@ async fn run_with_args_in_dir_with_progress(
 		Ok(String::new())
 	} else if let Some(expression) = jq_expression {
 		jq_filter::apply_jq_filter(&output, &expression)
+	} else if matches!(
+		selected_cli_output_format(&matches),
+		Ok(OutputFormat::Markdown)
+	) {
+		// Markdown is meant to be pasted or rendered elsewhere, so it never
+		// carries terminal styling, even when stdout is a terminal.
+		Ok(output::strip_terminal_controls(&output))
 	} else {
 		Ok(output)
 	}

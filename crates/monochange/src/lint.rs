@@ -23,6 +23,7 @@ use monochange_lint::Linter;
 
 use crate::OutputFormat;
 use crate::output::text::Outcome;
+use crate::output::text::TableCell;
 use crate::output::text::TextReport;
 use crate::output::text::TextTheme;
 use crate::output::text::Tone;
@@ -340,27 +341,55 @@ pub(crate) fn render_lint_catalog(format: OutputFormat) -> MonochangeResult<Stri
 				.unwrap_or_else(|error| panic!("serializing lint catalog should succeed: {error}")))
 		}
 		OutputFormat::Text | OutputFormat::Markdown => {
-			let mut output = String::new();
-			output.push_str("Rules:\n");
-			for rule in rules {
-				let _ = writeln!(
-					output,
-					"- {} [{:?} {:?}]{}",
-					rule.id,
-					rule.category,
-					rule.maturity,
-					if rule.autofixable { " [fixable]" } else { "" }
-				);
-				let _ = writeln!(output, "  {}", rule.description);
-			}
-			output.push_str("\nPresets:\n");
-			for preset in presets {
-				let _ = writeln!(output, "- {} [{:?}]", preset.id, preset.maturity);
-				let _ = writeln!(output, "  {}", preset.description);
-			}
-			Ok(output)
+			let mut text = TextReport::new(TextTheme::for_stdout());
+			let fixable = rules.iter().filter(|rule| rule.autofixable).count();
+			text.headline(
+				Outcome::Neutral,
+				&plural(rules.len(), "lint rule", "lint rules"),
+				&[
+					format!("{fixable} fixable"),
+					plural(presets.len(), "preset", "presets"),
+				],
+			);
+			text.section("Rules", Some(rules.len()));
+			text.list(
+				rules.iter().map(|rule| {
+					let mut meta = format!(
+						"{} · {}",
+						debug_label(&rule.category),
+						debug_label(&rule.maturity)
+					);
+					if rule.autofixable {
+						meta.push_str(" · fixable");
+					}
+					format!("{}  {meta}\n{}", rule.id, rule.description)
+				}),
+				usize::MAX,
+			);
+			text.section("Presets", Some(presets.len()));
+			text.list(
+				presets.iter().map(|preset| {
+					format!(
+						"{}  {}\n{}",
+						preset.id,
+						debug_label(&preset.maturity),
+						preset.description
+					)
+				}),
+				usize::MAX,
+			);
+			text.paragraph(
+				"Run `monochange lint explain <id>` for a rule's options or a preset's rules.",
+				Tone::Muted,
+			);
+			Ok(text.render())
 		}
 	}
+}
+
+/// `Correctness` reads as `correctness` in result text.
+fn debug_label(value: &impl std::fmt::Debug) -> String {
+	format!("{value:?}").to_lowercase()
 }
 
 pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> MonochangeResult<String> {
@@ -370,21 +399,32 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 				format.render_json_value(&rule, "lint rule explanation")
 			}
 			OutputFormat::Text | OutputFormat::Markdown => {
-				let mut output = String::new();
-				let _ = writeln!(output, "{}", rule.id);
-				let _ = writeln!(output, "name: {}", rule.name);
-				let _ = writeln!(output, "category: {:?}", rule.category);
-				let _ = writeln!(output, "maturity: {:?}", rule.maturity);
-				let _ = writeln!(output, "autofixable: {}", rule.autofixable);
-				let _ = writeln!(output, "\n{}", rule.description);
-				for (index, option) in rule.options.into_iter().enumerate() {
-					if index == 0 {
-						output.push_str("\nOptions:\n");
-					}
-					let _ = writeln!(output, "- {} ({:?})", option.name, option.kind);
-					let _ = writeln!(output, "  {}", option.description);
+				let mut text = TextReport::new(TextTheme::for_stdout());
+				text.headline(Outcome::Neutral, &rule.id, std::slice::from_ref(&rule.name));
+				text.fields(&[
+					("Category", debug_label(&rule.category)),
+					("Maturity", debug_label(&rule.maturity)),
+					(
+						"Autofix",
+						if rule.autofixable { "yes" } else { "no" }.to_string(),
+					),
+				]);
+				text.paragraph(&rule.description, Tone::Plain);
+				if !rule.options.is_empty() {
+					text.section("Options", Some(rule.options.len()));
+					text.list(
+						rule.options.iter().map(|option| {
+							format!(
+								"{}  {}\n{}",
+								option.name,
+								debug_label(&option.kind),
+								option.description
+							)
+						}),
+						usize::MAX,
+					);
 				}
-				Ok(output)
+				Ok(text.render())
 			}
 		};
 	}
@@ -399,16 +439,27 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 					}))
 			}
 			OutputFormat::Text | OutputFormat::Markdown => {
-				let mut output = String::new();
-				let _ = writeln!(output, "{}", preset.id);
-				let _ = writeln!(output, "name: {}", preset.name);
-				let _ = writeln!(output, "maturity: {:?}", preset.maturity);
-				let _ = writeln!(output, "\n{}", preset.description);
-				output.push_str("\nRules:\n");
-				for (rule_id, config) in preset.rules {
-					let _ = writeln!(output, "- {} = {}", rule_id, config.severity());
-				}
-				Ok(output)
+				let mut text = TextReport::new(TextTheme::for_stdout());
+				text.headline(
+					Outcome::Neutral,
+					&preset.id,
+					std::slice::from_ref(&preset.name),
+				);
+				text.fields(&[("Maturity", debug_label(&preset.maturity))]);
+				text.paragraph(&preset.description, Tone::Plain);
+				text.section("Rules", Some(preset.rules.len()));
+				let rows = preset
+					.rules
+					.iter()
+					.map(|(rule_id, config)| {
+						vec![
+							TableCell::plain(rule_id),
+							TableCell::new(config.severity().to_string(), Tone::Muted),
+						]
+					})
+					.collect::<Vec<_>>();
+				text.table(&rows);
+				Ok(text.render())
 			}
 		};
 	}
