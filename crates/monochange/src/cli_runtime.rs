@@ -4237,10 +4237,13 @@ fn render_release_version_summary_text(
 		.collect::<BTreeSet<_>>();
 	if !summary.groups.is_empty() {
 		report.section("Groups", None);
-		for group in &summary.groups {
-			let Some(version) = &group.planned_version else {
-				continue;
-			};
+		let planned_groups = summary.groups.iter().filter_map(|group| {
+			group
+				.planned_version
+				.as_ref()
+				.map(|version| (group, version))
+		});
+		for (group, version) in planned_groups {
 			report.table(&[vec![
 				TableCell::new(&group.group_id, Tone::Heading),
 				TableCell::new(version.to_string(), Tone::Value),
