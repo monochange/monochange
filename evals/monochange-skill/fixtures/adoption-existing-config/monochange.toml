@@ -1,0 +1,11 @@
+# Customer workflow: preserve this policy
+[defaults]
+parent_bump = "none"
+[package."@acme/public"]
+path = "packages/public"
+type = "npm"
+[ecosystems.npm]
+enabled = true
+[cli.verify-local]
+help_text = "Customer-owned local verifier"
+steps = [{ type = "Command", command = "printf preserved-workflow", shell = true }]

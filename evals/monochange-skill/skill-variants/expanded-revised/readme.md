@@ -1,0 +1,58 @@
+# @monochange/skill
+
+Agent guidance for using monochange as a CLI-driven release-planning harness.
+
+The package is intentionally task-oriented: start with the short [SKILL.md](./SKILL.md) at runtime, then open the focused files under [skills/](./skills/readme.md) only when a task needs more context. The [examples](./examples/readme.md) are small enough to copy into a new repository and then tailor to its package graph.
+
+monochange discovers packages in a monorepo, reads release intent from `.changeset/*.md`, computes package and group versions, updates versioned files, creates release records, and can drive provider/package publishing workflows configured in `monochange.toml`.
+
+## Start here
+
+- [SKILL.md](./SKILL.md): short runtime instructions for agents.
+- [skills/readme.md](./skills/readme.md): index of focused modules and when to open each one.
+- [skills/commands.md](./skills/commands.md): verified built-in commands, step commands, and step types.
+- [skills/configuration.md](./skills/configuration.md): authoring `monochange.toml` with copyable examples.
+- [skills/changesets.md](./skills/changesets.md): creating and maintaining `.changeset/*.md` files.
+- [skills/change-classification.md](./skills/change-classification.md): deciding major, minor, patch, or none from release-aware evidence.
+- [skills/reference.md](./skills/reference.md): complete reference for day-to-day operation.
+- [skills/linting.md](./skills/linting.md): `monochange check`, lint presets, rule severity, and manifest policy.
+- [skills/multi-package-publishing.md](./skills/multi-package-publishing.md): readiness, bootstrap, and package publishing flows.
+- [skills/trusted-publishing.md](./skills/trusted-publishing.md): OIDC/trusted-publishing notes for package registries.
+- [examples/readme.md](./examples/readme.md): scenario examples.
+
+<!-- {=manifestRepositoryLintReadmeSummary} -->
+
+### Repository Lints
+
+monochange includes opt-in repository URL lint rules for Cargo, Dart, and npm-family manifests:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = "error"
+"dart/manifest-repository" = "error"
+"npm/manifest-repository" = "error"
+```
+
+These rules compare each manifest's `repository` field with the repository configured under `[source]` in `monochange.toml`. Root-level packages use the base repository URL, while packages in subdirectories use `{repo_url}/tree/{default_branch}/{relative_package_dir}`. Run `monochange check --fix` to insert or update repository fields; there is no per-rule `fix` option.
+
+Cargo also resolves `repository = { workspace = true }` by reading the root manifest's `[workspace.package].repository` (falling back to root `[package].repository`). If you intentionally want to allow workspace inheritance without validating the package-specific URL, configure:
+
+```toml
+[lints.rules]
+"cargo/manifest-repository" = { level = "error", allow_workspace_inheritance = true }
+```
+
+For full rule-by-rule behavior, see the manifest linting reference and `monochange lint explain <rule-id>`.
+
+<!-- {/manifestRepositoryLintReadmeSummary} -->
+
+## Important distinction
+
+The CLI has four command classes:
+
+1. **Binary commands** wired by the binary, such as `monochange init`, `monochange check`, and `monochange mcp`; typed operations such as validation and publish readiness are exposed as `monochange step *` commands.
+2. **Step commands** generated from built-in step variants, such as `monochange step discover` and `monochange step prepare-release`.
+3. **Short top-level step aliases**, such as `monochange discover`, `monochange preview`, and `monochange publish readiness`, which run the same step with the same inputs as their `monochange step *` equivalent.
+4. **User-defined workflow commands** created by `[cli.<name>]` in `monochange.toml`, such as `monochange run release` or `monochange run publish` in repositories that define them.
+
+Always inspect `monochange help` or `monochange.toml` before assuming a user-defined workflow command exists. A repository can expose friendly commands such as `monochange run release`, `monochange run change`, or `monochange run publish`, but those names are configuration, not CLI guarantees. The step commands remain the portable fallback, including for steps that have no short alias.

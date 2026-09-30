@@ -1,0 +1,39 @@
+{
+	"id": "planning-dependency-prefix-precedence",
+	"title": "Stamp dependency fields with a file override over ecosystem defaults",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n[package.\"@acme/api\"]\npath = \"packages/api\"\ntype = \"npm\"\n[package.\"@acme/ui\"]\npath = \"packages/ui\"\ntype = \"npm\"\n[package.\"@acme/tokens\"]\npath = \"packages/tokens\"\ntype = \"npm\"\n[group.main]\npackages = [\"@acme/api\", \"@acme/ui\", \"@acme/tokens\"]\nversion_format = \"primary\"\n[ecosystems.npm]\nenabled = true\n[lints.rules]\n\"npm/workspace-protocol\" = \"off\"\n",
+		".changeset/api.md": "---\n\"@acme/api\": minor\n---\n\nAdd request retry options.\n",
+		"packages/ui/constraints.json": "{\"name\":\"@acme/ui\",\"version\":\"2.3.1\",\"dependencies\":{\"@acme/api\":\"^2.3.1\",\"external-lib\":\"^9.0.0\"}}\n"
+	},
+	"setupCommands": [
+		"git init -b main -q",
+		"git add -A",
+		"git commit -S -m 'chore: initialize evaluation fixture'"
+	],
+	"prompt": "Prepare the pending API minor release locally. Our npm manifests must use exact (=) internal dependency ranges, but packages/ui/constraints.json is a deployment manifest and needs tilde (~) internal ranges instead. Configure the ecosystem default and a typed versioned_files override on ui, naming only dependencies in that override. The deployment file's own version and external-lib dependency must stay as they are. Do not publish, tag, or push.",
+	"expectation": "Group manifests become 2.4.0 with ui's internal dependency =2.4.0; the additional deployment dependency becomes ~2.4.0 while its version stays 2.3.1 and external-lib stays ^9.0.0.",
+	"checks": [
+		{
+			"id": "all-group-versions-prepared",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"); for(const id of [\"api\",\"ui\",\"tokens\"]) a.equal(JSON.parse(fs.readFileSync(\"packages/\"+id+\"/package.json\",\"utf8\")).version,\"2.4.0\");'",
+			"why": "Preparation must stamp all group manifests."
+		},
+		{
+			"id": "dependency-prefixes-and-field-scope",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),p=JSON.parse(fs.readFileSync(\"packages/ui/package.json\",\"utf8\")),d=JSON.parse(fs.readFileSync(\"packages/ui/constraints.json\",\"utf8\"));a.equal(p.dependencies[\"@acme/api\"],\"=2.4.0\");a.equal(d.dependencies[\"@acme/api\"],\"~2.4.0\");a.equal(d.dependencies[\"external-lib\"],\"^9.0.0\");a.equal(d.version,\"2.3.1\");'",
+			"why": "Typed file prefixes must beat ecosystem defaults without stamping undeclared fields."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

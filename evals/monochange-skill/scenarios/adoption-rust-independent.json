@@ -1,0 +1,45 @@
+{
+	"id": "adoption-rust-independent",
+	"title": "Initialize a Cargo workspace whose packages release independently",
+	"fixture": "adoption-rust-independent",
+	"prompt": "Use the monochange CLI initializer to adopt this Cargo workspace. acme-core and acme-cli must continue releasing independently. Record a patch release for an acme-cli diagnostic wording fix. Record the changeset and verify the preview, but leave changesets pending and manifests at their current versions. Do not publish, tag, commit, or contact a hosted provider.",
+	"expectation": "The generated default shared group must be removed or narrowed so a CLI-only fix cannot release acme-core. Both crates remain configured and the pending preview releases only acme-cli at 1.4.1.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "uses-cli-initializer",
+			"kind": "transcript",
+			"pattern": "^Bash [^\\n]*\\bmonochange\\b[^\\n]*\\binit\\b",
+			"why": "This adoption task explicitly asks to exercise the actual initializer before refining its starter configuration."
+		},
+		{
+			"id": "cargo-packages-declared",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.deepEqual(c.packages.map(p=>[p.id,p.package_type]).sort(),[[\"acme-cli\",\"cargo\"],[\"acme-core\",\"cargo\"]]); assert.equal(c.cargo.enabled,true);'",
+			"why": "Both actual Cargo packages must be managed with their adapter enabled."
+		},
+		{
+			"id": "only-cli-plans-a-patch",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"preview\",\"--format\",\"json\"])); assert.deepEqual(d.release_targets.map(t=>[t.id,t.version]),[[\"acme-cli\",\"1.4.1\"]]); assert.deepEqual(d.released_packages,[\"acme-cli\"]);'",
+			"why": "Independent releases are a user requirement, so the default init group must not bump the unaffected library."
+		},
+		{
+			"id": "manifests-unchanged",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; for (const p of [\"core\",\"cli\"]) assert.match(fs.readFileSync(`crates/${p}/Cargo.toml`,\"utf8\"),/^version = \"1.4.0\"$/m);'",
+			"why": "Adoption and preview must not write package versions."
+		}
+	]
+}

@@ -8,7 +8,7 @@
 	"prompt": "I just added `Document::is_empty()` to acme-core, which is the library other teams depend on. Record the release so the library ships the new method, and make sure acme-cli doesn't get left behind — the binary depends on the library, so it needs to move too.",
 	"expectation": "`acme-core` gained a new public method, which is additive, so the library takes a minor release: 1.4.0 to 1.5.0. `acme-cli` depends on `acme-core` and the repository propagates a patch bump to dependents, so the CLI moves as well even though its own source did not change. The two crates are deliberately not version-grouped, so the CLI is not dragged to the library's version. A correct solution records release intent for the library and leaves the release plan showing both packages moving.",
 	"setupCommands": [
-		"git init -q && git add -A && git -c user.email=eval@example.com -c user.name=eval commit -qm 'initial commit'"
+		"git init -q && git add -A && git commit -S -qm 'initial commit'"
 	],
 	"checks": [
 		{

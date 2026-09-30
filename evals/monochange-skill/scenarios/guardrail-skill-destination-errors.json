@@ -1,0 +1,25 @@
+{
+	"id": "guardrail-skill-destination-errors",
+	"title": "Skill installation fails clearly when no usable destination is supplied",
+	"fixture": "empty-workspace",
+	"agent": false,
+	"prompt": "",
+	"setupFiles": {
+		"blocked-destination": "Keep this existing file exactly as written.\n"
+	},
+	"expectation": "Missing --dir produces corrective guidance without installing globally; a destination occupied by a file fails with the exact destination named and preserves that file.",
+	"checks": [
+		{
+			"id": "missing-dir-rejected",
+			"kind": "command",
+			"command": "monochange skill install > .missing.out 2>&1; rc=$?; cat .missing.out; test $rc -eq 1 && grep -q 'pass --dir' .missing.out && test ! -e SKILL.md",
+			"why": "The CLI must not guess a global runtime or silently install into the current directory."
+		},
+		{
+			"id": "blocked-dir-rejected",
+			"kind": "command",
+			"command": "monochange skill install --dir blocked-destination > .blocked.out 2>&1; rc=$?; cat .blocked.out; test $rc -eq 1 && grep -Fq 'error[io.failed]' .blocked.out && grep -q 'blocked-destination' .blocked.out && test \"$(cat blocked-destination)\" = 'Keep this existing file exactly as written.'",
+			"why": "A file in place of a directory must produce an actionable IO error and remain unchanged."
+		}
+	]
+}

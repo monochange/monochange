@@ -5,16 +5,19 @@
 	"agent": false,
 	"prompt": "",
 	"setupCommands": [
-		"git init -b main -q && git add -A && git -c user.name=\"Acme Maintainer\" -c user.email=\"maintainer@acme.dev\" commit -qm \"chore: initial import\" && git tag v1.0.0 && mkdir -p .changeset && printf -- '---\\n\"@acme/api\": patch\\n---\\n\\nRetry now doubles its backoff.\\n' > .changeset/fix-retry-backoff.md && monochange prepare >/dev/null 2>&1 && monochange step commit-release >/dev/null 2>&1 && monochange step tag-release --from HEAD --push=false >/dev/null 2>&1"
+		"git init -b main -q && git add -A && git commit -S -qm \"chore: initial import\" && git tag v1.0.0 && mkdir -p .changeset && printf -- '---\\n\"@acme/api\": patch\\n---\\n\\nRetry now doubles its backoff.\\n' > .changeset/fix-retry-backoff.md && monochange prepare >/dev/null 2>&1 && monochange step commit-release >/dev/null 2>&1 && monochange step tag-release --from HEAD --push=false >/dev/null 2>&1"
 	],
-	"expectation": "After a release has been prepared and committed, three gates hold. `monochange step release-record --from <tag>` resolves the record that the commit body embeds. `monochange step tag-release` refuses a ref whose ancestry contains no release commit — an import tag is not a release commit — and succeeds on the real release commit, creating the tag. `monochange step publish-readiness` reads the committed record and reports a status without publishing anything: for a package that has never reached npm it is `blocked`, naming the bootstrap remedy.",
+	"expectation": "After a release has been prepared and committed, three gates hold. monochange step release-record --from <tag> resolves the durable .monochange/releases/<id>/release.json file from the tagged commit's first-parent history. monochange step tag-release refuses an import ref with no release record and requires its target commit itself to be the release commit before creating a tag. monochange step publish-readiness reads the committed record without publishing; the fixture's unpublished npm package reports blocked and names its bootstrap remedy.",
 	"checks": [
 		{
 			"id": "release-record-resolves-from-tag",
 			"kind": "command",
 			"command": "monochange step release-record --from v1.0.1 --format json",
-			"expectOutput": ["monochange.releaseRecord", "\"version\": \"1.0.1\""],
-			"why": "The record must be reachable from the tag through the commit body, carrying the released version; this is the read that publish-readiness and tag-release depend on."
+			"expectOutput": [
+				"monochange.releaseRecord",
+				"\"version\": \"1.0.1\""
+			],
+			"why": "The tagged history must contain a committed release.json carrying the released version; publish-readiness and tag-release resolve this durable record rather than an embedded commit-body snapshot."
 		},
 		{
 			"id": "release-record-sha-resolves",
@@ -26,7 +29,7 @@
 			"id": "tag-release-refuses-a-non-release-commit",
 			"kind": "command",
 			"command": "monochange step tag-release --from v1.0.0 --push=false > .gate.out 2>&1; rc=$?; grep -q 'no monochange release record found in first-parent ancestry' .gate.out; found=$?; rm -f .gate.out; test $rc -eq 1 -a $found -eq 0",
-			"why": "The gate that makes tags trustworthy: only a commit created by `commit-release` may be tagged. v1.0.0 is the import tag, so it must be refused with the ancestry message."
+			"why": "The target commit itself must be a release-record commit. The fixture's import tag has no release record and must be refused."
 		},
 		{
 			"id": "tag-release-creates-the-tag-on-the-release-commit",

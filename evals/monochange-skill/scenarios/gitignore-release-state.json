@@ -5,7 +5,7 @@
 	"prompt": "Before we wire up CI, tidy up what monochange writes into this repo. Anything that is part of the release record needs to be committed so our automation and the publish job can read it. Scratch files that monochange writes for the local machine should stay out of git.",
 	"expectation": "`.monochange/releases/<id>/release.json` and `.monochange/prerelease-state.json` are release state that `CommitRelease`, `publish-readiness`, `tag-release`, and provider automation read back from git history, so ignoring them makes releases unpublishable. Only `.monochange/local/` is local scratch and may be ignored. A correct solution ignores the local directory specifically and leaves the rest of `.monochange/` tracked; ignoring the whole directory is the failure this scenario exists to catch.",
 	"setupCommands": [
-		"git init -q && git add -A && git -c user.email=eval@example.com -c user.name=eval commit -qm 'initial commit'"
+		"git init -q && git add -A && git commit -S -qm 'initial commit'"
 	],
 	"checks": [
 		{

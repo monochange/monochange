@@ -206,6 +206,7 @@ in
         test:cargo
         test:docs
         test:node
+        eval:skill:contract
       '';
       description = "Run all tests across the crates and npm helper scripts.";
       binary = "bash";
@@ -242,7 +243,7 @@ in
       exec = ''
         set -euo pipefail
         pnpm build
-        pnpm vitest run --exclude 'worktrees/**' scripts/npm/tests/*.test.ts
+        pnpm vitest run --exclude 'worktrees/**' scripts/npm/tests/*.test.ts evals/monochange-skill/lib/__tests__/*.test.ts
       '';
       description = "Run npm helper, launcher, and repository utility tests with Vitest.";
       binary = "bash";
@@ -272,7 +273,7 @@ in
         set -euo pipefail
         cargo build --package monochange
         # Agent-free contracts only: no model calls, no cost.
-        node evals/monochange-skill/run.ts --scenario cli-self-sufficiency
+        node evals/monochange-skill/run.ts --contract-only --variant package
       '';
       description = "Run the deterministic skill-eval contracts without invoking an agent.";
       binary = "bash";
@@ -281,10 +282,10 @@ in
       exec = ''
         set -euo pipefail
         mkdir -p target/coverage
-        cargo llvm-cov clean --workspace
-        cargo llvm-cov test --workspace --exclude xtask --all-features --lib --tests --no-report
-        cargo llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 70
-        cargo llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/lcov.info
+        cargo bin cargo-llvm-cov clean --workspace
+        cargo bin cargo-llvm-cov test --workspace --exclude xtask --all-features --lib --tests --no-report
+        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 70
+        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/lcov.info
       '';
       description = "Run workspace coverage, enforce a 70% line-coverage floor, and write target/coverage/lcov.info.";
       binary = "bash";
@@ -353,7 +354,7 @@ in
         set -euo pipefail
         cargo xtask schema release update
       '';
-      description = "Regenerate committed release JSON Schema assets, including versioned files.";
+      description = "Regenerate release JSON Schema aliases and fixtures; versioned files require explicit xtask --versioned.";
       binary = "bash";
     };
     "schema:release:check" = {
@@ -361,7 +362,7 @@ in
         set -euo pipefail
         cargo xtask schema release check
       '';
-      description = "Check committed release JSON Schema assets, including versioned files.";
+      description = "Check release JSON Schema aliases and fixtures; versioned files require explicit xtask --versioned.";
       binary = "bash";
     };
     "fix:clippy" = {
@@ -397,7 +398,7 @@ in
     "deny:check" = {
       exec = ''
         set -euo pipefail
-        cargo deny check
+        cargo bin cargo-deny check
       '';
       description = "Run cargo-deny checks for security advisories and license compliance.";
       binary = "bash";

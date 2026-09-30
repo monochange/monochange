@@ -3,22 +3,22 @@
 	"title": "Go versions come from tags, and a dependent follows the library",
 	"fixture": "go-modules",
 	"prompt": "We want to cut a release for our two Go modules. The engine picked up a `Normalize` helper since the last release. Get monochange set up so it can plan versions for these modules and record that change, then show me what would ship. Note that Go doesn't carry a version inside the module file.",
-	"expectation": "Go is the one ecosystem whose packages carry no version field: versions come from git tags, so a Go package only plans a release once `tag = true` and `initial_version` are configured, and the git history is tagged. Getting this wrong produces an empty release plan even though the config validates. Once planning works, the dependent service's `require` directive is rewritten to the released core version — a Go dependent that keeps requiring the old version ships broken — while `replace` directives are left alone and an unrelated module that shares a last path segment is untouched.",
+	"expectation": "Go modules carry no package version in go.mod. With tag = true, monochange resolves their release baselines from tags matching each owner's version_format; initial_version is needed only as a fallback when a matching tag does not exist. This fixture already provides core/v1.2.0 and service/v1.0.0 tags, so planning must use that history. Preparing the release rewrites the service's internal require to the released core version while preserving local replace directives. Package ids may be chosen by the agent, but rendered submodule tags must retain the existing core/v and service/v namespaces; changing ids must not silently reset those baselines to initial_version.",
 	"setupCommands": [
-		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init && git tag core/v1.2.0 && git tag service/v1.0.0"
+		"git init -b main -q && git add -A && git commit -S -qm init && git tag core/v1.2.0 && git tag service/v1.0.0"
 	],
 	"checks": [
 		{
 			"id": "both-modules-configured-for-tag-versions",
 			"kind": "command",
-			"command": "monochange config --format json | python3 -c \"import sys,json; c=json.load(sys.stdin)['config']; t={p['id']: p['package_type'] for p in c['packages']}; assert t.get('core')=='go', t; assert t.get('service')=='go', t; print(t)\"",
-			"why": "Both modules must be release-managed with the go type; a config that omits one leaves that module unreleased and its dependents pinned to a stale version."
+			"command": "node -e 'const assert=require(\"node:assert/strict\");const {spawnSync}=require(\"node:child_process\");const path=require(\"node:path\");const cli=args=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"});assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout);};const c=cli([\"config\",\"--format\",\"json\"]).config;const byPath=new Map(c.packages.map(p=>[path.normalize(p.path),p]));const core=byPath.get(\"core\");const service=byPath.get(\"service\");assert.ok(core);assert.ok(service);assert.equal(core.package_type,\"go\");assert.equal(service.package_type,\"go\");'",
+			"why": "Resolve each Go module by its configured directory, allowing valid user-chosen release ids."
 		},
 		{
 			"id": "a-release-is-actually-planned",
 			"kind": "command",
-			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; assert t.get('core')=='1.3.0', t; assert t.get('service')=='1.0.1', t; print(t)\"",
-			"why": "The decisive check for tag versioning. Without `tag = true` and `initial_version` the plan is empty, so an agent that treats Go like Cargo would report a successful setup that releases nothing. The seeded versions are 1.2.0 and 1.0.0."
+			"command": "node -e 'const assert=require(\"node:assert/strict\");const {spawnSync}=require(\"node:child_process\");const path=require(\"node:path\");const cli=args=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"});assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout);};const c=cli([\"config\",\"--format\",\"json\"]).config;const byPath=new Map(c.packages.map(p=>[path.normalize(p.path),p]));const core=byPath.get(\"core\");const service=byPath.get(\"service\");assert.ok(core);assert.ok(service);const d=cli([\"preview\",\"--format\",\"json\"]);const targets=new Map(d.release_targets.map(t=>[t.id,t]));assert.equal(targets.get(core.id)?.version,\"1.3.0\");assert.equal(targets.get(service.id)?.version,\"1.0.1\");assert.equal(targets.get(core.id)?.tag_name,\"core/v1.3.0\");assert.equal(targets.get(service.id)?.tag_name,\"service/v1.0.1\");'",
+			"why": "Both requested versions must be planned under the existing Go submodule tag namespaces, so their baselines continue to resolve from the seeded release history."
 		},
 		{
 			"id": "no-version-field-written-into-the-module-file",
@@ -30,7 +30,7 @@
 			"id": "dependent-require-follows-the-library",
 			"kind": "command",
 			"command": "monochange prepare >/dev/null 2>&1; grep -q 'github.com/acme/core v1.3.0' service/go.mod",
-			"why": "The service depends on the engine, so its require directive has to name the released version. Leaving it behind ships a service pinned to a core version that no longer exists."
+			"why": "The service depends on the engine, so preparation must update its require directive to the newly released core version rather than retain the old dependency reference."
 		},
 		{
 			"id": "replace-directive-untouched",
@@ -41,7 +41,8 @@
 		{
 			"id": "nothing-published",
 			"kind": "transcript",
-			"pattern": "go publish|cargo publish|npm publish|git push",
+			"scope": "commands",
+			"pattern": "go publish|cargo publish|npm publish|git push|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
 			"absent": true,
 			"why": "The request was to plan a release and show what would ship, not to publish or push tags."
 		}

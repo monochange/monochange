@@ -1,0 +1,46 @@
+{
+	"id": "planning-regex-glob-version-files",
+	"title": "Stamp release snippets with a named version capture over a glob",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n[package.\"@acme/api\"]\npath = \"packages/api\"\ntype = \"npm\"\n[package.\"@acme/ui\"]\npath = \"packages/ui\"\ntype = \"npm\"\n[package.\"@acme/tokens\"]\npath = \"packages/tokens\"\ntype = \"npm\"\n[group.main]\npackages = [\"@acme/api\", \"@acme/ui\", \"@acme/tokens\"]\nversion_format = \"primary\"\n[ecosystems.npm]\nenabled = true\n[lints.rules]\n\"npm/workspace-protocol\" = \"off\"\n",
+		".changeset/api.md": "---\n\"@acme/api\": minor\n---\n\nAdd request retry options.\n",
+		"install/unix/install.sh": "#!/bin/sh\nSDK_VERSION=\"2.3.1\"\nTOOL_VERSION=\"8.0.0\"\n",
+		"install/windows/install.sh": "#!/bin/sh\nSDK_VERSION=\"2.3.1\"\nTOOL_VERSION=\"9.0.0\"\n"
+	},
+	"setupCommands": [
+		"git init -b main -q",
+		"git add -A",
+		"git commit -S -m 'chore: initialize evaluation fixture'"
+	],
+	"prompt": "Both install/*/install.sh scripts need their SDK_VERSION updated whenever the main group releases, while TOOL_VERSION stays independent. Configure one regex versioned_files glob entry on main, using a named version capture, then prepare the pending minor release locally. Do not execute the installer scripts or publish anything.",
+	"expectation": "One group-scoped regex glob stamps SDK_VERSION=2.4.0 in both files while unrelated tool versions remain 8.0.0/9.0.0.",
+	"checks": [
+		{
+			"id": "group-versions-prepared",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"); for(const id of [\"api\",\"ui\",\"tokens\"]) a.equal(JSON.parse(fs.readFileSync(\"packages/\"+id+\"/package.json\",\"utf8\")).version,\"2.4.0\");'",
+			"why": "The script stamp must match the prepared release."
+		},
+		{
+			"id": "both-glob-matches-stamped",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\");for(const [dir,tool] of [[\"unix\",\"8.0.0\"],[\"windows\",\"9.0.0\"]]){const s=fs.readFileSync(\"install/\"+dir+\"/install.sh\",\"utf8\");a.ok(s.includes('\\''SDK_VERSION=\"2.4.0\"'\\''));a.ok(s.includes('\\''TOOL_VERSION=\"'\\''+tool+'\\''\"'\\''));}'",
+			"why": "The glob must cover every installer while the named capture limits replacement."
+		},
+		{
+			"id": "glob-configuration-retained",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),s=fs.readFileSync(\"monochange.toml\",\"utf8\");a.ok(s.includes(\"install/\"));a.ok(s.includes(\"*\"));a.ok(s.includes(\"(?<version>\")||s.includes(\"(?P<version>\"));'",
+			"why": "Hand edits do not implement recurring installer stamping."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

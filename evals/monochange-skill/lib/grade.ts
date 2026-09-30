@@ -17,6 +17,10 @@ export interface GradeContext {
 	workdir: string;
 	/// Flattened transcript: assistant text plus tool inputs.
 	transcript: string;
+	/// Actual submitted Bash commands. Required for checks whose scope is commands.
+	commands?: string;
+	/// Separate submitted Bash inputs; bindings never transfer between tool calls.
+	commandInputs?: readonly string[];
 	/// Absolute path to the repository's `monochange` CLI.
 	monochangeCli: string;
 }
@@ -125,12 +129,39 @@ function runAbsentCheck(check: Check, context: GradeContext): CheckResult {
 	return { check, passed: true, detail: `${check.path} is absent` };
 }
 
+/// Recognize one literal CLI binding followed immediately by its invocation.
+/// This deliberately does not evaluate shell expressions or arbitrary wrappers.
+function normalizeCliBinding(command: string, monochangeCli: string): string {
+	const binding =
+		/^[ \t]*([A-Za-z_][A-Za-z0-9_]*)=(?:'([^']*)'|"([^"$`\\]*)"|([^ \t;\r\n"'$`\\]+))[ \t]*(?:;|\r?\n)[ \t\r\n]*/.exec(
+			command,
+		);
+	if (!binding || (binding[2] ?? binding[3] ?? binding[4]) !== monochangeCli) return command;
+	const name = binding[1];
+	const invocation = new RegExp(
+		`^(?:\\$${name}|\\$\\{${name}\\}|"\\$${name}"|"\\$\\{${name}\\}")(?=[ \\t;&|\\r\\n]|$)`,
+	).exec(command.slice(binding[0].length));
+	if (!invocation) return command;
+	return `${binding[0]}monochange${command.slice(binding[0].length + invocation[0].length)}`;
+}
+
 function runTranscriptCheck(check: Check, context: GradeContext): CheckResult {
 	if (!check.pattern) {
 		return { check, passed: false, detail: "check has no pattern" };
 	}
+
+	if (check.scope === "commands" && context.commands === undefined) {
+		return { check, passed: false, detail: "command transcript unavailable" };
+	}
+
 	const pattern = new RegExp(check.pattern, "m");
-	const found = pattern.test(context.transcript);
+	const evidence =
+		check.scope === "commands"
+			? (context.commandInputs
+					?.map((command) => normalizeCliBinding(command, context.monochangeCli))
+					.join("\n") ?? context.commands)
+			: context.transcript;
+	const found = pattern.test(evidence);
 	if (check.absent) {
 		return found
 			? {
@@ -156,5 +187,5 @@ export function gradeAll(checks: Check[], context: GradeContext): CheckResult[] 
 
 /// Whether every check passed.
 export function allPassed(results: CheckResult[]): boolean {
-	return results.every((result) => result.passed);
+	return results.length > 0 && results.every((result) => result.passed);
 }

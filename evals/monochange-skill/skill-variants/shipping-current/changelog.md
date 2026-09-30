@@ -1,0 +1,1009 @@
+# Changelog
+
+## Unreleased
+
+### 📝 Changed
+
+- Rewrote the skill package around the current monochange CLI/tool harness.
+- Documented verified built-in commands, step commands, MCP tools, user-defined command behavior, and all current CLI step types.
+- Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
+- Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
+
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 🐛 Fixed
+
+#### Scope the classified bump to the pull request
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #730](https://github.com/monochange/monochange/pull/730) · _Closed issues:_ [#706](https://github.com/monochange/monochange/issues/706)
+
+- `decision.pull_request_changes` reports whether this contribution touches the package. When it is `false`, every finding came from the `release` or `releaseToDefault` interval, so `decision.proposed_changeset_bump` and `decision.enforceable_minimum` are `none`, `decision.review_required` is `false`, and the accumulated change appears only in `decision.release_floor` and `decision.release_impact`. The net candidate and the local working tree set the flag; the release comparisons never do.
+- A pending changeset for a package the pull request does not modify still reports `action: review` with the summary `the pull request does not change this package; the pending changeset intent needs review`, because a changeset can intentionally describe a consumer-facing effect implemented in another package. It no longer escalates the bump or the review verdict for work an earlier merge introduced.
+- The Cargo analyzer classifies a pure append to a public `const`/`static` whose declared type is `&[T]`, `[T; N]`, or `Vec<T>` and whose initializer is a literal as `additive`/`minor` with high confidence, matching `cargo semver-checks`. A removal, a reorder, an element edit, a changed element type, or a non-literal initializer stays conservative.
+
+```json
+{
+	"compatibility_impact": "compatible",
+	"release_impact": "breaking",
+	"pull_request_changes": false,
+	"proposed_changeset_bump": "none",
+	"release_floor": "major",
+	"review_required": false
+}
+```
+
+The classification report contract advances to `schema_version` `0.3` (`SCHEMA_VERSION` regenerated with a frozen `classification.v0.3.schema.json`; the shipped v0.1 and v0.2 assets are untouched, and the schemas reference page lists the new asset). `decision.pull_request_changes` is new, and `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.review_required` can be lower for a package this pull request does not touch.
+
+No configuration change is required. Re-run `monochange change classify` to pick up the pull-request-scoped verdict.
+
+#### Add `publish` to the skill's generated command inventory
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #722](https://github.com/monochange/monochange/pull/722)
+
+The generated command inventory in `commands.md` now lists the built-in `publish` command, so an assistant following the skill sees `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` alongside the existing `monochange step *` entries.
+
+The `next` and `next-versions` commands are aliases rather than distinct clap command literals, so they follow the same rule as the other top-level step aliases and stay out of this literal inventory.
+
+#### Serve the agent skill from the binary without the `skills` CLI
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+`monochange skill` no longer shells out to `npx`, `pnpm dlx`, or `bunx`. The skill bundle is embedded in the binary, so the command works offline and without Node tooling:
+
+- `monochange skill` lists every bundled topic with its install path and description.
+- `monochange skill read <topic>` prints one document verbatim to stdout, with no terminal rendering or added framing.
+- `monochange skill install --dir <dir> [--force]` writes `SKILL.md` and every reference into an agent runtime skill directory and refuses to replace an existing skill unless `--force` is passed.
+
+The forwarded-argument surface (`monochange skill --list`, `-a`, `-y`, and the other `skills add` flags) and the `MONOCHANGE_SKILL_SOURCE` and `MONOCHANGE_SKILL_RUNNER` environment variables are removed. `crates/monochange/skill/` is a committed copy of `packages/monochange__skill`, kept in sync by `scripts/docs/sync-skill.mjs` and verified by `docs:check`.
+
+Migration: replace the forwarded-argument invocation with an explicit install directory, or read individual topics:
+
+```bash
+# Before
+monochange skill -a pi -y
+
+# After
+monochange skill install --dir ~/.claude/skills/monochange
+monochange skill read configuration
+```
+
+#### Fix verified factual errors in the monochange agent skill
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+The bundled skill (`packages/monochange__skill`, served by `monochange skill read`) taught several commands and fields that do not match the current binary. Each fix was reproduced against the debug binary before editing:
+
+- **`monochange versions`**: the skill now documents the supported subcommands. `monochange versions list` is a read-only inventory (`--format text|json|json-min`), and `monochange versions sync` rewrites internal dependency constraints (`--dry-run`, `--format`, `--strategy default|exact|caret|compatible`). `--strategy` belongs to `sync` only. Bare `monochange versions` is deprecated and prints a warning, so skill examples no longer use it.
+- **Cross-stream changesets**: `monochange step validate` and `monochange check` both pass for a file that mixes `default`-stream and `user`-stream targets; only a release plan command rejects it. The skill now names `monochange preview` (or `monochange prepare --dry-run` / `monochange step prepare-release --dry-run`) and states the observed failure: exit 1 with `changeset targets resolve to multiple changelog streams: <streams>; split the changes into one file per stream`.
+- **Compatibility field**: replaced the stale `compatibilityEvidence` name. The release plan exposes `compatibility_evidence`, and the classification report's verdict is `decision.compatibility_impact`.
+- **Top-level command surface**: `commands.md` and `SKILL.md` now document the short built-ins (`create`, `discover`, `config`, `preview`, `prepare`, `affected`, `diagnose`, `next`, `next-versions`, `publish packages|readiness|placeholder`, `versions list|sync`) with the step each one runs, the preferred order (configured workflow, then short built-in, then `monochange step <name>`), and the steps that remain step-only (`validate`, `commit-release`, `tag-release`, and others). The generated inventory keeps owning the clap-literal and step-name sections.
+- **Python and Go version writing**: configuring a `python` package does not rewrite its own `[project].version` unless a `versioned_files` entry lists `version` in `fields`. Without it, `monochange prepare` plans the version and rewrites internal constraints but leaves the manifest stale. Go modules carry no version field; `go` packages resolve their baseline from release tags, so `tag = true` plus `initial_version` is required and no `versioned_files` entry can write a module version.
+
+## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
+
+### 🐛 Fixed
+
+#### Report a break against main separately from the release verdict
+
+- `decision.release_impact` reports the compatibility impact measured between the package's latest release and the candidate. A pull request that only changes an API the latest release never contained now reads `compatibility_impact: breaking` with `release_impact: additive`.
+- `decision.proposed_changeset_bump` and `decision.enforceable_minimum` are capped by the release comparison, so a modeled finding can no longer propose a bump higher than the release-relative bump for the same package. Nobody holding the latest release can observe a break in an item that the release comparison does not show as changed.
+- Unmodeled findings stay uncapped. They are the safety floor for a surface the analyzers cannot model, and the release comparison cannot refute them.
+- `decision.release_floor` reports the accumulated unreleased bump without inheriting a break that only exists against the default branch.
+- The classification report contract advances to `schema_version` `0.2`: `decision.release_impact` is new, and `decision.proposed_changeset_bump`, `decision.enforceable_minimum`, and `decision.release_floor` can be lower than in `0.1` for the same pull request.
+
+```json
+{
+	"compatibility_impact": "breaking",
+	"release_impact": "additive",
+	"proposed_changeset_bump": "minor",
+	"release_floor": "minor"
+}
+```
+
+No configuration change is required. Re-run `monochange change classify` to pick up the release-relative verdict.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #712](https://github.com/monochange/monochange/pull/712)
+
+- **Document how non-Rust CLIs emit command snapshots.** The skill bundle now explains that the command snapshot document can be produced outside Rust. The configuration and change-classification skills point at the published command snapshot schema and the new emitter guide, and describe the values fixed by the contract (`kind` is always `"cli-surface"`; `schema_version` must match the supported snapshot contract version) plus the rule that a `failed` capture status usually means the emitted document does not match the schema. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #705](https://github.com/monochange/monochange/pull/705) · _Related issues:_ [#707](https://github.com/monochange/monochange/issues/707), [#709](https://github.com/monochange/monochange/issues/709)
+
+#### Skip change classification on release pull requests and rename the `unknown` impact
+
+- New crate `monochange_classification` owns the classification report contract and its schema, versioned independently of the release train.
+
+- `monochange change classify` accepts `--label` and reads `[changesets.classification].skip_labels` (default `["release"]`). A matching label reports `skipped: true`, analyzes no packages, and exits successfully, so the release pull request monochange opens is no longer classified.
+- The `unknown` compatibility impact is now `unmodeled`. The change is still outside the analyzer's modeled public surface, but the package itself is supported, so the previous name overstated how much was unknown.
+- The `change-classification` GitHub Action gained a `labels` input and defaults it to the current pull request's labels. A skipped run deletes any comment left from an earlier revision.
+
+```toml
+[changesets.classification]
+# Set to [] to classify every pull request.
+skip_labels = ["release"]
+```
+
+```bash
+monochange change classify --format json --label release
+```
+
+The published configuration contract gained `[changesets.classification]`, so the schemas advance to `v0.7`; the `0.6` → `0.7` migration edge accepts existing release records unchanged.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #709](https://github.com/monochange/monochange/pull/709)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### Correct invalid configuration examples and tighten documentation prose
+
+Several documented configuration examples did not parse, and the skill's migration guidance showed before-and-after commands that were identical to each other.
+
+Examples that were wrong and are now corrected:
+
+- `[ecosystems.*].lockfile_commands` was documented as a list of bare strings in the skill's `configuration.md`, `examples/quickstart.md`, and `examples/migration.md`. Every entry is a table with a `command` field, so the documented form failed with `invalid type: string, expected struct LockfileCommandDefinition`. The skill examples now use the table form.
+- The GitHub automation example ended with an orphaned `name`, `trigger`, `release_targets`, and `requires` fragment after `[changesets.classification]`. None of those keys exist in `monochange.toml`, and the fragment silently parsed as nothing because it sat under the wrong table. It is removed from the shared template and from every generated copy.
+- The changelog section threshold field was documented as `collapsed`; the real key is `collapse`, and `ignored` must be at least as large as it.
+- The changelog style guide listed `heading`, `rule`, `inline`, and `plain` as `section_separator`, `package_label_placement`, and `package_label_style` values. The real values are `blank_line`, `thematic_break`, `none`, `after_heading`, `after_change`, `badge`, and `omit`.
+- The publishing example set `trusted_publishing = true` and then opened `[ecosystems.npm.publish.trusted_publishing]` in the same document, which is a duplicate key. `trusted_publishing` is a boolean or a table, so the examples now show each form separately.
+- The publish workflow example bound `format`, `mode`, `package`, `ci`, `group`, and `ecosystem` inputs that the command never declared, which failed validation with `inherits input ... but the command does not declare it`.
+- The release PR example used `OpenReleaseRequest` without configuring `[source]`, which validation rejects.
+
+Prose changes: prose em dashes are gone from the book, the skill, and the repository readmes; `commands.md` now shows real command-path migrations instead of no-op examples; and the configuration reference gained annotated examples for package fields, version formats, floating tags, versioned files, changelog style, group filters, and publish policy.
+
+`[ecosystems.*].enabled`, `roots`, and `exclude` are still parsed without filtering discovery, and `[defaults].include_private` still does not filter what `step discover` reports. Those notes are now stated as observed behavior rather than left ambiguous.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #716](https://github.com/monochange/monochange/pull/716)
+
+</details>
+
+## [0.13.0](https://github.com/monochange/monochange/releases/tag/v0.13.0) (2026-09-13)
+
+### Changed
+
+#### No package-specific changes were recorded; `@monochange/skill` was updated to 0.13.0 as part of group `main`.
+
+## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
+
+### 🚀 Feature
+
+#### Recommend dry-run publish checks before any release merges
+
+The skill now treats the dry-run publish check as a first-class release safety practice, so agents and CI authors following monochange guidance stop avoidable partially-published releases: a multi-package publish that fails partway leaves earlier packages live on their registries while tags and hosted releases still have to be rolled back by hand.
+
+The multi-package publishing module documents two checkpoints and the exact commands:
+
+```bash
+# required CI job on every pull request
+monochange step publish-packages --dry-run
+
+# strongest pre-merge signal: simulate the release commit without pushing,
+# then validate the bumped tree
+monochange run release --commit
+monochange step publish-packages --dry-run
+```
+
+The skill's source-of-truth rules now tell agents to gate CI on the dry-run publish check, and the publishing guide recommends keeping the same check in the release workflow as a final gate so a late failure happens before tags and hosted releases exist.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #680](https://github.com/monochange/monochange/pull/680)
+
+### 🐛 Fixed
+
+#### Register package CLIs and classify command-surface breaks
+
+Change classification could not recognize that a package ships a CLI. Changes to a CLI's command surface — renamed commands, removed options, narrowed values — analyzed as unclassified package files and surfaced in pull request comments with an unknown compatibility impact and a review requirement, even when the break was obvious.
+
+Packages can now register the CLI they ship under `[package.<id>].cli`:
+
+```toml
+[package.monochange]
+path = "crates/monochange"
+cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
+```
+
+- `name` is the binary name users invoke. It keys the committed baseline at `.monochange/cli-snapshots/<name>.json` and must be unique across the workspace.
+- `snapshot` is required. It accepts a command string or a table with `{ command, cwd, shell }` shaped like `[ecosystems.*].lockfile_commands` entries. The command must print a normalized command-surface snapshot JSON document (`monochange_snapshot::CommandSnapshot`) on stdout; foreign CLIs can commit a small emitter script for this.
+
+`monochange change classify` diffs the committed baseline against a fresh capture for every classified package with a registered CLI and appends `monochange/cli-surface` findings: removed commands, options, positionals, and value narrowing propose `major`; additions and widening propose `minor`; description-only changes are compatible patches. The findings are high confidence with complete coverage, so they raise `enforceableMinimum` and clear the unknown-impact review requirement. Per-package reports gain an additive `cli` block with the comparison status (`diffed`, `missing_baseline`, `stale_baseline`, `failed`, `skipped`), and the classification report schema version bumps to 4.
+
+- `monochange snapshot --package <id>` captures a registered CLI's snapshot; `--save` writes the committed baseline; `--list` prints registered CLIs and baseline health.
+- `monochange change classify --skip-cli-snapshots` (or `MONOCHANGE_SKIP_CLI_SNAPSHOTS=1`) skips the comparisons when the snapshot command cannot run.
+- The committed JSON schema assets regenerate with the new `package_cli` and `cli_snapshot_command` definitions, and `"snapshot"` joins `RESERVED_CLI_COMMAND_NAMES` so `[cli.*]` workflow commands cannot shadow the built-in.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+#### Correct the permissions needed to publish the classification comment
+
+The bundled classification guidance told agents to request `issues: write` with `pull-requests: read`. That combination cannot create a pull request comment. The API answers `403 Resource not accessible by integration`, the action downgrades the error to a warning, and the job still passes, so the report never reaches the pull request.
+
+Request the pull requests write scope instead. Comment creation is governed by the scope of the resource that owns the comment, and a pull request comment belongs to the pull request:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+```
+
+Watching for the warning is the only signal that the comment was skipped; the job summary and action outputs are unaffected either way.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #689](https://github.com/monochange/monochange/pull/689)
+
+- **Document enforced changeset policy alignment.** The change classification skill now shows how the changeset-policy `from` ref rejects changesets that understate the classified change type, and notes that classification reports with any schema version 1 or newer are accepted. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #682](https://github.com/monochange/monochange/pull/682)
+- **Document the pub.dev tag-ref requirement for workflow_dispatch publishing.** The trusted-publishing skill now records that pub.dev requires every publish run — including `workflow_dispatch` runs — to carry a `refs/tags/<tag-pattern>` ref matching the published version, that the "Enable publishing from `workflow_dispatch` events" checkbox only relaxes the event name, and how to dispatch on a release tag with `gh workflow run <workflow>.yml --ref <tag>`. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #692](https://github.com/monochange/monochange/pull/692)
+
+#### Document version-prefix controls for internal dependencies
+
+Agents following the skill had no way to discover that internal dependency prefixes are configurable: the `prefix` entry option and the `dependency_version_prefix` ecosystem setting appeared only as bare keys in examples. The skill's configuration module and quick-start rules now state where prefixes come from and how to override them, so agents stop proposing `monochange versions sync --strategy tilde`-style invocations that do not exist and reach for the supported controls instead.
+
+`monochange versions sync --strategy` writes fixed per-ecosystem prefixes (`^` caret ranges, `>=` compatible ranges, bare exact versions, `v` for Go) and never writes `~` or `=`. Custom prefixes belong on typed `versioned_files` entries:
+
+```toml
+versioned_files = [
+	# write internal npm dependencies as tilde ranges, e.g. "~1.2.3"
+	{ path = "package.json", type = "npm", fields = ["dependencies"], prefix = "~" },
+]
+
+[ecosystems.npm]
+# fallback prefix for typed versioned files without their own prefix
+dependency_version_prefix = "^"
+```
+
+The entry `prefix` wins over `[ecosystems.<name>] dependency_version_prefix`, which wins over the ecosystem default; both affect internal dependency references only, while `format` and `regex` entries keep writing bare versions.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #686](https://github.com/monochange/monochange/pull/686)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### Gitignore only `.monochange/local/`
+
+The bundled skill and the instructions generated by `monochange subagents` now state that `.monochange/local/` is the only directory under `.monochange/` that may be gitignored. Release records and prerelease state are committed release state, so ignoring the whole directory hides them from git history and makes releases unpublishable because `publish-readiness`, `tag-release`, and provider release automation read those records from git.
+
+If a repository ignores the whole directory, narrow the rule and commit the release records it was hiding:
+
+**Before:**
+
+```gitignore
+.monochange/
+```
+
+**After:**
+
+```gitignore
+.monochange/local/
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #688](https://github.com/monochange/monochange/pull/688)
+
+#### Allow local publishing alongside trusted publishing
+
+`publish.trusted_publishing` gains a `mode` setting so one configuration can support both publishing paths instead of forcing a choice between trusted publishing and local publishing. `mode = "required"` keeps the existing strict behavior: a verifiable CI/OIDC identity must be present and match the configured repository, workflow, and environment. `mode = "preferred"` verifies that same context whenever a CI identity is detected, and otherwise falls back to local credentials instead of failing before any registry mutation.
+
+```toml
+[ecosystems.dart.publish.trusted_publishing]
+enabled = true
+mode = "preferred"
+repository = "acme/widgets"
+workflow = "publish.yml"
+environment = "publisher"
+```
+
+Use `preferred` for repositories that publish with OIDC from CI but also let maintainers run `monochange run publish` locally with their own registry credentials. The mode only relaxes the identity requirement: CI context mismatches still fail, and `enabled = false` remains the explicit opt-out from trusted publishing entirely.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #691](https://github.com/monochange/monochange/pull/691)
+
+</details>
+
+## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
+
+### Changed
+
+- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.11.1 as part of group `main`.**
+
+## [0.11.0](https://github.com/monochange/monochange/releases/tag/v0.11.0) (2026-09-09)
+
+### 🚀 Feature
+
+#### classify Rust compatibility across configured feature and target matrices
+
+Cargo packages can opt into cargo-semver-checks during semantic change classification:
+
+```toml
+[ecosystems.cargo.semver_checks]
+enabled = true
+timeout_seconds = 300
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "default"
+feature_mode = "default"
+
+[[ecosystems.cargo.semver_checks.matrix]]
+name = "all-features"
+feature_mode = "all"
+```
+
+monochange materializes complete before and after repository trees, runs every configured feature/target cell with an isolated Cargo target directory, and reports the cargo-semver-checks version, exact cell inputs, status, outcome, minimum bump, lint ids, lint titles, and authoritative references. Any proven break proposes `major`, while failed or skipped cells preserve the conservative syntax fallback and require review. A complete non-breaking matrix can replace syntax-derived modifications and removals; added public syntax remains `minor` evidence because cargo-semver-checks does not enable every additive lint by default.
+
+The change-classification JSON schema is now version `3`. Each finding's `coverage` may include a `checks` array with machine-readable analyzer sub-checks. Pull request comments and text reports render the same cell outcomes and diagnostic summaries.
+
+`monochange_core::EcosystemSettings` now includes `semver_checks`, and `monochange_cargo::CargoSemanticAnalyzer` is no longer a unit struct. Construct it with `monochange_cargo::semantic_analyzer()` for the disabled default or `monochange_cargo::semantic_analyzer_with_settings(settings)` for an explicit matrix.
+
+cargo-semver-checks executes Cargo builds at both endpoints, including build scripts and procedural macros. Run semantic classification only for code you are prepared to execute and without elevated CI or publishing credentials.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #673](https://github.com/monochange/monochange/pull/673)
+
+#### classify TypeScript declaration compatibility with the project compiler
+
+`monochange change classify --detection-level semantic` now resolves each npm package's typed entrypoints, emits isolated before and after declaration surfaces, and asks the workspace's TypeScript compiler whether the consumer contract is breaking, additive, compatible, or inconclusive. Complete breaking evidence proposes `major`, additive evidence proposes `minor`, and compatible implementation-only changes can propose `none`.
+
+Install `node`, TypeScript, and the package dependencies before classification. Missing tools, invalid configuration, unresolved dependencies, wildcard exports, and identity-sensitive generic or nominal types remain visible as partial evidence with a conservative `patch` proposal and `reviewRequired: true`.
+
+Findings now include the semantic engine, exact engine version, coverage completeness, coverage note, and fallback reason in JSON, text, Markdown, MCP output, job summaries, and pull request comments. The change-classification JSON schema version is now `2`.
+
+The `monochange_core::SemanticChange` struct is now non-exhaustive and has an optional `assessment`. Custom analyzers should construct findings with `SemanticChange::new` and attach compiler evidence with `with_assessment` instead of using a struct literal:
+
+```rust
+let change = SemanticChange::new(
+	SemanticChangeCategory::PublicApi,
+	SemanticChangeKind::Modified,
+	"function",
+	"parse",
+	"function `parse` changed",
+	"src/lib.rs",
+)
+.with_assessment(SemanticChangeAssessment::new(
+	SemanticAnalysisOutcome::Breaking,
+	BumpSeverity::Major,
+	ApiConfidence::High,
+	SemanticAnalyzerEvidence::new(
+		"example/analyzer",
+		"example-engine",
+		SemanticAnalysisCompleteness::Complete,
+		"all public entrypoints checked",
+	),
+));
+```
+
+The semver layer clamps analyzer recommendations to the minimum severity implied by their outcome, so malformed or third-party evidence cannot understate a proven breaking or additive change.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #672](https://github.com/monochange/monochange/pull/672)
+
+#### classify fully deleted packages as breaking changes
+
+`monochange change classify` now discovers packages at both comparison endpoints. A pull request that deletes a package manifest reports the baseline package id, release owner, release tag, and removed API surface even when the candidate also removes its `monochange.toml` entry.
+
+The report adds a high-confidence `monochange/package-lifecycle/package/removed/package` finding and proposes a major changeset. Package additions produce the corresponding minor finding. `monochange_core::SemanticChangeCategory` now includes `Package` for this lifecycle evidence.
+
+Agents can use the standard command without a manual baseline-discovery fallback:
+
+```bash
+monochange change classify --format json --dependency-propagation public
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #670](https://github.com/monochange/monochange/pull/670)
+
+#### classify pull request severity against both the default branch and latest release
+
+Agents and reviewers can now run one command to propose a `major`, `minor`, `patch`, or `none` changeset for every affected package:
+
+```bash
+monochange change classify --format json --dependency-propagation public
+```
+
+The versioned JSON report resolves the remote default branch, models the pull request's merge result, finds each release owner's latest reachable tag, and keeps the current pull request recommendation separate from the accumulated release floor. Each package reports compatibility impact, the proposed bump, the enforceable high-confidence minimum, confidence, completeness, pending changesets, the required changeset action, and stable finding ids. Findings include their analyzer, source location, before and after signatures, and the comparisons in which they occur.
+
+Markdown output contains the same decision evidence for terminal output, job summaries, and pull request comments. The `monochange_classify_changes` MCP tool returns the JSON contract and accepts the same base, head, release, package, and detection controls.
+
+Changeset validation now enforces only high-confidence findings by default:
+
+```bash
+monochange changeset validate --api --format markdown
+```
+
+Use `--strict` to require pending changesets to satisfy partial or medium-confidence proposals too. A changed package that has no modeled semantic finding now receives a low-confidence patch proposal and a review requirement instead of a false `none` result.
+
+`monochange_analysis::AnalysisSession` is available for tools that compare several git frames. It discovers the package graph once and reuses it:
+
+```rust
+use monochange_analysis::{AnalysisConfig, AnalysisSession, ChangeFrame};
+
+let session = AnalysisSession::new(root, AnalysisConfig::default())?;
+let pull_request = session.analyze(&ChangeFrame::CustomRange {
+	base: "origin/main".into(),
+	head: "HEAD".into(),
+})?;
+```
+
+Exact custom ranges now use `base..head`, while pull request source deltas retain merge-base semantics. Working-directory analysis includes staged, unstaged, deleted, and untracked files. Git revision snapshots use batched object reads, which avoids starting one Git process per file.
+
+`monochange_core::PackagePathMatcher` provides the shared package path policy used by changeset coverage and semantic analysis. Classification honors configured package boundaries, package-level additional and ignored paths, and workspace-level changeset ignores:
+
+```rust
+use monochange_core::{PackagePathMatch, PackagePathMatcher};
+
+let matcher = PackagePathMatcher::new(
+	"web",
+	"packages/web".as_ref(),
+	&["shared/schema/**".into()],
+	&["fixtures/**".into()],
+);
+assert_eq!(
+	matcher.classify("shared/schema/api.json".as_ref()),
+	PackagePathMatch::Touched,
+);
+```
+
+TypeScript and JavaScript function signatures now preserve object-shaped parameter and return types while excluding implementation bodies, so changes inside those public types are no longer hidden from classification.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #664](https://github.com/monochange/monochange/pull/664)
+
+### 🐛 Fixed
+
+#### refresh docs and validate doc samples in tests
+
+Every crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_go`/`monochange_python` intros match the actual adapters.
+
+Documentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.
+
+Command references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.
+
+New doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)
+
+- **preserve git failure diagnostics during batched revision reads.** `monochange_analysis` now waits for `git cat-file` before choosing the error returned by a failed batch read. Callers consistently receive the Git process diagnostic even when the child closes its input pipe before the request writer observes the exit. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #665](https://github.com/monochange/monochange/pull/665) · _Related issues:_ [#664](https://github.com/monochange/monochange/issues/664)
+- **Teach agents to choose structured output explicitly.** The monochange skill examples now use text for human-facing command defaults and request JSON or Markdown only when the workflow needs that artifact format. The guidance also treats `--quiet` and `--dry-run` as independent choices, matching the CLI contract. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #662](https://github.com/monochange/monochange/pull/662) · _Related issues:_ [#661](https://github.com/monochange/monochange/issues/661)
+
+## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
+
+### 🚀 Feature
+
+#### teach agents to write auditable audience-specific changesets
+
+The Monochange agent skill now explains how to separate developer and user release notes without adding audience metadata to changeset bodies. Agents select a configured type, keep one stream per file, and write prose for that stream's readers.
+
+```markdown
+---
+app: app_feature
+---
+
+# make project lists open faster
+
+Large project lists now appear sooner and remain responsive while more results load.
+```
+
+For mobile repositories, the guidance distinguishes a `native` major change that requires a new store binary from an `app_feature` minor change that may use a patch delivery system such as Shorebird. When one implementation matters to both developers and users, agents create two independently reviewable changesets with different types and audience-appropriate prose rather than combining both audiences in one file.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+#### extract one configured release-note output without preparing a release
+
+The new read-only `monochange notes` command renders the stream and format selected by a named changelog output. It prints one artifact to stdout by default, accepts `--target` when an output covers multiple packages or groups, and writes only an explicitly requested `--file` path.
+
+**Before:** automation had to parse the complete dry-run manifest or prepare configured changelog files to obtain one audience's notes.
+
+```bash
+monochange step prepare-release --dry-run --format json
+```
+
+**After:** select the configured artifact directly.
+
+```bash
+monochange notes --output user --target app
+monochange notes --output user --target app --file artifacts/app-release-notes.md
+```
+
+Rendering does not update manifests, consume changesets, or write the configured changelog destination. The bundled agent skill documents how to choose stream-specific types, author separate developer and user changesets, validate them, and use extracted notes in reviews, CI, hosted releases, app-store releases, or patch delivery.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #652](https://github.com/monochange/monochange/pull/652)
+
+### 🐛 Fixed
+
+#### add `--format json-min` and guarantee plain text JSON output
+
+Every command that accepts `--format json` (and every cli step `format` input) now guarantees plain-text JSON: no text colors, no background colors, and no other terminal styling leak into the output, even when color support would otherwise be detected. Machine consumers can pipe the output to a JSON parser without stripping escape sequences.
+
+A new `json-min` choice renders the exact same data minified, with no indentation and no whitespace between tokens, which is convenient for piping into `--jq` filters, CI annotations, or log systems that prefer compact payloads.
+
+```bash
+# before
+monochange run release --dry-run --format json
+# → pretty-printed JSON (multi-line, indented)
+
+# after — same data, one compact line
+monochange run release --dry-run --format json-min
+```
+
+```bash
+monochange versions list --format json-min
+# {"core":"0.1.0"}
+```
+
+`json-min` is accepted anywhere `json` was: `analyze`, `check`, `lint`, `migrate`, `subagents`, `versions list/sync`, and the built-in step inputs (`[cli.*]` command inputs with `type = "choice"`, `choices = ["text", "json", "md"]` now also accept `"json-min"`):
+
+```toml
+[cli.release]
+inputs = [
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "markdown" },
+]
+```
+
+Rejecting a JSON format no longer depends on terminal color detection either: styling is applied exclusively in `text` and `markdown` modes, so `NO_COLOR`-style env vars are no longer needed to keep JSON output clean in CI.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #648](https://github.com/monochange/monochange/pull/648) · _Related issues:_ [#2048](https://github.com/monochange/monochange/issues/2048), [#646](https://github.com/monochange/monochange/issues/646), [#652](https://github.com/monochange/monochange/issues/652), [#654](https://github.com/monochange/monochange/issues/654)
+
+#### polish the monochange readme layout and shorten headings
+
+The monochange readme now centers its title, logo, badges, and intro blockquote at the top of the page, uses `<br />` spacing before headings and after every section for more breathing room between sections, and shortens every section heading to one or two Title Case words.
+
+The workspace crate catalog is now a table with one row per crate: the crate name, its crates.io and docs.rs badge links, and a short description, replacing the nested bullet list.
+
+```markdown
+# before
+
+## Command and automation matrix
+
+- `monochange`: end-user CLI and orchestration layer for discovery, planning, and CLI-defined release commands.
+  - [![Crates.io](…)](…) [![Docs.rs](…)](…)
+
+# after
+
+## Commands
+
+| Crate        | Badges                                  | Description                                                                                     |
+| ------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `monochange` | [![Crates.io](…)](…) [![Docs.rs](…)](…) | end-user CLI and orchestration layer for discovery, planning, and CLI-defined release commands. |
+```
+
+The `Repository development` section is renamed to `Contributing`, and shared documentation blocks were renamed with it (`Quick CLI workflow` becomes `Quick Start`, which also shortens the `monochange --help` long help heading). The regenerated npm `@monochange/cli` README and `@monochange/skill` docs inherit the same table and heading updates through the shared `mdt` blocks.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #651](https://github.com/monochange/monochange/pull/651)
+
+## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### declare how packages and groups propagate bumps to dependents
+
+Release planning now supports per-package and per-group `bump_propagation` in `monochange.toml`. A package or group can declare that its changes are matched by dependents (`inherit`), bounded by a maximum (`bump_propagation_max`), pinned to a fixed floor (`none`/`patch`/`minor`/`major`), or left at the workspace `[defaults].parent_bump`. `monochange check` and release planning honor these declarations, and the JSON schema and the monochange skill documentation describe the new fields.
+
+**Before (only the workspace-wide floor existed; a breaking dependency left dependents at `parent_bump`):**
+
+```toml
+[defaults]
+parent_bump = "patch"
+```
+
+```markdown
+---
+sdk-core: breaking
+---
+```
+
+Plan: `sdk-core` → major, but every dependent (app, cli) only → patch, even though a breaking dependency is itself breaking for them.
+
+**After (declare inheritance with a clamp, and a floor on another package):**
+
+```toml
+[package."@solana/kit"]
+path = "crates/kit"
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+
+[package."@solana/leaf"]
+path = "crates/leaf"
+bump_propagation = "none"
+```
+
+```markdown
+---
+kit: breaking
+---
+```
+
+Release plan: `kit` → major, `app` → minor (inherit matches breaking, clamped to minor), and nothing releases for the leaf's dependent. Groups can declare their own propagation, which overrides declarations of member packages, and changesets can still author an explicit bump for a dependent with `caused_by`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #643](https://github.com/monochange/monochange/pull/643)
+
+#### add `[defaults].bump_propagation` and most-specific-first precedence
+
+Bump propagation policies now resolve most-specific-first: a package declaration overrides its group declaration, which overrides the new `[defaults].bump_propagation` (with the optional `[defaults].bump_propagation_max` clamp), which overrides the legacy `[defaults].parent_bump` floor.
+
+**Before (only the workspace floor applied to undeclared targets):**
+
+```toml
+[defaults]
+parent_bump = "major"
+```
+
+Every dependent of any changed package had to release major, even when the source's change was a patch.
+
+**After (workspace-wide inherit fallback without redeclaring per package):**
+
+```toml
+[defaults]
+bump_propagation = "inherit"
+
+[group.kit]
+packages = ["kit-core"]
+
+[package.kit-core]
+bump_propagation = "inherit"
+bump_propagation_max = "minor"
+```
+
+Precedence: the most specific declaration wins — the kit-core package clamp (minor) overrides the group's unclamped inherit, which overrides the defaults. Packages and groups with no declaration pick up the defaults inherit; a target can still pin itself with `bump_propagation = "none"`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #644](https://github.com/monochange/monochange/pull/644) · _Related issues:_ [#643](https://github.com/monochange/monochange/issues/643)
+
+#### accept native TOML booleans and numbers in CLI step inputs
+
+CLI step input overrides in `monochange.toml` no longer need to be strings. Authoring `{ draft = true }` (boolean) and `{ jobs = 4, ratio = 2.5 }` (numbers) in a step `inputs` map now parses, and the JSON Schema for the config accepts all three literal shapes:
+
+- booleans keep their native type through parsing and are stringified to `"true"`/`"false"` when the step runs (unchanged behavior, now covered by tests)
+- numbers are coerced to their string form at parse time, so `{ jobs = 4 }` is exactly `{ jobs = "4" }` once the step runs
+- input declarations already accepted boolean and number `default` literals; that behavior is now covered by tests and documented
+- the generated JSON Schema for step input overrides accepts `string`, `boolean`, and `number` values
+- the configuration guide, the Command step reference, and the bundled skill gain an explicit interactive `Command` step example: declare an `interactive` boolean input, pass it to the step, and run the workflow with `--interactive` so the command inherits stdio and owns the terminal
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #642](https://github.com/monochange/monochange/pull/642)
+
+#### refresh documentation and remove stale CLI references
+
+Updated the guide, reference, crate readme, and agent-facing documentation to match the current CLI model:
+
+- configured `[cli.*]` workflows are documented as `monochange run <name>` commands
+- the removed `mc` binary alias is no longer referenced as an install option
+- stale `monochange <command>` invocations were replaced with the nested `step` or `run` paths
+- generated subagent instructions no longer list the `monochange` executable twice
+- knope migration guide now shows the built-in regex versioned-file support instead of a manual `sed` fallback
+- duplicated `monochange --help` lines and a duplicated registry entry were removed
+- prose was tightened and em dashes were replaced with colons or sentence breaks
+
+The monochange skill now prefers the inline changeset type shorthand whenever the intended bump matches the type's default bump, and reserves object syntax for overriding a type's default bump.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #637](https://github.com/monochange/monochange/pull/637) · _Related issues:_ [#637](https://github.com/monochange/monochange/issues/637)
+
+</details>
+
+## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.9.1 as part of group `main`.
+
+## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.9.0 as part of group `main`.
+
+## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.8.4 as part of group `main`.
+
+## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.8.3 as part of group `main`.
+
+## [0.8.2](https://github.com/monochange/monochange/releases/tag/v0.8.2) (2026-06-18)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.8.2 as part of group `main`.
+
+## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)
+
+### 🐛 Fixed
+
+#### Add manifest-repository lint rule across all ecosystems
+
+New lint rule that enforces the `repository` field in manifest files (Cargo.toml, pubspec.yaml, package.json) to point to the correct monorepo subdirectory. All rules are Off by default in every preset.
+
+For Cargo, the `cargo/manifest-repository` rule resolves `repository = { workspace = true }` against the root manifest's `workspace.package.repository` (falling back to `package.repository`) and reports a mismatch with an autofix. Set `allow_workspace_inheritance = true` to skip workspace-inherited values instead of resolving them.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #612](https://github.com/monochange/monochange/pull/612)
+
+#### Add custom `version_format` tag templates for package and group release identities
+
+`primary` and `namespaced` continue to work as presets, while custom formats such as `{{ ecosystem }}/{{ name }}/v{{ version }}` can use `{{ name }}`, `{{ version }}`, and `{{ ecosystem }}`. Custom formats must include `{{ version }}`, render valid Git tag names, and avoid collisions with other release owners.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #613](https://github.com/monochange/monochange/pull/613)
+
+## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
+
+### 🐛 Fixed
+
+#### Update package documentation for the nested CLI command API
+
+Updated generated package documentation, skill guidance, provider-facing examples, and release-record schema fixture text to refer to the new `monochange step <name>` and `monochange run <name>` command paths where those packages expose or document monochange CLI workflows.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #597](https://github.com/monochange/monochange/pull/597) · _Related issues:_ [#35](https://github.com/monochange/monochange/issues/35)
+
+#### Refresh documentation command examples
+
+Update documentation, package readmes, and generated skill command inventory so examples use the current CLI shape: `monochange versions` for dependency synchronization, `monochange step <name>` for built-in steps, and `monochange run <name>` for configured workflows.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #600](https://github.com/monochange/monochange/pull/600)
+
+#### Add normalized CLI snapshots
+
+Add a `monochange_snapshot` crate for normalized command-surface snapshots and expose `mc snapshot` plus the global `--snapshot` flag. The snapshot output gives agents and CI a structured view of supported commands, options, arguments, standard entrypoints, and extractor provenance.
+
+For example, a CLI can produce a normalized snapshot with a stable schema version and extractor provenance:
+
+```json
+{
+	"schema_version": "0.1",
+	"kind": "cli-surface",
+	"tool": {
+		"name": "mc",
+		"version": "0.7.0"
+	},
+	"provenance": {
+		"extractor": "clap",
+		"confidence": "high"
+	},
+	"commands": [
+		{
+			"path": ["snapshot"],
+			"max_bump": "major",
+			"hidden": false
+		}
+	]
+}
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #593](https://github.com/monochange/monochange/pull/593)
+
+#### Add explicit versions list and sync commands
+
+Added `monochange versions list` for flat package/group version inventory and `monochange versions sync` for the existing dependency synchronization behavior. The legacy bare `monochange versions` form still works but now warns that it is deprecated.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #603](https://github.com/monochange/monochange/pull/603)
+
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### 🐛 Fixed
+
+#### Improve API classification followups
+
+Add advisory validation guidance, public dependency propagation, precise ECMAScript function signatures, and Dart API snapshot support.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #586](https://github.com/monochange/monochange/pull/586)
+
+#### Add API change classification
+
+Add `mc change classify` to classify API-impacting semantic changes and recommend package bumps in markdown or JSON output.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #584](https://github.com/monochange/monochange/pull/584)
+
+## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.8 as part of group `main`.
+
+## [0.6.7](https://github.com/monochange/monochange/releases/tag/v0.6.7) (2026-05-30)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.7 as part of group `main`.
+
+## [0.6.6](https://github.com/monochange/monochange/releases/tag/v0.6.6) (2026-05-29)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.6 as part of group `main`.
+
+## [0.6.5](https://github.com/monochange/monochange/releases/tag/v0.6.5) (2026-05-29)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.5 as part of group `main`.
+
+## [0.6.4](https://github.com/monochange/monochange/releases/tag/v0.6.4) (2026-05-28)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.4 as part of group `main`.
+
+## [0.6.3](https://github.com/monochange/monochange/releases/tag/v0.6.3) (2026-05-28)
+
+### 🐛 Fixed
+
+#### Document `mc versions` command with full ecosystem coverage
+
+Update documentation and skill to accurately describe the `mc versions` command:
+
+- **All ecosystems supported**: Cargo, Dart, Deno, Go, npm, and Python
+- **Usage examples**: `--dry-run`, `--format json`, `--strategy exact/caret/compatible`
+- **Ecosystem details**: Each adapter's manifest scanning behavior documented
+
+Fix incorrect reference in start-here guide that described `mc versions` as read-only (it actually writes to manifests).
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #552](https://github.com/monochange/monochange/pull/552)
+
+#### Polish `mc versions` command
+
+Rename `mc sync versions` to top-level `mc versions` with plan/apply abstraction, `--format text|json` output, unsupported ecosystem reporting, and snapshot-tested CLI output. Add Criterion benchmark coverage and documentation.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #540](https://github.com/monochange/monochange/pull/540) · _Related issues:_ [#539](https://github.com/monochange/monochange/issues/539)
+
+## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
+
+### 🐛 Fixed
+
+#### Refresh documentation audit coverage
+
+Updates documentation, CLI help text, package README content, and packaged skill guidance so the documented command surface matches the current monochange CLI and release workflow behavior.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #546](https://github.com/monochange/monochange/pull/546)
+
+#### Add `mc sync versions` command for internal dependency synchronization
+
+Add a new CLI subcommand `mc sync versions` that synchronizes internal dependency version references across workspace packages to match each package's canonical version.
+
+- **`VersionStrategy` enum** in `monochange_core` controls constraint format: `Default`, `Exact`, `Caret`, `Compatible`.
+- **`DependencySyncChange` struct** in `monochange_core` reports what changed (dependency name, section, old value, new value).
+- **`sync_internal_dependency_versions()`** in `monochange_dart` scans pubspec.yaml `dependencies`, `dev_dependencies`, and `dependency_overrides` for internal workspace references and computes the target version constraint. Under `resolution: workspace`, `path:` references are converted to versioned constraints.
+- **`sync_internal_dependency_versions()`** in `monochange_npm` scans package.json for internal workspace dependencies, skipping `workspace:*` protocol references.
+- **CLI subcommand** `mc sync versions [--dry-run] [--strategy <default|exact|caret|compatible>]` orchestrates discovery, version map building, and per-ecosystem sync.
+- **`--dry-run`** flag shows what would change without writing files.
+
+Currently supports **Dart** and **npm** ecosystems. Other ecosystems will be added in follow-up changes.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #538](https://github.com/monochange/monochange/pull/538) · _Related issues:_ [#536](https://github.com/monochange/monochange/issues/536), [#537](https://github.com/monochange/monochange/issues/537)
+
+## [0.6.1](https://github.com/monochange/monochange/releases/tag/v0.6.1) (2026-05-24)
+
+### Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.6.1 as part of group `main`.
+
+## [0.6.0](https://github.com/monochange/monochange/releases/tag/v0.6.0) (2026-05-23)
+
+### 🐛 Fixed
+
+#### Add `nix` / `devenv` installation instructions
+
+Mention the `ifiokjr/nixpkgs` flake overlay.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #519](https://github.com/monochange/monochange/pull/519) _Introduced in:_ [`23bd962`](https://github.com/monochange/monochange/commit/23bd962434001e4293abdd8e9d33cf185cab3221) _Last updated in:_ [`88b520e`](https://github.com/monochange/monochange/commit/88b520ec51b76c79348595abc66a573761da4d63)
+
+#### add semantic semver guardrails to release planning
+
+Release planning now folds semantic analyzer evidence into compatibility assessments so public API and export diffs can raise the planned bump during previews. The guardrail is advisory: analyzer failures and uncovered semantic changes are reported as warnings instead of blocking release planning.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #523](https://github.com/monochange/monochange/pull/523) _Introduced in:_ [`e7fcb04`](https://github.com/monochange/monochange/commit/e7fcb04f9b80b9e1578a8bb4801fde80e59aec18) _Last updated in:_ [`88b520e`](https://github.com/monochange/monochange/commit/88b520ec51b76c79348595abc66a573761da4d63) _Closed issues:_ [#249](https://github.com/monochange/monochange/issues/249)
+
+## [0.5.1](https://github.com/monochange/monochange/releases/tag/v0.5.1) (2026-05-15)
+
+### 📝 Changed
+
+- No package-specific changes were recorded; `@monochange/skill` was updated to 0.5.1 as part of group `main`.
+
+## [0.5.0](https://github.com/monochange/monochange/releases/tag/v0.5.0) (2026-05-14)
+
+### 💥 Breaking Change
+
+#### require CLI steps to opt in to inherited command inputs
+
+> **Breaking change** — CLI step inputs are now explicit. Command-level inputs no longer automatically appear in every configured CLI step.
+
+A configured step now receives only the inputs listed in that step's `inputs` field. This removes ambiguous behavior where a command-level flag could unexpectedly shadow a step-specific input with the same name.
+
+**Before:** every step implicitly saw all command inputs, even with no step-level `inputs` entry:
+
+```toml
+[cli.release]
+inputs = [{ name = "format", type = "choice", choices = ["text", "json"], default = "text" }]
+steps = [{ type = "PrepareRelease" }]
+```
+
+**After:** inherit command inputs explicitly with the array shorthand:
+
+```toml
+[cli.release]
+inputs = [{ name = "format", type = "choice", choices = ["text", "json"], default = "text" }]
+steps = [{ type = "PrepareRelease", inputs = ["format"] }]
+```
+
+Map overrides still work for fixed or templated step values:
+
+```toml
+steps = [
+	{ type = "PrepareRelease", inputs = ["format"] },
+	{ type = "PublishRelease", inputs = { format = "json", draft = "{{ inputs.draft }}" } },
+]
+```
+
+Migration path: review custom `[cli.<command>]` definitions and add `inputs = ["name"]` to every step that needs a command-level input. Built-in default CLI commands and generated templates have been updated to declare their inherited inputs explicitly.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #467](https://github.com/monochange/monochange/pull/467) _Introduced in:_ [`ce4712f`](https://github.com/monochange/monochange/commit/ce4712f2890e0636c368b056db756df32f4cf769) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8)
+
+#### generate built-in release and validation step commands
+
+> **Breaking change** — several hardcoded top-level commands now live under generated immutable `mc step:*` command names.
+
+The release-record, publish-readiness, tag-release, placeholder-publish, and validation operations now share the generated step-command path used by the rest of the CLI step catalog. This keeps their help, schema metadata, docs, and automation examples consistent with configured workflow steps while preserving the distinction between binary commands, generated step commands, and optional user-defined `[cli.*]` workflow aliases.
+
+**Before:** scripts could call these hardcoded top-level commands directly:
+
+```bash
+mc validate
+mc release-record --from HEAD --format json
+mc publish-readiness --from HEAD --output .monochange/readiness.json
+mc tag-release --from HEAD
+mc publish-bootstrap --from HEAD --output .monochange/bootstrap-result.json
+```
+
+**After:** call the generated step command names instead:
+
+```bash
+mc step:validate
+mc step:release-record --from HEAD --format json
+mc step:publish-readiness --from HEAD --output .monochange/readiness.json
+mc step:tag-release --from HEAD
+mc step:placeholder-publish --from HEAD --output .monochange/bootstrap-result.json
+```
+
+`mc init` also writes a smaller starter configuration. It no longer seeds redundant generated `[cli.*]` aliases for commands that already exist as immutable step commands.
+
+**Before:** starter configs included workflow aliases for generated behavior:
+
+```toml
+[cli.validate]
+steps = [{ type = "Validate" }]
+```
+
+**After:** starter configs rely on the generated command directly and reserve `[cli.*]` for repository-specific chains, custom inputs, or shell `Command` steps:
+
+```bash
+mc step:validate
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #479](https://github.com/monochange/monochange/pull/479) _Introduced in:_ [`d9adff8`](https://github.com/monochange/monochange/commit/d9adff8fb396df908e335d2a6688aa729abb5f4d) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8) _Closed issues:_ [#476](https://github.com/monochange/monochange/issues/476)
+
+### 🚀 Feature
+
+#### Configurable publish-order dependency fields
+
+Add configurable ecosystem-specific dependency fields for package publish ordering across npm, Cargo, Deno, Dart/Flutter, Python, and Go.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #472](https://github.com/monochange/monochange/pull/472) _Introduced in:_ [`0d9cf46`](https://github.com/monochange/monochange/commit/0d9cf461a05057b61efa987d361ebd27d800dbdb) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8) _Closed issues:_ [#465](https://github.com/monochange/monochange/issues/465)
+
+#### Publish all configured packages
+
+Add a `--all` flag to the PublishPackages CLI step so migration workflows can publish every configured package, including packages that were not part of the prepared release record.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #461](https://github.com/monochange/monochange/pull/461) _Introduced in:_ [`3d956cd`](https://github.com/monochange/monochange/commit/3d956cd3e34747e088add98fe0358251f388782f) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8)
+
+### 🐛 Fixed
+
+#### Add interactive CLI command wizard
+
+Added `mc command`, an interactive dashboard for adding and editing `[cli.<name>]` commands in `monochange.toml`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #471](https://github.com/monochange/monochange/pull/471) _Introduced in:_ [`fea471c`](https://github.com/monochange/monochange/commit/fea471c4b67b618cde51eaacfd4e30742cfb0dc1) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8)
+
+#### add release-record migration command
+
+Add `mc migrate release-records` to rewrite persisted release records to the latest schema version, expose the release-record migration helper from core, and update the generated skill command inventory.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #500](https://github.com/monochange/monochange/pull/500) _Introduced in:_ [`bd56420`](https://github.com/monochange/monochange/commit/bd564204b786961371b0ac1bad21071ebe5fe90c) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8)
+
+#### Rewrite monochange skill guidance
+
+The monochange skill package now documents the current CLI/tool harness, verified built-in commands, step commands, MCP tools, custom `monochange.toml` workflows, and package versioning examples. The command guide also includes a generated inventory checked by `cargo xtask skill commands check` to prevent future CLI drift.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #463](https://github.com/monochange/monochange/pull/463) _Introduced in:_ [`0f3d15c`](https://github.com/monochange/monochange/commit/0f3d15c38b15124a9bb96ed4c73829602e34e838) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8)
+
+### 🧪 Testing
+
+#### Validate generated release commits in PR CI
+
+Pull requests now run release-state test and lint preflights after creating a local release commit, while generated release PRs skip those extra preflights.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #477](https://github.com/monochange/monochange/pull/477) _Introduced in:_ [`a09020f`](https://github.com/monochange/monochange/commit/a09020f9282be207ace6f641b716c3c4004886af) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8)

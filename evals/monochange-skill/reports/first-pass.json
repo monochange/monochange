@@ -1,0 +1,2478 @@
+{
+	"schemaVersion": 1,
+	"phase": "initial-agent-comparison",
+	"source": {
+		"path": ".monochange/local/eval-first-pass/regraded-final.json",
+		"sha256": "4b3f5203be1ae765db99ad2896f2cc28b2302fe09fa953a650573d8d3901213c",
+		"mode": "regrade",
+		"regradeStartedAt": "2026-09-30T07:52:34.782Z",
+		"regradeFinishedAt": "2026-09-30T07:55:30.349Z"
+	},
+	"agentProvenance": {
+		"checkoutCommit": "3621d40db11bd2dfd89192bf7270b4a50603293a",
+		"cliSha256": "8c1de8264dc2124deba1a163e2852e2a663a2c4603e55d2b451dc27339f20eae"
+	},
+	"gradingProvenance": {
+		"checkoutCommit": "34ffd5751c2681e089c73440572f158395b43c15",
+		"cliSha256": "8c1de8264dc2124deba1a163e2852e2a663a2c4603e55d2b451dc27339f20eae"
+	},
+	"runtimeVersion": "2.1.281",
+	"effectiveModel": "claude-sonnet-5",
+	"skillSource": "installed",
+	"repeatsPerCell": 1,
+	"requestedModel": {
+		"originalReports": "sonnet",
+		"replayLegacyMetadata": null,
+		"note": "The original reports record sonnet; legacy saved execution metadata omitted the request, so replay does not reconstruct it."
+	},
+	"variants": [
+		{
+			"variant": "shipping-current",
+			"originalVariant": "shipping-current",
+			"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833",
+			"trials": 38,
+			"passed": 36
+		},
+		{
+			"variant": "concise",
+			"originalVariant": "concise",
+			"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3",
+			"trials": 38,
+			"passed": 36
+		},
+		{
+			"variant": "expanded-initial",
+			"originalVariant": "package",
+			"skillSha256": "014e182651bc02715848f745355e3e759862d5473c8eec919db27cafff0f71b4",
+			"trials": 38,
+			"passed": 34
+		}
+	],
+	"usage": {
+		"inputTokens": 4844,
+		"outputTokens": 961507,
+		"cacheReadTokens": 155743001,
+		"cacheCreationTokens": 5758655,
+		"costUsd": 63.807978200000015,
+		"inputAndOutputTokensExcludingCache": 966351
+	},
+	"scenarios": [
+		{
+			"scenario": "adopt-mixed-monorepo",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 262345,
+					"usage": {
+						"inputTokens": 62,
+						"outputTokens": 9104,
+						"cacheReadTokens": 2221790,
+						"cacheCreationTokens": 74298,
+						"costUsd": 0.8327140000000001,
+						"turns": 32
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 107442,
+					"usage": {
+						"inputTokens": 56,
+						"outputTokens": 9742,
+						"cacheReadTokens": 1710382,
+						"cacheCreationTokens": 65719,
+						"costUsd": 0.7024844,
+						"turns": 29
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 82847,
+					"usage": {
+						"inputTokens": 40,
+						"outputTokens": 7503,
+						"cacheReadTokens": 1342081,
+						"cacheCreationTokens": 70517,
+						"costUsd": 0.6255941999999999,
+						"turns": 27
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "adoption-disabled-ecosystem",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 140530,
+					"usage": {
+						"inputTokens": 54,
+						"outputTokens": 10873,
+						"cacheReadTokens": 1925620,
+						"cacheCreationTokens": 77936,
+						"costUsd": 0.805706,
+						"turns": 36
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 120896,
+					"usage": {
+						"inputTokens": 34,
+						"outputTokens": 7609,
+						"cacheReadTokens": 956181,
+						"cacheCreationTokens": 55235,
+						"costUsd": 0.48833419999999994,
+						"turns": 22
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 126525,
+					"usage": {
+						"inputTokens": 48,
+						"outputTokens": 9573,
+						"cacheReadTokens": 1433814,
+						"cacheCreationTokens": 58729,
+						"costUsd": 0.6175048,
+						"turns": 26
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "adoption-gitea-host-config",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 87355,
+					"usage": {
+						"inputTokens": 40,
+						"outputTokens": 5892,
+						"cacheReadTokens": 1247089,
+						"cacheCreationTokens": 63713,
+						"costUsd": 0.5632698,
+						"turns": 25
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 80374,
+					"usage": {
+						"inputTokens": 42,
+						"outputTokens": 5893,
+						"cacheReadTokens": 1124266,
+						"cacheCreationTokens": 48110,
+						"costUsd": 0.47630719999999993,
+						"turns": 23
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 86569,
+					"usage": {
+						"inputTokens": 36,
+						"outputTokens": 5251,
+						"cacheReadTokens": 935150,
+						"cacheCreationTokens": 49821,
+						"costUsd": 0.438896,
+						"turns": 21
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "adoption-npm-private-root",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 305248,
+					"usage": {
+						"inputTokens": 88,
+						"outputTokens": 19549,
+						"cacheReadTokens": 3122577,
+						"cacheCreationTokens": 75801,
+						"costUsd": 1.1233854,
+						"turns": 49
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": false,
+					"failedChecks": [
+						"only-public-released"
+					],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 315313,
+					"usage": {
+						"inputTokens": 84,
+						"outputTokens": 25046,
+						"cacheReadTokens": 2970486,
+						"cacheCreationTokens": 86921,
+						"costUsd": 1.1924092,
+						"turns": 44
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"only-public-released"
+					]
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": false,
+					"failedChecks": [
+						"only-public-released"
+					],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 351004,
+					"usage": {
+						"inputTokens": 66,
+						"outputTokens": 27336,
+						"cacheReadTokens": 2371040,
+						"cacheCreationTokens": 91896,
+						"costUsd": 1.115284,
+						"turns": 38
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"only-public-released"
+					]
+				}
+			]
+		},
+		{
+			"scenario": "adoption-populate-custom-workflow",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 34941,
+					"usage": {
+						"inputTokens": 14,
+						"outputTokens": 1716,
+						"cacheReadTokens": 270083,
+						"cacheCreationTokens": 23834,
+						"costUsd": 0.1665406,
+						"turns": 9
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 62240,
+					"usage": {
+						"inputTokens": 30,
+						"outputTokens": 4294,
+						"cacheReadTokens": 624683,
+						"cacheCreationTokens": 27575,
+						"costUsd": 0.2782366,
+						"turns": 18
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 30695,
+					"usage": {
+						"inputTokens": 18,
+						"outputTokens": 1807,
+						"cacheReadTokens": 358693,
+						"cacheCreationTokens": 24269,
+						"costUsd": 0.1869206,
+						"turns": 10
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": false,
+					"failedChecks": [
+						"automatic-ownership-filter-recorded"
+					],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 290294,
+					"usage": {
+						"inputTokens": 80,
+						"outputTokens": 21953,
+						"cacheReadTokens": 2924741,
+						"cacheCreationTokens": 80449,
+						"costUsd": 1.1264341999999998,
+						"turns": 46
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"automatic-ownership-filter-recorded"
+					]
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 135612,
+					"usage": {
+						"inputTokens": 48,
+						"outputTokens": 10328,
+						"cacheReadTokens": 1417908,
+						"cacheCreationTokens": 59541,
+						"costUsd": 0.6251215999999998,
+						"turns": 28
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 97094,
+					"usage": {
+						"inputTokens": 32,
+						"outputTokens": 7011,
+						"cacheReadTokens": 865806,
+						"cacheCreationTokens": 50537,
+						"costUsd": 0.44548319999999997,
+						"turns": 21
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "adoption-rust-independent",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 81918,
+					"usage": {
+						"inputTokens": 38,
+						"outputTokens": 4697,
+						"cacheReadTokens": 1016198,
+						"cacheCreationTokens": 46953,
+						"costUsd": 0.4380976,
+						"turns": 23
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 114710,
+					"usage": {
+						"inputTokens": 40,
+						"outputTokens": 5700,
+						"cacheReadTokens": 1121051,
+						"cacheCreationTokens": 52436,
+						"costUsd": 0.49103420000000003,
+						"turns": 24
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 92576,
+					"usage": {
+						"inputTokens": 46,
+						"outputTokens": 6727,
+						"cacheReadTokens": 1325969,
+						"cacheCreationTokens": 56488,
+						"costUsd": 0.5585078,
+						"turns": 27
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "adoption-update-added-package",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 47914,
+					"usage": {
+						"inputTokens": 30,
+						"outputTokens": 3957,
+						"cacheReadTokens": 740538,
+						"cacheCreationTokens": 41491,
+						"costUsd": 0.35370159999999995,
+						"turns": 18
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 95677,
+					"usage": {
+						"inputTokens": 38,
+						"outputTokens": 4954,
+						"cacheReadTokens": 954603,
+						"cacheCreationTokens": 42880,
+						"costUsd": 0.4120566,
+						"turns": 25
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 69563,
+					"usage": {
+						"inputTokens": 34,
+						"outputTokens": 4967,
+						"cacheReadTokens": 804838,
+						"cacheCreationTokens": 37003,
+						"costUsd": 0.3587176000000001,
+						"turns": 24
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "breaking-change-changeset",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 98589,
+					"usage": {
+						"inputTokens": 32,
+						"outputTokens": 7188,
+						"cacheReadTokens": 796264,
+						"cacheCreationTokens": 46230,
+						"costUsd": 0.4161168,
+						"turns": 23
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 70955,
+					"usage": {
+						"inputTokens": 30,
+						"outputTokens": 6242,
+						"cacheReadTokens": 682791,
+						"cacheCreationTokens": 37664,
+						"costUsd": 0.3496942,
+						"turns": 21
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 47174,
+					"usage": {
+						"inputTokens": 28,
+						"outputTokens": 3731,
+						"cacheReadTokens": 664409,
+						"cacheCreationTokens": 38643,
+						"costUsd": 0.32481980000000005,
+						"turns": 17
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "dart-workspace-root-package",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 248666,
+					"usage": {
+						"inputTokens": 80,
+						"outputTokens": 16502,
+						"cacheReadTokens": 3096177,
+						"cacheCreationTokens": 83666,
+						"costUsd": 1.1190794000000004,
+						"turns": 43
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 151797,
+					"usage": {
+						"inputTokens": 58,
+						"outputTokens": 13557,
+						"cacheReadTokens": 2093067,
+						"cacheCreationTokens": 77601,
+						"costUsd": 0.8647034000000002,
+						"turns": 30
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 136319,
+					"usage": {
+						"inputTokens": 52,
+						"outputTokens": 11753,
+						"cacheReadTokens": 1638576,
+						"cacheCreationTokens": 61947,
+						"costUsd": 0.6931372,
+						"turns": 27
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "deno-adoption-and-version-write",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 114874,
+					"usage": {
+						"inputTokens": 38,
+						"outputTokens": 9286,
+						"cacheReadTokens": 1182670,
+						"cacheCreationTokens": 68375,
+						"costUsd": 0.6029700000000001,
+						"turns": 24
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 152789,
+					"usage": {
+						"inputTokens": 44,
+						"outputTokens": 10639,
+						"cacheReadTokens": 1519207,
+						"cacheCreationTokens": 74373,
+						"costUsd": 0.7078114,
+						"turns": 33
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 142602,
+					"usage": {
+						"inputTokens": 58,
+						"outputTokens": 9995,
+						"cacheReadTokens": 2105197,
+						"cacheCreationTokens": 74906,
+						"costUsd": 0.8207294000000002,
+						"turns": 35
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "dependency-propagation",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 112659,
+					"usage": {
+						"inputTokens": 54,
+						"outputTokens": 9203,
+						"cacheReadTokens": 1338666,
+						"cacheCreationTokens": 40364,
+						"costUsd": 0.5213272000000001,
+						"turns": 32
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 97874,
+					"usage": {
+						"inputTokens": 46,
+						"outputTokens": 5241,
+						"cacheReadTokens": 1055770,
+						"cacheCreationTokens": 35090,
+						"costUsd": 0.404016,
+						"turns": 24
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 127761,
+					"usage": {
+						"inputTokens": 50,
+						"outputTokens": 10367,
+						"cacheReadTokens": 1292499,
+						"cacheCreationTokens": 47680,
+						"costUsd": 0.5529898,
+						"turns": 26
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "ecosystem-deno-jsonc-version",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 66552,
+					"usage": {
+						"inputTokens": 40,
+						"outputTokens": 4028,
+						"cacheReadTokens": 1076866,
+						"cacheCreationTokens": 48622,
+						"costUsd": 0.45022120000000004,
+						"turns": 23
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 45327,
+					"usage": {
+						"inputTokens": 24,
+						"outputTokens": 2717,
+						"cacheReadTokens": 556862,
+						"cacheCreationTokens": 40965,
+						"costUsd": 0.30245039999999995,
+						"turns": 19
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 93021,
+					"usage": {
+						"inputTokens": 44,
+						"outputTokens": 6683,
+						"cacheReadTokens": 1267484,
+						"cacheCreationTokens": 53560,
+						"costUsd": 0.5346548,
+						"turns": 28
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "ecosystem-flutter-type-alias",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 77760,
+					"usage": {
+						"inputTokens": 44,
+						"outputTokens": 7134,
+						"cacheReadTokens": 1151418,
+						"cacheCreationTokens": 46137,
+						"costUsd": 0.4862596,
+						"turns": 27
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 66739,
+					"usage": {
+						"inputTokens": 32,
+						"outputTokens": 3884,
+						"cacheReadTokens": 823774,
+						"cacheCreationTokens": 45814,
+						"costUsd": 0.3869148,
+						"turns": 20
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 84244,
+					"usage": {
+						"inputTokens": 34,
+						"outputTokens": 5843,
+						"cacheReadTokens": 935465,
+						"cacheCreationTokens": 51663,
+						"costUsd": 0.452243,
+						"turns": 24
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "ecosystem-go-no-tags-baseline",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 132389,
+					"usage": {
+						"inputTokens": 54,
+						"outputTokens": 10439,
+						"cacheReadTokens": 1872611,
+						"cacheCreationTokens": 67146,
+						"costUsd": 0.7476041999999998,
+						"turns": 32
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 122029,
+					"usage": {
+						"inputTokens": 48,
+						"outputTokens": 10465,
+						"cacheReadTokens": 1457999,
+						"cacheCreationTokens": 58086,
+						"costUsd": 0.6286898,
+						"turns": 29
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 103117,
+					"usage": {
+						"inputTokens": 52,
+						"outputTokens": 7279,
+						"cacheReadTokens": 1571160,
+						"cacheCreationTokens": 55514,
+						"costUsd": 0.6091819999999999,
+						"turns": 30
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": false,
+					"failedChecks": [
+						"prepare-writes-poetry-version-and-preserves-metadata"
+					],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 99012,
+					"usage": {
+						"inputTokens": 46,
+						"outputTokens": 7838,
+						"cacheReadTokens": 1105689,
+						"cacheCreationTokens": 38566,
+						"costUsd": 0.4538738000000001,
+						"turns": 28
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"prepare-writes-poetry-version-and-preserves-metadata"
+					]
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 119838,
+					"usage": {
+						"inputTokens": 56,
+						"outputTokens": 8753,
+						"cacheReadTokens": 1826346,
+						"cacheCreationTokens": 70278,
+						"costUsd": 0.7340232,
+						"turns": 36
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": false,
+					"failedChecks": [
+						"prepare-writes-poetry-version-and-preserves-metadata"
+					],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 104293,
+					"usage": {
+						"inputTokens": 54,
+						"outputTokens": 7197,
+						"cacheReadTokens": 1516937,
+						"cacheCreationTokens": 52664,
+						"costUsd": 0.5861214000000001,
+						"turns": 32
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"prepare-writes-poetry-version-and-preserves-metadata"
+					]
+				}
+			]
+		},
+		{
+			"scenario": "ecosystem-same-name-distinct-owners",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 44563,
+					"usage": {
+						"inputTokens": 20,
+						"outputTokens": 3123,
+						"cacheReadTokens": 464942,
+						"cacheCreationTokens": 39973,
+						"costUsd": 0.28415039999999997,
+						"turns": 12
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 45655,
+					"usage": {
+						"inputTokens": 26,
+						"outputTokens": 4188,
+						"cacheReadTokens": 610577,
+						"cacheCreationTokens": 45515,
+						"costUsd": 0.3461074,
+						"turns": 20
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 46366,
+					"usage": {
+						"inputTokens": 20,
+						"outputTokens": 2972,
+						"cacheReadTokens": 451294,
+						"cacheCreationTokens": 40366,
+						"costUsd": 0.2814828,
+						"turns": 15
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "gitignore-release-state",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 84306,
+					"usage": {
+						"inputTokens": 32,
+						"outputTokens": 5538,
+						"cacheReadTokens": 669278,
+						"cacheCreationTokens": 29696,
+						"costUsd": 0.30808360000000007,
+						"turns": 16
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 103762,
+					"usage": {
+						"inputTokens": 36,
+						"outputTokens": 9574,
+						"cacheReadTokens": 768538,
+						"cacheCreationTokens": 32281,
+						"costUsd": 0.3786436,
+						"turns": 19
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 95646,
+					"usage": {
+						"inputTokens": 28,
+						"outputTokens": 5870,
+						"cacheReadTokens": 620260,
+						"cacheCreationTokens": 34124,
+						"costUsd": 0.31930400000000003,
+						"turns": 15
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "go-tag-versioning",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 238579,
+					"usage": {
+						"inputTokens": 106,
+						"outputTokens": 19299,
+						"cacheReadTokens": 3896965,
+						"cacheCreationTokens": 80901,
+						"costUsd": 1.296199,
+						"turns": 54
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 123663,
+					"usage": {
+						"inputTokens": 52,
+						"outputTokens": 9674,
+						"cacheReadTokens": 1524987,
+						"cacheCreationTokens": 54950,
+						"costUsd": 0.6216414000000001,
+						"turns": 27
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": false,
+					"failedChecks": [
+						"a-release-is-actually-planned"
+					],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 131192,
+					"usage": {
+						"inputTokens": 46,
+						"outputTokens": 9715,
+						"cacheReadTokens": 1552558,
+						"cacheCreationTokens": 68453,
+						"costUsd": 0.6815656000000003,
+						"turns": 34
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"a-release-is-actually-planned"
+					]
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-config-repair",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 22742,
+					"usage": {
+						"inputTokens": 12,
+						"outputTokens": 1357,
+						"cacheReadTokens": 226804,
+						"cacheCreationTokens": 23190,
+						"costUsd": 0.15171479999999996,
+						"turns": 8
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 30291,
+					"usage": {
+						"inputTokens": 16,
+						"outputTokens": 1829,
+						"cacheReadTokens": 296130,
+						"cacheCreationTokens": 21359,
+						"costUsd": 0.16298399999999996,
+						"turns": 10
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 39441,
+					"usage": {
+						"inputTokens": 18,
+						"outputTokens": 1987,
+						"cacheReadTokens": 361979,
+						"cacheCreationTokens": 25076,
+						"costUsd": 0.1926058,
+						"turns": 11
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-disabled-ecosystem-recovery",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 38765,
+					"usage": {
+						"inputTokens": 18,
+						"outputTokens": 2695,
+						"cacheReadTokens": 366456,
+						"cacheCreationTokens": 27546,
+						"costUsd": 0.21046120000000004,
+						"turns": 12
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 44470,
+					"usage": {
+						"inputTokens": 26,
+						"outputTokens": 4295,
+						"cacheReadTokens": 520875,
+						"cacheCreationTokens": 27489,
+						"costUsd": 0.257133,
+						"turns": 14
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 37695,
+					"usage": {
+						"inputTokens": 20,
+						"outputTokens": 3555,
+						"cacheReadTokens": 434026,
+						"cacheCreationTokens": 31671,
+						"costUsd": 0.24907920000000003,
+						"turns": 12
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-private-package-lint-repair",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 29666,
+					"usage": {
+						"inputTokens": 20,
+						"outputTokens": 1761,
+						"cacheReadTokens": 404059,
+						"cacheCreationTokens": 25398,
+						"costUsd": 0.20005379999999998,
+						"turns": 12
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 32983,
+					"usage": {
+						"inputTokens": 20,
+						"outputTokens": 2081,
+						"cacheReadTokens": 382449,
+						"cacheCreationTokens": 23514,
+						"costUsd": 0.1913958,
+						"turns": 11
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 24409,
+					"usage": {
+						"inputTokens": 16,
+						"outputTokens": 1854,
+						"cacheReadTokens": 315702,
+						"cacheCreationTokens": 25517,
+						"costUsd": 0.1837804,
+						"turns": 9
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-unknown-target-repair",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 17997,
+					"usage": {
+						"inputTokens": 16,
+						"outputTokens": 1601,
+						"cacheReadTokens": 317489,
+						"cacheCreationTokens": 26158,
+						"costUsd": 0.18417179999999997,
+						"turns": 10
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 29332,
+					"usage": {
+						"inputTokens": 16,
+						"outputTokens": 1522,
+						"cacheReadTokens": 294117,
+						"cacheCreationTokens": 22577,
+						"costUsd": 0.1643834,
+						"turns": 9
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 25958,
+					"usage": {
+						"inputTokens": 16,
+						"outputTokens": 1534,
+						"cacheReadTokens": 318823,
+						"cacheCreationTokens": 27086,
+						"costUsd": 0.18748060000000003,
+						"turns": 11
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 896844,
+					"usage": {
+						"inputTokens": 240,
+						"outputTokens": 64546,
+						"cacheReadTokens": 15531307,
+						"cacheCreationTokens": 190965,
+						"costUsd": 4.5160614,
+						"turns": 121
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": false,
+					"failedChecks": [
+						"dependency-prefixes-and-field-scope"
+					],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 579226,
+					"usage": {
+						"inputTokens": 162,
+						"outputTokens": 44869,
+						"cacheReadTokens": 8490908,
+						"cacheCreationTokens": 151660,
+						"costUsd": 2.7538356000000004,
+						"turns": 84
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"dependency-prefixes-and-field-scope"
+					]
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": false,
+					"failedChecks": [
+						"dependency-prefixes-and-field-scope"
+					],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 820822,
+					"usage": {
+						"inputTokens": 176,
+						"outputTokens": 59203,
+						"cacheReadTokens": 9222341,
+						"cacheCreationTokens": 145364,
+						"costUsd": 3.0183062,
+						"turns": 89
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"dependency-prefixes-and-field-scope"
+					]
+				}
+			]
+		},
+		{
+			"scenario": "planning-first-stable-release",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 54245,
+					"usage": {
+						"inputTokens": 28,
+						"outputTokens": 4411,
+						"cacheReadTokens": 658727,
+						"cacheCreationTokens": 35323,
+						"costUsd": 0.3172034000000001,
+						"turns": 16
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 64744,
+					"usage": {
+						"inputTokens": 28,
+						"outputTokens": 5591,
+						"cacheReadTokens": 659995,
+						"cacheCreationTokens": 36630,
+						"costUsd": 0.3344849999999999,
+						"turns": 17
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 72449,
+					"usage": {
+						"inputTokens": 38,
+						"outputTokens": 5886,
+						"cacheReadTokens": 953489,
+						"cacheCreationTokens": 41460,
+						"costUsd": 0.41547380000000006,
+						"turns": 21
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-fixed-nightly-base",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 267492,
+					"usage": {
+						"inputTokens": 74,
+						"outputTokens": 11940,
+						"cacheReadTokens": 2230471,
+						"cacheCreationTokens": 70122,
+						"costUsd": 0.8461302000000002,
+						"turns": 42
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 90830,
+					"usage": {
+						"inputTokens": 34,
+						"outputTokens": 6141,
+						"cacheReadTokens": 892437,
+						"cacheCreationTokens": 44210,
+						"costUsd": 0.4168054,
+						"turns": 18
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 70266,
+					"usage": {
+						"inputTokens": 30,
+						"outputTokens": 5276,
+						"cacheReadTokens": 679613,
+						"cacheCreationTokens": 35004,
+						"costUsd": 0.3287586,
+						"turns": 18
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-group-changelog-filter",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 157149,
+					"usage": {
+						"inputTokens": 36,
+						"outputTokens": 10580,
+						"cacheReadTokens": 1135734,
+						"cacheCreationTokens": 61393,
+						"costUsd": 0.5785908000000001,
+						"turns": 21
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 124770,
+					"usage": {
+						"inputTokens": 56,
+						"outputTokens": 9674,
+						"cacheReadTokens": 1614394,
+						"cacheCreationTokens": 53363,
+						"costUsd": 0.6331827999999999,
+						"turns": 29
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 81879,
+					"usage": {
+						"inputTokens": 42,
+						"outputTokens": 6294,
+						"cacheReadTokens": 1503166,
+						"cacheCreationTokens": 68332,
+						"costUsd": 0.6369851999999999,
+						"turns": 22
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-group-highest-baseline",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 55828,
+					"usage": {
+						"inputTokens": 24,
+						"outputTokens": 3245,
+						"cacheReadTokens": 507620,
+						"cacheCreationTokens": 28666,
+						"costUsd": 0.24868600000000002,
+						"turns": 15
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 23946,
+					"usage": {
+						"inputTokens": 20,
+						"outputTokens": 1963,
+						"cacheReadTokens": 391032,
+						"cacheCreationTokens": 25083,
+						"costUsd": 0.19820840000000003,
+						"turns": 12
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 37497,
+					"usage": {
+						"inputTokens": 26,
+						"outputTokens": 2943,
+						"cacheReadTokens": 553539,
+						"cacheCreationTokens": 29527,
+						"costUsd": 0.2582978,
+						"turns": 14
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-named-customer-artifact",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 39819,
+					"usage": {
+						"inputTokens": 22,
+						"outputTokens": 2686,
+						"cacheReadTokens": 529287,
+						"cacheCreationTokens": 35442,
+						"costUsd": 0.2745294,
+						"turns": 12
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 54757,
+					"usage": {
+						"inputTokens": 22,
+						"outputTokens": 3708,
+						"cacheReadTokens": 556882,
+						"cacheCreationTokens": 46754,
+						"costUsd": 0.3355164,
+						"turns": 15
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 38537,
+					"usage": {
+						"inputTokens": 30,
+						"outputTokens": 3656,
+						"cacheReadTokens": 663147,
+						"cacheCreationTokens": 30388,
+						"costUsd": 0.29080140000000004,
+						"turns": 17
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-prerelease-preview-idempotence",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 189456,
+					"usage": {
+						"inputTokens": 50,
+						"outputTokens": 10319,
+						"cacheReadTokens": 1389380,
+						"cacheCreationTokens": 55203,
+						"costUsd": 0.6019779999999999,
+						"turns": 35
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 64455,
+					"usage": {
+						"inputTokens": 30,
+						"outputTokens": 4698,
+						"cacheReadTokens": 767236,
+						"cacheCreationTokens": 40894,
+						"costUsd": 0.3640632,
+						"turns": 19
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 62667,
+					"usage": {
+						"inputTokens": 34,
+						"outputTokens": 5263,
+						"cacheReadTokens": 768238,
+						"cacheCreationTokens": 31944,
+						"costUsd": 0.3341216,
+						"turns": 20
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-regex-glob-version-files",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 53064,
+					"usage": {
+						"inputTokens": 26,
+						"outputTokens": 3788,
+						"cacheReadTokens": 584511,
+						"cacheCreationTokens": 32998,
+						"costUsd": 0.2868262,
+						"turns": 16
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 69543,
+					"usage": {
+						"inputTokens": 32,
+						"outputTokens": 3951,
+						"cacheReadTokens": 669948,
+						"cacheCreationTokens": 29662,
+						"costUsd": 0.2922116,
+						"turns": 17
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-293Z.json",
+					"agentDurationMs": 42666,
+					"usage": {
+						"inputTokens": 26,
+						"outputTokens": 3822,
+						"cacheReadTokens": 607451,
+						"cacheCreationTokens": 37694,
+						"costUsd": 0.3105382,
+						"turns": 16
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-structured-version-files",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 37751,
+					"usage": {
+						"inputTokens": 22,
+						"outputTokens": 3696,
+						"cacheReadTokens": 491582,
+						"cacheCreationTokens": 33969,
+						"costUsd": 0.27119639999999995,
+						"turns": 18
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 60137,
+					"usage": {
+						"inputTokens": 26,
+						"outputTokens": 4323,
+						"cacheReadTokens": 668801,
+						"cacheCreationTokens": 42774,
+						"costUsd": 0.34813819999999995,
+						"turns": 23
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "latest.json",
+					"agentDurationMs": 52486,
+					"usage": {
+						"inputTokens": 26,
+						"outputTokens": 3863,
+						"cacheReadTokens": 666882,
+						"cacheCreationTokens": 43533,
+						"costUsd": 0.3461904,
+						"turns": 15
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "planning-workflow-input-forwarding",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 77835,
+					"usage": {
+						"inputTokens": 30,
+						"outputTokens": 7333,
+						"cacheReadTokens": 985073,
+						"cacheCreationTokens": 58613,
+						"costUsd": 0.5048566,
+						"turns": 20
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 118657,
+					"usage": {
+						"inputTokens": 46,
+						"outputTokens": 9187,
+						"cacheReadTokens": 1318634,
+						"cacheCreationTokens": 48870,
+						"costUsd": 0.5511688000000001,
+						"turns": 25
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-973Z.json",
+					"agentDurationMs": 149281,
+					"usage": {
+						"inputTokens": 32,
+						"outputTokens": 6786,
+						"cacheReadTokens": 1100970,
+						"cacheCreationTokens": 62282,
+						"costUsd": 0.537246,
+						"turns": 19
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "publish-readiness-gates",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 40115,
+					"usage": {
+						"inputTokens": 18,
+						"outputTokens": 3710,
+						"cacheReadTokens": 371974,
+						"cacheCreationTokens": 29755,
+						"costUsd": 0.23055080000000003,
+						"turns": 11
+					},
+					"previousRegradedPassed": false,
+					"previousRegradedFailedChecks": [
+						"readiness-was-consulted"
+					]
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 33179,
+					"usage": {
+						"inputTokens": 14,
+						"outputTokens": 2188,
+						"cacheReadTokens": 254830,
+						"cacheCreationTokens": 22866,
+						"costUsd": 0.16433799999999998,
+						"turns": 7
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-751Z.json",
+					"agentDurationMs": 28342,
+					"usage": {
+						"inputTokens": 14,
+						"outputTokens": 2553,
+						"cacheReadTokens": 278860,
+						"cacheCreationTokens": 26714,
+						"costUsd": 0.18818600000000002,
+						"turns": 10
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "python-release-version-write",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 379171,
+					"usage": {
+						"inputTokens": 94,
+						"outputTokens": 25510,
+						"cacheReadTokens": 3594927,
+						"cacheCreationTokens": 79667,
+						"costUsd": 1.2929414000000004,
+						"turns": 48
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 137389,
+					"usage": {
+						"inputTokens": 54,
+						"outputTokens": 12177,
+						"cacheReadTokens": 1762942,
+						"cacheCreationTokens": 66122,
+						"costUsd": 0.7389544000000001,
+						"turns": 33
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-755Z.json",
+					"agentDurationMs": 165570,
+					"usage": {
+						"inputTokens": 74,
+						"outputTokens": 15431,
+						"cacheReadTokens": 2939845,
+						"cacheCreationTokens": 86953,
+						"costUsd": 1.090239,
+						"turns": 41
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "release-title-configuration",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 40609,
+					"usage": {
+						"inputTokens": 20,
+						"outputTokens": 3292,
+						"cacheReadTokens": 431803,
+						"cacheCreationTokens": 32112,
+						"costUsd": 0.2477686,
+						"turns": 12
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 138090,
+					"usage": {
+						"inputTokens": 58,
+						"outputTokens": 12553,
+						"cacheReadTokens": 1774221,
+						"cacheCreationTokens": 60465,
+						"costUsd": 0.7223502,
+						"turns": 33
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-24-170Z.json",
+					"agentDurationMs": 145803,
+					"usage": {
+						"inputTokens": 66,
+						"outputTokens": 10885,
+						"cacheReadTokens": 1867371,
+						"cacheCreationTokens": 54991,
+						"costUsd": 0.7024201999999999,
+						"turns": 34
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "release-without-publishing",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 50177,
+					"usage": {
+						"inputTokens": 30,
+						"outputTokens": 3683,
+						"cacheReadTokens": 658577,
+						"cacheCreationTokens": 31732,
+						"costUsd": 0.2955334,
+						"turns": 17
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 50092,
+					"usage": {
+						"inputTokens": 32,
+						"outputTokens": 4755,
+						"cacheReadTokens": 727179,
+						"cacheCreationTokens": 38556,
+						"costUsd": 0.3472738,
+						"turns": 19
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-734Z.json",
+					"agentDurationMs": 42626,
+					"usage": {
+						"inputTokens": 32,
+						"outputTokens": 3861,
+						"cacheReadTokens": 754530,
+						"cacheCreationTokens": 38132,
+						"costUsd": 0.34210799999999997,
+						"turns": 17
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		},
+		{
+			"scenario": "stream-split-changesets",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 108476,
+					"usage": {
+						"inputTokens": 28,
+						"outputTokens": 9816,
+						"cacheReadTokens": 695236,
+						"cacheCreationTokens": 44874,
+						"costUsd": 0.4167592000000001,
+						"turns": 20
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "concise",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 61441,
+					"usage": {
+						"inputTokens": 40,
+						"outputTokens": 5519,
+						"cacheReadTokens": 912203,
+						"cacheCreationTokens": 34756,
+						"costUsd": 0.3767346,
+						"turns": 21
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				},
+				{
+					"variant": "expanded-initial",
+					"passed": true,
+					"failedChecks": [],
+					"requestedModelFromOriginalReport": "sonnet",
+					"requestedModelInReplay": null,
+					"originalReport": "report-2026-09-30T05-36-23-902Z.json",
+					"agentDurationMs": 155388,
+					"usage": {
+						"inputTokens": 26,
+						"outputTokens": 12463,
+						"cacheReadTokens": 713909,
+						"cacheCreationTokens": 52292,
+						"costUsd": 0.4766318,
+						"turns": 15
+					},
+					"previousRegradedPassed": true,
+					"previousRegradedFailedChecks": []
+				}
+			]
+		}
+	],
+	"limitations": [
+		"Eight concurrent external cohorts and rotated variant order; wall-clock timings are contended.",
+		"Agents could read ancestor project source; a concise Poetry trial did so. The source changed between runs while the CLI was frozen.",
+		"Single trial per task and variant; these are exploratory outcomes and do not establish a causal winner.",
+		"Saved raw runs and transcripts remain local; this committed record contains only outcomes, provenance, usage, and failure check ids."
+	],
+	"previousGradeSource": {
+		"path": ".monochange/local/eval-first-pass/regraded-final.json",
+		"sha256": "4b3f5203be1ae765db99ad2896f2cc28b2302fe09fa953a650573d8d3901213c",
+		"mode": "regrade",
+		"regradeStartedAt": "2026-09-30T07:52:34.782Z",
+		"regradeFinishedAt": "2026-09-30T07:55:30.349Z"
+	},
+	"correctiveGrades": [
+		{
+			"path": ".monochange/local/eval-first-pass/readiness-corrected-regrade.json",
+			"sha256": "94d7dda000597e7078c8f433d5621e6618214207c4b39ecc66c048e8cbac8061",
+			"provenance": {
+				"checkoutCommit": "937cea83f537d3ae6d61e0f89de9a2e54cdee11c",
+				"cliSha256": "8c1de8264dc2124deba1a163e2852e2a663a2c4603e55d2b451dc27339f20eae"
+			},
+			"scenario": "publish-readiness-gates",
+			"variant": "shipping-current",
+			"repeat": 1,
+			"reason": "Recognize a submitted readiness command invoked through an explicitly bound monochange executable variable."
+		}
+	]
+}

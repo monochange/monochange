@@ -1,0 +1,11 @@
+# Flutter package with a native asset
+name: acme_flutter
+version: 1.2.3
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  assets:
+    - assets/marker.txt

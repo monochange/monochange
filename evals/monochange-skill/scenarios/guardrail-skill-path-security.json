@@ -1,0 +1,25 @@
+{
+	"id": "guardrail-skill-path-security",
+	"title": "Forced skill update rejects symlinks before writing outside its destination",
+	"fixture": "empty-workspace",
+	"agent": false,
+	"prompt": "",
+	"setupFiles": {
+		".sentinel-original": "Preserve this file outside the chosen skill destination.\n"
+	},
+	"expectation": "--force authorises replacement inside the chosen skill directory, not following child symlinks into unrelated files. Both a symlinked SKILL.md and a symlinked skills directory cause failure before any destination file changes, with external sentinel contents intact.",
+	"checks": [
+		{
+			"id": "symlink-entrypoint-rejected",
+			"kind": "command",
+			"command": "mkdir .eval-outside .eval-linked-entry && cp .sentinel-original .eval-outside/SKILL.md && ln -s ../.eval-outside/SKILL.md .eval-linked-entry/SKILL.md && monochange skill install --dir .eval-linked-entry --force > .entry-symlink.out 2>&1; rc=$?; cat .entry-symlink.out; test $rc -eq 1 && grep -Eqi 'symlink|symbolic link' .entry-symlink.out && cmp .sentinel-original .eval-outside/SKILL.md && test -L .eval-linked-entry/SKILL.md && test ! -e .eval-linked-entry/skills",
+			"why": "A file symlink must not allow --force to overwrite a file outside the explicit install destination."
+		},
+		{
+			"id": "symlink-topic-directory-rejected-before-writing",
+			"kind": "command",
+			"command": "mkdir .eval-linked-directory .eval-outside/docs && cp .sentinel-original .eval-linked-directory/SKILL.md && cp .sentinel-original .eval-outside/docs/configuration.md && ln -s ../.eval-outside/docs .eval-linked-directory/skills && monochange skill install --dir .eval-linked-directory --force > .directory-symlink.out 2>&1; rc=$?; cat .directory-symlink.out; test $rc -eq 1 && grep -Eqi 'symlink|symbolic link' .directory-symlink.out && cmp .sentinel-original .eval-linked-directory/SKILL.md && cmp .sentinel-original .eval-outside/docs/configuration.md && test ! -e .eval-outside/docs/commands.md",
+			"why": "Preflight must reject topic-directory symlinks before even replacing the regular entrypoint, preventing a partially refreshed skill and external writes."
+		}
+	]
+}

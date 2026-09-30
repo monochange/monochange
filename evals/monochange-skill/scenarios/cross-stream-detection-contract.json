@@ -4,7 +4,7 @@
 	"fixture": "npm-monorepo",
 	"agent": false,
 	"prompt": "",
-	"expectation": "One changeset file whose targets cross changelog streams — a default-stream `feat` on `@acme/api` plus the user-stream `feature` on `@acme/ui` — must pass `monochange step validate` and `monochange check`: neither command resolves streams, so both accept the file. Only `monochange preview` rejects it, exiting 1 with `changeset targets resolve to multiple changelog streams` and the corrective `split the changes into one file per stream`. Splitting the two targets into one file per stream makes `preview` accept the plan. These are deterministic command properties, so they are pinned here rather than graded from a stochastic agent run.",
+	"expectation": "One changeset file whose targets cross changelog streams—a default-stream feat on @acme/api and user-stream feature on @acme/ui—passes monochange step validate and monochange check because those commands do not resolve streams. Of the three commands exercised here, preview rejects the file with exit 1, changeset targets resolve to multiple changelog streams, and the corrective split the changes into one file per stream message. Release preparation also resolves streams and rejects this invalid intent. Splitting the targets into one file per stream lets preview accept the plan; these mechanical command properties are tested without a model.",
 	"setupFiles": {
 		".changeset/mixed-stream.md": "---\n\"@acme/api\": feat\n\"@acme/ui\": feature\n---\n\nOne file carrying both the developer refactor and the customer-facing feature, which is exactly the trap.\n"
 	},

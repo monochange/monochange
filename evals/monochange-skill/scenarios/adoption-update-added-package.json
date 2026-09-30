@@ -1,0 +1,50 @@
+{
+	"id": "adoption-update-added-package",
+	"title": "Update release configuration when a new npm workspace package appears",
+	"fixture": "adoption-existing-config",
+	"prompt": "We added @acme/extra to this workspace. Update monochange so both public packages are release-managed independently, retaining our custom verify-local workflow, parent_bump policy, and configuration comments. Record a patch for the new package. Existing configuration must be updated in place rather than regenerated with --force. Record the changeset and verify the preview, but leave changesets pending and manifests at their current versions. Do not publish, tag, commit, or contact a hosted provider.",
+	"expectation": "An agent discovers the new package, adds its quoted npm declaration without replacing customer config, and produces an independent 2.0.1 release plan for @acme/extra.",
+	"setupFiles": {
+		"packages/extra/package.json": "{\"name\":\"@acme/extra\",\"version\":\"2.0.0\"}\n",
+		"packages/extra/index.js": "export const extra = true;\n"
+	},
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "new-package-managed",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.deepEqual(c.packages.map(p=>[p.id,p.package_type]).sort(),[[\"@acme/extra\",\"npm\"],[\"@acme/public\",\"npm\"]]); assert.equal(c.defaults.parent_bump,\"none\");'",
+			"why": "Newly added manifests need explicit release ownership while existing policy stays intact."
+		},
+		{
+			"id": "new-package-plans-independently",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"preview\",\"--format\",\"json\"])); assert.deepEqual(d.released_packages,[\"@acme/extra\"]); assert.deepEqual(d.release_targets.map(t=>[t.id,t.version]),[[\"@acme/extra\",\"2.0.1\"]]);'",
+			"why": "The new package release must not drag the existing independent package along."
+		},
+		{
+			"id": "custom-workflow-and-comment-survive",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; assert.match(fs.readFileSync(\"monochange.toml\",\"utf8\"),/# Customer workflow: preserve this policy/); assert.match(cli([\"run\",\"verify-local\"]),/preserved-workflow/);'",
+			"why": "Regenerating with init --force would silently discard a customer workflow."
+		},
+		{
+			"id": "does-not-force-reinitialize",
+			"kind": "transcript",
+			"pattern": "^Bash [^\\n]*\\bmonochange\\b[^\\n]*\\binit\\b[^\\n]*--force",
+			"absent": true,
+			"why": "The user explicitly requires an in-place config update."
+		}
+	]
+}

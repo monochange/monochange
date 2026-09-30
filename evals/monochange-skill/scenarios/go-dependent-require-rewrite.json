@@ -10,21 +10,33 @@
 		"service/go.mod": "module github.com/acme/service\n\ngo 1.22\n\nrequire (\n\tgithub.com/acme/core v1.2.0\n\tgithub.com/other/core v0.9.0\n)\n\nreplace github.com/acme/core => ../core\n"
 	},
 	"setupCommands": [
-		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init && git tag core/v1.2.0 && git tag service/v1.0.0"
+		"git init -b main -q && git add -A && git commit -S -qm init && git tag core/v1.2.0 && git tag service/v1.0.0"
 	],
-	"expectation": "Go versions come from git tags, so both modules need `tag = true` and `initial_version` before anything is planned; nothing is written into `go.mod` as a package version. A minor change to `core` moves it to 1.3.0, propagates to `service`, and rewrites the internal `require` directive so the service does not ship pinned to a core version that no longer exists. `replace` directives are untouched, and a module that merely shares a last path segment (`github.com/other/core`) is not mistaken for the workspace's `core` — the rewrite resolves full module paths against workspace modules and skips anything ambiguous.",
+	"expectation": "Go modules carry no package version in go.mod. With tag = true, release planning resolves each baseline from a tag matching that owner's version_format; initial_version is a fallback only when no matching tag exists. This fixture already has core/v1.2.0 and service/v1.0.0 tags, so their baselines do not depend on initial_version. A minor change to core moves it to 1.3.0, propagates a patch to service, and rewrites its internal require directive to the newly released core version. replace directives are untouched, and github.com/other/core is not mistaken for the workspace module because dependency rewriting resolves full module paths. Supplemental isolated fixtures also verify custom tag formats, unrelated primary-tag exclusion, and complete dev prerelease suffix parsing.",
 	"checks": [
+		{
+			"id": "custom-go-tag-format-selects-only-matching-baseline",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),path=require(\"node:path\"),os=require(\"node:os\"),a=require(\"node:assert/strict\"),{spawnSync}=require(\"node:child_process\");let root=process.cwd();while(!fs.existsSync(path.join(root,\"evals/monochange-skill/fixtures/planning-go-tag-baselines\"))&&path.dirname(root)!==root)root=path.dirname(root);const source=path.join(root,\"evals/monochange-skill/fixtures/planning-go-tag-baselines\",\"custom\");a.ok(fs.existsSync(source),\"static Go tag fixture missing\");const workdir=fs.mkdtempSync(path.join(os.tmpdir(),\"monochange-go-tag-contract-\"));try{fs.cpSync(source,workdir,{recursive:true});const run=(binary,args)=>{const r=spawnSync(binary,args,{cwd:workdir,encoding:\"utf8\"});a.equal(r.status,0,r.stdout+r.stderr);return r.stdout;};run(\"git\",[\"init\",\"-b\",\"main\",\"-q\"]);run(\"git\",[\"add\",\"-A\"]);run(\"git\",[\"commit\",\"-S\",\"-qm\",\"chore: initialize isolated Go tag contract\"]);for(const tag of [\"go/sdk/release-1.2.0\",\"v99.0.0\",\"go/other/release-88.0.0\"])run(\"git\",[\"tag\",tag]);const d=JSON.parse(run(\"monochange\",[\"preview\",\"--format\",\"json\"]));a.equal(d.release_targets.length,1);a.equal(d.release_targets[0].id,\"sdk\");a.equal(d.release_targets[0].version,\"1.3.0\");a.equal(d.release_targets[0].tag_name,\"go/sdk/release-1.3.0\");a.equal(fs.readFileSync(path.join(workdir,\"go.mod\"),\"utf8\"),\"module github.com/acme/sdk\\n\\ngo 1.22\\n\");console.log(\"Go tag baseline resolves sdk to 1.3.0\");}finally{fs.rmSync(workdir,{recursive:true,force:true});}'",
+			"why": "A custom tag format must seed the next native Go version from its matching owner tag; primary and other-owner decoy tags cannot replace that baseline."
+		},
+		{
+			"id": "go-tag-prerelease-with-v-in-suffix-parses-completely",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),path=require(\"node:path\"),os=require(\"node:os\"),a=require(\"node:assert/strict\"),{spawnSync}=require(\"node:child_process\");let root=process.cwd();while(!fs.existsSync(path.join(root,\"evals/monochange-skill/fixtures/planning-go-tag-baselines\"))&&path.dirname(root)!==root)root=path.dirname(root);const source=path.join(root,\"evals/monochange-skill/fixtures/planning-go-tag-baselines\",\"dev-suffix\");a.ok(fs.existsSync(source),\"static Go tag fixture missing\");const workdir=fs.mkdtempSync(path.join(os.tmpdir(),\"monochange-go-tag-contract-\"));try{fs.cpSync(source,workdir,{recursive:true});const run=(binary,args)=>{const r=spawnSync(binary,args,{cwd:workdir,encoding:\"utf8\"});a.equal(r.status,0,r.stdout+r.stderr);return r.stdout;};run(\"git\",[\"init\",\"-b\",\"main\",\"-q\"]);run(\"git\",[\"add\",\"-A\"]);run(\"git\",[\"commit\",\"-S\",\"-qm\",\"chore: initialize isolated Go tag contract\"]);for(const tag of [\"sdk/v1.2.0-dev.7\",\"v99.0.0\",\"other/v88.0.0\"])run(\"git\",[\"tag\",tag]);const d=JSON.parse(run(\"monochange\",[\"preview\",\"--format\",\"json\"]));a.equal(d.release_targets.length,1);a.equal(d.release_targets[0].id,\"sdk\");a.equal(d.release_targets[0].version,\"1.3.0\");a.equal(d.release_targets[0].tag_name,\"sdk/v1.3.0\");a.equal(fs.readFileSync(path.join(workdir,\"go.mod\"),\"utf8\"),\"module github.com/acme/sdk\\n\\ngo 1.22\\n\");console.log(\"Go tag baseline resolves sdk to 1.3.0\");}finally{fs.rmSync(workdir,{recursive:true,force:true});}'",
+			"why": "Parsing a Go release tag must preserve the whole dev prerelease version rather than splitting at the last v and silently falling back to initial_version."
+		},
 		{
 			"id": "both-modules-are-planned",
 			"kind": "command",
 			"command": "monochange preview --format json | python3 -c \"import sys,json; d=json.load(sys.stdin); t={x['id']: x['version'] for x in d['release_targets']}; assert t.get('core')=='1.3.0', t; assert t.get('service')=='1.0.1', t; print(t)\"",
-			"why": "Tag-seeded versions are the only reason Go plans anything; a missing `tag = true` or `initial_version` makes the release empty, which is the failure this scenario exists to catch."
+			"why": "The existing owner-specific tags seed core at 1.2.0 and service at 1.0.0; initial_version is not required when those matching tags exist. The core minor and propagated service patch must both produce release targets."
 		},
 		{
 			"id": "prepare-rewrites-the-internal-require",
 			"kind": "command",
 			"command": "monochange prepare >/dev/null 2>&1; grep -q 'github.com/acme/core v1.3.0' service/go.mod",
-			"why": "The bug this pins: the plan moved `core` to 1.3.0 while the service kept requiring 1.2.0, so the released service pointed at a version that no longer existed."
+			"why": "Preparing the core 1.3.0 release must advance the service's internal require from 1.2.0 to the newly released version rather than leave its dependency reference stale."
 		},
 		{
 			"id": "replace-directive-untouched",

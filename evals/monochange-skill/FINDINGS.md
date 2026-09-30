@@ -1,155 +1,165 @@
-# Findings: evaluating the monochange skill against real release-planning tasks
+# Findings: monochange CLI and skill evaluations
 
-This is the record of what the evaluation established, including the parts that did not confirm the initial hypothesis. It is written so a later reader can tell which claims are measured and which are not.
+This record distinguishes authored coverage, executed evidence, and conclusions that remain pending. It does not establish that monochange has no hidden bugs.
 
-## Question
+## Current question and method
 
-monochange spans six package ecosystems, a configuration language, a changeset format, and a publish lifecycle. The skill has to carry all of that. The question was whether an agent holding the skill can complete realistic release-planning work in a real monorepo — adopting monochange, authoring changesets that match the actual change, configuring versioned files for ecosystems that need it, and stopping short of publishing — and where the skill leaves it guessing.
+Can an agent use the shipped guidance to initialize and update realistic monorepos, choose configuration and release intent correctly, recover from diagnostics, and complete requested local preparation while respecting publication boundaries? Does a shorter skill entrypoint produce better outcomes than the shipping guidance on the same tasks?
 
-A second question ran alongside: whether the guidance is reachable at all. The skill previously reached an agent only by downloading it through the `skills` npm CLI. It now ships inside the binary, which is the path this suite exercises.
+The committed matrix contains **60 scenarios: 38 agent tasks and 22 agent-free contracts, with 315 checks across 23 fixture families**. Adoption, ecosystem, planning, and guardrail tasks cover Cargo, npm, Deno JSON/JSONC, Dart/Flutter, PEP 621/Poetry Python, and Go. COVERAGE.md lists every scenario and remaining gaps. Contracts pin CLI behavior without model calls; they do not score skill quality.
 
-## Method
+Each run gets a copied fixture and its own Git root. The agent receives a realistic request, the selected skill channel, and repository policy. Checks grade observable artifacts in a separate copy so mutating graders do not consume saved agent results. Transcript checks use assistant-authored text and tool inputs, excluding skill text and tool responses. Runtime errors, authentication failures, timeouts, nonzero exits, and missing successful terminal results fail execution independently of artifact checks.
 
-Eight scenarios, each a real task in a throwaway monorepo, graded by the real `monochange` binary plus targeted file and transcript assertions. Fixtures span the ecosystems monochange supports:
+Installed-channel comparisons use three complete trees: `shipping-current`, frozen from commit `3621d40db11bd2dfd89192bf7270b4a50603293a`; `concise`, with a short task-routing entrypoint and complete references; and `expanded-initial`, the archived initial canonical skill evaluated under the `package` label. The current canonical skill is a later follow-up candidate. The earlier `baseline` tree remains historical. CLI-discovered guidance comes from the evaluated binary and cannot compare installed variants.
 
-| Fixture                        | Shape                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------ |
-| `mixed-monorepo`               | Cargo crates plus scoped npm packages, no config                               |
-| `npm-monorepo`                 | pnpm workspace, three packages in one version group, a `user` changelog stream |
-| `rust-workspace`               | two independently-versioned crates, one depending on the other                 |
-| `python-uv`                    | uv workspace, two `pyproject.toml` packages, no config                         |
-| `go-modules`, `dart-workspace` | Go modules and a pub workspace, used by the discovery probes                   |
+## Provenance and execution conditions
 
-One scenario (`cli-self-sufficiency`) runs no agent and pins the CLI contract deterministically, because a model that already knows the answer will not go looking and grading its transcript would fail correct work.
+The current cohort reports identify the frozen evaluated CLI by SHA-256:
 
-Runs use `--setting-sources project` and `--strict-mcp-config` so the operator's personal hooks, plugins, and MCP servers stay out of the measurement. The workspace binary is resolved from `target/debug/monochange` and injected through the child environment; there is no fallback to a released binary on `PATH`, because grading against a different version measures the machine rather than the skill.
+```text
+8c1de8264dc2124deba1a163e2852e2a663a2c4603e55d2b451dc27339f20eae
+```
 
-## Result
+Their checkout provenance is `3621d40db11bd2dfd89192bf7270b4a50603293a`, with source edits present in the working tree. The checkout commit therefore identifies the base, not every evaluated source byte. CLI and installed-skill hashes identify the actual evaluated artifacts. `MONOCHANGE_EVAL_CLI_PATH` pins the preserved executable; neither agents nor graders silently fall back to a released binary on PATH.
 
-The suite grew to 29 scenarios and 162 checks covering all six ecosystems, version computation, changesets, versioned files, lockfiles, the release lifecycle, release title templates, publishing gates, changelog outputs, linting, CLI surface contracts, safety, and provider configuration. Twelve scenarios drive an agent; seventeen are agent-free contracts that run in CI at no cost.
+Fixture and grading copies isolate Git roots and saved artifacts, but agents were not confined to those filesystems. A concise-skill Poetry trial read ancestor project source. That source tree changed between runs while the evaluated CLI remained frozen; skill and binary hashes do not identify every source byte consulted. These are exploratory field comparisons, not a clean causal experiment isolating skill text.
 
-Every check passes against the shipped skill once the defects below were fixed: 28 runs, no failing checks, 143k tokens, about $10 of agent time. One model, one run per cell, so the pass rate is a regression baseline rather than a precision measurement.
+The reports record runtime version `2.1.281`. The requested `sonnet` alias resolved to `claude-sonnet-5`; interpretation must use the recorded effective model rather than assume what an alias means. An initial authentication failure was infrastructure failure, not evidence against a skill. The runtime's authentication helper needed its operating-system PATH entries available.
 
-Each CLI defect arrived with a failing test written first and a passing test after. The Rust workspace now carries 3707 passing tests, and the fixes are covered at three levels: unit tests in the owning crate, integration tests in `crates/monochange_integration_tests` with file fixtures and `insta` snapshots, and the eval scenarios here.
+The harness executes cells sequentially within a process, but this experiment launched **eight external concurrent cohorts** and rotated variant orders. Shared CPU contention affects recorded duration; these timings cannot support a clean speed ranking. Each report records requested/effective model, runtime, hashes, usage when available, and execution outcomes. The first-pass reconciliation below preserves the original recorded usage and cost; grading adds no agent calls.
 
-The more important result is what it cost to get there: **nine real defects in the CLI and five in the skill**, several of which made advertised workflows impossible to complete or silently produced wrong release plans. Each is listed below with the experiment that proved it.
+## First-pass comparison
 
-Round two added the wider matrix. Its value is not that more scenarios pass — it is that six of the nine CLI defects were found by checks written for surfaces the first eight scenarios never touched. A release-planning suite that only exercises adoption and changeset authoring leaves most of the tool unmeasured.
+Final hardened isolated regrading of all **114 original agent trials** gives **shipping-current 36/38, concise 36/38, expanded-initial 34/38**. Each cell is one trial. The original runtime recorded **966,351 input plus output tokens, excluding cache tokens, and $63.81** across these trials. These are recorded experiment totals, not a cost projection. [Compact JSON evidence](reports/first-pass.json) preserves all outcomes, failed check ids, artifact hashes, original usage, and metadata provenance without committing raw transcripts.
 
-The honest caveat, carried over from the Pina suite this harness is ported from: the pre-fix skill also passed most scenarios, because a strong model recovers from stale and missing guidance by reading the error messages. No claim is made here that any single skill edit turned a failing task into a passing one. The suite's value is as a regression gate over the surfaces most likely to break.
+The full hardened replay initially scored one shipping readiness trial incorrectly because it invoked the pinned CLI through an explicitly assigned `MONOCHANGE_BIN` variable. Manual transcript review confirmed the actual readiness command and blocked result. Command evidence now normalizes that exact literal binding within the same submitted Bash tool call, while retaining raw transcripts and rejecting unbound or mismatched executable variables. A focused saved-artifact replay passes. The compact record preserves both the full replay and this one-cell corrective grade; no new agent call or duplicated cost was added.
 
-## Defects found in round two
+A separate [normalization audit](reports/command-normalization.json) inspected submitted command inputs across all 141 saved trials. Eight inputs normalized across four trials; readiness was the only changed check outcome. All 69 command-scoped checks passed with the final recognizer. Isolated full-check replay of the three other affected trials preserved their previous outcomes, including the genuine concise prefix failure. Original artifacts, pinned binaries, and the full replay records remain preserved.
 
-These are the defects the widened matrix caught. Each was reproduced against the built binary before being fixed, and each now has a failing-then-passing test or a scenario check.
+The original reports requested `sonnet`; runtime initialization recorded `claude-sonnet-5`. Legacy saved execution metadata omitted the original request, so replay correctly reports that field unavailable. The JSON distinguishes the request recovered from original reports from the unavailable replay field. All trials used runtime `2.1.281` and the frozen CLI hash above.
 
-1. **A Go dependent's `require` directive was never rewritten.** A Go service that depended on a workspace library kept `require github.com/acme/core v1.2.0` after the library moved to 1.3.0, so the released service shipped pinned to a version that no longer existed. Go's internal-dependency rewrite was dead for the same reason as defect 2 below; fixing the matcher fixed both.
+| Variant          | Skill SHA-256                                                      |
+| ---------------- | ------------------------------------------------------------------ |
+| shipping-current | `85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833` |
+| concise          | `964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3` |
+| expanded-initial | `014e182651bc02715848f745355e3e759862d5473c8eec919db27cafff0f71b4` |
 
-2. **`versions sync` never matched a nested Go module path.** `detect_go_changes` compared the full module path from a `require` directive (`github.com/acme/core`) against a set of derived short names (`core`), so the membership test could never succeed. Detection and application also disagreed about which key identified a dependency.
+| Scenario                                  | Shipping | Concise | Expanded initial |
+| ----------------------------------------- | -------- | ------- | ---------------- |
+| `adopt-mixed-monorepo`                    | pass     | pass    | pass             |
+| `adoption-disabled-ecosystem`             | pass     | pass    | pass             |
+| `adoption-gitea-host-config`              | pass     | pass    | pass             |
+| `adoption-npm-private-root`               | pass     | fail    | fail             |
+| `adoption-populate-custom-workflow`       | pass     | pass    | pass             |
+| `adoption-roots-and-exclusions`           | fail     | pass    | pass             |
+| `adoption-rust-independent`               | pass     | pass    | pass             |
+| `adoption-update-added-package`           | pass     | pass    | pass             |
+| `breaking-change-changeset`               | pass     | pass    | pass             |
+| `dart-workspace-root-package`             | pass     | pass    | pass             |
+| `deno-adoption-and-version-write`         | pass     | pass    | pass             |
+| `dependency-propagation`                  | pass     | pass    | pass             |
+| `ecosystem-deno-jsonc-version`            | pass     | pass    | pass             |
+| `ecosystem-flutter-type-alias`            | pass     | pass    | pass             |
+| `ecosystem-go-no-tags-baseline`           | pass     | pass    | pass             |
+| `ecosystem-python-poetry-version`         | fail     | pass    | fail             |
+| `ecosystem-same-name-distinct-owners`     | pass     | pass    | pass             |
+| `gitignore-release-state`                 | pass     | pass    | pass             |
+| `go-tag-versioning`                       | pass     | pass    | fail             |
+| `guardrail-config-repair`                 | pass     | pass    | pass             |
+| `guardrail-disabled-ecosystem-recovery`   | pass     | pass    | pass             |
+| `guardrail-private-package-lint-repair`   | pass     | pass    | pass             |
+| `guardrail-unknown-target-repair`         | pass     | pass    | pass             |
+| `planning-dependency-prefix-precedence`   | pass     | fail    | fail             |
+| `planning-first-stable-release`           | pass     | pass    | pass             |
+| `planning-fixed-nightly-base`             | pass     | pass    | pass             |
+| `planning-group-changelog-filter`         | pass     | pass    | pass             |
+| `planning-group-highest-baseline`         | pass     | pass    | pass             |
+| `planning-named-customer-artifact`        | pass     | pass    | pass             |
+| `planning-prerelease-preview-idempotence` | pass     | pass    | pass             |
+| `planning-regex-glob-version-files`       | pass     | pass    | pass             |
+| `planning-structured-version-files`       | pass     | pass    | pass             |
+| `planning-workflow-input-forwarding`      | pass     | pass    | pass             |
+| `publish-readiness-gates`                 | pass     | pass    | pass             |
+| `python-release-version-write`            | pass     | pass    | pass             |
+| `release-title-configuration`             | pass     | pass    | pass             |
+| `release-without-publishing`              | pass     | pass    | pass             |
+| `stream-split-changesets`                 | pass     | pass    | pass             |
 
-3. **The first Go fix over-matched and corrupted third-party pins.** Fixing 2 by matching a require's last path segment meant `github.com/other/core` — an unrelated module — was rewritten to the workspace's version. Measured directly: the keys reaching the writer were `["github.com/acme/core", "github.com/other/core"]`, so the detect step was inventing the second change. The correct rule resolves a require against the module path each workspace package declares in its own `go.mod`, and leaves anything it cannot resolve exactly alone.
+Failures have distinct causes:
 
-4. **`monochange create --dry-run` wrote the changeset.** The `--dry-run` flag was parsed and then dropped on the floor for this one step: the file landed in `.changeset/` and stdout said "wrote change file". The skill teaches agents to dry-run before mutating, and `create` writes release intent, so a dry run silently changed the next person's release. The step now prints `would write change file` with the rendered content and writes nothing.
+- **Private npm root:** concise and expanded initial failed `only-public-released`, proposing public versions `1.3.0` and `2.0.0` instead of the requested `1.2.4`. The agents changed source/API while addressing manifest lint/export metadata; classification escalated the bump. This is a scope failure, not a harmless choice of package ids.
+- **Ownership filters:** shipping failed `automatic-ownership-filter-recorded`. It did not record the requested automatic registration filter; raw discovery and explicit ownership need separate verification.
+- **Poetry own version:** shipping and expanded initial failed `prepare-writes-poetry-version-and-preserves-metadata`. The computed release target was plausible, but the actual Poetry version field did not update because explicit own-version selection was missing. The concise pass involved ancestor-source inspection, which limits attribution to its skill text.
+- **Go tag identity:** expanded initial failed `a-release-is-actually-planned`, proposing `github.com/acme/core/v1.3.0` instead of the existing `core/v1.3.0` namespace. Arbitrary package ids are accepted; silently changing release identity and hiding lost history through `initial_version` is not. Source review also found custom tag templates incorrectly resolved baselines through `v`; the final source suite and contracts verify that correction separately from the frozen agent trials.
+- **Dependency prefixes:** concise and expanded initial failed `dependency-prefixes-and-field-scope`, leaving a native dependency at `^2.4.0` instead of `=2.4.0`. Ecosystem prefix settings apply to typed entries, so automatic native synchronization requires an explicit selected-manifest override.
 
-5. **Quoted YAML keys were never matched in `pnpm-lock.yaml`.** Real pnpm lockfiles quote scoped package names (`'@acme/api':`), and `parse_yaml_line` used the raw left-hand text as the lookup key, so the entry was missed. The lockfile appeared in `changed_files` while its bytes were written back unchanged — worse than not listing it, because the release plan claimed a refresh that never happened. Measured: the same workspace with an unquoted key updated correctly and with a quoted key did not.
+The first pass does not establish a winning skill: shipping and concise tie, failures differ by task, and mutable ancestor source plus single trials prevent a clean causal comparison. Grader fixes were audited separately and results were regenerated from preserved agent artifacts.
 
-6. **The same quoting defect existed in Dart**, twice: a quoted dependency key in `pubspec.yaml` was never updated, and the dependency-sorted lint compared source key order against unquoted parsed keys, so a correctly sorted section with quoted keys was reported unsorted forever.
+## Follow-up comparison
 
-7. **`preview` could return a stale cached plan.** The prepared-release cache was keyed on git state, so editing a changeset's severity in place — same path, same filename — returned the previous plan. Measured: writing `minor`, then rewriting the same file to `major`, still reported the minor version; clearing `.monochange/local` made it correct. `preview` is the surface a maintainer reviews before a release, so this could ship a severity nobody chose.
+Hardened regrading of all **27 repeated agent trials** gives **24/27 passing: shipping-current 9/9, concise 8/9, and expanded-revised 7/9**. These are three divergent tasks with three trials per task/variant, not another complete 38-task matrix. Original recorded usage totals **448,949 input plus output tokens excluding cache tokens, and $28.92**. [Compact follow-up evidence](reports/follow-up.json) preserves original and hardened grades separately, together with usage and provenance. The evaluated revised canonical candidate is frozen at `b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19`; shipping-current and concise retain their original bytes.
 
-8. **`monochange init` emitted invalid TOML for scoped package ids** (round one). `@acme/sdk` produced `[package.@acme/sdk]`, which is not a legal TOML key, so the config the tool had just written failed to parse.
+| Task                                    | Shipping | Concise | Expanded revised |
+| --------------------------------------- | -------- | ------- | ---------------- |
+| `adoption-roots-and-exclusions`         | 3/3      | 3/3     | 3/3              |
+| `ecosystem-python-poetry-version`       | 3/3      | 3/3     | 3/3              |
+| `planning-dependency-prefix-precedence` | 3/3      | 2/3     | 1/3              |
 
-9. **Python packages could not be released at all** (round one). `PythonAdapter::load_configured` returned `Ok(None)` unconditionally, so a configured Python package was never loaded by the release-time workspace loader: the generated config passed `step validate` and then failed the first real release command.
+The exact revised candidate is preserved in [skill-variants/expanded-revised](skill-variants/expanded-revised), even though its original trial label was `package`. The earlier [expanded-initial](skill-variants/expanded-initial) tree preserves the distinct `014e182651bc02715848f745355e3e759862d5473c8eec919db27cafff0f71b4` first-pass candidate. Reproducing either experiment requires its archived tree and recorded binary; selecting live `package` after subsequent edits does not reproduce the same bytes.
 
-## Defects the evaluation found in the skill
+After the trials finished, “no reachable tag” became “no matching repository tag” in the canonical skill. This aligns its wording with the actual tag-selection policy without changing CLI behavior. The final canonical SHA-256 is `ae27c7c3390d27ed7567582a29f642532b845fd806d1fb7234833ebb80f3dc48`, which differs from the evaluated `b482…` candidate. It did not receive another full agent matrix for that small factual correction; the archive preserves exactly what was evaluated.
 
-1. **The skill said `monochange step validate` rejects cross-stream changesets. It does not.** Measured directly on a file mixing a default-stream type with a user-stream type:
+The ownership-filter, Poetry, and prefix cohorts each finished nine trials. Original and replay metadata retain requested `sonnet`, effective `claude-sonnet-5`, runtime `2.1.281`, checkout `896a5470208b08627689418cfc55354d3db6c66f`, and CLI SHA-256 `00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf`. Hardened replay used the same frozen CLI; it made no additional agent calls.
 
-   | Command                    | Result                                                            |
-   | -------------------------- | ----------------------------------------------------------------- |
-   | `monochange step validate` | exit 0, "workspace validation passed"                             |
-   | `monochange check`         | exit 0, "no issues found"                                         |
-   | `monochange preview`       | exit 1, "changeset targets resolve to multiple changelog streams" |
+Prefix failures in canonical repeats 1 and 3 are substantive: each agent read the revised configuration reference but configured only the deployment override, leaving the native dependency at `^2.4.0`. Concise repeat 3 also failed the prefix outcome. All three fail `dependency-prefixes-and-field-scope` after hardened replay. Shipping repeat 2 and concise repeat 1 originally failed the safety pattern because bare read-only `git tag` matched tag creation; both pass the corrected check. Several prefix agents inspected ancestor source, reinforcing the filesystem confounding described above.
 
-   This is the most damaging of the five, because it is a false negative in the agent's own verification loop: author one file covering both audiences, run the command the skill names, watch it pass, and report success on a release plan that cannot prepare. The skill now names the preview as the command that catches it and states explicitly that `validate` and `check` do not.
+The repeated ownership and Poetry successes across every variant weaken any claim that the first-pass differences came solely from the entrypoint. The expanded revision still failed two of three prefix trials despite explicit reference guidance. This focused follow-up supports keeping concrete field examples and planned-write verification, but does not establish that a longer or newer skill performs better overall.
 
-2. **Python version writing was undocumented.** A Python package's own `[project].version` is not rewritten by a release unless the config declares an explicit entry whose `fields` include `version`:
+Together, the two formal comparisons contain **141 original agent invocations**, with **1,415,300 input plus output tokens excluding cache tokens and $92.73 recorded cost**. Regrading reuses those invocations; its reports do not add new model usage. Historical/pilot runs are outside these totals.
 
-   ```toml
-   [[package.acme-insight.versioned_files]]
-   path = "packages/insight/pyproject.toml"
-   type = "python"
-   fields = ["version"]
-   ```
+Source changes continued after freezing the first-pass CLI, including the shared JSON replacement and custom-tag baseline corrections. Reports against frozen binaries cannot validate later code. Regrading records original agent provenance separately from the current grading binary and is not a new agent trial.
 
-   Verified by experiment: without the entry a real `prepare` plans the new version, rewrites internal dependency constraints, and leaves `[project].version` stale; a bare-string `versioned_files` entry also leaves it stale, because the version is only written when `fields` names it. Python has no built-in manifest version writer — the pipeline covers only cargo, npm, deno, and dart.
+## Final source verification
 
-3. **The command inventory was a generation behind the CLI.** The skill taught `monochange step create-change-file`, `step prepare-release`, `step discover`, and `step diagnose-changesets` as the way to do those things, while the CLI had grown first-class `create`, `prepare`, `preview`, `discover`, `config`, `affected`, `diagnose`, `next`, and `versions list|sync`. An agent following the skill would use workable but stale spellings and never learn the shorter surface.
+The final rebuilt executable has SHA-256 `a59c7657c9a2f28aab4303760ac0f3cb6ed4f5c042e7392feaa748f4e661d13f`, built from source commit `937cea83f537d3ae6d61e0f89de9a2e54cdee11c`. It passed **22/22 agent-free contract scenarios and 106/106 checks**. [Compact contract evidence](reports/contracts.json) records every scenario, check id, result, and binary/source provenance. These contracts make no agent calls and do not execute all 315 authored checks or rerun the 38 agent tasks against the final binary.
 
-4. **`monochange versions` was documented inconsistently.** One line described `versions sync --strategy`, another described bare `monochange versions` with the same flags, and neither mentioned that the bare form is deprecated in favor of `versions sync`, nor that `versions list` exists for a read-only inventory.
+The Node suite passed **144 tests across seven files**, including 58 harness tests. The final Rust aggregate passed **3,928/3,928 tests**, with none skipped and no orphan snapshots; all 3,928 instrumented tests also passed. Rust line coverage is **97.03% overall**, and patch coverage is **498/498 executable changed lines (100%) across 14 Rust files**, with every changed file at 100%. Final build, lint, documentation tests/synchronization, project changeset validation, dry-run preparation, and affected-path verification passed. Required PR checks remain the merge gate. Local `test:all` includes the contract suite using the caller's existing Git identity and GPG signing setup; required hosted CI runs harness unit tests and Rust fixture regressions without scheduling those signed-fixture contracts.
 
-5. **A stale field name.** The skill told agents to verify `compatibilityEvidence` in the preview; nothing emits that. The classification report field is `decision.compatibility_impact` and the preview plan field is `compatibility_evidence`.
+## CLI defects and guidance corrections in this expansion
 
-## What the eval infrastructure pinned down
+These changes are supported by reproduced behavior, focused source tests/fixtures, the final Rust aggregate, final-build contracts, and 100% executable Rust patch coverage. Required PR checks remain the merge gate.
 
-Behaviours that are easy to assume wrong, established by running the binary rather than reading the docs. These now live in scenario checks so a regression fails loudly:
+- **Skill installation followed symbolic links.** Existing linked documents, subdirectories, and dangling links could redirect writes outside the chosen skill tree, including forced updates. Installation now checks the destination and bundled paths before writing and reports offending links. Parent-directory links above the explicitly chosen destination retain their supported behavior.
+- **Initialization could create unusable ownership.** Multiple ecosystem manifests in one directory could produce duplicate path owners and a starter that failed immediately. Initialization now diagnoses that conflict before writing config or workflows. Distinct-directory name collisions also receive unique deterministic ids, including three-or-more collisions and names that already resemble generated suffixes.
+- **Initializer/population help promised workflows that do not exist.** The current default workflow set is empty. Help/output now state that `populate` preserves the existing config and adds nothing; `create`, `preview`, and `prepare` work directly, while custom `[cli.*]` workflows must be authored explicitly.
+- **Invalid automatic-discovery globs were silently ineffective.** Include and exclude patterns now fail with the ecosystem, field, and offending pattern. Validation includes excludes even when the include list is empty.
+- **Deno JSONC support was inconsistent across the release path.** Validation could demand `deno.json` despite a discovered `deno.jsonc`, and synchronization could lose comments/layout. Supported JSONC now follows initialization, validation, discovery, and preparation. Malformed block comments and comment-split tokens are rejected rather than silently joined or accepted. Deno documents `deno.jsonc` support for comments and trailing commas in its [configuration guide](https://docs.deno.com/runtime/fundamentals/configuration/).
+- **Python dependent identity and Poetry writing were incomplete.** Canonical aliases now connect native names such as `PY_Core` to declared `py-core`/`py_core` constraints for propagation and manifest updates. An additional alias correction resolves configured ids during selected-field updates instead of comparing them directly to native dependency keys; focused fixtures cover selected-field and automatic synchronization behavior. Poetry-only versions and runtime/group dependencies update their existing tables while preserving extras, markers, comments, and source metadata. PEP 621 precedence and dynamic versions remain relevant boundaries.
+- **Adapter aliases could create dependency edges across ecosystems.** Final review found that a Python canonical alias such as `foo-bar` could also match a Cargo dependency with the same spelling and create an unintended Python edge. Shared dependency-edge materialization now scopes adapter-provided aliases to consumers in the producer's ecosystem. Exact native-name matching retains its existing behavior. Focused source tests cover alias collisions, same-ecosystem matching, and deduplication; this correction is separate from configured-id resolution in selected versioned fields.
+- **The inferred Poetry command used a removed option.** `poetry lock --no-update` fails with Poetry 2; `poetry lock` preserves existing pins by default. The adapter and guidance now use that command; older installations can configure an explicit override. Poetry's current [lock command reference](https://python-poetry.org/docs/cli/#lock) documents that default and the separate `--regenerate` option for rebuilding locked versions.
+- **Explicit versioned-file rules could be overwritten by native synchronization.** Preparation now applies selected rules after native updates and before lock commands. Dependency-only npm entries preserve their own root version, scalar selections use matching constraints, and configured dependency ids resolve to native names. Previews must show both the selected key and its final prefix/version.
+- **JSON field selections could schedule duplicate edits.** Selecting root `version`, repeating a field, or combining a dependency object with an exact dependency field could apply the same old byte span more than once. Length-changing replacements then corrupted JSON. The shared edit writer now coalesces identical replacements and rejects conflicting/overlapping edits before applying them; grow/shrink fixture tests cover these cases. This fix postdates the frozen cohort binary; final source tests verify it separately.
+- **Custom tag baselines did not follow the configured format.** Template-rendered tags were resolved through a generic `v` prefix, and splitting at the final `v` could misread a prerelease such as `dev.7`. Matching now round-trips configured tag formats and chooses the highest matching SemVer; previous-release lookup uses the same identity. Docs clarify that repository tags are considered without a branch-reachability filter. Custom and prerelease-tag fixture checks pin this contract; final source verification is separate from the frozen agent trials.
+- **Release titles were validated against the wrong context.** Valid release-context fields such as `previous_version` could be rejected while unrelated version-value variables passed validation. Title validation now uses the release renderer's context at package, group, and default scope, accepts valid Jinja expressions, and rejects unsupported variables or malformed syntax. The final source suite verifies the supported contexts and rejection paths.
+- **Analysis snapshots omitted native control manifests.** Materialized Git/staged snapshots dropped `go.mod`, `pyproject.toml`, and GitHub Actions control files needed to validate mixed-workspace configuration. Snapshot filtering now retains these files. This enables configuration validation during analysis of supported packages; it does not add semantic analyzers for Go, Python, or GitHub Actions. The final source suite verifies snapshot retention and configuration behavior.
 
-- **`preview` reports `version: null` when packages are not version-grouped.** Per-package versions live in `release_targets`. A group releases through the top-level `version`/`group_version` fields. Checks that assert on `version` alone silently pass for ungrouped repos.
-- **`prepare` consumes and deletes changesets.** A completed release leaves no `.changeset/*.md` behind, so their absence is not evidence that none were written.
-- **Pre-1.0 versions shift the bump.** `0.5.2` plus a `minor` change plans `0.5.3`, not `0.6.0`, because a major bump below `1.0.0` degrades to minor and minor to patch. Any expectation written against a `0.x` fixture has to account for this.
-- **`step validate` passes in a directory with no config at all**, reporting "workspace validation passed". It is a parse-and-target check, not a presence check.
-- **Dart workspace roots are discovered as releasable packages** with a null version, so `init` puts the root `pubspec.yaml` into `[package.*]` and the default group. A Dart fixture does not have the package count its directory layout suggests.
-- **Go versions come from git tags, not manifests.** A Go package needs `tag = true` plus `initial_version` before it plans anything. With both modules tagged at their initial versions and a `minor` changeset on `core`, the plan moves `core` to `1.3.0` and propagates `service` to `1.0.1` — but `changed_files` is empty: the `require github.com/acme/core v1.2.0` line in `service/go.mod` is not rewritten, so the service would ship pinned to a core version that no longer exists. The rewrite matches on the module path against workspace package names, and a nested module path (`github.com/acme/core` against a package named `core`) does not match. Reproduced but not fixed, and recorded here as an open question rather than a resolved defect.
-- **`monochange affected --changed-paths` must include the changeset path.** `affected` derives `changeset_paths` by filtering the changed-path list, so a changeset only counts toward coverage when it is part of the change set being evaluated. A check that passes only the source path sees an uncovered change even though release intent exists. This is how the policy behaves in CI, where the diff carries both.
-- **`monochange notes --file` redirects rather than tees.** The note goes to the named path and stdout stays empty, so a CI consumer cannot double-print the artifact.
-- **`--quiet` suppresses explicit JSON output entirely.** `monochange preview --format json --quiet` prints nothing, so a script must not combine them; the harness reads JSON by piping the normal run to a parser.
-- **Configuring `lockfile_commands` replaces the built-in lockfile rewrite** rather than adding to it, verified by asserting the direct writer did not also fire. The command needs `shell = true` to use a redirection; without it the command is exec'd directly and `>>` is an argument.
-- **`monochange init` writes `.github/workflows` only for the `github` provider**, and the generated config carries an active `[source]` table and no `[cli.*]` tables at all.
-- **`monochange subagents --dry-run` writes nothing**, and the generated guidance names `monochange skill read monochange` first — pinned because the previous text taught a report field that does not exist.
-- **A group's version target is reported by its own id.** Asserting on member ids fails when an agent names its group something other than `main`; grading the group's version and its member list is both stricter and name-independent.
-- **Below 1.0.0 a `minor` change plans a patch and a `major` change plans a minor.** Two scenarios depend on this, so it is pinned directly rather than relied on incidentally.
+The skill/docs were also corrected around raw discovery versus registered release ownership, existing-config updates, no-config validation success, cross-stream validation limits, JSON quiet/filter behavior, preparation consuming changesets, Python/Go version ownership, prerelease state, section identifiers versus headings, valid stream/output ids, explicit dependency selection, and group changelog filtering versus complete hosted/named notes. The concise candidate changes how this guidance is routed, not the repository's authorization boundaries.
 
-## What the evaluation said about the agent, not the skill
+## Historical rounds
 
-The most encouraging result is a scenario that failed. The release scenario originally asked for a minor release and described two changes, one of which widened a tokens object that a `keyof typeof` union was derived from. The agent implemented the change, ran `monochange change classify`, and stopped:
+The previous findings document reported an initial eight-scenario round followed by a 29-scenario matrix. It recorded one model and one run per cell, approximately 143k tokens and about $10 of agent time across its recorded runs. Those figures are **historical**, are not current experiment totals, and are not newly validated by this expansion. Older saved records without execution/provenance fields fail the new replay requirements and need fresh runs.
 
-> `@acme/tokens` is flagged **breaking** … `SpacingToken = keyof typeof spacing` widens from 5 to 7 members, and TypeScript's assignability check isn't symmetric … a major changeset on `@acme/tokens` forces the **entire group** to the next major version, not `2.4.0`. Before I write changesets and run `prepare`, how do you want to handle this?
+Historical CLI fixes included scoped npm TOML key quoting during `init`, configured Python release loading, exact Go module-path dependency matching without rewriting unrelated third-party modules, true changeset dry runs, quoted pnpm and Dart dependency-key handling, and preview-cache invalidation after changeset content edits. The earlier document contained a contradictory passage calling the Go rewrite unresolved; that described the pre-fix observation. Its resolved behavior is now represented by `go-dependent-require-rewrite`, and final-build contract results determine current status.
 
-It offered three options — accept the major, override with justification, or rework the token export — and asked rather than guessing. That is the behaviour the skill asks for: the analysis was high-confidence, the requested version contradicted it, and the group coupling meant the conflict could not be absorbed silently.
+Historical skill corrections replaced stale command spellings, documented `versions list|sync`, separated preview `compatibility_evidence` from classification `decision.compatibility_impact`, required explicit Python own-version field selection, and identified preview as the cross-stream gate. Those remain useful regression targets; their historical success does not prove the current full suite passed.
 
-The scenario was wrong, not the agent. Two lessons came out of it:
+Earlier grader lessons still apply: consumed changesets are not missing work, group ids are choices rather than fixed literals, a mention of publication is not an executed upload, earlier mutating checks change later inputs, and severity expectations must agree with the toolchain-dependent evidence rather than silently override it.
 
-- **A scenario's expected outcome must not contradict the tool's own evidence.** The premise "widening a token scale is a minor change" is false for a type derived with `keyof typeof`, and the analyzer was right to say so. Scenarios that assert a version should use changes whose severity is not genuinely contested, or state the intended severity explicitly and test something else.
-- **The semantic analyzer's verdict depends on the environment.** In a run where TypeScript could not be resolved, the same change classified as `impact: unmodeled`, `bump: patch`, `review_required: true`; in the agent's workdir, with the workspace compiler available, it was `additive`, `minor`, `complete`. A scenario that hinges on a modeled verdict is only reproducible when the fixture's toolchain is installed. The suite now uses semantic classification as context an agent may consult, never as the premise of a check.
+## Remaining limits
 
-The dominant risk was not the agent, it was the grader. Both round-one failures were defects in the evaluation, not in the agent's work:
-
-- **A changeset file's absence is not a failure.** The Python scenario asserted a `.changeset/*.md` file still existed at grading time. The agent had completed the task correctly — it adopted monochange, added typed `versioned_files` for both packages, wrote both versions, and moved the internal dependency constraint — but running `prepare` consumed the changeset. The check now grades the outcome and reads intent from the transcript.
-- **An ambiguous prompt gets the safest reading.** "Do the release preparation for it, but do not publish — I want to review the diff first" was read as _preview only_, which is a defensible interpretation of "review the diff". The prompt now says explicitly to write the bumps and changelog entries into the tree. A scenario that grades mutation has to ask for mutation unambiguously.
-
-Both were fixed with `--regrade`, which re-applies current checks to saved workdirs and transcripts, so a grader fix costs no new agent runs. That flag is the single most valuable part of the harness.
-
-The three failure modes to keep avoiding, carried over from the Pina suite and confirmed here:
-
-- **Matching one spelling.** Grade the property, not the phrasing. The breaking-change scenario grades the resulting version rather than the string `major`, so a configured type that maps to a major release passes too.
-- **Matching the transcript for a file property.** Assert the artifact, not the sentence describing it.
-- **Matching content the agent read.** Transcript checks see only assistant-authored text and tool inputs, or the skill's own documentation would satisfy them.
-
-Prefer a `command` check whenever the CLI can answer the question, and prefer an outcome over a spelling.
-
-## Grader lessons
-
-The dominant risk is not the agent, it is the grader. Round two produced five grader defects against zero agent failures, and every one was a false negative on correct work:
-
-- **A mention is not an action.** A safety check forbade `npm publish` in the transcript. The agent correctly wrote "npm publish is still blocked" in its answer and executed nothing — and failed the check for saying the words. Transcript checks see assistant-authored prose, so a check forbidding a _command name_ fires on an agent that explains the command is blocked. Grade the workspace for actions and the transcript for decisions.
-- **A completed mutation is not a missing artifact.** A scenario asserted a changeset file still existed at grading time; the agent had already run `prepare`, which consumes it. Grade the outcome and read intent from the transcript.
-- **An earlier check can consume what a later one needs.** A Go scenario's second `prepare` had no changesets left, so its changed-file assertion failed on a correct workspace. Any check that re-runs a consuming command must restore its input first.
-- **Grade invariants, not literals.** A lockfile check asserted `version: 2.4.0`; an earlier check had already advanced the version, so the literal was wrong while the behavior was right. It now asserts that the lockfile carries whatever version the manifest declares.
-- **A group's id is the agent's choice.** A Dart check keyed on a group named `main`; the agent named its group `acme` and was failed for it. Grade a group's version and membership, not its name.
-
-## Limits
-
-- **One model, one run per cell.** Single-run pass rates in this suite are noise. A scenario that flips between runs is showing model variance until repeats say otherwise.
-- **The fixtures are not production repositories.** They are small workspaces with no lockfiles, no CI, and no published history. Real registry publishing, release records read back from git history over a long history, and provider flows are not exercised; the scenarios that touch publishing grade the gate and the refusal, not the upload.
-- **Semantic classification verdicts are not graded.** FINDINGS established earlier that an analyzer verdict depends on the fixture's installed toolchain — the same diff classified as `minor` with the workspace compiler present and `patch` without it — so a check premised on a verdict would grade the machine. Scenarios may consult classification, but none depends on its answer.
-- **Lockfiles and the release lifecycle are covered by contract, not by an agent.** The lockfile rewrite, the lifecycle gates, and the notes selection are deterministic properties, so they are pinned with `command` checks rather than a stochastic run. That is the right trade for cost, and it does mean no agent scenario exercises those paths end to end.
-- **The cost of a full pass is real.** Twenty-eight scenarios took roughly twenty to thirty minutes and five to ten dollars of agent time. Use `--scenario` for iteration and `--regrade` after a grader fix, which re-applies checks to saved workdirs without paying for another run.
+- No registry uploads, live provider changes, remote tags, releases, release-PR merges, or manual release/publish workflow triggers were performed. Local readiness/lifecycle evidence does not prove production publication success.
+- Fixtures are small synthetic repositories. Long histories, large dependency graphs, production performance, unavailable package managers, and every configuration combination remain outside this matrix.
+- Semantic analysis depends on available compilers, dependencies, and analyzer coverage. Release-intent checks do not prove complete semantic compatibility analysis.
+- Single-run outcomes and contended durations cannot establish a precise variant ranking. Repeats, intended-skill consultation, and stable artifact provenance matter.
+- Harness unit tests and isolated replay reduce false passes but do not prove that every scenario expectation or grader is correct. Grader changes must be audited independently of their pass rates.
+- Required PR checks remain the merge gate. Passing source tests/contracts, 100% patch coverage, and reviewed comparisons do not prove every unexercised configuration or production release path is correct.

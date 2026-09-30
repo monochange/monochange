@@ -1,0 +1,28 @@
+{
+	"id": "guardrail-skill-install-update",
+	"title": "Skill installation distinguishes installation, refusal, and explicit update",
+	"fixture": "empty-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "Install creates the complete bundled tree, refuses a second non-forced installation without changing any files, and --force restores modified entrypoint and topic contents exactly to the CLI-bundled versions.",
+	"checks": [
+		{
+			"id": "install-complete-bundle",
+			"kind": "command",
+			"command": "monochange skill install --dir .eval-skill && monochange skill read monochange > .entry-original && monochange skill read configuration > .config-original && cmp .entry-original .eval-skill/SKILL.md && cmp .config-original .eval-skill/skills/configuration.md && test -f .eval-skill/examples/readme.md && test -f .eval-skill/skills/commands.md",
+			"why": "A successful installation must provide real bundled content and linked supporting documents."
+		},
+		{
+			"id": "existing-skill-refused",
+			"kind": "command",
+			"command": "printf 'Local edited skill\\n' > .eval-skill/SKILL.md; printf 'Local edited topic\\n' > .eval-skill/skills/configuration.md; monochange skill install --dir .eval-skill > .refusal.out 2>&1; rc=$?; cat .refusal.out; test $rc -eq 1 && grep -q 'pass --force to replace it' .refusal.out && test \"$(cat .eval-skill/SKILL.md)\" = 'Local edited skill' && test \"$(cat .eval-skill/skills/configuration.md)\" = 'Local edited topic'",
+			"why": "Refusal must preserve both the user's entrypoint edits and topic edits."
+		},
+		{
+			"id": "forced-update-restores-bundle",
+			"kind": "command",
+			"command": "monochange skill install --dir .eval-skill --force && cmp .entry-original .eval-skill/SKILL.md && cmp .config-original .eval-skill/skills/configuration.md",
+			"why": "Explicit update must refresh supporting modules as well as the entrypoint."
+		}
+	]
+}

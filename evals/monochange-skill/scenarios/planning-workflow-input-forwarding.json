@@ -1,0 +1,56 @@
+{
+	"id": "planning-workflow-input-forwarding",
+	"title": "Build a custom change workflow with usable defaults and mapped inputs",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n[package.\"@acme/api\"]\npath = \"packages/api\"\ntype = \"npm\"\n[package.\"@acme/ui\"]\npath = \"packages/ui\"\ntype = \"npm\"\n[package.\"@acme/tokens\"]\npath = \"packages/tokens\"\ntype = \"npm\"\n[group.main]\npackages = [\"@acme/api\", \"@acme/ui\", \"@acme/tokens\"]\nversion_format = \"primary\"\n[ecosystems.npm]\nenabled = true\n[lints.rules]\n\"npm/workspace-protocol\" = \"off\"\n"
+	},
+	"prompt": "Add a repository-native workflow named record-fix. It should accept repeatable package targets, a required summary flag, and an optional severity choice defaulting to patch. Map those input names to CreateChangeFile's package, reason, and bump inputs explicitly. Use record-fix without specifying severity to record 'Preserve cancellation during retries' for @acme/api. Leave the changeset pending and show the plan; do not prepare.",
+	"expectation": "The persisted [cli.record-fix] workflow declares typed required inputs and explicitly maps summary/severity to reason/bump; omitted severity produces a valid pending patch intent and main plans 2.3.2.",
+	"checks": [
+		{
+			"id": "configuration-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The final configuration and pending changesets must resolve."
+		},
+		{
+			"id": "workflow-exists-and-is-usable",
+			"kind": "command",
+			"command": "monochange help record-fix",
+			"why": "Custom workflow help must resolve against the persisted configuration."
+		},
+		{
+			"id": "default-created-patch-plan",
+			"kind": "command",
+			"command": "monochange preview --format json | node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),p=JSON.parse(fs.readFileSync(0,\"utf8\")); a.equal(p.release_targets.length,1); a.equal(p.release_targets[0].id,\"main\"); a.equal(p.release_targets[0].version,\"2.3.2\");'",
+			"why": "The default severity must reach CreateChangeFile."
+		},
+		{
+			"id": "summary-forwarded-to-pending-intent",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\");a.ok(fs.readdirSync(\".changeset\").filter(x=>x.endsWith(\".md\")).some(x=>fs.readFileSync(\".changeset/\"+x,\"utf8\").includes(\"Preserve cancellation during retries\")));'",
+			"why": "Summary forwarding must write the user's actual release note."
+		},
+		{
+			"id": "workflow-mapping-persisted",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),s=fs.readFileSync(\"monochange.toml\",\"utf8\");a.ok(s.includes(\"[cli.record-fix]\"));a.ok(s.includes(\"CreateChangeFile\"));a.ok(s.includes(\"inputs.summary\"));a.ok(s.includes(\"inputs.severity\"));'",
+			"why": "A one-off changeset alone does not implement the reusable input mapping."
+		},
+		{
+			"id": "versions-unchanged",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"); for(const id of [\"api\",\"ui\",\"tokens\"]) a.equal(JSON.parse(fs.readFileSync(\"packages/\"+id+\"/package.json\",\"utf8\")).version,\"2.3.1\");'",
+			"why": "Recording intent must not prepare a release."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

@@ -1,0 +1,38 @@
+{
+	"id": "guardrail-disabled-ecosystem-recovery",
+	"title": "Recover configured Cargo package discovery after its ecosystem is disabled",
+	"fixture": "rust-workspace",
+	"setupCommands": [
+		"cp monochange.toml .config-original && sed 's/enabled = true/enabled = false/' monochange.toml > .disabled-config && mv .disabled-config monochange.toml",
+		"cp crates/core/Cargo.toml .core-original && cp crates/cli/Cargo.toml .cli-original"
+	],
+	"prompt": "Our two Cargo crates are still configured, but a config edit disabled the Cargo ecosystem and monochange no longer gives us a usable package graph. Diagnose with the CLI and restore discovery of acme-core and acme-cli. Keep the existing ids, package paths, manifest content, lint policy, and patch propagation setting; no releases or changesets are needed.",
+	"expectation": "The agent explicitly enables Cargo, validation and discovery work, both configured packages are present, and manifest and release intent state remain unchanged.",
+	"checks": [
+		{
+			"id": "ecosystem-enabled",
+			"kind": "file",
+			"path": "monochange.toml",
+			"match": "\\[ecosystems\\.cargo\\]\\s+enabled = true",
+			"why": "Configured Cargo packages require the Cargo ecosystem to be enabled."
+		},
+		{
+			"id": "discovery-has-both-configured-packages",
+			"kind": "command",
+			"command": "monochange discover --format json > .discovery.json && jq -e '[.packages[] | select(.ecosystem == \"cargo\") | {name, manifest_path}] | sort_by(.name) == [{name: \"acme-cli\", manifest_path: \"crates/cli/Cargo.toml\"}, {name: \"acme-core\", manifest_path: \"crates/core/Cargo.toml\"}]' .discovery.json >/dev/null",
+			"why": "Enabled syntax alone cannot prove both crates and their configured paths were restored to the graph."
+		},
+		{
+			"id": "validate-config",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The recovered config must resolve all configured packages."
+		},
+		{
+			"id": "manifests-and-intent-preserved",
+			"kind": "command",
+			"command": "cmp .config-original monochange.toml && cmp .core-original crates/core/Cargo.toml && cmp .cli-original crates/cli/Cargo.toml && test -z \"$(find .changeset -name '*.md' -type f 2>/dev/null)\"",
+			"why": "Ecosystem recovery is a config repair and must preserve unrelated release policy and manifests."
+		}
+	]
+}

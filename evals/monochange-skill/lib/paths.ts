@@ -12,10 +12,15 @@ import {
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	readlinkSync,
+	realpathSync,
 	rmSync,
+	statSync,
+	symlinkSync,
+	unlinkSync,
 	writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import process from "node:process";
 
 /// Root of the harness directory, `evals/monochange-skill`.
@@ -57,10 +62,27 @@ export const PACKAGE_SKILL_VARIANT = "package";
 /// The `monochange` CLI the fixtures are graded with.
 ///
 /// The workspace build is authoritative: the harness resolves
-/// `<repo>/target/debug/monochange` and never falls back to `PATH`. A released
+/// `<repo>/target/debug/monochange` unless MONOCHANGE_EVAL_CLI_PATH explicitly
+/// pins a snapshot of that build. It never falls back to `PATH`. A released
 /// `monochange` found on `PATH` may have a different command surface, so
 /// grading against it would measure the environment instead of the skill.
-export function resolveMonochangeCli(): string {
+export function resolveMonochangeCli(override = process.env["MONOCHANGE_EVAL_CLI_PATH"]): string {
+	if (override !== undefined) {
+		const path = resolve(override);
+
+		if (!override || !existsSync(path) || !statSync(path).isFile()) {
+			throw new Error(`MONOCHANGE_EVAL_CLI_PATH must identify an existing CLI file: ${override}`);
+		}
+
+		// Agents and shell checks resolve the command through its directory.
+		// A renamed snapshot would silently let another monochange win on PATH.
+		if (basename(path) !== "monochange") {
+			throw new Error("MONOCHANGE_EVAL_CLI_PATH must retain the executable filename monochange");
+		}
+
+		return path;
+	}
+
 	const candidate = join(REPO_ROOT, "target", "debug", "monochange");
 	if (!existsSync(candidate)) {
 		throw new Error(
@@ -137,9 +159,47 @@ export function exec(command: string, options: ExecOptions): ExecResult {
 	return {
 		exit: result.status ?? (timedOut ? 124 : 1),
 		stdout: result.stdout ?? "",
-		stderr: result.stderr ?? "",
+		stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
 		timedOut,
 	};
+}
+
+/// Quote one literal argument without allowing shell substitution in paths.
+export function quoteShellArgument(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+/// Give mutating graders a copy so saved agent artifacts remain replayable.
+export function copyForGrading(workdir: string, destination: string): void {
+	const source = realpathSync(workdir);
+	const links: { path: string; target: string }[] = [];
+	function insideSource(path: string): boolean {
+		const offset = relative(source, path);
+		return offset !== ".." && !offset.startsWith(`..${sep}`) && !isAbsolute(offset);
+	}
+	function inspect(directory: string): void {
+		for (const entry of readdirSync(directory, { withFileTypes: true })) {
+			const path = join(directory, entry.name);
+			if (entry.isDirectory()) inspect(path);
+			else if (entry.isSymbolicLink()) {
+				// Resolve chains and OS aliases such as /tmp -> /private/tmp, then
+				// remap only a target inside the saved workspace. Broken links fail.
+				const target = realpathSync(resolve(dirname(path), readlinkSync(path)));
+				if (!insideSource(target)) {
+					throw new Error(`grading symlink escapes saved workspace: ${path}`);
+				}
+				links.push({ path: relative(source, path), target: relative(source, target) });
+			}
+		}
+	}
+	inspect(source);
+	resetDir(destination);
+	cpSync(source, destination, { recursive: true, verbatimSymlinks: true });
+	for (const link of links) {
+		const path = join(destination, link.path);
+		unlinkSync(path);
+		symlinkSync(relative(dirname(path), join(destination, link.target)), path);
+	}
 }
 
 /// Create an empty directory, removing any previous contents.
