@@ -700,11 +700,12 @@ fn dropping_a_reporter_closes_an_open_github_group() {
 
 #[test]
 fn disabled_progress_still_names_the_failed_step_in_the_diagnostic() {
-	let (mut reporter, bytes) = recorded_reporter(ProgressFormat::Auto);
+	let (mut reporter, bytes) =
+		recorded_reporter_with(2, capabilities(false, false), ProgressFormat::Auto);
 	reporter.enabled = false;
 	let step = named_command_step("run tests");
 	reporter.step_failed(0, &step, Duration::from_millis(1), "boom");
-	reporter.step_failed(0, &named_command_step("cleanup"), Duration::ZERO, "boom");
+	reporter.step_failed(1, &named_command_step("cleanup"), Duration::ZERO, "boom");
 	reporter.write_diagnostic(CliDiagnostic::from_error(
 		&monochange_core::MonochangeError::Io("boom".to_string()),
 		Some("monochange run test"),
@@ -712,7 +713,18 @@ fn disabled_progress_still_names_the_failed_step_in_the_diagnostic() {
 
 	assert_eq!(
 		recorded_text(&bytes),
-		"error[io.failed]: boom\n  command: monochange run test\n  step:    run tests\n  help:    Check that the path exists and is writable, then rerun the command.\n"
+		"error[io.failed]: boom\n  command: monochange run test\n  step:    [1/2] run tests\n  help:    Check that the path exists and is writable, then rerun the command.\n"
+	);
+
+	let (single, single_bytes) = recorded_reporter(ProgressFormat::Auto);
+	single.step_failed(0, &step, Duration::from_millis(1), "boom");
+	single.write_diagnostic(CliDiagnostic::from_error(
+		&monochange_core::MonochangeError::Diagnostic("boom".to_string()),
+		Some("monochange run test"),
+	));
+	assert!(
+		recorded_text(&single_bytes)
+			.ends_with("error[cli.diagnostic]: boom\n  command: monochange run test\n")
 	);
 }
 

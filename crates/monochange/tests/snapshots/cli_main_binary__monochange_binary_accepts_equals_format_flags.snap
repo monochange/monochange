@@ -16,9 +16,10 @@ exit_code: 1
 ----- stdout -----
 
 ----- stderr -----
-error[config.invalid]: error: unrecognized subcommand 'run'
-  cause: Usage: monochange step [OPTIONS] <COMMAND>
+error[cli.usage]: unrecognized subcommand 'run'
 
-    For more information, try '--help'.
+Usage: monochange step [OPTIONS] <COMMAND>
+
+For more information, try '--help'.
+
   command: monochange step run
-  help: Check `monochange.toml` and the command arguments, then rerun the command.

@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::fmt::Write as _;
 
 use monochange_analysis::AnalysisConfig;
 use monochange_analysis::ChangeFrame;
@@ -9,6 +8,13 @@ use monochange_core::PackageRecord;
 
 use super::*;
 use crate::changeset_policy::configuration_package_records;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::first_line_preview;
+use crate::output::text::plural;
 
 pub(crate) async fn diagnose_changesets(
 	root: &Path,
@@ -160,93 +166,100 @@ pub(crate) fn resolve_changeset_path(root: &Path, requested: &str) -> Monochange
 }
 
 pub(crate) fn render_changeset_diagnostics(report: &ChangesetDiagnosticsReport) -> String {
+	let mut text = TextReport::new(TextTheme::for_stdout());
 	if report.changesets.is_empty() {
-		return "no matching changesets found".to_string();
+		text.headline(Outcome::Neutral, "No matching changesets found", &[]);
+		return text.render();
 	}
 
-	let mut rendered = String::new();
-
-	for (index, changeset) in report.changesets.iter().enumerate() {
-		if index > 0 {
-			rendered.push('\n');
+	text.headline(
+		Outcome::Neutral,
+		&plural(report.changesets.len(), "changeset", "changesets"),
+		&[],
+	);
+	for changeset in &report.changesets {
+		text.paragraph(&changeset.path.display().to_string(), Tone::Heading);
+		match changeset.summary.as_deref() {
+			Some(summary) => text.indented(summary, Tone::Plain),
+			None => text.indented("(missing summary)", Tone::Warning),
 		}
-
-		let change_summary = changeset.summary.as_deref().unwrap_or("<missing summary>");
-
-		let _ = writeln!(&mut rendered, "changeset: {}", changeset.path.display());
-		let _ = writeln!(&mut rendered, "  summary: {change_summary}");
-
 		if let Some(details) = &changeset.details {
-			let _ = writeln!(&mut rendered, "  details: {details}");
+			text.indented(
+				&first_line_preview(details, DETAILS_PREVIEW_WIDTH),
+				Tone::Muted,
+			);
 		}
 
 		if !changeset.targets.is_empty() {
-			rendered.push_str("  targets:\n");
-
+			let rows = changeset
+				.targets
+				.iter()
+				.map(|target| {
+					vec![
+						TableCell::new(target.kind.to_string(), Tone::Muted),
+						TableCell::new(&target.id, Tone::Heading),
+						TableCell::new(
+							target
+								.bump
+								.map_or_else(|| "auto".to_string(), |bump| bump.to_string()),
+							Tone::Value,
+						),
+						TableCell::new(target.origin.clone(), Tone::Muted),
+					]
+				})
+				.collect::<Vec<_>>();
+			text.indented("", Tone::Plain);
+			text.nested_table(&rows, 4);
 			for target in &changeset.targets {
-				let _ = match target.bump {
-					Some(bump) => {
-						writeln!(
-							&mut rendered,
-							"  - {} {} (bump: {}, origin: {})",
-							target.kind, target.id, bump, target.origin,
-						)
-					}
-					None => {
-						writeln!(
-							&mut rendered,
-							"  - {} {} (bump: auto, origin: {})",
-							target.kind, target.id, target.origin,
-						)
-					}
-				};
-
 				if !target.caused_by.is_empty() {
-					rendered.push_str("    caused by: ");
-					push_comma_separated(
-						&mut rendered,
-						target.caused_by.iter().map(String::as_str),
+					text.indented(
+						&format!("  {} caused by {}", target.id, target.caused_by.join(", ")),
+						Tone::Muted,
 					);
-					rendered.push('\n');
 				}
-
 				if !target.evidence_refs.is_empty() {
-					rendered.push_str("    evidence: ");
-					push_comma_separated(
-						&mut rendered,
-						target.evidence_refs.iter().map(String::as_str),
+					text.indented(
+						&format!(
+							"  {} evidence {}",
+							target.id,
+							target.evidence_refs.join(", ")
+						),
+						Tone::Muted,
 					);
-					rendered.push('\n');
 				}
 			}
 		}
 
 		if let Some(context) = &changeset.context {
-			push_changeset_context_lines(&mut rendered, context);
+			let provenance = changeset_provenance(context);
+			if !provenance.is_empty() {
+				text.indented("", Tone::Plain);
+				text.indented(&provenance.join(" · "), Tone::Muted);
+			}
 		}
 	}
-
-	rendered.pop();
-	rendered
+	text.render()
 }
 
-fn push_changeset_context_lines(rendered: &mut String, context: &ChangesetContext) {
+/// Width of the one-line preview of a changeset's details.
+const DETAILS_PREVIEW_WIDTH: usize = 100;
+
+fn changeset_provenance(context: &ChangesetContext) -> Vec<String> {
+	let mut provenance = Vec::new();
 	if let Some(introduced) = context
 		.introduced
 		.as_ref()
 		.and_then(|revision| revision.commit.as_ref())
 	{
-		let _ = writeln!(rendered, "  introduced: {}", introduced.short_sha);
+		provenance.push(format!("introduced {}", introduced.short_sha));
 	}
-
 	if let Some(last_updated) = context
 		.last_updated
 		.as_ref()
 		.and_then(|revision| revision.commit.as_ref())
 	{
-		let _ = writeln!(rendered, "  last-updated: {}", last_updated.short_sha);
+		provenance.push(format!("last updated {}", last_updated.short_sha));
 	}
-
 	let review_request = context
 		.introduced
 		.as_ref()
@@ -257,40 +270,24 @@ fn push_changeset_context_lines(rendered: &mut String, context: &ChangesetContex
 				.as_ref()
 				.and_then(|revision| revision.review_request.as_ref())
 		});
-
 	if let Some(review_request) = review_request {
-		let _ = match &review_request.url {
-			Some(url) => {
-				writeln!(
-					rendered,
-					"  review request: {} ({})",
-					review_request.id, url,
-				)
-			}
-			None => writeln!(rendered, "  review request: {}", review_request.id),
-		};
+		provenance.push(match &review_request.url {
+			Some(url) => format!("review {} ({url})", review_request.id),
+			None => format!("review {}", review_request.id),
+		});
 	}
-
-	if context.related_issues.is_empty() {
-		return;
+	if !context.related_issues.is_empty() {
+		provenance.push(format!(
+			"related {}",
+			context
+				.related_issues
+				.iter()
+				.map(|issue| issue.id.as_str())
+				.collect::<Vec<_>>()
+				.join(", ")
+		));
 	}
-
-	rendered.push_str("  related issues: ");
-	push_comma_separated(
-		rendered,
-		context.related_issues.iter().map(|issue| issue.id.as_str()),
-	);
-	rendered.push('\n');
-}
-
-fn push_comma_separated<'a>(rendered: &mut String, values: impl Iterator<Item = &'a str>) {
-	let mut separator = "";
-
-	for value in values {
-		rendered.push_str(separator);
-		rendered.push_str(value);
-		separator = ", ";
-	}
+	provenance
 }
 
 #[must_use = "the discovery result must be checked"]

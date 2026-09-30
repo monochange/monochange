@@ -1,0 +1,12 @@
+---
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+expression: text.render()
+---
+Release commit
+  1234567  chore(release): publish
+  2 tracked paths · already-exists
+
+Release commit
+  (not created)  chore(release): publish
+  1 tracked path
+  .monochange/releases/abc/release.json

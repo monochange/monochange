@@ -78,10 +78,7 @@ fn captured_workflow_progress_has_no_terminal_control_sequences() {
 		"validate failed\nstdout:\n{}\nstderr:\n{stderr}",
 		String::from_utf8_lossy(&output.stdout),
 	);
-	assert!(
-		stderr.contains("monochange running `step validate`"),
-		"{stderr}"
-	);
+	assert!(stderr.contains("✔ validate workspace"), "{stderr}");
 	assert!(
 		stderr.contains("Loading workspace configuration"),
 		"{stderr}"
@@ -168,7 +165,10 @@ fn jq_rejects_implicit_human_output() {
 		stderr.contains("command: monochange step config"),
 		"{stderr}"
 	);
-	assert!(stderr.contains("help: Add `--format json`"), "{stderr}");
+	assert!(
+		stderr.contains("add `--format json` or `--format json-min`"),
+		"{stderr}"
+	);
 }
 
 #[test]
@@ -187,11 +187,8 @@ fn slow_captured_command_names_its_active_phase() {
 		stderr.contains("Loading workspace configuration"),
 		"{stderr}"
 	);
-	assert!(stderr.contains("[1/1] slow spinner"), "{stderr}");
-	assert!(
-		stderr.contains("running command `sleep 1.5; echo done`"),
-		"{stderr}"
-	);
+	assert!(stderr.contains("▶ slow spinner"), "{stderr}");
+	assert!(stderr.contains("  $ sleep 1.5; echo done"), "{stderr}");
 	assert!(!stderr.contains('\r'), "{stderr:?}");
 	assert!(!stderr.contains('\u{1b}'), "{stderr:?}");
 }
@@ -206,7 +203,10 @@ fn check_failure_separates_the_result_from_the_actionable_diagnostic() {
 		.unwrap_or_else(|error| panic!("check stderr must be UTF-8: {error}"));
 
 	assert!(!output.status.success());
-	assert!(stdout.contains("lint: 6 errors, 1 warnings"), "{stdout}");
+	assert!(
+		stdout.starts_with("✖ Checks failed · 6 errors · 1 warning"),
+		"{stdout}"
+	);
 	assert!(stdout.contains("npm/workspace-protocol"), "{stdout}");
 	assert!(
 		stderr.contains("error[check.failed]: check failed: 6 errors, 1 warning"),

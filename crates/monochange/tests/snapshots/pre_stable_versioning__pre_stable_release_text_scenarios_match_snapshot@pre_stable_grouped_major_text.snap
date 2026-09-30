@@ -2,15 +2,20 @@
 source: crates/monochange/tests/pre_stable_versioning.rs
 expression: "String::from_utf8_lossy(&output.stdout)"
 ---
-command `release` completed (dry-run)
-version: 0.2.0
-released packages: workflow-app, workflow-core
-release targets:
-- group sdk -> v0.2.0 (tag: true, release: true)
-release manifest: .monochange/local/release-manifest.json
-changed files:
-- Cargo.toml
-- crates/app/Cargo.toml
-- crates/core/Cargo.toml
-commands:
-- skipped release record: dry-run preview (pass `--release-json` to write release.json)
+• Release preview · 2 packages · dry-run, no files were changed
+
+Releases
+  sdk  v0.2.0  group · tag · release
+
+Packages (2)
+  workflow-app, workflow-core
+
+Changed files (3)
+  Cargo.toml
+  crates/app/Cargo.toml
+  crates/core/Cargo.toml
+
+Manifest  .monochange/local/release-manifest.json
+
+Log
+  skipped release record: dry-run preview (pass `--release-json` to write release.json)

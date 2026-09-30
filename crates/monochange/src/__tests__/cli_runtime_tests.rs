@@ -745,7 +745,7 @@ fn resolve_command_output_defaults_to_text_without_step_format() {
 	let output = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("resolve text output: {error}"));
 
-	assert!(output.starts_with("command `release` completed"));
+	assert!(output.starts_with("• No release planned"), "{output}");
 	assert!(!output.trim_start().starts_with('{'));
 }
 
@@ -895,27 +895,14 @@ fn render_helpers_cover_release_commit_and_markdown_sections() {
 		dry_run: false,
 		status: "already_exists".to_string(),
 	};
-	let text_lines = render_release_commit_report(&report);
-	assert!(
-		text_lines
-			.iter()
-			.any(|line| line.contains("subject: chore(release): publish"))
-	);
-	assert!(
-		text_lines
-			.iter()
-			.any(|line| line.contains("commit: 1234567"))
-	);
-	assert!(
-		text_lines
-			.iter()
-			.any(|line| line.contains("tracked paths:"))
-	);
-	assert!(
-		text_lines
-			.iter()
-			.any(|line| line.contains("status: already-exists"))
-	);
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	render_release_commit_section(&mut text, &report, Path::new("/repo"));
+	let mut untracked = report.clone();
+	untracked.commit = None;
+	untracked.status = "completed".to_string();
+	untracked.tracked_paths = vec![PathBuf::from("/repo/.monochange/releases/abc/release.json")];
+	render_release_commit_section(&mut text, &untracked, Path::new("/repo"));
+	insta::assert_snapshot!("release_commit_sections", text.render());
 
 	let markdown_lines = render_release_commit_report_markdown(&report, true);
 	assert!(
@@ -1186,17 +1173,7 @@ fn render_cli_command_results_include_release_details_policy_and_logs() {
 	});
 
 	let text = render_cli_command_result(&cli_command, &context);
-	assert!(text.contains("release manifest: .monochange/local/release.json"));
-	assert!(text.contains("releases:"));
-	assert!(text.contains("release request:"));
-	assert!(text.contains("issue comments:"));
-	assert!(text.contains("changed files:"));
-	assert!(text.contains("file diffs:"));
-	assert!(text.contains("deleted changesets:"));
-	assert!(text.contains("matched paths:"));
-	assert!(text.contains("changeset files:"));
-	assert!(text.contains("errors:"));
-	assert!(text.contains("commands:"));
+	insta::assert_snapshot!("release_details_policy_and_logs_text", text);
 
 	let markdown = render_cli_command_markdown_result(&cli_command, &context);
 	assert!(markdown.contains("## Release targets"));
@@ -1212,16 +1189,20 @@ fn render_cli_command_results_include_release_details_policy_and_logs() {
 fn render_display_versions_output_supports_text_markdown_and_json() {
 	let prepared_release = sample_prepared_release_with_versions();
 
-	let text = render_display_versions_output(&prepared_release, OutputFormat::Text)
-		.unwrap_or_else(|error| panic!("versions text output: {error}"));
+	let configuration = sample_configuration(Path::new("."));
+	let text =
+		render_display_versions_output(&prepared_release, &configuration, OutputFormat::Text)
+			.unwrap_or_else(|error| panic!("versions text output: {error}"));
 	insta::assert_snapshot!("display_versions_text", text);
 
-	let markdown = render_display_versions_output(&prepared_release, OutputFormat::Markdown)
-		.unwrap_or_else(|error| panic!("versions markdown output: {error}"));
+	let markdown =
+		render_display_versions_output(&prepared_release, &configuration, OutputFormat::Markdown)
+			.unwrap_or_else(|error| panic!("versions markdown output: {error}"));
 	insta::assert_snapshot!("display_versions_markdown", markdown);
 
-	let json = render_display_versions_output(&prepared_release, OutputFormat::Json)
-		.unwrap_or_else(|error| panic!("versions json output: {error}"));
+	let json =
+		render_display_versions_output(&prepared_release, &configuration, OutputFormat::Json)
+			.unwrap_or_else(|error| panic!("versions json output: {error}"));
 	let parsed: serde_json::Value = serde_json::from_str(&json)
 		.unwrap_or_else(|error| panic!("parse versions json output: {error}"));
 	insta::assert_json_snapshot!("display_versions_json", parsed);
@@ -1231,9 +1212,10 @@ fn render_display_versions_output_supports_text_markdown_and_json() {
 fn release_version_summary_renderers_cover_empty_and_single_section_states() {
 	let empty_release = sample_prepared_release();
 	let empty = build_release_version_summary(&empty_release);
+	let no_labels = BTreeMap::new();
 	assert_eq!(
-		render_release_version_summary_text(&empty),
-		"no package or group versions were planned"
+		render_release_version_summary_text(&empty, &no_labels),
+		"• No versions planned · add a changeset with `monochange change` to plan a release"
 	);
 	assert_eq!(
 		render_release_version_summary_markdown(&empty),
@@ -1244,8 +1226,8 @@ fn release_version_summary_renderers_cover_empty_and_single_section_states() {
 	groups_release.plan.decisions.clear();
 	let groups_only = build_release_version_summary(&groups_release);
 	assert_eq!(
-		render_release_version_summary_text(&groups_only),
-		"group versions:\n- sdk: 2.0.0"
+		render_release_version_summary_text(&groups_only, &no_labels),
+		"✔ Next versions · 1 group · 0 packages\n\nGroups\n  sdk  2.0.0  minor"
 	);
 	assert_eq!(
 		render_release_version_summary_markdown(&groups_only),
@@ -1255,9 +1237,10 @@ fn release_version_summary_renderers_cover_empty_and_single_section_states() {
 	let mut packages_release = sample_prepared_release_with_versions();
 	packages_release.plan.groups.clear();
 	let packages_only = build_release_version_summary(&packages_release);
+	let labels = BTreeMap::from([("core".to_string(), "core-lib".to_string())]);
 	assert_eq!(
-		render_release_version_summary_text(&packages_only),
-		"package versions:\n- core: 1.2.0\n- web: 1.2.1"
+		render_release_version_summary_text(&packages_only, &labels),
+		"✔ Next versions · 2 packages\n\nPackages\n  core-lib  1.2.0  minor\n  web       1.2.1  patch"
 	);
 	assert_eq!(
 		render_release_version_summary_markdown(&packages_only),
@@ -1320,11 +1303,7 @@ fn render_cli_command_results_include_package_publish_reports() {
 	context.command_logs = vec!["ran npm trust".to_string()];
 
 	let text = render_cli_command_result(&cli_command, &context);
-	assert!(text.starts_with("Published 1 package"));
-	assert!(text.contains("@scope/pkg"));
-	assert!(text.contains("trusted publishing: configured"));
-	assert!(text.contains("repository: monochange/monochange"));
-	assert!(text.contains("commands:"));
+	insta::assert_snapshot!("package_publish_report_text", text);
 
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
@@ -1978,10 +1957,7 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 
 	let text = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("rate limit text output: {error}"));
-	assert!(text.contains("publish rate limits:"));
-	assert!(text.contains("batches=2"));
-	assert!(text.contains("planned batches:"));
-	assert!(text.contains("wait: 86400s before this batch"));
+	insta::assert_snapshot!("publish_rate_limits_text", text);
 
 	context.last_step_inputs = BTreeMap::from([("format".to_string(), vec!["json".to_string()])]);
 	context.output_format = OutputFormat::Json;
@@ -2021,8 +1997,8 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 	context.rate_limit_report = Some(windows_without_batches);
 	let no_batches = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("rate limit output without batches: {error}"));
-	assert!(no_batches.contains("publish rate limits:"));
-	assert!(!no_batches.contains("planned batches:"));
+	assert!(no_batches.contains("Publish rate limits"));
+	assert!(!no_batches.contains("Planned batches"));
 }
 
 #[test]
@@ -2608,7 +2584,7 @@ async fn configured_config_step_uses_generic_completion_without_config_json() {
 	.await
 	.unwrap_or_else(|error| panic!("config command: {error}"));
 
-	assert_eq!(output, "command `configured-config` completed (dry-run)");
+	assert_eq!(output, "✔ configured-config completed · dry-run");
 	assert!(!output.contains("project_root"));
 }
 
@@ -2654,7 +2630,7 @@ async fn execute_cli_command_suppresses_progress_for_interactive_command_steps()
 
 	// The step ran without streaming or capturing its output, and no
 	// `running command` status line was emitted.
-	assert!(output.contains("completed"));
+	assert!(output.starts_with("Log\n"));
 	assert!(output.contains("ran `printf 'tui output\\n'`"));
 	assert!(!output.contains("running command"));
 }
@@ -2957,7 +2933,7 @@ async fn execute_cli_command_with_options_covers_final_artifact_save_call() {
 	.await
 	.unwrap_or_else(|error| panic!("execute noop command: {error}"));
 
-	assert_eq!(output, "command `noop` completed");
+	assert_eq!(output, "✔ noop completed");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -3113,7 +3089,10 @@ async fn display_versions_reports_no_planned_versions_without_changesets() {
 	let configuration = sample_configuration(root);
 
 	for (format, expected) in [
-		("text", "no package or group versions were planned"),
+		(
+			"text",
+			"• No versions planned · add a changeset with `monochange change` to plan a release",
+		),
 		("md", "No package or group versions were planned."),
 	] {
 		let output = execute_cli_command_with_options(
@@ -3269,11 +3248,7 @@ fn render_cli_command_result_includes_release_results_and_changed_files() {
 
 	let rendered = render_cli_command_result(&cli_command, &context);
 
-	assert!(rendered.contains("release manifest: .monochange/local/prepared-release.json"));
-	assert!(rendered.contains("releases:"));
-	assert!(rendered.contains("- published core"));
-	assert!(rendered.contains("changed files:"));
-	assert!(rendered.contains("- Cargo.toml"));
+	insta::assert_snapshot!(rendered);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -3295,11 +3270,89 @@ async fn save_prepared_release_artifact_returns_explicit_errors() {
 	assert!(!error.to_string().is_empty());
 }
 
+fn sample_package_definition() -> monochange_core::PackageDefinition {
+	monochange_core::PackageDefinition {
+		id: String::new(),
+		path: PathBuf::new(),
+		package_type: monochange_core::PackageType::Cargo,
+		changelog: None,
+		excluded_changelog_types: Vec::new(),
+		bump_propagation: None,
+		empty_update_message: None,
+		release_title: None,
+		changelog_version_title: None,
+		versioned_files: Vec::new(),
+		ignore_ecosystem_versioned_files: false,
+		ignored_paths: Vec::new(),
+		additional_paths: Vec::new(),
+		tag: false,
+		release: false,
+		publish: monochange_core::PublishSettings::default(),
+		version_format: monochange_core::VersionFormat::Primary,
+		version_source: monochange_core::VersionSource::default(),
+		initial_version: None,
+		bump_ceiling: None,
+		classification_enforced: None,
+		floating_tags: Vec::new(),
+		cli: None,
+		display_version: None,
+		values: BTreeMap::new(),
+	}
+}
+
 #[test]
-fn append_changed_file_lines_returns_early_when_no_files_changed() {
-	let mut lines = vec!["start".to_string()];
-	append_changed_file_lines(&mut lines, &[]);
-	assert_eq!(lines, vec!["start".to_string()]);
+fn configured_package_labels_map_record_ids_to_configured_ids() {
+	let mut configuration = sample_configuration(Path::new("."));
+	for (id, path) in [
+		("core", "crates/core"),
+		("root", "."),
+		("web", "./packages/web/"),
+	] {
+		configuration
+			.packages
+			.push(monochange_core::PackageDefinition {
+				id: id.to_string(),
+				path: PathBuf::from(path),
+				..sample_package_definition()
+			});
+	}
+
+	let labels = configured_package_labels(
+		&configuration,
+		[
+			"cargo:crates/core/Cargo.toml",
+			"cargo:Cargo.toml",
+			"npm:packages/web/package.json",
+			"npm:packages/other/package.json",
+			"plain-id",
+		]
+		.map(ToString::to_string),
+	);
+	assert_eq!(
+		labels,
+		BTreeMap::from([
+			("cargo:Cargo.toml".to_string(), "root".to_string()),
+			(
+				"cargo:crates/core/Cargo.toml".to_string(),
+				"core".to_string()
+			),
+			(
+				"npm:packages/web/package.json".to_string(),
+				"web".to_string()
+			),
+		])
+	);
+}
+
+#[test]
+fn wrapped_names_break_before_the_width() {
+	let names = ["alpha", "beta", "gamma"].map(ToString::to_string);
+	assert_eq!(wrap_names(&names, 12), ["alpha, beta,", "gamma"]);
+	assert!(wrap_names(&[], 12).is_empty());
+	assert_eq!(
+		unique_lines(&["a".to_string(), "b".to_string(), "a".to_string()]),
+		["a", "b"]
+	);
 }
 
 #[test]
@@ -3363,8 +3416,7 @@ fn render_cli_command_result_and_markdown_cover_empty_and_fallback_paths() {
 	let mut context = cli_context();
 	context.command_logs = vec!["ran command".to_string()];
 	let text = render_cli_command_result(&cli_command, &context);
-	assert!(text.contains("commands:"));
-	assert!(!text.contains("changed files:"));
+	assert_eq!(text, "Log\n  ran command");
 
 	let markdown = render_cli_command_markdown_result(&cli_command, &context);
 	assert_eq!(markdown, text);
@@ -3429,11 +3481,7 @@ fn render_cli_command_result_and_markdown_include_release_target_details_without
 	});
 
 	let text = render_cli_command_result(&cli_command, &context);
-	assert!(text.contains("release targets:"));
-	assert!(text.contains("tag: true, release: false"));
-	assert!(text.contains("changed files:"));
-	assert!(!text.contains("file diffs:"));
-	assert!(text.contains("matched skip labels: docs-only"));
+	insta::assert_snapshot!("release_target_details_without_diffs_text", text);
 
 	let markdown = render_cli_command_markdown_result(&cli_command, &context);
 	assert!(markdown.contains("## Release targets"));
@@ -3943,7 +3991,7 @@ fn create_change_file_command_dry_run_does_not_write_changeset() {
 		"dry run must not write changeset files"
 	);
 	assert!(
-		output.contains("would write change file"),
+		output.contains("Would create changeset"),
 		"dry run must report the path it would write instead of writing: {output}"
 	);
 }
@@ -3994,7 +4042,36 @@ fn create_change_file_command_without_dry_run_writes_changeset() {
 		"create without dry run must write exactly one changeset file"
 	);
 	assert!(
-		output.contains("wrote change file"),
+		output.contains("Created changeset"),
 		"create must report the file it wrote: {output}"
 	);
+}
+
+#[test]
+fn failed_command_details_repeat_only_the_tail_of_streamed_output() {
+	let status = std::process::Command::new("sh")
+		.args(["-c", "exit 101"])
+		.status()
+		.unwrap_or_else(|error| panic!("status: {error}"));
+	let stderr = (1..=25)
+		.map(|line| format!("line {line}"))
+		.collect::<Vec<_>>()
+		.join("\n");
+	let output = PreparedProcessOutput {
+		status,
+		stdout: b"compiling\n".to_vec(),
+		stderr: stderr.into_bytes(),
+	};
+
+	let streamed = ensure_command_succeeded(&output, "cargo test", true)
+		.expect_err("a failing command should be reported")
+		.to_string();
+	assert!(streamed.contains("command `cargo test` failed: exit status: 101"));
+	assert!(streamed.contains("stdout:\ncompiling"));
+	assert!(streamed.contains("stderr (last 20 of 25 lines, full output above):\nline 6\n"));
+	assert!(!streamed.contains("line 5\n"));
+
+	let captured = render_process_failure_details(&output, None);
+	assert!(captured.contains("stderr:\nline 1\n"));
+	assert!(captured.ends_with("line 25"));
 }

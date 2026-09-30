@@ -1,0 +1,23 @@
+---
+source: crates/monochange/src/__tests__/lint_tests.rs
+expression: failed_after_fix
+---
+✖ Checks failed · 1 error · 2 warnings · 1 fixable · fixed 2 files
+
+Workspace validation (1)
+
+error: package `x` path `x` does not exist
+  --> monochange.toml:3:1
+
+Warnings (1)
+  ▲ skipped autofix for Cargo.toml
+
+packages/app/package.json
+  2:1   · informational
+          npm/off-rule
+          severity off
+  12:4  ▲ dependencies are not sorted
+          npm/sorted-dependencies · fixable
+          severity warning · span 3..9 · fix: sort dependencies
+
+1 issue is still auto-fixable; run `monochange check --fix` again.

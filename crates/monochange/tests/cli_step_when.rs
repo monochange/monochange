@@ -54,7 +54,10 @@ fn cli_step_when_skips_non_command_steps_when_false() {
 	let output = run_command(root.path(), "when-validate", &[]);
 	assert!(output.status.success(), "{}", to_stderr(&output));
 	let text = String::from_utf8_lossy(&output.stdout);
-	assert!(text.contains("command `when-validate` completed"));
+	assert!(
+		text.contains("skipped step `Validate` because when condition"),
+		"{text}"
+	);
 }
 
 fn run_command(root: &Path, command: &str, args: &[&str]) -> Output {

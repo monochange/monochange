@@ -277,7 +277,7 @@ fn release_progress_streams_named_steps_on_tty() {
 	);
 
 	assert!(transcript.contains("[1/2] plan release (PrepareRelease)"));
-	assert!(transcript.contains("[2/2] stream summary (Command)"));
+	assert!(transcript.contains("[2/2] stream summary"));
 	// Captured output names its step once, then indents every line under it. The
 	// spinner repaints its status line in place while these lines stream, so the
 	// block stays contiguous only if the transcript keeps the overwritten text.
@@ -286,8 +286,8 @@ fn release_progress_streams_named_steps_on_tty() {
 	);
 	assert!(!transcript.contains("[stdout]"));
 	assert!(!transcript.contains("[stderr]"));
-	assert!(transcript.contains("`progress-release` finished"));
-	assert!(transcript.contains("command `progress-release` completed"));
+	assert!(transcript.contains("progress-release completed in"));
+	assert!(transcript.contains("\nLog\n"));
 }
 
 #[test]
@@ -332,25 +332,24 @@ fn release_progress_renders_skipped_failed_steps_and_stderr_on_tty() {
 	let (status, transcript) = run_tty_command_result(tempdir.path(), "progress-failure");
 
 	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
-	assert!(transcript.contains(
-		"○ [1/5] skip validate (Validate) — skipped (when condition `{{ false }}` is false)"
-	));
+	assert!(transcript.contains("○ [1/5] skip validate (Validate)"));
+	assert!(transcript.contains("skipped · when condition `{{ false }}` is false"));
 	assert!(transcript.contains("  │ stderr only\n  │   warn line"));
-	assert!(transcript.contains("✖ [3/5] fail loud (Command)"));
+	assert!(transcript.contains("✖ [3/5] fail loud"));
+	assert!(transcript.contains("  └─ command failed (exit status: "));
 	assert!(transcript.contains("  │ fail loud\n  │   bad line"));
-	assert!(transcript.contains("error[workspace.discovery_failed]"));
-	assert!(transcript.contains("cause: stderr:\n    bad line"));
-	assert!(transcript.contains("✔ [4/5] cleanup (Command)"));
+	assert!(transcript.contains("error[step.command_failed]"));
+	assert!(transcript.contains("\n    stderr:\n    bad line"));
+	assert!(transcript.contains("step:    [3/5] fail loud"));
+	assert!(transcript.contains("✔ [4/5] cleanup"));
 	assert!(transcript.contains("  │ cleanup\n  │   cleanup complete"));
 	assert!(!transcript.contains("[stdout]"));
 	assert!(!transcript.contains("[stderr]"));
-	assert!(
-		transcript
-			.contains("○ [5/5] skip after failure (Command) — skipped (an earlier step failed)")
-	);
-	assert!(transcript.contains("`progress-failure` failed"));
+	assert!(transcript.contains("○ [5/5] skip after failure"));
+	assert!(transcript.contains("skipped · an earlier step failed"));
+	assert!(transcript.contains("progress-failure failed after"));
 	assert!(!transcript.contains("✔ [3/5] fail loud"));
-	assert!(!transcript.contains("`progress-failure` finished"));
+	assert!(!transcript.contains("progress-failure completed"));
 	assert!(!transcript.contains("must not run"));
 }
 
@@ -363,11 +362,10 @@ fn failure_without_cleanup_reports_every_later_step_as_skipped() {
 		run_tty_command_result(tempdir.path(), "progress-failure-no-cleanup");
 
 	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
-	assert!(transcript.contains("✖ [1/2] primary failure (Command)"));
-	assert!(
-		transcript.contains("○ [2/2] skipped tail (Command) — skipped (an earlier step failed)")
-	);
-	assert!(transcript.contains("`progress-failure-no-cleanup` failed"));
+	assert!(transcript.contains("✖ [1/2] primary failure"));
+	assert!(transcript.contains("○ [2/2] skipped tail"));
+	assert!(transcript.contains("skipped · an earlier step failed"));
+	assert!(transcript.contains("progress-failure-no-cleanup failed after"));
 	assert!(!transcript.contains("must not run"));
 }
 
@@ -379,9 +377,9 @@ fn release_progress_renders_stdout_only_command_failure_details() {
 	let (status, transcript) = run_tty_command_result(tempdir.path(), "progress-stdout-failure");
 
 	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
-	assert!(transcript.contains("✖ [1/1] fail stdout only (Command)"));
+	assert!(transcript.contains("✖ fail stdout only"));
 	assert!(
-		transcript.contains("cause: stdout:\n    stdout failure line"),
+		transcript.contains("\n    stdout:\n    stdout failure line"),
 		"expected stdout-only failure details in transcript:\n{transcript}"
 	);
 	assert!(!transcript.contains("stderr:"));
@@ -395,12 +393,22 @@ fn failing_cleanup_preserves_the_primary_workflow_error() {
 	let (status, transcript) = run_tty_command_result(tempdir.path(), "progress-failing-cleanup");
 
 	assert_ne!(status, 0, "expected failure transcript:\n{transcript}");
-	assert!(transcript.contains("✖ [1/2] primary failure (Command)"));
-	assert!(transcript.contains("✖ [2/2] failing cleanup (Command)"));
+	assert!(transcript.contains("✖ [1/2] primary failure"));
+	assert!(transcript.contains("✖ [2/2] failing cleanup"));
+	// Each step line names its own exit status; the final diagnostic explains
+	// the primary failure, not the cleanup failure that followed it.
+	assert!(
+		transcript.contains("command failed (exit status: 4)"),
+		"{transcript}"
+	);
+	assert!(
+		transcript.contains("command failed (exit status: 5)"),
+		"{transcript}"
+	);
 	let primary_error = "command `printf 'primary error\\n' >&2; exit 4` failed";
 	let cleanup_error = "command `printf 'cleanup error\\n' >&2; exit 5` failed";
-	assert_eq!(transcript.matches(primary_error).count(), 2, "{transcript}");
-	assert_eq!(transcript.matches(cleanup_error).count(), 1, "{transcript}");
+	assert_eq!(transcript.matches(primary_error).count(), 1, "{transcript}");
+	assert_eq!(transcript.matches(cleanup_error).count(), 0, "{transcript}");
 }
 
 #[test]
@@ -442,10 +450,9 @@ fn interactive_change_cli_shows_step_progress_on_tty() {
 		status, 0,
 		"unexpected interactive transcript:\n{transcript}"
 	);
-	assert!(transcript.contains("running `change`"), "{transcript}");
-	assert!(transcript.contains("[1/1]"), "{transcript}");
-	assert!(transcript.contains("`change` finished"), "{transcript}");
-	assert!(transcript.contains("wrote change file .changeset/interactive.md"));
+	assert!(transcript.contains("✔ create change file"), "{transcript}");
+	assert!(!transcript.contains("[1/1]"), "{transcript}");
+	assert!(transcript.contains("Created changeset .changeset/interactive.md"));
 	assert!(
 		output_path.exists(),
 		"interactive change file should be created"

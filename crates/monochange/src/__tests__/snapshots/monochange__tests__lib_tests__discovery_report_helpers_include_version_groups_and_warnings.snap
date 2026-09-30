@@ -1,0 +1,14 @@
+---
+source: crates/monochange/src/__tests__/lib_tests.rs
+expression: text
+---
+✔ Discovered 1 package · 1 dependency
+
+Ecosystems
+  cargo  1
+
+Version groups
+  sdk  1 package
+
+Warnings (1)
+  ▲ workspace warning

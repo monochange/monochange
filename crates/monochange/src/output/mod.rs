@@ -1,6 +1,7 @@
 pub(crate) mod diagnostic;
 pub(crate) mod progress;
 pub(crate) mod terminal;
+pub(crate) mod text;
 pub(crate) mod warnings;
 
 pub(crate) use diagnostic::CliDiagnostic;

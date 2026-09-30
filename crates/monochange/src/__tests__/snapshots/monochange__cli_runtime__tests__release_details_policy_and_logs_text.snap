@@ -1,0 +1,55 @@
+---
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+expression: text
+---
+✔ Prepared release · 1 package · 1 file changed
+
+Releases
+  core  v1.2.3  package · tag · release
+
+Packages (1)
+  core
+
+Release commit
+  abcdef1  chore(release): publish
+  1 tracked path
+
+Provider releases (1)
+  published v1.2.3
+
+Release request
+  opened release request
+
+Issue comments (1)
+  commented on #42
+
+Changed files (1)
+  Cargo.toml
+
+Consumed changesets (1)
+  .changeset/feature.md
+
+File diffs (1)
+
+--- a/Cargo.toml
++++ b/Cargo.toml
+-old
++new
+
+Manifest  .monochange/local/release.json
+
+✖ coverage missing · changeset policy failed
+
+Errors (1)
+  ✖ missing changeset
+
+Skip labels  skip-changeset
+
+Changesets (1)
+  .changeset/feature.md
+
+Matched paths (1)
+  crates/core/src/lib.rs
+
+Log
+  ran cargo check

@@ -199,7 +199,10 @@ fn classify(error: &MonochangeError) -> (&'static str, String, Vec<String>) {
 			(
 				"cli.json_required",
 				message.clone(),
-				vec!["Add `--format json` or `--format json-min` before using `--jq`.".to_string()],
+				generic_hint(
+					message,
+					"Add `--format json` or `--format json-min` before using `--jq`.",
+				),
 			)
 		}
 		MonochangeError::Config(message) if message.contains("check failed") => {
@@ -234,10 +237,10 @@ fn classify(error: &MonochangeError) -> (&'static str, String, Vec<String>) {
 			(
 				"config.invalid",
 				message.clone(),
-				vec![
-					"Check `monochange.toml` and the command arguments, then rerun the command."
-						.to_string(),
-				],
+				generic_hint(
+					message,
+					"Check `monochange.toml` and the command arguments, then rerun the command.",
+				),
 			)
 		}
 		MonochangeError::Discovery(message) if is_command_failure(message) => {
@@ -251,29 +254,71 @@ fn classify(error: &MonochangeError) -> (&'static str, String, Vec<String>) {
 				],
 			)
 		}
+		MonochangeError::Discovery(message)
+			if message.starts_with("package publishing did not complete") =>
+		{
+			(
+				"publish.failed",
+				message.clone(),
+				generic_hint(
+					message,
+					"Fix the failed packages listed above, then rerun the publish command; by \
+					 default, versions that already exist on the registry are skipped.",
+				),
+			)
+		}
+		MonochangeError::Discovery(message) if message.contains("release record") => {
+			(
+				"release.record_failed",
+				message.clone(),
+				generic_hint(
+					message,
+					"Point `--from` at a release commit, or run `monochange step release-record \
+					 --from <ref>` to see which record a ref resolves to.",
+				),
+			)
+		}
+		MonochangeError::Discovery(message) if is_git_failure(message) => {
+			(
+				"git.failed",
+				message.clone(),
+				vec![
+					"Check that the ref or path exists in this clone. CI checkouts are often \
+					 shallow: fetch full history and tags (for example `fetch-depth: 0` with \
+					 `actions/checkout`), then rerun."
+						.to_string(),
+				],
+			)
+		}
 		MonochangeError::Discovery(message) => {
 			(
 				"workspace.discovery_failed",
 				message.clone(),
-				vec![
+				generic_hint(
+					message,
 					"Check the configured package paths and workspace manifests, then rerun the \
-					 command."
-						.to_string(),
-				],
+					 command.",
+				),
 			)
 		}
 		MonochangeError::Diagnostic(message) => {
 			(diagnostic_code(message), message.clone(), Vec::new())
 		}
+		MonochangeError::Reported { diagnostic, .. } if diagnostic.contains("check failed") => {
+			(
+				"check.failed",
+				diagnostic.clone(),
+				vec![
+					"Fix the issues listed above, then rerun `monochange check`; `monochange check \
+					 --fix` applies the automatic fixes."
+						.to_string(),
+				],
+			)
+		}
+		// The command result printed above already lists the failing items, so
+		// a generic hint would only repeat it.
 		MonochangeError::Reported { diagnostic, .. } => {
-			// The command result printed above already lists the failing items,
-			// so a generic hint would only repeat that.
-			let code = if diagnostic.contains("check failed") {
-				"check.failed"
-			} else {
-				"command.failed"
-			};
-			(code, diagnostic.clone(), Vec::new())
+			("command.failed", diagnostic.clone(), Vec::new())
 		}
 		MonochangeError::IoSource { path: _, source } => {
 			(
@@ -334,6 +379,27 @@ fn diagnostic_code(message: &str) -> &'static str {
 	} else {
 		"cli.diagnostic"
 	}
+}
+
+/// A generic next step, unless the message already says what to do.
+fn generic_hint(message: &str, hint: &str) -> Vec<String> {
+	let lowercase = message.to_lowercase();
+	let has_guidance = [
+		"use `", "run `", "set `", "add `", "pass `", "remove ", "upgrade", "rerun",
+	]
+	.iter()
+	.any(|guidance| lowercase.contains(guidance));
+	if has_guidance {
+		Vec::new()
+	} else {
+		vec![hint.to_string()]
+	}
+}
+
+fn is_git_failure(message: &str) -> bool {
+	message.contains("fatal: ")
+		|| message.starts_with("could not resolve ref")
+		|| message.contains("git command failed")
 }
 
 fn is_command_failure(message: &str) -> bool {

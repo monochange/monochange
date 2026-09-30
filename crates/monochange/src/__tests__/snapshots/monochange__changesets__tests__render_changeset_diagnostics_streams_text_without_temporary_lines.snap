@@ -1,0 +1,21 @@
+---
+source: crates/monochange/src/__tests__/changesets_tests.rs
+expression: rendered
+---
+• 2 changesets
+
+.changeset/feature.md
+  ship feature
+  long details
+
+    package  core  minor  manual
+    package  web   auto   inferred
+    core caused by core, api
+    core evidence src/lib.rs, README.md
+
+  introduced abc1234 · last updated def1234 · review #42 (https://github.com/example/repo/pull/42) · related #99, #100
+
+.changeset/minimal.md
+  (missing summary)
+
+  review #77

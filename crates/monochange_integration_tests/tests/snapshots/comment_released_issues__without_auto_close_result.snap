@@ -1,0 +1,30 @@
+---
+source: crates/monochange_integration_tests/tests/comment_released_issues.rs
+expression: value
+---
+{
+  "issue_comments": [
+    {
+      "body": "[multiline text]",
+      "close": false,
+      "issue_id": "#7",
+      "issue_url": "https://github.com/ifiokjr/monochange/issues/7",
+      "repository": "ifiokjr/monochange"
+    },
+    {
+      "body": "[multiline text]",
+      "close": false,
+      "issue_id": "#8",
+      "issue_url": "https://github.com/ifiokjr/monochange/issues/8",
+      "repository": "ifiokjr/monochange"
+    },
+    {
+      "body": "[multiline text]",
+      "close": false,
+      "issue_id": "#9",
+      "issue_url": "https://github.com/ifiokjr/monochange/issues/9",
+      "repository": "ifiokjr/monochange"
+    }
+  ],
+  "releases": []
+}

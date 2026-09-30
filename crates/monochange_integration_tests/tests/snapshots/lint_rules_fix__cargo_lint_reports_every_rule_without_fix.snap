@@ -2,35 +2,34 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-workspace validation passed for [workspace]
-lint: 11 errors, 0 warnings
+✖ Checks failed · 11 errors · 9 fixable
 
-[workspace]/crates/core/Cargo.toml:
-  ✗ **cargo/dependency-field-order** at 1:1 [fixable]
-     dependency `utils` has fields in the wrong order; put workspace/version first, then default-features, then features
-  ✗ **cargo/dependency-field-order** at 1:1 [fixable]
-     dependency `private-dep` has fields in the wrong order; put workspace/version first, then default-features, then features
-  ✗ **cargo/internal-dependency-workspace** at 1:1 [fixable]
-     internal dependency `utils` should use workspace = true
-  ✗ **cargo/internal-dependency-workspace** at 1:1 [fixable]
-     internal dependency `private-dep` should use workspace = true
-  ✗ **cargo/publishable-dependencies** at 1:1
-     publishable Cargo package depends on unpublished workspace package `private-dep` in [dependencies]
-  ✗ **cargo/required-package-fields** at 1:1
-     missing required package field `license`
-  ✗ **cargo/sorted-dependencies** at 1:1 [fixable]
-     dependencies in `dependencies` are not sorted alphabetically
-  ✗ **cargo/sorted-dependencies** at 1:1 [fixable]
-     dependencies in `dev-dependencies` are not sorted alphabetically
-  ✗ **cargo/manifest-repository** at 1:1 [fixable]
-     repository field is "https://wrong.example.com/core" but should be "https://github.com/acme/lint-rules/tree/main/crates/core"
+crates/core/Cargo.toml
+  1:1  ✖ dependency `utils` has fields in the wrong order; put workspace/version first, then default-features, then features
+         cargo/dependency-field-order · fixable
+  1:1  ✖ dependency `private-dep` has fields in the wrong order; put workspace/version first, then default-features, then features
+         cargo/dependency-field-order · fixable
+  1:1  ✖ internal dependency `utils` should use workspace = true
+         cargo/internal-dependency-workspace · fixable
+  1:1  ✖ internal dependency `private-dep` should use workspace = true
+         cargo/internal-dependency-workspace · fixable
+  1:1  ✖ repository field is "https://wrong.example.com/core" but should be "https://github.com/acme/lint-rules/tree/main/crates/core"
+         cargo/manifest-repository · fixable
+  1:1  ✖ publishable Cargo package depends on unpublished workspace package `private-dep` in [dependencies]
+         cargo/publishable-dependencies
+  1:1  ✖ missing required package field `license`
+         cargo/required-package-fields
+  1:1  ✖ dependencies in `dependencies` are not sorted alphabetically
+         cargo/sorted-dependencies · fixable
+  1:1  ✖ dependencies in `dev-dependencies` are not sorted alphabetically
+         cargo/sorted-dependencies · fixable
 
-[workspace]/crates/orphan/Cargo.toml:
-  ✗ **cargo/unlisted-package-private** at 1:1 [fixable]
-     unmanaged Cargo packages must set publish = false or be declared in monochange.toml
+crates/orphan/Cargo.toml
+  1:1  ✖ unmanaged Cargo packages must set publish = false or be declared in monochange.toml
+         cargo/unlisted-package-private · fixable
 
-[workspace]/crates/utils/Cargo.toml:
-  ✗ **cargo/manifest-repository** at 1:1 [fixable]
-     workspace-inherited repository resolves to "https://github.com/acme/lint-rules" but should be "https://github.com/acme/lint-rules/tree/main/crates/utils"
+crates/utils/Cargo.toml
+  1:1  ✖ workspace-inherited repository resolves to "https://github.com/acme/lint-rules" but should be "https://github.com/acme/lint-rules/tree/main/crates/utils"
+         cargo/manifest-repository · fixable
 
-9 issue(s) can be auto-fixed. Run with --fix to apply.
+Run `monochange check --fix` to fix 9 issues automatically.

@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::fmt::Write as _;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::IsTerminal;
@@ -52,6 +51,14 @@ use crate::maybe_load_prepared_release_execution;
 use crate::output::CommandStream;
 use crate::output::ProgressFormat;
 use crate::output::ProgressReporter;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::display_width;
+use crate::output::text::plural;
+use crate::output::text::summarize_log;
 use crate::release_branch_policy;
 use crate::save_prepared_release_execution;
 use crate::workspace_ops::validate_cargo_workspace_version_groups;
@@ -788,10 +795,14 @@ pub(crate) async fn execute_cli_command_with_options(
 						}
 						return Err(MonochangeError::Config(message));
 					}
-					output = Some(format!(
-						"workspace validation passed for {}",
-						root_relative(root, root).display()
-					));
+					let mut text = TextReport::new(TextTheme::for_stdout());
+					let details = if warnings.is_empty() {
+						Vec::new()
+					} else {
+						vec![plural(warnings.len(), "warning", "warnings")]
+					};
+					text.headline(Outcome::Success, "Workspace validation passed", &details);
+					output = Some(text.render());
 					Ok(())
 				}
 				CliStepDefinition::Discover { .. } => {
@@ -832,6 +843,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					step_phase_timings.clone_from(&prepared_execution.phase_timings);
 					let rendered_output = render_display_versions_output(
 						&prepared_execution.prepared_release,
+						configuration,
 						context.output_format,
 					)?;
 					output = Some(rendered_output);
@@ -2319,14 +2331,14 @@ fn tail_process_output(label: &str, text: &str, line_limit: Option<usize>) -> Op
 	if text.is_empty() {
 		return None;
 	}
-	let lines = text.lines().collect::<Vec<_>>();
+	let mut lines = text.lines().collect::<Vec<_>>();
 	let Some(limit) = line_limit.filter(|limit| lines.len() > *limit) else {
 		return Some(format!("{label}:\n{text}"));
 	};
-	let tail = lines[lines.len() - limit..].join("\n");
+	let tail = lines.split_off(lines.len() - limit).join("\n");
+	let total = lines.len() + limit;
 	Some(format!(
-		"{label} (last {limit} of {} lines, full output above):\n{tail}",
-		lines.len()
+		"{label} (last {limit} of {total} lines, full output above):\n{tail}"
 	))
 }
 
@@ -3053,26 +3065,6 @@ pub(crate) fn build_retarget_release_report(
 	}
 }
 
-fn render_release_commit_report(report: &CommitReleaseReport) -> Vec<String> {
-	let mut lines = vec!["release commit:".to_string()];
-	lines.push(format!("  subject: {}", report.subject));
-	lines.extend(
-		report
-			.commit
-			.as_ref()
-			.map(|commit| format!("  commit: {}", short_commit_sha(commit))),
-	);
-	lines.extend((!report.tracked_paths.is_empty()).then_some("  tracked paths:".to_string()));
-	lines.extend(
-		report
-			.tracked_paths
-			.iter()
-			.map(|path| format!("    - {}", path.display())),
-	);
-	lines.push(format!("  status: {}", report.status.replace('_', "-")));
-	lines
-}
-
 fn render_package_publish_report(
 	report: &package_publish::PackagePublishReport,
 	show_all_packages: bool,
@@ -3716,192 +3708,371 @@ pub(crate) fn render_cli_command_result(
 		return render_retarget_release_report(report);
 	}
 
-	let mut lines = context.package_publish_report.as_ref().map_or_else(
-		|| {
-			vec![format!(
-				"command `{}` completed{}",
-				cli_command.name,
-				if context.dry_run { " (dry-run)" } else { "" }
-			)]
-		},
-		|report| {
-			render_package_publish_report(
-				report,
+	let mut report = TextReport::new(TextTheme::for_stdout());
+	if let Some(publish_report) = &context.package_publish_report {
+		report.raw_block(
+			&render_package_publish_report(
+				publish_report,
 				boolean_step_input(&context.last_step_inputs, "show-all"),
 			)
-		},
-	);
-
-	if let Some(prepared_release) = &context.prepared_release {
-		render_prepared_release_summary(&mut lines, prepared_release, context);
+			.join("\n"),
+		);
 	}
-
-	if let Some(report) = &context.rate_limit_report {
-		lines.push("publish rate limits:".to_string());
-		if report.windows.is_empty() {
-			lines.push("- no publish operations matched the current plan".to_string());
-		} else {
-			for window in &report.windows {
-				lines.push(format!(
-					"- {} {} pending={} batches={} confidence={:?}",
-					window.registry,
-					window.operation,
-					window.pending,
-					window.batches_required,
-					window.confidence
-				));
-				if let Some(limit) = window.limit {
-					lines.push(format!("  limit: {limit}"));
-				}
-				if let Some(window_seconds) = window.window_seconds {
-					lines.push(format!("  window: {window_seconds}s"));
-				}
-				lines.push(format!("  notes: {}", window.notes));
-			}
-			if !report.batches.is_empty() {
-				lines.push("planned batches:".to_string());
-				for batch in &report.batches {
-					lines.push(format!(
-						"- {} batch {}/{} packages: {}",
-						batch.registry,
-						batch.batch_index,
-						batch.total_batches,
-						batch.packages.join(", ")
-					));
-					if let Some(wait_seconds) = batch.recommended_wait_seconds {
-						lines.push(format!("  wait: {wait_seconds}s before this batch"));
-					}
-				}
-			}
-		}
-		for warning in &report.warnings {
-			lines.push(format!("- warning: {warning}"));
-		}
+	if let Some(prepared_release) = &context.prepared_release {
+		render_prepared_release_summary(&mut report, prepared_release, context);
+	} else {
+		render_release_automation_sections(&mut report, context);
+	}
+	if let Some(rate_limits) = &context.rate_limit_report {
+		render_rate_limit_sections(&mut report, rate_limits);
 	}
 	if let Some(evaluation) = &context.changeset_policy_evaluation {
-		lines.push(format!("changeset policy: {}", evaluation.status));
-		lines.push(evaluation.summary.clone());
-		lines.extend((!evaluation.matched_skip_labels.is_empty()).then(|| {
-			format!(
-				"matched skip labels: {}",
-				evaluation.matched_skip_labels.join(", ")
-			)
-		}));
-		if !evaluation.matched_paths.is_empty() {
-			lines.push("matched paths:".to_string());
-			for path in &evaluation.matched_paths {
-				lines.push(format!("- {path}"));
-			}
-		}
-		if !evaluation.changeset_paths.is_empty() {
-			lines.push("changeset files:".to_string());
-			for path in &evaluation.changeset_paths {
-				lines.push(format!("- {path}"));
-			}
-		}
-		if !evaluation.errors.is_empty() {
-			lines.push("errors:".to_string());
-			for error in &evaluation.errors {
-				lines.push(format!("- {error}"));
-			}
-		}
-		if !evaluation.warnings.is_empty() {
-			lines.push("warnings:".to_string());
-			for warning in &evaluation.warnings {
-				lines.push(format!("- {warning}"));
-			}
-		}
+		render_changeset_policy_sections(&mut report, evaluation);
 	}
 	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
 	if !context.command_logs.is_empty()
 		&& (context.package_publish_report.is_none() || show_all_publish_details)
 	{
-		lines.push("commands:".to_string());
-		for log in &context.command_logs {
-			lines.push(format!("- {log}"));
-		}
+		report.section("Log", None);
+		report.list(
+			context
+				.command_logs
+				.iter()
+				.map(|log| summarize_log(log))
+				.filter(|log| !log.is_empty()),
+			COMMAND_LOG_LIMIT,
+		);
 	}
-	lines.join("\n")
+	if report.is_empty() {
+		render_completed_headline(&mut report, cli_command, context.dry_run);
+	}
+	report.render()
+}
+
+/// Items shown in a text list before it is truncated; JSON output always
+/// carries the complete list.
+const CHANGED_FILE_LIMIT: usize = 20;
+const COMMAND_LOG_LIMIT: usize = 20;
+
+fn render_completed_headline(
+	report: &mut TextReport,
+	cli_command: &CliCommandDefinition,
+	dry_run: bool,
+) {
+	let details = if dry_run {
+		vec!["dry-run".to_string()]
+	} else {
+		Vec::new()
+	};
+	report.headline(
+		Outcome::Success,
+		&format!("{} completed", cli_command.name),
+		&details,
+	);
 }
 
 fn render_prepared_release_summary(
-	lines: &mut Vec<String>,
+	report: &mut TextReport,
 	prepared_release: &PreparedRelease,
 	context: &CliContext,
 ) {
-	if let Some(version) = &prepared_release.version {
-		lines.push(format!("version: {version}"));
+	let mut details = Vec::new();
+	if !prepared_release.released_packages.is_empty() {
+		details.push(plural(
+			prepared_release.released_packages.len(),
+			"package",
+			"packages",
+		));
+	}
+	if context.dry_run {
+		details.push("dry-run, no files were changed".to_string());
+	} else if !prepared_release.changed_files.is_empty() {
+		details.push(format!(
+			"{} changed",
+			plural(prepared_release.changed_files.len(), "file", "files")
+		));
+	}
+	let (outcome, headline) = if prepared_release.release_targets.is_empty()
+		&& prepared_release.released_packages.is_empty()
+	{
+		(Outcome::Neutral, "No release planned")
+	} else if context.dry_run {
+		(Outcome::Neutral, "Release preview")
+	} else {
+		(Outcome::Success, "Prepared release")
+	};
+	report.headline(outcome, headline, &details);
+
+	if !prepared_release.release_targets.is_empty() {
+		report.section("Releases", None);
+		render_release_target_rows(report, &prepared_release.release_targets);
 	}
 
 	if !prepared_release.released_packages.is_empty() {
-		lines.push(format!(
-			"released packages: {}",
-			prepared_release.released_packages.join(", ")
-		));
+		report.section("Packages", Some(prepared_release.released_packages.len()));
+		for line in wrap_names(&prepared_release.released_packages, PACKAGE_LINE_WIDTH) {
+			report.indented(&line, Tone::Plain);
+		}
 	}
 
-	if !prepared_release.release_targets.is_empty() {
-		lines.push("release targets:".to_string());
-		for target in &prepared_release.release_targets {
-			lines.push(format!(
-				"- {} {} -> {} (tag: {}, release: {})",
-				target.kind, target.id, target.tag_name, target.tag, target.release,
-			));
+	render_release_automation_sections(report, context);
+
+	if !prepared_release.changed_files.is_empty() {
+		report.section("Changed files", Some(prepared_release.changed_files.len()));
+		report.list(
+			prepared_release
+				.changed_files
+				.iter()
+				.map(|path| path.display().to_string()),
+			CHANGED_FILE_LIMIT,
+		);
+	}
+
+	if !prepared_release.deleted_changesets.is_empty() {
+		report.section(
+			"Consumed changesets",
+			Some(prepared_release.deleted_changesets.len()),
+		);
+		report.list(
+			prepared_release
+				.deleted_changesets
+				.iter()
+				.map(|path| path.display().to_string()),
+			CHANGED_FILE_LIMIT,
+		);
+	}
+
+	if context.show_diff && !context.prepared_file_diffs.is_empty() {
+		report.section("File diffs", Some(context.prepared_file_diffs.len()));
+		for file_diff in &context.prepared_file_diffs {
+			report.raw_block(&file_diff.display_diff);
 		}
 	}
 
 	if let Some(path) = &context.release_manifest_path {
-		lines.push(format!("release manifest: {}", path.display()));
+		report.fields(&[("Manifest", path.display().to_string())]);
 	}
+}
 
+/// Release commit, provider releases, release request, and issue comments.
+///
+/// These results can exist without a prepared release, for example when
+/// `publish-release` reads a committed release record, so they render on
+/// their own instead of only inside the release summary.
+fn render_release_automation_sections(report: &mut TextReport, context: &CliContext) {
+	if let Some(commit_report) = &context.release_commit_report {
+		render_release_commit_section(report, commit_report, &context.root);
+	}
 	if !context.release_results.is_empty() {
-		lines.push("releases:".to_string());
-		for release in &context.release_results {
-			lines.push(format!("- {release}"));
-		}
+		report.section("Provider releases", Some(context.release_results.len()));
+		report.list(context.release_results.iter().cloned(), usize::MAX);
 	}
-
-	if let Some(release_commit_report) = &context.release_commit_report {
-		lines.extend(render_release_commit_report(release_commit_report));
-	}
-
 	if let Some(release_request_result) = &context.release_request_result {
-		lines.push("release request:".to_string());
-		lines.push(format!("- {release_request_result}"));
+		report.section("Release request", None);
+		report.indented(release_request_result, Tone::Plain);
 	}
-	let request_warnings = release_request_warning_lines(context.release_request.as_ref());
-	if !request_warnings.is_empty() {
-		lines.push("release request warnings:".to_string());
-		lines.extend(request_warnings);
+	for warning in release_request_warning_lines(context.release_request.as_ref()) {
+		report.paragraph(
+			&format!("warning: {}", warning.trim_start_matches("- ")),
+			Tone::Warning,
+		);
 	}
-
 	if !context.issue_comment_results.is_empty() {
-		lines.push("issue comments:".to_string());
-		for issue_comment in &context.issue_comment_results {
-			lines.push(format!("- {issue_comment}"));
-		}
+		report.section("Issue comments", Some(context.issue_comment_results.len()));
+		report.list(context.issue_comment_results.iter().cloned(), usize::MAX);
 	}
+}
 
-	append_changed_file_lines(lines, &prepared_release.changed_files);
+fn render_release_target_rows(report: &mut TextReport, targets: &[ReleaseTarget]) {
+	let mut rows = Vec::with_capacity(targets.len());
+	for target in targets {
+		let mut traits = vec![target.kind.to_string()];
+		if target.tag {
+			traits.push("tag".to_string());
+		}
+		if target.release {
+			traits.push("release".to_string());
+		}
+		rows.push(vec![
+			TableCell::new(&target.id, Tone::Heading),
+			TableCell::new(&target.tag_name, Tone::Value),
+			TableCell::new(traits.join(" · "), Tone::Muted),
+		]);
+	}
+	report.table(&rows);
+}
 
-	if context.show_diff && !context.prepared_file_diffs.is_empty() {
-		lines.push("file diffs:".to_string());
-		for (index, file_diff) in context.prepared_file_diffs.iter().enumerate() {
-			if index > 0 {
-				lines.push(String::new());
+fn render_release_commit_section(
+	report: &mut TextReport,
+	commit_report: &CommitReleaseReport,
+	root: &Path,
+) {
+	report.section("Release commit", None);
+	let commit = commit_report
+		.commit
+		.as_deref()
+		.map_or_else(|| "(not created)".to_string(), short_commit_sha);
+	report.table(&[vec![
+		TableCell::new(commit, Tone::Value),
+		TableCell::plain(&commit_report.subject),
+	]]);
+	let mut details = vec![plural(
+		commit_report.tracked_paths.len(),
+		"tracked path",
+		"tracked paths",
+	)];
+	if commit_report.status != "completed" {
+		details.push(commit_report.status.replace('_', "-"));
+	}
+	report.indented(&details.join(" · "), Tone::Muted);
+	let outside_changed_files = commit_report
+		.tracked_paths
+		.iter()
+		.filter(|path| path.is_absolute())
+		.map(|path| root_relative(root, path).display().to_string())
+		.collect::<Vec<_>>();
+	if !outside_changed_files.is_empty() {
+		report.list(outside_changed_files, CHANGED_FILE_LIMIT);
+	}
+}
+
+fn render_rate_limit_sections(
+	report: &mut TextReport,
+	rate_limits: &monochange_core::PublishRateLimitReport,
+) {
+	report.section("Publish rate limits", None);
+	if rate_limits.windows.is_empty() {
+		report.indented(
+			"no publish operations matched the current plan",
+			Tone::Muted,
+		);
+	}
+	for window in &rate_limits.windows {
+		report.indented(
+			&format!(
+				"{} {}: {} pending, {} required, confidence {:?}",
+				window.registry,
+				window.operation,
+				window.pending,
+				plural(window.batches_required, "batch", "batches"),
+				window.confidence
+			),
+			Tone::Plain,
+		);
+		let mut limits = Vec::new();
+		if let Some(limit) = window.limit {
+			limits.push(format!("limit {limit}"));
+		}
+		if let Some(window_seconds) = window.window_seconds {
+			limits.push(format!("per {window_seconds}s"));
+		}
+		limits.push(window.notes.clone());
+		report.indented(&format!("  {}", limits.join(" · ")), Tone::Muted);
+	}
+	if !rate_limits.batches.is_empty() {
+		report.section("Planned batches", Some(rate_limits.batches.len()));
+		for batch in &rate_limits.batches {
+			report.indented(
+				&format!(
+					"{} batch {}/{}: {}",
+					batch.registry,
+					batch.batch_index,
+					batch.total_batches,
+					batch.packages.join(", ")
+				),
+				Tone::Plain,
+			);
+			if let Some(wait_seconds) = batch.recommended_wait_seconds {
+				report.indented(
+					&format!("  wait {wait_seconds}s before this batch"),
+					Tone::Muted,
+				);
 			}
-			lines.push(file_diff.display_diff.clone());
 		}
 	}
-
-	if prepared_release.deleted_changesets.is_empty() {
-		return;
+	for warning in &rate_limits.warnings {
+		report.paragraph(&format!("warning: {warning}"), Tone::Warning);
 	}
+}
 
-	lines.push("deleted changesets:".to_string());
-	for path in &prepared_release.deleted_changesets {
-		lines.push(format!("- {}", path.display()));
+fn render_changeset_policy_sections(
+	report: &mut TextReport,
+	evaluation: &ChangesetPolicyEvaluation,
+) {
+	let outcome = match evaluation.status {
+		ChangesetPolicyStatus::Failed => Outcome::Failure,
+		ChangesetPolicyStatus::Passed | ChangesetPolicyStatus::Skipped => Outcome::Success,
+		ChangesetPolicyStatus::NotRequired => Outcome::Neutral,
+	};
+	report.headline(
+		outcome,
+		&evaluation.summary,
+		&[format!(
+			"changeset policy {}",
+			evaluation.status.to_string().replace('_', " ")
+		)],
+	);
+	let errors = unique_lines(&evaluation.errors);
+	if !errors.is_empty() {
+		report.section("Errors", Some(errors.len()));
+		report.list(errors.iter().map(|error| format!("✖ {error}")), usize::MAX);
 	}
+	let warnings = unique_lines(&evaluation.warnings);
+	if !warnings.is_empty() {
+		report.section("Warnings", Some(warnings.len()));
+		report.list(
+			warnings.iter().map(|warning| format!("▲ {warning}")),
+			usize::MAX,
+		);
+	}
+	if !evaluation.matched_skip_labels.is_empty() {
+		report.fields(&[("Skip labels", evaluation.matched_skip_labels.join(", "))]);
+	}
+	if !evaluation.changeset_paths.is_empty() {
+		report.section("Changesets", Some(evaluation.changeset_paths.len()));
+		report.list(
+			evaluation.changeset_paths.iter().cloned(),
+			CHANGED_FILE_LIMIT,
+		);
+	}
+	if !evaluation.matched_paths.is_empty() {
+		report.section("Matched paths", Some(evaluation.matched_paths.len()));
+		report.list(evaluation.matched_paths.iter().cloned(), CHANGED_FILE_LIMIT);
+	}
+}
+
+/// The distinct lines of `lines`, in their original order.
+fn unique_lines(lines: &[String]) -> Vec<&str> {
+	let mut seen = BTreeSet::new();
+	lines
+		.iter()
+		.map(String::as_str)
+		.filter(|line| seen.insert(*line))
+		.collect()
+}
+
+/// Width that package name lists wrap at in text output.
+const PACKAGE_LINE_WIDTH: usize = 96;
+
+/// Join names with commas, wrapping before a line would exceed `width`.
+fn wrap_names(names: &[String], width: usize) -> Vec<String> {
+	let mut lines = Vec::new();
+	let mut line = String::new();
+	for (index, name) in names.iter().enumerate() {
+		let separator = if index + 1 == names.len() { "" } else { "," };
+		let item = format!("{name}{separator}");
+		if !line.is_empty() && display_width(&line) + 1 + display_width(&item) > width {
+			lines.push(std::mem::take(&mut line));
+		}
+		if !line.is_empty() {
+			line.push(' ');
+		}
+		line.push_str(&item);
+	}
+	if !line.is_empty() {
+		lines.push(line);
+	}
+	lines
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -4006,32 +4177,119 @@ fn build_release_version_summary(prepared_release: &PreparedRelease) -> ReleaseV
 	ReleaseVersionSummary { packages, groups }
 }
 
-fn render_release_version_summary_text(summary: &ReleaseVersionSummary<'_>) -> String {
+fn render_release_version_summary_text(
+	summary: &ReleaseVersionSummary<'_>,
+	package_labels: &BTreeMap<String, String>,
+) -> String {
+	let mut report = TextReport::new(TextTheme::for_stdout());
 	if summary.groups.is_empty() && summary.packages.is_empty() {
-		return "no package or group versions were planned".to_string();
+		report.headline(
+			Outcome::Neutral,
+			"No versions planned",
+			&["add a changeset with `monochange change` to plan a release".to_string()],
+		);
+		return report.render();
 	}
 
-	let mut output = String::new();
+	let label = |package_id: &str| {
+		package_labels
+			.get(package_id)
+			.cloned()
+			.unwrap_or_else(|| package_id.to_string())
+	};
+	let mut details = Vec::new();
 	if !summary.groups.is_empty() {
-		output.push_str("group versions:");
+		details.push(plural(summary.groups.len(), "group", "groups"));
+	}
+	details.push(plural(summary.packages.len(), "package", "packages"));
+	report.headline(Outcome::Success, "Next versions", &details);
+
+	let grouped_ids = summary
+		.groups
+		.iter()
+		.map(|group| group.group_id.as_str())
+		.collect::<BTreeSet<_>>();
+	if !summary.groups.is_empty() {
+		report.section("Groups", None);
 		for group in &summary.groups {
-			if let Some(version) = &group.planned_version {
-				let _ = write!(output, "\n- {}: {version}", group.group_id);
+			let Some(version) = &group.planned_version else {
+				continue;
+			};
+			report.table(&[vec![
+				TableCell::new(&group.group_id, Tone::Heading),
+				TableCell::new(version.to_string(), Tone::Value),
+				TableCell::new(group.recommended_bump.to_string(), Tone::Muted),
+			]]);
+			let members = summary
+				.packages
+				.iter()
+				.filter(|decision| decision.group_id.as_deref() == Some(group.group_id.as_str()))
+				.map(|decision| label(&decision.package_id))
+				.collect::<Vec<_>>();
+			for line in wrap_names(&members, PACKAGE_LINE_WIDTH - 4) {
+				report.indented(&format!("  {line}"), Tone::Muted);
 			}
 		}
 	}
-	if !summary.packages.is_empty() {
-		if !output.is_empty() {
-			output.push('\n');
-		}
-		output.push_str("package versions:");
-		for decision in &summary.packages {
-			if let Some(version) = &decision.planned_version {
-				let _ = write!(output, "\n- {}: {version}", decision.package_id);
-			}
-		}
+
+	let ungrouped = summary
+		.packages
+		.iter()
+		.filter(|decision| {
+			decision
+				.group_id
+				.as_deref()
+				.is_none_or(|group_id| !grouped_ids.contains(group_id))
+		})
+		.filter_map(|decision| {
+			decision.planned_version.as_ref().map(|version| {
+				vec![
+					TableCell::new(label(&decision.package_id), Tone::Heading),
+					TableCell::new(version.to_string(), Tone::Value),
+					TableCell::new(decision.recommended_bump.to_string(), Tone::Muted),
+				]
+			})
+		})
+		.collect::<Vec<_>>();
+	if !ungrouped.is_empty() {
+		report.section("Packages", None);
+		report.table(&ungrouped);
 	}
-	output
+	report.render()
+}
+
+/// Map package record ids such as `cargo:crates/core/Cargo.toml` to the id
+/// the package is configured under in monochange.toml, such as `core`.
+fn configured_package_labels(
+	configuration: &monochange_core::WorkspaceConfiguration,
+	package_ids: impl IntoIterator<Item = String>,
+) -> BTreeMap<String, String> {
+	let configured_by_path = configuration
+		.packages
+		.iter()
+		.map(|package| (normalized_package_dir(&package.path), package.id.clone()))
+		.collect::<BTreeMap<_, _>>();
+	package_ids
+		.into_iter()
+		.filter_map(|package_id| {
+			let manifest = package_id
+				.split_once(':')
+				.map(|(_, path)| Path::new(path))?;
+			let directory = normalized_package_dir(manifest.parent().unwrap_or(Path::new("")));
+			let configured_id = configured_by_path.get(&directory)?.clone();
+			Some((package_id, configured_id))
+		})
+		.collect()
+}
+
+fn normalized_package_dir(path: &Path) -> String {
+	let text = path.to_string_lossy().replace('\\', "/");
+	let text = text.trim_start_matches("./").trim_end_matches('/');
+	if text == "." {
+		String::new()
+	} else {
+		text.to_string()
+	}
 }
 
 fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) -> String {
@@ -4087,6 +4345,7 @@ fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) 
 
 fn render_display_versions_output(
 	prepared_release: &PreparedRelease,
+	configuration: &monochange_core::WorkspaceConfiguration,
 	format: OutputFormat,
 ) -> MonochangeResult<String> {
 	let summary = build_release_version_summary(prepared_release);
@@ -4095,18 +4354,16 @@ fn render_display_versions_output(
 			format.render_json_value(&summary, "display versions")
 		}
 		OutputFormat::Markdown => Ok(render_release_version_summary_markdown(&summary)),
-		OutputFormat::Text => Ok(render_release_version_summary_text(&summary)),
-	}
-}
-
-fn append_changed_file_lines(lines: &mut Vec<String>, changed_files: &[PathBuf]) {
-	if !changed_files.is_empty() {
-		lines.push("changed files:".to_string());
-		lines.extend(
-			changed_files
-				.iter()
-				.map(|path| format!("- {}", path.display())),
-		);
+		OutputFormat::Text => {
+			let labels = configured_package_labels(
+				configuration,
+				summary
+					.packages
+					.iter()
+					.map(|decision| decision.package_id.clone()),
+			);
+			Ok(render_release_version_summary_text(&summary, &labels))
+		}
 	}
 }
 
@@ -4452,16 +4709,19 @@ fn execute_create_change_file_step(
 ) -> MonochangeResult<String> {
 	let render_preview = |planned: PlannedChangeFile| {
 		if dry_run {
-			format!(
-				"would write change file {}\n\n{}",
-				root_relative(root, &planned.path).display(),
-				planned.content
-			)
+			let mut text = TextReport::new(TextTheme::for_stdout());
+			text.headline(
+				Outcome::Neutral,
+				&format!(
+					"Would create changeset {}",
+					root_relative(root, &planned.path).display()
+				),
+				&["dry-run, nothing was written".to_string()],
+			);
+			text.raw_block(&planned.content);
+			text.render()
 		} else {
-			format!(
-				"wrote change file {}",
-				root_relative(root, &planned.path).display()
-			)
+			render_created_changeset(root, &planned.path)
 		}
 	};
 	let is_interactive = step_input_is_true(step_inputs, "interactive");
@@ -4500,10 +4760,7 @@ fn execute_create_change_file_step(
 			Ok(render_preview(planned))
 		} else {
 			let path = add_interactive_change_file(root, &result, output_path.as_deref())?;
-			Ok(format!(
-				"wrote change file {}",
-				root_relative(root, &path).display()
-			))
+			Ok(render_created_changeset(root, &path))
 		}
 	} else {
 		let package_refs = step_inputs.get("package").cloned().unwrap_or_default();
@@ -4563,12 +4820,19 @@ fn execute_create_change_file_step(
 			Ok(render_preview(planned))
 		} else {
 			let path = add_change_file(root, request)?;
-			Ok(format!(
-				"wrote change file {}",
-				root_relative(root, &path).display()
-			))
+			Ok(render_created_changeset(root, &path))
 		}
 	}
+}
+
+fn render_created_changeset(root: &Path, path: &Path) -> String {
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	text.headline(
+		Outcome::Success,
+		&format!("Created changeset {}", root_relative(root, path).display()),
+		&[],
+	);
+	text.render()
 }
 
 async fn execute_affected_packages_step(
@@ -4669,7 +4933,7 @@ async fn save_prepared_release_artifact(
 		(_, Ok(())) => Ok(()),
 		(true, Err(error)) => Err(error),
 		(false, Err(error)) => {
-			tracing::warn!(%error, "failed to save prepared release artifact");
+			tracing::debug!(%error, "failed to save prepared release artifact");
 			Ok(())
 		}
 	}
@@ -4772,17 +5036,41 @@ fn resolve_command_output(
 		};
 		return Ok(rendered);
 	}
+	if has_release_automation_results(context) {
+		let format = context.output_format;
+		return match format {
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				format.render_json_value(
+					&serde_json::json!({
+						"releases": context.release_requests,
+						"issue_comments": context.issue_comment_plans,
+					}),
+					"release automation result",
+				)
+			}
+			OutputFormat::Markdown | OutputFormat::Text => {
+				Ok(render_cli_command_result(cli_command, context))
+			}
+		};
+	}
 	if !context.command_logs.is_empty() {
 		return Ok(render_cli_command_result(cli_command, context));
 	}
 
 	Ok(output.unwrap_or_else(|| {
-		format!(
-			"command `{}` completed{}",
-			cli_command.name,
-			if dry_run { " (dry-run)" } else { "" }
-		)
+		let mut report = TextReport::new(TextTheme::for_stdout());
+		render_completed_headline(&mut report, cli_command, dry_run);
+		report.render()
 	}))
+}
+
+/// Provider releases and issue comments can be produced from a committed
+/// release record, without a prepared release in this run.
+fn has_release_automation_results(context: &CliContext) -> bool {
+	!context.release_requests.is_empty()
+		|| !context.release_results.is_empty()
+		|| !context.issue_comment_plans.is_empty()
+		|| !context.issue_comment_results.is_empty()
 }
 // patch-coverage:ignore-end
 

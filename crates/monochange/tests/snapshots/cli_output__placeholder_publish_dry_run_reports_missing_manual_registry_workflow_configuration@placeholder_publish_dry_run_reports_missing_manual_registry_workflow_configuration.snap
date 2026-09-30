@@ -8,11 +8,11 @@ info:
     - "--format"
     - json
   env:
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:51092"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:51092"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:42657"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:42657"
     MONOCHANGE_NO_PROGRESS: "1"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:51092"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:51092"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:42657"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:42657"
     NO_COLOR: "1"
 ---
 success: false
@@ -20,9 +20,12 @@ exit_code: 1
 ----- stdout -----
 
 ----- stderr -----
-error[config.invalid]: error: unrecognized subcommand 'placeholder-publish'
-  cause: Usage: monochange [OPTIONS] <COMMAND>
+error[cli.usage]: unrecognized subcommand 'placeholder-publish'
 
-    For more information, try '--help'.
+  tip: `placeholder-publish` is defined in monochange.toml; run it with `monochange run placeholder-publish`
+
+Usage: monochange [OPTIONS] <COMMAND>
+
+For more information, try '--help'.
+
   command: monochange placeholder-publish
-  help: Check `monochange.toml` and the command arguments, then rerun the command.

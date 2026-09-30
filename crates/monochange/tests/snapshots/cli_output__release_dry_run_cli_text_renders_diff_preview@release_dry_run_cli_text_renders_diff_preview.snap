@@ -17,20 +17,24 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-command `release` completed (dry-run)
-version: 1.1.0
-released packages: workflow-app, workflow-core
-release targets:
-- group sdk -> v1.1.0 (tag: true, release: true)
-release manifest: .monochange/local/release-manifest.json
-changed files:
-- Cargo.toml
-- changelog.md
-- crates/app/Cargo.toml
-- crates/core/CHANGELOG.md
-- crates/core/Cargo.toml
-- group.toml
-file diffs:
+• Release preview · 2 packages · dry-run, no files were changed
+
+Releases
+  sdk  v1.1.0  group · tag · release
+
+Packages (2)
+  workflow-app, workflow-core
+
+Changed files (6)
+  Cargo.toml
+  changelog.md
+  crates/app/Cargo.toml
+  crates/core/CHANGELOG.md
+  crates/core/Cargo.toml
+  group.toml
+
+File diffs (4)
+
 --- a/Cargo.toml
 +++ b/Cargo.toml
 @@ -1,10 +1,10 @@
@@ -85,7 +89,10 @@ file diffs:
 -workflow-app = { version = "1.0.0" }
 +workflow-core = { version = "1.1.0" }
 +workflow-app = { version = "1.1.0" }
-commands:
-- skipped release record: dry-run preview (pass `--release-json` to write release.json)
+
+Manifest  .monochange/local/release-manifest.json
+
+Log
+  skipped release record: dry-run preview (pass `--release-json` to write release.json)
 
 ----- stderr -----

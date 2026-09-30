@@ -1,0 +1,13 @@
+---
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+expression: rendered
+---
+• No release planned · 1 file changed
+
+Provider releases (1)
+  published core
+
+Changed files (1)
+  Cargo.toml
+
+Manifest  .monochange/local/prepared-release.json

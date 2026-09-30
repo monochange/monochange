@@ -116,7 +116,13 @@ fn check_failure(root: &Path) -> String {
 		.output()
 		.unwrap_or_else(|error| panic!("run check: {error}"));
 	assert!(!output.status.success(), "check unexpectedly succeeded");
-	String::from_utf8_lossy(&output.stderr).to_string()
+	// The report on stdout lists each failure; the diagnostic on stderr
+	// summarizes it. Together they are what a user sees.
+	format!(
+		"{}\n{}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr)
+	)
 }
 
 fn redact_prerelease_state(mut state: Value) -> Value {
@@ -210,8 +216,8 @@ fn check_rejects_stale_prerelease_state_when_mode_is_off() {
 	let tempdir = setup_release_fixture("prerelease/stale-state-disabled");
 	let root = tempdir.path();
 
-	let stderr = check_failure(root).replace(root.to_string_lossy().as_ref(), "[workspace]");
-	let relevant_lines = stderr
+	let output = check_failure(root).replace(root.to_string_lossy().as_ref(), "[workspace]");
+	let relevant_lines = output
 		.lines()
 		.filter(|line| line.contains("prerelease state") || line.contains("prerelease-state.json"))
 		.map(|line| line.replace("/private[workspace]", "[workspace]"))

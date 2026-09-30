@@ -48,11 +48,31 @@ fn run_check_command(
 	)
 }
 
+fn check_report_input<'a>(
+	report: &'a LintReport,
+	validation_warnings: &'a [String],
+	validation_errors: &'a [String],
+	fixed_files: usize,
+	verbose: bool,
+) -> CheckReportInput<'a> {
+	CheckReportInput {
+		root: Path::new("/workspace"),
+		report,
+		validation_warnings,
+		validation_errors,
+		fixed_files,
+		verbose,
+	}
+}
+
 #[test]
 fn test_format_check_report_empty() {
 	let report = LintReport::new();
-	let output = format_check_report(&report, false, false);
-	assert!(output.contains("no issues found"));
+	let output = format_check_report(
+		&check_report_input(&report, &[], &[], 0, false),
+		TextTheme::for_stdout(),
+	);
+	assert_eq!(output, "✔ Checks passed");
 }
 
 #[test]
@@ -71,12 +91,60 @@ fn test_format_check_report_with_issues() {
 		LintSeverity::Warning,
 	));
 
-	let output = format_check_report(&report, false, true);
-	assert!(output.contains("1 errors, 1 warnings"));
-	assert!(output.contains("✗ **test/rule** at 1:1"));
-	assert!(output.contains("Test error"));
-	assert!(output.contains("Test warning"));
-	assert!(output.contains("severity: error"));
+	let output = format_check_report(
+		&check_report_input(&report, &[], &[], 0, true),
+		TextTheme::for_stdout(),
+	);
+	insta::assert_snapshot!(output);
+}
+
+#[test]
+fn check_report_explains_validation_warnings_fixes_and_remaining_fixable_issues() {
+	let mut report = LintReport::new();
+	report.add(
+		monochange_core::lint::LintResult::new(
+			"npm/sorted-dependencies",
+			monochange_core::lint::LintLocation::new("/workspace/packages/app/package.json", 12, 4)
+				.with_span(3, 9),
+			"dependencies are not sorted",
+			LintSeverity::Warning,
+		)
+		.with_fix(monochange_core::lint::LintFix::single(
+			"sort dependencies",
+			(3, 9),
+			"{}",
+		)),
+	);
+	report.add(monochange_core::lint::LintResult::new(
+		"npm/off-rule",
+		monochange_core::lint::LintLocation::new("/workspace/packages/app/package.json", 2, 1),
+		"informational",
+		LintSeverity::Off,
+	));
+	report
+		.warnings
+		.push("skipped autofix for Cargo.toml".to_string());
+
+	let warnings_only = format_check_report(
+		&check_report_input(&report, &["deprecated option".to_string()], &[], 0, false),
+		TextTheme::for_stdout(),
+	);
+	insta::assert_snapshot!("check_report_warnings_only", warnings_only);
+
+	let failed_after_fix = format_check_report(
+		&check_report_input(
+			&report,
+			&[],
+			&["error: package `x` path `x` does not exist\n  --> monochange.toml:3:1".to_string()],
+			2,
+			true,
+		),
+		TextTheme::for_stdout(),
+	);
+	insta::assert_snapshot!(
+		"check_report_validation_failure_after_fix",
+		failed_after_fix
+	);
 }
 
 #[test]
@@ -162,7 +230,7 @@ fn run_check_command_supports_text_json_and_fix_error_paths() {
 		false,
 	)
 	.unwrap();
-	assert!(text.contains("workspace validation passed"));
+	assert_eq!(text, "✔ Checks passed");
 
 	let tempdir = readonly_fix_workspace();
 	let cargo_toml = tempdir.path().join("crates/example/Cargo.toml");
@@ -276,15 +344,23 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 	.unwrap_or_else(|error| panic!("expected warning manifest to be written: {error}"));
 	let warning_text = run_check_command(warning_root, false, &[], &[], OutputFormat::Text, false)
 		.unwrap_or_else(|error| panic!("expected warning-only check to pass: {error}"));
-	assert!(warning_text.contains("warning:"));
+	assert!(warning_text.starts_with("▲ Checks passed with warnings"));
 	assert!(warning_text.contains("matches no files"));
 
 	let text_error = run_check_command(root, false, &[], &[], OutputFormat::Text, false)
 		.expect_err("expected text check to fail validation");
-	let text_message = text_error.to_string();
-	assert!(text_message.contains("workspace validation failed"));
-	assert!(text_message.contains("unknown package or group `missing`"));
-	assert!(text_message.contains("missing.toml"));
+	// The printed report lists every validation error; the diagnostic only
+	// summarizes the failure.
+	assert!(text_error.to_string().starts_with("check failed:"));
+	let text_report = text_error
+		.reported_output()
+		.unwrap_or_else(|| panic!("expected a reported check result"));
+	assert!(
+		text_report.contains("Workspace validation (2)"),
+		"{text_report}"
+	);
+	assert!(text_report.contains("unknown package or group `missing`"));
+	assert!(text_report.contains("missing.toml"));
 
 	let json_error = run_check_command(root, false, &[], &[], OutputFormat::Json, false)
 		.expect_err("expected json check to fail validation");
@@ -298,7 +374,10 @@ fn run_check_command_applies_fixes_and_reports_them() {
 	let tempdir = readonly_fix_workspace();
 	let output = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text, false)
 		.unwrap_or_else(|error| panic!("expected fixable lint workspace to succeed: {error}"));
-	assert!(output.contains("Fixed all auto-fixable issues."));
+	assert!(
+		output.starts_with("✔ Checks passed · fixed 1 file"),
+		"{output}"
+	);
 
 	let manifest = fs::read_to_string(tempdir.path().join("crates/example/Cargo.toml"))
 		.unwrap_or_else(|error| panic!("expected fixed manifest to be readable: {error}"));
@@ -325,7 +404,7 @@ fn run_lint_step_reports_successful_check_output() {
 	let (output, has_errors) = run_lint_step(clean_workspace.path(), false)
 		.unwrap_or_else(|error| panic!("expected lint step to succeed: {error}"));
 	assert!(!has_errors);
-	assert!(output.contains("no issues found"));
+	assert_eq!(output, "✔ Checks passed");
 }
 
 #[test]
@@ -334,7 +413,10 @@ fn run_lint_step_rechecks_after_fixing_errors() {
 	let (output, has_errors) = run_lint_step(tempdir.path(), true)
 		.unwrap_or_else(|error| panic!("expected fixable lint step to succeed: {error}"));
 	assert!(!has_errors);
-	assert!(output.contains("Fixed all auto-fixable issues."));
+	assert!(
+		output.starts_with("✔ Checks passed · fixed 1 file"),
+		"{output}"
+	);
 }
 
 #[test]

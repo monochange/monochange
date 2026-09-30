@@ -2,15 +2,12 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output.clone())"
 ---
-workspace validation passed for [workspace]
-lint: 2 errors, 0 warnings
+✖ Checks failed · 2 errors · fixed 2 files
 
-[workspace]/.changeset/missing-heading.md:
-  ✗ **changesets/summary** at 1:1
-     changeset body must start with a summary heading
+.changeset/missing-heading.md
+  1:1  ✖ changeset body must start with a summary heading
+         changesets/summary
 
-[workspace]/.changeset/section-headings.md:
-  ✗ **changesets/no_section_headings** at 1:1
-     changeset type `fix` must not also be used as a heading
-
-Fixed all auto-fixable issues.
+.changeset/section-headings.md
+  1:1  ✖ changeset type `fix` must not also be used as a heading
+         changesets/no_section_headings

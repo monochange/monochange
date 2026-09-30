@@ -22,6 +22,6 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-wrote change file versioned.md
+✔ Created changeset versioned.md
 
 ----- stderr -----

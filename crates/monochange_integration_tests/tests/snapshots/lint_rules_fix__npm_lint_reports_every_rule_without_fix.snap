@@ -2,33 +2,32 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-workspace validation passed for [workspace]
-lint: 9 errors, 0 warnings
+✖ Checks failed · 9 errors · 7 fixable
 
-[workspace]/package.json:
-  ✗ **npm/root-no-prod-deps** at 7:4 [fixable]
-     root package.json should not have production dependencies; move them to devDependencies
+package.json
+  7:4  ✖ root package.json should not have production dependencies; move them to devDependencies
+         npm/root-no-prod-deps · fixable
 
-[workspace]/packages/app/package.json:
-  ✗ **npm/workspace-protocol** at 8:6 [fixable]
-     internal dependency `shared` should use the workspace: protocol (found `0.1.0`)
-  ✗ **npm/sorted-dependencies** at 7:4 [fixable]
-     dependencies in `dependencies` are not sorted alphabetically
-  ✗ **npm/no-duplicate-dependencies** at 10:6 [fixable]
-     dependency `chalk` appears in multiple sections: dependencies, devDependencies
-  ✗ **npm/manifest-repository** at 1:1 [fixable]
-     repository field is "https://wrong.example.com/app" but should be "https://github.com/acme/lint-rules/tree/main/packages/app"
+packages/app/package.json
+  1:1   ✖ repository field is "https://wrong.example.com/app" but should be "https://github.com/acme/lint-rules/tree/main/packages/app"
+          npm/manifest-repository · fixable
+  7:4   ✖ dependencies in `dependencies` are not sorted alphabetically
+          npm/sorted-dependencies · fixable
+  8:6   ✖ internal dependency `shared` should use the workspace: protocol (found `0.1.0`)
+          npm/workspace-protocol · fixable
+  10:6  ✖ dependency `chalk` appears in multiple sections: dependencies, devDependencies
+          npm/no-duplicate-dependencies · fixable
 
-[workspace]/packages/orphan/package.json:
-  ✗ **npm/unlisted-package-private** at 1:1 [fixable]
-     unmanaged npm-family packages must set private: true or be declared in monochange.toml
+packages/orphan/package.json
+  1:1  ✖ unmanaged npm-family packages must set private: true or be declared in monochange.toml
+         npm/unlisted-package-private · fixable
 
-[workspace]/packages/shared/package.json:
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `description`
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `repository`
-  ✗ **npm/manifest-repository** at 1:1 [fixable]
-     manifest is missing the repository field
+packages/shared/package.json
+  1:1  ✖ manifest is missing the repository field
+         npm/manifest-repository · fixable
+  1:1  ✖ missing required package.json field `description`
+         npm/required-package-fields
+  1:1  ✖ missing required package.json field `repository`
+         npm/required-package-fields
 
-7 issue(s) can be auto-fixed. Run with --fix to apply.
+Run `monochange check --fix` to fix 7 issues automatically.

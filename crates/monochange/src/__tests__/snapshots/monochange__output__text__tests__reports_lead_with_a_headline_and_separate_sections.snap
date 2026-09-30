@@ -1,0 +1,23 @@
+---
+source: crates/monochange/src/output/../__tests__/output_text_tests.rs
+expression: report.render()
+---
+✔ Prepared release · 2 packages · 3 files changed
+
+Releases
+  sdk             v1.1.0                 group · tag
+  classification  classification/v0.3.1
+
+Changed files (3)
+  a.toml
+  b.toml
+  … and 1 more (use --format json for the full list)
+
+Manifest  release.json
+Log       notes
+
+Run it again.
+
+--- a
++++ b
+  detail

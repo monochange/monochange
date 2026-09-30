@@ -1,0 +1,7 @@
+---
+source: crates/monochange_integration_tests/tests/comment_released_issues.rs
+expression: body
+---
+Released in v1.2.0.
+
+<!-- monochange:released-in:v1.2.0 -->

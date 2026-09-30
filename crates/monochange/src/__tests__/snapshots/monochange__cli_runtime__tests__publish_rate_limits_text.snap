@@ -1,0 +1,14 @@
+---
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+expression: text
+---
+Publish rate limits
+  pub_dev publish: 13 pending, 2 batches required, confidence Medium
+    limit 12 · per 86400s · pub.dev limit
+
+Planned batches (2)
+  pub_dev batch 1/2: pkg-a
+  pub_dev batch 2/2: pkg-b
+    wait 86400s before this batch
+
+warning: needs 2 batches

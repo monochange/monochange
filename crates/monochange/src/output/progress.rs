@@ -683,7 +683,7 @@ impl ProgressReporter {
 			self.paint(
 				&format!(
 					"{} still running {} {}",
-					step_label(step).to_string(),
+					step_label(step),
 					self.symbols.separator,
 					format_duration(elapsed)
 				),
@@ -871,6 +871,10 @@ impl ProgressReporter {
 	}
 
 	fn remember_failed_step(&self, step_index: usize, step: &CliStepDefinition) {
+		// A single step is the whole command, which the diagnostic already names.
+		if self.total_steps <= 1 {
+			return;
+		}
 		let mut failed_step = self.failed_step.lock().unwrap();
 		if failed_step.is_none() {
 			failed_step.replace(self.step_heading_plain(step_index, step));

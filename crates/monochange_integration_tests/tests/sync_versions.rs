@@ -274,12 +274,7 @@ fn versions_cli_sync_subcommand_matches_legacy_output() {
 fn versions_cli_dry_run_text_output_matches_snapshot() {
 	let fixture = setup_fixture("dart-lints", "advanced-workspace-flutter/workspace");
 	let output = run_versions_cli(fixture.path(), &["--dry-run"]);
-	assert_cli_snapshot(
-		&output,
-		include_str!(
-			"snapshots/sync_versions__versions_cli_dry_run_text_output_matches_snapshot.txt"
-		),
-	);
+	assert_snapshot!(output);
 }
 
 #[test]

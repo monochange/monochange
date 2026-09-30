@@ -262,11 +262,11 @@ fn preview_reuses_cache_when_the_workspace_is_unchanged() {
 	assert_snapshot!("unchanged_second_preview", second);
 	assert_eq!(
 		first.replace(
-			"- reused prepared release artifact `.monochange/local/prepared-release-cache.json`\n",
+			"  reused prepared release artifact `.monochange/local/prepared-release-cache.json`\n",
 			""
 		),
 		second.replace(
-			"- reused prepared release artifact `.monochange/local/prepared-release-cache.json`\n",
+			"  reused prepared release artifact `.monochange/local/prepared-release-cache.json`\n",
 			""
 		),
 		"a cache hit must render the same plan as a cache miss"

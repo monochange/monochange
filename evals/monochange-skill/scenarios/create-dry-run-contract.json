@@ -4,7 +4,7 @@
 	"fixture": "rust-workspace",
 	"agent": false,
 	"prompt": "",
-	"expectation": "`monochange create --dry-run` and `monochange step create-change-file --dry-run` exit 0, print `would write change file` plus the rendered changeset body, and leave no `.changeset/*.md` behind — the dry-run discipline the skill teaches agents to rely on. Without `--dry-run`, `create` writes the file and prints `wrote change file`. `monochange run change` errors while the fixture defines no `[cli.change]`, because `run` subcommands come only from `[cli.*]` config; once a `[cli.change]` wrapper is appended, it honors `--dry-run` exactly like the built-in spelling. The wrapper block is appended and the config restored inside the last check.",
+	"expectation": "`monochange create --dry-run` and `monochange step create-change-file --dry-run` exit 0, print `Would create changeset` plus the rendered changeset body, and leave no `.changeset/*.md` behind — the dry-run discipline the skill teaches agents to rely on. Without `--dry-run`, `create` writes the file and prints `Created changeset`. `monochange run change` errors while the fixture defines no `[cli.change]`, because `run` subcommands come only from `[cli.*]` config; once a `[cli.change]` wrapper is appended, it honors `--dry-run` exactly like the built-in spelling. The wrapper block is appended and the config restored inside the last check.",
 	"setupFiles": {
 		".mc-cli-change-block.toml": "[cli.change]\n\n[[cli.change.inputs]]\nname = \"interactive\"\ntype = \"boolean\"\nshort = \"i\"\n\n[[cli.change.inputs]]\nname = \"package\"\ntype = \"string_list\"\n\n[[cli.change.inputs]]\nname = \"bump\"\ntype = \"choice\"\nchoices = [\"none\", \"patch\", \"minor\", \"major\"]\ndefault = \"patch\"\n\n[[cli.change.inputs]]\nname = \"reason\"\ntype = \"string\"\n\n[[cli.change.inputs]]\nname = \"type\"\ntype = \"string\"\n\n[[cli.change.inputs]]\nname = \"details\"\ntype = \"string\"\n\n[[cli.change.steps]]\ntype = \"CreateChangeFile\"\ninputs = [\"interactive\", \"package\", \"bump\", \"reason\", \"type\", \"details\"]\n"
 	},
@@ -14,7 +14,7 @@
 			"kind": "command",
 			"command": "monochange create --package acme-core --bump minor --reason \"Add streaming parser support\" --dry-run; rc=$?; left=$(ls .changeset/*.md 2>/dev/null); rm -rf .changeset; test $rc -eq 0 && test -z \"$left\"",
 			"expectOutput": [
-				"would write change file",
+				"Would create changeset",
 				"acme-core: minor",
 				"Add streaming parser support"
 			],
@@ -25,7 +25,7 @@
 			"kind": "command",
 			"command": "monochange step create-change-file --dry-run --package acme-core --bump minor --reason \"Step spelling dry run\"; rc=$?; left=$(ls .changeset/*.md 2>/dev/null); rm -rf .changeset; test $rc -eq 0 && test -z \"$left\"",
 			"expectOutput": [
-				"would write change file",
+				"Would create changeset",
 				"acme-core: minor",
 				"Step spelling dry run"
 			],
@@ -35,7 +35,7 @@
 			"id": "create-write-writes-the-file",
 			"kind": "command",
 			"command": "monochange create --package acme-core --bump minor --reason \"Create writes a real changeset\" && test -n \"$(ls .changeset/*.md 2>/dev/null)\" && grep -q \"Create writes a real changeset\" .changeset/*.md; rc=$?; rm -rf .changeset; exit $rc",
-			"expectOutput": ["wrote change file"],
+			"expectOutput": ["Created changeset"],
 			"why": "The non-dry-run spelling must actually write the changeset with the requested target, bump, and body, so the dry-run contrast is real rather than vacuous."
 		},
 		{
@@ -54,7 +54,7 @@
 			"kind": "command",
 			"command": "cp monochange.toml .mc-config-backup && cat .mc-cli-change-block.toml >> monochange.toml && monochange run change --dry-run --package acme-core --bump minor --reason \"Wrapped dry run\"; rc=$?; left=$(ls .changeset/*.md 2>/dev/null); mv .mc-config-backup monochange.toml; rm -rf .changeset .mc-cli-change-block.toml; test $rc -eq 0 && test -z \"$left\"",
 			"expectOutput": [
-				"would write change file",
+				"Would create changeset",
 				"acme-core: minor",
 				"Wrapped dry run",
 				"running `change` (dry-run)"

@@ -2,4 +2,4 @@
 source: crates/monochange_integration_tests/tests/create_change_file.rs
 expression: normalize_timestamps(&stdout)
 ---
-wrote change file .changeset/[timestamp]-core.md
+✔ Created changeset .changeset/[timestamp]-core.md

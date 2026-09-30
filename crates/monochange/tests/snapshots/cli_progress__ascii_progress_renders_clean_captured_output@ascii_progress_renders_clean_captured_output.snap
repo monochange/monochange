@@ -4,14 +4,13 @@ expression: normalized_ascii_progress(&stderr)
 ---
 > Loading workspace configuration
 + Loaded workspace configuration [duration]
-monochange running `progress-ascii`
+monochange > progress-ascii - 2 steps
 > [1/2] plan release (PrepareRelease)
-+ [1/2] plan release (PrepareRelease) [duration]
-> [2/2] stream summary (Command)
-> [2/2] stream summary (Command) — running command `printf 'line one[newline][newline]line three[newline]'`
-  | stream summary
-  |   line one
++ [1/2] plan release (PrepareRelease)  [duration]
+> [2/2] stream summary
+  $ printf 'line one[newline][newline]line three[newline]'
+  | line one
   |
-  |   line three
-+ [2/2] stream summary (Command) [duration]
-+ `progress-ascii` finished [duration]
+  | line three
++ [2/2] stream summary                 [duration]
++ progress-ascii completed in [duration]

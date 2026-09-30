@@ -8,7 +8,6 @@
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::fmt::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -27,6 +26,12 @@ use toml_edit::Value as TomlValue;
 
 use crate::OutputFormat;
 use crate::discover_workspace;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::plural;
 use crate::workspace_ops::discover_workspace_with_configuration;
 use crate::workspace_ops::load_sorted_tags_sync;
 use crate::workspace_ops::seed_versions_from_tag_list;
@@ -793,48 +798,94 @@ pub fn apply_sync_changes(
 ///
 /// This function is separated from the main dispatch so it can be tested
 /// independently.
-pub(crate) fn format_sync_result(result: &SyncResult, dry_run: bool, _quiet: bool) -> String {
-	if result.changes.is_empty() && result.skipped.is_empty() {
-		return String::new();
+pub(crate) fn format_sync_result(
+	root: &Path,
+	result: &SyncResult,
+	dry_run: bool,
+	_quiet: bool,
+) -> String {
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let change_count = result
+		.changes
+		.iter()
+		.map(|file_result| file_result.changes.len())
+		.sum::<usize>();
+	let strategy = format!("strategy {}", strategy_name(result.strategy));
+	if change_count == 0 {
+		text.headline(
+			Outcome::Success,
+			"Internal dependency constraints are already in sync",
+			&[strategy],
+		);
+	} else {
+		let mut details = vec![
+			format!("in {}", plural(result.changes.len(), "file", "files")),
+			strategy,
+		];
+		if dry_run {
+			details.push("dry-run, no files were modified".to_string());
+		}
+		let (outcome, verb) = if dry_run {
+			(Outcome::Neutral, "Would update")
+		} else {
+			(Outcome::Success, "Updated")
+		};
+		text.headline(
+			outcome,
+			&format!(
+				"{verb} {}",
+				plural(
+					change_count,
+					"dependency constraint",
+					"dependency constraints"
+				)
+			),
+			&details,
+		);
 	}
 
-	let mut output = String::new();
-	let action = if dry_run { "would update" } else { "updated" };
+	let root_prefix = format!("{}/", root.display());
 	for file_result in &result.changes {
-		for change in &file_result.changes {
-			let _ = writeln!(
-				output,
-				"{action} {} → {} in {} ({})",
-				change.old_value, change.new_value, change.dependency_name, file_result.path
-			);
-		}
+		text.paragraph(
+			file_result.path.trim_start_matches(&root_prefix),
+			Tone::Heading,
+		);
+		let rows = file_result
+			.changes
+			.iter()
+			.map(|change| {
+				vec![
+					TableCell::new(&change.dependency_name, Tone::Plain),
+					TableCell::new(
+						format!("{} → {}", change.old_value, change.new_value),
+						Tone::Value,
+					),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
 	}
 
 	if !result.skipped.is_empty() {
-		if !output.is_empty() {
-			output.push('\n');
-		}
-		let _ = writeln!(output, "Skipped unsupported ecosystems:");
-		for skipped in &result.skipped {
-			let _ = writeln!(
-				output,
-				"- {} ({:?}): {}",
-				skipped.path, skipped.ecosystem, skipped.reason
-			);
-		}
+		text.section("Skipped unsupported ecosystems", Some(result.skipped.len()));
+		text.list(
+			result.skipped.iter().map(|skipped| {
+				format!(
+					"{} ({:?}): {}",
+					skipped.path.trim_start_matches(&root_prefix),
+					skipped.ecosystem,
+					skipped.reason
+				)
+			}),
+			usize::MAX,
+		);
 	}
 
-	let _ = writeln!(
-		output,
-		"\nStrategy: {} (package config → ecosystem config → ecosystem default; --strategy overrides)",
-		strategy_name(result.strategy)
+	text.paragraph(
+		"Strategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides.",
+		Tone::Muted,
 	);
-
-	if dry_run {
-		output.push_str("\n(dry run — no files were modified)\n");
-	}
-
-	output
+	text.render()
 }
 
 pub(crate) fn format_sync_result_json(result: &SyncResult, format: OutputFormat) -> String {
@@ -846,13 +897,16 @@ pub(crate) fn format_sync_result_json(result: &SyncResult, format: OutputFormat)
 }
 
 pub(crate) fn format_sync_result_for_cli(
+	root: &Path,
 	result: &SyncResult,
 	dry_run: bool,
 	quiet: bool,
 	format: OutputFormat,
 ) -> String {
 	match format {
-		OutputFormat::Text | OutputFormat::Markdown => format_sync_result(result, dry_run, quiet),
+		OutputFormat::Text | OutputFormat::Markdown => {
+			format_sync_result(root, result, dry_run, quiet)
+		}
 		OutputFormat::Json | OutputFormat::JsonMin => format_sync_result_json(result, format),
 	}
 }

@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::ffi::OsString;
+use std::path::Path;
 
 use clap::Command;
 use monochange_core::CliCommandDefinition;
@@ -341,125 +342,74 @@ dependencies:
 
 // --- format_sync_result tests ---
 
+fn dart_sync_change() -> sync::FileSyncResult {
+	sync::FileSyncResult {
+		path: "/workspace/pubspec.yaml".to_string(),
+		ecosystem: Ecosystem::Dart,
+		changes: vec![DependencySyncChange {
+			dependency_name: "my_package".to_string(),
+			section: "dependencies".to_string(),
+			old_value: "^0.5.0".to_string(),
+			new_value: "^0.7.0".to_string(),
+		}],
+	}
+}
+
 #[test]
-fn format_sync_result_empty_changes_returns_empty_string() {
+fn format_sync_result_reports_constraints_that_are_already_in_sync() {
 	let result = sync::SyncResult {
 		applied: false,
 		strategy: VersionStrategy::Default,
 		changes: vec![],
 		skipped: vec![],
 	};
-	let output = sync::format_sync_result(&result, false, true);
-	assert!(
-		output.is_empty(),
-		"empty changes should produce empty output when quiet"
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, true);
+	assert_eq!(
+		output,
+		"✔ Internal dependency constraints are already in sync · strategy default\n\nStrategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides."
 	);
 }
 
 #[test]
-fn format_sync_result_reports_update() {
+fn format_sync_result_groups_updates_by_relative_file() {
 	let result = sync::SyncResult {
-		applied: false,
+		applied: true,
 		strategy: VersionStrategy::Default,
-		changes: vec![sync::FileSyncResult {
-			path: "pubspec.yaml".to_string(),
-			ecosystem: Ecosystem::Dart,
-			changes: vec![DependencySyncChange {
-				dependency_name: "my_package".to_string(),
-				section: "dependencies".to_string(),
-				old_value: "^0.5.0".to_string(),
-				new_value: "^0.7.0".to_string(),
-			}],
-		}],
+		changes: vec![dart_sync_change()],
 		skipped: vec![],
 	};
-	let output = sync::format_sync_result(&result, false, true);
-	assert!(
-		output.contains("updated ^0.5.0 → ^0.7.0 in my_package (pubspec.yaml)"),
-		"expected update message in output"
-	);
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, true);
+	insta::assert_snapshot!(output);
 }
 
 #[test]
-fn format_sync_result_dry_run_prefixes_with_would() {
+fn format_sync_result_dry_run_says_what_would_change() {
 	let result = sync::SyncResult {
 		applied: false,
 		strategy: VersionStrategy::Default,
-		changes: vec![sync::FileSyncResult {
-			path: "pubspec.yaml".to_string(),
-			ecosystem: Ecosystem::Dart,
-			changes: vec![DependencySyncChange {
-				dependency_name: "my_package".to_string(),
-				section: "dependencies".to_string(),
-				old_value: "^0.5.0".to_string(),
-				new_value: "^0.7.0".to_string(),
-			}],
-		}],
+		changes: vec![dart_sync_change()],
 		skipped: vec![],
 	};
-	let output = sync::format_sync_result(&result, true, true);
-	assert!(
-		output.contains("would update ^0.5.0 → ^0.7.0"),
-		"expected 'would update' prefix in dry-run output"
-	);
-	assert!(
-		output.contains("dry run — no files were modified"),
-		"expected dry-run footer"
-	);
-}
-
-#[test]
-fn format_sync_result_non_dry_run_has_no_dry_run_footer() {
-	let result = sync::SyncResult {
-		applied: false,
-		strategy: VersionStrategy::Default,
-		changes: vec![sync::FileSyncResult {
-			path: "pubspec.yaml".to_string(),
-			ecosystem: Ecosystem::Dart,
-			changes: vec![DependencySyncChange {
-				dependency_name: "my_package".to_string(),
-				section: "dependencies".to_string(),
-				old_value: "^0.5.0".to_string(),
-				new_value: "^0.7.0".to_string(),
-			}],
-		}],
-		skipped: vec![],
-	};
-	let output = sync::format_sync_result(&result, false, true);
-	assert!(
-		!output.contains("dry run"),
-		"non-dry-run should not have dry run footer"
-	);
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, true, true);
+	insta::assert_snapshot!(output);
 }
 
 #[test]
 fn format_sync_result_with_changes_and_skips_separates_sections() {
-	let dep_change = DependencySyncChange {
-		dependency_name: "my_package".to_string(),
-		section: "dependencies".to_string(),
-		old_value: "^0.5.0".to_string(),
-		new_value: "^0.7.0".to_string(),
-	};
 	let result = sync::SyncResult {
 		applied: false,
 		strategy: VersionStrategy::Default,
-		changes: vec![sync::FileSyncResult {
-			path: "pubspec.yaml".to_string(),
-			ecosystem: Ecosystem::Dart,
-			changes: vec![dep_change],
-		}],
+		changes: vec![dart_sync_change()],
 		skipped: vec![sync::SkippedSyncPackage {
-			path: "go.mod".to_string(),
+			path: "/workspace/go.mod".to_string(),
 			package_name: "go-lib".to_string(),
 			ecosystem: Ecosystem::Go,
 			reason: "ecosystem sync is not implemented yet".to_string(),
 		}],
 	};
 
-	let output = sync::format_sync_result(&result, false, true);
-	assert!(output.contains("updated ^0.5.0 → ^0.7.0"));
-	assert!(output.contains("\nSkipped unsupported ecosystems:"));
-	assert!(output.contains("- go.mod (Go): ecosystem sync is not implemented yet"));
+	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, true);
+	insta::assert_snapshot!(output);
 }
 
 #[test]
@@ -476,10 +426,12 @@ fn format_sync_result_for_cli_supports_text_and_json() {
 		}],
 	};
 
-	let text = sync::format_sync_result_for_cli(&result, true, true, OutputFormat::Text);
-	let json = sync::format_sync_result_for_cli(&result, true, true, OutputFormat::Json);
-	let json_min = sync::format_sync_result_for_cli(&result, true, true, OutputFormat::JsonMin);
-	assert!(text.contains("Skipped unsupported ecosystems:"));
+	let root = Path::new(".");
+	let text = sync::format_sync_result_for_cli(root, &result, true, true, OutputFormat::Text);
+	let json = sync::format_sync_result_for_cli(root, &result, true, true, OutputFormat::Json);
+	let json_min =
+		sync::format_sync_result_for_cli(root, &result, true, true, OutputFormat::JsonMin);
+	assert!(text.contains("Skipped unsupported ecosystems (1)"));
 	assert!(json.contains(r#""package_name": "go-lib""#));
 	assert!(json_min.contains(r#""package_name":"go-lib""#));
 	assert!(json_min.contains('\n'));
@@ -507,45 +459,6 @@ fn parse_versions_output_format_parses_json_and_json_min() {
 		error
 			.to_string()
 			.contains("unsupported output format `unknown`")
-	);
-}
-
-#[test]
-fn format_sync_result_empty_not_quiet_still_returns_empty() {
-	let result = sync::SyncResult {
-		applied: false,
-		strategy: VersionStrategy::Default,
-		changes: vec![],
-		skipped: vec![],
-	};
-	let output = sync::format_sync_result(&result, false, false);
-	assert!(
-		output.is_empty(),
-		"empty changes should return empty string even when not quiet"
-	);
-}
-
-#[test]
-fn format_sync_result_not_quiet_and_not_dry_run_returns_output() {
-	let result = sync::SyncResult {
-		applied: false,
-		strategy: VersionStrategy::Default,
-		changes: vec![sync::FileSyncResult {
-			path: "pubspec.yaml".to_string(),
-			ecosystem: Ecosystem::Dart,
-			changes: vec![DependencySyncChange {
-				dependency_name: "my_package".to_string(),
-				section: "dependencies".to_string(),
-				old_value: "^0.5.0".to_string(),
-				new_value: "^0.7.0".to_string(),
-			}],
-		}],
-		skipped: vec![],
-	};
-	let output = sync::format_sync_result(&result, false, false);
-	assert!(
-		output.contains("updated ^0.5.0 → ^0.7.0 in my_package (pubspec.yaml)"),
-		"expected update message in output"
 	);
 }
 

@@ -1,0 +1,23 @@
+---
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+expression: text
+---
+Published 1 package
+
+  @scope/pkg  1.2.3  npm
+
+Checked 1 package. 0 failed.
+
+Details
+- @scope/pkg 1.2.3 via npm — published
+  ecosystem: npm
+  placeholder: no
+  publish: published package to npm
+  trusted publishing: configured
+  trust message: trusted publishing already configured
+  repository: monochange/monochange
+  workflow: publish.yml
+  environment: release
+
+Log
+  ran npm trust

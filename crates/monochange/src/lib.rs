@@ -941,7 +941,7 @@ fn run_versions_sync(
 	let result = sync_workspace_versions(root, strategy, dry_run)?;
 
 	Ok(sync::format_sync_result_for_cli(
-		&result, dry_run, quiet, format,
+		root, &result, dry_run, quiet, format,
 	))
 }
 

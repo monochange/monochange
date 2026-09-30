@@ -1,0 +1,17 @@
+---
+source: crates/monochange/src/__tests__/lint_tests.rs
+expression: warnings_only
+---
+▲ Checks passed with warnings · 3 warnings · 1 fixable
+
+Warnings (2)
+  ▲ deprecated option
+  ▲ skipped autofix for Cargo.toml
+
+packages/app/package.json
+  2:1   · informational
+          npm/off-rule
+  12:4  ▲ dependencies are not sorted
+          npm/sorted-dependencies · fixable
+
+Run `monochange check --fix` to fix 1 issue automatically.

@@ -2,9 +2,12 @@
 source: crates/monochange_integration_tests/tests/sync_versions.rs
 expression: sync_output
 ---
-would update ^1.1.0 → ^1.2.3 in core ([workspace]/packages/version_mismatch/pubspec.yaml)
-would update path: ../core → ^1.2.3 in core ([workspace]/packages/workspace_path_fail/pubspec.yaml)
+• Would update 2 dependency constraints · in 2 files · strategy default · dry-run, no files were modified
 
-Strategy: default (package config → ecosystem config → ecosystem default; --strategy overrides)
+packages/version_mismatch/pubspec.yaml
+  core  ^1.1.0 → ^1.2.3
 
-(dry run — no files were modified)
+packages/workspace_path_fail/pubspec.yaml
+  core  path: ../core → ^1.2.3
+
+Strategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides.

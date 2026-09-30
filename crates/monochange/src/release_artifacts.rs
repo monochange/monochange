@@ -8,6 +8,12 @@ use similar::TextDiff;
 
 use super::*;
 use crate::git_support::git_stage_all;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::plural;
 
 thread_local! {
 	pub(crate) static FORCE_BUILD_FILE_DIFF_PREVIEWS_ERROR: Cell<bool> = const { Cell::new(false) };
@@ -1852,29 +1858,72 @@ pub(crate) fn text_discovery_report(report: &DiscoveryReport) -> String {
 	for package in &report.packages {
 		*counts.entry(package.ecosystem).or_default() += 1;
 	}
+	let mut counts = counts.into_iter().collect::<Vec<_>>();
+	counts.sort_by(|left, right| right.1.cmp(&left.1).then(left.0.cmp(&right.0)));
 
-	let mut lines = vec![format!(
-		"Workspace discovery for {}",
-		report.workspace_root.display()
-	)];
-	lines.push(format!("Packages: {}", report.packages.len()));
-	for (ecosystem, count) in counts {
-		lines.push(format!("- {ecosystem}: {count}"));
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let outcome = if report.packages.is_empty() {
+		Outcome::Neutral
+	} else {
+		Outcome::Success
+	};
+	text.headline(
+		outcome,
+		&format!(
+			"Discovered {}",
+			plural(report.packages.len(), "package", "packages")
+		),
+		&[plural(
+			report.dependencies.len(),
+			"dependency",
+			"dependencies",
+		)],
+	);
+
+	if !counts.is_empty() {
+		text.section("Ecosystems", None);
+		text.table(
+			&counts
+				.iter()
+				.map(|(ecosystem, count)| {
+					vec![
+						TableCell::new(ecosystem.to_string(), Tone::Heading),
+						TableCell::new(count.to_string(), Tone::Value),
+					]
+				})
+				.collect::<Vec<_>>(),
+		);
 	}
-	lines.push(format!("Dependencies: {}", report.dependencies.len()));
 	if !report.version_groups.is_empty() {
-		lines.push("Version groups:".to_string());
-		for group in &report.version_groups {
-			lines.push(format!("- {} ({})", group.group_id, group.members.len()));
-		}
+		text.section("Version groups", None);
+		text.table(
+			&report
+				.version_groups
+				.iter()
+				.map(|group| {
+					vec![
+						TableCell::new(&group.group_id, Tone::Heading),
+						TableCell::new(
+							plural(group.members.len(), "package", "packages"),
+							Tone::Muted,
+						),
+					]
+				})
+				.collect::<Vec<_>>(),
+		);
 	}
 	if !report.warnings.is_empty() {
-		lines.push("Warnings:".to_string());
-		for warning in &report.warnings {
-			lines.push(format!("- {warning}"));
-		}
+		let root_prefix = format!("{}/", report.workspace_root.display());
+		text.section("Warnings", Some(report.warnings.len()));
+		text.list(
+			report
+				.warnings
+				.iter()
+				.map(|warning| format!("▲ {}", warning.replace(&root_prefix, ""))),
+			usize::MAX,
+		);
 	}
-	lines.join("\n")
+	text.render()
 }
 
 #[cfg(test)]

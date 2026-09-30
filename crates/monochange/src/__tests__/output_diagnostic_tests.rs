@@ -174,6 +174,13 @@ fn diagnostics_cover_every_error_category_and_sanitize_terminal_controls() {
 		MonochangeError::Config("failed to parse monochange.toml".to_string()),
 		MonochangeError::Discovery("package missing".to_string()),
 		MonochangeError::Discovery("command `make` failed: exit status: 2".to_string()),
+		MonochangeError::Discovery("no monochange release record found from `HEAD`".to_string()),
+		MonochangeError::Discovery(
+			"package publishing did not complete: 1 total, 1 failed".to_string(),
+		),
+		MonochangeError::Discovery(
+			"could not resolve ref `v1` to a commit: fatal: Needed a single revision".to_string(),
+		),
 		MonochangeError::Diagnostic("raw diagnostic".to_string()),
 		MonochangeError::Reported {
 			output: "report".to_string(),
@@ -203,6 +210,9 @@ fn diagnostics_cover_every_error_category_and_sanitize_terminal_controls() {
 		"config.unknown_package",
 		"config.parse_failed",
 		"workspace.discovery_failed",
+		"release.record_failed",
+		"publish.failed",
+		"git.failed",
 		"step.command_failed",
 		"cli.diagnostic",
 		"command.failed",
@@ -275,6 +285,35 @@ fn colored_context_preserves_embedded_styling_and_multiline_layout() {
 
 	assert!(rendered.contains("  \u{1b}[36;1mcause:\u{1b}[0m first\n\n"));
 	assert!(rendered.contains("         \u{1b}[33msecond\u{1b}[0m"));
+}
+
+#[test]
+fn generic_hints_are_skipped_when_the_message_already_says_what_to_do() {
+	let guided = CliDiagnostic::from_error(
+		&MonochangeError::Config(
+			"tag `v1` already points elsewhere; use `monochange step retarget-release`".to_string(),
+		),
+		None,
+	);
+	assert_eq!(
+		guided.render(false),
+		"error[config.invalid]: tag `v1` already points elsewhere; use `monochange step retarget-release`"
+	);
+	let upgrade = CliDiagnostic::from_error(
+		&MonochangeError::Discovery(
+			"release record uses unsupported schema_version 9 (upgrade monochange)".to_string(),
+		),
+		None,
+	);
+	assert_eq!(
+		upgrade.render(false),
+		"error[release.record_failed]: release record uses unsupported schema_version 9 (upgrade monochange)"
+	);
+	let git = CliDiagnostic::from_error(
+		&MonochangeError::Discovery("git command failed: rev-list".to_string()),
+		None,
+	);
+	assert!(git.render(false).contains("fetch-depth: 0"));
 }
 
 #[test]
