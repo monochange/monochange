@@ -17382,3 +17382,76 @@ steps = [{ name = "say hello", type = "Command", command = "printf hello" }]
 		.unwrap_or_else(|error| panic!("announce snapshot: {error}"));
 	assert_eq!(top_level_paths(&workflow_subtree), [r#"["announce"]"#]);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn command_groups_without_a_subcommand_list_their_subcommands() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = run_with_args_in_dir(
+		"monochange",
+		[OsString::from("monochange"), OsString::from("changeset")],
+		tempdir.path(),
+	)
+	.await
+	.expect_err("a command group without a subcommand is a usage error")
+	.to_string();
+
+	assert!(
+		error.starts_with("error: `monochange changeset` needs a subcommand"),
+		"{error}"
+	);
+	assert!(error.contains("validate"), "{error}");
+	assert!(!error.contains("Options:"), "{error}");
+	assert!(
+		error.ends_with("For more information, try 'monochange changeset --help'."),
+		"{error}"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn broken_configuration_explains_why_a_workflow_command_is_unknown() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		"[cli.announce\nsteps = []\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let error = run_with_args_in_dir(
+		"monochange",
+		[OsString::from("monochange"), OsString::from("announce")],
+		tempdir.path(),
+	)
+	.await
+	.expect_err("a broken configuration cannot run workflow commands")
+	.render();
+
+	assert!(error.contains("monochange.toml"), "{error}");
+	assert!(!error.contains("unrecognized subcommand"), "{error}");
+}
+
+#[test]
+fn text_release_record_discovery_marks_targets_without_tags() {
+	let mut record = sample_release_record_for_discovery_text();
+	let mut untagged = record.release_targets[0].clone();
+	untagged.id = "docs".to_string();
+	untagged.kind = monochange_core::ReleaseOwnerKind::Package;
+	untagged.tag = false;
+	record.release_targets.push(untagged);
+	let discovery = monochange_core::ReleaseRecordDiscovery {
+		input_ref: "HEAD".to_string(),
+		resolved_commit: "abc1234567890".to_string(),
+		record_commit: "abc1234567890".to_string(),
+		distance: 0,
+		record,
+	};
+
+	let rendered = crate::release_record::text_release_record_discovery(&discovery);
+	assert!(
+		has_table_row(&rendered, &["docs", "package", "1.2.3", "no", "tag"]),
+		"{rendered}"
+	);
+	assert!(
+		has_table_row(&rendered, &["sdk", "group", "1.2.3", "tag", "v1.2.3"]),
+		"{rendered}"
+	);
+}

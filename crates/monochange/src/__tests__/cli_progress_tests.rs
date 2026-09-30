@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
+use std::time::Instant;
 
 use monochange_core::CliCommandDefinition;
 use monochange_core::CliStepDefinition;
@@ -1178,4 +1179,19 @@ fn json_progress_reports_failures_as_diagnostic_events() {
 	assert_eq!(event["context"]["command"], "monochange run release");
 	assert_eq!(event["exit_code"], 1);
 	assert!(!text.contains("error["), "{text}");
+}
+
+#[test]
+fn long_running_spinners_show_the_elapsed_time() {
+	let (reporter, bytes) =
+		recorded_reporter_with(1, capabilities(true, false), ProgressFormat::Unicode);
+	let started_at = Instant::now()
+		.checked_sub(Duration::from_secs(5))
+		.unwrap_or_else(|| panic!("an instant five seconds ago"));
+	reporter.start_spinner("compile workspace".to_string(), Some(started_at));
+	thread::sleep(SPINNER_DELAY + SPINNER_TICK + Duration::from_millis(20));
+	reporter.stop_spinner();
+
+	let output = recorded_text(&bytes);
+	assert!(output.contains("compile workspace 5s"), "{output}");
 }

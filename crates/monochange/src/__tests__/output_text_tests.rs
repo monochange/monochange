@@ -156,3 +156,12 @@ fn counts_use_the_right_noun() {
 	assert_eq!(plural(0, "file", "files"), "0 files");
 	assert_eq!(display_width("→ é"), 3);
 }
+
+#[test]
+fn render_drops_trailing_blank_lines_from_verbatim_blocks() {
+	let mut report = TextReport::new(plain());
+	report.paragraph("Diff", Tone::Heading);
+	report.raw_block("+added\n \n\n");
+
+	assert_eq!(report.render(), "Diff\n\n+added");
+}
