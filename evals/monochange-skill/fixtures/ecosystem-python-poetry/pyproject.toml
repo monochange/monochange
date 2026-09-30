@@ -1,0 +1,11 @@
+# Legacy Poetry package: keep build metadata intact
+[tool.poetry]
+name = "acme-legacy"
+version = "1.2.3"
+description = "Legacy release fixture"
+authors = ["Acme <dev@example.test>"]
+[tool.poetry.dependencies]
+python = ">=3.11"
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

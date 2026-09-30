@@ -1,0 +1,49 @@
+{
+	"id": "adoption-gitea-host-config",
+	"title": "Initialize a self-hosted Gitea project from its repository remote",
+	"fixture": "adoption-gitea-host",
+	"prompt": "Initialize monochange release planning with the CLI for our Gitea repository at https://forge.acme.test/platform/widget-suite. Keep all four Cargo and npm packages managed together. Configure the correct provider, owner, repository, and custom host for future automation, but do not contact the forge or run any release workflow.",
+	"expectation": "The agent uses init --provider gitea, retains all discovered packages and a shared group, and fixes the self-host URL explicitly instead of leaving hosted-service defaults or placeholders. No GitHub Actions workflow tree is generated.",
+	"setupCommands": [
+		"git init -q",
+		"git remote add origin https://forge.acme.test/platform/widget-suite.git"
+	],
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "uses-cli-initializer",
+			"kind": "transcript",
+			"pattern": "^Bash [^\\n]*\\bmonochange\\b[^\\n]*\\binit\\b",
+			"why": "This adoption task explicitly asks to exercise the actual initializer before refining its starter configuration."
+		},
+		{
+			"id": "self-hosted-source-is-exact",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.equal(c.source.provider,\"gitea\"); assert.equal(c.source.owner,\"platform\"); assert.equal(c.source.repo,\"widget-suite\"); assert.equal(new URL(c.source.host.includes(\"://\") ? c.source.host : `https://${c.source.host}`).origin,\"https://forge.acme.test\");'",
+			"why": "Provider configuration must identify the real self-hosted instance before a future maintainer enables automation."
+		},
+		{
+			"id": "all-packages-share-release-owner",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; const ids=c.packages.map(p=>p.id).sort(); assert.deepEqual(ids,[\"@acme/sdk\",\"@acme/widgets\",\"acme-cli\",\"acme-engine\"]); assert.equal(c.groups.length,1); assert.deepEqual(c.groups[0].packages.slice().sort(),ids);'",
+			"why": "Provider initialization must retain every ecosystem and requested shared release identity."
+		},
+		{
+			"id": "no-github-actions-for-gitea",
+			"kind": "absent",
+			"path": ".github",
+			"why": "A Gitea starter must not create GitHub-only release automation."
+		}
+	]
+}

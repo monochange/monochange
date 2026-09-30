@@ -1,0 +1,45 @@
+{
+	"id": "ecosystem-flutter-type-alias",
+	"title": "Use the Flutter package-type alias and write a pubspec version",
+	"fixture": "ecosystem-flutter-package",
+	"prompt": "Set up monochange for this Flutter package using type = \"flutter\" in its package declaration so the intent stays clear. Record a patch for an asset metadata fix and preview its release. Keep all Flutter dependencies, asset declarations, and comments intact. Record the changeset and verify the preview, but leave changesets pending and manifests at their current versions. Do not publish, tag, commit, or contact a hosted provider.",
+	"expectation": "The authored flutter alias normalizes to the Dart adapter and resolves the current manifest version. The agent leaves its 1.2.4 patch intent pending; preparation in the grader's copied workdir must stamp that version while preserving Flutter dependencies, assets, and comments.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "requested-alias-present",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; assert.match(fs.readFileSync(\"monochange.toml\",\"utf8\"),/^type\\s*=\\s*\"flutter\"$/m);'",
+			"why": "The user explicitly requested the supported Flutter type alias in authored config."
+		},
+		{
+			"id": "alias-normalizes-to-dart-family",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; const p=c.packages.find(p=>p.id===\"acme_flutter\"); assert.ok(p); assert.ok([\"dart\",\"flutter\"].includes(p.package_type));'",
+			"why": "An alias must select a supported version-writing adapter."
+		},
+		{
+			"id": "flutter-patch-planned",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"preview\",\"--format\",\"json\"])); assert.deepEqual(d.release_targets.map(t=>t.version),[\"1.2.4\"]); assert.deepEqual(d.released_packages,[\"acme_flutter\"]);'",
+			"why": "The Flutter package must participate in a concrete release plan."
+		},
+		{
+			"id": "pubspec-version-and-flutter-assets-survive",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; cli([\"prepare\"]); const s=fs.readFileSync(\"pubspec.yaml\",\"utf8\"); assert.match(s,/^version:\\s*1\\.2\\.4$/m); assert.ok(s.includes(\"# Flutter package with a native asset\")); assert.ok(s.includes(\"sdk: flutter\")); assert.ok(s.includes(\"assets/marker.txt\"));'",
+			"why": "Manifest version writing must preserve Flutter-specific assets and sdk dependencies."
+		}
+	]
+}

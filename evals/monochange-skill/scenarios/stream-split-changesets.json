@@ -21,20 +21,24 @@
 			"id": "customer-note-carries-the-feature",
 			"kind": "command",
 			"command": "monochange notes --output user",
-			"expectOutput": ["link"],
+			"expectOutput": [
+				"link"
+			],
 			"why": "The user-stream output must actually carry the customer-facing change."
 		},
 		{
 			"id": "customer-note-omits-internal-detail",
 			"kind": "command",
-			"command": "if monochange notes --output user 2>/dev/null | grep -qi 'middleware\\|refactor'; then echo 'user-facing notes leaked internal implementation detail'; exit 1; fi",
+			"command": "monochange notes --output user > .grader-user-notes.md && test -s .grader-user-notes.md && if grep -qi 'middleware\\|refactor' .grader-user-notes.md; then echo 'user-facing notes leaked internal implementation detail'; exit 1; fi",
 			"why": "The two audiences exist so each gets the detail it needs; leaking the refactor into customer notes defeats the split just as surely as merging the files."
 		},
 		{
 			"id": "developer-note-carries-the-refactor",
 			"kind": "command",
 			"command": "monochange notes --output default --target @acme/api",
-			"expectOutput": ["middleware"],
+			"expectOutput": [
+				"middleware"
+			],
 			"why": "The developer-facing stream is where the internal detail belongs."
 		},
 		{
@@ -52,7 +56,8 @@
 		{
 			"id": "no-packages-published",
 			"kind": "transcript",
-			"pattern": "pnpm publish|npm publish",
+			"scope": "commands",
+			"pattern": "pnpm publish|npm publish|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
 			"absent": true,
 			"why": "The request was to write release notes, not to publish."
 		}

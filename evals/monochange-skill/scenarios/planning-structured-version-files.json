@@ -1,0 +1,48 @@
+{
+	"id": "planning-structured-version-files",
+	"title": "Stamp selected JSON TOML YAML and env fields together",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n[package.\"@acme/api\"]\npath = \"packages/api\"\ntype = \"npm\"\n[package.\"@acme/ui\"]\npath = \"packages/ui\"\ntype = \"npm\"\n[package.\"@acme/tokens\"]\npath = \"packages/tokens\"\ntype = \"npm\"\n[group.main]\npackages = [\"@acme/api\", \"@acme/ui\", \"@acme/tokens\"]\nversion_format = \"primary\"\n[ecosystems.npm]\nenabled = true\n[lints.rules]\n\"npm/workspace-protocol\" = \"off\"\n",
+		".changeset/api.md": "---\n\"@acme/api\": minor\n---\n\nAdd request retry options.\n",
+		"release/metadata.json": "{\"release\":{\"version\":\"2.3.1\"},\"schemaVersion\":\"1.0.0\"}\n",
+		"release/build.toml": "[tool.sdk]\nversion = \"2.3.1\"\n\n[unrelated]\nversion = \"8.0.0\"\n",
+		"release/app.yaml": "metadata:\n  sdkVersion: \"2.3.1\"\nappVersion: \"7.0.0\"\n",
+		"release/runtime.env": "export SDK_VERSION=\"2.3.1\"\nOTHER_VERSION=9.0.0\n"
+	},
+	"setupCommands": [
+		"git init -b main -q",
+		"git add -A",
+		"git commit -S -m 'chore: initialize evaluation fixture'"
+	],
+	"prompt": "The pending API minor release needs deployment metadata stamped alongside the main group. Configure format-based group versioned_files for release/metadata.json's release.version, release/build.toml's tool.sdk.version, release/app.yaml's metadata.sdkVersion, and release/runtime.env's SDK_VERSION. Prepare the release locally. Preserve every unrelated field and its value; no publishing, tags, or pushes.",
+	"expectation": "All four selected structured fields advance to 2.4.0 and unrelated schemaVersion, unrelated.version, appVersion, and OTHER_VERSION remain untouched.",
+	"checks": [
+		{
+			"id": "group-versions-prepared",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"); for(const id of [\"api\",\"ui\",\"tokens\"]) a.equal(JSON.parse(fs.readFileSync(\"packages/\"+id+\"/package.json\",\"utf8\")).version,\"2.4.0\");'",
+			"why": "The deployment stamp must correspond to the actual prepared group."
+		},
+		{
+			"id": "structured-json-field",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),p=JSON.parse(fs.readFileSync(\"release/metadata.json\",\"utf8\"));a.equal(p.release.version,\"2.4.0\");a.equal(p.schemaVersion,\"1.0.0\");'",
+			"why": "Dot-path JSON stamping must preserve unrelated version-shaped fields."
+		},
+		{
+			"id": "toml-yaml-env-fields",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),t=fs.readFileSync(\"release/build.toml\",\"utf8\"),y=fs.readFileSync(\"release/app.yaml\",\"utf8\"),e=fs.readFileSync(\"release/runtime.env\",\"utf8\");a.match(t,/\\[tool\\.sdk\\]\\s+version\\s*=\\s*\"2\\.4\\.0\"/);a.match(t,/\\[unrelated\\]\\s+version\\s*=\\s*\"8\\.0\\.0\"/);a.match(y,/sdkVersion:\\s*[\"\\x27]?2\\.4\\.0/);a.match(y,/appVersion:\\s*[\"\\x27]?7\\.0\\.0/);a.match(e,/SDK_VERSION=[\"\\x27]?2\\.4\\.0/);a.match(e,/OTHER_VERSION=9\\.0\\.0/);'",
+			"why": "Each format must update only declared fields."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

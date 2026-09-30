@@ -1,0 +1,9 @@
+[package]
+name = "acme-cli"
+version = "0.6.2"
+edition = "2021"
+license = "MIT"
+description = "Command line interface for the Acme rule engine"
+
+[dependencies]
+acme-engine = { path = "../engine", version = "0.6.2" }

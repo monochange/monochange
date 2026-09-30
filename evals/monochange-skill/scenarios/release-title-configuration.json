@@ -6,7 +6,7 @@
 		".changeset/cli-login-command.md": "---\nacme-cli: minor\n---\n\n# Ship the login command\n\nAdds `acme login` so users can authenticate before running the remaining commands.\n"
 	},
 	"setupCommands": [
-		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init"
+		"git init -b main -q && git add -A && git commit -S -qm init"
 	],
 	"prompt": "Our acme-cli releases on GitHub are titled by version alone and product wants them readable. Every acme-cli release should be titled `acme-cli 1.5.0 (2026-09-29)` — the package name, the bare version with no `v` prefix, and the release date. There is already a pending acme-cli change recorded in `.changeset`. Configure monochange so every acme-cli release carries that title from now on, and show me the title the next release would actually get.",
 	"expectation": "The agent sets `release_title = \"acme-cli {{ version }} ({{ date }})\"` on `[package.acme-cli]` (or the equivalent `{{ id }}` form, or `[defaults].release_title` if scoped correctly), using template variables rather than hardcoding the version or date. `monochange step validate` still passes, and a dry-run prepare shows the rendered title `acme-cli 1.5.0 (<date>)` — which differs from the namespaced default `acme-cli v1.5.0 (<date>)` by dropping the `v`, so a no-op configuration cannot pass.",

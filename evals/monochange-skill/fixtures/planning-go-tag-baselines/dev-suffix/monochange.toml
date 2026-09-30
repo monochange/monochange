@@ -1,0 +1,9 @@
+[package.sdk]
+path = "."
+type = "go"
+tag = true
+initial_version = "1.0.0"
+version_format = "namespaced"
+
+[ecosystems.go]
+enabled = true

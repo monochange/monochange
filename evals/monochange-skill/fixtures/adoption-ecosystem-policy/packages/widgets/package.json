@@ -1,0 +1,15 @@
+{
+  "name": "@acme/widgets",
+  "version": "0.9.4",
+  "description": "Embeddable widgets backed by the Acme SDK",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "@acme/sdk": "^0.9.4"
+  }
+}

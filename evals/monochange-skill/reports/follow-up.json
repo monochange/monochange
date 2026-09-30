@@ -1,0 +1,879 @@
+{
+	"schemaVersion": 1,
+	"phase": "repeated-divergent-task-comparison",
+	"sourceReports": [
+		{
+			"path": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"sha256": "3eab5a05cf2090af4d452851799860440622a59c6922220c99b3abe4426ddaf2",
+			"startedAt": "2026-09-30T06:41:27.272Z",
+			"finishedAt": "2026-09-30T07:03:40.014Z"
+		},
+		{
+			"path": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"sha256": "b9e6cc6622bd7dfe77d5eacdbe0f5a48c55623542c95dbfd864526ff09e169a2",
+			"startedAt": "2026-09-30T06:41:27.268Z",
+			"finishedAt": "2026-09-30T07:04:59.572Z"
+		},
+		{
+			"path": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"sha256": "aad4469589ecc74202a5e83db390b84df5ba825227cf546bb123acab871d8996",
+			"startedAt": "2026-09-30T06:41:27.258Z",
+			"finishedAt": "2026-09-30T07:40:25.534Z"
+		}
+	],
+	"grading": {
+		"path": ".monochange/local/eval-second-pass/regraded.json",
+		"sha256": "c010bbd81b52c1c9c08d48a44dc613f96bd540da6f15d71fc1c8c6db31f6c0d3",
+		"provenance": {
+			"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+			"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf"
+		},
+		"startedAt": "2026-09-30T07:43:02.979Z",
+		"finishedAt": "2026-09-30T07:44:18.730Z"
+	},
+	"repeatsPerCell": 3,
+	"trials": 27,
+	"usage": {
+		"inputTokens": 1866,
+		"outputTokens": 447083,
+		"cacheReadTokens": 68650596,
+		"cacheCreationTokens": 1864251,
+		"costUsd": 28.918797299999998,
+		"inputAndOutputTokensExcludingCache": 448949
+	},
+	"variants": [
+		{
+			"variant": "shipping-current",
+			"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833",
+			"trials": 9,
+			"passed": 9
+		},
+		{
+			"variant": "concise",
+			"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3",
+			"trials": 9,
+			"passed": 8
+		},
+		{
+			"variant": "package",
+			"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19",
+			"trials": 9,
+			"passed": 7
+		}
+	],
+	"scenarios": [
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"trials": 3,
+					"passed": 3
+				},
+				{
+					"variant": "concise",
+					"trials": 3,
+					"passed": 3
+				},
+				{
+					"variant": "package",
+					"trials": 3,
+					"passed": 3
+				}
+			]
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"trials": 3,
+					"passed": 3
+				},
+				{
+					"variant": "concise",
+					"trials": 3,
+					"passed": 3
+				},
+				{
+					"variant": "package",
+					"trials": 3,
+					"passed": 3
+				}
+			]
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"results": [
+				{
+					"variant": "shipping-current",
+					"trials": 3,
+					"passed": 3
+				},
+				{
+					"variant": "concise",
+					"trials": 3,
+					"passed": 2
+				},
+				{
+					"variant": "package",
+					"trials": 3,
+					"passed": 1
+				}
+			]
+		}
+	],
+	"runs": [
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "shipping-current",
+			"repeat": 1,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 195655,
+			"usage": {
+				"inputTokens": 82,
+				"outputTokens": 15139,
+				"cacheReadTokens": 2984439,
+				"cacheCreationTokens": 81513,
+				"costUsd": 1.0744938000000002,
+				"turns": 44
+			}
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "shipping-current",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 268302,
+			"usage": {
+				"inputTokens": 24,
+				"outputTokens": 4781,
+				"cacheReadTokens": 1071018,
+				"cacheCreationTokens": 11342,
+				"costUsd": 1.2734671000000004,
+				"turns": 12
+			}
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "shipping-current",
+			"repeat": 3,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 217913,
+			"usage": {
+				"inputTokens": 76,
+				"outputTokens": 18354,
+				"cacheReadTokens": 3006649,
+				"cacheCreationTokens": 87425,
+				"costUsd": 1.1347218,
+				"turns": 43
+			}
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "concise",
+			"repeat": 1,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 102528,
+			"usage": {
+				"inputTokens": 54,
+				"outputTokens": 9532,
+				"cacheReadTokens": 1783444,
+				"cacheCreationTokens": 71685,
+				"costUsd": 0.7388568000000001,
+				"turns": 28
+			}
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "concise",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 77195,
+			"usage": {
+				"inputTokens": 36,
+				"outputTokens": 7554,
+				"cacheReadTokens": 1151263,
+				"cacheCreationTokens": 64927,
+				"costUsd": 0.5655726,
+				"turns": 24
+			}
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "concise",
+			"repeat": 3,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 63346,
+			"usage": {
+				"inputTokens": 30,
+				"outputTokens": 5949,
+				"cacheReadTokens": 813510,
+				"cacheCreationTokens": 51203,
+				"costUsd": 0.42706399999999994,
+				"turns": 19
+			}
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "package",
+			"repeat": 1,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 72865,
+			"usage": {
+				"inputTokens": 38,
+				"outputTokens": 6688,
+				"cacheReadTokens": 1191157,
+				"cacheCreationTokens": 66318,
+				"costUsd": 0.5704594000000001,
+				"turns": 20
+			}
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "package",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 158221,
+			"usage": {
+				"inputTokens": 60,
+				"outputTokens": 12164,
+				"cacheReadTokens": 1979214,
+				"cacheCreationTokens": 68758,
+				"costUsd": 0.7926348000000003,
+				"turns": 31
+			}
+		},
+		{
+			"scenario": "adoption-roots-and-exclusions",
+			"variant": "package",
+			"repeat": 3,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-272Z.json",
+			"agentDurationMs": 162512,
+			"usage": {
+				"inputTokens": 62,
+				"outputTokens": 12163,
+				"cacheReadTokens": 1933855,
+				"cacheCreationTokens": 61535,
+				"costUsd": 0.754665,
+				"turns": 32
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "concise",
+			"repeat": 1,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 130409,
+			"usage": {
+				"inputTokens": 54,
+				"outputTokens": 8386,
+				"cacheReadTokens": 1862588,
+				"cacheCreationTokens": 62833,
+				"costUsd": 0.7078176,
+				"turns": 34
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "concise",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 135253,
+			"usage": {
+				"inputTokens": 68,
+				"outputTokens": 11876,
+				"cacheReadTokens": 2141265,
+				"cacheCreationTokens": 63205,
+				"costUsd": 0.7999690000000003,
+				"turns": 40
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "concise",
+			"repeat": 3,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 77508,
+			"usage": {
+				"inputTokens": 48,
+				"outputTokens": 7315,
+				"cacheReadTokens": 1344978,
+				"cacheCreationTokens": 52607,
+				"costUsd": 0.5526695999999999,
+				"turns": 32
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "package",
+			"repeat": 1,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 84442,
+			"usage": {
+				"inputTokens": 56,
+				"outputTokens": 7270,
+				"cacheReadTokens": 1851181,
+				"cacheCreationTokens": 64784,
+				"costUsd": 0.7021842,
+				"turns": 31
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "package",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 79950,
+			"usage": {
+				"inputTokens": 66,
+				"outputTokens": 7199,
+				"cacheReadTokens": 1982648,
+				"cacheCreationTokens": 53960,
+				"costUsd": 0.6844916,
+				"turns": 36
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "package",
+			"repeat": 3,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 213580,
+			"usage": {
+				"inputTokens": 82,
+				"outputTokens": 15793,
+				"cacheReadTokens": 2920134,
+				"cacheCreationTokens": 72681,
+				"costUsd": 1.0328448,
+				"turns": 43
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "shipping-current",
+			"repeat": 1,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 298754,
+			"usage": {
+				"inputTokens": 126,
+				"outputTokens": 21076,
+				"cacheReadTokens": 5392570,
+				"cacheCreationTokens": 112844,
+				"costUsd": 1.7409020000000006,
+				"turns": 64
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "shipping-current",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 177430,
+			"usage": {
+				"inputTokens": 70,
+				"outputTokens": 11672,
+				"cacheReadTokens": 2329470,
+				"cacheCreationTokens": 72807,
+				"costUsd": 0.8739820000000001,
+				"turns": 39
+			}
+		},
+		{
+			"scenario": "ecosystem-python-poetry-version",
+			"variant": "shipping-current",
+			"repeat": 3,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-268Z.json",
+			"agentDurationMs": 196872,
+			"usage": {
+				"inputTokens": 64,
+				"outputTokens": 10791,
+				"cacheReadTokens": 1815938,
+				"cacheCreationTokens": 51747,
+				"costUsd": 0.6782136,
+				"turns": 39
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "package",
+			"repeat": 1,
+			"passed": false,
+			"failedChecks": [
+				"dependency-prefixes-and-field-scope"
+			],
+			"originalPassed": false,
+			"originalFailedChecks": [
+				"dependency-prefixes-and-field-scope"
+			],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 133237,
+			"usage": {
+				"inputTokens": 32,
+				"outputTokens": 12806,
+				"cacheReadTokens": 877748,
+				"cacheCreationTokens": 44446,
+				"costUsd": 0.4814576,
+				"turns": 18
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "package",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 207462,
+			"usage": {
+				"inputTokens": 60,
+				"outputTokens": 20779,
+				"cacheReadTokens": 1796389,
+				"cacheCreationTokens": 57528,
+				"costUsd": 0.7972998,
+				"turns": 31
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "package",
+			"repeat": 3,
+			"passed": false,
+			"failedChecks": [
+				"dependency-prefixes-and-field-scope"
+			],
+			"originalPassed": false,
+			"originalFailedChecks": [
+				"dependency-prefixes-and-field-scope"
+			],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "b482fd934ac2e94bba3f5c69ba8ea15de0163fcf77ab5babc3ac9bfc8c160f19"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 301486,
+			"usage": {
+				"inputTokens": 60,
+				"outputTokens": 27232,
+				"cacheReadTokens": 2068425,
+				"cacheCreationTokens": 81607,
+				"costUsd": 1.3891533000000003,
+				"turns": 32
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "shipping-current",
+			"repeat": 1,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 774610,
+			"usage": {
+				"inputTokens": 202,
+				"outputTokens": 46309,
+				"cacheReadTokens": 9329858,
+				"cacheCreationTokens": 114987,
+				"costUsd": 2.7894136,
+				"turns": 108
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "shipping-current",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": false,
+			"originalFailedChecks": [
+				"no-external-release"
+			],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 407030,
+			"usage": {
+				"inputTokens": 122,
+				"outputTokens": 31016,
+				"cacheReadTokens": 5645806,
+				"cacheCreationTokens": 114856,
+				"costUsd": 1.8989891999999997,
+				"turns": 62
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "shipping-current",
+			"repeat": 3,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 500219,
+			"usage": {
+				"inputTokens": 28,
+				"outputTokens": 10380,
+				"cacheReadTokens": 1588429,
+				"cacheCreationTokens": 16781,
+				"costUsd": 2.403140099999999,
+				"turns": 14
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "concise",
+			"repeat": 1,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": false,
+			"originalFailedChecks": [
+				"no-external-release"
+			],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 384238,
+			"usage": {
+				"inputTokens": 58,
+				"outputTokens": 31312,
+				"cacheReadTokens": 2135688,
+				"cacheCreationTokens": 77762,
+				"costUsd": 1.0514216000000003,
+				"turns": 38
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "concise",
+			"repeat": 2,
+			"passed": true,
+			"failedChecks": [],
+			"originalPassed": true,
+			"originalFailedChecks": [],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 419214,
+			"usage": {
+				"inputTokens": 108,
+				"outputTokens": 33778,
+				"cacheReadTokens": 3504761,
+				"cacheCreationTokens": 76828,
+				"costUsd": 1.3462602000000004,
+				"turns": 55
+			}
+		},
+		{
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "concise",
+			"repeat": 3,
+			"passed": false,
+			"failedChecks": [
+				"dependency-prefixes-and-field-scope"
+			],
+			"originalPassed": false,
+			"originalFailedChecks": [
+				"dependency-prefixes-and-field-scope"
+			],
+			"provenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"model": "sonnet",
+			"effectiveModel": "claude-sonnet-5",
+			"runtimeVersion": "2.1.281",
+			"sourceReport": ".monochange/local/eval-second-pass/results/report-2026-09-30T06-41-27-258Z.json",
+			"agentDurationMs": 399289,
+			"usage": {
+				"inputTokens": 100,
+				"outputTokens": 39769,
+				"cacheReadTokens": 4148171,
+				"cacheCreationTokens": 107282,
+				"costUsd": 1.6566522000000001,
+				"turns": 54
+			}
+		}
+	],
+	"limitations": [
+		"Small focused repeat set; not a repeat of all 38 original agent tasks.",
+		"Agent-accessible ancestor source changed during frozen-CLI trials. Comparisons are exploratory, not a clean causal experiment isolating skill text.",
+		"Concurrent cohorts contend for resources, so durations do not establish a clean speed ranking.",
+		"Original statuses are retained to distinguish grader corrections from agent behavior; final outcomes come from the supplied hardened replay."
+	]
+}

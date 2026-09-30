@@ -8,7 +8,7 @@
 		"pnpm-lock.yaml": "lockfileVersion: '9.0'\n\nimporters:\n  .:\n    dependencies:\n      '@acme/api':\n        specifier: ^2.3.1\n        version: 2.3.1\n"
 	},
 	"setupCommands": [
-		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init"
+		"git init -b main -q && git add -A && git commit -S -qm init"
 	],
 	"expectation": "A workspace lockfile is refreshed as part of the release, so a dependent pinned to the old version does not survive the bump. The lockfile is rewritten in place and its quoting preserved, because pnpm regenerates and compares these files. Configuring `[ecosystems.<name>].lockfile_commands` replaces that built-in rewrite rather than adding to it: the configured command owns the refresh entirely.",
 	"checks": [
@@ -16,7 +16,7 @@
 			"id": "lockfile-listed-as-changed",
 			"kind": "command",
 			"command": "cp monochange.toml .cfg.bak; python3 -c \"import pathlib; p=pathlib.Path('monochange.toml'); s=p.read_text(); s=s.replace('[package.\\\"@acme/api\\\"]\\npath = \\\"packages/api\\\"\\ntype = \\\"npm\\\"', '[package.\\\"@acme/api\\\"]\\npath = \\\"packages/api\\\"\\ntype = \\\"npm\\\"\\nversioned_files = [{ path = \\\"pnpm-lock.yaml\\\", type = \\\"npm\\\", fields = [\\\"dependencies\\\"] }]'); p.write_text(s)\"; mkdir -p .changeset; printf -- '---\\n\"@acme/api\": minor\\n---\\n\\nAdd a timeout option\\n' > .changeset/t.md; monochange prepare --format json > .plan.json 2>&1; rc=$?; grep -q 'pnpm-lock.yaml' .plan.json; listed=$?; mv .cfg.bak monochange.toml; rm -f .plan.json; test $rc -eq 0 -a $listed -eq 0",
-			"why": "The lockfile must be part of the release plan. If it is absent from the changed-file list, no refresh is happening and the dependent stays pinned to a version that no longer exists."
+			"why": "The release plan must report the refreshed lockfile so its updated workspace versions are included in the release commit and visible during review."
 		},
 		{
 			"id": "lockfile-content-actually-advanced",

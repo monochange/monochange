@@ -1,0 +1,39 @@
+{
+	"id": "planning-group-highest-baseline",
+	"title": "Plan a group release from the highest member baseline",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n[package.\"@acme/api\"]\npath = \"packages/api\"\ntype = \"npm\"\n[package.\"@acme/ui\"]\npath = \"packages/ui\"\ntype = \"npm\"\n[package.\"@acme/tokens\"]\npath = \"packages/tokens\"\ntype = \"npm\"\n[group.main]\npackages = [\"@acme/api\", \"@acme/ui\", \"@acme/tokens\"]\nversion_format = \"primary\"\n[ecosystems.npm]\nenabled = true\n[lints.rules]\n\"npm/workspace-protocol\" = \"off\"\n",
+		"packages/tokens/package.json": "{\"name\":\"@acme/tokens\",\"version\":\"2.6.0\",\"type\":\"module\"}\n"
+	},
+	"prompt": "Our main release group has drifted: api and ui are 2.3.1, while tokens is already 2.6.0. Record a patch fix for @acme/api: retry requests now respect cancellation. Show a release plan that reunifies the group from its highest current version. Leave manifests and pending changesets available for review; do not prepare or publish.",
+	"expectation": "A patch member changeset plans one main group at 2.6.1, using the highest member version as its baseline. Existing manifests remain api/ui 2.3.1 and tokens 2.6.0.",
+	"checks": [
+		{
+			"id": "configuration-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The final configuration and pending changesets must resolve."
+		},
+		{
+			"id": "group-uses-highest-baseline",
+			"kind": "command",
+			"command": "monochange preview --format json | node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),p=JSON.parse(fs.readFileSync(0,\"utf8\")); a.equal(p.release_targets.length,1); a.equal(p.release_targets[0].id,\"main\"); a.equal(p.release_targets[0].version,\"2.6.1\");'",
+			"why": "The stale api version must not lower the group baseline."
+		},
+		{
+			"id": "manifest-drift-not-hand-fixed",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"); for(const [id,want] of [[\"api\",\"2.3.1\"],[\"ui\",\"2.3.1\"],[\"tokens\",\"2.6.0\"]]) a.equal(JSON.parse(fs.readFileSync(\"packages/\"+id+\"/package.json\",\"utf8\")).version,want);'",
+			"why": "Planning must retain the original manifests."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

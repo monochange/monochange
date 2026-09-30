@@ -1,0 +1,35 @@
+{
+	"id": "planning-first-stable-release",
+	"title": "Promote a pre-1.0 crate deliberately to its first stable version",
+	"fixture": "pre-1-0-workspace",
+	"prompt": "We have decided acme-util's API is stable. Create release intent that explicitly takes acme-util from 0.4.2 to 1.0.0, with notes explaining that callers can now rely on compatibility guarantees. Keep severity honest: this is a deliberate first stable release rather than an invented breaking API change. Show the resulting plan; leave version files untouched.",
+	"expectation": "An explicit version pins acme-util to 1.0.0 rather than relying on pre-1.0 severity shifting. Release intent remains pending and the util manifest stays 0.4.2.",
+	"checks": [
+		{
+			"id": "configuration-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The final configuration and pending changesets must resolve."
+		},
+		{
+			"id": "explicit-first-stable-version",
+			"kind": "command",
+			"command": "monochange preview --format json | node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),p=JSON.parse(fs.readFileSync(0,\"utf8\"));a.equal(p.release_targets.find(x=>x.id===\"acme-util\").version,\"1.0.0\");'",
+			"why": "Only an explicit first-stable decision bypasses the pre-1.0 severity shift."
+		},
+		{
+			"id": "explicit-version-recorded",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),files=fs.readdirSync(\".changeset\").filter(x=>x.endsWith(\".md\"));a.ok(files.some(x=>/version:\\s*[\"\\x27]?1\\.0\\.0/.test(fs.readFileSync(\".changeset/\"+x,\"utf8\"))));a.ok(fs.readFileSync(\"crates/util/Cargo.toml\",\"utf8\").includes('\\''version = \"0.4.2\"'\\''));'",
+			"why": "Version intent belongs in changeset frontmatter, with original manifests retained."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

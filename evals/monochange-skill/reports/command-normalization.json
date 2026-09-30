@@ -1,0 +1,193 @@
+{
+	"schemaVersion": 1,
+	"phase": "literal-cli-binding-audit",
+	"startedAt": "2026-09-30T08:18:43.610Z",
+	"finishedAt": "2026-09-30T08:18:45.014Z",
+	"trialsAudited": 141,
+	"commandChecksAudited": 69,
+	"normalizedInputs": 8,
+	"affectedRuns": [
+		{
+			"phase": "first-pass",
+			"scenario": "adoption-disabled-ecosystem",
+			"variant": "package",
+			"repeat": 1,
+			"changedInputIndexes": [
+				4
+			]
+		},
+		{
+			"phase": "first-pass",
+			"scenario": "breaking-change-changeset",
+			"variant": "shipping-current",
+			"repeat": 1,
+			"changedInputIndexes": [
+				12,
+				13
+			]
+		},
+		{
+			"phase": "first-pass",
+			"scenario": "publish-readiness-gates",
+			"variant": "shipping-current",
+			"repeat": 1,
+			"changedInputIndexes": [
+				4,
+				5,
+				6,
+				7
+			]
+		},
+		{
+			"phase": "follow-up",
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "concise",
+			"repeat": 3,
+			"changedInputIndexes": [
+				39
+			]
+		}
+	],
+	"commandGradeChanges": [
+		{
+			"phase": "first-pass",
+			"scenario": "publish-readiness-gates",
+			"variant": "shipping-current",
+			"repeat": 1,
+			"check": "readiness-was-consulted",
+			"previous": false,
+			"latest": true
+		}
+	],
+	"failedLatestCommandChecks": [],
+	"agentCalls": 0,
+	"focusedReplays": [
+		{
+			"phase": "first-pass",
+			"scenario": "adoption-disabled-ecosystem",
+			"variant": "package",
+			"repeat": 1,
+			"changedInputIndexes": [
+				4
+			],
+			"sourcePath": ".monochange/local/eval-first-pass/regraded-final.json",
+			"originalProvenance": {
+				"checkoutCommit": "3621d40db11bd2dfd89192bf7270b4a50603293a",
+				"cliSha256": "8c1de8264dc2124deba1a163e2852e2a663a2c4603e55d2b451dc27339f20eae",
+				"skillSha256": "014e182651bc02715848f745355e3e759862d5473c8eec919db27cafff0f71b4"
+			},
+			"gradingProvenance": {
+				"checkoutCommit": "937cea83f537d3ae6d61e0f89de9a2e54cdee11c",
+				"cliSha256": "8c1de8264dc2124deba1a163e2852e2a663a2c4603e55d2b451dc27339f20eae"
+			},
+			"passed": true,
+			"originalPassed": true,
+			"checks": [
+				{
+					"id": "config-exists",
+					"passed": true
+				},
+				{
+					"id": "config-validates",
+					"passed": true
+				},
+				{
+					"id": "ecosystem-choice-is-explicit",
+					"passed": true
+				},
+				{
+					"id": "only-requested-package-released",
+					"passed": true
+				},
+				{
+					"id": "cargo-manifests-preserved",
+					"passed": true
+				}
+			]
+		},
+		{
+			"phase": "first-pass",
+			"scenario": "breaking-change-changeset",
+			"variant": "shipping-current",
+			"repeat": 1,
+			"changedInputIndexes": [
+				12,
+				13
+			],
+			"sourcePath": ".monochange/local/eval-first-pass/regraded-final.json",
+			"originalProvenance": {
+				"checkoutCommit": "3621d40db11bd2dfd89192bf7270b4a50603293a",
+				"cliSha256": "8c1de8264dc2124deba1a163e2852e2a663a2c4603e55d2b451dc27339f20eae",
+				"skillSha256": "85175ae1715bbc37ecebbedc88b686cad07483bf72de1e08b884320fe851b833"
+			},
+			"gradingProvenance": {
+				"checkoutCommit": "937cea83f537d3ae6d61e0f89de9a2e54cdee11c",
+				"cliSha256": "8c1de8264dc2124deba1a163e2852e2a663a2c4603e55d2b451dc27339f20eae"
+			},
+			"passed": true,
+			"originalPassed": true,
+			"checks": [
+				{
+					"id": "changeset-file-created",
+					"passed": true
+				},
+				{
+					"id": "release-is-major",
+					"passed": true
+				},
+				{
+					"id": "validate-passes",
+					"passed": true
+				},
+				{
+					"id": "targets-the-api-package-not-the-group",
+					"passed": true
+				},
+				{
+					"id": "every-checked-id-is-quoted",
+					"passed": true
+				},
+				{
+					"id": "no-version-fields-hand-edited",
+					"passed": true
+				}
+			]
+		},
+		{
+			"phase": "follow-up",
+			"scenario": "planning-dependency-prefix-precedence",
+			"variant": "concise",
+			"repeat": 3,
+			"changedInputIndexes": [
+				39
+			],
+			"sourcePath": ".monochange/local/eval-second-pass/regraded.json",
+			"originalProvenance": {
+				"checkoutCommit": "896a5470208b08627689418cfc55354d3db6c66f",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf",
+				"skillSha256": "964923c4bde9ffe12e8d095682d8212acce743d90a4330217e728af19b3ed0f3"
+			},
+			"gradingProvenance": {
+				"checkoutCommit": "937cea83f537d3ae6d61e0f89de9a2e54cdee11c",
+				"cliSha256": "00998ccd5b68fdd97aa85cfd49daa48177d0f949b433c8542b146349c57352cf"
+			},
+			"passed": false,
+			"originalPassed": false,
+			"checks": [
+				{
+					"id": "all-group-versions-prepared",
+					"passed": true
+				},
+				{
+					"id": "dependency-prefixes-and-field-scope",
+					"passed": false
+				},
+				{
+					"id": "no-external-release",
+					"passed": true
+				}
+			]
+		}
+	],
+	"scope": "Read-only submitted-command audit of all 141 saved agent trials, followed by isolated full-check replay of the three additional identities whose command evidence normalized. Only the previously documented shipping readiness grade changes; the other full-check outcomes remain unchanged."
+}

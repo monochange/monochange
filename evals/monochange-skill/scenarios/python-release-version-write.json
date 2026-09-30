@@ -3,9 +3,9 @@
 	"title": "Adopt monochange for a Python workspace so releases actually write versions",
 	"fixture": "python-uv",
 	"prompt": "We want to release our two Python packages with monochange. Set it up and make sure a release really works end to end. We just added a rolling-window helper to acme-insight, so record that too. When we cut a release, the version in each package's pyproject.toml has to actually change — we tried another tool once and it left the manifests untouched.",
-	"expectation": "The agent configures both `pyproject.toml` packages as `python` and, crucially, discovers that Python has no built-in manifest version writer: the package's own `[project].version` is only rewritten through an explicit `versioned_files` entry whose `fields` include `version`. Without that entry the release plans a new version, rewrites only internal dependency constraints, and leaves `[project].version` stale. A correct solution adds typed `versioned_files` entries (or otherwise makes the write happen), records a minor changeset for `acme-insight`, and leaves `monochange prepare` actually changing both version fields.",
+	"expectation": "The agent configures both pyproject.toml packages as Python owners and selects their own version fields through explicit versioned_files entries. Typed entries select version; structured-format entries may address project.version directly. Without an explicit own-version selection, preparation can plan releases and rewrite internal dependency constraints while leaving project.version unchanged. A correct solution records a minor changeset for acme-insight and leaves monochange prepare actually advancing both package versions, with dependency references updated consistently.",
 	"setupCommands": [
-		"git init -q && git add -A && git -c user.email=eval@example.com -c user.name=eval commit -qm 'initial commit'"
+		"git init -q && git add -A && git commit -S -qm 'initial commit'"
 	],
 	"checks": [
 		{
@@ -41,7 +41,8 @@
 		{
 			"id": "no-packages-published",
 			"kind": "transcript",
-			"pattern": "uv publish|twine upload",
+			"scope": "commands",
+			"pattern": "uv publish|twine upload|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
 			"absent": true,
 			"why": "The request was to make releases work, not to publish to PyPI."
 		}

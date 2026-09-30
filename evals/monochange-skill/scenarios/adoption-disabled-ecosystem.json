@@ -1,0 +1,39 @@
+{
+	"id": "adoption-disabled-ecosystem",
+	"title": "Adopt only the npm packages in a polyglot repository",
+	"fixture": "adoption-ecosystem-policy",
+	"prompt": "Set up monochange for this mixed repository, but release management belongs only to @acme/sdk and @acme/widgets. The Cargo crates are experimental and outside the release process. Keep npm releases independent, explicitly disable the Cargo ecosystem in monochange config, and record a patch for @acme/widgets. Record the changeset and verify the preview, but leave changesets pending and manifests at their current versions. Do not publish, tag, commit, or contact a hosted provider.",
+	"expectation": "Explicit npm declarations and enabled npm adapter coexist with disabled Cargo discovery. The release plan is only @acme/widgets 0.9.5, and Cargo manifests remain untouched.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "ecosystem-choice-is-explicit",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.equal(c.cargo.enabled,false); assert.equal(c.npm.enabled,true); assert.deepEqual(c.packages.map(p=>[p.id,p.package_type]).sort(),[[\"@acme/sdk\",\"npm\"],[\"@acme/widgets\",\"npm\"]]);'",
+			"why": "Available manifests should not override the user's explicit ecosystem boundary."
+		},
+		{
+			"id": "only-requested-package-released",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"preview\",\"--format\",\"json\"])); assert.deepEqual(d.released_packages,[\"@acme/widgets\"]); assert.deepEqual(d.release_targets.map(t=>[t.id,t.version]),[[\"@acme/widgets\",\"0.9.5\"]]);'",
+			"why": "A release plan must respect ecosystem enablement and independent ownership."
+		},
+		{
+			"id": "cargo-manifests-preserved",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; assert.match(fs.readFileSync(\"crates/engine/Cargo.toml\",\"utf8\"),/^version = \"0.6.2\"$/m);'",
+			"why": "Excluded Cargo packages must not be versioned during npm adoption."
+		}
+	]
+}

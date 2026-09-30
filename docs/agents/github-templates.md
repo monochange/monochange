@@ -42,6 +42,6 @@ When editing GitHub templates:
 - Keep the project name lowercase as `monochange` in prose.
 - Keep PR titles, issue titles, and commit titles aligned with the naming rules in `AGENTS.md`.
 - Keep validation checklists aligned with current repository scripts and CLI commands.
-- Include `monochange step affected-packages --verify --changed-paths <files>` guidance for changeset coverage when the template discusses published package changes.
+- Include `monochange step affected-packages --verify --changed-paths <path> --changed-paths <another-path>` guidance for changeset coverage when the template discusses published package changes. Repeat the flag once per changed path, including changeset paths, relative to the repo root; neither several whitespace-separated arguments after one flag nor comma-combined paths represent multiple inputs.
 - Remind contributors that docs shared across README, guide, and package docs usually flow through `.templates/` and require `docs:update`.
 - Run `dprint fmt` before committing template or agent-doc changes.

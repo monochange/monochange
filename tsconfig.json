@@ -22,6 +22,8 @@
 		"target"
 	],
 	"include": [
+		"evals/monochange-skill/run.ts",
+		"evals/monochange-skill/lib/**/*.ts",
 		"scripts/**/*.ts",
 		"packages/monochange__cli/src/**/*.ts"
 	]

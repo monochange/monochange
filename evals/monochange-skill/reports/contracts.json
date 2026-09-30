@@ -1,0 +1,753 @@
+{
+	"schemaVersion": 1,
+	"phase": "post-ci-fix-agent-free-contracts",
+	"source": {
+		"path": "evals/monochange-skill/results/report-2026-09-30T08-57-21-432Z.json",
+		"sha256": "a82058fd3877209005914814c036135d9269556c802b4e3c8a7acfd968fbed22",
+		"startedAt": "2026-09-30T08:57:21.432Z",
+		"finishedAt": "2026-09-30T08:58:44.008Z"
+	},
+	"provenance": {
+		"checkoutCommit": "b05f2b2ef4a8f2c490e91798b069d07403a74c83",
+		"cliSha256": "9406d48fa3befe8d242d35f6062177f06a68885d3a43e5ebf4c410ff1a1699f8"
+	},
+	"sourceCommit": "46990b74ceb81155e066996c47f8f234e50ef07b",
+	"previousEvidence": "evals/monochange-skill/reports/contracts-before-ci-fix.json",
+	"trials": 22,
+	"passed": 22,
+	"checks": 106,
+	"passedChecks": 106,
+	"agentCalls": 0,
+	"canonicalSkillSha256": "ae27c7c3390d27ed7567582a29f642532b845fd806d1fb7234833ebb80f3dc48",
+	"runs": [
+		{
+			"scenario": "affected-coverage-and-labels",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "verify-fails-on-an-uncovered-change",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "coverage-satisfied-by-a-changeset",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "coverage-is-per-package",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "skip-label-releases-the-requirement",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "bump-propagation-modes",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "none-mode-plans-only-the-changed-package",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "minor-mode-floors-dependents-at-minor",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "inherit-with-max-clamps-dependents",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "max-without-inherit-is-a-config-error",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "changelog-formats-and-mode-contract",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "json-output-requires-release-mode",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "json-output-with-release-mode-renders-json",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "append-mode-accumulates-two-releases",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "cli-self-sufficiency",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "root-help-advertises-skill",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "skill-lists-bundled-topics",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "entrypoint-is-the-shipped-skill",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "configuration-topic-carries-the-hard-rules",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "changesets-topic-carries-the-format-rules",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "read-is-raw-markdown",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "read-and-install-serve-identical-bytes",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "install-writes-the-whole-tree",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "install-refuses-to-clobber",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "install-force-replaces-and-cleans-up",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "unknown-topic-exits-nonzero",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "create-dry-run-contract",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "create-dry-run-writes-nothing",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "step-spelling-dry-run-writes-nothing",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "create-write-writes-the-file",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "run-change-errors-without-cli-config",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "cli-change-wrapper-honors-dry-run",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "cross-stream-detection-contract",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "validate-passes-mixed-stream",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "check-passes-mixed-stream",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "preview-rejects-mixed-stream",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "split-streams-preview-passes",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "explicit-version-changeset",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "explicit-version-planned",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "computed-version-does-not-appear",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "validate-accepts-object-form",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "create-writes-explicit-version",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "create-version-dry-run-writes-nothing",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "format-and-jq-contracts",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "discover-json-parses",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "discover-json-min-is-one-line-of-json",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "discover-md-renders-a-markdown-report",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "unknown-format-is-rejected",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "jq-field-access-filters-config-output",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "jq-select-still-filters",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "jq-length-and-comma-filters-stay-silent",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "quiet-silences-validate-without-changing-execution",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "run-without-cli-config-errors",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "go-dependent-require-rewrite",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "custom-go-tag-format-selects-only-matching-baseline",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "go-tag-prerelease-with-v-in-suffix-parses-completely",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "both-modules-are-planned",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "prepare-rewrites-the-internal-require",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "replace-directive-untouched",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "unrelated-module-sharing-a-name-is-not-rewritten",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "changed-files-name-the-module-file",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "no-version-field-written-into-go-mod",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-init-no-overwrite",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "plain-init-refuses",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "provider-init-refuses",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-skill-destination-errors",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "missing-dir-rejected",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "blocked-dir-rejected",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-skill-install-update",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "install-complete-bundle",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "existing-skill-refused",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "forced-update-restores-bundle",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-skill-path-security",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "symlink-entrypoint-rejected",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "symlink-topic-directory-rejected-before-writing",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "guardrail-skill-topic-security",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "path-topic-rejected",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "traversal-topic-rejected",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "valid-topic-readable",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "init-provider-workflows",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "init-github-writes-config-and-both-workflows",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "init-github-config-activates-source-without-cli-tables",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "init-github-config-validates-in-empty-workspace",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "init-without-provider-omits-active-source",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "init-refuses-to-overwrite-without-force",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "init-force-overwrites",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "init-gitlab-writes-config-without-github-workflows",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "init-rejects-provider-outside-its-set",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "invalid-changeset-diagnostics",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "unknown-target-is-rejected",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "unquoted-scoped-id-is-a-parse-error",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "invalid-bump-names-the-valid-types",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "valid-changeset-still-passes",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "lockfiles-rewrite-and-commands",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "lockfile-listed-as-changed",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "lockfile-content-actually-advanced",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "lockfile-commands-replace-the-built-in-rewrite",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "no-registry-or-network-access",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "notes-selection-contract",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "user-output-carries-only-the-user-change",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "target-narrows-the-default-output",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "unknown-output-fails-naming-valid-outputs",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "file-writes-exactly-the-named-path",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "notes-consume-nothing",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "file-dash-selects-stdout",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "pre-1.0-bump-shift",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "minor-plans-a-patch-on-a-0.x-version",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "major-plans-a-minor-on-a-0.x-version",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "no-shift-above-1.0.0",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "release-lifecycle-gates",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "release-record-resolves-from-tag",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "release-record-sha-resolves",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "tag-release-refuses-a-non-release-commit",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "tag-release-creates-the-tag-on-the-release-commit",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "readiness-reports-blocked-without-publishing",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "subagents-generation",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "subagents-dry-run-writes-nothing",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "subagents-writes-agent-file-and-mcp-json",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "agent-guidance-is-skill-first-with-real-fields",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "mcp-json-registers-the-monochange-server",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "no-mcp-skips-mcp-json",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "generated-guidance-names-existing-commands",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		},
+		{
+			"scenario": "versioned-file-fields-rule",
+			"variant": "package",
+			"skillSource": "installed",
+			"repeat": 1,
+			"passed": true,
+			"checks": [
+				{
+					"id": "preview-plans-propagated-release",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "prepare-writes-the-tree",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "insight-version-advanced",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "report-version-left-stale",
+					"kind": "command",
+					"passed": true
+				},
+				{
+					"id": "report-dependency-constraint-advanced",
+					"kind": "command",
+					"passed": true
+				}
+			]
+		}
+	],
+	"scope": "All 22 agent-free scenarios against the rebuilt binary containing the CI-discovered Rustdoc correction. This does not execute the 38 agent tasks or every one of the 315 authored checks, and variant labels do not score skill quality."
+}

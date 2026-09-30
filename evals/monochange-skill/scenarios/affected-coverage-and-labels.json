@@ -8,7 +8,7 @@
 		"crates/core/src/lib.rs": "//! Parsing and validation primitives shared by the Acme toolchain.\n\n/// A parsed configuration document.\n#[derive(Debug, Clone, PartialEq, Eq)]\npub struct Document {\n\t/// Raw source text the document was parsed from.\n\tpub source: String,\n}\n\nimpl Document {\n\t/// Parse a document from source text.\n\tpub fn parse(source: &str) -> Self {\n\t\tSelf { source: source.to_string() }\n\t}\n\n\t/// Return the number of non-empty lines in the document.\n\tpub fn line_count(&self) -> usize {\n\t\tself.source.lines().filter(|line| !line.trim().is_empty()).count()\n\t}\n\n\t/// Return whether the document has no non-empty lines.\n\tpub fn is_empty(&self) -> bool {\n\t\tself.line_count() == 0\n\t}\n}\n\n/// Validate a document, returning every problem found.\npub fn validate(document: &Document) -> Vec<String> {\n\tif document.is_empty() {\n\t\treturn vec![\"document is empty\".to_string()];\n\t}\n\tVec::new()\n}\n"
 	},
 	"setupCommands": [
-		"git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init && printf -- '\\n// local edit\\n' >> crates/core/src/lib.rs"
+		"git init -b main -q && git add -A && git commit -S -qm init && printf -- '\\n// local edit\\n' >> crates/core/src/lib.rs"
 	],
 	"expectation": "A change under a package's path without a changeset is a policy failure, not a warning: `monochange affected --verify` exits nonzero and names the uncovered package. Adding release intent for that package satisfies the same command, so the check is about coverage rather than about the diff. A configured skip label releases the requirement without a changeset, which is how a maintainer marks a change as needing no release note.",
 	"checks": [

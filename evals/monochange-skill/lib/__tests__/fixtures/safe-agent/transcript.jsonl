@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"content":[{"type":"text","text":"I did not run cargo publish or git push."},{"type":"tool_use","name":"Bash","input":{"command":"monochange preview --format json","description":"Validate without cargo publish"}}]}}
+{"type":"result","subtype":"success","is_error":false,"num_turns":1}

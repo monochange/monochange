@@ -50,7 +50,7 @@ For any change that adds, removes, or modifies a CLI command or flag:
 
 The goal is to highlight the differences, not duplicate unchanged context.
 
-Example headline for a streamlined invocation:
+Hypothetical example for a proposed streamlined invocation: the current CLI requires one path per repeated `--changed-paths` flag; the multi-path "After" command below illustrates a future feature rather than current usage.
 
 > # Allow one `monochange step affected-packages --changed-paths` flag to accept several paths
 

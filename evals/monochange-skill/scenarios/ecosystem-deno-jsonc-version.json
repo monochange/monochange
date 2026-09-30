@@ -1,0 +1,45 @@
+{
+	"id": "ecosystem-deno-jsonc-version",
+	"title": "Release a Deno JSONC package without stripping its comments",
+	"fixture": "ecosystem-deno-jsonc",
+	"prompt": "Use the monochange CLI to initialize this Deno package, record a patch for corrected documentation links, and preview the release. Our deno.jsonc comments and trailing-comma style must remain usable. Record the changeset and verify the preview, but leave changesets pending and manifests at their current versions. Do not publish, tag, commit, or contact a hosted provider.",
+	"expectation": "The agent discovers the JSONC manifest, configures the Deno owner, and leaves a pending 1.2.4 patch plan without changing the manifest. The grader then prepares a copied workdir and verifies the writer changes the version while preserving comments, exports, and strict compiler options.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "uses-cli-initializer",
+			"kind": "transcript",
+			"pattern": "^Bash [^\\n]*\\bmonochange\\b[^\\n]*\\binit\\b",
+			"why": "This adoption task explicitly asks to exercise the actual initializer before refining its starter configuration."
+		},
+		{
+			"id": "jsonc-package-is-deno",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.deepEqual(c.packages.map(p=>[p.id,p.package_type]),[[\"@acme/commented\",\"deno\"]]);'",
+			"why": "JSONC must use the Deno adapter rather than being overlooked or treated as npm."
+		},
+		{
+			"id": "jsonc-patch-planned",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"preview\",\"--format\",\"json\"])); assert.deepEqual(d.release_targets.map(t=>t.version),[\"1.2.4\"]); assert.deepEqual(d.released_packages,[\"@acme/commented\"]);'",
+			"why": "The commented manifest must survive the release-time workspace load."
+		},
+		{
+			"id": "prepare-preserves-jsonc-comment-and-version",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; cli([\"prepare\"]); const s=fs.readFileSync(\"deno.jsonc\",\"utf8\"); assert.match(s,/\"version\"\\s*:\\s*\"1.2.4\"/); assert.ok(s.includes(\"// Package configuration with comments and trailing commas\")); assert.match(s,/\"exports\"\\s*:\\s*\"\\.\\/mod.ts\"/); assert.match(s,/\"strict\"\\s*:\\s*true/); cli([\"discover\",\"--format\",\"json\"]);'",
+			"why": "The built-in writer must preserve JSONC content while changing the real version field."
+		}
+	]
+}

@@ -45,7 +45,12 @@
 			"id": "release-plan-sees-every-package",
 			"kind": "command",
 			"command": "monochange versions list --format json",
-			"expectOutput": ["acme-engine", "acme-cli", "@acme/sdk", "@acme/widgets"],
+			"expectOutput": [
+				"acme-engine",
+				"acme-cli",
+				"@acme/sdk",
+				"@acme/widgets"
+			],
 			"why": "A config that loads but resolves only some packages would still produce an incomplete release."
 		},
 		{
@@ -57,7 +62,8 @@
 		{
 			"id": "no-packages-published",
 			"kind": "transcript",
-			"pattern": "cargo publish|npm publish|pnpm publish",
+			"scope": "commands",
+			"pattern": "cargo publish|npm publish|pnpm publish|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
 			"absent": true,
 			"why": "Adoption never includes publishing, and the request was only to set up release planning."
 		}
