@@ -4,6 +4,61 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### 💥 Breaking Change
+
+#### Name release-record replays and format-specific default release titles
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #736](https://github.com/monochange/monochange/pull/736) · _Related issues:_ [#725](https://github.com/monochange/monochange/issues/725)
+
+Provider releases (GitHub, GitLab, Gitea, Forgejo) published from a committed release record fell back to the bare tag name (`v0.22.0`) for the release title, because the record carried no rendered title and the manifest built from it blanked `rendered_title`. Release records now persist the title rendered at prepare time, and `build_release_manifest_from_record` replays it; records from schema v0.8 and earlier synthesize the built-in default title for the target's version format, dated from the record's `created_at`, instead of degrading to the tag name.
+
+The built-in release title defaults are now format-specific:
+
+- primary versioning renders `v{{ version }} ({{ date }})` — one release axis, so the title carries the tag-style version with the date;
+- namespaced versioning renders `{{ id }} v{{ version }} ({{ date }})` — the owner is named because a workspace releases several axes at once.
+
+Repositories that prefer another shape can set it explicitly on a package, a group, or workspace-wide:
+
+```toml
+[defaults]
+release_title = "{{ id }} {{ version }} ({{ date }})"
+```
+
+`ReleaseRecordTarget` gains `rendered_title` and `rendered_changelog_title` (optional, empty-string defaults), which is a breaking change for struct literals; deserialize and serialize round-trips of existing records are unchanged. The release-record artifact schema advances to v0.9 with a no-op migration edge, so v0.8 records migrate unchanged.
+
+The agent skill's configuration topic now documents the release title templates — the defaults per version format, the available variables, precedence, and the record replay — and `@monochange/skill` republishes that guidance.
+
+### 🚀 Feature
+
+#### Include canonical Python names in dependent release plans
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+A producer named `PY_Core` now matches declared dependencies written as `py-core` or `py_core`, restoring dependent bumps and dependency ordering while preserving the producer's native name. A producer-only minor changeset can therefore release its consumers with their configured propagation policy instead of omitting them from the plan.
+
+Adapters can provide a canonical dependency-name alias through `PackageRecord.metadata` using the shared `PACKAGE_DEPENDENCY_NAME_METADATA_KEY` constant. `materialize_dependency_edges` matches the alias for consumers in the producer's ecosystem and emits each target ID once. This prevents a normalized Python alias from creating an unrelated Cargo dependency edge with the same spelling. Exact native-name matching retains its existing behavior, including adapters without an alias.
+
+#### Preserve explicit dependency rules during release preparation
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Preparing a release now preserves configured dependency prefixes after native manifest synchronization, and lock commands see the final manifest contents. Dependency-only npm versioned entries leave the file's own version unchanged; scalar dependency fields still update their selected constraints.
+
+```toml
+[package.api]
+path = "packages/api"
+type = "npm"
+versioned_files = [
+	{ path = "packages/ui/constraints.json", type = "npm", name = "api", fields = ["dependencies"], prefix = "~" },
+]
+```
+
+The explicit `name` refers to a configured package ID and resolves to that package's native dependency name. When `api` releases, this entry updates matching constraints using `~` while preserving `constraints.json`'s own version.
+
+Library callers can use the additive `monochange_core::update_selected_json_manifest_text(contents, owner_version, fields, versioned_deps)` API to update only selected fields. Nested owner fields such as `metadata.version` still receive the owner version without implicitly changing the root `version`. The existing `update_json_manifest_text` API retains its implicit native-manifest root-version behavior.
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 ### 💥 Breaking Change

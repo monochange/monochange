@@ -9,6 +9,58 @@
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 - Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### 🐛 Fixed
+
+#### Guide agents through verified adoption and release workflows
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+The skill now distinguishes built-in commands from configured workflows, explains incremental package ownership and discovery filters, and documents the supported version-file, prerelease, stream, and release-note options. Agents can follow existing authorization through local preparation without repeatedly asking for permission.
+
+For a repository with no custom workflows, use `monochange create`, `monochange preview`, and `monochange prepare`; `monochange run <name>` requires a matching `[cli.<name>]` configuration. Poetry guidance uses the current `poetry lock` command, and Deno guidance covers JSONC manifests.
+
+The updated guidance is verified through CLI contracts and agent tasks across all six supported ecosystems.
+
+#### Keep classification reports specific to the pull request
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #743](https://github.com/monochange/monochange/pull/743)
+
+- The report records the commits it compared in the new top-level `base_commit` and `head_commit` fields. Match `head_commit` with the pull request head to confirm a saved report is current; a changed `base_commit` shows the base branch moved since the report was built.
+- Markdown and text reports list only findings the pull request produced under each package. A finding whose `comparisons` contain only `release` and `release_to_default` now appears under "Unreleased changes already on `<base>` (not part of this pull request)" and no longer counts toward the package's findings. The JSON `findings` array is unchanged, because the release floor still needs that evidence.
+- `--base` is documented as the pull request's base branch. Pass it for a stacked pull request so the classifier does not attribute the parent branch's changes to the child:
+
+```bash
+monochange change classify --base origin/feature/parent --head "$PR_HEAD_SHA" --format json
+```
+
+The classification report contract advances to `schema_version` `0.4` with a frozen `classification.v0.4.schema.json`. The change is additive: readers of `0.3` reports keep working.
+
+#### Name release-record replays and format-specific default release titles
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #736](https://github.com/monochange/monochange/pull/736) · _Related issues:_ [#725](https://github.com/monochange/monochange/issues/725)
+
+Provider releases (GitHub, GitLab, Gitea, Forgejo) published from a committed release record fell back to the bare tag name (`v0.22.0`) for the release title, because the record carried no rendered title and the manifest built from it blanked `rendered_title`. Release records now persist the title rendered at prepare time, and `build_release_manifest_from_record` replays it; records from schema v0.8 and earlier synthesize the built-in default title for the target's version format, dated from the record's `created_at`, instead of degrading to the tag name.
+
+The built-in release title defaults are now format-specific:
+
+- primary versioning renders `v{{ version }} ({{ date }})` — one release axis, so the title carries the tag-style version with the date;
+- namespaced versioning renders `{{ id }} v{{ version }} ({{ date }})` — the owner is named because a workspace releases several axes at once.
+
+Repositories that prefer another shape can set it explicitly on a package, a group, or workspace-wide:
+
+```toml
+[defaults]
+release_title = "{{ id }} {{ version }} ({{ date }})"
+```
+
+`ReleaseRecordTarget` gains `rendered_title` and `rendered_changelog_title` (optional, empty-string defaults), which is a breaking change for struct literals; deserialize and serialize round-trips of existing records are unchanged. The release-record artifact schema advances to v0.9 with a no-op migration edge, so v0.8 records migrate unchanged.
+
+The agent skill's configuration topic now documents the release title templates — the defaults per version format, the available variables, precedence, and the record replay — and `@monochange/skill` republishes that guidance.
+
+- **Document the reorganized monochange command line.** The skill's command reference now explains that `[cli.<name>]` workflows also run as `monochange <name>` (with `monochange run <name>` still preferred in scripts), that bare `monochange versions` is a read-only check, the global `--verbose` flag, and that usage errors exit with status `2` while `--progress-format json` reports failures as a `diagnostic` event. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 ### 🐛 Fixed

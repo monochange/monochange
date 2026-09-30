@@ -4,6 +4,65 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### 🐛 Fixed
+
+#### Validate typed npm metadata files consistently
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Typed npm `versioned_files` entries now accept custom `.json` files, including glob-selected deployment metadata. Validation previously rejected files such as `constraints.json` even though release preparation could update them.
+
+Keep the explicit `type = "npm"` and select the fields to rewrite. Automatic package discovery still recognizes native npm manifests rather than treating every JSON file as a package.
+
+#### Prepare releases from Deno JSONC manifests
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Repositories using `deno.jsonc` can now initialize, validate, discover, and prepare releases with comments and trailing commas. Validation recognizes the discovered JSONC manifest instead of requiring a nonexistent `deno.json`; dependency synchronization retains the original comments and layout.
+
+```sh
+monochange init
+monochange step validate
+monochange prepare --dry-run
+```
+
+These commands now accept supported Deno JSONC manifests throughout the workflow. The Deno adapter also exposes `parse_manifest_contents(contents: &str) -> Result<serde_json::Value, serde_json::Error>` for callers that need the same comment and trailing-comma handling.
+
+Malformed block comments and tokens split by comments are rejected instead of being silently accepted or joined into a different value.
+
+#### Diagnose invalid automatic-discovery patterns
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Malformed include or exclude globs now fail configuration loading with the ecosystem, field, and offending pattern. Previously an invalid pattern could silently hide packages or misalign the remaining include patterns. Excludes are validated even when the include list is empty.
+
+```toml
+[ecosystems.cargo.auto_discover]
+include = ["crates/["]
+```
+
+This configuration now produces an actionable error instead of an empty package inventory. Correct the pattern, for example to `crates/*`, before retrying.
+
+- **Validate release titles against their rendered context.** Validate package, group, and default `release_title` and `changelog_version_title` templates against the actual release context. Both title fields accept `id`, `version`, `previous_version`, `date`, `time`, `datetime`, `changes_count`, `tag_url`, and `compare_url`, including Jinja filters and conditionals. Invalid syntax and version-value variables such as `name`, `year`, and declared counters now produce a configuration error instead of rendering empty title text or falling back to a version. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+#### Show warnings without `--log-level`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+Warnings raised with `tracing::warn!` were only visible with `--log-level`, so CI had to run `monochange --log-level=debug` to notice problems such as the release pull request silently falling back from a verified GitHub API commit to a regular git commit. monochange now prints every warning by default as one readable line with its details underneath, through the same stderr channel as progress, so it never splices into an active spinner:
+
+```text
+warning: could not create a verified release commit through the GitHub API; falling back to a regular git commit
+  reason: GitHub API POST `/repos/acme/app/git/trees` failed: status 422
+  commit: c686e78478ea2611d41e2d8521311a236f2a3470
+```
+
+Each distinct warning prints once per run. `--quiet` hides warnings, GitHub Actions receives them as `::warning` annotations, and `--progress-format json` emits a `warning` event with `message` and `fields`. `--log-level` still enables the full maintainer trace.
+
+`monochange_config` (non-standard GitHub `[source]` host) and `monochange_graph` (a version group member missing from discovery) now report their warnings with `tracing::warn!` instead of `eprintln!`, so they respect `--quiet` and progress rendering. Embedders that relied on those lines reaching stderr without a tracing subscriber must install one. Routine internal messages ("ignoring stale prepared release artifact", a failed prepared-release cache save, and git failures that are already returned as errors) moved to `debug`.
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 ### 💥 Breaking Change
