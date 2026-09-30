@@ -1254,7 +1254,7 @@ async fn dispatch_cli_args(
 	if let Some(snapshot_request) = parse_snapshot_request(&args) {
 		let configuration = load_workspace_configuration(root);
 		let cli = cli_commands_from_config(&configuration);
-		let command = build_command_with_cli(bin_name, &cli);
+		let command = cli::build_snapshot_command(bin_name, &cli, &snapshot_request.path);
 		return render_snapshot_request(&command, &snapshot_request);
 	}
 	if let Some(output) = render_cli_snapshot_classification(&args)? {
@@ -1423,9 +1423,9 @@ async fn dispatch_cli_args(
 					.into_iter()
 					.flatten()
 					.cloned()
-					.collect();
+					.collect::<Vec<_>>();
 				render_snapshot_request(
-					&build_command_with_cli(bin_name, &cli),
+					&cli::build_snapshot_command(bin_name, &cli, &path),
 					&SnapshotRequest { path, view },
 				)
 			}

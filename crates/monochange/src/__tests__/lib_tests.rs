@@ -17334,3 +17334,51 @@ fn markdown_is_accepted_wherever_md_is_offered() {
 		crate::OutputFormat::Markdown
 	);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn cli_surface_snapshots_list_workflows_only_under_run() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[cli.announce]
+help_text = "Announce a release"
+steps = [{ name = "say hello", type = "Command", command = "printf hello" }]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	let run = |args: &[&str]| {
+		let mut arguments = vec![OsString::from("monochange")];
+		arguments.extend(args.iter().map(OsString::from));
+		run_with_args_in_dir("monochange", arguments, tempdir.path())
+	};
+	let top_level_paths = |output: &str| {
+		serde_json::from_str::<serde_json::Value>(output)
+			.unwrap_or_else(|error| panic!("parse snapshot: {error}\n{output}"))["commands"]
+			.as_array()
+			.unwrap_or_else(|| panic!("snapshot commands"))
+			.iter()
+			.map(|command| command["path"].to_string())
+			.collect::<Vec<_>>()
+	};
+
+	for args in [&["snapshot", "--view", "index"][..], &["--snapshot"][..]] {
+		let paths = top_level_paths(
+			&run(args)
+				.await
+				.unwrap_or_else(|error| panic!("{args:?}: {error}")),
+		);
+		assert!(!paths.contains(&r#"["announce"]"#.to_string()), "{paths:?}");
+		assert!(paths.contains(&r#"["run"]"#.to_string()), "{paths:?}");
+	}
+
+	let run_subtree = run(&["snapshot", "run", "announce"])
+		.await
+		.unwrap_or_else(|error| panic!("run announce snapshot: {error}"));
+	assert!(run_subtree.contains("Announce a release"), "{run_subtree}");
+
+	let workflow_subtree = run(&["announce", "--snapshot"])
+		.await
+		.unwrap_or_else(|error| panic!("announce snapshot: {error}"));
+	assert_eq!(top_level_paths(&workflow_subtree), [r#"["announce"]"#]);
+}

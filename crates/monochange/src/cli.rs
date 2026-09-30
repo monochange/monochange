@@ -214,10 +214,34 @@ fn strip_inline_markdown(value: &str) -> String {
 	output
 }
 
-#[allow(clippy::redundant_closure_for_method_calls)]
 pub(crate) fn build_command_with_cli(
 	bin_name: &'static str,
 	cli: &[CliCommandDefinition],
+) -> Command {
+	build_command_with_workflows(bin_name, cli, true)
+}
+
+/// Build the command a CLI surface snapshot describes.
+///
+/// A snapshot records the binary's own command surface, so workflow commands
+/// from monochange.toml appear only under `run`, unless the requested path
+/// starts with one of them.
+pub(crate) fn build_snapshot_command(
+	bin_name: &'static str,
+	cli: &[CliCommandDefinition],
+	path: &[String],
+) -> Command {
+	let names_workflow = path
+		.first()
+		.is_some_and(|first| cli.iter().any(|cli_command| cli_command.name == *first));
+	build_command_with_workflows(bin_name, cli, names_workflow)
+}
+
+#[allow(clippy::redundant_closure_for_method_calls)]
+fn build_command_with_workflows(
+	bin_name: &'static str,
+	cli: &[CliCommandDefinition],
+	top_level_workflows: bool,
 ) -> Command {
 	let mut command = Command::new(bin_name)
 		.version(env!("CARGO_PKG_VERSION"))
@@ -393,10 +417,10 @@ When provided, the generated config includes:\n\
 		.get_subcommands()
 		.map(|subcommand| subcommand.get_name().to_string())
 		.collect::<BTreeSet<_>>();
-	for cli_command in cli {
-		if builtin_names.contains(&cli_command.name) {
-			continue;
-		}
+	let top_level = cli
+		.iter()
+		.filter(|cli_command| top_level_workflows && !builtin_names.contains(&cli_command.name));
+	for cli_command in top_level {
 		command = command.subcommand(build_cli_command_subcommand_with_prefix(
 			cli_command,
 			"monochange",
