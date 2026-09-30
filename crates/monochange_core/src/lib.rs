@@ -371,7 +371,8 @@ impl Ecosystem {
 	/// version field in the package manifest.
 	///
 	/// Release planning resolves the current version for these ecosystems from
-	/// the latest reachable release tag matching the owner's version format.
+	/// the highest semantic version among repository tags matching the owner's
+	/// version format, without filtering by branch reachability.
 	#[must_use]
 	pub const fn versions_from_tags(self) -> bool {
 		matches!(self, Self::Go)
@@ -498,8 +499,9 @@ pub struct PackageDependency {
 ///
 /// Adapters with equivalent package spellings can supply this alias while
 /// preserving `PackageRecord::name` for native manifests and display. Dependency
-/// edges match the alias alongside the native name; adapters must use the same
-/// canonical spelling in their declared dependency names.
+/// edges match the alias only for consumers in the producer's ecosystem;
+/// native names retain their existing matching behavior. Adapters must use the
+/// same canonical spelling in their declared dependency names.
 pub const PACKAGE_DEPENDENCY_NAME_METADATA_KEY: &str = "dependency_name";
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -993,9 +995,10 @@ impl PackageType {
 /// Where a package's current release version is read from.
 ///
 /// Defaults to `manifest` for ecosystems that store a version field in their
-/// manifest. `tag` reads the baseline from the latest reachable release tag
-/// matching the release owner's `version_format`, which suits GitHub Actions
-/// repositories and other tag-only release targets.
+/// manifest. `tag` reads the baseline from the highest semantic version among
+/// repository tags matching the release owner's `version_format`, without
+/// filtering by branch reachability. This suits GitHub Actions repositories
+/// and other tag-only release targets.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -7417,20 +7420,21 @@ pub fn default_publish_order_dependency_fields(ecosystem: Ecosystem) -> &'static
 }
 
 pub fn materialize_dependency_edges(packages: &[PackageRecord]) -> Vec<DependencyEdge> {
-	let mut package_ids_by_name = BTreeMap::<String, Vec<String>>::new();
+	let mut package_ids_by_name = BTreeMap::<String, Vec<(String, Option<Ecosystem>)>>::new();
 	for package in packages {
-		let names = std::iter::once(&package.name).chain(
+		let names = std::iter::once((&package.name, None)).chain(
 			package
 				.metadata
 				.get(PACKAGE_DEPENDENCY_NAME_METADATA_KEY)
-				.filter(|alias| *alias != &package.name),
+				.filter(|alias| *alias != &package.name)
+				.map(|alias| (alias, Some(package.ecosystem))),
 		);
 
-		for name in names {
+		for (name, ecosystem) in names {
 			let ids = package_ids_by_name.entry(name.clone()).or_default();
 
-			if !ids.contains(&package.id) {
-				ids.push(package.id.clone());
+			if !ids.iter().any(|(id, _)| id == &package.id) {
+				ids.push((package.id.clone(), ecosystem));
 			}
 		}
 	}
@@ -7439,7 +7443,11 @@ pub fn materialize_dependency_edges(packages: &[PackageRecord]) -> Vec<Dependenc
 	for package in packages {
 		for dependency in &package.declared_dependencies {
 			if let Some(target_package_ids) = package_ids_by_name.get(&dependency.name) {
-				for target_package_id in target_package_ids {
+				for (target_package_id, ecosystem) in target_package_ids {
+					if ecosystem.is_some_and(|ecosystem| ecosystem != package.ecosystem) {
+						continue;
+					}
+
 					edges.push(DependencyEdge {
 						from_package_id: package.id.clone(),
 						to_package_id: target_package_id.clone(),

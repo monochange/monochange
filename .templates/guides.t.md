@@ -1,3 +1,9 @@
+<!-- {@tagBaselinePolicy} -->
+
+Tag baselines use the highest semantic version among repository tags that match the release owner's `version_format`. Selection does not require the tag's commit to be reachable from the current branch.
+
+<!-- {/tagBaselinePolicy} -->
+
 <!-- {@discoverySupportedSources} -->
 
 - Cargo workspaces and standalone crates

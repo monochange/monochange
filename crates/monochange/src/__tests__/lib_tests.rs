@@ -8604,6 +8604,143 @@ async fn execute_cli_command_publish_packages_step_surfaces_report_carrying_fail
 	.await;
 }
 
+/// Serve a missing package followed by a registry error, using only loopback.
+fn spawn_failing_test_registry() -> (
+	std::net::SocketAddr,
+	std::sync::Arc<std::sync::atomic::AtomicBool>,
+	std::thread::JoinHandle<()>,
+) {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("test registry address: {error}"));
+	listener
+		.set_nonblocking(true)
+		.unwrap_or_else(|error| panic!("set test registry listener nonblocking: {error}"));
+	let finished = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+	let thread_finished = std::sync::Arc::clone(&finished);
+	let thread = std::thread::spawn(move || {
+		let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+		let mut served = 0;
+
+		while served < 2 && std::time::Instant::now() < deadline {
+			if thread_finished.load(std::sync::atomic::Ordering::Relaxed) {
+				break;
+			}
+
+			let mut stream = match listener.accept() {
+				Ok((stream, _)) => stream,
+				Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+					std::thread::sleep(std::time::Duration::from_millis(10));
+					continue;
+				}
+				Err(error) => panic!("accept test registry connection: {error}"),
+			};
+			// macOS accepts inherit O_NONBLOCK; headers can arrive after accept.
+			stream
+				.set_nonblocking(false)
+				.unwrap_or_else(|error| panic!("set test registry connection blocking: {error}"));
+			stream
+				.set_read_timeout(Some(std::time::Duration::from_secs(5)))
+				.unwrap_or_else(|error| panic!("set test registry read timeout: {error}"));
+			stream
+				.set_write_timeout(Some(std::time::Duration::from_secs(5)))
+				.unwrap_or_else(|error| panic!("set test registry write timeout: {error}"));
+
+			if !read_test_registry_headers(&mut stream) {
+				continue;
+			}
+
+			let response: &[u8] = if served == 0 {
+				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			} else {
+				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+			};
+			std::io::Write::write_all(&mut stream, response)
+				.unwrap_or_else(|error| panic!("write test registry response: {error}"));
+			served += 1;
+		}
+	});
+
+	(address, finished, thread)
+}
+
+/// Wait for complete HTTP headers; an unused connection does not count as a request.
+fn read_test_registry_headers(stream: &mut std::net::TcpStream) -> bool {
+	let mut request = Vec::new();
+	let mut buffer = [0_u8; 2048];
+
+	while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+		let read = std::io::Read::read(stream, &mut buffer)
+			.unwrap_or_else(|error| panic!("read test registry request headers: {error}"));
+
+		if read == 0 {
+			assert!(
+				request.is_empty(),
+				"test registry request ended before its headers"
+			);
+			return false;
+		}
+
+		request.extend_from_slice(
+			buffer
+				.get(..read)
+				.unwrap_or_else(|| panic!("invalid test registry read length {read}")),
+		);
+		assert!(
+			request.len() <= 16 * 1024,
+			"test registry request headers exceed 16 KiB"
+		);
+	}
+
+	true
+}
+
+#[test]
+fn test_registry_waits_for_delayed_complete_request_headers() {
+	let (address, finished, registry_thread) = spawn_failing_test_registry();
+	drop(
+		std::net::TcpStream::connect(address)
+			.unwrap_or_else(|error| panic!("open unused registry connection: {error}")),
+	);
+
+	for status in ["404 Not Found", "500 Internal Server Error"] {
+		let mut stream = std::net::TcpStream::connect(address)
+			.unwrap_or_else(|error| panic!("connect to test registry: {error}"));
+		stream
+			.set_read_timeout(Some(std::time::Duration::from_millis(25)))
+			.unwrap_or_else(|error| panic!("set delayed-request timeout: {error}"));
+		std::thread::sleep(std::time::Duration::from_millis(50));
+		std::io::Write::write_all(&mut stream, b"GET /pkg HTTP/1.1\r\nHost: localhost\r\n")
+			.unwrap_or_else(|error| panic!("write partial registry request: {error}"));
+		let mut byte = [0_u8; 1];
+		let error = std::io::Read::read(&mut stream, &mut byte)
+			.expect_err("registry must wait for the final header delimiter");
+		assert!(matches!(
+			error.kind(),
+			std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+		));
+		std::io::Write::write_all(&mut stream, b"\r\n")
+			.unwrap_or_else(|error| panic!("complete registry request: {error}"));
+		stream
+			.set_read_timeout(Some(std::time::Duration::from_secs(5)))
+			.unwrap_or_else(|error| panic!("set response timeout: {error}"));
+		let mut response = String::new();
+		std::io::Read::read_to_string(&mut stream, &mut response)
+			.unwrap_or_else(|error| panic!("read registry response: {error}"));
+		assert!(
+			response.starts_with(&format!("HTTP/1.1 {status}\r\n")),
+			"{response}"
+		);
+	}
+
+	finished.store(true, std::sync::atomic::Ordering::Relaxed);
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution_failure() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -8639,58 +8776,7 @@ async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution
 		dry_run: false,
 	};
 
-	let registry = std::net::TcpListener::bind("127.0.0.1:0")
-		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
-	let registry_address = registry
-		.local_addr()
-		.unwrap_or_else(|error| panic!("registry address: {error}"));
-	registry
-		.set_nonblocking(true)
-		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
-	let flow_finished = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-	registry
-		.set_nonblocking(true)
-		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
-	let registry_thread = {
-		let flow_finished = std::sync::Arc::clone(&flow_finished);
-		std::thread::spawn(move || {
-			let mut served_not_found = false;
-			let mut served = 0_usize;
-			let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
-			while served < 2 && std::time::Instant::now() < deadline {
-				if flow_finished.load(std::sync::atomic::Ordering::Relaxed) {
-					break;
-				}
-				match registry.accept() {
-					Ok((mut stream, _)) => {
-						// macOS accepted sockets inherit the listener's
-						// O_NONBLOCK flag; switch back to blocking so the read
-						// and write behave like the original blocking mock.
-						stream
-							.set_nonblocking(false)
-							.unwrap_or_else(|error| panic!("set blocking: {error}"));
-						let mut request = [0_u8; 2048];
-						match std::io::Read::read(&mut stream, &mut request) {
-							Ok(0) | Err(_) => break,
-							Ok(_) => {}
-						}
-						let response: &[u8] = if served_not_found {
-							b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-						} else {
-							served_not_found = true;
-							b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-						};
-						let _ = std::io::Write::write_all(&mut stream, response);
-						served += 1;
-					}
-					Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-						std::thread::sleep(std::time::Duration::from_millis(25));
-					}
-					Err(_) => break,
-				}
-			}
-		})
-	};
+	let (registry_address, flow_finished, registry_thread) = spawn_failing_test_registry();
 
 	temp_env::async_with_vars(
 		[(
@@ -8715,6 +8801,7 @@ async fn execute_cli_command_placeholder_publish_step_surfaces_publish_execution
 		},
 	)
 	.await;
+	flow_finished.store(true, std::sync::atomic::Ordering::Relaxed);
 	registry_thread
 		.join()
 		.unwrap_or_else(|_| panic!("test registry thread panicked"));
@@ -8974,54 +9061,7 @@ async fn execute_cli_command_publish_packages_step_surfaces_write_artifact_failu
 	fs::write(&blocker, "not a directory").unwrap_or_else(|error| panic!("write blocker: {error}"));
 	let invalid_output = blocker.join("report.json");
 
-	let registry = std::net::TcpListener::bind("127.0.0.1:0")
-		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
-	let registry_address = registry
-		.local_addr()
-		.unwrap_or_else(|error| panic!("registry address: {error}"));
-	let flow_finished = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-	registry
-		.set_nonblocking(true)
-		.unwrap_or_else(|error| panic!("set nonblocking: {error}"));
-	let registry_thread = {
-		let flow_finished = std::sync::Arc::clone(&flow_finished);
-		std::thread::spawn(move || {
-			let mut served_not_found = false;
-			let mut served = 0_usize;
-			let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
-			while served < 2 && std::time::Instant::now() < deadline {
-				if flow_finished.load(std::sync::atomic::Ordering::Relaxed) {
-					break;
-				}
-				match registry.accept() {
-					Ok((mut stream, _)) => {
-						// A read timeout keeps a pooled keep-alive connection
-						// from wedging this thread past the deadline.
-						stream
-							.set_read_timeout(Some(std::time::Duration::from_millis(500)))
-							.unwrap_or_else(|error| panic!("set read timeout: {error}"));
-						let mut request = [0_u8; 2048];
-						match std::io::Read::read(&mut stream, &mut request) {
-							Ok(0) | Err(_) => break,
-							Ok(_) => {}
-						}
-						let response: &[u8] = if served_not_found {
-							b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-						} else {
-							served_not_found = true;
-							b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-						};
-						let _ = std::io::Write::write_all(&mut stream, response);
-						served += 1;
-					}
-					Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-						std::thread::sleep(std::time::Duration::from_millis(25));
-					}
-					Err(_) => break,
-				}
-			}
-		})
-	};
+	let (registry_address, flow_finished, registry_thread) = spawn_failing_test_registry();
 
 	let flow_finished_for_flow = std::sync::Arc::clone(&flow_finished);
 	temp_env::async_with_vars(
@@ -14068,17 +14108,24 @@ fn render_tag_name_and_provider_urls_follow_provider_conventions() {
 }
 
 #[test]
-fn parse_tag_prefix_and_version_parses_primary_and_namespaced_tags() {
-	let primary = crate::parse_tag_prefix_and_version("v1.2.3")
-		.unwrap_or_else(|| panic!("expected primary tag"));
-	assert_eq!(primary.0, "v");
-	assert_eq!(primary.1, Version::new(1, 2, 3));
+fn matching_release_tag_version_parses_primary_and_namespaced_tags() {
+	let primary =
+		crate::matching_release_tag_version("v1.2.3", "core", "cargo", &VersionFormat::Primary)
+			.unwrap_or_else(|| panic!("expected primary tag"));
+	assert_eq!(primary, Version::new(1, 2, 3));
 
-	let namespaced = crate::parse_tag_prefix_and_version("core/v2.0.0")
-		.unwrap_or_else(|| panic!("expected namespaced tag"));
-	assert_eq!(namespaced.0, "core/v");
-	assert_eq!(namespaced.1, Version::new(2, 0, 0));
-	assert_eq!(crate::parse_tag_prefix_and_version("not-a-tag"), None);
+	let namespaced = crate::matching_release_tag_version(
+		"core/v2.0.0",
+		"core",
+		"cargo",
+		&VersionFormat::Namespaced,
+	)
+	.unwrap_or_else(|| panic!("expected namespaced tag"));
+	assert_eq!(namespaced, Version::new(2, 0, 0));
+	assert_eq!(
+		crate::matching_release_tag_version("not-a-tag", "core", "cargo", &VersionFormat::Primary),
+		None
+	);
 }
 
 #[test]
@@ -14580,14 +14627,21 @@ async fn find_previous_tag_returns_previous_matching_prefix() {
 	assert_eq!(
 		crate::release_artifacts::find_previous_tag_in(
 			"core/v1.2.0",
-			&crate::release_artifacts::load_sorted_tags(tempdir.path()).await
-		),
+			&crate::release_artifacts::load_sorted_tags(tempdir.path()).await,
+			"core",
+			"cargo",
+			&VersionFormat::Namespaced
+		)
+		.map(|(tag, _)| tag.to_string()),
 		Some("core/v1.0.0".to_string())
 	);
 	assert_eq!(
 		crate::release_artifacts::find_previous_tag_in(
 			"core/v1.0.0",
-			&crate::release_artifacts::load_sorted_tags(tempdir.path()).await
+			&crate::release_artifacts::load_sorted_tags(tempdir.path()).await,
+			"core",
+			"cargo",
+			&VersionFormat::Namespaced
 		),
 		None
 	);

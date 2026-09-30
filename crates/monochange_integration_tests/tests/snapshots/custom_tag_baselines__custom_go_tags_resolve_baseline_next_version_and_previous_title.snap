@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/custom_tag_baselines.rs
+expression: preview
+---
+{
+  "groups": {},
+  "packages": {
+    "go:go.mod": "1.11.0"
+  }
+}

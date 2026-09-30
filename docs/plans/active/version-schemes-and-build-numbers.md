@@ -175,7 +175,7 @@ Unchanged from the earlier decision: if `.monochange/releases/<hash>/release.jso
 | --------------------------------------------- | --------------------------------- | ------------------------------------------------- |
 | Release tags (`version_format`, `render_tag`) | major/minor/patch/version         | full namespace                                    |
 | `floating_tags`                               | components only (no full version) | calendar components (`v{{ year }}.{{ quarter }}`) |
-| `release_title`, `changelog_version_title`    | version-based                     | `{{ label }}`, declared values                    |
+| `release_title`, `changelog_version_title`    | dedicated release context         | no declared values; title fields remain separate  |
 | `[changelog.outputs.<id>].path`               | `{{ version }}`                   | full namespace (per-year changelog files)         |
 | `versioned_files` values                      | identity + prefix                 | `value_template`                                  |
 | Release record / manifest JSON                | `versions`                        | `values`, `labels`, `label_inputs` frozen         |

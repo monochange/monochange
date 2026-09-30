@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/custom_tag_baselines.rs
+expression: "analysis[\"refs\"]"
+---
+{
+  "head": "HEAD",
+  "main": "main",
+  "release": "go/module_owner/release-1.10.0-ready"
+}

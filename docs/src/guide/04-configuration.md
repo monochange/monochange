@@ -166,7 +166,13 @@ version_format = "{{ ecosystem }}/{{ name }}/v{{ version }}"
 
 Custom formats must include `{{ version }}`, render to valid Git tag names without whitespace or other invalid ref characters, and must not collide with another release owner for the same sample version. If several packages share a custom format, include `{{ name }}` so the generated tags remain unique.
 
-`version_source` controls where release planning reads the package's current release version from. The default `manifest` reads the version field from the package manifest. Set `version_source = "tag"` to resolve the baseline from the latest reachable release tag matching the owner's `version_format`. This is useful when the manifest carries no version, such as GitHub Actions repositories, or when the tag is the release identity:
+`version_source` controls where release planning reads the package's current release version from. The default `manifest` reads the version field from the package manifest. Set `version_source = "tag"` when the manifest carries no version, such as GitHub Actions repositories, or when the tag is the release identity:
+
+<!-- {=tagBaselinePolicy} -->
+
+Tag baselines use the highest semantic version among repository tags that match the release owner's `version_format`. Selection does not require the tag's commit to be reachable from the current branch.
+
+<!-- {/tagBaselinePolicy} -->
 
 ```toml
 [package.web]

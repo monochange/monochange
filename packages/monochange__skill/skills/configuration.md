@@ -141,7 +141,7 @@ version_source = "tag"
 initial_version = "0.1.0" # baseline when no matching tag exists yet
 ```
 
-Without `initial_version`, a tag-versioned package with no reachable tag produces a warning and no release target.
+Without `initial_version`, a tag-versioned package with no matching repository tag produces a warning and no release target.
 
 ## Floating tags
 

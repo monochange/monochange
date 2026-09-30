@@ -1,0 +1,14 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+[package.module_owner]
+path = "."
+type = "go"
+tag = true
+version_format = "{{ ecosystem }}/{{ name }}/release-{{ version }}-ready"
+release_title = "{{ previous_version }} -> {{ version }}"
+changelog_version_title = "{{ previous_version }} -> {{ version }}"
+
+[ecosystems.go]
+enabled = true

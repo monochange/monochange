@@ -2401,6 +2401,30 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	)?;
 	validate_package_cli_definitions(&contents, &packages)?;
 	validate_version_values(&contents, &packages, &version_schemes)?;
+
+	for (key, template) in [
+		("release_title", &defaults.release_title),
+		("changelog_version_title", &defaults.changelog_version_title),
+	] {
+		if let Some(template) = template {
+			validate_title_template_variables(template, &format!("defaults.{key}"))?;
+		}
+	}
+
+	for group in &groups {
+		for (key, template) in [
+			("release_title", &group.release_title),
+			("changelog_version_title", &group.changelog_version_title),
+		] {
+			if let Some(template) = template {
+				validate_title_template_variables(
+					template,
+					&format!("group `{}` {key}", group.id),
+				)?;
+			}
+		}
+	}
+
 	validate_cli_runtime_requirements(&cli, &changesets, source.as_ref())?;
 
 	let defaults_bump_propagation = resolve_bump_propagation(
@@ -4778,9 +4802,8 @@ fn resolve_version_schemes(
 
 /// Validate declared package values, display schemes, and value templates.
 ///
-/// Every template is checked against the variables that will actually be
-/// available at render time: the context variables plus the package's own
-/// declared value ids.
+/// Value templates use version variables and declared values. Package titles
+/// use the separate context supplied by the release-title renderer.
 fn validate_version_values(
 	contents: &str,
 	packages: &[PackageDefinition],
@@ -4819,8 +4842,7 @@ fn validate_version_values(
 				));
 			}
 		}
-		// Values become template variables, so every template that can render
-		// for this package must be checked against the same available set.
+		// Declared values are available to display schemes and versioned files.
 		let available = available_template_variables(package);
 		if let Some(scheme_id) = package.display_version.as_deref() {
 			let Some(scheme) = schemes.get(scheme_id) else {
@@ -4850,15 +4872,17 @@ fn validate_version_values(
 				&format!("package `{}` version scheme `{scheme_id}`", package.id),
 			)?;
 		}
-		for surface in [&package.release_title, &package.changelog_version_title]
-			.into_iter()
-			.flatten()
-		{
-			validate_template_variables(
-				surface,
-				&available,
-				&format!("package `{}` title", package.id),
-			)?;
+
+		for (key, template) in [
+			("release_title", &package.release_title),
+			("changelog_version_title", &package.changelog_version_title),
+		] {
+			if let Some(template) = template {
+				validate_title_template_variables(
+					template,
+					&format!("package `{}` {key}", package.id),
+				)?;
+			}
 		}
 		// Compare on the literal path text so `path = "."` and a bare manifest
 		// name still match; `join` would produce `./package.json`.
@@ -4889,6 +4913,40 @@ fn validate_version_values(
 			}
 		}
 	}
+	Ok(())
+}
+
+/// Validate title syntax and fields against the release-title renderer's context.
+fn validate_title_template_variables(template: &str, surface: &str) -> MonochangeResult<()> {
+	let available = [
+		"id",
+		"version",
+		"previous_version",
+		"date",
+		"time",
+		"datetime",
+		"changes_count",
+		"tag_url",
+		"compare_url",
+	];
+	let environment = minijinja::Environment::new();
+	let template = environment.template_from_str(template).map_err(|error| {
+		MonochangeError::Config(format!("{surface} has an invalid title template: {error}"))
+	})?;
+	let variables = template
+		.undeclared_variables(true)
+		.into_iter()
+		.collect::<BTreeSet<_>>();
+
+	for variable in variables {
+		if !available.contains(&variable.as_str()) {
+			return Err(MonochangeError::Config(format!(
+				"{surface} uses unknown variable `{{{{ {variable} }}}}`; available variables are: {}",
+				available.join(", ")
+			)));
+		}
+	}
+
 	Ok(())
 }
 

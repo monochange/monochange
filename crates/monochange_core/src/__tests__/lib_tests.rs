@@ -1,5 +1,6 @@
 #![allow(clippy::disallowed_methods)]
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -1461,6 +1462,76 @@ fn materialize_dependency_edges_matches_adapter_aliases_without_duplicating_ids(
 	let edges = materialize_dependency_edges(&[consumer, producer]);
 
 	assert_eq!(edges.len(), 1);
+}
+
+#[test]
+fn materialize_dependency_edges_scopes_adapter_aliases_to_the_consumer_ecosystem() {
+	let mut python = PackageRecord::new(
+		Ecosystem::Python,
+		"Foo.Bar",
+		PathBuf::from("workspace/python/pyproject.toml"),
+		PathBuf::from("workspace"),
+		None,
+		PublishState::Public,
+	);
+	python.id = "python-core".to_string();
+	python.metadata.insert(
+		crate::PACKAGE_DEPENDENCY_NAME_METADATA_KEY.to_string(),
+		"foo-bar".to_string(),
+	);
+	let mut cargo = PackageRecord::new(
+		Ecosystem::Cargo,
+		"foo-bar",
+		PathBuf::from("workspace/cargo/Cargo.toml"),
+		PathBuf::from("workspace"),
+		None,
+		PublishState::Public,
+	);
+	cargo.id = "rust-core".to_string();
+	let mut consumer = PackageRecord::new(
+		Ecosystem::Cargo,
+		"consumer",
+		PathBuf::from("workspace/consumer/Cargo.toml"),
+		PathBuf::from("workspace"),
+		None,
+		PublishState::Public,
+	);
+	consumer.declared_dependencies.push(PackageDependency {
+		name: "foo-bar".to_string(),
+		kind: DependencyKind::Runtime,
+		version_constraint: None,
+		optional: false,
+		source_field: None,
+	});
+	let edges = materialize_dependency_edges(&[consumer.clone(), cargo.clone(), python.clone()]);
+	assert_eq!(edges.len(), 1);
+	assert_eq!(
+		edges.first().map(|edge| edge.to_package_id.as_str()),
+		Some("rust-core")
+	);
+
+	consumer.ecosystem = Ecosystem::Python;
+	let edges = materialize_dependency_edges(&[consumer.clone(), cargo, python.clone()]);
+	let targets = edges
+		.iter()
+		.map(|edge| edge.to_package_id.as_str())
+		.collect::<BTreeSet<_>>();
+	// Exact native names keep matching across ecosystems; the alias adds the
+	// Python producer only when the consumer belongs to that same ecosystem.
+	assert_eq!(targets, BTreeSet::from(["rust-core", "python-core"]));
+
+	consumer.ecosystem = Ecosystem::Cargo;
+	consumer
+		.declared_dependencies
+		.first_mut()
+		.unwrap_or_else(|| panic!("consumer dependency"))
+		.name = "Foo.Bar".to_string();
+	let edges = materialize_dependency_edges(&[consumer, python]);
+	assert_eq!(edges.len(), 1);
+	assert_eq!(
+		edges.first().map(|edge| edge.to_package_id.as_str()),
+		Some("python-core")
+	);
 }
 
 #[test]

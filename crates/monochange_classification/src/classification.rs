@@ -252,7 +252,7 @@ pub struct ChangeRecommendation {
 	/// against an API the default branch has not released yet.
 	pub compatibility_impact: CompatibilityImpact,
 	/// Compatibility impact measured between the latest release and the
-	/// candidate. Absent when no reachable release tag matched the package.
+	/// candidate. Absent when no repository release tag matched the package.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub release_impact: Option<CompatibilityImpact>,
 	/// Whether this contribution touches the package. The net candidate and the
@@ -683,14 +683,14 @@ pub fn build_change_classification_report(
 					base: None,
 					head: candidate.display.clone(),
 					status: ComparisonStatus::Unavailable,
-					note: Some("no reachable release tag matched this package".to_string()),
+					note: Some("no matching release tag found for this package".to_string()),
 				},
 				ResolvedComparison {
 					kind: ComparisonKind::ReleaseToDefault,
 					base: None,
 					head: default_branch.clone(),
 					status: ComparisonStatus::Unavailable,
-					note: Some("no reachable release tag matched this package".to_string()),
+					note: Some("no matching release tag found for this package".to_string()),
 				},
 			]);
 		}

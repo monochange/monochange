@@ -1611,20 +1611,38 @@ pub(crate) fn seed_versions_from_tag_list(
 			.get("config_id")
 			.cloned()
 			.unwrap_or_else(|| package.id.clone());
+		let Some(package_definition) = configuration.package_by_id(&config_id) else {
+			continue;
+		};
 		let Some(identity) = configuration.effective_release_identity(&config_id) else {
 			continue;
 		};
 		if !identity.tag {
 			continue;
 		}
-		let prefix = release_tag_prefix(&identity.owner_id, &identity.version_format);
-		let Some(version) = latest_tag_version_with_prefix(sorted_tags, &prefix) else {
+		let ecosystem = if identity.owner_kind == ReleaseOwnerKind::Group {
+			"group"
+		} else {
+			package_definition.package_type.as_str()
+		};
+		let Some((_, version)) = latest_release_tag_in(
+			sorted_tags,
+			&identity.owner_id,
+			ecosystem,
+			&identity.version_format,
+		) else {
 			if let Some(initial_version) = identity.initial_version.as_ref() {
 				package.current_version = Some(initial_version.clone());
 				continue;
 			}
+			let pattern = resolved_release_tag_template(
+				&identity.owner_id,
+				ecosystem,
+				&identity.version_format,
+			)
+			.replace("{{ version }}", "<version>");
 			discovery.warnings.push(format!(
-				"no release tag matching `{prefix}<version>` found for package `{config_id}`; tag an initial release or set `initial_version` so the version baseline can be resolved"
+				"no release tag matching `{pattern}` found for package `{config_id}`; tag an initial release or set `initial_version` so the version baseline can be resolved"
 			));
 			continue;
 		};
