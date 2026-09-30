@@ -228,7 +228,7 @@ pub(crate) async fn maybe_load_prepared_release_execution(
 		Ok(Some(loaded)) => Ok(Some(loaded)),
 		Ok(None) => Ok(None),
 		Err(error) if explicit_path.is_none() => {
-			tracing::warn!(%error, "ignoring stale prepared release artifact");
+			tracing::debug!(%error, "ignoring stale prepared release artifact");
 			Ok(None)
 		}
 		Err(error) => Err(error),

@@ -1,0 +1,13 @@
+---
+source: crates/monochange/src/output/../__tests__/output_diagnostic_tests.rs
+expression: diagnostic.render(false)
+---
+error[cli.usage]: unrecognized subcommand 'relase'
+
+  tip: some similar subcommands exist: 'prepare'
+
+Usage: monochange [OPTIONS] <COMMAND>
+
+For more information, try '--help'.
+
+  command: monochange relase

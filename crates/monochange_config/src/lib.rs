@@ -5532,8 +5532,8 @@ fn validate_api_url_host(url: &str, provider: SourceProvider) -> MonochangeResul
 			|| host_part.ends_with(".github.com")
 			|| host_part.ends_with(".githubusercontent.com");
 		if !is_standard {
-			eprintln!(
-				"warning: [source] url points to non-standard GitHub host `{url}`; \
+			tracing::warn!(
+				"[source] url points to non-standard GitHub host `{url}`; \
 				 verify this is intentional — API tokens will be sent to this host"
 			);
 		}

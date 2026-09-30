@@ -245,8 +245,8 @@ pub fn build_release_plan(
 			.map(|member| {
 				states.get(member.as_str()).map_or_else(
 					|| {
-						eprintln!(
-							"warning: version group `{group_id}` member `{member}` was not found in discovered packages"
+						tracing::warn!(
+							"version group `{group_id}` member `{member}` was not found in discovered packages"
 						);
 						BumpSeverity::None
 					},

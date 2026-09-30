@@ -1,0 +1,14 @@
+---
+source: crates/monochange/src/output/../__tests__/output_diagnostic_tests.rs
+expression: diagnostic.render(false)
+---
+error[config.invalid]: package `zzz` path `crates/missing` does not exist
+  --> monochange.toml:39:1
+   |
+39 | path = "crates/missing"
+   | ^^^^^^ missing package path
+
+  = help: create the package directory
+  = note: paths are relative
+
+  command: monochange next

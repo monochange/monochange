@@ -42,6 +42,8 @@ pub(crate) use changeset_policy::normalize_changed_path;
 pub use changeset_policy::verify_changesets;
 pub(crate) use changesets::*;
 use clap::ValueEnum;
+use clap::error::ContextKind;
+use clap::error::ContextValue;
 use clap::error::ErrorKind;
 pub use cli::build_command;
 use cli::build_command_with_cli;
@@ -601,11 +603,10 @@ const CHANGESET_DIR: &str = ".changeset";
 #[coverage(off)]
 pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
 	let log_level = extract_log_level_from_args();
-	tracing_setup::init_tracing(log_level.as_deref());
-
 	let args = std::env::args_os().collect::<Vec<_>>();
 	let quiet = extract_quiet_from_args(args.iter().cloned());
 	let mut progress = output::ProgressReporter::for_invocation(&args);
+	tracing_setup::init_tracing(log_level.as_deref(), progress.warning_sink());
 	let root = current_dir_or_dot();
 	let output = run_with_args_in_dir_with_progress(bin_name, args, &root, &mut progress).await?;
 	if !quiet && !output.is_empty() {
@@ -625,8 +626,8 @@ pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
 	let command = cli_diagnostic_command(&arguments);
 	let quiet = extract_quiet_from_args(arguments.iter().cloned());
 	let log_level = extract_log_level_from_args();
-	tracing_setup::init_tracing(log_level.as_deref());
 	let mut progress = output::ProgressReporter::for_invocation(&arguments);
+	tracing_setup::init_tracing(log_level.as_deref(), progress.warning_sink());
 	let root = current_dir_or_dot();
 	let result = Box::pin(run_with_args_in_dir_with_progress(
 		bin_name,
@@ -647,8 +648,9 @@ pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
 				if let Some(output) = error.reported_output().filter(|output| !output.is_empty()) {
 					println!("{output}");
 				}
-				let diagnostic = output::CliDiagnostic::from_error(&error, command.as_deref());
-				progress.write_diagnostic(&diagnostic);
+				let diagnostic =
+					output::CliDiagnostic::from_error(&error, command.as_deref()).with_root(&root);
+				progress.write_diagnostic(diagnostic);
 			}
 			ExitCode::FAILURE
 		}
@@ -1025,6 +1027,57 @@ fn render_custom_command_argument_error(
 	)
 }
 
+/// Turn a command-line parse failure into a diagnostic that keeps clap's own
+/// explanation, usage line, and suggestions.
+fn clap_usage_error(
+	error: &clap::Error,
+	cli: &[CliCommandDefinition],
+	command: Option<&str>,
+) -> MonochangeError {
+	let rendered = error.to_string();
+	if matches!(
+		error.kind(),
+		ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+	) {
+		// Keep the description, usage, and subcommand list; the option
+		// reference is one `--help` away.
+		let command = command.unwrap_or("monochange");
+		let overview = rendered
+			.split("\n\nOptions:")
+			.next()
+			.unwrap_or_default()
+			.trim_end();
+		return MonochangeError::Diagnostic(format!(
+			"error: `{command}` needs a subcommand\n\n{overview}\n\nFor more information, try '{command} --help'."
+		));
+	}
+	let Some(tip) = config_command_tip(error, cli) else {
+		return MonochangeError::Diagnostic(rendered.trim_end().to_string());
+	};
+	let mut lines = rendered.lines();
+	let first = lines.next().unwrap_or_default();
+	let rest = lines
+		.filter(|line| !line.trim_start().starts_with("tip:"))
+		.collect::<Vec<_>>()
+		.join("\n");
+	let mut message = format!("{first}\n\n  tip: {tip}\n\n{}", rest.trim());
+	while message.contains("\n\n\n") {
+		message = message.replace("\n\n\n", "\n\n");
+	}
+	MonochangeError::Diagnostic(message)
+}
+
+/// Point `monochange <name>` at `monochange run <name>` when `<name>` is a
+/// command defined in monochange.toml rather than a built-in command.
+fn config_command_tip(error: &clap::Error, cli: &[CliCommandDefinition]) -> Option<String> {
+	let ContextValue::String(name) = error.get(ContextKind::InvalidSubcommand)? else {
+		return None;
+	};
+	cli.iter().any(|command| command.name == *name).then(|| {
+		format!("`{name}` is defined in monochange.toml; run it with `monochange run {name}`")
+	})
+}
+
 fn help_command_requested(args: &[OsString]) -> bool {
 	command_args_after_globals(args)
 		.find(|arg| !arg.starts_with('-'))
@@ -1305,7 +1358,16 @@ async fn run_with_args_in_dir_with_progress(
 					),
 				));
 			}
-			return Err(MonochangeError::Config(error.to_string()));
+			// Commands defined in monochange.toml cannot be parsed while the
+			// file is broken, so the configuration error is the real cause.
+			if let Err(configuration_error) = configuration {
+				return Err(configuration_error);
+			}
+			return Err(clap_usage_error(
+				&error,
+				&cli,
+				cli_diagnostic_command(&args).as_deref(),
+			));
 		}
 	};
 

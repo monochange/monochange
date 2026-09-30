@@ -1,0 +1,15 @@
+---
+source: crates/monochange/src/output/../__tests__/cli_progress_tests.rs
+expression: recorded_text(&bytes)
+---
+▶ Running 1 lint suite
+▶ Running 2 lint suites
+▶ cargo      checking 1 file with 1 rule
+▶ changeset  checking 2 files with 3 rules
+▲ cargo      1 issue
+▲ changeset  2 issues (1 fixable)
+▶ Applying fixes to 1 file
+▶ Applying fixes to 2 files
+  · Cargo.toml (sorted dependencies)
+✔ Fixed 1 file
+✔ Fixed 2 files

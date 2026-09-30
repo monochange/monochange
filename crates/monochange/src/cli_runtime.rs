@@ -17,6 +17,9 @@ use std::time::Duration;
 use std::time::Instant;
 
 const PROCESS_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+/// Lines of each captured stream a command failure repeats after its output
+/// already streamed live.
+const STREAMED_FAILURE_OUTPUT_LINES: usize = 20;
 
 use clap::ArgMatches;
 use clap::parser::ValueSource;
@@ -736,6 +739,7 @@ pub(crate) async fn execute_cli_command_with_options(
 
 		tracing::debug!(step = step.kind_name(), "executing CLI step");
 		let mut step_phase_timings = Vec::new();
+		let mut skipped_for_dry_run = false;
 		let step_result: MonochangeResult<()> = async {
 			match step {
 				CliStepDefinition::Config { .. } => {
@@ -1498,7 +1502,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					variables,
 					..
 				} => {
-					run_cli_command_command(
+					skipped_for_dry_run = run_cli_command_command(
 						&mut context,
 						step,
 						step_index,
@@ -1512,7 +1516,7 @@ pub(crate) async fn execute_cli_command_with_options(
 							variables: variables.as_ref(),
 							step_inputs: &step_inputs,
 						},
-					)?;
+					)? == CommandStepOutcome::SkippedForDryRun;
 					Ok(())
 				}
 				_ => {
@@ -1538,7 +1542,14 @@ pub(crate) async fn execute_cli_command_with_options(
 			continue;
 		}
 		let elapsed = step_started_at.elapsed();
-		if show_progress {
+		if show_progress && skipped_for_dry_run {
+			progress.step_skipped(
+				step_index,
+				step,
+				None,
+				Some("dry-run; the command was not run"),
+			);
+		} else if show_progress {
 			progress.step_finished(step_index, step, elapsed, &step_phase_timings);
 		}
 		telemetry.capture_step(
@@ -1915,6 +1926,13 @@ fn step_input_is_true(step_inputs: &BTreeMap<String, Vec<String>>, name: &str) -
 		.is_some_and(|value| value == "true")
 }
 
+/// Whether a `Command` step ran its command or skipped it for a dry run.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CommandStepOutcome {
+	Ran,
+	SkippedForDryRun,
+}
+
 fn run_cli_command_command(
 	context: &mut CliContext,
 	step: &CliStepDefinition,
@@ -1922,9 +1940,9 @@ fn run_cli_command_command(
 	progress: &mut ProgressReporter,
 	show_progress: bool,
 	options: CommandStepOptions<'_>,
-) -> MonochangeResult<()> {
+) -> MonochangeResult<CommandStepOutcome> {
 	let Some(command_to_run) = resolve_command_step_command(context, &options) else {
-		return Ok(());
+		return Ok(CommandStepOutcome::SkippedForDryRun);
 	};
 	let interpolated = interpolate_cli_command_command(
 		context,
@@ -1935,20 +1953,14 @@ fn run_cli_command_command(
 	let interactive = step_input_is_true(options.step_inputs, "interactive");
 	let mut process_command = build_process_command(&context.root, options.shell, &interpolated)?;
 	if show_progress && !interactive {
-		progress.step_status(
-			step_index,
-			step,
-			&format!(
-				"running command `{}`",
-				render_command_for_error(&interpolated)
-			),
-		);
+		progress.step_command(step_index, step, &render_command_for_error(&interpolated));
 	}
 	if interactive {
 		// Let the command own the terminal: pause the spinner so it does
 		// not animate over the command's own UI.
 		progress.pause_spinner();
 	}
+	let streamed = progress.is_enabled() && show_progress && !interactive;
 	let output = execute_process_command(
 		&mut process_command,
 		progress,
@@ -1959,11 +1971,11 @@ fn run_cli_command_command(
 		&interpolated,
 	)?;
 
-	ensure_command_succeeded(&output, &interpolated)?;
+	ensure_command_succeeded(&output, &interpolated, streamed)?;
 	store_command_step_output(context, options.step_id, &output);
 	log_command_step_output(context, &interpolated, &output);
 
-	Ok(())
+	Ok(CommandStepOutcome::Ran)
 }
 
 fn record_skipped_cli_step(
@@ -2088,12 +2100,14 @@ fn execute_process_command(
 fn ensure_command_succeeded(
 	output: &PreparedProcessOutput,
 	interpolated: &str,
+	streamed: bool,
 ) -> MonochangeResult<()> {
 	if output.status.success() {
 		return Ok(());
 	}
 
-	let details = render_process_failure_details(output);
+	let line_limit = streamed.then_some(STREAMED_FAILURE_OUTPUT_LINES);
+	let details = render_process_failure_details(output, line_limit);
 	let rendered_command = render_command_for_error(interpolated);
 
 	Err(MonochangeError::Discovery(format!(
@@ -2240,14 +2254,7 @@ fn drain_stream_events_with_heartbeat_timeout(
 				}
 			}
 			Err(mpsc::RecvTimeoutError::Timeout) => {
-				progress.step_status(
-					step_index,
-					step,
-					&format!(
-						"still running external command after {:.1}s",
-						started_at.elapsed().as_secs_f64()
-					),
-				);
+				progress.step_heartbeat(step_index, step, started_at.elapsed());
 			}
 			Err(mpsc::RecvTimeoutError::Disconnected) => break,
 		}
@@ -2286,18 +2293,41 @@ fn spawn_stream_reader(
 	})
 }
 
-fn render_process_failure_details(output: &PreparedProcessOutput) -> String {
+/// Describe a failed command's exit status and captured output.
+///
+/// When the output already streamed live under the step, `line_limit` keeps
+/// only the last lines of each stream: enough to explain the failure in the
+/// final diagnostic without printing a long build log a second time.
+fn render_process_failure_details(
+	output: &PreparedProcessOutput,
+	line_limit: Option<usize>,
+) -> String {
 	let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
 	let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+	let stdout = tail_process_output("stdout", &stdout, line_limit);
+	let stderr = tail_process_output("stderr", &stderr, line_limit);
 
-	match (stdout.is_empty(), stderr.is_empty()) {
-		(true, true) => output.status.to_string(),
-		(false, true) => format!("{}\nstdout:\n{stdout}", output.status),
-		(true, false) => format!("{}\nstderr:\n{stderr}", output.status),
-		(false, false) => {
-			format!("{}\nstdout:\n{stdout}\n\nstderr:\n{stderr}", output.status)
-		}
+	match (stdout, stderr) {
+		(None, None) => output.status.to_string(),
+		(Some(stdout), None) => format!("{}\n{stdout}", output.status),
+		(None, Some(stderr)) => format!("{}\n{stderr}", output.status),
+		(Some(stdout), Some(stderr)) => format!("{}\n{stdout}\n\n{stderr}", output.status),
 	}
+}
+
+fn tail_process_output(label: &str, text: &str, line_limit: Option<usize>) -> Option<String> {
+	if text.is_empty() {
+		return None;
+	}
+	let lines = text.lines().collect::<Vec<_>>();
+	let Some(limit) = line_limit.filter(|limit| lines.len() > *limit) else {
+		return Some(format!("{label}:\n{text}"));
+	};
+	let tail = lines[lines.len() - limit..].join("\n");
+	Some(format!(
+		"{label} (last {limit} of {} lines, full output above):\n{tail}",
+		lines.len()
+	))
 }
 
 fn render_command_for_error(command: &str) -> String {

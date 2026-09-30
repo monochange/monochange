@@ -1,0 +1,14 @@
+---
+source: crates/monochange/src/output/../__tests__/output_diagnostic_tests.rs
+expression: diagnostic.render(false)
+---
+error[step.command_failed]: command `cargo test` failed: exit status: 101
+
+    stderr:
+    test a ... FAILED
+
+    more
+
+  command: monochange run release
+  step:    [3/4] run tests
+  help:    Fix the failure shown in the command output, then rerun. To reproduce it on its own, run the command directly from the workspace root.

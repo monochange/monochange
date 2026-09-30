@@ -1190,7 +1190,7 @@ pub async fn publish_release_pull_request(
 		)
 		.await
 		.unwrap_or_else(|warning| {
-			tracing::warn!(%warning, commit = %head_commit, "falling back to regular release pull request commit");
+			tracing::warn!(reason = %warning, commit = %head_commit, "could not create a verified release commit through the GitHub API; falling back to a regular git commit");
 			head_commit.clone()
 		});
 	}

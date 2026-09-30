@@ -15363,12 +15363,18 @@ fn extract_log_level_returns_none_when_flag_has_no_value() {
 
 #[test]
 fn init_tracing_with_none_does_not_install_subscriber() {
-	crate::tracing_setup::init_tracing(None);
+	crate::tracing_setup::init_tracing(None, None);
 }
 
 #[test]
 fn init_tracing_with_valid_filter_does_not_panic() {
-	crate::tracing_setup::init_tracing(Some("monochange=debug"));
+	crate::tracing_setup::init_tracing(Some("monochange=debug"), None);
+}
+
+#[test]
+fn init_tracing_without_a_log_level_installs_the_warning_renderer() {
+	let reporter = crate::output::ProgressReporter::for_invocation(&[OsString::from("monochange")]);
+	crate::tracing_setup::init_tracing(None, reporter.warning_sink());
 }
 
 #[tokio::test(flavor = "multi_thread")]

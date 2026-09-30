@@ -1,0 +1,6 @@
+---
+source: crates/monochange/src/output/../__tests__/output_warnings_tests.rs
+expression: recorded_text(&bytes)
+---
+::warning title=monochange::could not create a verified release commit%0Areason: GitHub API returned 422%0Acommit sha: abc1234
+::warning title=monochange::publish command attempt failed%0Aattempt: 2

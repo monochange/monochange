@@ -35,6 +35,7 @@ fn progress_reporter(enabled: bool, color: bool) -> ProgressReporter {
 			color,
 			animate: false,
 			progress_enabled: enabled,
+			github_actions: false,
 		},
 		SharedStderr::with_writer(io::sink()),
 	)
@@ -94,10 +95,67 @@ fn recorded_reporter(format: ProgressFormat) -> (ProgressReporter, Arc<Mutex<Vec
 			color: false,
 			animate: false,
 			progress_enabled: true,
+			github_actions: false,
 		},
 		SharedStderr::with_writer(RecordedWriter(Arc::clone(&bytes))),
 	);
 	(reporter, bytes)
+}
+
+fn capabilities(animate: bool, github_actions: bool) -> TerminalCapabilities {
+	TerminalCapabilities {
+		stdout_is_terminal: false,
+		stderr_is_terminal: false,
+		ci: true,
+		quiet: false,
+		color: false,
+		animate,
+		progress_enabled: true,
+		github_actions,
+	}
+}
+
+fn recorded_reporter_with(
+	total_steps: usize,
+	capabilities: TerminalCapabilities,
+	format: ProgressFormat,
+) -> (ProgressReporter, Arc<Mutex<Vec<u8>>>) {
+	let bytes = Arc::new(Mutex::new(Vec::new()));
+	let reporter = ProgressReporter::with_context(
+		"release".to_string(),
+		false,
+		total_steps,
+		format,
+		capabilities,
+		SharedStderr::with_writer(RecordedWriter(Arc::clone(&bytes))),
+	);
+	(reporter, bytes)
+}
+
+fn recorded_text(bytes: &Arc<Mutex<Vec<u8>>>) -> String {
+	String::from_utf8(bytes.lock().unwrap().clone()).unwrap()
+}
+
+fn builtin_step(name: Option<&str>) -> CliStepDefinition {
+	CliStepDefinition::Discover {
+		name: name.map(ToString::to_string),
+		when: None,
+		always_run: false,
+		inputs: BTreeMap::new(),
+	}
+}
+
+fn multi_step_command() -> CliCommandDefinition {
+	CliCommandDefinition {
+		name: "release".to_string(),
+		help_text: None,
+		inputs: Vec::new(),
+		steps: vec![
+			builtin_step(Some("plan release")),
+			named_command_step("format files"),
+		],
+		dry_run: true,
+	}
 }
 
 fn publish_package() -> PublishProgressPackage {
@@ -141,8 +199,11 @@ fn format_duration_and_paint_text_cover_terminal_styles() {
 		paint_text("muted", Style::Muted, true),
 		"\u{1b}[2mmuted\u{1b}[0m"
 	);
-	assert_eq!(format_duration(Duration::from_secs(61)), "61.0s");
+	assert_eq!(format_duration(Duration::from_secs(3_720)), "1h 02m");
+	assert_eq!(format_duration(Duration::from_secs(456)), "7m 36s");
+	assert_eq!(format_duration(Duration::from_millis(58_750)), "58.8s");
 	assert_eq!(format_duration(Duration::from_millis(1500)), "1.50s");
+	assert_eq!(format_duration(Duration::from_millis(937)), "937ms");
 	assert_eq!(format_duration(Duration::from_micros(12)), "12µs");
 }
 
@@ -234,7 +295,7 @@ fn progress_reporter_updates_step_status_in_human_json_and_animated_modes() {
 	let mut json = progress_reporter(true, false);
 	json.render_mode = ProgressRenderMode::Json;
 	json.step_status(0, &step, "applying git ref and provider updates");
-	assert_eq!(json.event_sequence.load(Ordering::Relaxed), 1);
+	assert_eq!(json.stderr.next_sequence(), 1);
 
 	let mut animated = progress_reporter(true, true);
 	animated.animate = true;
@@ -314,9 +375,9 @@ fn spinner_rewrites_full_line_after_another_writer_clears_it() {
 
 	reporter.step_started(0, &step);
 	thread::sleep(SPINNER_DELAY + SPINNER_TICK + Duration::from_millis(20));
-	// Simulate another writer (for example `print_line` or publish progress)
-	// clearing the spinner line: the next tick must restore the full line.
-	reporter.line_cleared.store(true, Ordering::Relaxed);
+	// Another writer (for example a warning or publish progress) clears the
+	// spinner line: the next tick must restore the full line.
+	reporter.stderr.write_line("another writer");
 	thread::sleep(SPINNER_TICK + Duration::from_millis(20));
 	reporter.step_finished(0, &step, Duration::from_millis(12), &[]);
 	reporter.command_finished(Duration::from_millis(25));
@@ -335,7 +396,7 @@ fn redirected_subprocess_output_strips_terminal_controls() {
 }
 
 #[test]
-fn command_output_renders_one_step_header_per_block() {
+fn captured_command_output_streams_under_the_step_without_repeating_it() {
 	let (reporter, bytes) = recorded_reporter(ProgressFormat::Auto);
 	let step = named_command_step("format release files");
 	reporter.log_command_output(
@@ -345,24 +406,313 @@ fn command_output_renders_one_step_header_per_block() {
 		"line one\n\nansi \u{1b}[33mwarning\u{1b}[0m\n",
 	);
 	reporter.log_command_output(0, &step, CommandStream::Stderr, "warn line\n");
-	// A progress line ends the block, so later output re-establishes the header.
 	reporter.step_status(0, &step, "still running");
 	reporter.log_command_output(0, &step, CommandStream::Stdout, "line two");
 
-	let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
 	assert_eq!(
-		output,
+		recorded_text(&bytes),
 		concat!(
-			"monochange running `release`\n",
+			"  │ line one\n",
+			"  │\n",
+			"  │ ansi warning\n",
+			"  │ warn line\n",
+			"  › still running\n",
+			"  │ line two\n",
+		)
+	);
+}
+
+#[test]
+fn animated_command_output_names_its_step_once_per_block() {
+	let (reporter, bytes) =
+		recorded_reporter_with(2, capabilities(true, false), ProgressFormat::Unicode);
+	let step = named_command_step("format release files");
+	reporter.log_command_output(0, &step, CommandStream::Stdout, "line one\n");
+	reporter.log_command_output(0, &step, CommandStream::Stderr, "line two\n");
+	reporter.warning("interrupting line");
+	reporter.log_command_output(0, &step, CommandStream::Stdout, "line three");
+
+	assert_eq!(
+		recorded_text(&bytes),
+		concat!(
+			"monochange › release · 2 steps\n",
 			"  │ format release files\n",
 			"  │   line one\n",
-			"  │\n",
-			"  │   ansi warning\n",
-			"  │   warn line\n",
-			"▶ [1/1] format release files (Command) — still running\n",
-			"  │ format release files\n",
 			"  │   line two\n",
+			"warning: interrupting line\n",
+			"  │ format release files\n",
+			"  │   line three\n",
 		)
+	);
+}
+
+#[test]
+fn github_actions_folds_command_output_and_annotates_warnings_and_failures() {
+	let (reporter, bytes) =
+		recorded_reporter_with(2, capabilities(false, true), ProgressFormat::Unicode);
+	let step = named_command_step("format files");
+	reporter.step_started(1, &step);
+	reporter.step_command(1, &step, "dprint fmt");
+	reporter.log_command_output(1, &step, CommandStream::Stdout, "::set-output name=x::y\n");
+	reporter.log_command_output(1, &step, CommandStream::Stdout, "formatted 3 files\n");
+	reporter.warning("100% of files changed\nsecond line");
+	reporter.step_failed(
+		1,
+		&step,
+		Duration::from_millis(40),
+		"discovery error: command `dprint fmt` failed: exit status: 1\nstderr:\nboom",
+	);
+	reporter.write_diagnostic(CliDiagnostic::from_error(
+		&monochange_core::MonochangeError::Discovery(
+			"command `dprint fmt` failed: exit status: 1".to_string(),
+		),
+		Some("monochange run release"),
+	));
+
+	insta::assert_snapshot!(recorded_text(&bytes));
+}
+
+#[test]
+fn multi_step_commands_frame_their_steps_with_a_banner_and_summary() {
+	let command = multi_step_command();
+	let (mut reporter, bytes) =
+		recorded_reporter_with(0, capabilities(false, false), ProgressFormat::Unicode);
+	reporter.configure_command(&command, true);
+	let [plan, format] = command.steps.as_slice() else {
+		panic!("expected two steps");
+	};
+	reporter.step_started(0, plan);
+	reporter.step_finished(
+		0,
+		plan,
+		Duration::from_millis(1_250),
+		&[
+			StepPhaseTiming {
+				label: "build release plan".to_string(),
+				duration: Duration::from_millis(900),
+			},
+			StepPhaseTiming {
+				label: "tiny".to_string(),
+				duration: Duration::from_millis(1),
+			},
+			StepPhaseTiming {
+				label: "resolve changelogs".to_string(),
+				duration: Duration::from_millis(300),
+			},
+		],
+	);
+	reporter.step_started(1, format);
+	reporter.step_command(1, format, "dprint fmt");
+	reporter.step_skipped(1, format, None, Some("dry-run; the command was not run"));
+	reporter.command_finished(Duration::from_secs(75));
+
+	let (failing, failing_bytes) =
+		recorded_reporter_with(2, capabilities(false, false), ProgressFormat::Ascii);
+	failing.step_failed(0, plan, Duration::from_millis(5), "config error: bad input");
+	failing.step_failed(1, format, Duration::from_millis(5), "\n");
+	failing.command_failed(Duration::from_millis(12), "config error: bad input");
+
+	insta::assert_snapshot!(format!(
+		"{}---\n{}",
+		recorded_text(&bytes),
+		recorded_text(&failing_bytes)
+	));
+}
+
+#[test]
+fn single_step_commands_skip_the_command_banner() {
+	let (reporter, bytes) =
+		recorded_reporter_with(1, capabilities(false, false), ProgressFormat::Unicode);
+	let step = builtin_step(None);
+	reporter.step_started(0, &step);
+	reporter.step_finished(0, &step, Duration::from_millis(3), &[]);
+	reporter.command_finished(Duration::from_millis(4));
+	reporter.command_failed(Duration::from_millis(4), "ignored");
+
+	assert_eq!(
+		recorded_text(&bytes),
+		"▶ discover packages\n✔ discover packages  3ms\n"
+	);
+}
+
+#[test]
+fn heartbeats_follow_a_slow_schedule_in_captured_output() {
+	let (reporter, bytes) =
+		recorded_reporter_with(2, capabilities(false, false), ProgressFormat::Unicode);
+	let step = named_command_step("compile workspace");
+	reporter.step_started(0, &step);
+	for seconds in [5, 29, 30, 35, 59, 61, 119, 125] {
+		reporter.step_heartbeat(0, &step, Duration::from_secs(seconds));
+	}
+
+	assert_eq!(
+		recorded_text(&bytes),
+		concat!(
+			"monochange › release · 2 steps\n",
+			"▶ [1/2] compile workspace\n",
+			"  … compile workspace still running · 30.0s\n",
+			"  … compile workspace still running · 1m 01s\n",
+			"  … compile workspace still running · 2m 05s\n",
+		)
+	);
+	assert_eq!(
+		next_heartbeat_after(Duration::from_secs(30)),
+		Duration::from_secs(60)
+	);
+	assert_eq!(
+		next_heartbeat_after(Duration::from_secs(130)),
+		Duration::from_secs(180)
+	);
+
+	let (json, json_bytes) = recorded_reporter(ProgressFormat::Json);
+	json.step_heartbeat(0, &step, Duration::from_secs(5));
+	json.step_command(0, &step, "cargo build");
+	let events = recorded_text(&json_bytes)
+		.lines()
+		.map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+		.collect::<Vec<_>>();
+	assert_eq!(
+		events
+			.iter()
+			.map(|event| event["status"].as_str().unwrap_or_default())
+			.collect::<Vec<_>>(),
+		[
+			"still running external command after 5.0s",
+			"running command `cargo build`",
+		]
+	);
+
+	let (animated, animated_bytes) =
+		recorded_reporter_with(1, capabilities(true, false), ProgressFormat::Unicode);
+	animated.step_heartbeat(0, &step, Duration::from_secs(90));
+	assert!(recorded_text(&animated_bytes).is_empty());
+
+	let disabled = progress_reporter(false, false);
+	disabled.step_heartbeat(0, &step, Duration::from_secs(90));
+	disabled.step_command(0, &step, "ignored");
+}
+
+#[test]
+fn animated_steps_show_the_command_and_elapsed_time_on_the_spinner() {
+	let (reporter, bytes) =
+		recorded_reporter_with(1, capabilities(true, false), ProgressFormat::Unicode);
+	let step = named_command_step("compile workspace");
+	reporter.step_started(0, &step);
+	reporter.step_command(0, &step, "cargo build");
+	thread::sleep(SPINNER_DELAY + SPINNER_TICK + Duration::from_millis(20));
+	reporter.step_finished(0, &step, Duration::from_millis(12), &[]);
+
+	let output = recorded_text(&bytes);
+	assert!(
+		output.contains("⠋ compile workspace · cargo build"),
+		"{output}"
+	);
+	assert_eq!(spinner_elapsed(Duration::from_millis(1_900)), None);
+	assert_eq!(
+		spinner_elapsed(Duration::from_millis(5_400)),
+		Some("5s".to_string())
+	);
+	assert_eq!(
+		spinner_elapsed(Duration::from_secs(65)),
+		Some("1m 05s".to_string())
+	);
+}
+
+#[test]
+fn step_labels_humanize_unnamed_built_in_steps() {
+	assert_eq!(step_label(&builtin_step(None)), "discover packages");
+	assert_eq!(step_label(&builtin_step(Some("scan"))), "scan");
+	assert_eq!(
+		step_kind_suffix(&builtin_step(Some("scan"))),
+		Some("Discover")
+	);
+	assert_eq!(step_kind_suffix(&builtin_step(Some("Discover"))), None);
+	assert_eq!(step_kind_suffix(&builtin_step(None)), None);
+	assert_eq!(step_kind_suffix(&named_command_step("build")), None);
+	for (kind, label) in [
+		("Config", "resolve configuration"),
+		("Validate", "validate workspace"),
+		("Discover", "discover packages"),
+		("DisplayVersions", "calculate next versions"),
+		("CreateChangeFile", "create change file"),
+		("PrepareRelease", "prepare release"),
+		("CommitRelease", "commit release"),
+		("VerifyReleaseBranch", "verify release branch"),
+		("PublishRelease", "publish release"),
+		("PlaceholderPublish", "publish placeholder packages"),
+		("PublishPackages", "publish packages"),
+		("PlanPublishRateLimits", "plan publish rate limits"),
+		("OpenReleaseRequest", "open release request"),
+		("CommentReleasedIssues", "comment on released issues"),
+		("AffectedPackages", "check affected packages"),
+		("DiagnoseChangesets", "diagnose changesets"),
+		("ReleaseRecord", "read release record"),
+		("PublishReadiness", "check publish readiness"),
+		("TagRelease", "tag release"),
+		("RetargetRelease", "retarget release"),
+		("Command", "run command"),
+	] {
+		assert_eq!(humanized_step_kind(kind), label);
+	}
+}
+
+#[test]
+fn step_failure_lines_name_the_failure_without_internal_prefixes() {
+	assert_eq!(
+		error_summary("discovery error: command `make` failed: exit status: 2\nstderr:\nx"),
+		Some("command failed (exit status: 2)".to_string())
+	);
+	assert_eq!(
+		error_summary("\nio error: disk full"),
+		Some("disk full".to_string())
+	);
+	assert_eq!(
+		error_summary("plain failure"),
+		Some("plain failure".to_string())
+	);
+	assert_eq!(error_summary("  \n "), None);
+}
+
+#[test]
+fn warning_sinks_follow_the_progress_mode() {
+	assert!(progress_reporter(false, false).warning_sink().is_none());
+	let (human, _) = recorded_reporter(ProgressFormat::Auto);
+	assert!(human.warning_sink().is_some());
+	let (json, _) = recorded_reporter(ProgressFormat::Json);
+	assert!(json.warning_sink().is_some());
+	let (github, _) = recorded_reporter_with(1, capabilities(false, true), ProgressFormat::Auto);
+	assert!(github.warning_sink().is_some());
+}
+
+#[test]
+fn dropping_a_reporter_closes_an_open_github_group() {
+	let (reporter, bytes) =
+		recorded_reporter_with(1, capabilities(false, true), ProgressFormat::Unicode);
+	let step = named_command_step("compile");
+	reporter.log_command_output(0, &step, CommandStream::Stdout, "building\n");
+	drop(reporter);
+
+	assert_eq!(
+		recorded_text(&bytes),
+		"::group::compile · output\n  │ building\n::endgroup::\n"
+	);
+}
+
+#[test]
+fn disabled_progress_still_names_the_failed_step_in_the_diagnostic() {
+	let (mut reporter, bytes) = recorded_reporter(ProgressFormat::Auto);
+	reporter.enabled = false;
+	let step = named_command_step("run tests");
+	reporter.step_failed(0, &step, Duration::from_millis(1), "boom");
+	reporter.step_failed(0, &named_command_step("cleanup"), Duration::ZERO, "boom");
+	reporter.write_diagnostic(CliDiagnostic::from_error(
+		&monochange_core::MonochangeError::Io("boom".to_string()),
+		Some("monochange run test"),
+	));
+
+	assert_eq!(
+		recorded_text(&bytes),
+		"error[io.failed]: boom\n  command: monochange run test\n  step:    run tests\n  help:    Check that the path exists and is writable, then rerun the command.\n"
 	);
 }
 
@@ -403,11 +753,7 @@ fn nested_workflow_and_publish_events_share_complete_lines() {
 	let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
 	assert!(!output.contains('\r'));
 	assert!(!output.contains('\u{1b}'));
-	assert!(
-		output
-			.lines()
-			.any(|line| line.contains("[1/1] publish packages"))
-	);
+	assert!(output.lines().any(|line| line == "▶ publish packages"));
 	assert!(
 		output
 			.lines()
@@ -428,12 +774,12 @@ fn progress_and_diagnostics_use_the_same_writer() {
 		&monochange_core::MonochangeError::Config("missing package".to_string()),
 		Some("monochange check"),
 	);
-	reporter.write_diagnostic(&diagnostic);
+	reporter.write_diagnostic(diagnostic);
 
 	let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
 	assert_eq!(
 		output,
-		"▶ Loading workspace configuration\nerror[config.invalid]: missing package\n  command: monochange check\n  help: Check `monochange.toml` and the command arguments, then rerun the command.\n",
+		"▶ Loading workspace configuration\nerror[config.invalid]: missing package\n  command: monochange check\n  help:    Check `monochange.toml` and the command arguments, then rerun the command.\n",
 	);
 }
 
@@ -589,26 +935,7 @@ fn human_progress_covers_lint_counts_fixes_and_summary_wording() {
 	LintProgressReporter::summary(&reporter, 1, 1, 1, false);
 	LintProgressReporter::summary(&reporter, 2, 2, 2, true);
 
-	let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
-	assert!(output.contains("Running 1 lint suite\n"));
-	assert!(output.contains("Running 2 lint suites\n"));
-	assert!(output.contains("checking 1 file with 1 rule"));
-	assert!(output.contains("checking 2 files with 3 rules"));
-	assert!(output.contains("1 issue\n"));
-	assert!(output.contains("2 issues (1 fixable)"));
-	assert!(output.contains("Fixed 1 file\n"));
-	assert!(output.contains("Fixed 2 files\n"));
-	assert!(output.contains("can be auto-fixed"));
-	assert!(output.contains("remain auto-fixable"));
-	assert_eq!(summary_count_line(0, 0, "x", "y"), None);
-	assert_eq!(
-		summary_count_line(1, 0, "x", "y"),
-		Some("x 1 error".to_string())
-	);
-	assert_eq!(
-		summary_count_line(0, 2, "x", "y"),
-		Some("y 2 warnings".to_string())
-	);
+	insta::assert_snapshot!(recorded_text(&bytes));
 }
 
 #[test]
