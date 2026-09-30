@@ -1519,7 +1519,16 @@ async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_
 	});
 	let create_tree = server.mock(|when, then| {
 		when.method(POST)
-			.path("/repos/ifiokjr/monochange/git/trees");
+			.path("/repos/ifiokjr/monochange/git/trees")
+			.json_body(json!({
+				"base_tree": "parent_tree",
+				"tree": [
+					{"path": "regular.txt", "mode": "100644", "type": "blob", "sha": "blob_regular"},
+					{"path": "exec.sh", "mode": "100755", "type": "blob", "sha": "blob_exec"},
+					{"path": "link", "mode": "120000", "type": "blob", "sha": "blob_symlink"},
+					{"path": "deleted.txt", "mode": "100644", "type": "blob", "sha": null},
+				],
+			}));
 		then.status(201)
 			.header("content-type", "application/json")
 			.body(r#"{"sha":"new_tree"}"#);
@@ -1581,6 +1590,36 @@ async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_
 	update_ref.assert();
 	assert_eq!(result, Ok(verified.to_string()));
 }
+
+#[test]
+fn create_tree_entries_delete_paths_with_an_explicit_null_sha() {
+	let deleted = serde_json::to_value(GitHubCreateTreeEntry {
+		path: ".changeset/feature.md".to_string(),
+		mode: "100644",
+		entry_type: "blob",
+		sha: None,
+	})
+	.unwrap_or_else(|error| panic!("serialize deleted tree entry: {error}"));
+	assert_eq!(
+		deleted,
+		json!({"path": ".changeset/feature.md", "mode": "100644", "type": "blob", "sha": null})
+	);
+	assert!(deleted.get("content").is_none());
+
+	let updated = serde_json::to_value(GitHubCreateTreeEntry {
+		path: "Cargo.toml".to_string(),
+		mode: "100644",
+		entry_type: "blob",
+		sha: Some("blob_sha".to_string()),
+	})
+	.unwrap_or_else(|error| panic!("serialize updated tree entry: {error}"));
+	assert_eq!(
+		updated,
+		json!({"path": "Cargo.toml", "mode": "100644", "type": "blob", "sha": "blob_sha"})
+	);
+	assert!(updated.get("content").is_none());
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn release_pull_request_commit_verification_uses_root_commit_without_parent() {
 	let server = MockServer::start();

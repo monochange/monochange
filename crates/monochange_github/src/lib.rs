@@ -322,7 +322,7 @@ struct GitHubCreateTreeEntry {
 	mode: &'static str,
 	#[serde(rename = "type")]
 	entry_type: &'static str,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	/// `None` serializes as `"sha": null`, which GitHub requires to delete the path.
 	sha: Option<String>,
 }
 
