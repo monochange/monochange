@@ -6,7 +6,7 @@
 
 With `--progress-format json`, a failure is now a `diagnostic` event on stderr instead of human text, so the stream stays newline-delimited JSON:
 
-```json
+```text
 {"sequence":7,"event":"diagnostic","command":"release","dry_run":false,"code":"step.command_failed","summary":"command `cargo test` failed: exit status: 101","detail":"stderr (last 20 of 250 lines, full output above):\ntest a ... FAILED","context":{"command":"monochange run release","step":"[3/4] run tests"},"hints":["Fix the failure shown in the command output, then rerun."],"exit_code":1}
 ```
 
