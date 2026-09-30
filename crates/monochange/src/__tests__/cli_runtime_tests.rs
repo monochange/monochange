@@ -4054,3 +4054,99 @@ fn failed_command_details_repeat_only_the_tail_of_streamed_output() {
 	assert!(captured.contains("stderr:\nline 1\n"));
 	assert!(captured.ends_with("line 25"));
 }
+
+#[test]
+fn commands_without_results_report_that_they_completed() {
+	let command = default_cli_command("config");
+	let mut context = cli_context();
+	assert_eq!(
+		render_cli_command_result(&command, &context),
+		"✔ step config completed"
+	);
+
+	context.dry_run = true;
+	assert_eq!(
+		render_cli_command_result(&command, &context),
+		"✔ step config completed · dry-run"
+	);
+}
+
+#[test]
+fn changeset_policy_results_show_not_required_verdicts_and_warnings() {
+	let mut context = cli_context();
+	context.changeset_policy_evaluation = Some(ChangesetPolicyEvaluation {
+		enforce: false,
+		required: false,
+		status: ChangesetPolicyStatus::NotRequired,
+		summary: "no package changes need a changeset".to_string(),
+		comment: None,
+		labels: Vec::new(),
+		matched_skip_labels: Vec::new(),
+		changed_paths: vec!["docs/readme.md".to_string()],
+		matched_paths: Vec::new(),
+		ignored_paths: vec!["docs/readme.md".to_string()],
+		changeset_paths: Vec::new(),
+		affected_package_ids: Vec::new(),
+		covered_package_ids: Vec::new(),
+		uncovered_package_ids: Vec::new(),
+		warnings: vec![
+			"docs changed without a release".to_string(),
+			"docs changed without a release".to_string(),
+		],
+		errors: Vec::new(),
+	});
+
+	let text = render_cli_command_result(&default_cli_command("affected-packages"), &context);
+	assert!(
+		text.starts_with("• no package changes need a changeset · changeset policy not required"),
+		"{text}"
+	);
+	assert!(
+		text.contains("Warnings (1)\n  ▲ docs changed without a release"),
+		"{text}"
+	);
+}
+
+#[test]
+fn next_versions_skip_groups_without_a_planned_version() {
+	let mut release = sample_prepared_release_with_versions();
+	release.plan.decisions.clear();
+	let mut unplanned = release.plan.groups[0].clone();
+	unplanned.group_id = "docs".to_string();
+	unplanned.planned_version = None;
+	release.plan.groups.push(unplanned);
+	let summary = build_release_version_summary(&release);
+
+	let text = render_release_version_summary_text(&summary, &BTreeMap::new());
+	assert!(text.contains("  sdk  2.0.0  minor"), "{text}");
+	assert!(!text.contains("docs"), "{text}");
+}
+
+#[test]
+fn release_automation_json_lists_command_step_results() {
+	let command = release_cli_command();
+	let mut context = cli_context();
+	context.output_format = OutputFormat::Json;
+	context.release_results = vec!["created release v1.2.3".to_string()];
+	context.command_results = vec![CommandStepResult {
+		step: "announce".to_string(),
+		id: None,
+		command: "printf done".to_string(),
+		status: "succeeded",
+		exit_code: Some(0),
+		stdout: "done".to_string(),
+		stderr: String::new(),
+	}];
+
+	let json = resolve_command_output(&command, &context, false, None)
+		.unwrap_or_else(|error| panic!("release automation json: {error}"));
+	let value: serde_json::Value =
+		serde_json::from_str(&json).unwrap_or_else(|error| panic!("parse json: {error}\n{json}"));
+	assert_eq!(value["commands"][0]["command"], "printf done");
+	assert_eq!(value["releases"], serde_json::json!([]));
+
+	context.command_results.clear();
+	let json = resolve_command_output(&command, &context, false, None)
+		.unwrap_or_else(|error| panic!("release automation json: {error}"));
+	assert!(!json.contains("\"commands\""), "{json}");
+}

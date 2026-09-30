@@ -4614,22 +4614,19 @@ fn execute_create_change_file_step(
 	step: &CliStepDefinition,
 	dry_run: bool,
 ) -> MonochangeResult<String> {
+	// Dry runs show the changeset that would be written.
 	let render_preview = |planned: PlannedChangeFile| {
-		if dry_run {
-			let mut text = TextReport::new(TextTheme::for_stdout());
-			text.headline(
-				Outcome::Neutral,
-				&format!(
-					"Would create changeset {}",
-					root_relative(root, &planned.path).display()
-				),
-				&["dry-run, nothing was written".to_string()],
-			);
-			text.raw_block(&planned.content);
-			text.render()
-		} else {
-			render_created_changeset(root, &planned.path)
-		}
+		let mut text = TextReport::new(TextTheme::for_stdout());
+		text.headline(
+			Outcome::Neutral,
+			&format!(
+				"Would create changeset {}",
+				root_relative(root, &planned.path).display()
+			),
+			&["dry-run, nothing was written".to_string()],
+		);
+		text.raw_block(&planned.content);
+		text.render()
 	};
 	let is_interactive = step_input_is_true(step_inputs, "interactive");
 

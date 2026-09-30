@@ -17455,3 +17455,19 @@ fn text_release_record_discovery_marks_targets_without_tags() {
 		"{rendered}"
 	);
 }
+
+#[test]
+fn validate_counts_warnings_in_its_headline() {
+	let tempdir = setup_fixture("config/versioned-file-empty-glob");
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("step"),
+			OsString::from("validate"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("validate with warnings: {error}"));
+
+	assert_eq!(output, "✔ Workspace validation passed · 1 warning");
+}
