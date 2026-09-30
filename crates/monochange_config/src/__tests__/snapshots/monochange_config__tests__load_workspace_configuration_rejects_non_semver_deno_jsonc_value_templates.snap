@@ -1,0 +1,12 @@
+---
+source: crates/monochange_config/src/__tests__/lib_tests.rs
+expression: error.to_string()
+---
+error: package `commented` versioned file `deno.jsonc` cannot render a valid `SemVer` version
+  --> monochange.toml:1:1
+
+  |
+1 | [package.commented]
+  | ^^^^^^^^^^^^^^^^^^^ manifest value template is not SemVer-shaped
+
+  = help: manifests must carry a plain SemVer such as `1.2.3` or `1.2.3+4`

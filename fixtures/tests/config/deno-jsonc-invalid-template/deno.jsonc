@@ -1,0 +1,5 @@
+// This manifest must retain a SemVer version.
+{
+  "name": "commented",
+  "version": "1.2.3",
+}

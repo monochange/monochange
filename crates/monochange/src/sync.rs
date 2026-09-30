@@ -632,8 +632,7 @@ pub(crate) fn detect_deno_changes(
 	_workspace_go_module_paths: &BTreeMap<String, String>,
 	strategy: VersionStrategy,
 ) -> MonochangeResult<Vec<DependencySyncChange>> {
-	let normalized = monochange_core::strip_json_comments(contents);
-	let json: JsonValue = serde_json::from_str(&normalized).map_err(|error| {
+	let json = monochange_deno::parse_manifest_contents(contents).map_err(|error| {
 		MonochangeError::Config(format!("failed to parse deno json for sync: {error}"))
 	})?;
 	let mut changes = Vec::new();
@@ -714,8 +713,7 @@ fn apply_deno_changes(
 ) -> MonochangeResult<String> {
 	let fields = &["imports", "dependencies"];
 	let versioned_deps = versioned_deps_from_changes(changes);
-	let normalized = monochange_core::strip_json_comments(contents);
-	monochange_core::update_json_manifest_text(&normalized, None, fields, &versioned_deps)
+	monochange_core::update_json_manifest_text(contents, None, fields, &versioned_deps)
 }
 
 fn apply_go_changes(contents: &str, changes: &[DependencySyncChange]) -> MonochangeResult<String> {

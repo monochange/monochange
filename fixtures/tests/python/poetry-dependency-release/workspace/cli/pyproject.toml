@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "py-cli"
+version = "2.0.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+py-core = { version = ">=1.0.0", extras = ["cli"], optional = true } # Preserve extras and comments.
+
+[tool.poetry.group.dev.dependencies]
+py-core = ">=1.0.0"
+
+[tool.poetry.group.test.dependencies]
+py-core = { path = "../core", develop = true }

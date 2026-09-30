@@ -43,14 +43,14 @@ expression: snapshot
           "base": null,
           "head": "merge-tree:[SHA]",
           "kind": "release",
-          "note": "no reachable release tag matched this package",
+          "note": "no matching release tag found for this package",
           "status": "unavailable"
         },
         {
           "base": null,
           "head": "HEAD~1",
           "kind": "release_to_default",
-          "note": "no reachable release tag matched this package",
+          "note": "no matching release tag found for this package",
           "status": "unavailable"
         }
       ],

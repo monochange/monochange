@@ -1,0 +1,11 @@
+---
+source: crates/monochange_python/src/__tests__/lib_tests.rs
+expression: result
+---
+[project]
+name = "dynamic-app"
+dynamic = ["version"]
+
+[tool.poetry]
+name = "legacy-app"
+version = "3.1.0" # Do not fall back from dynamic PEP 621 metadata.

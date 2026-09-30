@@ -1,5 +1,6 @@
 #![allow(clippy::disallowed_methods)]
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -1408,6 +1409,129 @@ fn materialize_dependency_edges_matches_dependency_names_to_packages() {
 	let edge = edges.first().unwrap_or_else(|| panic!("expected one edge"));
 	assert_eq!(edge.from_package_id, source.id);
 	assert_eq!(edge.to_package_id, target.id);
+}
+
+#[test]
+fn materialize_dependency_edges_matches_adapter_aliases_without_duplicating_ids() {
+	let mut producer = PackageRecord::new(
+		Ecosystem::Python,
+		"PY_Core",
+		PathBuf::from("workspace/core/pyproject.toml"),
+		PathBuf::from("workspace"),
+		None,
+		PublishState::Public,
+	);
+	producer.metadata.insert(
+		crate::PACKAGE_DEPENDENCY_NAME_METADATA_KEY.to_string(),
+		"py-core".to_string(),
+	);
+	let mut consumer = PackageRecord::new(
+		Ecosystem::Python,
+		"cli",
+		PathBuf::from("workspace/cli/pyproject.toml"),
+		PathBuf::from("workspace"),
+		None,
+		PublishState::Public,
+	);
+	consumer.declared_dependencies = ["py-core", "PY_Core", "PY_CORE"]
+		.into_iter()
+		.map(|name| {
+			PackageDependency {
+				name: name.to_string(),
+				kind: DependencyKind::Runtime,
+				version_constraint: None,
+				optional: false,
+				source_field: None,
+			}
+		})
+		.collect();
+	let edges =
+		materialize_dependency_edges(&[consumer.clone(), producer.clone(), producer.clone()]);
+
+	assert_eq!(producer.name, "PY_Core");
+	assert_eq!(edges.len(), 2);
+	assert!(
+		edges
+			.iter()
+			.all(|edge| edge.from_package_id == consumer.id && edge.to_package_id == producer.id)
+	);
+	producer.metadata.insert(
+		crate::PACKAGE_DEPENDENCY_NAME_METADATA_KEY.to_string(),
+		producer.name.clone(),
+	);
+	let edges = materialize_dependency_edges(&[consumer, producer]);
+
+	assert_eq!(edges.len(), 1);
+}
+
+#[test]
+fn materialize_dependency_edges_scopes_adapter_aliases_to_the_consumer_ecosystem() {
+	let mut python = PackageRecord::new(
+		Ecosystem::Python,
+		"Foo.Bar",
+		PathBuf::from("workspace/python/pyproject.toml"),
+		PathBuf::from("workspace"),
+		None,
+		PublishState::Public,
+	);
+	python.id = "python-core".to_string();
+	python.metadata.insert(
+		crate::PACKAGE_DEPENDENCY_NAME_METADATA_KEY.to_string(),
+		"foo-bar".to_string(),
+	);
+	let mut cargo = PackageRecord::new(
+		Ecosystem::Cargo,
+		"foo-bar",
+		PathBuf::from("workspace/cargo/Cargo.toml"),
+		PathBuf::from("workspace"),
+		None,
+		PublishState::Public,
+	);
+	cargo.id = "rust-core".to_string();
+	let mut consumer = PackageRecord::new(
+		Ecosystem::Cargo,
+		"consumer",
+		PathBuf::from("workspace/consumer/Cargo.toml"),
+		PathBuf::from("workspace"),
+		None,
+		PublishState::Public,
+	);
+	consumer.declared_dependencies.push(PackageDependency {
+		name: "foo-bar".to_string(),
+		kind: DependencyKind::Runtime,
+		version_constraint: None,
+		optional: false,
+		source_field: None,
+	});
+	let edges = materialize_dependency_edges(&[consumer.clone(), cargo.clone(), python.clone()]);
+	assert_eq!(edges.len(), 1);
+	assert_eq!(
+		edges.first().map(|edge| edge.to_package_id.as_str()),
+		Some("rust-core")
+	);
+
+	consumer.ecosystem = Ecosystem::Python;
+	let edges = materialize_dependency_edges(&[consumer.clone(), cargo, python.clone()]);
+	let targets = edges
+		.iter()
+		.map(|edge| edge.to_package_id.as_str())
+		.collect::<BTreeSet<_>>();
+	// Exact native names keep matching across ecosystems; the alias adds the
+	// Python producer only when the consumer belongs to that same ecosystem.
+	assert_eq!(targets, BTreeSet::from(["rust-core", "python-core"]));
+
+	consumer.ecosystem = Ecosystem::Cargo;
+	consumer
+		.declared_dependencies
+		.first_mut()
+		.unwrap_or_else(|| panic!("consumer dependency"))
+		.name = "Foo.Bar".to_string();
+	let edges = materialize_dependency_edges(&[consumer, python]);
+	assert_eq!(edges.len(), 1);
+	assert_eq!(
+		edges.first().map(|edge| edge.to_package_id.as_str()),
+		Some("python-core")
+	);
 }
 
 #[test]
@@ -4524,6 +4648,214 @@ fn retarget_plan_and_result_serialize_with_snake_case_keys() {
 			.unwrap_or_else(|| panic!("expected provider_results[0].operation")),
 		"planned"
 	);
+}
+
+#[test]
+fn json_replacements_reject_conflicting_edits_before_applying_them() {
+	let contents = fs::read_to_string(
+		Path::new(env!("CARGO_MANIFEST_DIR"))
+			.join("../../fixtures/tests/json-manifest-edits/grow/package.json"),
+	)
+	.unwrap_or_else(|error| panic!("read json edit fixture: {error}"));
+	let span = crate::find_json_path_value_span(&contents, 0, "version")
+		.unwrap_or_else(|error| panic!("find root version: {error}"))
+		.unwrap_or_else(|| panic!("expected root version"));
+	let error = crate::apply_json_replacements(
+		&contents,
+		vec![
+			(span, "\"2.0.0\"".to_string()),
+			(span, "\"3.0.0\"".to_string()),
+		],
+	)
+	.expect_err("conflicting root edits must fail");
+
+	insta::assert_snapshot!(error.to_string());
+}
+
+#[test]
+fn json_replacements_reject_partially_overlapping_edits() {
+	let contents = fs::read_to_string(
+		Path::new(env!("CARGO_MANIFEST_DIR"))
+			.join("../../fixtures/tests/json-manifest-edits/grow/package.json"),
+	)
+	.unwrap_or_else(|error| panic!("read json edit fixture: {error}"));
+	let span = crate::find_json_path_value_span(&contents, 0, "version")
+		.unwrap_or_else(|error| panic!("find root version: {error}"))
+		.unwrap_or_else(|| panic!("expected root version"));
+	let overlapping_span = crate::JsonSpan {
+		start: span.start + 1,
+		end: span.end,
+	};
+	let error = crate::apply_json_replacements(
+		&contents,
+		vec![
+			(span, "\"2.0.0\"".to_string()),
+			(overlapping_span, "\"3.0.0\"".to_string()),
+		],
+	)
+	.expect_err("overlapping root edits must fail");
+
+	insta::assert_snapshot!(error.to_string());
+}
+
+#[rstest::rstest]
+#[case::grow_once("grow", "grow_once", "10.0.0", false)]
+#[case::grow_repeated("grow", "grow_repeated", "10.0.0", true)]
+#[case::shrink_once("shrink", "shrink_once", "1.0.0", false)]
+#[case::shrink_repeated("shrink", "shrink_repeated", "1.0.0", true)]
+fn selected_json_manifest_edits_deduplicate_root_and_dependency_spans(
+	#[case] fixture: &str,
+	#[case] scenario: &str,
+	#[case] version: &str,
+	#[case] repeat_version: bool,
+) {
+	let contents = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(format!(
+		"../../fixtures/tests/json-manifest-edits/{fixture}/package.json"
+	)))
+	.unwrap_or_else(|error| panic!("read json edit fixture: {error}"));
+	let mut fields = vec!["version", "dependencies", "dependencies.api"];
+
+	if repeat_version {
+		fields.push("version");
+	}
+
+	let dependency_version = format!("~{version}");
+	let updated = crate::update_selected_json_manifest_text(
+		&contents,
+		Some(version),
+		&fields,
+		&BTreeMap::from([("api".to_string(), dependency_version.clone())]),
+	)
+	.unwrap_or_else(|error| panic!("update duplicate selected fields: {error}"));
+	let manifest: serde_json::Value = serde_json::from_str(&updated)
+		.unwrap_or_else(|error| panic!("length-changing edits preserve valid json: {error}"));
+	assert_eq!(manifest["version"], version);
+	assert_eq!(manifest["dependencies"]["api"], dependency_version);
+	assert_eq!(manifest["dependencies"]["external"], "^9.0.0");
+	assert_eq!(manifest["metadata"]["version"], "4.0.0");
+
+	insta::with_settings!({snapshot_suffix => scenario}, {
+		insta::assert_snapshot!(updated);
+	});
+}
+
+#[test]
+fn update_selected_json_manifest_text_preserves_unselected_root_version() {
+	let contents = r#"{
+  "version": "1.0.0",
+  "metadata": { "version": "1.0.0" },
+  "dependencies": { "api": "^1.0.0", "external": "^9.0.0" }
+}
+"#;
+	let updated = crate::update_selected_json_manifest_text(
+		contents,
+		Some("3.0.0"),
+		&["metadata.version", "dependencies.api"],
+		&BTreeMap::from([("api".to_string(), "~2.0.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update selected owner and dependency fields: {error}"));
+	let manifest: serde_json::Value = serde_json::from_str(&updated)
+		.unwrap_or_else(|error| panic!("parse selected field updates: {error}"));
+	assert_eq!(manifest["version"], "1.0.0");
+	assert_eq!(manifest["metadata"]["version"], "3.0.0");
+	assert_eq!(manifest["dependencies"]["api"], "~2.0.0");
+
+	insta::assert_snapshot!(updated);
+}
+
+#[test]
+fn update_json_manifest_text_updates_selected_dependency_without_owner_version() {
+	let contents = r#"{
+  "version": "1.0.0",
+  "dependencies": {
+    "api": "^1.0.0",
+    "otherapi": "^9.0.0"
+  }
+}
+"#;
+	let updated = crate::update_json_manifest_text(
+		contents,
+		None,
+		&["dependencies.api", "dependencies.otherapi"],
+		&BTreeMap::from([("api".to_string(), "~2.0.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update selected dependency: {error}"));
+
+	insta::assert_snapshot!(updated);
+}
+
+#[test]
+fn update_json_manifest_text_matches_dependency_path_leaf_exactly() {
+	let contents = r#"{
+  "version": "1.0.0",
+  "dependencies": {
+    "a": {
+      "api": "^1.0.0",
+      "otherapi": "^9.0.0"
+    },
+    "a.api": "^8.0.0"
+  }
+}
+"#;
+	let updated = crate::update_json_manifest_text(
+		contents,
+		None,
+		&["dependencies.a.api"],
+		&BTreeMap::from([
+			("a.api".to_string(), "~7.0.0".to_string()),
+			("api".to_string(), "~2.0.0".to_string()),
+		]),
+	)
+	.unwrap_or_else(|error| panic!("update nested dependency: {error}"));
+	let manifest: serde_json::Value = serde_json::from_str(&updated)
+		.unwrap_or_else(|error| panic!("parse nested dependency: {error}"));
+	assert_eq!(manifest["dependencies"]["a"]["api"], "~2.0.0");
+
+	insta::assert_snapshot!(updated);
+}
+
+#[test]
+fn update_json_manifest_text_keeps_owner_version_distinct_from_named_dependency() {
+	let contents = r#"{
+  "version": "1.0.0",
+  "dependencies": {
+    "version": "^1.0.0"
+  }
+}
+"#;
+	let updated = crate::update_json_manifest_text(
+		contents,
+		Some("3.0.0"),
+		&["version", "dependencies.version"],
+		&BTreeMap::from([("version".to_string(), "~2.0.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update owner and named dependency: {error}"));
+	let manifest: serde_json::Value = serde_json::from_str(&updated)
+		.unwrap_or_else(|error| panic!("parse owner and named dependency: {error}"));
+	assert_eq!(manifest["version"], "3.0.0");
+	assert_eq!(manifest["dependencies"]["version"], "~2.0.0");
+
+	insta::assert_snapshot!(updated);
+}
+
+#[test]
+fn update_json_manifest_text_prefers_dependency_version_over_owner_version() {
+	let contents = r#"{
+  "version": "1.0.0",
+  "dependencies": {
+    "api": "^1.0.0"
+  }
+}
+"#;
+	let updated = crate::update_json_manifest_text(
+		contents,
+		Some("3.0.0"),
+		&["dependencies.api"],
+		&BTreeMap::from([("api".to_string(), "~2.0.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update selected dependency: {error}"));
+
+	insta::assert_snapshot!(updated);
 }
 
 #[test]

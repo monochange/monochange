@@ -1,0 +1,3 @@
+[ecosystems.npm.auto_discover]
+include = ["packages/*"]
+exclude = ["packages/["]

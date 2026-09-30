@@ -317,9 +317,7 @@ pub(crate) fn build_command_with_cli(
 		)
 		.subcommand(
 			Command::new("init")
-				.about(
-					"Generate monochange.toml with detected packages, groups, and default CLI commands",
-				)
+				.about("Generate monochange.toml with detected packages and groups")
 				.arg(
 					Arg::new("force")
 						.long("force")
@@ -343,9 +341,13 @@ When provided, the generated config includes:\n\
 						.value_parser(["github", "gitlab", "gitea"]),
 				),
 		)
-		.subcommand(Command::new("populate").about(
-			"Add any missing built-in CLI commands to monochange.toml so you can customize them",
-		))
+		.subcommand(
+			Command::new("populate")
+				.about("Check for default CLI workflow aliases (none are provided in this version)")
+				.long_about(
+					"Check monochange.toml for missing default CLI workflow aliases. This version provides no defaults, so the configuration stays unchanged. Use `monochange command` to define custom workflows.",
+				),
+		)
 		.subcommand(build_command_wizard_subcommand())
 		.subcommand(build_skill_subcommand())
 		.subcommand(build_subagents_subcommand())

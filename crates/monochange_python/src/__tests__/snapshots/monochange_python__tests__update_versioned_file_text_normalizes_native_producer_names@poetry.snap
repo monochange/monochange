@@ -1,0 +1,10 @@
+---
+source: crates/monochange_python/src/__tests__/lib_tests.rs
+expression: result
+---
+[tool.poetry]
+name = "poetry-cli"
+version = "2.0.0"
+
+[tool.poetry.dependencies]
+py-core = ">=1.1.0" # Keep the canonical dependency spelling.

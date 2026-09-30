@@ -1,0 +1,24 @@
+---
+source: crates/monochange_config/src/__tests__/lib_tests.rs
+expression: errors
+---
+[
+  "config error: [ecosystems.cargo.auto_discover].include contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.cargo.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.cargo.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.npm.auto_discover].include contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.npm.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.npm.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.deno.auto_discover].include contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.deno.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.deno.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.dart.auto_discover].include contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.dart.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.dart.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.python.auto_discover].include contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.python.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.python.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.go.auto_discover].include contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.go.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern",
+  "config error: [ecosystems.go.auto_discover].exclude contains invalid glob pattern `crates/[`: Pattern syntax error near position 7: invalid range pattern"
+]

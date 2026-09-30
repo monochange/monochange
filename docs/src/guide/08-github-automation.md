@@ -25,14 +25,14 @@ monochange init --provider github
 
 # The generated monochange.toml includes:
 # - [source] section with GitHub releases and pull request settings
-# - CLI commands for commit-release and release-pr
+# - No [cli.*] commands; built-in commands are immediately available
 # - GitHub Actions workflows in .github/workflows/
 ```
 
 This single command generates:
 
 1. **Complete source configuration** - `[source]`, `[source.releases]`, and `[source.pull_requests]` sections
-2. **Automation CLI commands** - `commit-release` and `release-pr` commands ready to use
+2. **Built-in workflow steps** - use `monochange step commit-release` or `monochange step open-release-request`; add `[cli.*]` workflows only when customization is needed
 3. **GitHub Actions workflows** - `release.yml` and `changeset-policy.yml` for CI/CD
 4. **Auto-detected repository info** - parses your git remote to pre-fill owner and repo
 

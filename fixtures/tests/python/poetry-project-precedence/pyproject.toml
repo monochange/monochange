@@ -1,0 +1,7 @@
+[project]
+name = "pep621-app"
+version = "1.0.0" # PEP 621 owns the release version.
+
+[tool.poetry]
+name = "legacy-app"
+version = "3.1.0" # Legacy metadata must remain unchanged.

@@ -1,0 +1,37 @@
+---
+source: crates/monochange_integration_tests/tests/python_poetry_version.rs
+expression: "release[\"plan\"]"
+---
+{
+  "compatibility_evidence": [],
+  "decisions": [
+    {
+      "bump": "patch",
+      "package": "python:cli/pyproject.toml",
+      "planned_version": "2.0.1",
+      "reasons": [
+        "depends on `python:core/pyproject.toml`"
+      ],
+      "trigger": "transitive-dependency",
+      "upstream_sources": [
+        "python:core/pyproject.toml"
+      ]
+    },
+    {
+      "bump": "minor",
+      "package": "python:core/pyproject.toml",
+      "planned_version": "1.1.0",
+      "reasons": [
+        "Add response parsing helpers."
+      ],
+      "trigger": "direct-change",
+      "upstream_sources": [
+        "python:core/pyproject.toml"
+      ]
+    }
+  ],
+  "groups": [],
+  "unresolved_items": [],
+  "warnings": [],
+  "workspace_root": "."
+}

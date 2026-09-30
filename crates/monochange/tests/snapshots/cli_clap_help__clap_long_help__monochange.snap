@@ -11,8 +11,8 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
 
 [1m[96mBuilt-in Commands:[0m
   [93msnapshot[0m       Print a normalized JSON snapshot of the CLI surface
-  [93minit[0m           Generate monochange.toml with detected packages, groups, and default CLI commands
-  [93mpopulate[0m       Add any missing built-in CLI commands to monochange.toml so you can customize them
+  [93minit[0m           Generate monochange.toml with detected packages and groups
+  [93mpopulate[0m       Check for default CLI workflow aliases (none are provided in this version)
   [93mcommand[0m        Open an interactive dashboard for adding or editing config-defined CLI commands
   [93mskill[0m          Read or install the bundled monochange agent skill
   [93msubagents[0m      Generate repo-local monochange subagents and agent guidance files

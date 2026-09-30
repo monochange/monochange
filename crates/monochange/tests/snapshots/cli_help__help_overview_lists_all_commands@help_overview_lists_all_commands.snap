@@ -16,8 +16,8 @@ Usage: monochange [OPTIONS] <COMMAND>
 
 Built-in Commands:
   snapshot       Print a normalized JSON snapshot of the CLI surface
-  init           Generate monochange.toml with detected packages, groups, and default CLI commands
-  populate       Add any missing built-in CLI commands to monochange.toml so you can customize them
+  init           Generate monochange.toml with detected packages and groups
+  populate       Check for default CLI workflow aliases (none are provided in this version)
   command        Open an interactive dashboard for adding or editing config-defined CLI commands
   skill          Read or install the bundled monochange agent skill
   subagents      Generate repo-local monochange subagents and agent guidance files

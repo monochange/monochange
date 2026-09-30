@@ -1,0 +1,2 @@
+[ecosystems.cargo.auto_discover]
+include = ["missing/[", "crates/*"]

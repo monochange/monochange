@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/npm_versioned_file_fields.rs
+expression: manifest
+---
+{
+  "name": "@acme/ui",
+  "version": "2.4.0",
+  "dependencies": {
+    "@acme/api": "=2.4.0",
+    "external-lib": "^9.0.0"
+  }
+}

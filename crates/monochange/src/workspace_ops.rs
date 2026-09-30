@@ -504,6 +504,7 @@ fn build_prerelease_state_update(
 ///
 /// Returns an error if:
 /// * Configuration already exists and force is false
+/// * Multiple discovered packages share a directory
 /// * Writing configuration or workflow files fails
 #[must_use = "the initialization result must be checked"]
 pub(crate) fn init_workspace(
@@ -964,22 +965,45 @@ fn render_annotated_init_config(
 	remote: Option<&RemoteInfo>,
 ) -> MonochangeResult<String> {
 	let packages = discover_packages(root)?;
+	let package_names = packages
+		.iter()
+		.map(|package| package.name.as_str())
+		.collect::<BTreeSet<_>>();
 	let mut template_packages = Vec::new();
 	let mut package_ids = Vec::<String>::new();
-	let mut name_counts = BTreeMap::<String, usize>::new();
+	let mut package_paths = BTreeMap::new();
 
 	for package in &packages {
-		let count = name_counts.entry(package.name.clone()).or_default();
-		*count += 1;
-		let id = if *count == 1 {
-			package.name.clone()
-		} else {
-			format!("{}-{}", package.name, package.ecosystem.as_str())
-		};
-		package_ids.push(id.clone());
-
 		let manifest_dir = package.manifest_path.parent().unwrap_or(root).to_path_buf();
 		let relative_dir = root_relative(root, &manifest_dir);
+
+		if let Some(previous) = package_paths.insert(relative_dir.clone(), package) {
+			return Err(MonochangeError::Config(format!(
+				"cannot initialize multiple package owners at `{}`: `{}` ({}) and `{}` ({}). Move the packages into separate directories or create monochange.toml manually with one package owner for this path",
+				relative_dir.display(),
+				previous.name,
+				previous.ecosystem.as_str(),
+				package.name,
+				package.ecosystem.as_str(),
+			)));
+		}
+
+		let mut id = package.name.clone();
+
+		if package_ids.contains(&id) {
+			let base = format!("{}-{}", package.name, package.ecosystem.as_str());
+			let mut suffix = 2;
+			id.clone_from(&base);
+
+			// Reserve native names even when their packages are discovered later.
+			while package_ids.contains(&id) || package_names.contains(id.as_str()) {
+				id = format!("{base}-{suffix}");
+				suffix += 1;
+			}
+		}
+
+		package_ids.push(id.clone());
+
 		let pkg_type = package_type_for_ecosystem(package.ecosystem);
 		let changelog = detect_default_changelog(root, &manifest_dir);
 		let type_str = match pkg_type {
@@ -1587,20 +1611,38 @@ pub(crate) fn seed_versions_from_tag_list(
 			.get("config_id")
 			.cloned()
 			.unwrap_or_else(|| package.id.clone());
+		let Some(package_definition) = configuration.package_by_id(&config_id) else {
+			continue;
+		};
 		let Some(identity) = configuration.effective_release_identity(&config_id) else {
 			continue;
 		};
 		if !identity.tag {
 			continue;
 		}
-		let prefix = release_tag_prefix(&identity.owner_id, &identity.version_format);
-		let Some(version) = latest_tag_version_with_prefix(sorted_tags, &prefix) else {
+		let ecosystem = if identity.owner_kind == ReleaseOwnerKind::Group {
+			"group"
+		} else {
+			package_definition.package_type.as_str()
+		};
+		let Some((_, version)) = latest_release_tag_in(
+			sorted_tags,
+			&identity.owner_id,
+			ecosystem,
+			&identity.version_format,
+		) else {
 			if let Some(initial_version) = identity.initial_version.as_ref() {
 				package.current_version = Some(initial_version.clone());
 				continue;
 			}
+			let pattern = resolved_release_tag_template(
+				&identity.owner_id,
+				ecosystem,
+				&identity.version_format,
+			)
+			.replace("{{ version }}", "<version>");
 			discovery.warnings.push(format!(
-				"no release tag matching `{prefix}<version>` found for package `{config_id}`; tag an initial release or set `initial_version` so the version baseline can be resolved"
+				"no release tag matching `{pattern}` found for package `{config_id}`; tag an initial release or set `initial_version` so the version baseline can be resolved"
 			));
 			continue;
 		};
@@ -2341,6 +2383,14 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		resolve_release_values_for_prepare(root, configuration, &discovery.packages, &plan),
 	)
 	.await?;
+	// Explicit versioned-file fields and prefixes must take precedence over
+	// automatic dependency synchronization before lockfile commands run.
+	let dependency_sync_updates = measure_prepare_phase(
+		&mut phase_timings,
+		"sync internal dependency constraints",
+		|| build_dependency_sync_updates(root, &discovery, &plan, &manifest_updates),
+	)?;
+	let manifest_updates = merge_file_updates(manifest_updates, dependency_sync_updates);
 	let versioned_file_updates =
 		if configuration.prerelease.enabled && !configuration.prerelease.write_manifests {
 			Vec::new()
@@ -2470,7 +2520,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		lockfile_commands = lockfile_commands.len(),
 		"built manifest and lockfile updates"
 	);
-	let mut file_updates = if lockfile_commands.is_empty() || dry_run {
+	let file_updates = if lockfile_commands.is_empty() || dry_run {
 		// During dry-run, skip the expensive workspace copy and lockfile
 		// command execution. The base updates already contain all version
 		// file and changelog changes; lockfile diffs are omitted from the
@@ -2485,15 +2535,6 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			&lockfile_commands,
 		)?
 	};
-	let dependency_sync_updates = measure_prepare_phase(
-		&mut phase_timings,
-		"sync internal dependency constraints",
-		|| build_dependency_sync_updates(root, &discovery, &plan, &file_updates),
-	)?;
-	if !dry_run && !lockfile_commands.is_empty() {
-		apply_file_updates(&dependency_sync_updates)?;
-	}
-	file_updates = merge_file_updates(file_updates, dependency_sync_updates);
 	let mut changed_files = file_updates
 		.iter()
 		.map(|update| root_relative(root, &update.path))

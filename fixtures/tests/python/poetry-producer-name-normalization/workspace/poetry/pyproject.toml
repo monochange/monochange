@@ -1,0 +1,6 @@
+[tool.poetry]
+name = "poetry-cli"
+version = "2.0.0"
+
+[tool.poetry.dependencies]
+py-core = ">=1.0.0" # Keep the canonical dependency spelling.

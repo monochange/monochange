@@ -71,14 +71,23 @@ Only versions on the breaking axis are listed above. While a family's major vers
 
 ## Regenerating assets
 
-Committed schema assets are generated from the Rust wire types, so never hand-edit them.
+Committed schema assets are generated from Rust wire types and documentation, so never hand-edit them. Run these commands inside the repository's `devenv shell`:
 
 ```bash
 schema:update            # regenerate current aliases and fixtures
 schema:check             # verify committed assets match generated output
-schema:release:update    # regenerate release assets, including versioned copies
-schema:release:check     # verify release assets
+schema:release:update    # regenerate planned release aliases and fixtures
+schema:release:check     # verify planned release aliases and fixtures
 ```
+
+The release wrappers do not include versioned copies. Refresh or verify the planned version's copies explicitly:
+
+```bash
+cargo xtask schema release update --versioned
+cargo xtask schema release check --versioned
+```
+
+The current schema and the versioned copy named by `SCHEMA_VERSION` must agree apart from `$id`. Refresh an unreleased version's copy when its generated descriptions change. Preserve published versioned contracts and older schema assets; correcting a description does not require a wire-contract version bump.
 
 `schema:check` runs as part of `lint:all` and in CI, so committed assets cannot drift from the types they describe. The version list above is generated from the committed versioned assets by `scripts/schema-versions.ts`, so it stays current without hand edits. To validate a document against an asset locally, use any draft 2020-12 validator; the [CLI snapshot emitters](cli-snapshot-emitters.md#validate-before-you-register) page has copyable examples.
 

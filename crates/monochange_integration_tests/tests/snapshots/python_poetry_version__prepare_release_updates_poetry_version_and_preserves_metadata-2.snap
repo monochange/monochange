@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/python_poetry_version.rs
+expression: manifest
+---
+[tool.poetry]
+name = "poetry-app"
+version = "3.1.1" # Keep the release version comment.
+description = "A Poetry-managed package"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django = "^4.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"

@@ -167,14 +167,20 @@ pub(crate) async fn build_release_targets(
 			pg.planned_version.as_ref().map(|version| {
 				let vs = version.to_string();
 				let tag = render_tag_name(&group.id, &vs, "group", &group.version_format);
-				let prev = find_previous_tag_in(&tag, &sorted_tags);
+				let prev = find_previous_tag_in(
+					&tag,
+					&sorted_tags,
+					&group.id,
+					"group",
+					&group.version_format,
+				);
 				let ctx = TitleRenderContext::new(
 					&group.id,
 					&vs,
 					changes_count,
 					source,
 					&tag,
-					prev.as_deref(),
+					prev.as_ref().map(|(tag, version)| (*tag, version)),
 				);
 				let rt = effective_title_template(
 					group.release_title.as_deref(),
@@ -258,9 +264,21 @@ pub(crate) async fn build_release_targets(
 			package_definition.package_type.as_str(),
 			&version_format,
 		);
-		let prev = find_previous_tag_in(&tag, &sorted_tags);
-		let ctx =
-			TitleRenderContext::new(owner_id, &vs, changes_count, source, &tag, prev.as_deref());
+		let prev = find_previous_tag_in(
+			&tag,
+			&sorted_tags,
+			owner_id,
+			package_definition.package_type.as_str(),
+			&version_format,
+		);
+		let ctx = TitleRenderContext::new(
+			owner_id,
+			&vs,
+			changes_count,
+			source,
+			&tag,
+			prev.as_ref().map(|(tag, version)| (*tag, version)),
+		);
 		let rt = effective_title_template(
 			package_definition.release_title.as_deref(),
 			defaults_release_title,
@@ -432,49 +450,82 @@ pub(crate) fn parse_sorted_tag_lines(stdout: &[u8]) -> Vec<String> {
 		.collect()
 }
 
-pub(crate) fn find_previous_tag_in(current_tag: &str, sorted_tags: &[String]) -> Option<String> {
-	let (prefix, current_version) = parse_tag_prefix_and_version(current_tag)?;
-	sorted_tags
-		.iter()
-		.filter(|tag| tag.as_str() != current_tag)
+/// Resolve static owner fields while retaining one spelling for version variables.
+pub(crate) fn resolved_release_tag_template(
+	owner_id: &str,
+	ecosystem: &str,
+	version_format: &VersionFormat,
+) -> String {
+	version_format
+		.as_template()
+		.replace("{{ name }}", owner_id)
+		.replace("{{name}}", owner_id)
+		.replace("{{ ecosystem }}", ecosystem)
+		.replace("{{ecosystem}}", ecosystem)
+		.replace("{{version}}", "{{ version }}")
+}
+
+/// Read a `SemVer` only when rendering it reproduces the complete owner's tag.
+///
+/// Round-trip matching preserves literal suffixes and repeated version variables,
+/// and avoids guessing a separator from letters inside a prerelease identifier.
+pub(crate) fn matching_release_tag_version(
+	tag: &str,
+	owner_id: &str,
+	ecosystem: &str,
+	version_format: &VersionFormat,
+) -> Option<semver::Version> {
+	let template = resolved_release_tag_template(owner_id, ecosystem, version_format);
+	let (prefix, _) = template.split_once("{{ version }}")?;
+	let remaining = tag.strip_prefix(prefix)?;
+	remaining
+		.char_indices()
+		.map(|(end, _)| end)
+		.chain(std::iter::once(remaining.len()))
+		.filter_map(|end| {
+			remaining
+				.get(..end)
+				.and_then(|candidate| semver::Version::parse(candidate).ok())
+		})
+		.find(|version| {
+			version_format
+				.render_tag(owner_id, &version.to_string(), ecosystem)
+				.is_ok_and(|rendered| rendered == tag)
+		})
+}
+
+/// Select the highest matching `SemVer` independently of Git's tag sort order.
+pub(crate) fn latest_release_tag_in<'a>(
+	tags: &'a [String],
+	owner_id: &str,
+	ecosystem: &str,
+	version_format: &VersionFormat,
+) -> Option<(&'a str, semver::Version)> {
+	tags.iter()
 		.filter_map(|tag| {
-			let (candidate_prefix, candidate_version) = parse_tag_prefix_and_version(tag)?;
-			(candidate_prefix == prefix && candidate_version < current_version)
-				.then(|| (tag.clone(), candidate_version))
+			matching_release_tag_version(tag, owner_id, ecosystem, version_format)
+				.map(|version| (tag.as_str(), version))
 		})
 		.max_by(|left, right| left.1.cmp(&right.1))
-		.map(|(tag, _)| tag)
 }
 
-pub(crate) fn parse_tag_prefix_and_version(tag: &str) -> Option<(String, semver::Version)> {
-	let v_pos = tag.rfind('v')?;
-	let prefix = &tag[..=v_pos];
-	let version_str = &tag[v_pos + 1..];
-	let version = semver::Version::parse(version_str).ok()?;
-	Some((prefix.to_string(), version))
-}
-
-/// Tag prefix that release tags for `owner_id` start with under `version_format`.
-///
-/// Matches the prefix produced by `render_tag_name` so tag-based version
-/// resolution reads exactly the tags release targets create.
-pub(crate) fn release_tag_prefix(owner_id: &str, version_format: &VersionFormat) -> String {
-	match version_format {
-		VersionFormat::Namespaced => format!("{owner_id}/v"),
-		_ => "v".to_string(),
-	}
-}
-
-/// Highest version among `sorted_tags` (descending version order) whose tag
-/// starts with `prefix`.
-pub(crate) fn latest_tag_version_with_prefix(
-	sorted_tags: &[String],
-	prefix: &str,
-) -> Option<semver::Version> {
-	sorted_tags.iter().find_map(|tag| {
-		let (tag_prefix, version) = parse_tag_prefix_and_version(tag)?;
-		(tag_prefix == prefix).then_some(version)
-	})
+/// Select the highest matching release strictly before the current `SemVer`.
+pub(crate) fn find_previous_tag_in<'a>(
+	current_tag: &str,
+	tags: &'a [String],
+	owner_id: &str,
+	ecosystem: &str,
+	version_format: &VersionFormat,
+) -> Option<(&'a str, semver::Version)> {
+	let current_version =
+		matching_release_tag_version(current_tag, owner_id, ecosystem, version_format)?;
+	tags.iter()
+		.filter_map(|tag| {
+			matching_release_tag_version(tag, owner_id, ecosystem, version_format)
+				.filter(|version| version < &current_version)
+				.map(|version| (tag.as_str(), version))
+		})
+		.max_by(|left, right| left.1.cmp(&right.1))
 }
 
 struct TitleRenderContext {
@@ -496,7 +547,7 @@ impl TitleRenderContext {
 		changes_count: usize,
 		source: Option<&SourceConfiguration>,
 		tag_name: &str,
-		previous_tag_name: Option<&str>,
+		previous_tag: Option<(&str, &semver::Version)>,
 	) -> Self {
 		Self::with_datetime(
 			id,
@@ -504,7 +555,7 @@ impl TitleRenderContext {
 			changes_count,
 			source,
 			tag_name,
-			previous_tag_name,
+			previous_tag,
 			resolve_release_datetime(),
 		)
 	}
@@ -515,7 +566,7 @@ impl TitleRenderContext {
 		changes_count: usize,
 		source: Option<&SourceConfiguration>,
 		tag_name: &str,
-		previous_tag_name: Option<&str>,
+		previous_tag: Option<(&str, &semver::Version)>,
 		now: chrono::NaiveDateTime,
 	) -> Self {
 		let date = now.format("%Y-%m-%d").to_string();
@@ -524,13 +575,12 @@ impl TitleRenderContext {
 		let tag_url = source
 			.map(|s| tag_url_for_provider(s, tag_name))
 			.unwrap_or_default();
-		let compare_url = match (source, previous_tag_name) {
-			(Some(s), Some(prev)) => compare_url_for_provider(s, prev, tag_name),
+		let compare_url = match (source, previous_tag) {
+			(Some(s), Some((prev, _))) => compare_url_for_provider(s, prev, tag_name),
 			_ => tag_url.clone(),
 		};
-		// Extract the bare semver string from the previous tag (e.g. "pkg/v1.1.0" → "1.1.0").
-		let previous_version = previous_tag_name
-			.and_then(|t| parse_tag_prefix_and_version(t).map(|(_, v)| v.to_string()))
+		let previous_version = previous_tag
+			.map(|(_, version)| version.to_string())
 			.unwrap_or_default();
 		Self {
 			id: id.to_string(),

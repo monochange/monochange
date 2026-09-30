@@ -196,8 +196,7 @@ fn parse_manifest(
 	warnings: &mut Vec<String>,
 ) -> Option<Value> {
 	let contents = contents?;
-	let normalized = monochange_core::strip_json_comments(contents);
-	match serde_json::from_str::<Value>(&normalized) {
+	match crate::parse_manifest_contents(contents) {
 		Ok(value) => Some(value),
 		Err(error) => {
 			warnings.push(format!("failed to parse {}: {error}", path.display()));

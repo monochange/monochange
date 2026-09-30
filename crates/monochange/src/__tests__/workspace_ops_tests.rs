@@ -2448,6 +2448,29 @@ async fn prepare_release_execution_with_configuration_uses_passed_configuration(
 
 // -- seed_versions_from_tag_list --
 
+#[rstest::rstest]
+#[case::package("go/custom-tag-baseline/workspace")]
+#[case::group("go/custom-group-tag-baseline/workspace")]
+fn seed_custom_tag_baseline_uses_configured_owner_instead_of_native_name(#[case] fixture: &str) {
+	let root = monochange_test_helpers::fixture_path!(fixture);
+	let configuration =
+		load_workspace_configuration(&root).expect("custom tag fixture configuration");
+	let mut discovery = crate::discover_workspace(&root).expect("custom tag fixture discovery");
+	let tag_path = root.parent().expect("scenario directory").join("tags.txt");
+	let tags = std::fs::read_to_string(tag_path).expect("read tag fixture");
+	let tags = tags.lines().map(str::to_string).collect::<Vec<_>>();
+	seed_versions_from_tag_list(&configuration, &mut discovery, &tags);
+	assert_eq!(
+		discovery
+			.packages
+			.first()
+			.expect("Go module")
+			.current_version,
+		Some(semver::Version::new(1, 10, 0))
+	);
+	assert!(discovery.warnings.is_empty());
+}
+
 fn go_release_configuration(root: &std::path::Path, body: &str) -> WorkspaceConfiguration {
 	std::fs::write(root.join("go.mod"), "module example.com/api\n\ngo 1.22\n")
 		.unwrap_or_else(|error| panic!("write go.mod: {error}"));

@@ -1,0 +1,13 @@
+---
+source: crates/monochange/src/__tests__/sync_tests.rs
+expression: updated
+---
+// Internal dependencies
+{
+  "name": "app",
+  "version": "1.0.0",
+  "dependencies": {
+    /* Keep this explanation. */
+    "core": "^2.0.0",
+  },
+}

@@ -1,0 +1,20 @@
+---
+source: crates/monochange_integration_tests/tests/custom_tag_baselines.rs
+expression: "release[\"release_targets\"]"
+---
+[
+  {
+    "id": "module_owner",
+    "kind": "package",
+    "members": [
+      "module_owner"
+    ],
+    "release": false,
+    "rendered_changelog_title": "1.10.0 -> 1.11.0",
+    "rendered_title": "1.10.0 -> 1.11.0",
+    "tag": true,
+    "tag_name": "go/module_owner/release-1.11.0-ready",
+    "version": "1.11.0",
+    "version_format": "{{ ecosystem }}/{{ name }}/release-{{ version }}-ready"
+  }
+]

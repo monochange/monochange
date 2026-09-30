@@ -21,7 +21,7 @@ quote = { workspace = true, default-features = true }
 rayon = { workspace = true }
 semver = { workspace = true, default-features = true }
 serde = { workspace = true, default-features = true }
-syn = { workspace = true, default-features = true }
+syn = { workspace = true, features = ["visit-mut"], default-features = true }
 tempfile = { workspace = true, default-features = true }
 thiserror = { workspace = true, default-features = true }
 toml = { workspace = true, default-features = true }

@@ -1456,18 +1456,32 @@ pub(crate) fn discover_packages_from_ecosystem(
 	let include_patterns: Vec<Pattern> = auto_discover
 		.include
 		.iter()
-		.filter_map(|p| Pattern::new(p).ok())
-		.collect();
-
-	if include_patterns.is_empty() {
-		return Ok(Vec::new());
-	}
+		.map(|pattern| {
+			Pattern::new(pattern).map_err(|error| {
+				MonochangeError::Config(format!(
+					"[ecosystems.{}.auto_discover].include contains invalid glob pattern `{pattern}`: {error}",
+					ecosystem_name(ecosystem_type)
+				))
+			})
+		})
+		.collect::<MonochangeResult<_>>()?;
 
 	let exclude_patterns: Vec<Pattern> = auto_discover
 		.exclude
 		.iter()
-		.filter_map(|p| Pattern::new(p).ok())
-		.collect();
+		.map(|pattern| {
+			Pattern::new(pattern).map_err(|error| {
+				MonochangeError::Config(format!(
+					"[ecosystems.{}.auto_discover].exclude contains invalid glob pattern `{pattern}`: {error}",
+					ecosystem_name(ecosystem_type)
+				))
+			})
+		})
+		.collect::<MonochangeResult<_>>()?;
+
+	if include_patterns.is_empty() {
+		return Ok(Vec::new());
+	}
 
 	let mut discovered = Vec::new();
 	let mut seen_paths = HashSet::<PathBuf>::new();
@@ -2387,6 +2401,30 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	)?;
 	validate_package_cli_definitions(&contents, &packages)?;
 	validate_version_values(&contents, &packages, &version_schemes)?;
+
+	for (key, template) in [
+		("release_title", &defaults.release_title),
+		("changelog_version_title", &defaults.changelog_version_title),
+	] {
+		if let Some(template) = template {
+			validate_title_template_variables(template, &format!("defaults.{key}"))?;
+		}
+	}
+
+	for group in &groups {
+		for (key, template) in [
+			("release_title", &group.release_title),
+			("changelog_version_title", &group.changelog_version_title),
+		] {
+			if let Some(template) = template {
+				validate_title_template_variables(
+					template,
+					&format!("group `{}` {key}", group.id),
+				)?;
+			}
+		}
+	}
+
 	validate_cli_runtime_requirements(&cli, &changesets, source.as_ref())?;
 
 	let defaults_bump_propagation = resolve_bump_propagation(
@@ -4115,9 +4153,15 @@ fn validate_package_and_group_definitions_with_cache(
 				Some("declare each package path exactly once".to_string()),
 			));
 		}
-		if let Some(manifest_name) = expected_manifest_name(package.package_type) {
+		let manifest_names = expected_manifest_names(package.package_type);
+
+		if let Some(manifest_name) = manifest_names.first() {
 			let expected_manifest = resolved_path.join(manifest_name);
-			if !expected_manifest.exists() {
+
+			if !manifest_names
+				.iter()
+				.any(|name| resolved_path.join(name).is_file())
+			{
 				return Err(config_diagnostic(
 					config_contents,
 					format!(
@@ -4447,10 +4491,8 @@ fn path_is_supported_for_ecosystem(path: &Path, ecosystem_type: EcosystemType) -
 				|| file_name == "Cargo.lock"
 		}
 		EcosystemType::Npm => {
-			matches!(
-				file_name,
-				"package.json" | "package-lock.json" | "pnpm-lock.yaml" | "bun.lock" | "bun.lockb"
-			)
+			path.extension().and_then(|extension| extension.to_str()) == Some("json")
+				|| matches!(file_name, "pnpm-lock.yaml" | "bun.lock" | "bun.lockb")
 		}
 		EcosystemType::Deno => matches!(file_name, "deno.json" | "deno.jsonc" | "deno.lock"),
 		EcosystemType::Dart => matches!(file_name, "pubspec.yaml" | "pubspec.yml" | "pubspec.lock"),
@@ -4719,9 +4761,13 @@ fn validate_package_cli_definitions(
 	Ok(())
 }
 
-#[allow(clippy::match_same_arms)]
-fn expected_manifest_name(package_type: PackageType) -> Option<&'static str> {
-	package_type.manifest_file_name()
+/// Return every accepted identity-bearing manifest for a package type.
+fn expected_manifest_names(package_type: PackageType) -> &'static [&'static str] {
+	if package_type.manifest_file_name().is_none() {
+		return &[];
+	}
+
+	manifest_file_for_ecosystem(package_type_to_ecosystem_type(package_type))
 }
 
 /// Resolve `[version_scheme.<id>]` tables into their domain form.
@@ -4756,9 +4802,8 @@ fn resolve_version_schemes(
 
 /// Validate declared package values, display schemes, and value templates.
 ///
-/// Every template is checked against the variables that will actually be
-/// available at render time: the context variables plus the package's own
-/// declared value ids.
+/// Value templates use version variables and declared values. Package titles
+/// use the separate context supplied by the release-title renderer.
 fn validate_version_values(
 	contents: &str,
 	packages: &[PackageDefinition],
@@ -4797,8 +4842,7 @@ fn validate_version_values(
 				));
 			}
 		}
-		// Values become template variables, so every template that can render
-		// for this package must be checked against the same available set.
+		// Declared values are available to display schemes and versioned files.
 		let available = available_template_variables(package);
 		if let Some(scheme_id) = package.display_version.as_deref() {
 			let Some(scheme) = schemes.get(scheme_id) else {
@@ -4828,25 +4872,31 @@ fn validate_version_values(
 				&format!("package `{}` version scheme `{scheme_id}`", package.id),
 			)?;
 		}
-		for surface in [&package.release_title, &package.changelog_version_title]
-			.into_iter()
-			.flatten()
-		{
-			validate_template_variables(
-				surface,
-				&available,
-				&format!("package `{}` title", package.id),
-			)?;
+
+		for (key, template) in [
+			("release_title", &package.release_title),
+			("changelog_version_title", &package.changelog_version_title),
+		] {
+			if let Some(template) = template {
+				validate_title_template_variables(
+					template,
+					&format!("package `{}` {key}", package.id),
+				)?;
+			}
 		}
 		// Compare on the literal path text so `path = "."` and a bare manifest
 		// name still match; `join` would produce `./package.json`.
-		let manifest_path = package.package_type.manifest_file_name().map(|manifest| {
-			let joined = package.path.join(manifest);
-			joined
-				.to_string_lossy()
-				.trim_start_matches("./")
-				.to_string()
-		});
+		let manifest_paths = expected_manifest_names(package.package_type)
+			.iter()
+			.map(|manifest| {
+				package
+					.path
+					.join(manifest)
+					.to_string_lossy()
+					.trim_start_matches("./")
+					.to_string()
+			})
+			.collect::<Vec<_>>();
 		for versioned_file in &package.versioned_files {
 			let Some(template) = versioned_file.value_template.as_deref() else {
 				continue;
@@ -4858,14 +4908,45 @@ fn validate_version_values(
 			validate_template_variables(template, &available, &surface)?;
 			// The identity-bearing manifest must stay a bare pre-release-aware
 			// SemVer: calendar, ordinal, and counter values are not valid there.
-			if manifest_path
-				.as_deref()
-				.is_some_and(|manifest| versioned_file.path == manifest)
-			{
+			if manifest_paths.contains(&versioned_file.path) {
 				validate_manifest_value_template(contents, &surface, template, package)?;
 			}
 		}
 	}
+	Ok(())
+}
+
+/// Validate title syntax and fields against the release-title renderer's context.
+fn validate_title_template_variables(template: &str, surface: &str) -> MonochangeResult<()> {
+	let available = [
+		"id",
+		"version",
+		"previous_version",
+		"date",
+		"time",
+		"datetime",
+		"changes_count",
+		"tag_url",
+		"compare_url",
+	];
+	let environment = minijinja::Environment::new();
+	let template = environment.template_from_str(template).map_err(|error| {
+		MonochangeError::Config(format!("{surface} has an invalid title template: {error}"))
+	})?;
+	let variables = template
+		.undeclared_variables(true)
+		.into_iter()
+		.collect::<BTreeSet<_>>();
+
+	for variable in variables {
+		if !available.contains(&variable.as_str()) {
+			return Err(MonochangeError::Config(format!(
+				"{surface} uses unknown variable `{{{{ {variable} }}}}`; available variables are: {}",
+				available.join(", ")
+			)));
+		}
+	}
+
 	Ok(())
 }
 

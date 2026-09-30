@@ -7,6 +7,7 @@ use monochange_core::versioning::HashEncoding;
 use monochange_core::versioning::ResetPolicy;
 use monochange_core::versioning::StampBehaviour;
 use monochange_core::versioning::TimestampSource;
+use rstest::rstest;
 use tempfile::tempdir;
 
 use crate::load_workspace_configuration;
@@ -326,6 +327,96 @@ fn value_ids_are_available_to_multiple_templates() {
 fn rejects_unknown_variable_in_package_title() {
 	let error = load_err(&format!("{BASE}\nrelease_title = \"{{{{ nope }}}}\"\n"));
 	assert!(error.contains("unknown variable"), "{error}");
+}
+
+fn title_configuration(scope: &str, key: &str, template: &str) -> String {
+	let template = serde_json::to_string(template)
+		.unwrap_or_else(|error| panic!("serialize title template: {error}"));
+	let declaration = format!("{key} = {template}\n");
+	let configuration = match scope {
+		"defaults" => format!("[defaults]\n{declaration}\n{BASE}"),
+		"group" => format!("{BASE}\n[group.sdk]\npackages = [\"app\"]\n{declaration}"),
+		_ => format!("{BASE}\n{declaration}"),
+	};
+	format!("{configuration}\n[package.app.values.build]\nenv = \"BUILD_NUMBER\"\n")
+}
+
+#[rstest]
+fn titles_accept_every_release_context_field(
+	#[values("package", "group", "defaults")] scope: &str,
+	#[values("release_title", "changelog_version_title")] key: &str,
+) {
+	let template = "{{ id }} {{ version }} {{ previous_version }} {{ date }} {{ time }} {{ datetime }} {{ changes_count }} {{ tag_url }} {{ compare_url }}";
+	let configuration = load(&title_configuration(scope, key, template))
+		.unwrap_or_else(|error| panic!("title context fields should load: {error}"));
+	let titles = match scope {
+		"defaults" => {
+			(
+				&configuration.defaults.release_title,
+				&configuration.defaults.changelog_version_title,
+			)
+		}
+		"group" => {
+			let group = configuration
+				.group_by_id("sdk")
+				.unwrap_or_else(|| panic!("group sdk should exist"));
+			(&group.release_title, &group.changelog_version_title)
+		}
+		_ => {
+			let package = configuration
+				.package_by_id("app")
+				.unwrap_or_else(|| panic!("package app should exist"));
+			(&package.release_title, &package.changelog_version_title)
+		}
+	};
+	let title = if key == "release_title" {
+		titles.0
+	} else {
+		titles.1
+	};
+	assert_eq!(title.as_deref(), Some(template));
+}
+
+#[rstest]
+fn titles_reject_version_value_variables(
+	#[values("package", "group", "defaults")] scope: &str,
+	#[values("release_title", "changelog_version_title")] key: &str,
+	#[values("name", "year", "build", "build.version")] variable: &str,
+) {
+	let error = load_err(&title_configuration(
+		scope,
+		key,
+		&format!("{{{{ {variable} }}}}"),
+	));
+	assert!(error.contains("unknown variable"), "{error}");
+	assert!(error.contains(&format!("{{{{ {variable} }}}}")), "{error}");
+	assert!(error.contains("previous_version"), "{error}");
+	assert!(error.contains(key), "{error}");
+}
+
+#[rstest]
+fn titles_accept_jinja_expressions_and_static_text(
+	#[values("package", "group", "defaults")] scope: &str,
+	#[values("release_title", "changelog_version_title")] key: &str,
+	#[values(
+		"{% if previous_version %}{{ id | upper }} {{ version }}{% else %}{{ version }}{% endif %}",
+		"Release notes"
+	)]
+	template: &str,
+) {
+	load(&title_configuration(scope, key, template))
+		.unwrap_or_else(|error| panic!("valid Jinja title should load: {error}"));
+}
+
+#[rstest]
+fn titles_reject_invalid_jinja_syntax(
+	#[values("package", "group", "defaults")] scope: &str,
+	#[values("release_title", "changelog_version_title")] key: &str,
+	#[values("{{ version", "{% if previous_version %}{{ version }}")] template: &str,
+) {
+	let error = load_err(&title_configuration(scope, key, template));
+	assert!(error.contains("invalid title template"), "{error}");
+	assert!(error.contains(key), "{error}");
 }
 
 #[test]

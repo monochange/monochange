@@ -1,0 +1,26 @@
+---
+source: crates/monochange_integration_tests/tests/init_diagnostics.rs
+expression: "config[\"package\"]"
+---
+{
+  "utility": {
+    "path": "packages/first",
+    "type": "npm"
+  },
+  "utility-npm": {
+    "path": "packages/native-name",
+    "type": "npm"
+  },
+  "utility-npm-2": {
+    "path": "packages/native-suffix",
+    "type": "npm"
+  },
+  "utility-npm-3": {
+    "path": "packages/second",
+    "type": "npm"
+  },
+  "utility-npm-4": {
+    "path": "packages/third",
+    "type": "npm"
+  }
+}

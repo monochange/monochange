@@ -1,3 +1,9 @@
+<!-- {@tagBaselinePolicy} -->
+
+Tag baselines use the highest semantic version among repository tags that match the release owner's `version_format`. Selection does not require the tag's commit to be reachable from the current branch.
+
+<!-- {/tagBaselinePolicy} -->
+
 <!-- {@discoverySupportedSources} -->
 
 - Cargo workspaces and standalone crates
@@ -27,7 +33,7 @@
 The `--provider` flag supports `github`, `gitlab`, and `gitea`. When provided, `monochange init`:
 
 1. **Configures the `[source]` section** - adds provider-specific settings for releases and pull/merge requests
-2. **Generates provider CLI commands** - includes `commit-release` and `release-pr` commands in `monochange.toml`
+2. **Keeps workflows optional** - writes no `[cli.*]` command definitions; use built-in commands or add custom workflows separately
 3. **Creates workflow files** (GitHub only) - writes `.github/workflows/release.yml` and `.github/workflows/changeset-policy.yml`
 4. **Auto-detects owner/repo** - parses `git remote get-url origin` to pre-populate `[source]`
 
@@ -41,10 +47,9 @@ repo = "monochange" # auto-detected from git remote
 
 [source.releases]
 enabled = true
-draft = false
-prerelease = false
 source = "monochange"
-branches = ["main", "release/*"]
+changelog_output = "default"
+branches = ["main"]
 enforce_for_tags = true
 enforce_for_publish = true
 enforce_for_commit = false
@@ -57,28 +62,7 @@ base = "main"
 title = "chore(release): prepare release"
 labels = ["release", "automated"]
 auto_merge = false
-
-[cli.commit-release]
-help_text = "Prepare a release and create a release commit"
-
-[[cli.commit-release.steps]]
-type = "PrepareRelease"
-name = "plan release"
-
-[[cli.commit-release.steps]]
-type = "CommitRelease"
-name = "create release commit"
-
-[cli.release-pr]
-help_text = "Prepare a release and open a release pull request"
-
-[[cli.release-pr.steps]]
-type = "PrepareRelease"
-name = "plan release"
-
-[[cli.release-pr.steps]]
-type = "OpenReleaseRequest"
-name = "open release PR"
+body_style = "full"
 ```
 
 The GitHub Actions workflows enable:
@@ -98,14 +82,14 @@ monochange init --provider github
 
 # The generated monochange.toml includes:
 # - [source] section with GitHub releases and pull request settings
-# - CLI commands for commit-release and release-pr
+# - No [cli.*] commands; built-in commands are immediately available
 # - GitHub Actions workflows in .github/workflows/
 ```
 
 This single command generates:
 
 1. **Complete source configuration** - `[source]`, `[source.releases]`, and `[source.pull_requests]` sections
-2. **Automation CLI commands** - `commit-release` and `release-pr` commands ready to use
+2. **Built-in workflow steps** - use `monochange step commit-release` or `monochange step open-release-request`; add `[cli.*]` workflows only when customization is needed
 3. **GitHub Actions workflows** - `release.yml` and `changeset-policy.yml` for CI/CD
 4. **Auto-detected repository info** - parses your git remote to pre-fill owner and repo
 
@@ -223,6 +207,8 @@ Defaults can set a repository-wide changelog path pattern and format, while pack
 
 Streams separate the wording intended for different audiences without changing the changeset syntax. The built-in `default` stream always exists and preserves the current developer-oriented changelog behavior. A custom type opts into another stream with `stream`; types that omit it continue to use `default`.
 
+Stream, output, type, and section ids must start with a lowercase letter and contain only lowercase letters, digits, and underscores. Use `user_notes`, not `user-notes`.
+
 Each changeset file resolves to exactly one stream. If one implementation needs both developer-facing detail and user-facing wording, author two small changesets and choose a type from each stream. This keeps each entry understandable on its own and prevents internal details from leaking into product notes.
 
 ```toml
@@ -267,6 +253,8 @@ This example makes `native` a major bump in the default stream and `app_feature`
 ### Configured sections and types extend the built-in set
 
 `[changelog.sections]` and `[changelog.types]` add to the built-in vocabulary. A declared key overrides the built-in entry of the same name; every other built-in key stays available.
+
+A type's `section` references an id such as built-in `feat` or `fix`, not a display label such as `Added` or `Fixed`. To use a custom label, declare the section first, for example `added = { heading = "Added", priority = 20 }` under `[changelog.sections]`, then set the type's `section = "added"`.
 
 The built-in types include the semantic aliases and the stream types:
 
@@ -664,7 +652,7 @@ lockfile_commands = [{ command = "flutter pub get", cwd = "packages/mobile" }]
 [ecosystems.python]
 enabled = true
 # Without an explicit command, `uv.lock` uses `uv lock` and `poetry.lock` uses
-# `poetry lock --no-update`. Other lockfile names are skipped.
+# `poetry lock`. Other lockfile names are skipped.
 lockfile_commands = [{ command = "uv lock" }]
 
 [ecosystems.go]
@@ -674,6 +662,12 @@ lockfile_commands = [{ command = "go mod tidy" }]
 ```
 
 <!-- {/configurationEcosystemSettingsSnippet} -->
+
+<!-- {@pythonLockfileCommandInference} -->
+
+For Python projects, monochange infers package-manager commands instead of mutating lockfiles directly: `uv.lock` uses `uv lock`, and `poetry.lock` uses `poetry lock`. Poetry 2 preserves existing locked versions by default; its removed `--no-update` option must not be added. Unknown Python lockfile names are skipped rather than guessed.
+
+<!-- {/pythonLockfileCommandInference} -->
 
 <!-- {@configurationPackageReferenceRules} -->
 
@@ -690,7 +684,7 @@ Use a group id only when the change is intentionally owned by the whole group an
 Implementation notes:
 
 - `[defaults].include_private` is parsed and validated, but discovery reports private packages either way. Rely on `include_private` only for release planning, not for filtering what `step discover` prints.
-- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated, but discovery still scans every supported ecosystem. A package found by discovery appears regardless of those settings.
+- `[ecosystems.*].enabled`, `.roots`, and `.exclude` are parsed and validated but do not filter raw discovery or registered package ownership. `monochange discover` inventories all supported ecosystems. `[ecosystems.<name>.auto_discover].include` and `.exclude` select registrations in the resolved configuration shown by `monochange config`; explicit `[package.*]` entries remain registered even when auto-discovery excludes their paths. To narrow an `init` adoption, edit its generated package tables and group membership as well as any auto-discovery settings, then verify ownership with `monochange config --format json`.
 - `[defaults].strict_version_conflicts` controls conflicting explicit `version` entries across changesets. The default warns and picks the highest; setting it to `true` fails planning instead.
 - Source automation reads `[source]`, provider release settings under `[source.releases]`, pull request settings under `[source.pull_requests]`, and affected-package policy under `[changesets.affected]`. GitHub is the default provider.
 - Live GitHub release and release-request publishing uses `octocrab` with `GITHUB_TOKEN` or `GH_TOKEN`, falling back to the authenticated GitHub CLI credential from `gh auth token` when neither variable is set. GitLab and Gitea use direct HTTP APIs.
@@ -735,6 +729,7 @@ Groups can also use `version_format = "namespaced"` or a custom tag template suc
 - dependents of newly synced members still receive propagated parent bumps
 - unmatched members (not found during discovery) produce warnings; unresolvable members (invalid IDs) produce errors
 - mismatched current versions produce warnings when `warn_on_group_mismatch = true`
+- `changelog.include` filters the group's changelog file only; named release-note outputs and provider notes render complete release content for their selected stream/output
 
 <!-- {/versionGroupsBehavior} -->
 
@@ -818,7 +813,7 @@ When `version` is provided without `bump`, the bump is inferred from the current
 
 <!-- {@releaseWorkflowBehavior} -->
 
-`monochange run release` is a config-driven workflow command only when your repository defines a `[cli.release]` table. `monochange init` writes a minimal starter config and does not seed default workflow aliases, so use the immutable `monochange step prepare-release` command unless you add your own named workflow.
+`monochange run release` is a config-driven workflow command only when your repository defines a `[cli.release]` table. `monochange init` writes a minimal starter config and does not seed default workflow aliases, so use `monochange preview` and `monochange prepare` unless you add your own named workflow. Use `monochange command` or edit `[cli.*]` tables to customize workflows. The legacy `monochange populate` command currently adds nothing because the default workflow set is empty; it does not rediscover packages or upgrade settings.
 
 The binary no longer ships a hidden default workflow set for commands such as `discover`, `change`, `release`, `affected`, `diagnostics`, `repair-release`, `publish`, or `publish-plan`. Those names exist under `monochange run <name>` only when your config defines them. If a repository has not opted into a named workflow, use the immutable step command instead, for example `monochange step discover`, `monochange step create-change-file`, `monochange step prepare-release`, `monochange step affected-packages`, `monochange step diagnose-changesets`, `monochange step retarget-release`, `monochange step publish-readiness`, or `monochange step plan-publish-rate-limits`.
 
@@ -1118,15 +1113,15 @@ After publishing, verify npm provenance from the package page or with npm's prov
 After copying the bundled skill, you get a small documentation set that is designed to load in layers:
 
 - `SKILL.md`: concise entrypoint for agents
-- `REFERENCE.md`: broader high-context reference with more examples
-- `skills/README.md`: index of focused deep dives
+- `skills/reference.md`: broader reference with more examples
+- `skills/readme.md`: index of focused deep dives
 - `skills/adoption.md`: setup-depth questions, migration guidance, and recommendation patterns
 - `skills/change-classification.md`: release-aware severity decisions, uncertainty, and ecosystem review
 - `skills/changesets.md`: changeset authoring and lifecycle guidance
 - `skills/commands.md`: built-in command catalog and workflow selection
 - `skills/configuration.md`: `monochange.toml` setup and editing guidance
 - `skills/linting.md`: `[lints]` presets, `monochange check`, and manifest-focused examples
-- `examples/README.md`: condensed scenario examples for quick recommendations
+- `examples/readme.md`: condensed scenario examples for quick recommendations
 
 This layout keeps the top-level skill small while still making the richer guidance available when an assistant needs more context.
 
@@ -2034,7 +2029,7 @@ Example:
 
 **Why:** when workspace packages reference each other with hosted version ranges, those ranges should not drift away from the current workspace version.
 
-**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `monochange versions --dry-run` to preview automatic repairs for supported manifests, then rerun without `--dry-run` to update supported internal dependency references.
+**With the rule:** monochange compares internal dependency version references against the discovered workspace package version and reports mismatches. Use `monochange versions sync --dry-run` to preview automatic repairs for supported manifests, then rerun without `--dry-run` to update supported internal dependency references.
 
 ### `dart/flutter-package-metadata-consistent`
 
