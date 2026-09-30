@@ -4,11 +4,11 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
-use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
+use std::time::Instant;
 
 use monochange_core::CliCommandDefinition;
 use monochange_core::CliStepDefinition;
@@ -25,13 +25,26 @@ use crate::output::terminal::ProgressFormat;
 use crate::output::terminal::ProgressSettings;
 use crate::output::terminal::SharedStderr;
 use crate::output::terminal::TerminalCapabilities;
+use crate::output::warnings::WarningMode;
+use crate::output::warnings::WarningSink;
+use crate::output::warnings::escape_workflow_data;
+use crate::output::warnings::escape_workflow_property;
 
 const UNICODE_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const ASCII_SPINNER_FRAMES: [&str; 4] = ["-", "\\", "|", "/"];
 const SPINNER_TICK: Duration = Duration::from_millis(90);
 const SPINNER_DELAY: Duration = Duration::from_millis(120);
+/// The spinner starts showing how long the step has been running once the
+/// step is slow enough for the number to be worth reading.
+const SPINNER_ELAPSED_AFTER: Duration = Duration::from_secs(2);
 const PHASE_TIMING_DETAIL_LIMIT: usize = 5;
 const PHASE_TIMING_MINIMUM: Duration = Duration::from_millis(5);
+/// Phase timings explain slow steps; for fast steps they are noise.
+const PHASE_TIMING_STEP_MINIMUM: Duration = Duration::from_secs(1);
+/// CI logs cannot repaint a line, so a silent external command reports that
+/// it is still alive on a slow schedule instead of every few seconds.
+const HEARTBEAT_FIRST: Duration = Duration::from_secs(30);
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Copy)]
 pub(crate) enum CommandStream {
@@ -52,9 +65,15 @@ struct ProgressSymbols {
 	step_skip: &'static str,
 	step_success: &'static str,
 	step_failure: &'static str,
+	step_issues: &'static str,
 	error_branch: &'static str,
 	bullet: &'static str,
 	log_pipe: &'static str,
+	status: &'static str,
+	prompt: &'static str,
+	heartbeat: &'static str,
+	separator: &'static str,
+	command_arrow: &'static str,
 	spinner_frames: &'static [&'static str],
 	ecosystem_emoji: bool,
 }
@@ -65,9 +84,15 @@ const UNICODE_SYMBOLS: ProgressSymbols = ProgressSymbols {
 	step_skip: "○",
 	step_success: "✔",
 	step_failure: "✖",
+	step_issues: "▲",
 	error_branch: "└─",
 	bullet: "·",
 	log_pipe: "│",
+	status: "›",
+	prompt: "$",
+	heartbeat: "…",
+	separator: "·",
+	command_arrow: "›",
 	spinner_frames: &UNICODE_SPINNER_FRAMES,
 	ecosystem_emoji: true,
 };
@@ -78,9 +103,15 @@ const ASCII_SYMBOLS: ProgressSymbols = ProgressSymbols {
 	step_skip: "-",
 	step_success: "+",
 	step_failure: "x",
+	step_issues: "!",
 	error_branch: "`-",
 	bullet: "-",
 	log_pipe: "|",
+	status: ">",
+	prompt: "$",
+	heartbeat: "...",
+	separator: "-",
+	command_arrow: ">",
 	spinner_frames: &ASCII_SPINNER_FRAMES,
 	ecosystem_emoji: false,
 };
@@ -90,18 +121,24 @@ pub(crate) struct ProgressReporter {
 	enabled: bool,
 	color: bool,
 	animate: bool,
+	github: bool,
 	capabilities: TerminalCapabilities,
 	stderr: SharedStderr,
 	command_name: String,
 	dry_run: bool,
 	total_steps: usize,
+	/// Width of the widest step heading, so durations line up in a column.
+	heading_width: usize,
+	/// Width of the widest lint suite name, so suite results line up.
+	suite_width: Mutex<usize>,
 	active_spinner: Mutex<Option<SpinnerState>>,
 	command_started: AtomicBool,
 	render_mode: ProgressRenderMode,
 	symbols: ProgressSymbols,
-	event_sequence: AtomicU64,
-	line_cleared: Arc<AtomicBool>,
 	output_block: Mutex<Option<String>>,
+	step_started_at: Mutex<Option<Instant>>,
+	next_heartbeat: Mutex<Duration>,
+	failed_step: Mutex<Option<String>>,
 }
 
 struct SpinnerState {
@@ -128,6 +165,7 @@ impl ProgressReporter {
 			quiet,
 			format,
 			tracing_enabled: false,
+			verbose: crate::output::text::verbose_output(),
 		};
 		let capabilities = TerminalCapabilities::detect(settings);
 		Self::with_output(
@@ -162,6 +200,7 @@ impl ProgressReporter {
 			quiet,
 			format,
 			tracing_enabled: false,
+			verbose: crate::output::text::verbose_output(),
 		};
 		let capabilities = TerminalCapabilities::detect(settings);
 		Self::with_context(
@@ -181,14 +220,16 @@ impl ProgressReporter {
 		capabilities: TerminalCapabilities,
 		stderr: SharedStderr,
 	) -> Self {
-		Self::with_context(
+		let mut reporter = Self::with_context(
 			cli_command.name.clone(),
 			dry_run,
 			cli_command.steps.len(),
 			format,
 			capabilities,
 			stderr,
-		)
+		);
+		reporter.heading_width = step_heading_width(cli_command);
+		reporter
 	}
 
 	fn with_context(
@@ -210,18 +251,22 @@ impl ProgressReporter {
 			enabled: capabilities.progress_enabled,
 			color: capabilities.color,
 			animate: capabilities.animate,
+			github: capabilities.github_actions && render_mode == ProgressRenderMode::Human,
 			capabilities,
 			stderr,
 			command_name,
 			dry_run,
 			total_steps,
+			heading_width: 0,
+			suite_width: Mutex::new(0),
 			active_spinner: Mutex::new(None),
 			command_started: AtomicBool::new(false),
 			render_mode,
 			symbols,
-			event_sequence: AtomicU64::new(0),
-			line_cleared: Arc::new(AtomicBool::new(false)),
 			output_block: Mutex::new(None),
+			step_started_at: Mutex::new(None),
+			next_heartbeat: Mutex::new(HEARTBEAT_FIRST),
+			failed_step: Mutex::new(None),
 		}
 	}
 
@@ -229,6 +274,7 @@ impl ProgressReporter {
 		self.command_name.clone_from(&cli_command.name);
 		self.dry_run = dry_run;
 		self.total_steps = cli_command.steps.len();
+		self.heading_width = step_heading_width(cli_command);
 	}
 
 	pub(crate) fn configure_named_command(&mut self, command_name: &str) {
@@ -236,16 +282,52 @@ impl ProgressReporter {
 		self.command_name.push_str(command_name);
 		self.dry_run = false;
 		self.total_steps = 0;
+		self.heading_width = 0;
 	}
 
 	pub(crate) fn is_enabled(&self) -> bool {
 		self.enabled
 	}
 
-	pub(crate) fn write_diagnostic(&self, diagnostic: &CliDiagnostic) {
+	/// Build the sink that renders `tracing` warnings through this reporter's
+	/// stderr channel, so warnings share its spinner handling and JSON sequence.
+	pub(crate) fn warning_sink(&self) -> Option<WarningSink> {
+		if self.capabilities.quiet {
+			return None;
+		}
+		let mode = match self.render_mode {
+			ProgressRenderMode::Json => WarningMode::Json,
+			ProgressRenderMode::Human if self.github => WarningMode::GitHub,
+			ProgressRenderMode::Human => WarningMode::Human,
+		};
+		Some(WarningSink::new(
+			self.stderr.clone(),
+			mode,
+			self.color,
+			self.capabilities.verbose,
+		))
+	}
+
+	pub(crate) fn write_diagnostic(&self, diagnostic: CliDiagnostic) {
 		self.stop_spinner();
+		self.close_group();
+		let diagnostic = match self.failed_step.lock().unwrap().clone() {
+			Some(step) => diagnostic.with_step(step),
+			None => diagnostic,
+		};
+		if self.render_mode == ProgressRenderMode::Json {
+			self.emit_domain_json_event("diagnostic", diagnostic.to_json_fields());
+			return;
+		}
 		self.stderr
 			.write(format!("{}\n", diagnostic.render(self.color)).as_bytes());
+		if self.github {
+			self.stderr.write_line(&format!(
+				"::error title={}::{}",
+				escape_workflow_property(&diagnostic.annotation_title()),
+				escape_workflow_data(&diagnostic.annotation()),
+			));
+		}
 	}
 
 	pub(crate) fn phase_started(&self, phase: &str) {
@@ -262,7 +344,7 @@ impl ProgressReporter {
 			return;
 		}
 		if self.animate {
-			self.start_spinner(phase.to_string());
+			self.start_spinner(self.paint(phase, Style::Header), None);
 		} else {
 			self.print_line(&format!(
 				"{} {}",
@@ -333,6 +415,17 @@ impl ProgressReporter {
 			);
 			return;
 		}
+		if self.github {
+			// GitHub renders the workflow command as a highlighted warning line
+			// and adds it to the run summary, so a second plain line would repeat
+			// it. A folded group would hide it, so the group ends first.
+			self.close_group();
+			self.print_line(&format!(
+				"::warning title=monochange::{}",
+				escape_workflow_data(message)
+			));
+			return;
+		}
 		self.print_line(&format!(
 			"{} {}",
 			self.paint("warning:", Style::Warning),
@@ -358,12 +451,26 @@ impl ProgressReporter {
 			return;
 		}
 
-		let suffix = if self.dry_run { " (dry-run)" } else { "" };
+		// A single step already names what is running, so a command banner
+		// around it would only repeat the step line.
+		if !self.shows_command_banner() {
+			return;
+		}
+
+		let mut details = vec![format!("{} steps", self.total_steps)];
+		if self.dry_run {
+			details.push("dry-run".to_string());
+		}
+		let separator = format!(" {} ", self.symbols.separator);
 		self.print_line(&format!(
-			"{} {}{}",
+			"{} {} {}{}",
 			self.paint("monochange", Style::Accent),
-			self.paint(&format!("running `{}`", self.command_name), Style::Header),
-			suffix,
+			self.paint(self.symbols.command_arrow, Style::Muted),
+			self.paint(&self.command_name, Style::Header),
+			self.paint(
+				&format!("{separator}{}", details.join(&separator)),
+				Style::Muted
+			),
 		));
 	}
 
@@ -372,6 +479,7 @@ impl ProgressReporter {
 			return;
 		}
 		self.stop_spinner();
+		self.close_group();
 		if self.render_mode == ProgressRenderMode::Json {
 			let sequence = self.next_sequence();
 			self.emit_json_event(&serde_json::json!({
@@ -384,11 +492,14 @@ impl ProgressReporter {
 			}));
 			return;
 		}
+		if !self.shows_command_banner() {
+			return;
+		}
 		self.print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.command_success, Style::Success),
-			self.paint(&format!("`{}` finished", self.command_name), Style::Header),
-			self.paint(&format_duration(duration), Style::Muted),
+			self.paint(&format!("{} completed", self.command_name), Style::Header),
+			self.paint(&format!("in {}", format_duration(duration)), Style::Muted),
 		));
 	}
 
@@ -397,6 +508,7 @@ impl ProgressReporter {
 			return;
 		}
 		self.stop_spinner();
+		self.close_group();
 		if self.render_mode == ProgressRenderMode::Json {
 			let sequence = self.next_sequence();
 			self.emit_json_event(&serde_json::json!({
@@ -410,11 +522,17 @@ impl ProgressReporter {
 			}));
 			return;
 		}
+		if !self.shows_command_banner() {
+			return;
+		}
 		self.print_line(&format!(
 			"{} {} {}",
 			self.paint(self.symbols.step_failure, Style::Error),
-			self.paint(&format!("`{}` failed", self.command_name), Style::Header),
-			self.paint(&format_duration(duration), Style::Muted),
+			self.paint(&format!("{} failed", self.command_name), Style::Header),
+			self.paint(
+				&format!("after {}", format_duration(duration)),
+				Style::Muted
+			),
 		));
 	}
 
@@ -423,13 +541,16 @@ impl ProgressReporter {
 			return;
 		}
 		self.command_started();
+		self.close_group();
+		self.step_started_at.lock().unwrap().replace(Instant::now());
+		*self.next_heartbeat.lock().unwrap() = HEARTBEAT_FIRST;
 		if self.render_mode == ProgressRenderMode::Json {
 			self.emit_step_event("step_started", step_index, step, serde_json::Map::new());
 			return;
 		}
-		let message = self.step_message(step_index, step);
+		let message = self.step_heading(step_index, step, false);
 		if self.animate {
-			self.start_spinner(message);
+			self.start_spinner(message, self.step_started_instant());
 		} else {
 			self.print_line(&format!(
 				"{} {message}",
@@ -450,6 +571,7 @@ impl ProgressReporter {
 		}
 		self.command_started();
 		self.stop_spinner();
+		self.close_group();
 		if self.render_mode == ProgressRenderMode::Json {
 			let mut payload = serde_json::Map::new();
 			payload.extend(
@@ -459,20 +581,16 @@ impl ProgressReporter {
 			self.emit_step_event("step_skipped", step_index, step, payload);
 			return;
 		}
-		let mut line = format!(
-			"{} {} — {}",
-			self.paint(self.symbols.step_skip, Style::Warning),
-			self.step_message(step_index, step),
-			self.paint("skipped", Style::Muted),
-		);
-		if let Some(detail) = reason.or(condition) {
-			let _ = write!(
-				line,
-				" {}",
-				self.paint(&format!("({detail})"), Style::Muted)
-			);
+		let mut detail = "skipped".to_string();
+		if let Some(reason) = reason.or(condition) {
+			let _ = write!(detail, " {} {reason}", self.symbols.separator);
 		}
-		self.print_line(&line);
+		self.print_line(&format!(
+			"{} {}  {}",
+			self.paint(self.symbols.step_skip, Style::Muted),
+			self.step_heading(step_index, step, true),
+			self.paint(&detail, Style::Muted),
+		));
 	}
 
 	pub(crate) fn step_status(&self, step_index: usize, step: &CliStepDefinition, status: &str) {
@@ -488,19 +606,101 @@ impl ProgressReporter {
 			self.emit_step_event("step_status", step_index, step, payload);
 			return;
 		}
-		let message = format!(
-			"{} — {}",
-			self.step_message(step_index, step),
-			self.paint(status, Style::Detail),
-		);
 		if self.animate {
-			self.start_spinner(message);
+			self.start_spinner(
+				format!(
+					"{} {}",
+					self.step_heading(step_index, step, false),
+					self.paint(
+						&format!("{} {status}", self.symbols.separator),
+						Style::Detail
+					),
+				),
+				self.step_started_instant(),
+			);
 		} else {
 			self.print_line(&format!(
-				"{} {message}",
-				self.paint(self.symbols.step_start, Style::Accent),
+				"  {} {}",
+				self.paint(self.symbols.status, Style::Muted),
+				self.paint(status, Style::Detail),
 			));
 		}
+	}
+
+	/// Report the external command a `Command` step is about to run.
+	pub(crate) fn step_command(&self, step_index: usize, step: &CliStepDefinition, command: &str) {
+		if !self.enabled {
+			return;
+		}
+		if self.render_mode == ProgressRenderMode::Json {
+			// Machine consumers already parse this status; keep its wording.
+			self.step_status(step_index, step, &format!("running command `{command}`"));
+			return;
+		}
+		if self.animate {
+			self.start_spinner(
+				format!(
+					"{} {}",
+					self.step_heading(step_index, step, false),
+					self.paint(
+						&format!("{} {command}", self.symbols.separator),
+						Style::Muted
+					),
+				),
+				self.step_started_instant(),
+			);
+		} else {
+			self.print_line(&format!(
+				"  {} {}",
+				self.paint(self.symbols.prompt, Style::Accent),
+				self.paint(command, Style::Muted),
+			));
+		}
+	}
+
+	/// Report that an external command has been silent for a while.
+	///
+	/// The animated spinner already shows the elapsed time, so this only
+	/// prints in captured and CI output, and only on a slow schedule.
+	pub(crate) fn step_heartbeat(
+		&self,
+		step_index: usize,
+		step: &CliStepDefinition,
+		elapsed: Duration,
+	) {
+		if !self.enabled || self.animate {
+			return;
+		}
+		if self.render_mode == ProgressRenderMode::Json {
+			self.step_status(
+				step_index,
+				step,
+				&format!(
+					"still running external command after {:.1}s",
+					elapsed.as_secs_f64()
+				),
+			);
+			return;
+		}
+		let mut next_heartbeat = self.next_heartbeat.lock().unwrap();
+		if elapsed < *next_heartbeat {
+			return;
+		}
+		*next_heartbeat = next_heartbeat_after(elapsed);
+		drop(next_heartbeat);
+		self.print_line(&format!(
+			"  {} {}",
+			self.paint(self.symbols.heartbeat, Style::Muted),
+			self.paint(
+				&format!(
+					"{} still running {} {}",
+					step_label(step),
+					self.symbols.separator,
+					format_duration(elapsed)
+				),
+				Style::Muted,
+			),
+		));
 	}
 
 	pub(crate) fn step_finished(
@@ -515,6 +715,7 @@ impl ProgressReporter {
 		}
 		self.command_started();
 		self.stop_spinner();
+		self.close_group();
 		if self.render_mode == ProgressRenderMode::Json {
 			let mut payload = serde_json::Map::new();
 			payload.insert(
@@ -540,16 +741,26 @@ impl ProgressReporter {
 			return;
 		}
 		self.print_line(&format!(
-			"{} {} {}",
+			"{} {}  {}",
 			self.paint(self.symbols.step_success, Style::Success),
-			self.step_message(step_index, step),
+			self.step_heading(step_index, step, true),
 			self.paint(&format_duration(duration), Style::Muted),
 		));
-		for phase in summarized_phase_timings(phase_timings) {
+		let verbose = self.capabilities.verbose;
+		if duration < PHASE_TIMING_STEP_MINIMUM && !verbose {
+			return;
+		}
+		let phases = summarized_phase_timings(phase_timings, verbose);
+		let label_width = phases
+			.iter()
+			.map(|phase| display_width(&phase.label))
+			.max()
+			.unwrap_or_default();
+		for phase in phases {
 			self.print_line(&format!(
-				"  {} {} {}",
+				"    {} {}  {}",
 				self.paint(self.symbols.bullet, Style::Muted),
-				self.paint(&phase.label, Style::Detail),
+				self.paint(&pad_to(&phase.label, label_width), Style::Detail),
 				self.paint(&format_duration(phase.duration), Style::Muted),
 			));
 		}
@@ -563,10 +774,13 @@ impl ProgressReporter {
 		error: &str,
 	) {
 		if !self.enabled {
+			self.remember_failed_step(step_index, step);
 			return;
 		}
 		self.command_started();
 		self.stop_spinner();
+		self.close_group();
+		self.remember_failed_step(step_index, step);
 		if self.render_mode == ProgressRenderMode::Json {
 			let mut payload = serde_json::Map::new();
 			payload.insert(
@@ -581,21 +795,18 @@ impl ProgressReporter {
 			return;
 		}
 		self.print_line(&format!(
-			"{} {} {}",
+			"{} {}  {}",
 			self.paint(self.symbols.step_failure, Style::Error),
-			self.step_message(step_index, step),
+			self.step_heading(step_index, step, true),
 			self.paint(&format_duration(duration), Style::Muted),
 		));
-		for (index, line) in error.lines().enumerate() {
-			let branch = if index == 0 {
-				self.symbols.error_branch
-			} else {
-				self.symbols.log_pipe
-			};
+		// The final diagnostic carries the full explanation; the step line only
+		// names the failure so a multi-step log shows where it happened.
+		if let Some(summary) = error_summary(error) {
 			self.print_line(&format!(
 				"  {} {}",
-				self.paint(branch, Style::Error),
-				self.paint(line, Style::Error),
+				self.paint(self.symbols.error_branch, Style::Error),
+				self.paint(&summary, Style::Error),
 			));
 		}
 	}
@@ -627,17 +838,31 @@ impl ProgressReporter {
 			return;
 		}
 		self.command_started();
-		let step_label = step.display_name();
+		let step_label = step_label(step).to_string();
 		let mut output_block = self.output_block.lock().unwrap();
-		if output_block.as_deref() != Some(step_label) {
-			self.write_line(&format!(
-				"  {} {}",
-				self.paint(self.symbols.log_pipe, Style::Muted),
-				self.paint(step_label, Style::Detail),
-			));
-			output_block.replace(step_label.to_string());
-		}
-		let indent = format!("  {}   ", self.paint(self.symbols.log_pipe, Style::Muted));
+		let indent = if self.animate {
+			// The spinner line that named the step is erased by the first
+			// output line, so the block names its step itself.
+			if output_block.as_deref() != Some(step_label.as_str()) {
+				self.write_line(&format!(
+					"  {} {}",
+					self.paint(self.symbols.log_pipe, Style::Muted),
+					self.paint(&step_label, Style::Detail),
+				));
+				output_block.replace(step_label);
+			}
+			format!("  {}   ", self.paint(self.symbols.log_pipe, Style::Muted))
+		} else {
+			if self.github {
+				self.stderr.open_group(&escape_workflow_data(&format!(
+					"{} {} output",
+					self.step_heading_plain(step_index, step),
+					self.symbols.separator
+				)));
+			}
+			output_block.replace(step_label);
+			format!("  {} ", self.paint(self.symbols.log_pipe, Style::Muted))
+		};
 		for line in text.lines() {
 			if line.trim().is_empty() {
 				self.write_line(indent.trim_end());
@@ -653,45 +878,82 @@ impl ProgressReporter {
 		}
 	}
 
-	fn step_message(&self, step_index: usize, step: &CliStepDefinition) -> String {
-		let name = step.display_name();
-		let kind = step.kind_name();
-		let detail = if name == kind {
-			String::new()
-		} else {
-			format!(" {}", self.paint(&format!("({kind})"), Style::Muted))
-		};
-		format!(
-			"{} {}{}",
-			self.paint(
-				&format!("[{}/{}]", step_index + 1, self.total_steps),
-				Style::Muted,
-			),
-			self.paint(name, Style::Header),
-			detail,
-		)
+	fn shows_command_banner(&self) -> bool {
+		self.total_steps > 1
 	}
 
-	fn start_spinner(&self, message: String) {
+	fn remember_failed_step(&self, step_index: usize, step: &CliStepDefinition) {
+		// A single step is the whole command, which the diagnostic already names.
+		if self.total_steps <= 1 {
+			return;
+		}
+		let mut failed_step = self.failed_step.lock().unwrap();
+		if failed_step.is_none() {
+			failed_step.replace(self.step_heading_plain(step_index, step));
+		}
+	}
+
+	fn step_started_instant(&self) -> Option<Instant> {
+		*self.step_started_at.lock().unwrap()
+	}
+
+	/// The uncolored heading, such as `[2/9] generate lockfile (PrepareRelease)`.
+	fn step_heading_plain(&self, step_index: usize, step: &CliStepDefinition) -> String {
+		plain_step_heading(step_index, self.total_steps, step)
+	}
+
+	fn step_heading(&self, step_index: usize, step: &CliStepDefinition, pad: bool) -> String {
+		let mut heading = String::new();
+		if self.total_steps > 1 {
+			heading.push_str(&self.paint(
+				&format!("[{}/{}]", step_index + 1, self.total_steps),
+				Style::Muted,
+			));
+			heading.push(' ');
+		}
+		heading.push_str(&self.paint(step_label(step), Style::Header));
+		if let Some(kind) = step_kind_suffix(step) {
+			heading.push(' ');
+			heading.push_str(&self.paint(&format!("({kind})"), Style::Muted));
+		}
+		if pad {
+			let plain_width = display_width(&self.step_heading_plain(step_index, step));
+			heading.push_str(&" ".repeat(self.heading_width.saturating_sub(plain_width)));
+		}
+		heading
+	}
+
+	fn start_spinner(&self, message: String, started_at: Option<Instant>) {
 		self.stop_spinner();
 		let stop = Arc::new(AtomicBool::new(false));
 		let rendered = Arc::new(AtomicBool::new(false));
 		let stop_flag = Arc::clone(&stop);
 		let rendered_flag = Arc::clone(&rendered);
-		let line_cleared = Arc::clone(&self.line_cleared);
 		let stderr = self.stderr.clone();
 		let color = self.color;
 		let spinner_frames = self.symbols.spinner_frames;
+		let started_at = started_at.unwrap_or_else(Instant::now);
+		self.stderr.set_spinner_active(true);
 		let handle = thread::spawn(move || {
 			thread::sleep(SPINNER_DELAY);
 			let mut full_line = true;
+			let mut shown_elapsed = None;
 			for frame in spinner_frames.iter().copied().cycle() {
 				if stop_flag.load(Ordering::Relaxed) {
 					break;
 				}
-				let was_cleared = line_cleared.swap(false, Ordering::Relaxed);
-				let tick = render_spinner_tick(frame, &message, color, full_line || was_cleared);
+				let elapsed = spinner_elapsed(started_at.elapsed());
+				let was_cleared = stderr.take_line_cleared();
+				let repaint = full_line || was_cleared || elapsed != shown_elapsed;
+				let message = match &elapsed {
+					Some(elapsed) => {
+						format!("{message} {}", paint_text(elapsed, Style::Muted, color))
+					}
+					None => message.clone(),
+				};
+				let tick = render_spinner_tick(frame, &message, color, repaint);
 				full_line = false;
+				shown_elapsed = elapsed;
 				stderr.write(tick.as_bytes());
 				rendered_flag.store(true, Ordering::Relaxed);
 				thread::sleep(SPINNER_TICK);
@@ -711,6 +973,7 @@ impl ProgressReporter {
 		};
 		spinner.stop.store(true, Ordering::Relaxed);
 		let _ = spinner.handle.join();
+		self.stderr.set_spinner_active(false);
 		if spinner.rendered.load(Ordering::Relaxed) {
 			self.stderr.write(b"\r\x1b[2K\x1b[0m");
 		}
@@ -726,6 +989,10 @@ impl ProgressReporter {
 		was_active
 	}
 
+	fn close_group(&self) {
+		self.stderr.close_group();
+	}
+
 	fn print_line(&self, text: &str) {
 		self.write_line(text);
 		// Any progress line ends the current command-output run, so the next
@@ -734,16 +1001,7 @@ impl ProgressReporter {
 	}
 
 	fn write_line(&self, text: &str) {
-		let spinner_active = self.animate && self.active_spinner.lock().unwrap().is_some();
-		let prefix = if spinner_active {
-			"\r\u{1b}[2K\u{1b}[0m"
-		} else {
-			""
-		};
-		self.stderr.write(format!("{prefix}{text}\n").as_bytes());
-		if spinner_active {
-			self.line_cleared.store(true, Ordering::Relaxed);
-		}
+		self.stderr.write_line(text);
 	}
 
 	fn paint(&self, text: &str, style: Style) -> String {
@@ -751,7 +1009,7 @@ impl ProgressReporter {
 	}
 
 	fn next_sequence(&self) -> u64 {
-		self.event_sequence.fetch_add(1, Ordering::Relaxed)
+		self.stderr.next_sequence()
 	}
 
 	fn emit_step_event(
@@ -825,6 +1083,10 @@ impl ProgressReporter {
 		payload.insert("dry_run".to_string(), serde_json::Value::Bool(self.dry_run));
 		self.emit_json_event(&serde_json::Value::Object(payload));
 	}
+
+	fn suite_label(&self, suite_id: &str) -> String {
+		pad_to(suite_id, *self.suite_width.lock().unwrap())
+	}
 }
 
 impl LintProgressReporter for ProgressReporter {
@@ -832,6 +1094,11 @@ impl LintProgressReporter for ProgressReporter {
 		if !self.enabled || suites.is_empty() {
 			return;
 		}
+		*self.suite_width.lock().unwrap() = suites
+			.iter()
+			.map(|suite| display_width(suite))
+			.max()
+			.unwrap_or_default();
 		if self.render_mode == ProgressRenderMode::Json {
 			self.emit_domain_json_event(
 				"lint_planning_started",
@@ -888,12 +1155,19 @@ impl LintProgressReporter for ProgressReporter {
 			return;
 		}
 		let message = format!(
-			"{suite_id} — checking {file_count} file{} with {rule_count} rule{}",
-			if file_count == 1 { "" } else { "s" },
-			if rule_count == 1 { "" } else { "s" },
+			"{}  {}",
+			self.paint(&self.suite_label(suite_id), Style::Header),
+			self.paint(
+				&format!(
+					"checking {file_count} file{} with {rule_count} rule{}",
+					if file_count == 1 { "" } else { "s" },
+					if rule_count == 1 { "" } else { "s" },
+				),
+				Style::Muted,
+			),
 		);
 		if self.animate {
-			self.start_spinner(message);
+			self.start_spinner(message, None);
 		} else {
 			self.print_line(&format!(
 				"{} {message}",
@@ -926,10 +1200,26 @@ impl LintProgressReporter for ProgressReporter {
 		} else {
 			String::new()
 		};
+		let (symbol, style) = if result_count == 0 {
+			(self.symbols.step_success, Style::Success)
+		} else {
+			(self.symbols.step_issues, Style::Warning)
+		};
 		self.print_line(&format!(
-			"{} {suite_id} — {result_count} issue{}{fixable}",
-			self.paint(self.symbols.step_success, Style::Success),
-			if result_count == 1 { "" } else { "s" },
+			"{} {}  {}",
+			self.paint(symbol, style),
+			self.paint(&self.suite_label(suite_id), Style::Header),
+			self.paint(
+				&format!(
+					"{result_count} issue{}{fixable}",
+					if result_count == 1 { "" } else { "s" },
+				),
+				if result_count == 0 {
+					Style::Muted
+				} else {
+					Style::Warning
+				},
+			),
 		));
 	}
 
@@ -960,7 +1250,7 @@ impl LintProgressReporter for ProgressReporter {
 			if file_count == 1 { "" } else { "s" },
 		);
 		if self.animate {
-			self.start_spinner(message);
+			self.start_spinner(message, None);
 		} else {
 			self.print_line(&format!(
 				"{} {message}",
@@ -987,9 +1277,10 @@ impl LintProgressReporter for ProgressReporter {
 			return;
 		}
 		self.print_line(&format!(
-			"  {} {} ({description})",
+			"  {} {} {}",
 			self.paint(self.symbols.bullet, Style::Success),
 			file_path.display(),
+			self.paint(&format!("({description})"), Style::Muted),
 		));
 	}
 
@@ -1016,41 +1307,26 @@ impl LintProgressReporter for ProgressReporter {
 	}
 
 	fn summary(&self, errors: usize, warnings: usize, fixable: usize, fixed: bool) {
-		if !self.enabled || errors == 0 && warnings == 0 {
+		// The command result on stdout carries the human summary and the fix
+		// hint; repeating it in progress output only doubles the same lines.
+		if !self.enabled || self.render_mode != ProgressRenderMode::Json {
 			return;
 		}
-		if self.render_mode == ProgressRenderMode::Json {
-			self.emit_domain_json_event(
-				"lint_summary",
-				serde_json::json!({
-					"errors": errors,
-					"warnings": warnings,
-					"fixable": fixable,
-					"fixed": fixed,
-				})
-				.as_object()
-				.cloned()
-				.unwrap_or_default(),
-			);
+		if errors == 0 && warnings == 0 {
 			return;
 		}
-		self.print_line(&self.paint("─────────────────────────────", Style::Muted));
-		if let Some(line) = summary_count_line(errors, warnings, self.symbols.step_failure, "!") {
-			self.print_line(&line);
-		}
-		if fixable > 0 {
-			let verb = if fixed {
-				"remain auto-fixable"
-			} else {
-				"can be auto-fixed"
-			};
-			let suffix = if fixed { " again" } else { "" };
-			self.print_line(&format!(
-				"{} {fixable} issue{} {verb}. Run `monochange check --fix`{suffix} to apply.",
-				self.paint(self.symbols.bullet, Style::Muted),
-				if fixable == 1 { "" } else { "s" },
-			));
-		}
+		self.emit_domain_json_event(
+			"lint_summary",
+			serde_json::json!({
+				"errors": errors,
+				"warnings": warnings,
+				"fixable": fixable,
+				"fixed": fixed,
+			})
+			.as_object()
+			.cloned()
+			.unwrap_or_default(),
+		);
 	}
 }
 
@@ -1073,7 +1349,7 @@ impl PublishProgressReporter for ProgressReporter {
 		let spinner_message = activity && self.animate;
 		let line = render_publish_event(&event, &self.symbols, self.color, spinner_message);
 		if spinner_message {
-			self.start_spinner(line);
+			self.start_spinner(line, None);
 		} else {
 			if !activity {
 				self.stop_spinner();
@@ -1083,31 +1359,117 @@ impl PublishProgressReporter for ProgressReporter {
 	}
 }
 
-fn summary_count_line(
-	errors: usize,
-	warnings: usize,
-	error_icon: &str,
-	warning_icon: &str,
-) -> Option<String> {
-	let mut line = String::new();
-	if errors > 0 {
-		let _ = write!(
-			line,
-			"{error_icon} {errors} error{}",
-			if errors == 1 { "" } else { "s" },
-		);
+/// Human label for a step: its configured `name`, or a readable description
+/// of the built-in step kind when the step is unnamed.
+pub(crate) fn step_label(step: &CliStepDefinition) -> &str {
+	step.name()
+		.unwrap_or_else(|| humanized_step_kind(step.kind_name()))
+}
+
+fn humanized_step_kind(kind: &'static str) -> &'static str {
+	match kind {
+		"Config" => "resolve configuration",
+		"Validate" => "validate workspace",
+		"Discover" => "discover packages",
+		"DisplayVersions" => "calculate next versions",
+		"CreateChangeFile" => "create change file",
+		"PrepareRelease" => "prepare release",
+		"CommitRelease" => "commit release",
+		"VerifyReleaseBranch" => "verify release branch",
+		"PublishRelease" => "publish release",
+		"PlaceholderPublish" => "publish placeholder packages",
+		"PublishPackages" => "publish packages",
+		"PlanPublishRateLimits" => "plan publish rate limits",
+		"OpenReleaseRequest" => "open release request",
+		"CommentReleasedIssues" => "comment on released issues",
+		"AffectedPackages" => "check affected packages",
+		"DiagnoseChangesets" => "diagnose changesets",
+		"ReleaseRecord" => "read release record",
+		"PublishReadiness" => "check publish readiness",
+		"TagRelease" => "tag release",
+		"RetargetRelease" => "retarget release",
+		_ => "run command",
 	}
-	if warnings > 0 {
-		if !line.is_empty() {
-			line.push_str(", ");
-		}
-		let _ = write!(
-			line,
-			"{warning_icon} {warnings} warning{}",
-			if warnings == 1 { "" } else { "s" },
-		);
+}
+
+/// Named built-in steps keep their kind visible so a configured label can be
+/// traced back to the step reference; `Command` steps show the command itself.
+fn step_kind_suffix(step: &CliStepDefinition) -> Option<&'static str> {
+	let kind = step.kind_name();
+	let name = step.name()?;
+	(kind != "Command" && name != kind).then_some(kind)
+}
+
+fn plain_step_heading(step_index: usize, total_steps: usize, step: &CliStepDefinition) -> String {
+	let mut heading = String::new();
+	if total_steps > 1 {
+		let _ = write!(heading, "[{}/{total_steps}] ", step_index + 1);
 	}
-	(!line.is_empty()).then_some(line)
+	heading.push_str(step_label(step));
+	if let Some(kind) = step_kind_suffix(step) {
+		let _ = write!(heading, " ({kind})");
+	}
+	heading
+}
+
+fn step_heading_width(cli_command: &CliCommandDefinition) -> usize {
+	cli_command
+		.steps
+		.iter()
+		.enumerate()
+		.map(|(index, step)| {
+			display_width(&plain_step_heading(index, cli_command.steps.len(), step))
+		})
+		.max()
+		.unwrap_or_default()
+}
+
+fn display_width(text: &str) -> usize {
+	text.chars().count()
+}
+
+fn pad_to(text: &str, width: usize) -> String {
+	let mut padded = text.to_string();
+	padded.push_str(&" ".repeat(width.saturating_sub(display_width(text))));
+	padded
+}
+
+/// The first meaningful line of an error, without the internal error-kind
+/// prefix that `MonochangeError::render` adds.
+///
+/// A failed command's line already appears above the step as `$ command`, so
+/// its summary keeps only the exit status.
+fn error_summary(error: &str) -> Option<String> {
+	let first = error.lines().find(|line| !line.trim().is_empty())?.trim();
+	let summary = ["config error: ", "discovery error: ", "io error: "]
+		.iter()
+		.find_map(|prefix| first.strip_prefix(prefix))
+		.unwrap_or(first);
+	let command_status = summary
+		.strip_prefix("command `")
+		.and_then(|rest| rest.rsplit_once("` failed: "))
+		.map(|(_, status)| format!("command failed ({status})"));
+	Some(command_status.unwrap_or_else(|| summary.to_string()))
+}
+
+fn next_heartbeat_after(elapsed: Duration) -> Duration {
+	if elapsed < HEARTBEAT_INTERVAL {
+		return HEARTBEAT_INTERVAL;
+	}
+	let intervals = elapsed.as_secs() / HEARTBEAT_INTERVAL.as_secs() + 1;
+	HEARTBEAT_INTERVAL * u32::try_from(intervals).unwrap_or(u32::MAX)
+}
+
+/// Whole seconds for the spinner, so its line only repaints once a second.
+fn spinner_elapsed(elapsed: Duration) -> Option<String> {
+	if elapsed < SPINNER_ELAPSED_AFTER {
+		return None;
+	}
+	let seconds = elapsed.as_secs();
+	if seconds < 60 {
+		return Some(format!("{seconds}s"));
+	}
+	Some(format_duration(Duration::from_secs(seconds)))
 }
 
 fn render_publish_event(
@@ -1361,6 +1723,7 @@ fn package_prefix(package: &PublishProgressPackage, emoji: bool, color: bool) ->
 impl Drop for ProgressReporter {
 	fn drop(&mut self) {
 		self.stop_spinner();
+		self.close_group();
 	}
 }
 
@@ -1391,7 +1754,7 @@ fn paint_text(text: &str, style: Style, color: bool) -> String {
 	format!("\u{1b}[{code}m{text}\u{1b}[0m")
 }
 
-fn strip_terminal_controls(text: &str) -> String {
+pub(crate) fn strip_terminal_controls(text: &str) -> String {
 	let mut output = String::with_capacity(text.len());
 	let mut characters = text.chars().peekable();
 	while let Some(character) = characters.next() {
@@ -1425,9 +1788,10 @@ fn strip_terminal_controls(text: &str) -> String {
 }
 
 /// Renders a single spinner tick. The full line (with erase) is only written
-/// when the message must be (re)established — the first tick or after another
-/// writer cleared the line. Otherwise only the frame is swapped in place so
-/// captured output does not reprint the whole line on every tick.
+/// when the message must be (re)established — the first tick, after another
+/// writer cleared the line, or when the elapsed time changes. Otherwise only
+/// the frame is swapped in place so captured output does not reprint the whole
+/// line on every tick.
 fn render_spinner_tick(frame: &str, message: &str, color: bool, full_line: bool) -> String {
 	if full_line {
 		format!(
@@ -1440,8 +1804,16 @@ fn render_spinner_tick(frame: &str, message: &str, color: bool, full_line: bool)
 	}
 }
 
-fn format_duration(duration: Duration) -> String {
+pub(crate) fn format_duration(duration: Duration) -> String {
+	if duration >= Duration::from_secs(3600) {
+		let seconds = duration.as_secs();
+		return format!("{}h {:02}m", seconds / 3600, seconds % 3600 / 60);
+	}
 	if duration >= Duration::from_secs(60) {
+		let seconds = duration.as_secs();
+		return format!("{}m {:02}s", seconds / 60, seconds % 60);
+	}
+	if duration >= Duration::from_secs(10) {
 		let seconds = duration.as_secs_f64();
 		return format!("{seconds:.1}s");
 	}
@@ -1459,14 +1831,21 @@ fn duration_millis(duration: Duration) -> u64 {
 	u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
 }
 
-fn summarized_phase_timings(phase_timings: &[StepPhaseTiming]) -> Vec<StepPhaseTiming> {
+/// The slowest phases worth listing under a finished step; `--verbose` lists
+/// every phase.
+fn summarized_phase_timings(
+	phase_timings: &[StepPhaseTiming],
+	verbose: bool,
+) -> Vec<StepPhaseTiming> {
 	let mut phase_timings = phase_timings
 		.iter()
-		.filter(|phase| phase.duration >= PHASE_TIMING_MINIMUM)
+		.filter(|phase| verbose || phase.duration >= PHASE_TIMING_MINIMUM)
 		.cloned()
 		.collect::<Vec<_>>();
 	phase_timings.sort_by_key(|phase| Reverse(phase.duration));
-	phase_timings.truncate(PHASE_TIMING_DETAIL_LIMIT);
+	if !verbose {
+		phase_timings.truncate(PHASE_TIMING_DETAIL_LIMIT);
+	}
 	phase_timings
 }
 

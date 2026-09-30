@@ -11,7 +11,7 @@ Show detailed help, examples, and tips for any monochange command. Run `monochan
 
 [1m[96mArguments:[0m
   [95m[COMMAND]...[0m
-          Built-in command path to get help for (e.g. step validate, init). Use `monochange run <name> --help` for config-defined workflow commands
+          Built-in command path to get help for (e.g. step validate, init). Config-defined workflow commands are listed too; use `monochange run <name> --help` when a built-in command shares the name
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
@@ -20,6 +20,9 @@ Show detailed help, examples, and tips for any monochange command. Run `monochan
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
           Suppress result, progress, and diagnostic output without changing execution
+
+  [93m-v[0m, [93m--verbose[0m
+          Show full result lists and logs, every step timing, and progress notes
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr

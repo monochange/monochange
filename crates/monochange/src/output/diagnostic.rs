@@ -1,96 +1,37 @@
 use std::fmt::Write as _;
+use std::path::Path;
 
 use monochange_core::MonochangeError;
 
+/// A failure explained for people: what failed, why, where, and what to do.
+///
+/// The first rendered line is always `error[<code>]: <summary>`, so CI logs
+/// stay greppable by code. A multi-line cause, such as captured command output
+/// or an annotated source snippet, renders as a block under the summary,
+/// followed by aligned context (`command`, `step`, `path`) and hints.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) struct CliDiagnostic {
 	code: &'static str,
 	summary: String,
+	body: Option<DiagnosticBody>,
 	context: Vec<(&'static str, String)>,
 	hints: Vec<String>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct DiagnosticBody {
+	text: String,
+	/// Pre-rendered diagnostics (for example `--> monochange.toml:3:1` source
+	/// snippets) carry their own alignment, so they render without re-indenting.
+	verbatim: bool,
+}
+
 impl CliDiagnostic {
 	pub(crate) fn from_error(error: &MonochangeError, command: Option<&str>) -> Self {
-		let (code, summary, hints) = match error {
-			MonochangeError::Io(message) => (
-				"io.failed",
-				message.clone(),
-				vec!["Check that the path exists and is writable, then rerun the command.".to_string()],
-			),
-			MonochangeError::Config(message) if message.contains("--jq requires explicit JSON") => (
-				"cli.json_required",
-				message.clone(),
-				vec!["Add `--format json` or `--format json-min` before using `--jq`.".to_string()],
-			),
-			MonochangeError::Config(message) if message.contains("check failed") => (
-				"check.failed",
-				message.clone(),
-				vec!["Review the reported validation or lint issues, fix them, and run `monochange check` again.".to_string()],
-			),
-			MonochangeError::Config(message) => (
-				"config.invalid",
-				message.clone(),
-				vec!["Check `monochange.toml` and the command arguments, then rerun the command.".to_string()],
-			),
-			MonochangeError::Discovery(message) => (
-				"workspace.discovery_failed",
-				message.clone(),
-				vec!["Check the configured package paths and workspace manifests, then rerun the command.".to_string()],
-			),
-			MonochangeError::Diagnostic(message) => {
-				("cli.diagnostic", message.clone(), Vec::new())
-			}
-			MonochangeError::Reported { diagnostic, .. } => {
-				let code = if diagnostic.contains("check failed") {
-					"check.failed"
-				} else {
-					"command.failed"
-				};
-				(
-					code,
-					diagnostic.clone(),
-					vec!["Review the result above for the failing items and suggested fixes.".to_string()],
-				)
-			}
-			MonochangeError::IoSource { path: _, source } => (
-				"file.io_failed",
-				format!("{source}"),
-				vec!["Check that the file exists and that monochange can read or write it.".to_string()],
-			),
-			MonochangeError::Parse { path: _, source } => (
-				"file.parse_failed",
-				format!("{source}"),
-				vec!["Fix the invalid file contents, then rerun the command.".to_string()],
-			),
-			MonochangeError::Interactive { message } => (
-				"interactive.failed",
-				message.clone(),
-				vec!["Rerun in an interactive terminal or provide the required values as flags.".to_string()],
-			),
-			MonochangeError::Cancelled => (
-				"operation.cancelled",
-				"The operation was cancelled.".to_string(),
-				vec!["Rerun the command when you are ready to continue.".to_string()],
-			),
-			_ => (
-				"command.failed",
-				error.render(),
-				vec!["Rerun with `--log-level debug` if you need maintainer-level diagnostics.".to_string()],
-			),
-		};
-		let (summary, cause) = summary
-			.split_once('\n')
-			.map_or((summary.as_str(), None), |(summary, cause)| {
-				(summary, Some(cause))
-			});
+		let (code, summary, hints) = classify(error);
+		let pre_rendered = matches!(error, MonochangeError::Diagnostic(_));
+		let (summary, body) = split_summary(&summary, pre_rendered);
 		let mut context = Vec::new();
-		if let Some(cause) = cause
-			.map(|cause| cause.trim_matches('\n'))
-			.filter(|cause| !cause.is_empty())
-		{
-			context.push(("cause", cause.to_string()));
-		}
 		if let Some(command) = command.filter(|command| !command.is_empty()) {
 			context.push(("command", command.to_string()));
 		}
@@ -103,44 +44,472 @@ impl CliDiagnostic {
 
 		Self {
 			code,
-			summary: summary.to_string(),
+			summary,
+			body,
 			context,
 			hints,
 		}
 	}
 
-	pub(crate) fn render(&self, color: bool) -> String {
-		let mut output = String::new();
-		let heading = format!("error[{}]", self.code);
-		let summary = if color {
-			self.summary.clone()
-		} else {
-			strip_terminal_controls(&self.summary)
+	/// Show paths inside the workspace relative to its root.
+	#[must_use]
+	pub(crate) fn with_root(mut self, root: &Path) -> Self {
+		let Some(prefix) = root
+			.is_absolute()
+			.then(|| format!("{}/", root.display().to_string().trim_end_matches('/')))
+		else {
+			return self;
 		};
-		let _ = writeln!(output, "{}: {}", paint(&heading, "31;1", color), summary);
+		self.summary = self.summary.replace(&prefix, "");
+		if let Some(body) = &mut self.body {
+			body.text = body.text.replace(&prefix, "");
+		}
+		for (_, value) in &mut self.context {
+			*value = value.replace(&prefix, "");
+		}
+		self
+	}
+
+	/// Name the workflow step that failed, after the command context.
+	#[must_use]
+	pub(crate) fn with_step(mut self, step: String) -> Self {
+		let position = self
+			.context
+			.iter()
+			.position(|(label, _)| *label == "command")
+			.map_or(0, |index| index + 1);
+		self.context.insert(position, ("step", step));
+		self
+	}
+
+	/// Title for a CI annotation, such as `monochange run release failed`.
+	pub(crate) fn annotation_title(&self) -> String {
+		self.context
+			.iter()
+			.find(|(label, _)| *label == "command")
+			.map_or_else(
+				|| "monochange failed".to_string(),
+				|(_, command)| format!("{command} failed"),
+			)
+	}
+
+	/// A compact plain-text version of the diagnostic for a CI annotation.
+	pub(crate) fn annotation(&self) -> String {
+		let mut output = format!(
+			"error[{}]: {}",
+			self.code,
+			strip_terminal_controls(&self.summary)
+		);
 		for (label, value) in &self.context {
-			let value = if color {
-				value.clone()
-			} else {
-				strip_terminal_controls(value)
-			};
-			let mut lines = value.lines();
-			if let Some(first) = lines.next() {
-				let _ = writeln!(output, "  {}: {first}", paint(label, "36;1", color));
-			}
-			for line in lines {
-				if line.trim().is_empty() {
-					output.push('\n');
-				} else {
-					let _ = writeln!(output, "    {line}");
-				}
+			if *label != "command" {
+				let _ = write!(output, "\n{label}: {}", strip_terminal_controls(value));
 			}
 		}
 		for hint in &self.hints {
-			let _ = writeln!(output, "  {}: {hint}", paint("help", "36;1", color));
+			let _ = write!(output, "\nhelp: {hint}");
 		}
-		output.trim_end().to_string()
+		output
 	}
+
+	/// Process exit status: `2` for command-line usage errors, `1` otherwise.
+	pub(crate) fn exit_code(&self) -> u8 {
+		if matches!(self.code, "cli.usage" | "cli.json_required") {
+			2
+		} else {
+			1
+		}
+	}
+
+	/// The diagnostic as JSON fields, for `--progress-format json` consumers
+	/// such as agents and CI tooling.
+	pub(crate) fn to_json_fields(&self) -> serde_json::Map<String, serde_json::Value> {
+		let mut fields = serde_json::Map::new();
+		fields.insert("code".to_string(), self.code.into());
+		fields.insert(
+			"summary".to_string(),
+			strip_terminal_controls(&self.summary).into(),
+		);
+		fields.insert(
+			"detail".to_string(),
+			self.body
+				.as_ref()
+				.map(|body| strip_terminal_controls(&body.text))
+				.into(),
+		);
+		fields.insert(
+			"context".to_string(),
+			self.context
+				.iter()
+				.map(|(label, value)| ((*label).to_string(), strip_terminal_controls(value).into()))
+				.collect::<serde_json::Map<_, _>>()
+				.into(),
+		);
+		fields.insert("hints".to_string(), self.hints.clone().into());
+		fields.insert("exit_code".to_string(), self.exit_code().into());
+		fields
+	}
+
+	pub(crate) fn render(&self, color: bool) -> String {
+		let clean = |text: &str| {
+			if color {
+				text.to_string()
+			} else {
+				strip_terminal_controls(text)
+			}
+		};
+		let heading = format!("error[{}]", self.code);
+		let mut lines = vec![format!(
+			"{}: {}",
+			paint(&heading, "31;1", color),
+			paint(&clean(&self.summary), "1", color)
+		)];
+
+		if let Some(body) = &self.body {
+			let text = clean(&body.text);
+			// A source location (`--> file:line:col`) belongs directly under the
+			// summary, the way compilers print it.
+			if !(body.verbatim && text.trim_start().starts_with("-->")) {
+				lines.push(String::new());
+			}
+			let mut previous_was_location = false;
+			for line in text.lines() {
+				let is_location = body.verbatim && line.trim_start().starts_with("-->");
+				if line.trim().is_empty() {
+					if !previous_was_location {
+						lines.push(String::new());
+					}
+				} else if body.verbatim {
+					lines.push(colorize_snippet_line(line, color));
+				} else {
+					lines.push(format!("    {line}"));
+				}
+				previous_was_location = is_location;
+			}
+		}
+
+		let rows = self
+			.context
+			.iter()
+			.map(|(label, value)| (*label, clean(value)))
+			.chain(self.hints.iter().map(|hint| ("help", hint.clone())))
+			.collect::<Vec<_>>();
+		if !rows.is_empty() && self.body.is_some() {
+			lines.push(String::new());
+		}
+		let width = rows
+			.iter()
+			.map(|(label, _)| label.len())
+			.max()
+			.unwrap_or_default();
+		for (label, value) in rows {
+			let padding = " ".repeat(width - label.len());
+			let mut value_lines = value.lines();
+			let first = value_lines.next().unwrap_or_default();
+			lines.push(format!(
+				"  {}{padding} {first}",
+				paint(&format!("{label}:"), "36;1", color)
+			));
+			for line in value_lines {
+				lines.push(if line.trim().is_empty() {
+					String::new()
+				} else {
+					format!("  {}  {line}", " ".repeat(width))
+				});
+			}
+		}
+		trim_line_ends(&lines.join("\n"))
+	}
+}
+
+fn classify(error: &MonochangeError) -> (&'static str, String, Vec<String>) {
+	match error {
+		MonochangeError::Io(message) => {
+			(
+				"io.failed",
+				message.clone(),
+				vec![
+					"Check that the path exists and is writable, then rerun the command."
+						.to_string(),
+				],
+			)
+		}
+		MonochangeError::Config(message) if message.contains("--jq requires explicit JSON") => {
+			(
+				"cli.json_required",
+				message.clone(),
+				generic_hint(
+					message,
+					"Add `--format json` or `--format json-min` before using `--jq`.",
+				),
+			)
+		}
+		MonochangeError::Config(message) if message.contains("check failed") => {
+			(
+				"check.failed",
+				message.clone(),
+				vec![
+					"Fix the issues reported above, then run `monochange check` again.".to_string(),
+				],
+			)
+		}
+		MonochangeError::Config(message)
+			if message.contains("did not match any discovered package") =>
+		{
+			(
+				"config.unknown_package",
+				message.clone(),
+				vec![
+					"Run `monochange discover` to list package ids, then use one of them."
+						.to_string(),
+				],
+			)
+		}
+		MonochangeError::Config(message) if message.starts_with("failed to parse ") => {
+			(
+				"config.parse_failed",
+				message.clone(),
+				vec!["Fix the syntax error shown above, then rerun the command.".to_string()],
+			)
+		}
+		MonochangeError::Config(message) => {
+			(
+				"config.invalid",
+				message.clone(),
+				generic_hint(
+					message,
+					"Check `monochange.toml` and the command arguments, then rerun the command.",
+				),
+			)
+		}
+		MonochangeError::Discovery(message) if is_command_failure(message) => {
+			(
+				"step.command_failed",
+				message.clone(),
+				vec![
+					"Fix the failure shown in the command output, then rerun. To reproduce it on \
+					 its own, run the command directly from the workspace root."
+						.to_string(),
+				],
+			)
+		}
+		MonochangeError::Discovery(message)
+			if message.starts_with("package publishing did not complete") =>
+		{
+			(
+				"publish.failed",
+				message.clone(),
+				generic_hint(
+					message,
+					"Fix the failed packages listed above, then rerun the publish command; by \
+					 default, versions that already exist on the registry are skipped.",
+				),
+			)
+		}
+		MonochangeError::Discovery(message) if message.contains("release record") => {
+			(
+				"release.record_failed",
+				message.clone(),
+				generic_hint(
+					message,
+					"Point `--from` at a release commit, or run `monochange step release-record \
+					 --from <ref>` to see which record a ref resolves to.",
+				),
+			)
+		}
+		MonochangeError::Discovery(message) if is_git_failure(message) => {
+			(
+				"git.failed",
+				message.clone(),
+				vec![
+					"Check that the ref or path exists in this clone. CI checkouts are often \
+					 shallow: fetch full history and tags (for example `fetch-depth: 0` with \
+					 `actions/checkout`), then rerun."
+						.to_string(),
+				],
+			)
+		}
+		MonochangeError::Discovery(message) => {
+			(
+				"workspace.discovery_failed",
+				message.clone(),
+				generic_hint(
+					message,
+					"Check the configured package paths and workspace manifests, then rerun the \
+					 command.",
+				),
+			)
+		}
+		MonochangeError::Diagnostic(message) => {
+			(diagnostic_code(message), message.clone(), Vec::new())
+		}
+		MonochangeError::Reported { diagnostic, .. } if diagnostic.contains("check failed") => {
+			(
+				"check.failed",
+				diagnostic.clone(),
+				vec![
+					"Fix the issues listed above, then rerun `monochange check`; `monochange check \
+					 --fix` applies the automatic fixes."
+						.to_string(),
+				],
+			)
+		}
+		// The command result printed above already lists the failing items, so
+		// a generic hint would only repeat it.
+		MonochangeError::Reported { diagnostic, .. } => {
+			("command.failed", diagnostic.clone(), Vec::new())
+		}
+		MonochangeError::IoSource { path: _, source } => {
+			(
+				"file.io_failed",
+				format!("{source}"),
+				vec![
+					"Check that the file exists and that monochange can read or write it."
+						.to_string(),
+				],
+			)
+		}
+		MonochangeError::Parse { path: _, source } => {
+			(
+				"file.parse_failed",
+				format!("{source}"),
+				vec!["Fix the invalid file contents, then rerun the command.".to_string()],
+			)
+		}
+		MonochangeError::Interactive { message } => {
+			(
+				"interactive.failed",
+				message.clone(),
+				vec![
+					"Rerun in an interactive terminal or provide the required values as flags."
+						.to_string(),
+				],
+			)
+		}
+		MonochangeError::Cancelled => {
+			(
+				"operation.cancelled",
+				"The operation was cancelled.".to_string(),
+				vec!["Rerun the command when you are ready to continue.".to_string()],
+			)
+		}
+		_ => {
+			(
+				"command.failed",
+				error.render(),
+				vec![
+					"Rerun with `--log-level debug` to trace the requests monochange made."
+						.to_string(),
+				],
+			)
+		}
+	}
+}
+
+/// Pre-rendered diagnostics come from config validation, changeset validation,
+/// and command-line parsing; name each so CI searches find the right family.
+fn diagnostic_code(message: &str) -> &'static str {
+	if message.contains("\nUsage: ") || message.contains("For more information, try '--help'") {
+		"cli.usage"
+	} else if message.starts_with("changeset target validation failed") {
+		"changeset.invalid"
+	} else if message.starts_with("error: ") {
+		"config.invalid"
+	} else {
+		"cli.diagnostic"
+	}
+}
+
+/// A generic next step, unless the message already says what to do.
+fn generic_hint(message: &str, hint: &str) -> Vec<String> {
+	let lowercase = message.to_lowercase();
+	let has_guidance = [
+		"use `", "run `", "set `", "add `", "pass `", "remove ", "upgrade", "rerun",
+	]
+	.iter()
+	.any(|guidance| lowercase.contains(guidance));
+	if has_guidance {
+		Vec::new()
+	} else {
+		vec![hint.to_string()]
+	}
+}
+
+fn is_git_failure(message: &str) -> bool {
+	message.contains("fatal: ")
+		|| message.starts_with("could not resolve ref")
+		|| message.contains("git command failed")
+}
+
+fn is_command_failure(message: &str) -> bool {
+	message.starts_with("command `") && message.contains("` failed: ")
+}
+
+fn split_summary(message: &str, pre_rendered: bool) -> (String, Option<DiagnosticBody>) {
+	let message = if pre_rendered {
+		message.strip_prefix("error: ").unwrap_or(message)
+	} else {
+		message
+	};
+	let (summary, body) = message
+		.split_once('\n')
+		.map_or((message, None), |(summary, body)| (summary, Some(body)));
+	let body = body
+		.map(|body| body.trim_matches('\n'))
+		.filter(|body| !body.trim().is_empty())
+		.map(|body| {
+			DiagnosticBody {
+				text: body.to_string(),
+				verbatim: pre_rendered,
+			}
+		});
+	(summary.trim().to_string(), body)
+}
+
+/// Colour the gutter, location arrow, carets, and notes of a source snippet.
+fn colorize_snippet_line(line: &str, color: bool) -> String {
+	if !color {
+		return line.to_string();
+	}
+	let trimmed = line.trim_start();
+	let indent = &line[..line.len() - trimmed.len()];
+	if let Some(rest) = trimmed.strip_prefix("-->") {
+		return format!("{indent}{}{rest}", paint("-->", "36;1", true));
+	}
+	for prefix in ["= help:", "= note:"] {
+		if let Some(rest) = trimmed.strip_prefix(prefix) {
+			return format!("{indent}{}{rest}", paint(prefix, "36;1", true));
+		}
+	}
+	let Some((gutter, source)) = line.split_once('|') else {
+		return line.to_string();
+	};
+	if !gutter
+		.trim()
+		.chars()
+		.all(|character| character.is_ascii_digit())
+	{
+		return line.to_string();
+	}
+	let source_trimmed = source.trim_start();
+	let source = if source_trimmed.starts_with('^') {
+		format!(
+			"{}{}",
+			&source[..source.len() - source_trimmed.len()],
+			paint(source_trimmed, "31;1", true)
+		)
+	} else {
+		source.to_string()
+	};
+	format!("{}{source}", paint(&format!("{gutter}|"), "36;1", true))
+}
+
+fn trim_line_ends(text: &str) -> String {
+	text.lines()
+		.map(str::trim_end)
+		.collect::<Vec<_>>()
+		.join("\n")
+		.trim_end()
+		.to_string()
 }
 
 fn paint(text: &str, code: &str, color: bool) -> String {
@@ -152,24 +521,7 @@ fn paint(text: &str, code: &str, color: bool) -> String {
 }
 
 fn strip_terminal_controls(text: &str) -> String {
-	let mut output = String::with_capacity(text.len());
-	let mut characters = text.chars().peekable();
-	while let Some(character) = characters.next() {
-		if character != '\u{1b}' {
-			if character != '\r' {
-				output.push(character);
-			}
-			continue;
-		}
-		if characters.next() == Some('[') {
-			for control in characters.by_ref() {
-				if ('@'..='~').contains(&control) {
-					break;
-				}
-			}
-		}
-	}
-	output
+	crate::output::progress::strip_terminal_controls(text)
 }
 
 #[cfg(test)]

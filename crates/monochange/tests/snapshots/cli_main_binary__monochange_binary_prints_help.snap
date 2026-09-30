@@ -15,47 +15,48 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
 
 Usage: monochange [OPTIONS] <COMMAND>
 
-Built-in Commands:
-  snapshot       Print a normalized JSON snapshot of the CLI surface
-  init           Generate monochange.toml with detected packages and groups
-  populate       Check for default CLI workflow aliases (none are provided in this version)
-  command        Open an interactive dashboard for adding or editing config-defined CLI commands
-  skill          Read or install the bundled monochange agent skill
-  subagents      Generate repo-local monochange subagents and agent guidance files
-  change         Determine the release severity of repository changes
-  api            Inspect lower-level API diffs
-  changeset      Inspect and validate pending changeset intent
-  analyze        Analyze semantic changes for one package across main, head, and optional release baselines
-  notes          Render one configured release-note output without modifying release files
-  migrate        Audit or migrate release metadata for monochange repositories
-  lint           Inspect and scaffold manifest lint rules
-  versions       List package and group versions or sync internal dependency constraints
-  publish        Publish packages and inspect registry publishing state
-  create         Create a changeset file for one or more packages
-  discover       Discover packages across supported ecosystems
-  config         Render resolved monochange configuration and workspace metadata
-  preview        Preview planned version bumps, changelogs, and release artifacts without writing files
-  prepare        Prepare version bumps, changelogs, and release artifacts
-  affected       Evaluate affected packages and changeset coverage
-  diagnose       Inspect changeset provenance and review metadata
-  next           Show the next version for each release group and package without writing files
-  next-versions  Show the next version for each release group and package without writing files
-  mcp            Start the monochange MCP (Model Context Protocol) server over stdin/stdout
-  check          Validate configuration, changesets, and run manifest lint rules
-  help           Show detailed help for a command
-  step           Run built-in release workflow steps
-  run            Run workflow commands defined in monochange.toml
+Release Commands:
+  next       Show the next version for each release group and package without writing files
+  create     Create a changeset file for one or more packages
+  preview    Preview planned version bumps, changelogs, and release artifacts without writing files
+  prepare    Prepare version bumps, changelogs, and release artifacts
+  publish    Publish packages and inspect registry publishing state
+  affected   Evaluate affected packages and changeset coverage
+  diagnose   Inspect changeset provenance and review metadata
+
+Workspace Commands:
+  init       Generate monochange.toml with detected packages and groups
+  populate   Check for default CLI workflow aliases (none are provided in this version)
+  discover   Discover packages across supported ecosystems
+  config     Render resolved monochange configuration and workspace metadata
+  check      Validate configuration, changesets, and run manifest lint rules
+  versions   List package and group versions or sync internal dependency constraints
+  lint       Inspect and scaffold manifest lint rules
+  migrate    Audit or migrate release metadata for monochange repositories
+
+Change Analysis Commands:
+  change     Determine the release severity of repository changes
+  changeset  Inspect and validate pending changeset intent
+  api        Inspect lower-level API diffs
+  analyze    Analyze semantic changes for one package across main, head, and optional release baselines
+  notes      Render one configured release-note output without modifying release files
+
+Automation Commands:
+  run        Run workflow commands defined in monochange.toml
+  step       Run built-in release workflow steps
+  command    Open an interactive dashboard for adding or editing config-defined CLI commands
+  mcp        Start the monochange MCP (Model Context Protocol) server over stdin/stdout
+  skill      Read or install the bundled monochange agent skill
+  subagents  Generate repo-local monochange subagents and agent guidance files
+  snapshot   Print a normalized JSON snapshot of the CLI surface
+  help       Show detailed help for a command
 
 Options:
-  -h, --help
-          Print help (see a summary with '-h')
-
-  -V, --version
-          Print version
-
-Global Options:
   -q, --quiet
           Suppress result, progress, and diagnostic output without changing execution
+
+  -v, --verbose
+          Show full result lists and logs, every step timing, and progress notes
 
       --progress-format <FORMAT>
           Control progress output on stderr
@@ -67,6 +68,12 @@ Global Options:
 
       --snapshot
           Print a normalized JSON snapshot for this command subtree
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
 
 Quick Start
 
@@ -87,7 +94,7 @@ Quick Start
   monochange next
   monochange next --format json
 
-5. Use repository-defined workflows through monochange run <command> when they exist in your config, or call immutable built-in steps directly with monochange step <name>.
+5. Run repository-defined workflows as monochange <command> (or monochange run <command>, which also works when a built-in command shares the name), or call immutable built-in steps directly with monochange step <name>.
 
 6. Preview before mutating files, publishing packages, creating tags, or opening release requests:
 

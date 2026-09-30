@@ -47,6 +47,9 @@ Global Options:
   -q, --quiet
           Suppress result, progress, and diagnostic output without changing execution
 
+  -v, --verbose
+          Show full result lists and logs, every step timing, and progress notes
+
       --progress-format <FORMAT>
           Control progress output on stderr
           

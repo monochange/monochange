@@ -2,21 +2,18 @@
 source: crates/monochange_integration_tests/tests/check_lint_output.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-workspace validation passed for [workspace]
-lint: 5 errors, 0 warnings
+✖ Checks failed · 5 errors · fixed 1 file
 
-[workspace]/packages/app/package.json:
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `repository`
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `license`
+packages/app/package.json
+  1:1  ✖ missing required package.json field `repository`
+         npm/required-package-fields
+  1:1  ✖ missing required package.json field `license`
+         npm/required-package-fields
 
-[workspace]/packages/shared/package.json:
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `description`
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `repository`
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `license`
-
-Fixed all auto-fixable issues.
+packages/shared/package.json
+  1:1  ✖ missing required package.json field `description`
+         npm/required-package-fields
+  1:1  ✖ missing required package.json field `repository`
+         npm/required-package-fields
+  1:1  ✖ missing required package.json field `license`
+         npm/required-package-fields

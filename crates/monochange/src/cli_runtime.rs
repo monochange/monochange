@@ -1,9 +1,7 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::fmt::Write as _;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::io::IsTerminal;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
@@ -17,6 +15,9 @@ use std::time::Duration;
 use std::time::Instant;
 
 const PROCESS_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+/// Lines of each captured stream a command failure repeats after its output
+/// already streamed live.
+const STREAMED_FAILURE_OUTPUT_LINES: usize = 20;
 
 use clap::ArgMatches;
 use clap::parser::ValueSource;
@@ -49,6 +50,14 @@ use crate::maybe_load_prepared_release_execution;
 use crate::output::CommandStream;
 use crate::output::ProgressFormat;
 use crate::output::ProgressReporter;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::display_width;
+use crate::output::text::plural;
+use crate::output::text::summarize_log;
 use crate::release_branch_policy;
 use crate::save_prepared_release_execution;
 use crate::workspace_ops::validate_cargo_workspace_version_groups;
@@ -641,6 +650,7 @@ pub(crate) async fn execute_cli_command_with_options(
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let mut output = None;
 	let command_started_at = Instant::now();
@@ -736,6 +746,7 @@ pub(crate) async fn execute_cli_command_with_options(
 
 		tracing::debug!(step = step.kind_name(), "executing CLI step");
 		let mut step_phase_timings = Vec::new();
+		let mut skipped_for_dry_run = false;
 		let step_result: MonochangeResult<()> = async {
 			match step {
 				CliStepDefinition::Config { .. } => {
@@ -784,10 +795,14 @@ pub(crate) async fn execute_cli_command_with_options(
 						}
 						return Err(MonochangeError::Config(message));
 					}
-					output = Some(format!(
-						"workspace validation passed for {}",
-						root_relative(root, root).display()
-					));
+					let mut text = TextReport::new(TextTheme::for_stdout());
+					let details = if warnings.is_empty() {
+						Vec::new()
+					} else {
+						vec![plural(warnings.len(), "warning", "warnings")]
+					};
+					text.headline(Outcome::Success, "Workspace validation passed", &details);
+					output = Some(text.render());
 					Ok(())
 				}
 				CliStepDefinition::Discover { .. } => {
@@ -828,6 +843,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					step_phase_timings.clone_from(&prepared_execution.phase_timings);
 					let rendered_output = render_display_versions_output(
 						&prepared_execution.prepared_release,
+						configuration,
 						context.output_format,
 					)?;
 					output = Some(rendered_output);
@@ -1498,7 +1514,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					variables,
 					..
 				} => {
-					run_cli_command_command(
+					skipped_for_dry_run = run_cli_command_command(
 						&mut context,
 						step,
 						step_index,
@@ -1512,7 +1528,7 @@ pub(crate) async fn execute_cli_command_with_options(
 							variables: variables.as_ref(),
 							step_inputs: &step_inputs,
 						},
-					)?;
+					)? == CommandStepOutcome::SkippedForDryRun;
 					Ok(())
 				}
 				_ => {
@@ -1538,7 +1554,14 @@ pub(crate) async fn execute_cli_command_with_options(
 			continue;
 		}
 		let elapsed = step_started_at.elapsed();
-		if show_progress {
+		if show_progress && skipped_for_dry_run {
+			progress.step_skipped(
+				step_index,
+				step,
+				None,
+				Some("dry-run; the command was not run"),
+			);
+		} else if show_progress {
 			progress.step_finished(step_index, step, elapsed, &step_phase_timings);
 		}
 		telemetry.capture_step(
@@ -1915,6 +1938,13 @@ fn step_input_is_true(step_inputs: &BTreeMap<String, Vec<String>>, name: &str) -
 		.is_some_and(|value| value == "true")
 }
 
+/// Whether a `Command` step ran its command or skipped it for a dry run.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CommandStepOutcome {
+	Ran,
+	SkippedForDryRun,
+}
+
 fn run_cli_command_command(
 	context: &mut CliContext,
 	step: &CliStepDefinition,
@@ -1922,9 +1952,9 @@ fn run_cli_command_command(
 	progress: &mut ProgressReporter,
 	show_progress: bool,
 	options: CommandStepOptions<'_>,
-) -> MonochangeResult<()> {
-	let Some(command_to_run) = resolve_command_step_command(context, &options) else {
-		return Ok(());
+) -> MonochangeResult<CommandStepOutcome> {
+	let Some(command_to_run) = resolve_command_step_command(context, step, &options) else {
+		return Ok(CommandStepOutcome::SkippedForDryRun);
 	};
 	let interpolated = interpolate_cli_command_command(
 		context,
@@ -1935,20 +1965,14 @@ fn run_cli_command_command(
 	let interactive = step_input_is_true(options.step_inputs, "interactive");
 	let mut process_command = build_process_command(&context.root, options.shell, &interpolated)?;
 	if show_progress && !interactive {
-		progress.step_status(
-			step_index,
-			step,
-			&format!(
-				"running command `{}`",
-				render_command_for_error(&interpolated)
-			),
-		);
+		progress.step_command(step_index, step, &render_command_for_error(&interpolated));
 	}
 	if interactive {
 		// Let the command own the terminal: pause the spinner so it does
 		// not animate over the command's own UI.
 		progress.pause_spinner();
 	}
+	let streamed = progress.is_enabled() && show_progress && !interactive;
 	let output = execute_process_command(
 		&mut process_command,
 		progress,
@@ -1959,11 +1983,20 @@ fn run_cli_command_command(
 		&interpolated,
 	)?;
 
-	ensure_command_succeeded(&output, &interpolated)?;
+	ensure_command_succeeded(&output, &interpolated, streamed)?;
 	store_command_step_output(context, options.step_id, &output);
 	log_command_step_output(context, &interpolated, &output);
+	context.command_results.push(CommandStepResult {
+		step: step.display_name().to_string(),
+		id: options.step_id.map(ToString::to_string),
+		command: render_command_for_error(&interpolated),
+		status: "succeeded",
+		exit_code: output.status.code(),
+		stdout: String::from_utf8_lossy(&output.stdout).trim().to_string(),
+		stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+	});
 
-	Ok(())
+	Ok(CommandStepOutcome::Ran)
 }
 
 fn record_skipped_cli_step(
@@ -1993,6 +2026,7 @@ fn record_skipped_cli_step(
 
 fn resolve_command_step_command<'a>(
 	context: &mut CliContext,
+	step: &CliStepDefinition,
 	options: &CommandStepOptions<'a>,
 ) -> Option<&'a str> {
 	if !context.dry_run {
@@ -2012,6 +2046,15 @@ fn resolve_command_step_command<'a>(
 	context
 		.command_logs
 		.push(format!("skipped command `{skipped}` (dry-run)"));
+	context.command_results.push(CommandStepResult {
+		step: step.display_name().to_string(),
+		id: options.step_id.map(ToString::to_string),
+		command: render_command_for_error(&skipped),
+		status: "skipped",
+		exit_code: None,
+		stdout: String::new(),
+		stderr: String::new(),
+	});
 
 	None
 }
@@ -2088,12 +2131,14 @@ fn execute_process_command(
 fn ensure_command_succeeded(
 	output: &PreparedProcessOutput,
 	interpolated: &str,
+	streamed: bool,
 ) -> MonochangeResult<()> {
 	if output.status.success() {
 		return Ok(());
 	}
 
-	let details = render_process_failure_details(output);
+	let line_limit = streamed.then_some(STREAMED_FAILURE_OUTPUT_LINES);
+	let details = render_process_failure_details(output, line_limit);
 	let rendered_command = render_command_for_error(interpolated);
 
 	Err(MonochangeError::Discovery(format!(
@@ -2240,14 +2285,7 @@ fn drain_stream_events_with_heartbeat_timeout(
 				}
 			}
 			Err(mpsc::RecvTimeoutError::Timeout) => {
-				progress.step_status(
-					step_index,
-					step,
-					&format!(
-						"still running external command after {:.1}s",
-						started_at.elapsed().as_secs_f64()
-					),
-				);
+				progress.step_heartbeat(step_index, step, started_at.elapsed());
 			}
 			Err(mpsc::RecvTimeoutError::Disconnected) => break,
 		}
@@ -2286,18 +2324,41 @@ fn spawn_stream_reader(
 	})
 }
 
-fn render_process_failure_details(output: &PreparedProcessOutput) -> String {
+/// Describe a failed command's exit status and captured output.
+///
+/// When the output already streamed live under the step, `line_limit` keeps
+/// only the last lines of each stream: enough to explain the failure in the
+/// final diagnostic without printing a long build log a second time.
+fn render_process_failure_details(
+	output: &PreparedProcessOutput,
+	line_limit: Option<usize>,
+) -> String {
 	let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
 	let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+	let stdout = tail_process_output("stdout", &stdout, line_limit);
+	let stderr = tail_process_output("stderr", &stderr, line_limit);
 
-	match (stdout.is_empty(), stderr.is_empty()) {
-		(true, true) => output.status.to_string(),
-		(false, true) => format!("{}\nstdout:\n{stdout}", output.status),
-		(true, false) => format!("{}\nstderr:\n{stderr}", output.status),
-		(false, false) => {
-			format!("{}\nstdout:\n{stdout}\n\nstderr:\n{stderr}", output.status)
-		}
+	match (stdout, stderr) {
+		(None, None) => output.status.to_string(),
+		(Some(stdout), None) => format!("{}\n{stdout}", output.status),
+		(None, Some(stderr)) => format!("{}\n{stderr}", output.status),
+		(Some(stdout), Some(stderr)) => format!("{}\n{stdout}\n\n{stderr}", output.status),
 	}
+}
+
+fn tail_process_output(label: &str, text: &str, line_limit: Option<usize>) -> Option<String> {
+	if text.is_empty() {
+		return None;
+	}
+	let mut lines = text.lines().collect::<Vec<_>>();
+	let Some(limit) = line_limit.filter(|limit| lines.len() > *limit) else {
+		return Some(format!("{label}:\n{text}"));
+	};
+	let tail = lines.split_off(lines.len() - limit).join("\n");
+	let total = lines.len() + limit;
+	Some(format!(
+		"{label} (last {limit} of {total} lines, full output above):\n{tail}"
+	))
 }
 
 fn render_command_for_error(command: &str) -> String {
@@ -3023,26 +3084,6 @@ pub(crate) fn build_retarget_release_report(
 	}
 }
 
-fn render_release_commit_report(report: &CommitReleaseReport) -> Vec<String> {
-	let mut lines = vec!["release commit:".to_string()];
-	lines.push(format!("  subject: {}", report.subject));
-	lines.extend(
-		report
-			.commit
-			.as_ref()
-			.map(|commit| format!("  commit: {}", short_commit_sha(commit))),
-	);
-	lines.extend((!report.tracked_paths.is_empty()).then_some("  tracked paths:".to_string()));
-	lines.extend(
-		report
-			.tracked_paths
-			.iter()
-			.map(|path| format!("    - {}", path.display())),
-	);
-	lines.push(format!("  status: {}", report.status.replace('_', "-")));
-	lines
-}
-
 fn render_package_publish_report(
 	report: &package_publish::PackagePublishReport,
 	show_all_packages: bool,
@@ -3344,7 +3385,6 @@ fn append_markdown_output_block(lines: &mut Vec<String>, label: &str, value: Opt
 fn render_package_publish_report_markdown(
 	report: &package_publish::PackagePublishReport,
 	show_all_packages: bool,
-	color: bool,
 ) -> Vec<String> {
 	let summary = report.summary();
 	let mut lines = vec![format!("**{}**", package_publish_headline(report, summary))];
@@ -3360,22 +3400,8 @@ fn render_package_publish_report_markdown(
 		)
 	}) {
 		lines.push(format!(
-			"- **{}** {} via {}",
-			paint_markdown_inline(
-				&format!("`{}`", package.package),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.version),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.registry),
-				MarkdownStyle::Code,
-				color,
-			),
+			"- **`{}`** `{}` via `{}`",
+			package.package, package.version, package.registry
 		));
 	}
 
@@ -3384,14 +3410,12 @@ fn render_package_publish_report_markdown(
 		report,
 		package_publish::PackagePublishStatus::Failed,
 		"Failed",
-		color,
 	);
 	append_publish_problem_rows_markdown(
 		&mut lines,
 		report,
 		package_publish::PackagePublishStatus::Blocked,
 		"Blocked",
-		color,
 	);
 	lines.push(String::new());
 	lines.push(package_publish_counts(report, summary));
@@ -3404,23 +3428,11 @@ fn render_package_publish_report_markdown(
 	lines.push("### Details".to_string());
 	for package in &report.packages {
 		lines.push(format!(
-			"- **{}** {} via {} → {}",
-			paint_markdown_inline(
-				&format!("`{}`", package.package),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.version),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.registry),
-				MarkdownStyle::Code,
-				color,
-			),
-			package_publish_status_label(package.status),
+			"- **`{}`** `{}` via `{}` → {}",
+			package.package,
+			package.version,
+			package.registry,
+			package_publish_status_label(package.status)
 		));
 		lines.push(format!("- **Ecosystem:** {}", package.ecosystem));
 		lines.push(format!(
@@ -3442,25 +3454,19 @@ fn render_package_publish_report_markdown(
 			&mut lines,
 			"Repository",
 			package.trusted_publishing.repository.as_deref(),
-			color,
 		);
 		push_optional_markdown_code_detail(
 			&mut lines,
 			"Workflow",
 			package.trusted_publishing.workflow.as_deref(),
-			color,
 		);
 		push_optional_markdown_code_detail(
 			&mut lines,
 			"Environment",
 			package.trusted_publishing.environment.as_deref(),
-			color,
 		);
 		if let Some(setup_url) = &package.trusted_publishing.setup_url {
-			lines.push(format!(
-				"- **Setup:** {}",
-				paint_markdown_inline(&format!("`{setup_url}`"), MarkdownStyle::Code, color,)
-			));
+			lines.push(format!("- **Setup:** `{setup_url}`"));
 			lines.push(
 				"- **Next:** open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"
 					.to_string(),
@@ -3476,7 +3482,6 @@ fn append_publish_problem_rows_markdown(
 	report: &package_publish::PackagePublishReport,
 	status: package_publish::PackagePublishStatus,
 	title: &str,
-	color: bool,
 ) {
 	let packages = report
 		.packages
@@ -3490,23 +3495,8 @@ fn append_publish_problem_rows_markdown(
 	lines.push(format!("**{title}**"));
 	lines.extend(packages.into_iter().map(|package| {
 		format!(
-			"- **{}** {} via {} — {}",
-			paint_markdown_inline(
-				&format!("`{}`", package.package),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.version),
-				MarkdownStyle::Code,
-				color,
-			),
-			paint_markdown_inline(
-				&format!("`{}`", package.registry),
-				MarkdownStyle::Code,
-				color,
-			),
-			package.message,
+			"- **`{}`** `{}` via `{}` — {}",
+			package.package, package.version, package.registry, package.message
 		)
 	}));
 }
@@ -3534,66 +3524,117 @@ fn trusted_publishing_status_label(
 }
 
 pub(crate) fn render_retarget_release_report(report: &RetargetReleaseReport) -> String {
-	let mut lines = vec!["repair release:".to_string()];
-	lines.push(format!("  from: {}", report.from));
-	lines.push(format!(
-		"  resolved commit: {}",
-		short_commit_sha(&report.resolved_from_commit)
-	));
-	lines.push(format!(
-		"  record commit: {}",
-		short_commit_sha(&report.record_commit)
-	));
-	lines.push(format!(
-		"  target: {}",
-		short_commit_sha(&report.target_commit)
-	));
-	lines.push(format!(
-		"  descendant: {}",
-		if report.is_descendant { "yes" } else { "no" }
-	));
-	lines.push(format!(
-		"  force: {}",
-		if report.force { "yes" } else { "no" }
-	));
-	if !report.git_tag_results.is_empty() {
-		lines.push("  tags to move:".to_string());
-		for tag_result in &report.git_tag_results {
-			lines.push(format!(
-				"    - {} ({} -> {}) [{}]",
-				tag_result.tag_name,
-				short_commit_sha(&tag_result.from_commit),
-				short_commit_sha(&tag_result.to_commit),
-				retarget_operation_label(tag_result.operation),
-			));
-		}
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let count = |operation: RetargetOperation| {
+		report
+			.git_tag_results
+			.iter()
+			.filter(|tag_result| tag_result.operation == operation)
+			.count()
+	};
+	let tags = |count: usize| plural(count, "release tag", "release tags");
+	let target = short_commit_sha(&report.target_commit);
+	let failed = count(RetargetOperation::Failed);
+	let (outcome, headline) = if report.dry_run {
+		(
+			Outcome::Neutral,
+			format!(
+				"Would move {} to {target}",
+				tags(count(RetargetOperation::Planned))
+			),
+		)
+	} else if failed > 0 {
+		(
+			Outcome::Failure,
+			format!("Could not move {} to {target}", tags(failed)),
+		)
+	} else {
+		(
+			Outcome::Success,
+			format!(
+				"Moved {} to {target}",
+				tags(count(RetargetOperation::Moved))
+			),
+		)
+	};
+	let mut details = Vec::new();
+	if report.force {
+		details.push("forced".to_string());
 	}
-	lines.push(format!(
-		"  provider sync: {}",
-		if !report.sync_provider {
-			"disabled".to_string()
-		} else if let Some(provider_result) = report.provider_results.first() {
-			provider_result.provider.to_string()
-		} else {
-			"none".to_string()
-		}
-	));
-	lines.push(format!("  status: {}", report.status.replace('_', "-")));
-	lines.join("\n")
+	if report.dry_run {
+		details.push("dry-run".to_string());
+	}
+	text.headline(outcome, &headline, &details);
+	let provider = if !report.sync_provider {
+		"not synced".to_string()
+	} else if let Some(provider_result) = report.provider_results.first() {
+		format!("{} releases synced", provider_result.provider)
+	} else {
+		"nothing to sync".to_string()
+	};
+	text.fields(&[
+		(
+			"Ref",
+			format!(
+				"{} → {}",
+				report.from,
+				short_commit_sha(&report.resolved_from_commit)
+			),
+		),
+		("Record commit", short_commit_sha(&report.record_commit)),
+		(
+			"Target",
+			format!(
+				"{target}{}",
+				if report.is_descendant {
+					" · descends from the record commit"
+				} else {
+					" · does not descend from the record commit"
+				}
+			),
+		),
+		("Provider", provider),
+	]);
+	if !report.git_tag_results.is_empty() {
+		text.section("Tags", Some(report.git_tag_results.len()));
+		let rows = report
+			.git_tag_results
+			.iter()
+			.map(|tag_result| {
+				vec![
+					TableCell::new(&tag_result.tag_name, Tone::Heading),
+					TableCell::new(
+						retarget_operation_label(tag_result.operation).replace('_', " "),
+						retarget_operation_tone(tag_result.operation),
+					),
+					TableCell::new(
+						format!(
+							"{} → {}",
+							short_commit_sha(&tag_result.from_commit),
+							short_commit_sha(&tag_result.to_commit)
+						),
+						Tone::Value,
+					),
+					TableCell::new(tag_result.message.clone().unwrap_or_default(), Tone::Muted),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
+	}
+	text.render()
 }
 
-fn push_optional_markdown_code_detail(
-	lines: &mut Vec<String>,
-	label: &str,
-	value: Option<&str>,
-	color: bool,
-) {
-	lines.extend(value.map(|value| {
-		format!(
-			"- **{label}:** {}",
-			paint_markdown_inline(&format!("`{value}`"), MarkdownStyle::Code, color,)
-		)
-	}));
+fn retarget_operation_tone(operation: RetargetOperation) -> Tone {
+	match operation {
+		RetargetOperation::Planned => Tone::Accent,
+		RetargetOperation::Moved => Tone::Success,
+		RetargetOperation::AlreadyUpToDate | RetargetOperation::Skipped => Tone::Muted,
+		RetargetOperation::Failed => Tone::Error,
+	}
+}
+
+fn push_optional_markdown_code_detail(lines: &mut Vec<String>, label: &str, value: Option<&str>) {
+	lines.extend(value.map(|value| format!("- **{label}:** `{value}`")));
 }
 
 pub(crate) fn retarget_operation_label(operation: RetargetOperation) -> &'static str {
@@ -3686,192 +3727,378 @@ pub(crate) fn render_cli_command_result(
 		return render_retarget_release_report(report);
 	}
 
-	let mut lines = context.package_publish_report.as_ref().map_or_else(
-		|| {
-			vec![format!(
-				"command `{}` completed{}",
-				cli_command.name,
-				if context.dry_run { " (dry-run)" } else { "" }
-			)]
-		},
-		|report| {
-			render_package_publish_report(
-				report,
+	let mut report = TextReport::new(TextTheme::for_stdout());
+	if let Some(publish_report) = &context.package_publish_report {
+		report.raw_block(
+			&render_package_publish_report(
+				publish_report,
 				boolean_step_input(&context.last_step_inputs, "show-all"),
 			)
-		},
-	);
-
-	if let Some(prepared_release) = &context.prepared_release {
-		render_prepared_release_summary(&mut lines, prepared_release, context);
+			.join("\n"),
+		);
 	}
-
-	if let Some(report) = &context.rate_limit_report {
-		lines.push("publish rate limits:".to_string());
-		if report.windows.is_empty() {
-			lines.push("- no publish operations matched the current plan".to_string());
-		} else {
-			for window in &report.windows {
-				lines.push(format!(
-					"- {} {} pending={} batches={} confidence={:?}",
-					window.registry,
-					window.operation,
-					window.pending,
-					window.batches_required,
-					window.confidence
-				));
-				if let Some(limit) = window.limit {
-					lines.push(format!("  limit: {limit}"));
-				}
-				if let Some(window_seconds) = window.window_seconds {
-					lines.push(format!("  window: {window_seconds}s"));
-				}
-				lines.push(format!("  notes: {}", window.notes));
-			}
-			if !report.batches.is_empty() {
-				lines.push("planned batches:".to_string());
-				for batch in &report.batches {
-					lines.push(format!(
-						"- {} batch {}/{} packages: {}",
-						batch.registry,
-						batch.batch_index,
-						batch.total_batches,
-						batch.packages.join(", ")
-					));
-					if let Some(wait_seconds) = batch.recommended_wait_seconds {
-						lines.push(format!("  wait: {wait_seconds}s before this batch"));
-					}
-				}
-			}
-		}
-		for warning in &report.warnings {
-			lines.push(format!("- warning: {warning}"));
-		}
+	if let Some(prepared_release) = &context.prepared_release {
+		render_prepared_release_summary(&mut report, prepared_release, context);
+	} else {
+		render_release_automation_sections(&mut report, context);
+	}
+	if let Some(rate_limits) = &context.rate_limit_report {
+		render_rate_limit_sections(&mut report, rate_limits);
 	}
 	if let Some(evaluation) = &context.changeset_policy_evaluation {
-		lines.push(format!("changeset policy: {}", evaluation.status));
-		lines.push(evaluation.summary.clone());
-		lines.extend((!evaluation.matched_skip_labels.is_empty()).then(|| {
-			format!(
-				"matched skip labels: {}",
-				evaluation.matched_skip_labels.join(", ")
-			)
-		}));
-		if !evaluation.matched_paths.is_empty() {
-			lines.push("matched paths:".to_string());
-			for path in &evaluation.matched_paths {
-				lines.push(format!("- {path}"));
-			}
-		}
-		if !evaluation.changeset_paths.is_empty() {
-			lines.push("changeset files:".to_string());
-			for path in &evaluation.changeset_paths {
-				lines.push(format!("- {path}"));
-			}
-		}
-		if !evaluation.errors.is_empty() {
-			lines.push("errors:".to_string());
-			for error in &evaluation.errors {
-				lines.push(format!("- {error}"));
-			}
-		}
-		if !evaluation.warnings.is_empty() {
-			lines.push("warnings:".to_string());
-			for warning in &evaluation.warnings {
-				lines.push(format!("- {warning}"));
-			}
-		}
+		render_changeset_policy_sections(&mut report, evaluation);
 	}
 	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
 	if !context.command_logs.is_empty()
 		&& (context.package_publish_report.is_none() || show_all_publish_details)
 	{
-		lines.push("commands:".to_string());
-		for log in &context.command_logs {
-			lines.push(format!("- {log}"));
-		}
+		report.section("Log", None);
+		let verbose = report.is_verbose();
+		report.list(
+			context
+				.command_logs
+				.iter()
+				.map(|log| {
+					if verbose {
+						log.trim().to_string()
+					} else {
+						summarize_log(log)
+					}
+				})
+				.filter(|log| !log.is_empty()),
+			COMMAND_LOG_LIMIT,
+		);
 	}
-	lines.join("\n")
+	if report.is_empty() {
+		render_completed_headline(&mut report, cli_command, context.dry_run);
+	}
+	report.render()
+}
+
+/// Items shown in a text list before it is truncated; JSON output always
+/// carries the complete list.
+const CHANGED_FILE_LIMIT: usize = 20;
+const COMMAND_LOG_LIMIT: usize = 20;
+
+fn render_completed_headline(
+	report: &mut TextReport,
+	cli_command: &CliCommandDefinition,
+	dry_run: bool,
+) {
+	let details = if dry_run {
+		vec!["dry-run".to_string()]
+	} else {
+		Vec::new()
+	};
+	report.headline(
+		Outcome::Success,
+		&format!("{} completed", cli_command.name),
+		&details,
+	);
 }
 
 fn render_prepared_release_summary(
-	lines: &mut Vec<String>,
+	report: &mut TextReport,
 	prepared_release: &PreparedRelease,
 	context: &CliContext,
 ) {
-	if let Some(version) = &prepared_release.version {
-		lines.push(format!("version: {version}"));
+	let mut details = Vec::new();
+	if !prepared_release.released_packages.is_empty() {
+		details.push(plural(
+			prepared_release.released_packages.len(),
+			"package",
+			"packages",
+		));
+	}
+	if context.dry_run {
+		details.push("dry-run, no files were changed".to_string());
+	} else if !prepared_release.changed_files.is_empty() {
+		details.push(format!(
+			"{} changed",
+			plural(prepared_release.changed_files.len(), "file", "files")
+		));
+	}
+	let (outcome, headline) = if prepared_release.release_targets.is_empty()
+		&& prepared_release.released_packages.is_empty()
+	{
+		(Outcome::Neutral, "No release planned")
+	} else if context.dry_run {
+		(Outcome::Neutral, "Release preview")
+	} else {
+		(Outcome::Success, "Prepared release")
+	};
+	report.headline(outcome, headline, &details);
+
+	if !prepared_release.release_targets.is_empty() {
+		report.section("Releases", None);
+		render_release_target_rows(report, &prepared_release.release_targets);
 	}
 
 	if !prepared_release.released_packages.is_empty() {
-		lines.push(format!(
-			"released packages: {}",
-			prepared_release.released_packages.join(", ")
-		));
+		report.section("Packages", Some(prepared_release.released_packages.len()));
+		for line in wrap_names(&prepared_release.released_packages, PACKAGE_LINE_WIDTH) {
+			report.indented(&line, Tone::Plain);
+		}
 	}
 
-	if !prepared_release.release_targets.is_empty() {
-		lines.push("release targets:".to_string());
-		for target in &prepared_release.release_targets {
-			lines.push(format!(
-				"- {} {} -> {} (tag: {}, release: {})",
-				target.kind, target.id, target.tag_name, target.tag, target.release,
-			));
+	render_release_automation_sections(report, context);
+
+	if !prepared_release.changed_files.is_empty() {
+		report.section("Changed files", Some(prepared_release.changed_files.len()));
+		report.list(
+			prepared_release
+				.changed_files
+				.iter()
+				.map(|path| path.display().to_string()),
+			CHANGED_FILE_LIMIT,
+		);
+	}
+
+	if !prepared_release.deleted_changesets.is_empty() {
+		report.section(
+			"Consumed changesets",
+			Some(prepared_release.deleted_changesets.len()),
+		);
+		report.list(
+			prepared_release
+				.deleted_changesets
+				.iter()
+				.map(|path| path.display().to_string()),
+			CHANGED_FILE_LIMIT,
+		);
+	}
+
+	if context.show_diff && !context.prepared_file_diffs.is_empty() {
+		report.section("File diffs", Some(context.prepared_file_diffs.len()));
+		for file_diff in &context.prepared_file_diffs {
+			report.raw_block(&file_diff.display_diff);
 		}
 	}
 
 	if let Some(path) = &context.release_manifest_path {
-		lines.push(format!("release manifest: {}", path.display()));
+		report.fields(&[("Manifest", path.display().to_string())]);
 	}
+}
 
+/// Release commit, provider releases, release request, and issue comments.
+///
+/// These results can exist without a prepared release, for example when
+/// `publish-release` reads a committed release record, so they render on
+/// their own instead of only inside the release summary.
+fn render_release_automation_sections(report: &mut TextReport, context: &CliContext) {
+	if let Some(commit_report) = &context.release_commit_report {
+		render_release_commit_section(report, commit_report, &context.root);
+	}
 	if !context.release_results.is_empty() {
-		lines.push("releases:".to_string());
-		for release in &context.release_results {
-			lines.push(format!("- {release}"));
-		}
+		report.section("Provider releases", Some(context.release_results.len()));
+		report.list(context.release_results.iter().cloned(), usize::MAX);
 	}
-
-	if let Some(release_commit_report) = &context.release_commit_report {
-		lines.extend(render_release_commit_report(release_commit_report));
-	}
-
 	if let Some(release_request_result) = &context.release_request_result {
-		lines.push("release request:".to_string());
-		lines.push(format!("- {release_request_result}"));
+		report.section("Release request", None);
+		report.indented(release_request_result, Tone::Plain);
 	}
-	let request_warnings = release_request_warning_lines(context.release_request.as_ref());
-	if !request_warnings.is_empty() {
-		lines.push("release request warnings:".to_string());
-		lines.extend(request_warnings);
+	for warning in release_request_warning_lines(context.release_request.as_ref()) {
+		report.paragraph(
+			&format!("warning: {}", warning.trim_start_matches("- ")),
+			Tone::Warning,
+		);
 	}
-
 	if !context.issue_comment_results.is_empty() {
-		lines.push("issue comments:".to_string());
-		for issue_comment in &context.issue_comment_results {
-			lines.push(format!("- {issue_comment}"));
-		}
+		report.section("Issue comments", Some(context.issue_comment_results.len()));
+		report.list(context.issue_comment_results.iter().cloned(), usize::MAX);
 	}
+}
 
-	append_changed_file_lines(lines, &prepared_release.changed_files);
+fn render_release_target_rows(report: &mut TextReport, targets: &[ReleaseTarget]) {
+	let mut rows = Vec::with_capacity(targets.len());
+	for target in targets {
+		let mut traits = vec![target.kind.to_string()];
+		if target.tag {
+			traits.push("tag".to_string());
+		}
+		if target.release {
+			traits.push("release".to_string());
+		}
+		rows.push(vec![
+			TableCell::new(&target.id, Tone::Heading),
+			TableCell::new(&target.tag_name, Tone::Value),
+			TableCell::new(traits.join(" · "), Tone::Muted),
+		]);
+	}
+	report.table(&rows);
+}
 
-	if context.show_diff && !context.prepared_file_diffs.is_empty() {
-		lines.push("file diffs:".to_string());
-		for (index, file_diff) in context.prepared_file_diffs.iter().enumerate() {
-			if index > 0 {
-				lines.push(String::new());
+fn render_release_commit_section(
+	report: &mut TextReport,
+	commit_report: &CommitReleaseReport,
+	root: &Path,
+) {
+	report.section("Release commit", None);
+	let commit = commit_report
+		.commit
+		.as_deref()
+		.map_or_else(|| "(not created)".to_string(), short_commit_sha);
+	report.table(&[vec![
+		TableCell::new(commit, Tone::Value),
+		TableCell::plain(&commit_report.subject),
+	]]);
+	let mut details = vec![plural(
+		commit_report.tracked_paths.len(),
+		"tracked path",
+		"tracked paths",
+	)];
+	if commit_report.status != "completed" {
+		details.push(commit_report.status.replace('_', "-"));
+	}
+	report.indented(&details.join(" · "), Tone::Muted);
+	let outside_changed_files = commit_report
+		.tracked_paths
+		.iter()
+		.filter(|path| path.is_absolute())
+		.map(|path| root_relative(root, path).display().to_string())
+		.collect::<Vec<_>>();
+	if !outside_changed_files.is_empty() {
+		report.list(outside_changed_files, CHANGED_FILE_LIMIT);
+	}
+}
+
+fn render_rate_limit_sections(
+	report: &mut TextReport,
+	rate_limits: &monochange_core::PublishRateLimitReport,
+) {
+	report.section("Publish rate limits", None);
+	if rate_limits.windows.is_empty() {
+		report.indented(
+			"no publish operations matched the current plan",
+			Tone::Muted,
+		);
+	}
+	for window in &rate_limits.windows {
+		report.indented(
+			&format!(
+				"{} {}: {} pending, {} required, confidence {:?}",
+				window.registry,
+				window.operation,
+				window.pending,
+				plural(window.batches_required, "batch", "batches"),
+				window.confidence
+			),
+			Tone::Plain,
+		);
+		let mut limits = Vec::new();
+		if let Some(limit) = window.limit {
+			limits.push(format!("limit {limit}"));
+		}
+		if let Some(window_seconds) = window.window_seconds {
+			limits.push(format!("per {window_seconds}s"));
+		}
+		limits.push(window.notes.clone());
+		report.indented(&format!("  {}", limits.join(" · ")), Tone::Muted);
+	}
+	if !rate_limits.batches.is_empty() {
+		report.section("Planned batches", Some(rate_limits.batches.len()));
+		for batch in &rate_limits.batches {
+			report.indented(
+				&format!(
+					"{} batch {}/{}: {}",
+					batch.registry,
+					batch.batch_index,
+					batch.total_batches,
+					batch.packages.join(", ")
+				),
+				Tone::Plain,
+			);
+			if let Some(wait_seconds) = batch.recommended_wait_seconds {
+				report.indented(
+					&format!("  wait {wait_seconds}s before this batch"),
+					Tone::Muted,
+				);
 			}
-			lines.push(file_diff.display_diff.clone());
 		}
 	}
-
-	if prepared_release.deleted_changesets.is_empty() {
-		return;
+	for warning in &rate_limits.warnings {
+		report.paragraph(&format!("warning: {warning}"), Tone::Warning);
 	}
+}
 
-	lines.push("deleted changesets:".to_string());
-	for path in &prepared_release.deleted_changesets {
-		lines.push(format!("- {}", path.display()));
+fn render_changeset_policy_sections(
+	report: &mut TextReport,
+	evaluation: &ChangesetPolicyEvaluation,
+) {
+	let outcome = match evaluation.status {
+		ChangesetPolicyStatus::Failed => Outcome::Failure,
+		ChangesetPolicyStatus::Passed | ChangesetPolicyStatus::Skipped => Outcome::Success,
+		ChangesetPolicyStatus::NotRequired => Outcome::Neutral,
+	};
+	report.headline(
+		outcome,
+		&evaluation.summary,
+		&[format!(
+			"changeset policy {}",
+			evaluation.status.to_string().replace('_', " ")
+		)],
+	);
+	let errors = unique_lines(&evaluation.errors);
+	if !errors.is_empty() {
+		report.section("Errors", Some(errors.len()));
+		report.list(errors.iter().map(|error| format!("✖ {error}")), usize::MAX);
 	}
+	let warnings = unique_lines(&evaluation.warnings);
+	if !warnings.is_empty() {
+		report.section("Warnings", Some(warnings.len()));
+		report.list(
+			warnings.iter().map(|warning| format!("▲ {warning}")),
+			usize::MAX,
+		);
+	}
+	if !evaluation.matched_skip_labels.is_empty() {
+		report.fields(&[("Skip labels", evaluation.matched_skip_labels.join(", "))]);
+	}
+	if !evaluation.changeset_paths.is_empty() {
+		report.section("Changesets", Some(evaluation.changeset_paths.len()));
+		report.list(
+			evaluation.changeset_paths.iter().cloned(),
+			CHANGED_FILE_LIMIT,
+		);
+	}
+	if !evaluation.matched_paths.is_empty() {
+		report.section("Matched paths", Some(evaluation.matched_paths.len()));
+		report.list(evaluation.matched_paths.iter().cloned(), CHANGED_FILE_LIMIT);
+	}
+}
+
+/// The distinct lines of `lines`, in their original order.
+fn unique_lines(lines: &[String]) -> Vec<&str> {
+	let mut seen = BTreeSet::new();
+	lines
+		.iter()
+		.map(String::as_str)
+		.filter(|line| seen.insert(*line))
+		.collect()
+}
+
+/// Width that package name lists wrap at in text output.
+const PACKAGE_LINE_WIDTH: usize = 96;
+
+/// Join names with commas, wrapping before a line would exceed `width`.
+fn wrap_names(names: &[String], width: usize) -> Vec<String> {
+	let mut lines = Vec::new();
+	let mut line = String::new();
+	for (index, name) in names.iter().enumerate() {
+		let separator = if index + 1 == names.len() { "" } else { "," };
+		let item = format!("{name}{separator}");
+		if !line.is_empty() && display_width(&line) + 1 + display_width(&item) > width {
+			lines.push(std::mem::take(&mut line));
+		}
+		if !line.is_empty() {
+			line.push(' ');
+		}
+		line.push_str(&item);
+	}
+	if !line.is_empty() {
+		lines.push(line);
+	}
+	lines
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -3976,39 +4203,128 @@ fn build_release_version_summary(prepared_release: &PreparedRelease) -> ReleaseV
 	ReleaseVersionSummary { packages, groups }
 }
 
-fn render_release_version_summary_text(summary: &ReleaseVersionSummary<'_>) -> String {
+fn render_release_version_summary_text(
+	summary: &ReleaseVersionSummary<'_>,
+	package_labels: &BTreeMap<String, String>,
+) -> String {
+	let mut report = TextReport::new(TextTheme::for_stdout());
 	if summary.groups.is_empty() && summary.packages.is_empty() {
-		return "no package or group versions were planned".to_string();
+		report.headline(
+			Outcome::Neutral,
+			"No versions planned",
+			&["add a changeset with `monochange change` to plan a release".to_string()],
+		);
+		return report.render();
 	}
 
-	let mut output = String::new();
+	let label = |package_id: &str| {
+		package_labels
+			.get(package_id)
+			.cloned()
+			.unwrap_or_else(|| package_id.to_string())
+	};
+	let mut details = Vec::new();
 	if !summary.groups.is_empty() {
-		output.push_str("group versions:");
-		for group in &summary.groups {
-			if let Some(version) = &group.planned_version {
-				let _ = write!(output, "\n- {}: {version}", group.group_id);
+		details.push(plural(summary.groups.len(), "group", "groups"));
+	}
+	details.push(plural(summary.packages.len(), "package", "packages"));
+	report.headline(Outcome::Success, "Next versions", &details);
+
+	let grouped_ids = summary
+		.groups
+		.iter()
+		.map(|group| group.group_id.as_str())
+		.collect::<BTreeSet<_>>();
+	if !summary.groups.is_empty() {
+		report.section("Groups", None);
+		let planned_groups = summary.groups.iter().filter_map(|group| {
+			group
+				.planned_version
+				.as_ref()
+				.map(|version| (group, version))
+		});
+		for (group, version) in planned_groups {
+			report.table(&[vec![
+				TableCell::new(&group.group_id, Tone::Heading),
+				TableCell::new(version.to_string(), Tone::Value),
+				TableCell::new(group.recommended_bump.to_string(), Tone::Muted),
+			]]);
+			let members = summary
+				.packages
+				.iter()
+				.filter(|decision| decision.group_id.as_deref() == Some(group.group_id.as_str()))
+				.map(|decision| label(&decision.package_id))
+				.collect::<Vec<_>>();
+			for line in wrap_names(&members, PACKAGE_LINE_WIDTH - 4) {
+				report.indented(&format!("  {line}"), Tone::Muted);
 			}
 		}
 	}
-	if !summary.packages.is_empty() {
-		if !output.is_empty() {
-			output.push('\n');
-		}
-		output.push_str("package versions:");
-		for decision in &summary.packages {
-			if let Some(version) = &decision.planned_version {
-				let _ = write!(output, "\n- {}: {version}", decision.package_id);
-			}
-		}
+
+	let ungrouped = summary
+		.packages
+		.iter()
+		.filter(|decision| {
+			decision
+				.group_id
+				.as_deref()
+				.is_none_or(|group_id| !grouped_ids.contains(group_id))
+		})
+		.filter_map(|decision| {
+			decision.planned_version.as_ref().map(|version| {
+				vec![
+					TableCell::new(label(&decision.package_id), Tone::Heading),
+					TableCell::new(version.to_string(), Tone::Value),
+					TableCell::new(decision.recommended_bump.to_string(), Tone::Muted),
+				]
+			})
+		})
+		.collect::<Vec<_>>();
+	if !ungrouped.is_empty() {
+		report.section("Packages", None);
+		report.table(&ungrouped);
 	}
-	output
+	report.render()
+}
+
+/// Map package record ids such as `cargo:crates/core/Cargo.toml` to the id
+/// the package is configured under in monochange.toml, such as `core`.
+fn configured_package_labels(
+	configuration: &monochange_core::WorkspaceConfiguration,
+	package_ids: impl IntoIterator<Item = String>,
+) -> BTreeMap<String, String> {
+	let configured_by_path = configuration
+		.packages
+		.iter()
+		.map(|package| (normalized_package_dir(&package.path), package.id.clone()))
+		.collect::<BTreeMap<_, _>>();
+	package_ids
+		.into_iter()
+		.filter_map(|package_id| {
+			let manifest = package_id
+				.split_once(':')
+				.map(|(_, path)| Path::new(path))?;
+			let directory = normalized_package_dir(manifest.parent().unwrap_or(Path::new("")));
+			let configured_id = configured_by_path.get(&directory)?.clone();
+			Some((package_id, configured_id))
+		})
+		.collect()
+}
+
+fn normalized_package_dir(path: &Path) -> String {
+	let text = path.to_string_lossy().replace('\\', "/");
+	let text = text.trim_start_matches("./").trim_end_matches('/');
+	if text == "." {
+		String::new()
+	} else {
+		text.to_string()
+	}
 }
 
 fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) -> String {
 	if summary.groups.is_empty() && summary.packages.is_empty() {
 		return "No package or group versions were planned.".to_string();
 	}
-	let color = stdout_supports_color();
 	let mut sections = Vec::with_capacity(
 		usize::from(!summary.groups.is_empty()) + usize::from(!summary.packages.is_empty()),
 	);
@@ -4017,46 +4333,33 @@ fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) 
 			.groups
 			.iter()
 			.filter_map(|group| {
-				group.planned_version.as_ref().map(|version| {
-					format!(
-						"- {}: {}",
-						paint_markdown_inline(
-							&format!("`{}`", group.group_id),
-							MarkdownStyle::Code,
-							color,
-						),
-						paint_markdown_inline(&format!("`{version}`"), MarkdownStyle::Code, color,),
-					)
-				})
+				group
+					.planned_version
+					.as_ref()
+					.map(|version| format!("- `{}`: `{version}`", group.group_id))
 			})
 			.collect::<Vec<_>>();
-		sections.push(render_markdown_section("Group versions", &lines, color));
+		sections.push(render_markdown_section("Group versions", &lines));
 	}
 	if !summary.packages.is_empty() {
 		let lines = summary
 			.packages
 			.iter()
 			.filter_map(|decision| {
-				decision.planned_version.as_ref().map(|version| {
-					format!(
-						"- {}: {}",
-						paint_markdown_inline(
-							&format!("`{}`", decision.package_id),
-							MarkdownStyle::Code,
-							color,
-						),
-						paint_markdown_inline(&format!("`{version}`"), MarkdownStyle::Code, color,),
-					)
-				})
+				decision
+					.planned_version
+					.as_ref()
+					.map(|version| format!("- `{}`: `{version}`", decision.package_id))
 			})
 			.collect::<Vec<_>>();
-		sections.push(render_markdown_section("Package versions", &lines, color));
+		sections.push(render_markdown_section("Package versions", &lines));
 	}
 	sections.join("\n\n")
 }
 
 fn render_display_versions_output(
 	prepared_release: &PreparedRelease,
+	configuration: &monochange_core::WorkspaceConfiguration,
 	format: OutputFormat,
 ) -> MonochangeResult<String> {
 	let summary = build_release_version_summary(prepared_release);
@@ -4065,18 +4368,16 @@ fn render_display_versions_output(
 			format.render_json_value(&summary, "display versions")
 		}
 		OutputFormat::Markdown => Ok(render_release_version_summary_markdown(&summary)),
-		OutputFormat::Text => Ok(render_release_version_summary_text(&summary)),
-	}
-}
-
-fn append_changed_file_lines(lines: &mut Vec<String>, changed_files: &[PathBuf]) {
-	if !changed_files.is_empty() {
-		lines.push("changed files:".to_string());
-		lines.extend(
-			changed_files
-				.iter()
-				.map(|path| format!("- {}", path.display())),
-		);
+		OutputFormat::Text => {
+			let labels = configured_package_labels(
+				configuration,
+				summary
+					.packages
+					.iter()
+					.map(|decision| decision.package_id.clone()),
+			);
+			Ok(render_release_version_summary_text(&summary, &labels))
+		}
 	}
 }
 
@@ -4091,23 +4392,8 @@ pub(crate) fn render_cli_command_markdown_result(
 		return render_cli_command_result(cli_command, context);
 	}
 
-	let color = stdout_supports_color();
-	let mut sections = vec![format!(
-		"# {}{}",
-		paint_markdown_inline(
-			&format!("`{}`", cli_command.name),
-			MarkdownStyle::Title,
-			color
-		),
-		if context.dry_run {
-			format!(
-				" {}",
-				paint_markdown_inline("(dry-run)", MarkdownStyle::Muted, color)
-			)
-		} else {
-			String::new()
-		}
-	)];
+	let dry_run = if context.dry_run { " (dry-run)" } else { "" };
+	let mut sections = vec![format!("# `{}`{dry_run}", cli_command.name)];
 	if let Some(report) = &context.package_publish_report {
 		let title = match report.mode {
 			package_publish::PackagePublishRunMode::Placeholder => "Placeholder publishing",
@@ -4116,18 +4402,14 @@ pub(crate) fn render_cli_command_markdown_result(
 		let rendered = render_package_publish_report_markdown(
 			report,
 			boolean_step_input(&context.last_step_inputs, "show-all"),
-			color,
 		);
-		sections.push(render_markdown_section(title, &rendered, color));
+		sections.push(render_markdown_section(title, &rendered));
 	}
 
 	if let Some(prepared_release) = &context.prepared_release {
 		let mut summary = Vec::new();
 		if let Some(version) = &prepared_release.version {
-			summary.push(format!(
-				"- **Version:** {}",
-				paint_markdown_inline(&format!("`{version}`"), MarkdownStyle::Code, color)
-			));
+			summary.push(format!("- **Version:** `{version}`"));
 		}
 		if !prepared_release.released_packages.is_empty() {
 			summary.push(format!(
@@ -4135,28 +4417,20 @@ pub(crate) fn render_cli_command_markdown_result(
 				prepared_release
 					.released_packages
 					.iter()
-					.map(|package| {
-						paint_markdown_inline(&format!("`{package}`"), MarkdownStyle::Code, color)
-					})
+					.map(|package| format!("`{package}`"))
 					.collect::<Vec<_>>()
 					.join(", ")
 			));
 		}
 		if !summary.is_empty() {
-			sections.push(render_markdown_section("Summary", &summary, color));
+			sections.push(render_markdown_section("Summary", &summary));
 		}
 		if !prepared_release.release_targets.is_empty() {
 			let mut lines = Vec::new();
 			for target in &prepared_release.release_targets {
 				lines.push(format!(
-					"- **{} {}** → {}",
-					target.kind,
-					paint_markdown_inline(&format!("`{}`", target.id), MarkdownStyle::Code, color),
-					paint_markdown_inline(
-						&format!("`{}`", target.tag_name),
-						MarkdownStyle::Code,
-						color,
-					),
+					"- **{} `{}`** → `{}`",
+					target.kind, target.id, target.tag_name
 				));
 				lines.push(format!(
 					"  - tag: {} · release: {}",
@@ -4164,20 +4438,12 @@ pub(crate) fn render_cli_command_markdown_result(
 					yes_no(target.release)
 				));
 			}
-			sections.push(render_markdown_section("Release targets", &lines, color));
+			sections.push(render_markdown_section("Release targets", &lines));
 		}
 		if let Some(path) = &context.release_manifest_path {
 			sections.push(render_markdown_section(
 				"Release manifest",
-				&[format!(
-					"- {}",
-					paint_markdown_inline(
-						&format!("`{}`", path.display()),
-						MarkdownStyle::Code,
-						color,
-					)
-				)],
-				color,
+				&[format!("- `{}`", path.display())],
 			));
 		}
 		if !context.release_results.is_empty() {
@@ -4186,20 +4452,18 @@ pub(crate) fn render_cli_command_markdown_result(
 				.iter()
 				.map(|release| format!("- {release}"))
 				.collect::<Vec<_>>();
-			sections.push(render_markdown_section("Releases", &lines, color));
+			sections.push(render_markdown_section("Releases", &lines));
 		}
 		if let Some(release_commit_report) = &context.release_commit_report {
 			sections.push(render_markdown_section(
 				"Release commit",
-				&render_release_commit_report_markdown(release_commit_report, color),
-				color,
+				&render_release_commit_report_markdown(release_commit_report),
 			));
 		}
 		if let Some(release_request_result) = &context.release_request_result {
 			sections.push(render_markdown_section(
 				"Release request",
 				&[format!("- {release_request_result}")],
-				color,
 			));
 		}
 		let request_warnings = release_request_warning_lines(context.release_request.as_ref());
@@ -4207,7 +4471,6 @@ pub(crate) fn render_cli_command_markdown_result(
 			sections.push(render_markdown_section(
 				"Release request warnings",
 				&request_warnings,
-				color,
 			));
 		}
 		if !context.issue_comment_results.is_empty() {
@@ -4216,36 +4479,20 @@ pub(crate) fn render_cli_command_markdown_result(
 				.iter()
 				.map(|issue_comment| format!("- {issue_comment}"))
 				.collect::<Vec<_>>();
-			sections.push(render_markdown_section("Issue comments", &lines, color));
+			sections.push(render_markdown_section("Issue comments", &lines));
 		}
 		if !prepared_release.changed_files.is_empty() {
 			let lines = prepared_release
 				.changed_files
 				.iter()
-				.map(|path| {
-					format!(
-						"- {}",
-						paint_markdown_inline(
-							&format!("`{}`", path.display()),
-							MarkdownStyle::Code,
-							color,
-						)
-					)
-				})
+				.map(|path| format!("- `{}`", path.display()))
 				.collect::<Vec<_>>();
-			sections.push(render_markdown_section("Changed files", &lines, color));
+			sections.push(render_markdown_section("Changed files", &lines));
 		}
 		if context.show_diff && !context.prepared_file_diffs.is_empty() {
 			let mut lines = Vec::new();
 			for file_diff in &context.prepared_file_diffs {
-				lines.push(format!(
-					"### {}",
-					paint_markdown_inline(
-						&format!("`{}`", file_diff.path.display()),
-						MarkdownStyle::Subtitle,
-						color,
-					)
-				));
+				lines.push(format!("### `{}`", file_diff.path.display()));
 				lines.push("```diff".to_string());
 				lines.extend(file_diff.display_diff.lines().map(ToString::to_string));
 				lines.push("```".to_string());
@@ -4254,24 +4501,15 @@ pub(crate) fn render_cli_command_markdown_result(
 			while lines.last().is_some_and(String::is_empty) {
 				lines.pop();
 			}
-			sections.push(render_markdown_section("File diffs", &lines, color));
+			sections.push(render_markdown_section("File diffs", &lines));
 		}
 		if !prepared_release.deleted_changesets.is_empty() {
 			let lines = prepared_release
 				.deleted_changesets
 				.iter()
-				.map(|path| {
-					format!(
-						"- {}",
-						paint_markdown_inline(
-							&format!("`{}`", path.display()),
-							MarkdownStyle::Code,
-							color,
-						)
-					)
-				})
+				.map(|path| format!("- `{}`", path.display()))
 				.collect::<Vec<_>>();
-			sections.push(render_markdown_section("Deleted changesets", &lines, color));
+			sections.push(render_markdown_section("Deleted changesets", &lines));
 		}
 	}
 	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
@@ -4283,36 +4521,9 @@ pub(crate) fn render_cli_command_markdown_result(
 			.iter()
 			.map(|log| format!("- {log}"))
 			.collect::<Vec<_>>();
-		sections.push(render_markdown_section("Commands", &lines, color));
+		sections.push(render_markdown_section("Commands", &lines));
 	}
 	sections.join("\n\n")
-}
-
-#[derive(Clone, Copy)]
-enum MarkdownStyle {
-	Title,
-	Subtitle,
-	Code,
-	Muted,
-}
-
-fn stdout_supports_color() -> bool {
-	std::io::stdout().is_terminal()
-		&& std::env::var_os("NO_COLOR").is_none()
-		&& std::env::var("TERM").is_ok_and(|term| term != "dumb")
-}
-
-fn paint_markdown_inline(text: &str, style: MarkdownStyle, color: bool) -> String {
-	if !color {
-		return text.to_string();
-	}
-	let code = match style {
-		MarkdownStyle::Title => "36;1",
-		MarkdownStyle::Subtitle => "37;1",
-		MarkdownStyle::Code => "35",
-		MarkdownStyle::Muted => "2",
-	};
-	format!("\u{1b}[{code}m{text}\u{1b}[0m")
 }
 
 /// Warn when the rendered release request body was shortened to fit a provider limit.
@@ -4329,40 +4540,26 @@ fn release_request_warning_lines(request: Option<&SourceChangeRequest>) -> Vec<S
 	)]
 }
 
-fn render_markdown_section(title: &str, lines: &[String], color: bool) -> String {
+fn render_markdown_section(title: &str, lines: &[String]) -> String {
 	if lines.is_empty() {
-		return format!(
-			"## {}",
-			paint_markdown_inline(title, MarkdownStyle::Subtitle, color)
-		);
+		return format!("## {title}");
 	}
-	format!(
-		"## {}\n\n{}",
-		paint_markdown_inline(title, MarkdownStyle::Subtitle, color),
-		lines.join("\n")
-	)
+	format!("## {title}\n\n{}", lines.join("\n"))
 }
 
-fn render_release_commit_report_markdown(report: &CommitReleaseReport, color: bool) -> Vec<String> {
+fn render_release_commit_report_markdown(report: &CommitReleaseReport) -> Vec<String> {
 	let mut lines = vec![format!("- **Subject:** {}", report.subject)];
 	if let Some(commit) = &report.commit {
-		lines.push(format!(
-			"- **Commit:** {}",
-			paint_markdown_inline(
-				&format!("`{}`", short_commit_sha(commit)),
-				MarkdownStyle::Code,
-				color,
-			)
-		));
+		lines.push(format!("- **Commit:** `{}`", short_commit_sha(commit)));
 	}
 	if !report.tracked_paths.is_empty() {
 		lines.push("- **Tracked paths:**".to_string());
-		lines.extend(report.tracked_paths.iter().map(|path| {
-			format!(
-				"  - {}",
-				paint_markdown_inline(&format!("`{}`", path.display()), MarkdownStyle::Code, color,)
-			)
-		}));
+		lines.extend(
+			report
+				.tracked_paths
+				.iter()
+				.map(|path| format!("  - `{}`", path.display())),
+		);
 	}
 	lines.push(format!("- **Status:** {}", report.status.replace('_', "-")));
 	lines
@@ -4420,19 +4617,19 @@ fn execute_create_change_file_step(
 	step: &CliStepDefinition,
 	dry_run: bool,
 ) -> MonochangeResult<String> {
+	// Dry runs show the changeset that would be written.
 	let render_preview = |planned: PlannedChangeFile| {
-		if dry_run {
-			format!(
-				"would write change file {}\n\n{}",
-				root_relative(root, &planned.path).display(),
-				planned.content
-			)
-		} else {
-			format!(
-				"wrote change file {}",
+		let mut text = TextReport::new(TextTheme::for_stdout());
+		text.headline(
+			Outcome::Neutral,
+			&format!(
+				"Would create changeset {}",
 				root_relative(root, &planned.path).display()
-			)
-		}
+			),
+			&["dry-run, nothing was written".to_string()],
+		);
+		text.raw_block(&planned.content);
+		text.render()
 	};
 	let is_interactive = step_input_is_true(step_inputs, "interactive");
 
@@ -4470,10 +4667,7 @@ fn execute_create_change_file_step(
 			Ok(render_preview(planned))
 		} else {
 			let path = add_interactive_change_file(root, &result, output_path.as_deref())?;
-			Ok(format!(
-				"wrote change file {}",
-				root_relative(root, &path).display()
-			))
+			Ok(render_created_changeset(root, &path))
 		}
 	} else {
 		let package_refs = step_inputs.get("package").cloned().unwrap_or_default();
@@ -4533,12 +4727,19 @@ fn execute_create_change_file_step(
 			Ok(render_preview(planned))
 		} else {
 			let path = add_change_file(root, request)?;
-			Ok(format!(
-				"wrote change file {}",
-				root_relative(root, &path).display()
-			))
+			Ok(render_created_changeset(root, &path))
 		}
 	}
+}
+
+fn render_created_changeset(root: &Path, path: &Path) -> String {
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	text.headline(
+		Outcome::Success,
+		&format!("Created changeset {}", root_relative(root, path).display()),
+		&[],
+	);
+	text.render()
 }
 
 async fn execute_affected_packages_step(
@@ -4639,7 +4840,7 @@ async fn save_prepared_release_artifact(
 		(_, Ok(())) => Ok(()),
 		(true, Err(error)) => Err(error),
 		(false, Err(error)) => {
-			tracing::warn!(%error, "failed to save prepared release artifact");
+			tracing::debug!(%error, "failed to save prepared release artifact");
 			Ok(())
 		}
 	}
@@ -4672,6 +4873,7 @@ fn resolve_command_output(
 						} else {
 							&[]
 						},
+						commands: &context.command_results,
 					},
 				)
 			}
@@ -4742,17 +4944,65 @@ fn resolve_command_output(
 		};
 		return Ok(rendered);
 	}
+	if has_release_automation_results(context) {
+		let format = context.output_format;
+		return match format {
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				let mut value = serde_json::Map::new();
+				value.insert(
+					"releases".to_string(),
+					serde_json::json!(context.release_requests),
+				);
+				value.insert(
+					"issue_comments".to_string(),
+					serde_json::json!(context.issue_comment_plans),
+				);
+				if !context.command_results.is_empty() {
+					value.insert(
+						"commands".to_string(),
+						serde_json::json!(context.command_results),
+					);
+				}
+				format.render_json_value(&value, "release automation result")
+			}
+			OutputFormat::Markdown | OutputFormat::Text => {
+				Ok(render_cli_command_result(cli_command, context))
+			}
+		};
+	}
+	if matches!(
+		context.output_format,
+		OutputFormat::Json | OutputFormat::JsonMin
+	) && output.is_none()
+		&& !context.command_results.is_empty()
+	{
+		return context.output_format.render_json_value(
+			&serde_json::json!({
+				"command": cli_command.name,
+				"dry_run": dry_run,
+				"commands": context.command_results,
+			}),
+			"command results",
+		);
+	}
 	if !context.command_logs.is_empty() {
 		return Ok(render_cli_command_result(cli_command, context));
 	}
 
 	Ok(output.unwrap_or_else(|| {
-		format!(
-			"command `{}` completed{}",
-			cli_command.name,
-			if dry_run { " (dry-run)" } else { "" }
-		)
+		let mut report = TextReport::new(TextTheme::for_stdout());
+		render_completed_headline(&mut report, cli_command, dry_run);
+		report.render()
 	}))
+}
+
+/// Provider releases and issue comments can be produced from a committed
+/// release record, without a prepared release in this run.
+fn has_release_automation_results(context: &CliContext) -> bool {
+	!context.release_requests.is_empty()
+		|| !context.release_results.is_empty()
+		|| !context.issue_comment_plans.is_empty()
+		|| !context.issue_comment_results.is_empty()
 }
 // patch-coverage:ignore-end
 

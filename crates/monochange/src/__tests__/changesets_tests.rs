@@ -361,33 +361,13 @@ fn render_changeset_diagnostics_streams_text_without_temporary_lines() {
 
 	let rendered = render_changeset_diagnostics(&report);
 
-	assert_eq!(
-		rendered,
-		concat!(
-			"changeset: .changeset/feature.md\n",
-			"  summary: ship feature\n",
-			"  details: long details\n",
-			"  targets:\n",
-			"  - package core (bump: minor, origin: manual)\n",
-			"    caused by: core, api\n",
-			"    evidence: src/lib.rs, README.md\n",
-			"  - package web (bump: auto, origin: inferred)\n",
-			"  introduced: abc1234\n",
-			"  last-updated: def1234\n",
-			"  review request: #42 (https://github.com/example/repo/pull/42)\n",
-			"  related issues: #99, #100\n",
-			"\n",
-			"changeset: .changeset/minimal.md\n",
-			"  summary: <missing summary>\n",
-			"  review request: #77",
-		)
-	);
+	insta::assert_snapshot!(rendered);
 	assert_eq!(
 		render_changeset_diagnostics(&ChangesetDiagnosticsReport {
 			requested_changesets: Vec::new(),
 			changesets: Vec::new(),
 		}),
-		"no matching changesets found"
+		"• No matching changesets found"
 	);
 }
 
@@ -696,4 +676,28 @@ fn semantic_guardrail_warns_for_semantic_changes_without_matching_changeset_targ
 			.iter()
 			.any(|warning| warning.contains("no pending changeset targets"))
 	);
+}
+
+#[test]
+fn verbose_changeset_diagnostics_show_every_details_line() {
+	let report = ChangesetDiagnosticsReport {
+		requested_changesets: vec![PathBuf::from(".changeset/feature.md")],
+		changesets: vec![PreparedChangeset {
+			path: PathBuf::from(".changeset/feature.md"),
+			summary: Some("ship feature".to_string()),
+			details: Some("first line\nsecond line".to_string()),
+			targets: Vec::new(),
+			context: None,
+		}],
+	};
+
+	let summary = render_changeset_diagnostics(&report);
+	assert!(summary.contains("  first line …"), "{summary}");
+	assert!(!summary.contains("second line"), "{summary}");
+
+	let verbose =
+		crate::tests::block_on_in_context(crate::output::text::with_verbosity(true, async {
+			render_changeset_diagnostics(&report)
+		}));
+	assert!(verbose.contains("  first line\n  second line"), "{verbose}");
 }

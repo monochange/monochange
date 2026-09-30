@@ -2,21 +2,20 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-workspace validation passed for [workspace]
-lint: 4 errors, 0 warnings
+✖ Checks failed · 4 errors · 2 fixable
 
-[workspace]/.changeset/missing-heading.md:
-  ✗ **changesets/summary** at 1:1
-     changeset body must start with a summary heading
+.changeset/missing-heading.md
+  1:1  ✖ changeset body must start with a summary heading
+         changesets/summary
 
-[workspace]/.changeset/object-form.md:
-  ✗ **changesets/prefer-inline** at 2:5 [fixable]
-     changeset entry for `app` repeats a bump that type `feat` already implies; use the inline form `app: feat`
+.changeset/object-form.md
+  2:5  ✖ changeset entry for `app` repeats a bump that type `feat` already implies; use the inline form `app: feat`
+         changesets/prefer-inline · fixable
 
-[workspace]/.changeset/section-headings.md:
-  ✗ **changesets/no_section_headings** at 1:1
-     changeset type `fix` must not also be used as a heading
-  ✗ **changesets/prefer-inline** at 2:5 [fixable]
-     changeset entry for `app` repeats a bump that type `fix` already implies; use the inline form `app: fix`
+.changeset/section-headings.md
+  1:1  ✖ changeset type `fix` must not also be used as a heading
+         changesets/no_section_headings
+  2:5  ✖ changeset entry for `app` repeats a bump that type `fix` already implies; use the inline form `app: fix`
+         changesets/prefer-inline · fixable
 
-2 issue(s) can be auto-fixed. Run with --fix to apply.
+Run `monochange check --fix` to fix 2 issues automatically.

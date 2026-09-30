@@ -7,6 +7,34 @@
 - Outcome: proposed output contract and ordered implementation plan
 - Code changes: none
 
+## Progress (2026-09-30)
+
+A CI-log-driven pass landed most of PR 2 and PR 4 below. Evidence came from the `release-pr` job of CI run 36579168374, which needed `--log-level=debug` to show a GitHub API fallback and printed 70 heartbeat lines for one silent step.
+
+Done:
+
+- One stderr channel (`output/terminal.rs::SharedStderr`) now owns spinner erasure, the JSON event sequence, and GitHub Actions log groups for every writer, including `tracing` warnings.
+- Warnings render by default (`output/warnings.rs`); `--log-level` remains maintainer tracing.
+- Progress: aligned step columns, humanized unnamed steps, `$ <command>` lines, dry-run skips, banners only for multi-step commands, 30s/60s CI heartbeats, a spinner timer, phase timings only for slow steps, and GitHub `::group::`/`::warning`/`::error`.
+- Diagnostics (`output/diagnostic.rs`): verbatim snippets, specific codes (`cli.usage`, `step.command_failed`, `git.failed`, `release.record_failed`, `config.unknown_package`, `config.parse_failed`), failed-step context, root-relative paths, guidance-aware hints, and config errors surfaced ahead of clap errors.
+- Text results (`output/text.rs`): headline-first reports for release/preview/prepare, `next`, `check`, `discover`, `diagnose`, `affected`, `validate`, `create`, and `versions sync`; lists truncate at 20 with a pointer to `--format json`.
+- `publish-release --from-ref` and `comment-released-issues` results are no longer dropped, and their `--format json` output is JSON.
+
+Follow-up in the same pull request, approved by the maintainer:
+
+- Bare `monochange versions` is a read-only check; `versions sync` writes.
+- `[cli.<name>]` workflows also run as `monochange <name>` when no built-in owns the name; root help groups commands by task and lists workflows separately; `next-versions` is hidden.
+- Global `--verbose` shows full lists and logs, every phase timing, and `note:` lines from monochange's `INFO` events.
+- `--progress-format json` reports failures as a `diagnostic` event; usage errors exit with status `2`; `--format markdown` output never carries ANSI styling.
+- `--format json` includes a `commands` array with each `Command` step's result.
+- `release-record`, `tag-release`, `retarget-release`, `publish readiness`, `analyze`, `migrate`, and `lint list`/`explain` use the headline-first layout.
+- The release pull request CI job no longer passes `--log-level=debug`.
+
+Still open:
+
+- Publish summaries (PR 3) and release-note structure (PR 5) are unchanged.
+- The verified release commit fallback (GitHub `POST /git/trees` 422 for deleted files) needs `"sha": null` for deletions in `monochange_github`.
+
 ## Assessment
 
 The CLI does not have one output contract. Each command decides what `text`, `markdown`, and `json` mean. Three progress reporters make separate decisions about animation, color, terminal control sequences, and CI. Release-note documents also store rendered Markdown entries instead of structured entries, so a later renderer cannot produce clean text or JSON.

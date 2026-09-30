@@ -40,7 +40,7 @@
 		{
 			"id": "create-version-dry-run-writes-nothing",
 			"kind": "command",
-			"command": "monochange create --package @acme/api --version 2.5.0 --reason \"Rework the request input\" --dry-run > .dry.out 2>&1; rc=$?; grep -q 'would write change file' .dry.out; grep_rc=$?; count=$(ls .changeset/*.md 2>/dev/null | wc -l | tr -d ' '); rm -f .dry.out .changeset/*.md; test $rc -eq 0 -a $grep_rc -eq 0 -a \"$count\" = \"0\"",
+			"command": "monochange create --package @acme/api --version 2.5.0 --reason \"Rework the request input\" --dry-run > .dry.out 2>&1; rc=$?; grep -q 'Would create changeset' .dry.out; grep_rc=$?; count=$(ls .changeset/*.md 2>/dev/null | wc -l | tr -d ' '); rm -f .dry.out .changeset/*.md; test $rc -eq 0 -a $grep_rc -eq 0 -a \"$count\" = \"0\"",
 			"why": "Dry-run must preview the render and write nothing. This pins the freshly fixed behavior on the path most likely to regress, because `--version` changes what the rendered file looks like."
 		}
 	]

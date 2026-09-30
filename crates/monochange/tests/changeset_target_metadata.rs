@@ -136,7 +136,7 @@ fn validate_accepts_scalar_type_shorthand_changesets() {
 		"{}",
 		String::from_utf8_lossy(&output.stderr)
 	);
-	assert!(String::from_utf8_lossy(&output.stdout).contains("workspace validation passed"));
+	assert!(String::from_utf8_lossy(&output.stdout).contains("Workspace validation passed"));
 }
 
 #[test]
@@ -185,7 +185,7 @@ fn interactive_change_cli_writes_selected_bump() {
 
 	let (status, transcript) = run_interactive_change_cli(tempdir.path(), &output_path);
 	assert!(status == 0, "{transcript}");
-	assert!(transcript.contains("wrote change file interactive.md"));
+	assert!(transcript.contains("Created changeset interactive.md"));
 
 	let contents = fs::read_to_string(output_path).unwrap_or_else(|error| panic!("read: {error}"));
 	assert!(contents.contains("sdk: patch"));

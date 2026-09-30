@@ -7,7 +7,7 @@ monochange exposes four kinds of commands:
 1. **Binary commands** are wired directly in `crates/monochange/src/cli.rs`.
 2. **Step commands** are generated from built-in `CliStepDefinition` variants and have names like `monochange step prepare-release`.
 3. **Top-level step aliases** are short built-in commands such as `monochange create`, `monochange discover`, `monochange preview`, and `monochange prepare`. Each runs one built-in step from `CliStepDefinition` with the same inputs, so `monochange preview` is `monochange step prepare-release --dry-run` and `monochange next` is `monochange step display-versions`.
-4. **User-defined workflow commands** are loaded from `[cli.<name>]` tables in `monochange.toml` and run as `monochange run <name>` commands in that repository.
+4. **User-defined workflow commands** are loaded from `[cli.<name>]` tables in `monochange.toml` and run as `monochange run <name>` commands in that repository. They also run as `monochange <name>` when no built-in command has that name; prefer `run` in scripts and agent instructions.
 
 Do not describe a workflow command as built in unless it appears in the built-in list below. Do not use the removed `mc` binary alias in generated instructions; use `monochange` directly.
 
@@ -214,7 +214,7 @@ Run `cargo xtask skill commands check` before changing this file. Run `cargo xta
 | `monochange step publish-readiness`   | Check package registry publishing readiness without publishing packages.                       |
 | `monochange step placeholder-publish` | Publish first-time placeholder package versions for a release record.                          |
 
-Global flags include `--quiet`, `--progress-format <auto|unicode|ascii|json>`, and `--jq <expression>` for JSON output filtering.
+Global flags include `--quiet`, `--verbose` (full lists and logs, every step timing, and progress notes), `--progress-format <auto|unicode|ascii|json>`, and `--jq <expression>` for JSON output filtering. Usage errors exit with status `2`; other failures exit with `1`, and `--progress-format json` reports them as a `diagnostic` event.
 
 `--quiet` suppresses explicit JSON output as well as text, so omit it when parsing stdout. Use `--format json` or `json-min` for a machine-readable payload, and `--jq` when the CLI should filter that payload. Inspect the actual JSON shape: ungrouped release plans keep per-package versions in `release_targets`, while the top-level `version` can be null.
 
@@ -255,7 +255,7 @@ monochange versions sync --strategy compatible # >=1.2.3
 
 `--strategy` belongs to `sync` only; `list` does not accept it. Both subcommands accept `--format text|json|json-min`, and `sync` also accepts `--dry-run`. `--strategy default` resolves package config, then ecosystem config, then the ecosystem default. The command never writes `~` or `=` prefixes; to stamp internal dependency references with a custom prefix at release time, use a typed `versioned_files` entry with an explicit `prefix` (see [configuration.md](configuration.md#versioned-files)).
 
-Calling bare `monochange versions` without a subcommand still runs the legacy sync behavior, but it prints `warning: monochange versions is deprecated and will be removed in a future version; use monochange versions sync instead`. Always use `monochange versions sync` or `monochange versions list`.
+Calling bare `monochange versions` without a subcommand is a read-only check: it reports which internal dependency constraints `sync` would update and never writes files. Use `monochange versions sync` to apply the changes and `monochange versions list` for the version inventory.
 
 Each ecosystem adapter scans its native manifest format:
 

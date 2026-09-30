@@ -29,6 +29,12 @@ use crate::git_support::read_git_file_at_commit;
 use crate::git_support::resolve_git_commit_ref;
 use crate::git_support::resolve_git_tag_commit;
 use crate::hosted_sources;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::plural;
 
 pub(crate) async fn render_release_record_discovery(
 	root: &Path,
@@ -544,93 +550,211 @@ fn release_tag_map(discovery: &ReleaseRecordDiscovery) -> BTreeMap<String, Strin
 }
 
 pub(crate) fn text_release_tag_report(report: &ReleaseTagReport) -> String {
-	let mut lines = vec!["release tags:".to_string()];
-	lines.push(format!("  from: {}", report.from));
-	lines.push(format!(
-		"  resolved commit: {}",
-		crate::short_commit_sha(&report.resolved_from_commit)
-	));
-	lines.push(format!(
-		"  record commit: {}",
-		crate::short_commit_sha(&report.record_commit)
-	));
-	lines.push(format!(
-		"  push: {}",
-		if report.push { "yes" } else { "no" }
-	));
-
-	if report.tag_results.is_empty() {
-		lines.push("  tags: none declared by release record".to_string());
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let count = |operation: ReleaseTagOperation| {
+		report
+			.tag_results
+			.iter()
+			.filter(|tag_result| tag_result.operation == operation)
+			.count()
+	};
+	let push = if report.push {
+		"push enabled"
 	} else {
-		lines.push("  tags:".to_string());
-		for tag_result in &report.tag_results {
-			let existing = tag_result
-				.existing_commit
-				.as_ref()
-				.map_or("missing".to_string(), |commit| {
-					crate::short_commit_sha(commit)
-				});
-			lines.push(format!(
-				"    - {} (existing: {}, target: {}) [{}]",
-				tag_result.tag_name,
-				existing,
-				crate::short_commit_sha(&tag_result.target_commit),
-				match tag_result.operation {
-					ReleaseTagOperation::Planned => "planned",
-					ReleaseTagOperation::Created => "created",
-					ReleaseTagOperation::AlreadyUpToDate => "already_up_to_date",
-				},
-			));
+		"push disabled"
+	};
+	let (outcome, headline) = match report.status.as_str() {
+		"dry_run" => {
+			(
+				Outcome::Neutral,
+				format!(
+					"Would create {}",
+					plural(
+						count(ReleaseTagOperation::Planned),
+						"release tag",
+						"release tags"
+					)
+				),
+			)
 		}
+		"no_tags_declared" => {
+			(
+				Outcome::Neutral,
+				"The release record declares no tags".to_string(),
+			)
+		}
+		"already_up_to_date" => {
+			(
+				Outcome::Success,
+				"Release tags are already up to date".to_string(),
+			)
+		}
+		_ => {
+			(
+				Outcome::Success,
+				format!(
+					"Created {}",
+					plural(
+						count(ReleaseTagOperation::Created),
+						"release tag",
+						"release tags"
+					)
+				),
+			)
+		}
+	};
+	let mut details = vec![push.to_string()];
+	if report.dry_run {
+		details.push("dry-run".to_string());
 	}
+	text.headline(outcome, &headline, &details);
+	text.fields(&[
+		(
+			"Ref",
+			format!(
+				"{} → {}",
+				report.from,
+				crate::short_commit_sha(&report.resolved_from_commit)
+			),
+		),
+		(
+			"Record commit",
+			format!(
+				"{} · {}",
+				crate::short_commit_sha(&report.record_commit),
+				commits_back(report.distance)
+			),
+		),
+	]);
 
-	lines.push(format!("  status: {}", report.status.replace('_', "-")));
-	lines.join("\n")
+	if !report.tag_results.is_empty() {
+		text.section("Tags", Some(report.tag_results.len()));
+		let mut rows = Vec::new();
+		for tag_result in &report.tag_results {
+			let (label, tone) = match tag_result.operation {
+				ReleaseTagOperation::Planned => ("planned", Tone::Accent),
+				ReleaseTagOperation::Created => ("created", Tone::Success),
+				ReleaseTagOperation::AlreadyUpToDate => ("up to date", Tone::Muted),
+			};
+			let existing = match &tag_result.existing_commit {
+				None => "new tag".to_string(),
+				Some(commit) if *commit == tag_result.target_commit => "unchanged".to_string(),
+				Some(commit) => format!("was {}", crate::short_commit_sha(commit)),
+			};
+			rows.push(vec![
+				TableCell::new(&tag_result.tag_name, Tone::Heading),
+				TableCell::new(label, tone),
+				TableCell::new(
+					format!("→ {}", crate::short_commit_sha(&tag_result.target_commit)),
+					Tone::Value,
+				),
+				TableCell::new(existing, Tone::Muted),
+			]);
+			for floating in &tag_result.floating_results {
+				let previous = floating.previous_commit.as_ref().map_or_else(
+					|| "new alias".to_string(),
+					|commit| format!("was {}", crate::short_commit_sha(commit)),
+				);
+				rows.push(vec![
+					TableCell::new(format!("  {}", floating.tag_name), Tone::Plain),
+					TableCell::new("alias", Tone::Muted),
+					TableCell::new(
+						format!("→ {}", crate::short_commit_sha(&tag_result.target_commit)),
+						Tone::Value,
+					),
+					TableCell::new(previous, Tone::Muted),
+				]);
+			}
+		}
+		text.table(&rows);
+	}
+	text.render()
 }
 
 pub(crate) fn text_release_record_discovery(discovery: &ReleaseRecordDiscovery) -> String {
-	let mut lines = vec!["release record:".to_string()];
-	lines.push(format!("  input ref: {}", discovery.input_ref));
-	lines.push(format!(
-		"  resolved commit: {}",
-		crate::short_commit_sha(&discovery.resolved_commit)
+	let record = &discovery.record;
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let mut details = Vec::new();
+	if let Some(version) = &record.version {
+		details.push(version.clone());
+	}
+	details.push(plural(
+		record.release_targets.len(),
+		"release target",
+		"release targets",
 	));
-	lines.push(format!(
-		"  record commit: {}",
-		crate::short_commit_sha(&discovery.record_commit)
-	));
-	lines.push(format!("  distance: {}", discovery.distance));
-	if let Some(version) = &discovery.record.version {
-		lines.push(format!("  version: {version}"));
-	}
-	if !discovery.record.versions.is_empty() {
-		lines.push("  versions:".to_string());
-		for (id, version) in &discovery.record.versions {
-			lines.push(format!("    - {id}: {version}"));
-		}
-	}
-	if !discovery.record.release_targets.is_empty() {
-		lines.push("  targets:".to_string());
-		for target in &discovery.record.release_targets {
-			lines.push(format!(
-				"    - {} {} -> {} (tag: {})",
-				target.kind, target.id, target.version, target.tag_name
-			));
-		}
-	}
-	if !discovery.record.released_packages.is_empty() {
-		lines.push("  packages:".to_string());
-		for package in &discovery.record.released_packages {
-			lines.push(format!("    - {package}"));
-		}
-	}
-	if let Some(provider) = &discovery.record.provider {
-		lines.push(format!(
-			"  provider: {} {}/{}",
-			provider.kind, provider.owner, provider.repo
+	text.headline(Outcome::Success, "Found release record", &details);
+	let mut fields = vec![
+		(
+			"Ref",
+			format!(
+				"{} → {}",
+				discovery.input_ref,
+				crate::short_commit_sha(&discovery.resolved_commit)
+			),
+		),
+		(
+			"Record commit",
+			format!(
+				"{} · {}",
+				crate::short_commit_sha(&discovery.record_commit),
+				commits_back(discovery.distance)
+			),
+		),
+	];
+	if let Some(provider) = &record.provider {
+		fields.push((
+			"Provider",
+			format!("{} {}/{}", provider.kind, provider.owner, provider.repo),
 		));
 	}
-	lines.join("\n")
+	text.fields(&fields);
+
+	if !record.release_targets.is_empty() {
+		text.section("Release targets", Some(record.release_targets.len()));
+		let rows = record
+			.release_targets
+			.iter()
+			.map(|target| {
+				vec![
+					TableCell::new(&target.id, Tone::Heading),
+					TableCell::new(target.kind.to_string(), Tone::Muted),
+					TableCell::new(&target.version, Tone::Value),
+					TableCell::new(
+						if target.tag {
+							format!("tag {}", target.tag_name)
+						} else {
+							"no tag".to_string()
+						},
+						Tone::Muted,
+					),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
+	}
+	if !record.versions.is_empty() {
+		text.section("Versions", Some(record.versions.len()));
+		let rows = record
+			.versions
+			.iter()
+			.map(|(id, version)| vec![TableCell::plain(id), TableCell::new(version, Tone::Value)])
+			.collect::<Vec<_>>();
+		text.table(&rows);
+	}
+	if !record.released_packages.is_empty() {
+		text.section("Released packages", Some(record.released_packages.len()));
+		text.list(record.released_packages.iter().cloned(), usize::MAX);
+	}
+	text.render()
+}
+
+/// How far the release record commit is behind the requested ref.
+fn commits_back(distance: usize) -> String {
+	match distance {
+		0 => "at the requested ref".to_string(),
+		distance => format!("{} back", plural(distance, "commit", "commits")),
+	}
 }
 
 #[cfg(test)]

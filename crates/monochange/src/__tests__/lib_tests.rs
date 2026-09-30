@@ -338,9 +338,18 @@ fn migrate_audit_reports_legacy_release_tooling() {
 	)
 	.unwrap_or_else(|error| panic!("migration audit: {error}"));
 
-	assert!(output.contains("migration audit: migration-needed"));
-	assert!(output.contains("legacy-release-tool knope at knope.toml"));
-	assert!(output.contains("ci-workflow changesets at .github/workflows/release.yml"));
+	assert!(output.starts_with("▲ Migration needed"), "{output}");
+	assert!(
+		has_table_row(&output, &["knope", "legacy-release-tool", "knope.toml"]),
+		"{output}"
+	);
+	assert!(
+		has_table_row(
+			&output,
+			&["changesets", "ci-workflow", ".github/workflows/release.yml"]
+		),
+		"{output}"
+	);
 	assert!(output.contains("Plan trusted publishing per package"));
 
 	let json_output = run_cli(
@@ -493,8 +502,11 @@ fn migrate_release_records_reports_dry_run_and_current_records() {
 	)
 	.unwrap_or_else(|error| panic!("dry-run release-record migration: {error}"));
 
-	assert!(output.contains("release-record migrations: would migrate 1/2 record(s)"));
-	assert!(output.contains("unchanged: 1"));
+	assert!(
+		output.contains("• Would migrate 1 of 2 release records to schema"),
+		"{output}"
+	);
+	assert!(output.contains("Records (2)"), "{output}");
 	assert!(output.contains("would migrate"));
 	assert!(output.contains("current"));
 	let legacy_after = fs::read_to_string(&legacy_record_path)
@@ -583,13 +595,20 @@ fn migrate_release_records_reports_migration_and_rendering_branches() {
 		],
 	)
 	.unwrap_or_else(|error| panic!("migrate release records text: {error}"));
-	assert!(output.contains("release-record migrations: migrated 1/1 record(s)"));
+	assert!(
+		output.contains("✔ Migrated 1 of 1 release record to schema"),
+		"{output}"
+	);
 	assert!(output.contains("migrated"));
 
 	let default_output =
 		crate::migration_audit::run_migration_command(root, false, &clap::ArgMatches::default())
 			.unwrap_or_else(|error| panic!("default migration audit: {error}"));
-	assert!(default_output.contains("migration audit:"));
+	assert!(
+		default_output.starts_with("✔ No migration needed")
+			|| default_output.starts_with("▲ Migration needed"),
+		"{default_output}"
+	);
 }
 
 #[test]
@@ -704,9 +723,15 @@ fn migrate_audit_reports_ready_workspace_and_quiet_mode() {
 	)
 	.unwrap_or_else(|error| panic!("migration audit ready: {error}"));
 
-	assert!(output.contains("migration audit: ready"));
-	assert!(output.contains("monochange-config monochange at monochange.toml"));
-	assert!(output.contains("- no migration-specific recommendations detected"));
+	assert!(output.starts_with("✔ No migration needed"), "{output}");
+	assert!(
+		has_table_row(
+			&output,
+			&["monochange", "monochange-config", "monochange.toml"]
+		),
+		"{output}"
+	);
+	assert!(!output.contains("Recommendations ("), "{output}");
 
 	let quiet_output = run_cli(
 		tempdir.path(),
@@ -730,8 +755,18 @@ fn migrate_audit_reports_ready_workspace_and_quiet_mode() {
 		],
 	)
 	.unwrap_or_else(|error| panic!("migration audit empty: {error}"));
-	assert!(empty_output.contains("- none detected"));
+	assert!(!empty_output.contains("Signals ("), "{empty_output}");
 	assert!(empty_output.contains("Generate monochange configuration"));
+}
+
+/// Whether a text table has a row that starts with `cells`, ignoring the
+/// column padding.
+fn has_table_row(output: &str, cells: &[&str]) -> bool {
+	output.lines().any(|line| {
+		line.split_whitespace()
+			.collect::<Vec<_>>()
+			.starts_with(cells)
+	})
 }
 
 #[test]
@@ -1996,9 +2031,12 @@ fn publish_readiness_dispatches_from_release_record_and_writes_artifact() {
 	)
 	.unwrap_or_else(|error| panic!("publish-readiness output: {error}"));
 
-	assert!(output.contains("publish readiness: ready"));
-	assert!(output.contains("release ref: HEAD"));
-	assert!(output.contains("packages: none"));
+	assert!(output.contains("✔ Ready to publish"), "{output}");
+	assert!(output.contains("\nRef            HEAD\n"), "{output}");
+	assert!(
+		output.contains("No packages are selected for publishing."),
+		"{output}"
+	);
 
 	let artifact = fs::read_to_string(&output_path)
 		.unwrap_or_else(|error| panic!("read readiness artifact: {error}"));
@@ -2461,7 +2499,7 @@ fn validate_command_validates_workspace_configuration_and_changesets() {
 		],
 	)
 	.unwrap_or_else(|error| panic!("validate output: {error}"));
-	assert!(output.contains("workspace validation passed"));
+	assert!(output.contains("Workspace validation passed"));
 }
 
 #[test]
@@ -3511,7 +3549,7 @@ fn command_release_dry_run_discovers_changesets_without_mutating_files() {
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
 	assert!(
-		output.contains("step prepare-release") && output.contains("(dry-run)"),
+		output.starts_with("• Release preview") && output.contains("dry-run"),
 		"unexpected command output:\n{output}"
 	);
 	assert!(output.contains("1.1.0"));
@@ -3689,8 +3727,8 @@ async fn command_versions_reports_planned_versions_without_mutating_files() {
 	.await
 	.unwrap_or_else(|error| panic!("versions output: {error}"));
 
-	assert!(output.contains("group versions:"));
-	assert!(output.contains("package versions:"));
+	assert!(output.starts_with("✔ Next versions"), "{output}");
+	assert!(output.contains("\nGroups\n"), "{output}");
 	assert_eq!(
 		fs::read_to_string(&workspace_manifest)
 			.unwrap_or_else(|error| panic!("workspace manifest after versions: {error}")),
@@ -3958,7 +3996,7 @@ fn command_release_updates_manifests_changelogs_and_deletes_changesets() {
 	let package_versioned_file = fs::read_to_string(tempdir.path().join("crates/core/extra.toml"))
 		.unwrap_or_else(|error| panic!("package versioned file: {error}"));
 	assert!(
-		output.contains("step prepare-release"),
+		output.starts_with("✔ Prepared release"),
 		"unexpected command output:\n{output}"
 	);
 	assert!(output.contains("group ") && output.contains("sdk"));
@@ -4213,7 +4251,7 @@ fn command_release_uses_empty_update_message_precedence_for_grouped_changelogs()
 	let group_changelog = fs::read_to_string(tempdir.path().join("changelog.md"))
 		.unwrap_or_else(|error| panic!("group changelog: {error}"));
 
-	assert!(output.contains("step prepare-release"));
+	assert!(output.starts_with("✔ Prepared release"), "{output}");
 	assert!(core_changelog.contains("Package override for workflow-core -> 1.0.1"));
 	assert!(app_changelog.contains("Update triggered by group sdk; version 1.0.1."));
 	assert!(group_changelog.contains("Update triggered by group sdk; version 1.0.1."));
@@ -4256,9 +4294,8 @@ fn command_diagnostics_reports_requested_changeset_text() {
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
-	assert!(output.contains("changeset: .changeset/feature.md"));
-	assert!(output.contains("summary: Add feature"));
-	assert!(output.contains("targets:"));
+	assert!(output.contains("\n.changeset/feature.md\n"));
+	assert!(output.contains("  Add feature"));
 	assert!(output.contains("core"));
 }
 
@@ -4362,7 +4399,7 @@ fn command_diagnostics_resolves_changeset_fallback_for_short_paths() {
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
-	assert!(output.contains("changeset: .changeset/feature.md"));
+	assert!(output.contains("\n.changeset/feature.md\n"), "{output}");
 }
 
 #[test]
@@ -4385,7 +4422,7 @@ fn command_diagnostics_supports_absolute_changeset_path() {
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
-	assert!(output.contains("changeset: .changeset/feature.md"));
+	assert!(output.contains("\n.changeset/feature.md\n"), "{output}");
 }
 
 #[test]
@@ -4428,7 +4465,7 @@ fn render_changeset_diagnostics_reports_empty_set() {
 	};
 	let rendered = crate::render_changeset_diagnostics(&report);
 
-	assert_eq!(rendered, "no matching changesets found");
+	assert_eq!(rendered, "• No matching changesets found");
 }
 
 #[test]
@@ -4461,7 +4498,7 @@ fn cli_command_command_steps_can_run_through_the_shell() {
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 	let shell_output = fs::read_to_string(tempdir.path().join("shell-output.txt"))
 		.unwrap_or_else(|error| panic!("shell output: {error}"));
-	assert!(output.contains("command `announce` completed"));
+	assert!(output.starts_with("Log\n"), "{output}");
 	assert_eq!(shell_output, "shell-command");
 }
 
@@ -4480,7 +4517,7 @@ fn cli_command_command_steps_use_dry_run_overrides_when_present() {
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 	let dry_run_output = fs::read_to_string(tempdir.path().join("dry-run-output.txt"))
 		.unwrap_or_else(|error| panic!("dry-run output: {error}"));
-	assert!(output.contains("command `announce` completed (dry-run)"));
+	assert!(output.starts_with("Log\n"), "{output}");
 	assert_eq!(dry_run_output, "dry-run");
 	assert!(!tempdir.path().join("command-output.txt").exists());
 }
@@ -4758,7 +4795,7 @@ async fn execute_cli_command_without_steps_reports_completion_status() {
 	)
 	.await
 	.unwrap_or_else(|error| panic!("noop output: {error}"));
-	assert_eq!(output, "command `noop` completed");
+	assert_eq!(output, "✔ noop completed");
 	let dry_run_output = execute_cli_command(
 		tempdir.path(),
 		&configuration,
@@ -4768,7 +4805,7 @@ async fn execute_cli_command_without_steps_reports_completion_status() {
 	)
 	.await
 	.unwrap_or_else(|error| panic!("noop dry-run output: {error}"));
-	assert_eq!(dry_run_output, "command `noop` completed (dry-run)");
+	assert_eq!(dry_run_output, "✔ noop completed · dry-run");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -4836,8 +4873,8 @@ fn affected_packages_step_can_override_built_in_inputs() {
 		],
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
-	assert!(output.contains("changeset policy: skipped"));
-	assert!(output.contains("matched skip labels: no-changeset-required"));
+	assert!(output.contains("changeset policy skipped"));
+	assert!(output.contains("Skip labels  no-changeset-required"));
 }
 
 #[test]
@@ -5195,7 +5232,7 @@ fn validate_accepts_workspace_versioned_packages_in_same_group() {
 		],
 	)
 	.unwrap_or_else(|error| panic!("validate output: {error}"));
-	assert!(output.contains("workspace validation passed"));
+	assert!(output.contains("Workspace validation passed"));
 }
 
 #[test]
@@ -5214,7 +5251,7 @@ fn validate_accepts_single_workspace_versioned_package_without_group() {
 		],
 	)
 	.unwrap_or_else(|error| panic!("validate output: {error}"));
-	assert!(output.contains("workspace validation passed"));
+	assert!(output.contains("Workspace validation passed"));
 }
 
 #[test]
@@ -5484,6 +5521,7 @@ fn cli_context_for_when_evaluation_tests() -> CliContext {
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	}
 }
 
@@ -5997,17 +6035,7 @@ fn text_release_record_discovery_renders_targets_packages_and_provider() {
 	};
 
 	let rendered = crate::release_record::text_release_record_discovery(&discovery);
-	assert!(rendered.contains("input ref: v1.2.3"));
-	assert!(rendered.contains("resolved commit: abc1234"));
-	assert!(rendered.contains("record commit: abc1234"));
-	assert!(rendered.contains("distance: 0"));
-	assert!(rendered.contains("version: 1.2.3"));
-	assert!(rendered.contains("versions:"));
-	assert!(rendered.contains("sdk: 1.2.3"));
-	assert!(rendered.contains("- group sdk -> 1.2.3 (tag: v1.2.3)"));
-	assert!(rendered.contains("- monochange"));
-	assert!(rendered.contains("- monochange_core"));
-	assert!(rendered.contains("provider: github ifiokjr/monochange"));
+	insta::assert_snapshot!(rendered);
 }
 
 fn sample_release_record_for_discovery_text() -> monochange_core::ReleaseRecord {
@@ -6080,10 +6108,10 @@ fn text_release_record_discovery_omits_empty_sections() {
 	};
 
 	let rendered = crate::release_record::text_release_record_discovery(&discovery);
-	assert!(rendered.contains("input ref: HEAD"));
-	assert!(!rendered.contains("  targets:"));
-	assert!(!rendered.contains("  packages:"));
-	assert!(!rendered.contains("  provider:"));
+	assert_eq!(
+		rendered,
+		"✔ Found release record · 0 release targets\n\nRef            HEAD → def5678\nRecord commit  abc1234 · 2 commits back"
+	);
 }
 
 #[etest::etest(skip=std::env::var_os("PRE_COMMIT").is_some())]
@@ -6110,8 +6138,8 @@ fn commit_release_command_creates_local_commit_with_release_record() {
 	let _commit_body = git_output_in_temp_repo(root, &["log", "-1", "--pretty=%B"]);
 	let status = git_output_in_temp_repo(root, &["status", "--short"]);
 
-	assert!(output.contains("release commit:"));
-	assert!(output.contains("  status: completed"));
+	assert!(output.contains("\nRelease commit\n"), "{output}");
+	assert!(output.contains("tracked path"), "{output}");
 	assert_eq!(commit_subject, "chore(release): prepare release");
 	assert!(
 		status.is_empty(),
@@ -6904,15 +6932,12 @@ fn repair_release_command_dry_run_reports_text_output() {
 	})
 	.unwrap_or_else(|error| panic!("repair-release output: {error}"));
 
-	assert!(output.contains("repair release:"));
-	assert!(output.contains("from: v1.2.3"));
-	assert!(output.contains("tags to move:"));
+	assert!(output.contains("• Would move 1 release tag to"), "{output}");
+	assert!(output.contains("Ref            v1.2.3 → "), "{output}");
+	assert!(output.contains("Tags (1)"), "{output}");
 	assert!(output.contains("v1.2.3"));
-	assert!(output.contains("provider sync: disabled"));
-	assert!(
-		output.contains("status: dry-run"),
-		"unexpected output: {output}"
-	);
+	assert!(output.contains("Provider       not synced"), "{output}");
+	assert!(output.contains("dry-run"), "unexpected output: {output}");
 }
 
 #[allow(clippy::large_futures)]
@@ -6944,8 +6969,8 @@ async fn repair_release_command_emits_retarget_progress_statuses() {
 	.await
 	.unwrap_or_else(|error| panic!("repair-release output: {error}"));
 
-	assert!(output.contains("repair release:"));
-	assert!(output.contains("status: dry-run"));
+	assert!(output.contains("• Would move"), "{output}");
+	assert!(output.contains("dry-run"), "{output}");
 }
 
 #[etest::etest(skip=std::env::var_os("PRE_COMMIT").is_some())]
@@ -6973,14 +6998,11 @@ fn repair_release_command_reports_json_output() {
 
 	// step retarget-release does not support --format, so dry-run returns
 	// plain text report.
-	assert!(output.contains("repair release:"));
-	assert!(output.contains("from: v1.2.3"));
-	assert!(output.contains("tags to move:"));
-	assert!(output.contains("provider sync: disabled"));
-	assert!(
-		output.contains("status: dry-run"),
-		"unexpected output: {output}"
-	);
+	assert!(output.contains("• Would move"), "{output}");
+	assert!(output.contains("Ref            v1.2.3 → "), "{output}");
+	assert!(output.contains("Tags ("), "{output}");
+	assert!(output.contains("Provider       not synced"), "{output}");
+	assert!(output.contains("dry-run"), "unexpected output: {output}");
 }
 
 #[etest::etest(skip=std::env::var_os("PRE_COMMIT").is_some())]
@@ -7105,6 +7127,7 @@ fn template_context_exposes_release_commit_namespace() {
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
 	assert_eq!(
@@ -7143,6 +7166,7 @@ fn template_context_exposes_retarget_namespace() {
 		retarget_report: Some(sample_retarget_release_report()),
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
 	assert_eq!(
@@ -7229,6 +7253,7 @@ fn template_context_exposes_publish_namespace() {
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
 	assert_eq!(
@@ -7313,6 +7338,7 @@ fn template_context_exposes_manifest_affected_steps_and_custom_variables() {
 		retarget_report: None,
 		step_outputs,
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let inputs = BTreeMap::from([("format".to_string(), vec!["json".to_string()])]);
 	let variables = BTreeMap::from([
@@ -7425,10 +7451,11 @@ fn render_cli_command_result_prefers_retarget_report() {
 		retarget_report: Some(sample_retarget_release_report()),
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let rendered = render_cli_command_result(&cli_command, &context);
-	assert!(rendered.contains("repair release:"));
-	assert!(rendered.contains("status: dry-run"));
+	assert!(rendered.contains("• Would move"), "{rendered}");
+	assert!(rendered.contains("dry-run"), "{rendered}");
 }
 
 #[test]
@@ -7467,13 +7494,10 @@ fn render_cli_command_result_renders_release_follow_up_sections() {
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let rendered = render_cli_command_result(&cli_command, &context);
-	assert!(rendered.contains("release manifest: target/release-manifest.json"));
-	assert!(rendered.contains("releases:"));
-	assert!(rendered.contains("release request:"));
-	assert!(rendered.contains("issue comments:"));
-	assert!(rendered.contains("changed files:"));
+	insta::assert_snapshot!(rendered);
 }
 
 #[test]
@@ -7514,6 +7538,7 @@ fn render_cli_command_markdown_result_uses_markdown_sections_for_prepare_release
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: vec!["skipped command `cargo publish` (dry-run)".to_string()],
+		command_results: Vec::new(),
 	};
 	let rendered = render_cli_command_markdown_result(&cli_command, &context);
 	assert!(rendered.contains("# `release` (dry-run)"));
@@ -7570,6 +7595,7 @@ fn render_cli_command_markdown_result_renders_release_follow_up_sections() {
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: vec!["executed release workflow".to_string()],
+		command_results: Vec::new(),
 	};
 
 	let rendered = render_cli_command_markdown_result(&cli_command, &context);
@@ -8084,7 +8110,7 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 	)
 	.await
 	.unwrap_or_else(|error| panic!("prepare release: {error}"));
-	assert!(render_output.contains("release manifest: .monochange/local/release-manifest.json"));
+	assert!(render_output.contains("Manifest  .monochange/local/release-manifest.json"));
 	let manifest_contents =
 		fs::read_to_string(&manifest_path).unwrap_or_else(|error| panic!("read manifest: {error}"));
 	assert!(manifest_contents.contains("\"release_targets\""));
@@ -8119,7 +8145,10 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 	)
 	.await
 	.unwrap_or_else(|error| panic!("publish release: {error}"));
-	assert!(publish_output.contains("releases:"));
+	assert!(
+		publish_output.contains("Provider releases"),
+		"{publish_output}"
+	);
 	assert!(publish_output.contains("dry-run"));
 
 	let release_request = CliCommandDefinition {
@@ -8154,7 +8183,7 @@ async fn execute_cli_command_prepare_release_writes_default_manifest_cache_and_f
 	)
 	.await
 	.unwrap_or_else(|error| panic!("open release request: {error}"));
-	assert!(request_output.contains("release request:"));
+	assert!(request_output.contains("\nRelease request\n"));
 	assert!(request_output.contains("dry-run"));
 
 	let issue_comments = CliCommandDefinition {
@@ -8451,7 +8480,7 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 				placeholder_output.contains("  core") && placeholder_output.contains("  app"),
 				"placeholder output:\n{placeholder_output}"
 			);
-			assert!(placeholder_output.contains("publish rate limits:"));
+			assert!(placeholder_output.contains("Publish rate limits"));
 
 			let publish_command = CliCommandDefinition {
 				name: "publish".to_string(),
@@ -8491,7 +8520,7 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 				publish_output.contains("  core"),
 				"publish output:\n{publish_output}"
 			);
-			assert!(publish_output.contains("publish rate limits:"));
+			assert!(publish_output.contains("Publish rate limits"));
 		},
 	)
 	.await;
@@ -9304,7 +9333,7 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 			)
 			.await
 			.unwrap_or_else(|error| panic!("publish plan without matches: {error}"));
-			assert!(plan_output.contains("publish rate limits:"));
+			assert!(plan_output.contains("Publish rate limits"));
 			assert!(plan_output.contains("no publish operations matched the current plan"));
 		},
 	)
@@ -9661,15 +9690,54 @@ fn render_retarget_release_report_handles_provider_sync_variants() {
 		message: None,
 	}];
 	let rendered = render_retarget_release_report(&report);
-	assert!(rendered.contains("provider sync: github"));
-	assert!(rendered.contains("[planned]"));
+	insta::assert_snapshot!("retarget_release_report_dry_run", rendered);
 
 	let mut no_provider_report = sample_retarget_release_report();
 	no_provider_report.sync_provider = true;
 	no_provider_report.provider_results = Vec::new();
 	no_provider_report.git_tag_results = Vec::new();
 	let rendered = render_retarget_release_report(&no_provider_report);
-	assert!(rendered.contains("provider sync: none"));
+	assert!(
+		rendered.contains("Provider       nothing to sync"),
+		"{rendered}"
+	);
+	assert!(!rendered.contains("Tags ("), "{rendered}");
+
+	let mut applied = sample_retarget_release_report();
+	applied.dry_run = false;
+	applied.force = true;
+	applied.is_descendant = false;
+	applied.git_tag_results = [
+		monochange_core::RetargetOperation::Moved,
+		monochange_core::RetargetOperation::AlreadyUpToDate,
+		monochange_core::RetargetOperation::Skipped,
+		monochange_core::RetargetOperation::Failed,
+	]
+	.into_iter()
+	.map(|operation| {
+		monochange_core::RetargetTagResult {
+			tag_name: format!("v1.2.3-{operation:?}"),
+			from_commit: "abc1234567890".to_string(),
+			to_commit: "def5678901234".to_string(),
+			operation,
+			message: (operation == monochange_core::RetargetOperation::Failed)
+				.then(|| "tag is protected".to_string()),
+		}
+	})
+	.collect();
+	insta::assert_snapshot!(
+		"retarget_release_report_with_failures",
+		render_retarget_release_report(&applied)
+	);
+
+	applied
+		.git_tag_results
+		.retain(|tag_result| tag_result.operation != monochange_core::RetargetOperation::Failed);
+	assert!(
+		render_retarget_release_report(&applied).starts_with("✔ Moved 1 release tag to def5678"),
+		"{}",
+		render_retarget_release_report(&applied)
+	);
 }
 
 #[test]
@@ -13987,8 +14055,8 @@ async fn render_release_record_discovery_supports_text_and_json_formats() {
 	let text = crate::render_release_record_discovery(root, "HEAD", crate::OutputFormat::Text)
 		.await
 		.unwrap_or_else(|error| panic!("release-record text: {error}"));
-	assert!(text.contains("release record:"));
-	assert!(text.contains("input ref: HEAD"));
+	assert!(text.starts_with("✔ Found release record"), "{text}");
+	assert!(text.contains("Ref            HEAD → "), "{text}");
 	let json = crate::render_release_record_discovery(root, "HEAD", crate::OutputFormat::Json)
 		.await
 		.unwrap_or_else(|error| panic!("release-record json: {error}"));
@@ -14012,10 +14080,9 @@ async fn render_release_tag_report_supports_text_and_json_formats() {
 	)
 	.await
 	.unwrap_or_else(|error| panic!("tag-release text: {error}"));
-	assert!(text.contains("release tags:"));
-	assert!(text.contains("push: no"));
-	assert!(text.contains("status: dry-run"));
-	assert!(text.contains("[planned]"));
+	assert!(text.starts_with("• Would create"), "{text}");
+	assert!(text.contains("push disabled · dry-run"), "{text}");
+	assert!(text.contains("planned"), "{text}");
 
 	let json = crate::release_record::render_release_tag_report(
 		root,
@@ -14338,7 +14405,7 @@ fn command_release_without_diff_skips_file_diff_previews() {
 	)
 	.unwrap_or_else(|error| panic!("release without diff: {error}"));
 	set_force_build_file_diff_previews_error(false);
-	assert!(output.contains("step prepare-release"));
+	assert!(output.starts_with("✔ Prepared release"), "{output}");
 }
 
 #[test]
@@ -14604,9 +14671,8 @@ fn render_discovery_report_supports_json_and_text_formats() {
 
 	let text = crate::render_discovery_report(&report, crate::OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("text discovery: {error}"));
-	assert!(text.contains("Workspace discovery for ."));
-	assert!(text.contains("Packages: 1"));
-	assert!(text.contains("Warnings:"));
+	assert!(text.starts_with("✔ Discovered 1 package"), "{text}");
+	assert!(text.contains("Warnings (1)"), "{text}");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -14823,6 +14889,7 @@ fn tracked_release_pull_request_paths_include_manifest_path_and_deduplicate() {
 		retarget_report: None,
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
+		command_results: Vec::new(),
 	};
 	let tracked = crate::tracked_release_pull_request_paths(&context, &manifest);
 	assert_eq!(
@@ -14872,10 +14939,7 @@ fn discovery_report_helpers_include_version_groups_and_warnings() {
 	assert_eq!(json["warnings"][0], "workspace warning");
 
 	let text = crate::text_discovery_report(&report);
-	assert!(text.contains("Version groups:"));
-	assert!(text.contains("- sdk (1)"));
-	assert!(text.contains("Warnings:"));
-	assert!(text.contains("- workspace warning"));
+	insta::assert_snapshot!(text);
 }
 
 #[test]
@@ -15420,12 +15484,18 @@ fn extract_log_level_returns_none_when_flag_has_no_value() {
 
 #[test]
 fn init_tracing_with_none_does_not_install_subscriber() {
-	crate::tracing_setup::init_tracing(None);
+	crate::tracing_setup::init_tracing(None, None);
 }
 
 #[test]
 fn init_tracing_with_valid_filter_does_not_panic() {
-	crate::tracing_setup::init_tracing(Some("monochange=debug"));
+	crate::tracing_setup::init_tracing(Some("monochange=debug"), None);
+}
+
+#[test]
+fn init_tracing_without_a_log_level_installs_the_warning_renderer() {
+	let reporter = crate::output::ProgressReporter::for_invocation(&[OsString::from("monochange")]);
+	crate::tracing_setup::init_tracing(None, reporter.warning_sink());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -16731,7 +16801,7 @@ async fn execute_cli_command_retarget_release_applies_git_updates_without_provid
 	.await
 	.unwrap_or_else(|error| panic!("execute retarget command: {error}"));
 
-	assert!(result.contains("repair release:"));
+	assert!(result.contains("✔ Moved"), "{result}");
 	assert_eq!(
 		git_output_in_temp_repo(&root, &["rev-parse", "v1.2.3"]),
 		target_commit
@@ -17203,4 +17273,244 @@ fn add_interactive_change_file_reports_a_create_failure_when_a_parent_is_a_file(
 		error.to_string().contains("failed to create"),
 		"unexpected error: {error}"
 	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn config_commands_run_at_the_top_level_and_report_command_steps_as_json() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[cli.announce]
+help_text = "Announce a release"
+
+[[cli.announce.inputs]]
+name = "format"
+type = "choice"
+choices = ["text", "json"]
+default = "text"
+
+[[cli.announce.steps]]
+name = "say hello"
+type = "Command"
+id = "hello"
+command = "printf hello"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	let run = |args: &[&str]| {
+		let mut arguments = vec![OsString::from("monochange")];
+		arguments.extend(args.iter().map(OsString::from));
+		run_with_args_in_dir("monochange", arguments, tempdir.path())
+	};
+
+	let output = run(&["announce", "--format", "json"])
+		.await
+		.unwrap_or_else(|error| panic!("announce json: {error}"));
+	let value = serde_json::from_str::<serde_json::Value>(&output)
+		.unwrap_or_else(|error| panic!("parse announce json: {error}\n{output}"));
+	assert_eq!(value["command"], "announce");
+	assert_eq!(value["dry_run"], false);
+	assert_eq!(value["commands"][0]["step"], "say hello");
+	assert_eq!(value["commands"][0]["id"], "hello");
+	assert_eq!(value["commands"][0]["status"], "succeeded");
+	assert_eq!(value["commands"][0]["exit_code"], 0);
+	assert_eq!(value["commands"][0]["stdout"], "hello");
+
+	let dry_run = run(&["announce", "--dry-run", "--format", "json"])
+		.await
+		.unwrap_or_else(|error| panic!("announce dry-run json: {error}"));
+	let value = serde_json::from_str::<serde_json::Value>(&dry_run)
+		.unwrap_or_else(|error| panic!("parse dry-run json: {error}\n{dry_run}"));
+	assert_eq!(value["dry_run"], true);
+	assert_eq!(value["commands"][0]["status"], "skipped");
+	assert_eq!(value["commands"][0]["command"], "printf hello");
+	assert_eq!(value["commands"][0]["exit_code"], serde_json::Value::Null);
+
+	let text = run(&["announce"])
+		.await
+		.unwrap_or_else(|error| panic!("announce text: {error}"));
+	assert!(text.contains("hello"), "{text}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn verbose_flag_shows_full_command_logs() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[cli.announce]
+steps = [{ name = "say hello", type = "Command", command = "printf 'first\nsecond'", shell = true }]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	let run = |args: &[&str]| {
+		let mut arguments = vec![OsString::from("monochange")];
+		arguments.extend(args.iter().map(OsString::from));
+		run_with_args_in_dir("monochange", arguments, tempdir.path())
+	};
+
+	let summary = run(&["announce"])
+		.await
+		.unwrap_or_else(|error| panic!("announce: {error}"));
+	assert!(summary.contains("second (+1 earlier lines)"), "{summary}");
+
+	let verbose = run(&["--verbose", "announce"])
+		.await
+		.unwrap_or_else(|error| panic!("verbose announce: {error}"));
+	assert!(verbose.contains("  first\n    second"), "{verbose}");
+}
+
+#[test]
+fn markdown_is_accepted_wherever_md_is_offered() {
+	let matches = crate::cli::build_command_with_cli("monochange", &[])
+		.try_get_matches_from(["monochange", "affected", "--format", "markdown"])
+		.unwrap_or_else(|error| panic!("affected --format markdown: {error}"));
+	let (_, affected) = matches
+		.subcommand()
+		.unwrap_or_else(|| panic!("expected the affected subcommand"));
+	let format = affected
+		.get_one::<String>("format")
+		.unwrap_or_else(|| panic!("expected a format value"));
+	assert_eq!(
+		crate::parse_output_format(format).unwrap(),
+		crate::OutputFormat::Markdown
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn cli_surface_snapshots_list_workflows_only_under_run() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		r#"
+[cli.announce]
+help_text = "Announce a release"
+steps = [{ name = "say hello", type = "Command", command = "printf hello" }]
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	let run = |args: &[&str]| {
+		let mut arguments = vec![OsString::from("monochange")];
+		arguments.extend(args.iter().map(OsString::from));
+		run_with_args_in_dir("monochange", arguments, tempdir.path())
+	};
+	let top_level_paths = |output: &str| {
+		serde_json::from_str::<serde_json::Value>(output)
+			.unwrap_or_else(|error| panic!("parse snapshot: {error}\n{output}"))["commands"]
+			.as_array()
+			.unwrap_or_else(|| panic!("snapshot commands"))
+			.iter()
+			.map(|command| command["path"].to_string())
+			.collect::<Vec<_>>()
+	};
+
+	for args in [&["snapshot", "--view", "index"][..], &["--snapshot"][..]] {
+		let paths = top_level_paths(
+			&run(args)
+				.await
+				.unwrap_or_else(|error| panic!("{args:?}: {error}")),
+		);
+		assert!(!paths.contains(&r#"["announce"]"#.to_string()), "{paths:?}");
+		assert!(paths.contains(&r#"["run"]"#.to_string()), "{paths:?}");
+	}
+
+	let run_subtree = run(&["snapshot", "run", "announce"])
+		.await
+		.unwrap_or_else(|error| panic!("run announce snapshot: {error}"));
+	assert!(run_subtree.contains("Announce a release"), "{run_subtree}");
+
+	let workflow_subtree = run(&["announce", "--snapshot"])
+		.await
+		.unwrap_or_else(|error| panic!("announce snapshot: {error}"));
+	assert_eq!(top_level_paths(&workflow_subtree), [r#"["announce"]"#]);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn command_groups_without_a_subcommand_list_their_subcommands() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = run_with_args_in_dir(
+		"monochange",
+		[OsString::from("monochange"), OsString::from("changeset")],
+		tempdir.path(),
+	)
+	.await
+	.expect_err("a command group without a subcommand is a usage error")
+	.to_string();
+
+	assert!(
+		error.starts_with("error: `monochange changeset` needs a subcommand"),
+		"{error}"
+	);
+	assert!(error.contains("validate"), "{error}");
+	assert!(!error.contains("Options:"), "{error}");
+	assert!(
+		error.ends_with("For more information, try 'monochange changeset --help'."),
+		"{error}"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn broken_configuration_explains_why_a_workflow_command_is_unknown() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		"[cli.announce\nsteps = []\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let error = run_with_args_in_dir(
+		"monochange",
+		[OsString::from("monochange"), OsString::from("announce")],
+		tempdir.path(),
+	)
+	.await
+	.expect_err("a broken configuration cannot run workflow commands")
+	.render();
+
+	assert!(error.contains("monochange.toml"), "{error}");
+	assert!(!error.contains("unrecognized subcommand"), "{error}");
+}
+
+#[test]
+fn text_release_record_discovery_marks_targets_without_tags() {
+	let mut record = sample_release_record_for_discovery_text();
+	let mut untagged = record.release_targets[0].clone();
+	untagged.id = "docs".to_string();
+	untagged.kind = monochange_core::ReleaseOwnerKind::Package;
+	untagged.tag = false;
+	record.release_targets.push(untagged);
+	let discovery = monochange_core::ReleaseRecordDiscovery {
+		input_ref: "HEAD".to_string(),
+		resolved_commit: "abc1234567890".to_string(),
+		record_commit: "abc1234567890".to_string(),
+		distance: 0,
+		record,
+	};
+
+	let rendered = crate::release_record::text_release_record_discovery(&discovery);
+	assert!(
+		has_table_row(&rendered, &["docs", "package", "1.2.3", "no", "tag"]),
+		"{rendered}"
+	);
+	assert!(
+		has_table_row(&rendered, &["sdk", "group", "1.2.3", "tag", "v1.2.3"]),
+		"{rendered}"
+	);
+}
+
+#[test]
+fn validate_counts_warnings_in_its_headline() {
+	let tempdir = setup_fixture("config/versioned-file-empty-glob");
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("step"),
+			OsString::from("validate"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("validate with warnings: {error}"));
+
+	assert_eq!(output, "✔ Workspace validation passed · 1 warning");
 }

@@ -1,4 +1,3 @@
-use std::fmt::Write as _;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
@@ -12,6 +11,12 @@ use monochange_core::migrate_release_record_json_value;
 use serde::Serialize;
 
 use crate::OutputFormat;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::plural;
 use crate::parse_output_format;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -265,31 +270,55 @@ fn render_release_record_migration_report(
 }
 
 fn text_release_record_migration_report(report: &ReleaseRecordMigrationReport) -> String {
-	let mut output = String::new();
-	let action = if report.dry_run {
-		"would migrate"
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let schema = format!("schema {}", report.current_schema_version);
+	let scanned = plural(report.scanned, "release record", "release records");
+	if report.migrated == 0 {
+		text.headline(
+			Outcome::Success,
+			&format!("Release records already use {schema}"),
+			&[format!("{scanned} checked")],
+		);
+	} else if report.dry_run {
+		text.headline(
+			Outcome::Neutral,
+			&format!("Would migrate {} of {scanned} to {schema}", report.migrated),
+			&["dry-run, no files were modified".to_string()],
+		);
 	} else {
-		"migrated"
-	};
-	let _ = writeln!(
-		output,
-		"release-record migrations: {action} {}/{} record(s) to schema {}",
-		report.migrated, report.scanned, report.current_schema_version
-	);
-	let _ = writeln!(output, "  unchanged: {}", report.unchanged);
-	for record in &report.records {
-		let status = match record.status {
-			ReleaseRecordMigrationStatus::Current => "current",
-			ReleaseRecordMigrationStatus::Migrated => "migrated",
-			ReleaseRecordMigrationStatus::WouldMigrate => "would migrate",
-		};
-		let _ = writeln!(
-			output,
-			"  - {}: {} ({} -> {})",
-			record.path, status, record.from_schema_version, record.to_schema_version
+		text.headline(
+			Outcome::Success,
+			&format!("Migrated {} of {scanned} to {schema}", report.migrated),
+			&[],
 		);
 	}
-	output.trim_end().to_string()
+	if !report.records.is_empty() {
+		text.section("Records", Some(report.records.len()));
+		let rows = report
+			.records
+			.iter()
+			.map(|record| {
+				let (status, tone) = match record.status {
+					ReleaseRecordMigrationStatus::Current => ("current", Tone::Muted),
+					ReleaseRecordMigrationStatus::Migrated => ("migrated", Tone::Success),
+					ReleaseRecordMigrationStatus::WouldMigrate => ("would migrate", Tone::Accent),
+				};
+				vec![
+					TableCell::plain(&record.path),
+					TableCell::new(status, tone),
+					TableCell::new(
+						format!(
+							"{} → {}",
+							record.from_schema_version, record.to_schema_version
+						),
+						Tone::Muted,
+					),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
+	}
+	text.render()
 }
 
 pub(crate) fn audit_migration(root: &Path) -> MonochangeResult<MigrationAuditReport> {
@@ -649,50 +678,54 @@ fn render_migration_audit_report(
 }
 
 fn render_text_report(report: &MigrationAuditReport) -> String {
-	let mut output = String::new();
-	let _ = writeln!(output, "migration audit: {}", status_label(&report.status));
-	let _ = writeln!(output, "root: {}", report.root);
-	output.push('\n');
-	output.push_str("signals:\n");
-	if report.signals.is_empty() {
-		output.push_str("- none detected\n");
-	} else {
-		for signal in &report.signals {
-			let _ = writeln!(
-				output,
-				"- {} {} at {}: {}",
-				signal.kind, signal.tool, signal.path, signal.message
-			);
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let signals = plural(report.signals.len(), "signal", "signals");
+	match report.status {
+		MigrationAuditStatus::Ready => {
+			text.headline(Outcome::Success, "No migration needed", &[signals]);
+		}
+		MigrationAuditStatus::MigrationNeeded => {
+			text.headline(Outcome::Warning, "Migration needed", &[signals]);
 		}
 	}
-
-	output.push('\n');
-	output.push_str("recommendations:\n");
-	if report.recommendations.is_empty() {
-		output.push_str("- no migration-specific recommendations detected\n");
-	} else {
-		for recommendation in &report.recommendations {
-			let _ = writeln!(
-				output,
-				"- {}: {}",
-				recommendation.title, recommendation.detail
-			);
-		}
+	text.fields(&[("Workspace", report.root.clone())]);
+	if !report.signals.is_empty() {
+		text.section("Signals", Some(report.signals.len()));
+		let rows = report
+			.signals
+			.iter()
+			.map(|signal| {
+				vec![
+					TableCell::new(&signal.tool, Tone::Heading),
+					TableCell::new(&signal.kind, Tone::Muted),
+					TableCell::new(&signal.path, Tone::Accent),
+					TableCell::plain(&signal.message),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
 	}
-
-	output.push('\n');
-	output.push_str("next steps:\n");
-	for step in &report.next_steps {
-		let _ = writeln!(output, "- {step}");
+	if !report.recommendations.is_empty() {
+		text.section("Recommendations", Some(report.recommendations.len()));
+		text.list(
+			report.recommendations.iter().map(|recommendation| {
+				format!("• {}\n{}", recommendation.title, recommendation.detail)
+			}),
+			usize::MAX,
+		);
 	}
-	output
-}
-
-fn status_label(status: &MigrationAuditStatus) -> &'static str {
-	match status {
-		MigrationAuditStatus::Ready => "ready",
-		MigrationAuditStatus::MigrationNeeded => "migration-needed",
+	if !report.next_steps.is_empty() {
+		text.section("Next steps", None);
+		text.list(
+			report
+				.next_steps
+				.iter()
+				.enumerate()
+				.map(|(index, step)| format!("{}. {step}", index + 1)),
+			usize::MAX,
+		);
 	}
+	text.render()
 }
 
 #[cfg(test)]

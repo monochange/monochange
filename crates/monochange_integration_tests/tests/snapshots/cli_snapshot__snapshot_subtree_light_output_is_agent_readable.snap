@@ -88,6 +88,21 @@ expression: value
       }
     },
     {
+      "canonical_name": "--verbose",
+      "global": true,
+      "hidden": false,
+      "names": [
+        "--verbose",
+        "-v"
+      ],
+      "value": {
+        "kind": "flag",
+        "repeatable": false,
+        "required": false,
+        "variadic": false
+      }
+    },
+    {
       "canonical_name": "--progress-format",
       "global": true,
       "hidden": false,

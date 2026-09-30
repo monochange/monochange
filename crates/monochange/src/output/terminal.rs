@@ -5,6 +5,9 @@ use std::io::IsTerminal;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ProgressFormat {
@@ -31,6 +34,8 @@ pub(crate) struct ProgressSettings {
 	pub(crate) quiet: bool,
 	pub(crate) format: ProgressFormat,
 	pub(crate) tracing_enabled: bool,
+	/// `--verbose`: show every phase timing and progress notes.
+	pub(crate) verbose: bool,
 }
 
 impl ProgressSettings {
@@ -38,6 +43,7 @@ impl ProgressSettings {
 		let quiet = args
 			.iter()
 			.any(|argument| matches!(argument.to_str(), Some("--quiet" | "-q")));
+		let verbose = verbose_requested(args);
 		let tracing_enabled = args
 			.iter()
 			.filter_map(|argument| argument.to_str())
@@ -66,8 +72,15 @@ impl ProgressSettings {
 			quiet,
 			format,
 			tracing_enabled,
+			verbose,
 		}
 	}
+}
+
+/// Whether the command line asks for `--verbose` output.
+pub(crate) fn verbose_requested(args: &[OsString]) -> bool {
+	args.iter()
+		.any(|argument| matches!(argument.to_str(), Some("--verbose" | "-v")))
 }
 
 #[allow(clippy::struct_excessive_bools)]
@@ -80,6 +93,11 @@ pub(crate) struct TerminalCapabilities {
 	pub(crate) color: bool,
 	pub(crate) animate: bool,
 	pub(crate) progress_enabled: bool,
+	/// GitHub Actions is running this process and progress is enabled, so
+	/// human progress may use workflow commands to fold command output and
+	/// annotate failures.
+	pub(crate) github_actions: bool,
+	pub(crate) verbose: bool,
 }
 
 impl TerminalCapabilities {
@@ -88,6 +106,7 @@ impl TerminalCapabilities {
 			stdout_is_terminal: io::stdout().is_terminal(),
 			stderr_is_terminal: io::stderr().is_terminal(),
 			ci: running_in_ci() && !running_under_test(),
+			github_actions: running_in_github_actions() && !running_under_test(),
 			term_is_dumb: env::var("TERM").is_ok_and(|term| term == "dumb"),
 			no_color: env::var_os("NO_COLOR").is_some(),
 			no_progress: env::var_os("MONOCHANGE_NO_PROGRESS").is_some(),
@@ -116,6 +135,10 @@ impl TerminalCapabilities {
 			color,
 			animate,
 			progress_enabled,
+			// `MONOCHANGE_NO_PROGRESS` and `--quiet` also turn off workflow
+			// commands, so logs stay plain when progress output is disabled.
+			github_actions: human && progress_enabled && probe.github_actions,
+			verbose: settings.verbose,
 		}
 	}
 }
@@ -126,14 +149,24 @@ struct TerminalProbe {
 	stdout_is_terminal: bool,
 	stderr_is_terminal: bool,
 	ci: bool,
+	github_actions: bool,
 	term_is_dumb: bool,
 	no_color: bool,
 	no_progress: bool,
 }
 
+/// The one stderr channel shared by progress, diagnostics, and warnings.
+///
+/// Every writer goes through this handle so a line written while the spinner
+/// is animating first erases the spinner's partial line instead of splicing
+/// text into it, and so JSON events from different writers share one sequence.
 #[derive(Clone)]
 pub(crate) struct SharedStderr {
 	writer: Arc<Mutex<Box<dyn Write + Send>>>,
+	spinner_active: Arc<AtomicBool>,
+	line_cleared: Arc<AtomicBool>,
+	sequence: Arc<AtomicU64>,
+	group_open: Arc<AtomicBool>,
 }
 
 impl SharedStderr {
@@ -144,6 +177,10 @@ impl SharedStderr {
 	pub(crate) fn with_writer(writer: impl Write + Send + 'static) -> Self {
 		Self {
 			writer: Arc::new(Mutex::new(Box::new(writer))),
+			spinner_active: Arc::new(AtomicBool::new(false)),
+			line_cleared: Arc::new(AtomicBool::new(false)),
+			sequence: Arc::new(AtomicU64::new(0)),
+			group_open: Arc::new(AtomicBool::new(false)),
 		}
 	}
 
@@ -153,6 +190,45 @@ impl SharedStderr {
 		};
 		let _ = writer.write_all(bytes);
 		let _ = writer.flush();
+	}
+
+	/// Write one complete line, erasing an animated spinner line first.
+	pub(crate) fn write_line(&self, text: &str) {
+		if self.spinner_active.load(Ordering::Relaxed) {
+			self.write(format!("\r\u{1b}[2K\u{1b}[0m{text}\n").as_bytes());
+			self.line_cleared.store(true, Ordering::Relaxed);
+			return;
+		}
+		self.write(format!("{text}\n").as_bytes());
+	}
+
+	pub(crate) fn set_spinner_active(&self, active: bool) {
+		self.spinner_active.store(active, Ordering::Relaxed);
+	}
+
+	/// Report whether another writer erased the spinner line since the last
+	/// call, so the spinner knows to repaint its whole message.
+	pub(crate) fn take_line_cleared(&self) -> bool {
+		self.line_cleared.swap(false, Ordering::Relaxed)
+	}
+
+	pub(crate) fn next_sequence(&self) -> u64 {
+		self.sequence.fetch_add(1, Ordering::Relaxed)
+	}
+
+	/// Start a folded GitHub Actions log group unless one is already open.
+	/// `title` must already be escaped for a workflow command.
+	pub(crate) fn open_group(&self, title: &str) {
+		if !self.group_open.swap(true, Ordering::Relaxed) {
+			self.write_line(&format!("::group::{title}"));
+		}
+	}
+
+	/// End the open GitHub Actions log group, so the next line stays visible.
+	pub(crate) fn close_group(&self) {
+		if self.group_open.swap(false, Ordering::Relaxed) {
+			self.write_line("::endgroup::");
+		}
 	}
 }
 
@@ -167,6 +243,10 @@ fn running_in_ci() -> bool {
 	]
 	.iter()
 	.any(|name| env::var_os(name).is_some())
+}
+
+fn running_in_github_actions() -> bool {
+	env::var("GITHUB_ACTIONS").is_ok_and(|value| value == "true")
 }
 
 fn running_under_test() -> bool {

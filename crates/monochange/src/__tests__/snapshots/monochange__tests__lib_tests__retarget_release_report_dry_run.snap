@@ -1,0 +1,13 @@
+---
+source: crates/monochange/src/__tests__/lib_tests.rs
+expression: rendered
+---
+• Would move 1 release tag to def5678 · dry-run
+
+Ref            v1.2.3 → abc1234
+Record commit  abc1234
+Target         def5678 · descends from the record commit
+Provider       github releases synced
+
+Tags (1)
+  v1.2.3  planned  abc1234 → def5678

@@ -2,23 +2,22 @@
 source: crates/monochange_integration_tests/tests/check_lint_output.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-workspace validation passed for [workspace]
-lint: 5 errors, 1 warnings
+✖ Checks failed · 5 errors · 1 warning · 1 fixable · fixed 1 file
 
-[workspace]/packages/app/package.json:
-  ⚠ **npm/sorted-dependencies** at 6:6 [fixable]
-     dependencies in `dependencies` are not sorted alphabetically
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `repository`
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `license`
+packages/app/package.json
+  1:1  ✖ missing required package.json field `repository`
+         npm/required-package-fields
+  1:1  ✖ missing required package.json field `license`
+         npm/required-package-fields
+  6:6  ▲ dependencies in `dependencies` are not sorted alphabetically
+         npm/sorted-dependencies · fixable
 
-[workspace]/packages/shared/package.json:
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `description`
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `repository`
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `license`
+packages/shared/package.json
+  1:1  ✖ missing required package.json field `description`
+         npm/required-package-fields
+  1:1  ✖ missing required package.json field `repository`
+         npm/required-package-fields
+  1:1  ✖ missing required package.json field `license`
+         npm/required-package-fields
 
-Applied fixes; 1 issue(s) remain auto-fixable. Run with --fix again to apply.
+1 issue is still auto-fixable; run `monochange check --fix` again.

@@ -475,8 +475,11 @@ pub(crate) fn check_changeset_bump_alignment(
 	}
 	// patch-coverage:ignore-end
 
+	// Only a new alignment error means the bumps underestimate API impact;
+	// earlier errors (such as uncovered packages) keep their own summary.
+	let errors_before_alignment = evaluation.errors.len();
 	apply_bump_alignment(requested_bumps, &recommended_bumps, evaluation);
-	if !evaluation.errors.is_empty() {
+	if evaluation.errors.len() > errors_before_alignment {
 		// patch-coverage:ignore-start -- failure message is exercised by affected changeset CI; error comparison is covered by bump alignment unit tests.
 		evaluation.status = ChangesetPolicyStatus::Failed;
 		evaluation.summary =

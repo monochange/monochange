@@ -93,15 +93,7 @@ fn next_reports_group_and_standalone_package_versions() {
 
 	let text = run_monochange(root, &["next"]);
 
-	assert_eq!(
-		text.trim_end(),
-		"group versions:\n\
-- sdk: 1.1.0\n\
-package versions:\n\
-- cargo:crates/sdk-a/Cargo.toml: 1.1.0\n\
-- cargo:crates/sdk-b/Cargo.toml: 1.1.0\n\
-- cargo:crates/tool/Cargo.toml: 1.0.1"
-	);
+	insta::assert_snapshot!(text.trim_end());
 	assert_no_release_state(root);
 }
 
@@ -146,7 +138,7 @@ fn next_reports_no_planned_versions_without_changesets() {
 
 	assert_eq!(
 		text.trim_end(),
-		"no package or group versions were planned",
+		"• No versions planned · add a changeset with `monochange change` to plan a release",
 		"an empty changeset set should report nothing planned rather than fail"
 	);
 	assert_no_release_state(root);

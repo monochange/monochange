@@ -67,7 +67,7 @@ fn normalize_workspace_paths(root: &Path, output: String) -> String {
 /// or "can be auto-fixed" (when nothing was fixable); a converged run reports
 /// "No auto-fixable issues found." instead.
 fn has_remaining_fixes(output: &str) -> bool {
-	output.contains("remain auto-fixable") || output.contains("can be auto-fixed")
+	output.contains("`monochange check --fix`")
 }
 
 fn run_fix_to_fixpoint(root: &Path, max_iterations: usize) -> String {

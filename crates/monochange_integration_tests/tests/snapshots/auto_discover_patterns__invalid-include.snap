@@ -4,4 +4,4 @@ expression: stderr
 ---
 error[config.invalid]: [ecosystems.cargo.auto_discover].include contains invalid glob pattern `missing/[`: Pattern syntax error near position 8: invalid range pattern
   command: monochange config
-  help: Check `monochange.toml` and the command arguments, then rerun the command.
+  help:    Check `monochange.toml` and the command arguments, then rerun the command.

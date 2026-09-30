@@ -784,10 +784,73 @@ fn render_release_cli_command_json_includes_publish_rate_limits_when_present() {
 				warnings: Vec::new(),
 			}),
 			file_diffs: &file_diffs,
+			commands: &[],
 		},
 	)
 	.unwrap_or_else(|error| panic!("release cli json: {error}"));
 	assert!(json.contains("publish_rate_limits"));
+	assert!(!json.contains("\"commands\""));
+}
+
+#[test]
+fn render_release_cli_command_json_includes_command_step_results() {
+	let manifest = sample_manifest();
+	let commands = [crate::CommandStepResult {
+		step: "format release files".to_string(),
+		id: Some("format".to_string()),
+		command: "dprint fmt".to_string(),
+		status: "succeeded",
+		exit_code: Some(0),
+		stdout: "Formatted 3 files.".to_string(),
+		stderr: String::new(),
+	}];
+	let json = render_release_cli_command_json(
+		OutputFormat::Json,
+		&manifest,
+		&ReleaseCliJsonSections {
+			releases: &[],
+			release_request: None,
+			issue_comments: &[],
+			release_commit: None,
+			package_publish: None,
+			publish_rate_limits: None,
+			file_diffs: &[],
+			commands: &commands,
+		},
+	)
+	.unwrap_or_else(|error| panic!("release cli json: {error}"));
+	let value: serde_json::Value =
+		serde_json::from_str(&json).unwrap_or_else(|error| panic!("parse json: {error}"));
+	assert_eq!(value["commands"][0]["command"], "dprint fmt");
+	assert_eq!(value["commands"][0]["exit_code"], 0);
+	// Without other sections, the manifest keeps its top-level shape.
+	assert!(value.get("manifest").is_none());
+	assert_eq!(value["command"], json!(manifest.command));
+
+	let file_diffs = vec![PreparedFileDiff {
+		path: PathBuf::from("Cargo.toml"),
+		diff: "-old\n+new".to_string(),
+		display_diff: "-old\n+new".to_string(),
+	}];
+	let wrapped = render_release_cli_command_json(
+		OutputFormat::Json,
+		&manifest,
+		&ReleaseCliJsonSections {
+			releases: &[],
+			release_request: None,
+			issue_comments: &[],
+			release_commit: None,
+			package_publish: None,
+			publish_rate_limits: None,
+			file_diffs: &file_diffs,
+			commands: &commands,
+		},
+	)
+	.unwrap_or_else(|error| panic!("wrapped release cli json: {error}"));
+	let wrapped: serde_json::Value =
+		serde_json::from_str(&wrapped).unwrap_or_else(|error| panic!("parse json: {error}"));
+	assert!(wrapped.get("manifest").is_some());
+	assert_eq!(wrapped["commands"][0]["step"], "format release files");
 }
 
 #[tokio::test(flavor = "multi_thread")]

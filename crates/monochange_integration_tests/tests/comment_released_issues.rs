@@ -26,7 +26,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
-use insta::assert_snapshot;
 use monochange_test_helpers::copy_directory;
 use monochange_test_helpers::get_cargo_bin;
 use monochange_test_helpers::git::git;
@@ -250,6 +249,33 @@ fn run_comment_released_issues(
 		.unwrap_or_else(|error| panic!("run comment-released-issues: {error}"))
 }
 
+/// Snapshot the JSON result with each multiline comment body redacted, and the
+/// shared body as its own readable string snapshot.
+fn assert_comment_result_snapshot(name: &str, stdout: &[u8]) {
+	let mut value: serde_json::Value = serde_json::from_slice(stdout).unwrap_or_else(|error| {
+		panic!(
+			"comment-released-issues JSON: {error}\n{}",
+			String::from_utf8_lossy(stdout)
+		)
+	});
+	let mut bodies = Vec::new();
+	for comment in value["issue_comments"]
+		.as_array_mut()
+		.unwrap_or_else(|| panic!("issue_comments must be an array"))
+	{
+		if let Some(body) = comment["body"].as_str() {
+			bodies.push(body.to_string());
+		}
+		comment["body"] = serde_json::Value::String("[multiline text]".to_string());
+	}
+	bodies.dedup();
+	let [body] = bodies.as_slice() else {
+		panic!("every issue should receive the same release comment: {bodies:?}");
+	};
+	insta::assert_json_snapshot!(name, value);
+	insta::assert_snapshot!("released_comment_body", body);
+}
+
 fn patch_request_line(number: u64) -> String {
 	format!("PATCH /repos/{OWNER}/{REPO}/issues/{number}")
 }
@@ -310,7 +336,7 @@ fn auto_close_closes_closing_keyword_issues_and_keeps_plain_mentions_open() {
 		captured_request_lines(&server)
 	);
 
-	assert_snapshot!(String::from_utf8_lossy(&output.stdout));
+	assert_comment_result_snapshot("auto_close_result", &output.stdout);
 }
 
 #[test]
@@ -339,5 +365,5 @@ fn without_auto_close_no_issue_state_is_patched() {
 		);
 	}
 
-	assert_snapshot!(String::from_utf8_lossy(&output.stdout));
+	assert_comment_result_snapshot("without_auto_close_result", &output.stdout);
 }

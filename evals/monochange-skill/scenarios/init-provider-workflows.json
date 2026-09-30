@@ -26,7 +26,7 @@
 			"id": "init-github-config-validates-in-empty-workspace",
 			"kind": "command",
 			"command": "monochange init --provider github >/dev/null 2>&1 && monochange step validate; rc=$?; rm -f monochange.toml; rm -rf .github; exit $rc",
-			"expectOutput": ["workspace validation passed"],
+			"expectOutput": ["Workspace validation passed"],
 			"why": "The first config a new user receives must parse and validate even before any package exists."
 		},
 		{

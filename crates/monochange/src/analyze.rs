@@ -19,6 +19,12 @@ use crate::OutputFormat;
 use crate::discover_workspace;
 use crate::git_support::resolve_git_commit_ref;
 use crate::git_support::run_git_capture;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::plural;
 use crate::release_artifacts::latest_release_tag_in;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -342,180 +348,149 @@ fn filter_change_analysis(
 }
 
 fn render_text_report(report: &AnalyzeReport) -> String {
-	let mut lines = vec!["analyze:".to_string()];
-	lines.push(format!(
-		"  package: {} ({})",
-		report.package.package_id, report.package.package_name
-	));
-	lines.push(format!(
-		"  package record: {}",
-		report.package.package_record_id
-	));
-	lines.push(format!(
-		"  ecosystem: {}",
-		report.package.ecosystem.as_str()
-	));
-	lines.push(format!(
-		"  manifest: {}",
-		report.package.manifest_path.display()
-	));
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let package_id = &report.package.package_id;
+	let change_count = report
+		.frames
+		.main_to_head
+		.package_analyses
+		.get(package_id)
+		.map_or(0, |analysis| analysis.semantic_changes.len());
+	let mut details = vec![format!(
+		"{} {} → {}",
+		plural(change_count, "semantic change", "semantic changes"),
+		report.refs.main,
+		report.refs.head
+	)];
+	if report.first_release {
+		details.push("first release".to_string());
+	}
+	text.headline(
+		Outcome::Success,
+		&format!("Analyzed {package_id}"),
+		&details,
+	);
+
+	let mut fields = vec![
+		(
+			"Package",
+			format!("{package_id} ({})", report.package.package_name),
+		),
+		("Ecosystem", report.package.ecosystem.as_str().to_string()),
+		(
+			"Manifest",
+			report.package.manifest_path.display().to_string(),
+		),
+	];
 	if let Some(version_group_id) = &report.package.version_group_id {
-		lines.push(format!("  version group: {version_group_id}"));
+		fields.push(("Version group", version_group_id.clone()));
 	}
 	if let Some(release_identity) = &report.release_identity {
-		lines.push(format!(
-			"  release identity: {} {}",
-			release_owner_label(release_identity.owner_kind),
-			release_identity.owner_id
+		fields.push((
+			"Released as",
+			format!(
+				"{} {}",
+				release_owner_label(release_identity.owner_kind),
+				release_identity.owner_id
+			),
 		));
 	}
-	lines.push("  refs:".to_string());
-	if let Some(release_ref) = &report.refs.release {
-		lines.push(format!("    release: {release_ref}"));
-	} else {
-		lines.push("    release: none".to_string());
-	}
-	lines.push(format!("    main: {}", report.refs.main));
-	lines.push(format!("    head: {}", report.refs.head));
-	lines.push(format!("  first release: {}", yes_no(report.first_release)));
+	fields.push((
+		"Refs",
+		format!(
+			"release {} · main {} · head {}",
+			report.refs.release.as_deref().unwrap_or("none"),
+			report.refs.main,
+			report.refs.head
+		),
+	));
+	text.fields(&fields);
 
 	if !report.warnings.is_empty() {
-		lines.push(String::new());
-		lines.push("warnings:".to_string());
-		for warning in &report.warnings {
-			lines.push(format!("- {warning}"));
-		}
+		text.section("Warnings", Some(report.warnings.len()));
+		text.list(
+			report.warnings.iter().map(|warning| format!("▲ {warning}")),
+			usize::MAX,
+		);
 	}
 
 	render_frame_section(
-		&mut lines,
-		"main -> head",
+		&mut text,
+		"main → head",
 		&report.frames.main_to_head,
-		&report.package.package_id,
+		package_id,
 	);
-
 	if let Some(release_to_main) = &report.frames.release_to_main {
-		render_frame_section(
-			&mut lines,
-			"release -> main",
-			release_to_main,
-			&report.package.package_id,
-		);
+		render_frame_section(&mut text, "release → main", release_to_main, package_id);
 	}
-
 	if let Some(release_to_head) = &report.frames.release_to_head {
-		render_frame_section(
-			&mut lines,
-			"release -> head",
-			release_to_head,
-			&report.package.package_id,
-		);
+		render_frame_section(&mut text, "release → head", release_to_head, package_id);
 	}
-
-	lines.join("\n")
+	text.render()
 }
 
+/// Items listed per frame before the list points at `--format json`.
+const FRAME_LIST_LIMIT: usize = 20;
+
 fn render_frame_section(
-	lines: &mut Vec<String>,
+	text: &mut TextReport,
 	label: &str,
 	analysis: &ChangeAnalysis,
 	selected_package_id: &str,
 ) {
-	lines.push(String::new());
-	lines.push(format!("{label}:"));
-	lines.push(format!("  frame: {}", analysis.frame));
-	let Some(package_analysis) = analysis.package_analyses.get(selected_package_id) else {
-		let no_change_message = [
-			"  no semantic changes detected for `",
-			selected_package_id,
-			"` in this frame",
-		]
-		.concat();
-		lines.push(no_change_message);
-		push_warning_lines_if_any(lines, &analysis.warnings);
-		return;
-	};
-
-	let semantic_change_count = package_analysis.semantic_changes.len();
-	lines.push(format!("  semantic changes: {semantic_change_count}"));
-	push_changed_file_lines_if_any(lines, &package_analysis.changed_files);
-	push_semantic_change_lines_if_any(lines, &package_analysis.semantic_changes);
-	push_section_warnings_if_any(lines, &package_analysis.warnings, &analysis.warnings);
-}
-
-fn push_changed_file_lines_if_any(lines: &mut Vec<String>, changed_files: &[PathBuf]) {
-	if changed_files.is_empty() {
-		return;
-	}
-
-	push_changed_file_lines(lines, changed_files);
-}
-
-fn push_changed_file_lines(lines: &mut Vec<String>, changed_files: &[PathBuf]) {
-	lines.push("  changed files:".to_string());
-	lines.extend(
-		changed_files
-			.iter()
-			.map(|changed_file| format!("  - {}", changed_file.display())),
+	let package_analysis = analysis.package_analyses.get(selected_package_id);
+	text.section(
+		label,
+		Some(package_analysis.map_or(0, |analysis| analysis.semantic_changes.len())),
 	);
-}
-
-fn push_semantic_change_lines_if_any(
-	lines: &mut Vec<String>,
-	semantic_changes: &[monochange_analysis::SemanticChange],
-) {
-	if semantic_changes.is_empty() {
-		return;
+	text.indented(&format!("frame {}", analysis.frame), Tone::Muted);
+	let mut warnings = analysis.warnings.clone();
+	match package_analysis {
+		None => {
+			text.indented(
+				&format!("No semantic changes detected for `{selected_package_id}` in this frame."),
+				Tone::Plain,
+			);
+		}
+		Some(package_analysis) => {
+			let rows = package_analysis
+				.semantic_changes
+				.iter()
+				.map(|change| {
+					vec![
+						TableCell::plain(&change.summary),
+						TableCell::new(change.file_path.display().to_string(), Tone::Muted),
+					]
+				})
+				.collect::<Vec<_>>();
+			text.table(&rows);
+			if !package_analysis.changed_files.is_empty() {
+				text.indented(
+					&format!(
+						"{}:",
+						plural(
+							package_analysis.changed_files.len(),
+							"changed file",
+							"changed files"
+						)
+					),
+					Tone::Muted,
+				);
+				text.list(
+					package_analysis
+						.changed_files
+						.iter()
+						.map(|changed_file| format!("  {}", changed_file.display())),
+					FRAME_LIST_LIMIT,
+				);
+			}
+			warnings.splice(0..0, package_analysis.warnings.iter().cloned());
+		}
 	}
-
-	push_semantic_change_lines(lines, semantic_changes);
-}
-
-fn push_semantic_change_lines(
-	lines: &mut Vec<String>,
-	semantic_changes: &[monochange_analysis::SemanticChange],
-) {
-	lines.push("  changes:".to_string());
-	lines.extend(
-		semantic_changes
-			.iter()
-			.map(|change| format!("  - {} ({})", change.summary, change.file_path.display())),
+	text.list(
+		warnings.iter().map(|warning| format!("▲ {warning}")),
+		usize::MAX,
 	);
-}
-
-fn push_warning_lines_if_any(lines: &mut Vec<String>, warnings: &[String]) {
-	if warnings.is_empty() {
-		return;
-	}
-
-	push_warning_lines(lines, warnings);
-}
-
-fn push_section_warnings_if_any(
-	lines: &mut Vec<String>,
-	package_warnings: &[String],
-	analysis_warnings: &[String],
-) {
-	if package_warnings.is_empty() && analysis_warnings.is_empty() {
-		return;
-	}
-
-	lines.push("  warnings:".to_string());
-	push_warning_items(lines, package_warnings);
-	push_warning_items(lines, analysis_warnings);
-}
-
-fn push_warning_lines(lines: &mut Vec<String>, warnings: &[String]) {
-	lines.push("  warnings:".to_string());
-	push_warning_items(lines, warnings);
-}
-
-fn push_warning_items(lines: &mut Vec<String>, warnings: &[String]) {
-	lines.extend(warnings.iter().map(|warning| format!("  - {warning}")));
-}
-
-fn yes_no(value: bool) -> &'static str {
-	if value { "yes" } else { "no" }
 }
 
 #[cfg(test)]

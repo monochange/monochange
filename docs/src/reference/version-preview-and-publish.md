@@ -11,15 +11,17 @@ monochange next
 ```
 
 ```text
-group versions:
-- sdk: 1.1.0
-package versions:
-- cargo:crates/sdk-a/Cargo.toml: 1.1.0
-- cargo:crates/sdk-b/Cargo.toml: 1.1.0
-- cargo:crates/tool/Cargo.toml: 1.0.1
+✔ Next versions · 1 group · 3 packages
+
+Groups
+  sdk  1.1.0  minor
+    sdk-a, sdk-b
+
+Packages
+  tool  1.0.1  patch
 ```
 
-Group members report the group version because they share one release identity. `tool` releases on its own, so it reports its own version.
+Group members are listed under their group because they share one release identity and version. `tool` releases on its own, so it reports its own version. Packages appear under the id they are configured with in `monochange.toml`; JSON output keys them by package record id.
 
 Use `--format` for structured output:
 

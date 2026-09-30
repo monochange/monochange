@@ -1,0 +1,19 @@
+---
+source: crates/monochange/src/__tests__/lib_tests.rs
+expression: rendered
+---
+✔ Found release record · 1.2.3 · 1 release target
+
+Ref            v1.2.3 → abc1234
+Record commit  abc1234 · at the requested ref
+Provider       github ifiokjr/monochange
+
+Release targets (1)
+  sdk  group  1.2.3  tag v1.2.3
+
+Versions (1)
+  sdk  1.2.3
+
+Released packages (2)
+  monochange
+  monochange_core

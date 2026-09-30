@@ -2,7 +2,7 @@
 source: crates/monochange/tests/cli_step_input_overrides.rs
 expression: "String::from_utf8_lossy(&output.stdout)"
 ---
-would write change file .changeset/hardcoded.md
+• Would create changeset .changeset/hardcoded.md · dry-run, nothing was written
 
 ---
 core: minor

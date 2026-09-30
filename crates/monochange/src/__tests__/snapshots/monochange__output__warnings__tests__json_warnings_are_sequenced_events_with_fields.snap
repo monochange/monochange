@@ -1,0 +1,23 @@
+---
+source: crates/monochange/src/output/../__tests__/output_warnings_tests.rs
+expression: events
+---
+[
+  {
+    "event": "warning",
+    "fields": {
+      "commit_sha": "abc1234",
+      "reason": "GitHub API returned 422"
+    },
+    "message": "could not create a verified release commit",
+    "sequence": 0
+  },
+  {
+    "event": "warning",
+    "fields": {
+      "attempt": "2"
+    },
+    "message": "publish command attempt failed",
+    "sequence": 1
+  }
+]

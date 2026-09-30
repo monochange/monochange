@@ -1,0 +1,19 @@
+---
+source: crates/monochange/src/output/../__tests__/cli_progress_tests.rs
+expression: recorded_text(&bytes)
+---
+monochange › release · 2 steps
+▶ [2/2] format files
+  $ dprint fmt
+::group::[2/2] format files · output
+  │ ::set-output name=x::y
+  │ formatted 3 files
+::endgroup::
+::warning title=monochange::100%25 of files changed%0Asecond line
+✖ [2/2] format files  40ms
+  └─ command failed (exit status: 1)
+error[step.command_failed]: command `dprint fmt` failed: exit status: 1
+  command: monochange run release
+  step:    [2/2] format files
+  help:    Fix the failure shown in the command output, then rerun. To reproduce it on its own, run the command directly from the workspace root.
+::error title=monochange run release failed::error[step.command_failed]: command `dprint fmt` failed: exit status: 1%0Astep: [2/2] format files%0Ahelp: Fix the failure shown in the command output, then rerun. To reproduce it on its own, run the command directly from the workspace root.

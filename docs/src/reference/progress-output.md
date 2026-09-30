@@ -17,29 +17,61 @@ Supported values:
 
 ## Human progress output
 
-The human renderer is designed for interactive terminal runs:
+The human renderer is designed to be read, both in an interactive terminal and in CI logs:
 
 - configuration loading and validation report their active phase before work begins
-- step labels use each step's `name = "..."` value when present, then fall back to the built-in step kind
-- long-running steps show a delayed spinner so short steps do not flicker
-- command stdout and stderr stream under the active step: the step name is written once as a block header, then every captured line is indented beneath it
-- stdout and stderr interleave in arrival order without stream tags; use `--progress-format json` when a consumer must tell the two streams apart
-- completed `PrepareRelease` and `DisplayVersions` steps print per-phase timings so slow phases are visible without a separate trace
+- step labels use each step's `name = "..."` value when present; unnamed built-in steps get a readable label such as `calculate next versions` or `prepare release`
+- step results line up in a column with their duration, and named built-in steps keep their kind, such as `(PrepareRelease)`, so a label can be traced to its step reference
+- commands with more than one step open with a `monochange › <command> · <n> steps` banner and close with `<command> completed in <duration>` or `<command> failed after <duration>`; single-step commands show only the step
+- a `Command` step shows the command it runs as `$ <command>` under the step instead of repeating the step line
+- command stdout and stderr stream under the active step, prefixed with `│`; stdout and stderr interleave in arrival order, so use `--progress-format json` when a consumer must tell the two streams apart
+- dry-run `Command` steps show as skipped, because the command was not run
+- steps slower than one second list their slowest phases, so slow phases are visible without a separate trace; `--verbose` lists every phase of every step
+- the interactive spinner shows how long a slow step has been running; captured and CI logs instead note that a silent command is still running after 30 seconds and then once a minute
 
-Captured command output looks like this, with the step named once instead of on every line:
+Captured command output looks like this:
 
 ```text
-▶ [2/7] format release files (Command)
-▶ [2/7] format release files (Command) — running command `devenv tasks run format`
-  │ format release files
-  │   • Validating lock
-  │   • Validating lock in 2.35ms
-✔ [2/7] format release files (Command) 398ms
+monochange › release · 3 steps
+▶ [1/3] plan release (PrepareRelease)
+✔ [1/3] plan release (PrepareRelease)  1.23s
+    · enrich changeset context via github  896ms
+    · build release plan                   151ms
+▶ [2/3] format release files
+  $ dprint fmt
+  │ Formatted 54 files.
+✔ [2/3] format release files           2.70s
+▶ [3/3] run tests
+  $ cargo test
+  │ test a ... FAILED
+✖ [3/3] run tests                      41.2s
+  └─ command failed (exit status: 101)
+✖ release failed after 45.2s
 ```
 
 The same events become complete, newline-terminated records when stderr is captured or monochange runs in CI. Lint and publish operations share the workflow reporter, so a nested operation cannot create a second spinner or append text to an active line. Publish progress uses the same symbols, colors, and ASCII fallback as workflow progress.
 
-Built-in commands already attach descriptive step names such as `prepare release`, `publish release`, and `open release request`. Custom commands can override those names per step.
+### GitHub Actions
+
+When `GITHUB_ACTIONS=true`, the human renderer also uses GitHub workflow commands (unless `--quiet` or `MONOCHANGE_NO_PROGRESS=1` turns progress off):
+
+- each step's command output is folded into a collapsible `::group::` titled after the step, so long build logs do not bury the step results
+- warnings become `::warning` annotations and a failure adds an `::error` annotation, so both appear in the run summary and on the pull request
+- captured command output keeps its `│` prefix, so a workflow command printed by a nested tool is never executed by the runner
+
+## Warnings
+
+monochange prints warnings without `--log-level`. A warning such as a GitHub API fallback or a publish retry appears once as a `warning:` line with its details underneath:
+
+```text
+warning: could not create a verified release commit through the GitHub API; falling back to a regular git commit
+  reason: GitHub API POST `/repos/acme/app/git/trees` failed: status 422
+  commit: c686e78478ea2611d41e2d8521311a236f2a3470
+```
+
+`--quiet` hides warnings. With `--progress-format json`, a warning is a `warning` event with `message` and `fields`.
+
+`--verbose` (`-v`) also shows progress notes from monochange's libraries, such as the verified release commit that was created or each package that was published, as `note:` lines (or `note` events with `--progress-format json`). It also shows complete result lists, full command-step logs, and full changeset details instead of the truncated summaries. It does not enable maintainer tracing.
 
 ## JSON event stream
 
@@ -74,6 +106,9 @@ Common lifecycle events:
 - `publish_package_published`
 - `publish_package_failed`
 - `publish_run_finished`
+- `warning`
+- `note` (with `--verbose`)
+- `diagnostic`
 
 Shared fields:
 
@@ -94,6 +129,8 @@ Event-specific fields:
 - `step_failed` adds `duration_ms` and `error`
 - `step_skipped` may add the backward-compatible `condition` field for conditional skips and `reason` for a human-readable explanation
 - `command_failed` adds `duration_ms` and `error`
+- `warning` and `note` add `message`; events raised inside monochange's libraries also add `fields`
+- `diagnostic` replaces the human failure text and adds `code`, `summary`, `detail` (the multi-line cause, or `null`), `context` (such as `command`, `step`, and `path`), `hints`, and `exit_code`
 
 Example:
 
@@ -107,15 +144,27 @@ Example:
 
 ## Failure diagnostics and maintainer tracing
 
-Normal failures use a stable diagnostic code and put the useful recovery information first:
+Failures start with a stable diagnostic code, then explain the cause, where it happened, and what to do next:
 
 ```text
-error[cli.json_required]: --jq requires explicit JSON output
-  command: monochange step config
-  help: Add `--format json` or `--format json-min` before using `--jq`.
+error[step.command_failed]: command `cargo test` failed: exit status: 101
+
+    stderr (last 20 of 250 lines, full output above):
+    test a ... FAILED
+
+  command: monochange run release
+  step:    [3/4] run tests
+  help:    Fix the failure shown in the command output, then rerun. To reproduce it on its own, run the command directly from the workspace root.
 ```
 
-Use the code when searching CI logs or reporting a recurring failure. The diagnostic includes command or path context when monochange knows it and a next action when it can recommend one.
+Use the code when searching CI logs or reporting a recurring failure. Usage errors (`cli.usage`, `cli.json_required`) exit with status `2`; every other failure exits with `1`. With `--progress-format json`, the diagnostic is a `diagnostic` event instead of text. Common codes:
+
+- `cli.usage`: the command line could not be parsed; the diagnostic keeps the usage line and suggestions, and the process exits with status `2`
+- `config.invalid`, `config.parse_failed`, `config.unknown_package`: `monochange.toml` or a changeset target needs fixing; source snippets show the exact location
+- `step.command_failed`: a `Command` step exited unsuccessfully; when its output already streamed above, only the last lines are repeated
+- `check.failed`, `command.failed`: the result printed above lists the failing items
+
+Paths inside the workspace are shown relative to its root. When `monochange.toml` cannot be loaded, the configuration error is reported even if the failure surfaced while parsing a command defined in that file.
 
 `--log-level <FILTER>` enables local maintainer tracing, for example `--log-level debug` or `--log-level monochange=trace`. Tracing is opt-in, may include internal spans and implementation detail, and is not the normal user-facing explanation for a failure. Animation is disabled while tracing is active so trace records and progress lines remain readable. This flag does not enable remote telemetry.
 

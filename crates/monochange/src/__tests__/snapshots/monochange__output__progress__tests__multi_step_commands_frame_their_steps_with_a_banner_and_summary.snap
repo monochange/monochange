@@ -1,0 +1,19 @@
+---
+source: crates/monochange/src/output/../__tests__/cli_progress_tests.rs
+expression: "format!(\"{}---\\n{}\", recorded_text(&bytes), recorded_text(&failing_bytes))"
+---
+monochange › release · 2 steps · dry-run
+▶ [1/2] plan release (Discover)
+✔ [1/2] plan release (Discover)  1.25s
+    · build release plan  900ms
+    · resolve changelogs  300ms
+▶ [2/2] format files
+  $ dprint fmt
+○ [2/2] format files             skipped · dry-run; the command was not run
+✓ release completed in 1m 15s
+---
+monochange > release - 2 steps
+x [1/2] plan release (Discover)  5ms
+  `- bad input
+x [2/2] format files  5ms
+x release failed after 12ms

@@ -1,0 +1,17 @@
+---
+source: crates/monochange/src/output/../__tests__/output_diagnostic_tests.rs
+expression: "serde_json::Value::Object(fields)"
+---
+{
+  "code": "step.command_failed",
+  "context": {
+    "command": "monochange run release",
+    "step": "[3/4] run tests"
+  },
+  "detail": "[multiline text]",
+  "exit_code": 1,
+  "hints": [
+    "Fix the failure shown in the command output, then rerun. To reproduce it on its own, run the command directly from the workspace root."
+  ],
+  "summary": "command `cargo test` failed: exit status: 101"
+}

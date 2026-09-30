@@ -1,0 +1,6 @@
+---
+source: crates/monochange/src/output/../__tests__/output_diagnostic_tests.rs
+expression: detail
+---
+stderr:
+test a ... FAILED

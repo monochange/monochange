@@ -2,16 +2,21 @@
 source: crates/monochange_integration_tests/tests/prepared_release_cache_invalidation.rs
 expression: second
 ---
-command `preview` completed (dry-run)
-version: 1.1.0
-released packages: alpha
-release targets:
-- package alpha -> alpha/v1.1.0 (tag: true, release: true)
-release manifest: .monochange/local/release-manifest.json
-changed files:
-- Cargo.toml
-- crates/alpha/CHANGELOG.md
-- crates/alpha/Cargo.toml
-commands:
-- reused prepared release artifact `.monochange/local/prepared-release-cache.json`
-- skipped release record: dry-run preview (pass `--release-json` to write release.json)
+• Release preview · 1 package · dry-run, no files were changed
+
+Releases
+  alpha  alpha/v1.1.0  package · tag · release
+
+Packages (1)
+  alpha
+
+Changed files (3)
+  Cargo.toml
+  crates/alpha/CHANGELOG.md
+  crates/alpha/Cargo.toml
+
+Manifest  .monochange/local/release-manifest.json
+
+Log
+  reused prepared release artifact `.monochange/local/prepared-release-cache.json`
+  skipped release record: dry-run preview (pass `--release-json` to write release.json)

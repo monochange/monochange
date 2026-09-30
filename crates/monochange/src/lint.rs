@@ -22,6 +22,13 @@ use monochange_lint::LintSelection;
 use monochange_lint::Linter;
 
 use crate::OutputFormat;
+use crate::output::text::Outcome;
+use crate::output::text::TableCell;
+use crate::output::text::TextReport;
+use crate::output::text::TextTheme;
+use crate::output::text::Tone;
+use crate::output::text::plural;
+use crate::root_relative;
 
 #[allow(clippy::vec_init_then_push)]
 fn lint_suites(configuration: Option<&WorkspaceConfiguration>) -> Vec<Box<dyn LintSuite>> {
@@ -130,8 +137,6 @@ pub(crate) fn run_check_command_with_configuration(
 	verbose: bool,
 	reporter: &crate::output::ProgressReporter,
 ) -> MonochangeResult<String> {
-	let mut output = String::new();
-
 	let validation_started = std::time::Instant::now();
 	reporter.phase_started("Validating workspace configuration");
 	let (validation_warnings, validation_errors) =
@@ -140,17 +145,6 @@ pub(crate) fn run_check_command_with_configuration(
 		"Validated workspace configuration",
 		validation_started.elapsed(),
 	);
-	for warning in &validation_warnings {
-		let _ = writeln!(output, "warning: {warning}");
-	}
-	if validation_errors.is_empty() {
-		let _ = writeln!(output, "workspace validation passed for {}", root.display());
-	} else {
-		let _ = writeln!(output, "workspace validation failed for {}", root.display());
-		for error in &validation_errors {
-			let _ = writeln!(output, "{error}");
-		}
-	}
 
 	let selection = LintSelection::all()
 		.with_suites(ecosystems.iter().cloned())
@@ -228,7 +222,10 @@ pub(crate) fn run_check_command_with_configuration(
 					},
 				);
 				if validation_has_errors {
-					let _ = write!(diagnostic, "\n{output}");
+					diagnostic.push_str("\nworkspace validation failed");
+					for error in &validation_errors {
+						let _ = write!(diagnostic, "\n{error}");
+					}
 				}
 				return Err(MonochangeError::Reported {
 					output: rendered,
@@ -239,9 +236,19 @@ pub(crate) fn run_check_command_with_configuration(
 			Ok(rendered)
 		}
 		OutputFormat::Text | OutputFormat::Markdown => {
-			output.push_str(&format_check_report(&report, fixed_any_files, verbose));
+			let output = format_check_report(
+				&CheckReportInput {
+					root,
+					report: &report,
+					validation_warnings: &validation_warnings,
+					validation_errors: &validation_errors,
+					fixed_files: fixed_file_count,
+					verbose,
+				},
+				TextTheme::for_stdout(),
+			);
 			if validation_has_errors || lint_has_errors {
-				let mut diagnostic = format!(
+				let diagnostic = format!(
 					"check failed: {} error{}, {} warning{}",
 					report.error_count + validation_errors.len(),
 					if report.error_count + validation_errors.len() == 1 {
@@ -256,12 +263,6 @@ pub(crate) fn run_check_command_with_configuration(
 						"s"
 					},
 				);
-				if validation_has_errors {
-					diagnostic.push_str("\nworkspace validation failed");
-					for error in &validation_errors {
-						let _ = write!(diagnostic, "\n{error}");
-					}
-				}
 				Err(MonochangeError::Reported { output, diagnostic })
 			} else {
 				Ok(output)
@@ -308,7 +309,17 @@ pub(crate) fn run_lint_step(root: &Path, fix: bool) -> MonochangeResult<(String,
 
 	let has_errors = report.has_errors();
 	Ok((
-		format_check_report(&report, fixed_file_count > 0, false),
+		format_check_report(
+			&CheckReportInput {
+				root,
+				report: &report,
+				validation_warnings: &[],
+				validation_errors: &[],
+				fixed_files: fixed_file_count,
+				verbose: false,
+			},
+			TextTheme::for_stdout(),
+		),
 		has_errors,
 	))
 }
@@ -330,27 +341,55 @@ pub(crate) fn render_lint_catalog(format: OutputFormat) -> MonochangeResult<Stri
 				.unwrap_or_else(|error| panic!("serializing lint catalog should succeed: {error}")))
 		}
 		OutputFormat::Text | OutputFormat::Markdown => {
-			let mut output = String::new();
-			output.push_str("Rules:\n");
-			for rule in rules {
-				let _ = writeln!(
-					output,
-					"- {} [{:?} {:?}]{}",
-					rule.id,
-					rule.category,
-					rule.maturity,
-					if rule.autofixable { " [fixable]" } else { "" }
-				);
-				let _ = writeln!(output, "  {}", rule.description);
-			}
-			output.push_str("\nPresets:\n");
-			for preset in presets {
-				let _ = writeln!(output, "- {} [{:?}]", preset.id, preset.maturity);
-				let _ = writeln!(output, "  {}", preset.description);
-			}
-			Ok(output)
+			let mut text = TextReport::new(TextTheme::for_stdout());
+			let fixable = rules.iter().filter(|rule| rule.autofixable).count();
+			text.headline(
+				Outcome::Neutral,
+				&plural(rules.len(), "lint rule", "lint rules"),
+				&[
+					format!("{fixable} fixable"),
+					plural(presets.len(), "preset", "presets"),
+				],
+			);
+			text.section("Rules", Some(rules.len()));
+			text.list(
+				rules.iter().map(|rule| {
+					let mut meta = format!(
+						"{} · {}",
+						debug_label(&rule.category),
+						debug_label(&rule.maturity)
+					);
+					if rule.autofixable {
+						meta.push_str(" · fixable");
+					}
+					format!("{}  {meta}\n{}", rule.id, rule.description)
+				}),
+				usize::MAX,
+			);
+			text.section("Presets", Some(presets.len()));
+			text.list(
+				presets.iter().map(|preset| {
+					format!(
+						"{}  {}\n{}",
+						preset.id,
+						debug_label(&preset.maturity),
+						preset.description
+					)
+				}),
+				usize::MAX,
+			);
+			text.paragraph(
+				"Run `monochange lint explain <id>` for a rule's options or a preset's rules.",
+				Tone::Muted,
+			);
+			Ok(text.render())
 		}
 	}
+}
+
+/// `Correctness` reads as `correctness` in result text.
+fn debug_label(value: &impl std::fmt::Debug) -> String {
+	format!("{value:?}").to_lowercase()
 }
 
 pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> MonochangeResult<String> {
@@ -360,21 +399,32 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 				format.render_json_value(&rule, "lint rule explanation")
 			}
 			OutputFormat::Text | OutputFormat::Markdown => {
-				let mut output = String::new();
-				let _ = writeln!(output, "{}", rule.id);
-				let _ = writeln!(output, "name: {}", rule.name);
-				let _ = writeln!(output, "category: {:?}", rule.category);
-				let _ = writeln!(output, "maturity: {:?}", rule.maturity);
-				let _ = writeln!(output, "autofixable: {}", rule.autofixable);
-				let _ = writeln!(output, "\n{}", rule.description);
-				for (index, option) in rule.options.into_iter().enumerate() {
-					if index == 0 {
-						output.push_str("\nOptions:\n");
-					}
-					let _ = writeln!(output, "- {} ({:?})", option.name, option.kind);
-					let _ = writeln!(output, "  {}", option.description);
+				let mut text = TextReport::new(TextTheme::for_stdout());
+				text.headline(Outcome::Neutral, &rule.id, std::slice::from_ref(&rule.name));
+				text.fields(&[
+					("Category", debug_label(&rule.category)),
+					("Maturity", debug_label(&rule.maturity)),
+					(
+						"Autofix",
+						if rule.autofixable { "yes" } else { "no" }.to_string(),
+					),
+				]);
+				text.paragraph(&rule.description, Tone::Plain);
+				if !rule.options.is_empty() {
+					text.section("Options", Some(rule.options.len()));
+					text.list(
+						rule.options.iter().map(|option| {
+							format!(
+								"{}  {}\n{}",
+								option.name,
+								debug_label(&option.kind),
+								option.description
+							)
+						}),
+						usize::MAX,
+					);
 				}
-				Ok(output)
+				Ok(text.render())
 			}
 		};
 	}
@@ -389,16 +439,27 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 					}))
 			}
 			OutputFormat::Text | OutputFormat::Markdown => {
-				let mut output = String::new();
-				let _ = writeln!(output, "{}", preset.id);
-				let _ = writeln!(output, "name: {}", preset.name);
-				let _ = writeln!(output, "maturity: {:?}", preset.maturity);
-				let _ = writeln!(output, "\n{}", preset.description);
-				output.push_str("\nRules:\n");
-				for (rule_id, config) in preset.rules {
-					let _ = writeln!(output, "- {} = {}", rule_id, config.severity());
-				}
-				Ok(output)
+				let mut text = TextReport::new(TextTheme::for_stdout());
+				text.headline(
+					Outcome::Neutral,
+					&preset.id,
+					std::slice::from_ref(&preset.name),
+				);
+				text.fields(&[("Maturity", debug_label(&preset.maturity))]);
+				text.paragraph(&preset.description, Tone::Plain);
+				text.section("Rules", Some(preset.rules.len()));
+				let rows = preset
+					.rules
+					.iter()
+					.map(|(rule_id, config)| {
+						vec![
+							TableCell::plain(rule_id),
+							TableCell::new(config.severity().to_string(), Tone::Muted),
+						]
+					})
+					.collect::<Vec<_>>();
+				text.table(&rows);
+				Ok(text.render())
 			}
 		};
 	}
@@ -560,27 +621,66 @@ impl LintRuleRunner for {struct_name} {{
 	))
 }
 
-fn format_check_report(report: &LintReport, fixed: bool, verbose: bool) -> String {
-	if report.results.is_empty() && report.warnings.is_empty() {
-		let mut output = "lint: no issues found\n".to_string();
-		if fixed {
-			output.push_str("Fixed all auto-fixable issues.\n");
+/// Everything `monochange check` reports in its human result.
+struct CheckReportInput<'a> {
+	root: &'a Path,
+	report: &'a LintReport,
+	validation_warnings: &'a [String],
+	validation_errors: &'a [String],
+	fixed_files: usize,
+	verbose: bool,
+}
+
+fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String {
+	let report = input.report;
+	let errors = report.error_count + input.validation_errors.len();
+	let warnings = report.warning_count + input.validation_warnings.len() + report.warnings.len();
+	let fixable = report.autofixable().len();
+	let mut text = TextReport::new(theme);
+
+	let mut details = Vec::new();
+	if errors > 0 {
+		details.push(plural(errors, "error", "errors"));
+	}
+	if warnings > 0 {
+		details.push(plural(warnings, "warning", "warnings"));
+	}
+	if fixable > 0 {
+		details.push(format!("{fixable} fixable"));
+	}
+	if input.fixed_files > 0 {
+		details.push(format!(
+			"fixed {}",
+			plural(input.fixed_files, "file", "files")
+		));
+	}
+	let (outcome, headline) = match (errors, warnings) {
+		(0, 0) => (Outcome::Success, "Checks passed"),
+		(0, _) => (Outcome::Warning, "Checks passed with warnings"),
+		_ => (Outcome::Failure, "Checks failed"),
+	};
+	text.headline(outcome, headline, &details);
+
+	if !input.validation_errors.is_empty() {
+		text.section("Workspace validation", Some(input.validation_errors.len()));
+		for error in input.validation_errors {
+			text.raw_block(error);
 		}
-		return output;
 	}
 
-	let mut output = String::new();
-	let _ = write!(
-		output,
-		"lint: {} errors, {} warnings\n\n",
-		report.error_count, report.warning_count
-	);
-
-	for warning in &report.warnings {
-		let _ = writeln!(output, "warning: {warning}");
-	}
-	if !report.warnings.is_empty() {
-		output.push('\n');
+	let workspace_warnings = input
+		.validation_warnings
+		.iter()
+		.chain(&report.warnings)
+		.collect::<Vec<_>>();
+	if !workspace_warnings.is_empty() {
+		text.section("Warnings", Some(workspace_warnings.len()));
+		text.list(
+			workspace_warnings
+				.into_iter()
+				.map(|warning| format!("▲ {warning}")),
+			usize::MAX,
+		);
 	}
 
 	let mut by_file: BTreeMap<&Path, Vec<&monochange_core::lint::LintResult>> = BTreeMap::new();
@@ -590,61 +690,76 @@ fn format_check_report(report: &LintReport, fixed: bool, verbose: bool) -> Strin
 			.or_default()
 			.push(result);
 	}
-
-	for (file, results) in by_file {
-		let _ = writeln!(output, "{}:", file.display());
+	for (file, mut results) in by_file {
+		results.sort_by(|left, right| {
+			(left.location.line, left.location.column, &left.rule_id).cmp(&(
+				right.location.line,
+				right.location.column,
+				&right.rule_id,
+			))
+		});
+		text.paragraph(
+			&root_relative(input.root, file).display().to_string(),
+			Tone::Heading,
+		);
+		let location_width = results
+			.iter()
+			.map(|result| format!("{}:{}", result.location.line, result.location.column).len())
+			.max()
+			.unwrap_or_default();
 		for result in results {
-			let severity_icon = match result.severity {
-				LintSeverity::Error => "✗",
-				LintSeverity::Warning => "⚠",
-				LintSeverity::Off => "·",
+			let (icon, tone) = match result.severity {
+				LintSeverity::Error => ("✖", Tone::Error),
+				LintSeverity::Warning => ("▲", Tone::Warning),
+				LintSeverity::Off => ("·", Tone::Muted),
 			};
-			let fix_indicator = if result.fix.is_some() {
-				" [fixable]"
-			} else {
-				""
-			};
-			let _ = writeln!(
-				output,
-				"  {} **{}** at {}:{}{}",
-				severity_icon,
-				result.rule_id,
-				result.location.line,
-				result.location.column,
-				fix_indicator
+			let location = format!("{}:{}", result.location.line, result.location.column);
+			let padding = " ".repeat(location_width - location.len());
+			text.indented(
+				&format!(
+					"{}{padding}  {} {}",
+					theme.paint(&location, Tone::Muted),
+					theme.paint(icon, tone),
+					result.message
+				),
+				Tone::Plain,
 			);
-			let _ = writeln!(output, "     {}", result.message);
-			if verbose {
-				let _ = writeln!(output, "     severity: {}", result.severity);
+			let mut rule = vec![result.rule_id.clone()];
+			if result.fix.is_some() {
+				rule.push("fixable".to_string());
+			}
+			let indent = " ".repeat(location_width + 4);
+			text.indented(&format!("{indent}{}", rule.join(" · ")), Tone::Muted);
+			if input.verbose {
+				let mut verbose = vec![format!("severity {}", result.severity)];
 				if let Some((start, end)) = result.location.span {
-					let _ = writeln!(output, "     span: {start}..{end}");
+					verbose.push(format!("span {start}..{end}"));
 				}
 				if let Some(fix) = result.fix.as_ref() {
-					let _ = writeln!(output, "     fix: {}", fix.description);
+					verbose.push(format!("fix: {}", fix.description));
 				}
+				text.indented(&format!("{indent}{}", verbose.join(" · ")), Tone::Muted);
 			}
 		}
-		output.push('\n');
 	}
 
-	let autofixable_count = report.autofixable().len();
-	if fixed && autofixable_count == 0 {
-		output.push_str("Fixed all auto-fixable issues.\n");
-	} else if fixed {
-		let _ = writeln!(
-			output,
-			"Applied fixes; {autofixable_count} issue(s) remain auto-fixable. Run with --fix again to apply."
-		);
-	} else if autofixable_count == 0 {
-		output.push_str("No auto-fixable issues found.\n");
-	} else {
-		let _ = writeln!(
-			output,
-			"{autofixable_count} issue(s) can be auto-fixed. Run with --fix to apply."
-		);
+	if fixable > 0 {
+		let command = theme.paint("`monochange check --fix`", Tone::Accent);
+		let sentence = if input.fixed_files > 0 {
+			format!(
+				"{} still auto-fixable; run {command} again.",
+				plural(fixable, "issue is", "issues are")
+			)
+		} else {
+			format!(
+				"Run {command} to fix {} automatically.",
+				plural(fixable, "issue", "issues")
+			)
+		};
+		text.paragraph(&sentence, Tone::Plain);
 	}
 
-	output
+	text.render()
 }
 
 #[cfg(test)]

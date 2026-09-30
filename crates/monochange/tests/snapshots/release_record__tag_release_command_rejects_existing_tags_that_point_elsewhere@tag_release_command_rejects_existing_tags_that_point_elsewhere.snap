@@ -4,4 +4,3 @@ expression: "String::from_utf8(output.stderr).unwrap_or_else(|error|\npanic!(\"s
 ---
 error[config.invalid]: tag `v1.2.3` already points to commit [SHA]; use `monochange step retarget-release` if you need to move an existing release tag
   command: monochange step tag-release
-  help: Check `monochange.toml` and the command arguments, then rerun the command.

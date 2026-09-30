@@ -246,7 +246,7 @@ pub(crate) async fn run_git_capture(
 
 	if !output.status.success() {
 		let stderr = git_stderr_trimmed(&output);
-		tracing::warn!(args = ?args, %stderr, "git command failed");
+		tracing::debug!(args = ?args, %stderr, "git command failed");
 
 		return Err(MonochangeError::Discovery(git_error_message_with_detail(
 			error_message,

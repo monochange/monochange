@@ -174,6 +174,25 @@ fn make_executable(path: &Path) {
 #[cfg(not(unix))]
 fn make_executable(_path: &Path) {}
 
+/// Runs a freshly written script again while `exec` reports `ETXTBSY`: a child
+/// that another test forks while the script is still open for writing keeps
+/// the write handle until it execs, and the kernel refuses to run the file.
+fn retry_while_text_file_busy<T>(
+	mut run: impl FnMut() -> MonochangeResult<T>,
+) -> MonochangeResult<T> {
+	let mut attempts = 0;
+	loop {
+		let result = run();
+		match &result {
+			Err(error) if attempts < 50 && error.to_string().contains("Text file busy") => {
+				attempts += 1;
+				std::thread::sleep(std::time::Duration::from_millis(20));
+			}
+			_ => return result,
+		}
+	}
+}
+
 fn sample_changeset_with_context() -> PreparedChangeset {
 	PreparedChangeset {
 		path: PathBuf::from(".changeset/feature.md"),
@@ -1078,8 +1097,10 @@ fn materialize_lockfile_updates_captures_in_place_changes() {
 		shell: ShellConfig::None,
 	}];
 
-	let updates = materialize_lockfile_command_updates(root, &base_updates, &lockfile_commands)
-		.unwrap_or_else(|error| panic!("materialize: {error}"));
+	let updates = retry_while_text_file_busy(|| {
+		materialize_lockfile_command_updates(root, &base_updates, &lockfile_commands)
+	})
+	.unwrap_or_else(|error| panic!("materialize: {error}"));
 
 	assert!(
 		updates.iter().any(|u| u.path.ends_with("manifest.json")),
@@ -1127,28 +1148,32 @@ fn lockfile_update_helpers_cover_missing_dirs_unreadable_files_and_stderr_paths(
 		use std::os::unix::fs::PermissionsExt;
 		fs::set_permissions(&script_path, fs::Permissions::from_mode(0o755)).unwrap();
 	}
-	let stderr_error = run_lockfile_command_in_place(
-		root,
-		&LockfileCommandExecution {
-			command: script_path.display().to_string(),
-			cwd: PathBuf::from("."),
-			shell: ShellConfig::None,
-		},
-	)
+	let stderr_error = retry_while_text_file_busy(|| {
+		run_lockfile_command_in_place(
+			root,
+			&LockfileCommandExecution {
+				command: script_path.display().to_string(),
+				cwd: PathBuf::from("."),
+				shell: ShellConfig::None,
+			},
+		)
+	})
 	.err()
 	.unwrap_or_else(|| panic!("expected stderr failure for in-place lockfile command"));
 	assert!(stderr_error.to_string().contains("bad stderr"));
 
 	fs::write(&script_path, "#!/bin/sh\necho useful stdout\nexit 7\n")
 		.unwrap_or_else(|error| panic!("rewrite failing script: {error}"));
-	let stdout_error = run_lockfile_command_in_place(
-		root,
-		&LockfileCommandExecution {
-			command: script_path.display().to_string(),
-			cwd: PathBuf::from("."),
-			shell: ShellConfig::None,
-		},
-	)
+	let stdout_error = retry_while_text_file_busy(|| {
+		run_lockfile_command_in_place(
+			root,
+			&LockfileCommandExecution {
+				command: script_path.display().to_string(),
+				cwd: PathBuf::from("."),
+				shell: ShellConfig::None,
+			},
+		)
+	})
 	.err()
 	.unwrap_or_else(|| panic!("expected stdout failure for in-place lockfile command"));
 	assert_eq!(
@@ -1230,14 +1255,16 @@ fn run_lockfile_command_in_place_reports_failures() {
 	.unwrap_or_else(|error| panic!("write both script: {error}"));
 	fs::set_permissions(&both_script, fs::Permissions::from_mode(0o755))
 		.unwrap_or_else(|error| panic!("chmod both script: {error}"));
-	let both_error = run_lockfile_command_in_place(
-		root,
-		&LockfileCommandExecution {
-			command: both_script.display().to_string(),
-			cwd: root.to_path_buf(),
-			shell: ShellConfig::None,
-		},
-	)
+	let both_error = retry_while_text_file_busy(|| {
+		run_lockfile_command_in_place(
+			root,
+			&LockfileCommandExecution {
+				command: both_script.display().to_string(),
+				cwd: root.to_path_buf(),
+				shell: ShellConfig::None,
+			},
+		)
+	})
 	.err()
 	.unwrap_or_else(|| panic!("expected both-streams error"));
 	let both_text = both_error.to_string();

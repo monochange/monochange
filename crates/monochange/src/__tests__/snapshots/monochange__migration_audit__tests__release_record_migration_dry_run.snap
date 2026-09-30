@@ -1,0 +1,9 @@
+---
+source: crates/monochange/src/__tests__/migration_audit_tests.rs
+expression: text_release_record_migration_report(&report)
+---
+• Would migrate 1 of 2 release records to schema 2 · dry-run, no files were modified
+
+Records (2)
+  .monochange/releases/a/release.json  would migrate  1 → 2
+  .monochange/releases/b/release.json  current        1 → 2

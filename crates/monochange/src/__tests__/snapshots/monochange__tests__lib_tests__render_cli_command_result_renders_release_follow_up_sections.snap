@@ -1,0 +1,25 @@
+---
+source: crates/monochange/src/__tests__/lib_tests.rs
+expression: rendered
+---
+• Release preview · 1 package · dry-run, no files were changed
+
+Releases
+  sdk  v1.2.3  group · tag · release
+
+Packages (1)
+  core
+
+Provider releases (1)
+  dry-run org/repo v1.2.3 (sdk) via github
+
+Release request
+  dry-run org/repo monochange/release/release -> main via github
+
+Issue comments (1)
+  dry-run org/repo 123
+
+Changed files (1)
+  Cargo.toml
+
+Manifest  target/release-manifest.json

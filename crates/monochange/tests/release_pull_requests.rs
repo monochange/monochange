@@ -94,9 +94,8 @@ fn release_pull_request_body_truncation_is_reported_in_text_output() {
 	);
 	let stdout = String::from_utf8_lossy(&output.stdout);
 	assert!(
-		stdout.contains("release request warnings:"),
+		stdout.contains("warning: release request body shortened to 500 characters (from "),
 		"the step reports the shortened body before the next create call:\n{stdout}"
 	);
-	assert!(stdout.contains("release request body shortened to 500 characters (from "));
 	assert!(stdout.contains("[source.pull_requests].max_body_chars"));
 }

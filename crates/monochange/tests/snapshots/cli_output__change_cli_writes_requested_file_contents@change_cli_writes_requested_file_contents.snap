@@ -20,6 +20,6 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-wrote change file feature.md
+✔ Created changeset feature.md
 
 ----- stderr -----

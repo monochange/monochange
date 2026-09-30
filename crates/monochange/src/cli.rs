@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::fmt::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -213,10 +214,34 @@ fn strip_inline_markdown(value: &str) -> String {
 	output
 }
 
-#[allow(clippy::redundant_closure_for_method_calls)]
 pub(crate) fn build_command_with_cli(
 	bin_name: &'static str,
 	cli: &[CliCommandDefinition],
+) -> Command {
+	build_command_with_workflows(bin_name, cli, true)
+}
+
+/// Build the command a CLI surface snapshot describes.
+///
+/// A snapshot records the binary's own command surface, so workflow commands
+/// from monochange.toml appear only under `run`, unless the requested path
+/// starts with one of them.
+pub(crate) fn build_snapshot_command(
+	bin_name: &'static str,
+	cli: &[CliCommandDefinition],
+	path: &[String],
+) -> Command {
+	let names_workflow = path
+		.first()
+		.is_some_and(|first| cli.iter().any(|cli_command| cli_command.name == *first));
+	build_command_with_workflows(bin_name, cli, names_workflow)
+}
+
+#[allow(clippy::redundant_closure_for_method_calls)]
+fn build_command_with_workflows(
+	bin_name: &'static str,
+	cli: &[CliCommandDefinition],
+	top_level_workflows: bool,
 ) -> Command {
 	let mut command = Command::new(bin_name)
 		.version(env!("CARGO_PKG_VERSION"))
@@ -228,7 +253,6 @@ pub(crate) fn build_command_with_cli(
 		.disable_help_subcommand(true)
 		.subcommand_required(true)
 		.arg_required_else_help(true)
-		.subcommand_help_heading("Built-in Commands")
 		.next_help_heading(GLOBAL_OPTIONS_HELP_HEADING)
 		.arg(
 			Arg::new("log-level")
@@ -246,6 +270,15 @@ pub(crate) fn build_command_with_cli(
 				.global(true)
 				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
 				.help("Suppress result, progress, and diagnostic output without changing execution")
+				.action(ArgAction::SetTrue),
+		)
+		.arg(
+			Arg::new("verbose")
+				.long("verbose")
+				.short('v')
+				.global(true)
+				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+				.help("Show full result lists and logs, every step timing, and progress notes")
 				.action(ArgAction::SetTrue),
 		)
 		.arg(
@@ -377,11 +410,140 @@ When provided, the generated config includes:\n\
 		.subcommand(build_help_subcommand());
 
 	command = command
-		.next_help_heading("Built-in Command Groups")
 		.subcommand(build_step_subcommand())
 		.subcommand(build_run_subcommand(cli));
 
-	command
+	// Commands defined in monochange.toml also run at the top level, as
+	// `monochange <name>`, unless a built-in command already owns the name.
+	let builtin_names = command
+		.get_subcommands()
+		.map(|subcommand| subcommand.get_name().to_string())
+		.collect::<BTreeSet<_>>();
+	let top_level = cli
+		.iter()
+		.filter(|cli_command| top_level_workflows && !builtin_names.contains(&cli_command.name));
+	for cli_command in top_level {
+		command = command.subcommand(build_cli_command_subcommand_with_prefix(
+			cli_command,
+			"monochange",
+		));
+	}
+
+	let template = root_help_template(&command, cli, &builtin_names);
+	command.help_template(template)
+}
+
+/// Built-in commands grouped by task for the root help, in display order.
+const HELP_COMMAND_GROUPS: &[(&str, &[&str])] = &[
+	(
+		"Release Commands",
+		&[
+			"next", "create", "preview", "prepare", "publish", "affected", "diagnose",
+		],
+	),
+	(
+		"Workspace Commands",
+		&[
+			"init", "populate", "discover", "config", "check", "versions", "lint", "migrate",
+		],
+	),
+	(
+		"Change Analysis Commands",
+		&["change", "changeset", "api", "analyze", "notes"],
+	),
+	(
+		"Automation Commands",
+		&[
+			"run",
+			"step",
+			"command",
+			"mcp",
+			"skill",
+			"subagents",
+			"snapshot",
+			"help",
+		],
+	),
+];
+
+/// Render the root help template: built-in commands grouped by task, then the
+/// commands defined in monochange.toml, then the options.
+fn root_help_template(
+	command: &Command,
+	cli: &[CliCommandDefinition],
+	builtin_names: &BTreeSet<String>,
+) -> String {
+	let visible = command
+		.get_subcommands()
+		.filter(|subcommand| !subcommand.is_hide_set())
+		.filter(|subcommand| builtin_names.contains(subcommand.get_name()))
+		.map(|subcommand| {
+			(
+				subcommand.get_name().to_string(),
+				subcommand
+					.get_about()
+					.map(ToString::to_string)
+					.unwrap_or_default(),
+			)
+		})
+		.collect::<Vec<_>>();
+	let mut sections = Vec::new();
+	let mut grouped = BTreeSet::new();
+	for (heading, names) in HELP_COMMAND_GROUPS {
+		let rows = names
+			.iter()
+			.filter_map(|name| visible.iter().find(|(visible, _)| visible == name))
+			.cloned()
+			.collect::<Vec<_>>();
+		grouped.extend(names.iter().map(ToString::to_string));
+		sections.push(((*heading).to_string(), rows));
+	}
+	let ungrouped = visible
+		.iter()
+		.filter(|(name, _)| !grouped.contains(name))
+		.cloned()
+		.collect::<Vec<_>>();
+	sections.push(("Other Commands".to_string(), ungrouped));
+	let workflows = cli
+		.iter()
+		.map(|cli_command| {
+			let about = cli_command
+				.help_text
+				.clone()
+				.unwrap_or_else(|| format!("Run the `{}` command", cli_command.name));
+			if builtin_names.contains(&cli_command.name) {
+				let name = &cli_command.name;
+				(
+					name.clone(),
+					format!("{about} (run it with `monochange run {name}`)"),
+				)
+			} else {
+				(cli_command.name.clone(), about)
+			}
+		})
+		.collect::<Vec<_>>();
+	sections.push(("Workflow Commands (monochange.toml)".to_string(), workflows));
+
+	let width = sections
+		.iter()
+		.flat_map(|(_, rows)| rows.iter().map(|(name, _)| name.chars().count()))
+		.max()
+		.unwrap_or_default();
+	let header = crate::cli_theme::header();
+	let literal = crate::cli_theme::literal();
+	let mut template = String::from("{before-help}{about-with-newline}\n{usage-heading} {usage}");
+	for (heading, rows) in sections.iter().filter(|(_, rows)| !rows.is_empty()) {
+		let _ = write!(template, "\n\n{header}{heading}:{header:#}");
+		for (name, about) in rows {
+			let padding = " ".repeat(width - name.chars().count());
+			let _ = write!(template, "\n  {literal}{name}{literal:#}{padding}  {about}");
+		}
+	}
+	let _ = write!(
+		template,
+		"\n\n{header}Options:{header:#}\n{{options}}{{after-help}}"
+	);
+	template
 }
 
 pub(crate) fn build_change_subcommand() -> Command {
@@ -894,13 +1056,6 @@ pub(crate) fn build_check_subcommand() -> Command {
 				.default_value("text")
 				.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
-		.arg(
-			Arg::new("verbose")
-				.long("verbose")
-				.short('v')
-				.help("Show extra lint diagnostic details")
-				.action(ArgAction::SetTrue),
-		)
 }
 
 pub(crate) fn build_lint_subcommand() -> Command {
@@ -959,7 +1114,7 @@ pub(crate) fn build_help_subcommand() -> Command {
 		)
 		.arg(
 			Arg::new("command")
-				.help("Built-in command path to get help for (e.g. step validate, init). Use `monochange run <name> --help` for config-defined workflow commands")
+				.help("Built-in command path to get help for (e.g. step validate, init). Config-defined workflow commands are listed too; use `monochange run <name> --help` when a built-in command shares the name")
 				.value_name("COMMAND")
 				.num_args(0..),
 		)
@@ -978,6 +1133,8 @@ pub(crate) struct TopLevelStepAlias {
 	pub(crate) step: &'static str,
 	pub(crate) help_text: &'static str,
 	pub(crate) force_dry_run: bool,
+	/// Keep the alias working without listing it in help.
+	pub(crate) hidden: bool,
 }
 
 pub(crate) const TOP_LEVEL_STEP_ALIASES: &[TopLevelStepAlias] = &[
@@ -986,54 +1143,63 @@ pub(crate) const TOP_LEVEL_STEP_ALIASES: &[TopLevelStepAlias] = &[
 		step: "create-change-file",
 		help_text: "Create a changeset file for one or more packages",
 		force_dry_run: false,
+		hidden: false,
 	},
 	TopLevelStepAlias {
 		command: "discover",
 		step: "discover",
 		help_text: "Discover packages across supported ecosystems",
 		force_dry_run: false,
+		hidden: false,
 	},
 	TopLevelStepAlias {
 		command: "config",
 		step: "config",
 		help_text: "Render resolved monochange configuration and workspace metadata",
 		force_dry_run: false,
+		hidden: false,
 	},
 	TopLevelStepAlias {
 		command: "preview",
 		step: "prepare-release",
 		help_text: "Preview planned version bumps, changelogs, and release artifacts without writing files",
 		force_dry_run: true,
+		hidden: false,
 	},
 	TopLevelStepAlias {
 		command: "prepare",
 		step: "prepare-release",
 		help_text: "Prepare version bumps, changelogs, and release artifacts",
 		force_dry_run: false,
+		hidden: false,
 	},
 	TopLevelStepAlias {
 		command: "affected",
 		step: "affected-packages",
 		help_text: "Evaluate affected packages and changeset coverage",
 		force_dry_run: false,
+		hidden: false,
 	},
 	TopLevelStepAlias {
 		command: "diagnose",
 		step: "diagnose-changesets",
 		help_text: "Inspect changeset provenance and review metadata",
 		force_dry_run: false,
+		hidden: false,
 	},
 	TopLevelStepAlias {
 		command: "next",
 		step: "display-versions",
 		help_text: "Show the next version for each release group and package without writing files",
 		force_dry_run: false,
+		hidden: false,
 	},
 	TopLevelStepAlias {
 		command: "next-versions",
 		step: "display-versions",
 		help_text: "Show the next version for each release group and package without writing files",
 		force_dry_run: false,
+		hidden: true,
 	},
 ];
 
@@ -1066,7 +1232,7 @@ fn build_top_level_step_alias_subcommands() -> Vec<Command> {
 		.map(|alias| {
 			let synthetic = top_level_step_alias_command_definition(*alias)
 				.unwrap_or_else(|| panic!("missing step command alias target `{}`", alias.step));
-			build_cli_command_subcommand_with_prefix(&synthetic, "monochange")
+			build_cli_command_subcommand_with_prefix(&synthetic, "monochange").hide(alias.hidden)
 		})
 		.collect()
 }
@@ -1533,7 +1699,17 @@ fn build_cli_command_input_arg(input: &CliInputDefinition) -> Arg {
 		}
 
 		CliInputKind::Choice => {
-			let possible_values: Vec<_> = input.choices.iter().cloned().map(leak_string).collect();
+			// `--format markdown` is accepted wherever `md` is offered.
+			let accepts_markdown = input.choices.iter().any(|choice| choice == "markdown");
+			let possible_values: Vec<_> = input
+				.choices
+				.iter()
+				.cloned()
+				.map(|choice| {
+					let alias = (choice == "md" && !accepts_markdown).then_some("markdown");
+					clap::builder::PossibleValue::new(leak_string(choice)).aliases(alias)
+				})
+				.collect();
 
 			arg.value_name(value_name)
 				.value_parser(clap::builder::PossibleValuesParser::new(possible_values))
@@ -1574,8 +1750,8 @@ for a flat version inventory and `monochange versions sync` to normalize depende
 		)
 		.after_help(
 			"Examples:\n  monochange versions list --format json\n  monochange versions sync --dry-run\n  monochange versions sync --dry-run --format json\n  monochange versions sync --strategy exact\n\n\
-Calling `monochange versions` without a subcommand still runs the legacy sync behavior, but it is \
-deprecated and will be removed in a future version. Use `monochange versions sync` instead.",
+Calling `monochange versions` without a subcommand checks whether internal dependency constraints \
+match package versions without writing files. Run `monochange versions sync` to apply the changes.",
 		)
 		.arg_required_else_help(false)
 		.subcommand_required(false)

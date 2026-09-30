@@ -1,0 +1,10 @@
+---
+source: crates/monochange/src/__tests__/sync_tests.rs
+expression: output
+---
+• Would update 1 dependency constraint · in 1 file · strategy default · dry-run, no files were modified
+
+pubspec.yaml
+  my_package  ^0.5.0 → ^0.7.0
+
+Strategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides.

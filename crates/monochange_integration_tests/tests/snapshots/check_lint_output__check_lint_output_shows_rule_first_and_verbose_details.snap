@@ -2,36 +2,31 @@
 source: crates/monochange_integration_tests/tests/check_lint_output.rs
 expression: output
 ---
-workspace validation passed for [workspace]
-lint: 6 errors, 1 warnings
+✖ Checks failed · 6 errors · 1 warning · 2 fixable
 
-[workspace]/packages/app/package.json:
-  ✗ **npm/workspace-protocol** at 8:10 [fixable]
-     internal dependency `shared` should use the workspace: protocol (found `^0.0.0`)
-     severity: error
-     span: 165..171
-     fix: rewrite dependency to workspace:*
-  ⚠ **npm/sorted-dependencies** at 6:6 [fixable]
-     dependencies in `dependencies` are not sorted alphabetically
-     severity: warning
-     span: 114..126
-     fix: sort dependency section alphabetically
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `repository`
-     severity: error
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `license`
-     severity: error
+packages/app/package.json
+  1:1   ✖ missing required package.json field `repository`
+          npm/required-package-fields
+          severity error
+  1:1   ✖ missing required package.json field `license`
+          npm/required-package-fields
+          severity error
+  6:6   ▲ dependencies in `dependencies` are not sorted alphabetically
+          npm/sorted-dependencies · fixable
+          severity warning · span 114..126 · fix: sort dependency section alphabetically
+  8:10  ✖ internal dependency `shared` should use the workspace: protocol (found `^0.0.0`)
+          npm/workspace-protocol · fixable
+          severity error · span 165..171 · fix: rewrite dependency to workspace:*
 
-[workspace]/packages/shared/package.json:
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `description`
-     severity: error
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `repository`
-     severity: error
-  ✗ **npm/required-package-fields** at 1:1
-     missing required package.json field `license`
-     severity: error
+packages/shared/package.json
+  1:1  ✖ missing required package.json field `description`
+         npm/required-package-fields
+         severity error
+  1:1  ✖ missing required package.json field `repository`
+         npm/required-package-fields
+         severity error
+  1:1  ✖ missing required package.json field `license`
+         npm/required-package-fields
+         severity error
 
-2 issue(s) can be auto-fixed. Run with --fix to apply.
+Run `monochange check --fix` to fix 2 issues automatically.

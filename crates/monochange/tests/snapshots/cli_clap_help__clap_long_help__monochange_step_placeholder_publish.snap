@@ -36,6 +36,9 @@ Run the built-in placeholder-publish release workflow step
   [93m-q[0m, [93m--quiet[0m
           Suppress result, progress, and diagnostic output without changing execution
 
+  [93m-v[0m, [93m--verbose[0m
+          Show full result lists and logs, every step timing, and progress notes
+
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
 

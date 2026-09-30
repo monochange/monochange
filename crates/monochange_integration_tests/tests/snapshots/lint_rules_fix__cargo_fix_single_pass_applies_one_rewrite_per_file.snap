@@ -2,23 +2,22 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-workspace validation passed for [workspace]
-lint: 7 errors, 0 warnings
+✖ Checks failed · 7 errors · 5 fixable · fixed 3 files
 
-[workspace]/crates/core/Cargo.toml:
-  ✗ **cargo/internal-dependency-workspace** at 1:1 [fixable]
-     internal dependency `utils` should use workspace = true
-  ✗ **cargo/internal-dependency-workspace** at 1:1 [fixable]
-     internal dependency `private-dep` should use workspace = true
-  ✗ **cargo/publishable-dependencies** at 1:1
-     publishable Cargo package depends on unpublished workspace package `private-dep` in [dependencies]
-  ✗ **cargo/required-package-fields** at 1:1
-     missing required package field `license`
-  ✗ **cargo/sorted-dependencies** at 1:1 [fixable]
-     dependencies in `dependencies` are not sorted alphabetically
-  ✗ **cargo/sorted-dependencies** at 1:1 [fixable]
-     dependencies in `dev-dependencies` are not sorted alphabetically
-  ✗ **cargo/manifest-repository** at 1:1 [fixable]
-     repository field is "https://wrong.example.com/core" but should be "https://github.com/acme/lint-rules/tree/main/crates/core"
+crates/core/Cargo.toml
+  1:1  ✖ internal dependency `utils` should use workspace = true
+         cargo/internal-dependency-workspace · fixable
+  1:1  ✖ internal dependency `private-dep` should use workspace = true
+         cargo/internal-dependency-workspace · fixable
+  1:1  ✖ repository field is "https://wrong.example.com/core" but should be "https://github.com/acme/lint-rules/tree/main/crates/core"
+         cargo/manifest-repository · fixable
+  1:1  ✖ publishable Cargo package depends on unpublished workspace package `private-dep` in [dependencies]
+         cargo/publishable-dependencies
+  1:1  ✖ missing required package field `license`
+         cargo/required-package-fields
+  1:1  ✖ dependencies in `dependencies` are not sorted alphabetically
+         cargo/sorted-dependencies · fixable
+  1:1  ✖ dependencies in `dev-dependencies` are not sorted alphabetically
+         cargo/sorted-dependencies · fixable
 
-Applied fixes; 5 issue(s) remain auto-fixable. Run with --fix again to apply.
+5 issues are still auto-fixable; run `monochange check --fix` again.

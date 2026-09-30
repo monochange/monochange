@@ -9,13 +9,14 @@ info:
     NO_COLOR: "1"
 ---
 success: false
-exit_code: 1
+exit_code: 2
 ----- stdout -----
 
 ----- stderr -----
-error[config.invalid]: error: unrecognized subcommand 'not-a-command'
-  cause: Usage: monochange [OPTIONS] <COMMAND>
+error[cli.usage]: unrecognized subcommand 'not-a-command'
 
-    For more information, try '--help'.
+Usage: monochange [OPTIONS] <COMMAND>
+
+For more information, try '--help'.
+
   command: monochange not-a-command
-  help: Check `monochange.toml` and the command arguments, then rerun the command.

@@ -1,0 +1,7 @@
+---
+source: crates/monochange/src/output/../__tests__/output_diagnostic_tests.rs
+expression: diagnostic.annotation()
+---
+error[step.command_failed]: command `cargo test` failed: exit status: 101
+step: [3/4] run tests
+help: Fix the failure shown in the command output, then rerun. To reproduce it on its own, run the command directly from the workspace root.

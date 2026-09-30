@@ -2,47 +2,46 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-workspace validation passed for [workspace]
-lint: 17 errors, 0 warnings
+✖ Checks failed · 17 errors · 7 fixable
 
-[workspace]/packages/app/pubspec.yaml:
-  ✗ **dart/assets-sorted** at 1:1 [fixable]
-     flutter.assets is not sorted alphabetically
-  ✗ **dart/assets-sorted** at 1:1 [fixable]
-     flutter.fonts families are not sorted alphabetically
-  ✗ **dart/assets-sorted** at 1:1 [fixable]
-     flutter.fonts family `Alpha` assets are not sorted alphabetically
-  ✗ **dart/dependency-sorted** at 1:1 [fixable]
-     dependencies in `dependencies` are not sorted alphabetically
-  ✗ **dart/flutter-package-metadata-consistent** at 1:1
-     packages with a `flutter` section must declare `dependencies.flutter = { sdk: flutter }`
-  ✗ **dart/internal-path-dependency-policy** at 1:1
-     internal dependency `helper` in `dependencies` should use `path:` references
-  ✗ **dart/no-git-dependencies-in-published-packages** at 1:1
-     published Dart packages must not use `git:` for dependency `gitdep` in `dependencies`
-  ✗ **dart/no-unexpected-dependency-overrides** at 1:1
-     package `app` declares dependency_overrides without an allow-list entry
-  ✗ **dart/required-package-fields** at 1:1
-     missing required pubspec.yaml field `repository`
-  ✗ **dart/sdk-constraint-modern** at 1:1
-     environment.sdk `>=2.12.0 <4.0.0` is not modern enough: lower bound must be at least 3.0.0
-  ✗ **dart/workspace-internal-version-consistency** at 1:1
-     internal dependency `helper` in `dependencies` references `^1.0.0` but the workspace version is `1.2.3`
-  ✗ **dart/manifest-repository** at 1:1 [fixable]
-     manifest is missing the repository field
+packages/app/pubspec.yaml
+  1:1  ✖ flutter.assets is not sorted alphabetically
+         dart/assets-sorted · fixable
+  1:1  ✖ flutter.fonts families are not sorted alphabetically
+         dart/assets-sorted · fixable
+  1:1  ✖ flutter.fonts family `Alpha` assets are not sorted alphabetically
+         dart/assets-sorted · fixable
+  1:1  ✖ dependencies in `dependencies` are not sorted alphabetically
+         dart/dependency-sorted · fixable
+  1:1  ✖ packages with a `flutter` section must declare `dependencies.flutter = { sdk: flutter }`
+         dart/flutter-package-metadata-consistent
+  1:1  ✖ internal dependency `helper` in `dependencies` should use `path:` references
+         dart/internal-path-dependency-policy
+  1:1  ✖ manifest is missing the repository field
+         dart/manifest-repository · fixable
+  1:1  ✖ published Dart packages must not use `git:` for dependency `gitdep` in `dependencies`
+         dart/no-git-dependencies-in-published-packages
+  1:1  ✖ package `app` declares dependency_overrides without an allow-list entry
+         dart/no-unexpected-dependency-overrides
+  1:1  ✖ missing required pubspec.yaml field `repository`
+         dart/required-package-fields
+  1:1  ✖ environment.sdk `>=2.12.0 <4.0.0` is not modern enough: lower bound must be at least 3.0.0
+         dart/sdk-constraint-modern
+  1:1  ✖ internal dependency `helper` in `dependencies` references `^1.0.0` but the workspace version is `1.2.3`
+         dart/workspace-internal-version-consistency
 
-[workspace]/packages/helper/pubspec.yaml:
-  ✗ **dart/required-package-fields** at 1:1
-     missing required pubspec.yaml field `description`
-  ✗ **dart/required-package-fields** at 1:1
-     missing required pubspec.yaml field `repository`
-  ✗ **dart/sdk-constraint-present** at 1:1
-     pubspec.yaml must declare environment.sdk explicitly
-  ✗ **dart/manifest-repository** at 1:1 [fixable]
-     manifest is missing the repository field
+packages/helper/pubspec.yaml
+  1:1  ✖ manifest is missing the repository field
+         dart/manifest-repository · fixable
+  1:1  ✖ missing required pubspec.yaml field `description`
+         dart/required-package-fields
+  1:1  ✖ missing required pubspec.yaml field `repository`
+         dart/required-package-fields
+  1:1  ✖ pubspec.yaml must declare environment.sdk explicitly
+         dart/sdk-constraint-present
 
-[workspace]/packages/orphan/pubspec.yaml:
-  ✗ **dart/unlisted-package-private** at 1:1 [fixable]
-     unmanaged Dart packages must set publish_to: none or be declared in monochange.toml
+packages/orphan/pubspec.yaml
+  1:1  ✖ unmanaged Dart packages must set publish_to: none or be declared in monochange.toml
+         dart/unlisted-package-private · fixable
 
-7 issue(s) can be auto-fixed. Run with --fix to apply.
+Run `monochange check --fix` to fix 7 issues automatically.

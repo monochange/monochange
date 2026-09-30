@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/next_version_preview.rs
+expression: text.trim_end()
+---
+✔ Next versions · 1 group · 3 packages
+
+Groups
+  sdk  1.1.0  minor
+    sdk-a, sdk-b
+
+Packages
+  tool  1.0.1  patch

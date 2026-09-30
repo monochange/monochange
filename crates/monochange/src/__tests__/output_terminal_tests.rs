@@ -11,6 +11,7 @@ fn probe() -> TerminalProbe {
 		stdout_is_terminal: true,
 		stderr_is_terminal: true,
 		ci: false,
+		github_actions: false,
 		term_is_dumb: false,
 		no_color: false,
 		no_progress: false,
@@ -36,6 +37,15 @@ fn progress_settings_parse_environment_independent_cli_values() {
 	]);
 	assert_eq!(settings.format, ProgressFormat::Json);
 	assert!(settings.tracing_enabled);
+	assert!(!settings.verbose);
+
+	let settings = ProgressSettings::from_args(&[
+		OsString::from("monochange"),
+		OsString::from("-v"),
+		OsString::from("next"),
+	]);
+	assert!(settings.verbose);
+	assert!(TerminalCapabilities::resolve(settings, probe()).verbose);
 }
 
 #[test]
@@ -44,6 +54,7 @@ fn terminal_capabilities_resolve_one_consistent_policy() {
 		quiet: false,
 		format: ProgressFormat::Auto,
 		tracing_enabled: false,
+		verbose: false,
 	};
 	let interactive = TerminalCapabilities::resolve(settings, probe());
 	assert!(interactive.stdout_is_terminal);
@@ -79,6 +90,7 @@ fn terminal_capabilities_resolve_one_consistent_policy() {
 			quiet: false,
 			format: ProgressFormat::Auto,
 			tracing_enabled: true,
+			verbose: false,
 		},
 		probe(),
 	);
@@ -107,12 +119,50 @@ fn terminal_capabilities_resolve_one_consistent_policy() {
 }
 
 #[test]
+fn github_actions_commands_are_only_used_by_the_human_renderer() {
+	let settings = ProgressSettings {
+		quiet: false,
+		format: ProgressFormat::Auto,
+		tracing_enabled: false,
+		verbose: false,
+	};
+	let probe = TerminalProbe {
+		stderr_is_terminal: false,
+		ci: true,
+		github_actions: true,
+		..probe()
+	};
+	assert!(TerminalCapabilities::resolve(settings, probe).github_actions);
+	assert!(
+		!TerminalCapabilities::resolve(
+			settings,
+			TerminalProbe {
+				no_progress: true,
+				..probe
+			},
+		)
+		.github_actions
+	);
+	assert!(
+		!TerminalCapabilities::resolve(
+			ProgressSettings {
+				format: ProgressFormat::Json,
+				..settings
+			},
+			probe,
+		)
+		.github_actions
+	);
+}
+
+#[test]
 fn explicit_json_progress_never_uses_terminal_styling() {
 	let capabilities = TerminalCapabilities::resolve(
 		ProgressSettings {
 			quiet: false,
 			format: ProgressFormat::Json,
 			tracing_enabled: false,
+			verbose: false,
 		},
 		probe(),
 	);
@@ -145,6 +195,27 @@ fn shared_stderr_serializes_cloned_writers() {
 }
 
 #[test]
+fn shared_stderr_lines_erase_an_active_spinner_and_share_one_sequence() {
+	let bytes = Arc::new(Mutex::new(Vec::new()));
+	let writer = SharedStderr::with_writer(RecordedWriter(Arc::clone(&bytes)));
+	writer.write_line("plain");
+	assert!(!writer.take_line_cleared());
+
+	writer.set_spinner_active(true);
+	writer.clone().write_line("over spinner");
+	assert!(writer.take_line_cleared());
+	assert!(!writer.take_line_cleared());
+	writer.set_spinner_active(false);
+
+	assert_eq!(
+		bytes.lock().unwrap().as_slice(),
+		b"plain\n\r\x1b[2K\x1b[0mover spinner\n"
+	);
+	assert_eq!(writer.next_sequence(), 0);
+	assert_eq!(writer.clone().next_sequence(), 1);
+}
+
+#[test]
 fn shared_stderr_ignores_a_poisoned_writer_lock() {
 	let writer = SharedStderr::with_writer(io::sink());
 	let poisoned = writer.clone();
@@ -173,9 +244,16 @@ fn environment_probes_recognize_ci_and_test_markers() {
 		],
 		|| {
 			assert!(!running_in_ci());
+			assert!(!running_in_github_actions());
 			assert!(!running_under_test());
 		},
 	);
+	temp_env::with_var("GITHUB_ACTIONS", Some("true"), || {
+		assert!(running_in_github_actions());
+	});
+	temp_env::with_var("GITHUB_ACTIONS", Some("false"), || {
+		assert!(!running_in_github_actions());
+	});
 	temp_env::with_vars(
 		[("TF_BUILD", Some("1")), ("INSTA_UPDATE", Some("no"))],
 		|| {
