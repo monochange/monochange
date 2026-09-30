@@ -1,0 +1,153 @@
+---
+name: monochange
+description: Use the monochange CLI and MCP tooling to configure monorepo package versioning, create changesets, preview releases, generate versioned package files, and run configured publish workflows. Use when working with monochange.toml, .changeset/*.md, [cli.*] workflow commands, package/group version plans, manifest linting, release records, or the monochange MCP server.
+---
+
+# monochange
+
+Use this skill to operate monochange in a repository or to author a `monochange.toml`.
+
+monochange plans releases for monorepos that span several package ecosystems. It discovers package manifests, maps them to configured package and group ids, reads release intent from `.changeset/*.md`, computes versions, updates native manifests and extra versioned files, and then exposes release, source-provider, and package-publishing actions through built-in steps or repository-defined workflows.
+
+Inspect config first, prefer JSON and dry-run output while planning, and record release intent in files. Carry out local changes the user has requested; preserve their existing authorization and the repository's restrictions on commits, provider actions, tags, and registry publishing. A request to prepare release files does not itself authorize publication.
+
+## Source-of-truth rules
+
+- Read `monochange.toml` before recommending commands. Configured `[cli.<name>]` workflows run as `monochange run <name>` and differ per repository.
+- Do not assume `discover`, `change`, `release`, `publish`, or similar workflow names exist in every repository. They are user-defined, so invoke them as `monochange run <name>` only when they appear in `monochange help` for that workspace.
+- Binary commands are wired by the CLI. Step commands are exposed as `monochange step <step-name>` for every built-in step variant except the generic `Command` step.
+- Prefer the repository's configured `monochange run <name>` workflow when it exists. Without one, short built-in commands such as `monochange create`, `monochange discover`, `monochange preview`, and `monochange prepare` are the primary spelling for the steps they expose. Use `monochange step <name>` for any built-in step that has no short command and whenever you need the exact step implementation that `[cli.*]` step types bind to.
+- When authoring `[cli.*]` workflows, command inputs are explicit per step. Add `inputs = ["name"]` to a step to pass a command input through unchanged, or use the map form for overrides and renamed values.
+- Prefer package or group ids from `monochange.toml` over manifest names.
+- Internal dependency constraint prefixes come from `monochange versions sync --strategy exact|caret|compatible`, which never writes `~` or `=`. To write custom prefixes at release time, set `prefix` on a typed `versioned_files` entry or `[ecosystems.<name>] dependency_version_prefix` for the ecosystem default. See [skills/configuration.md](skills/configuration.md).
+- Use dry-run or preview commands before mutating versions, committing, tagging, releasing, or publishing.
+- A package that ships a CLI can register it under `[package.<id>].cli = { name, snapshot }` so change classification reports command-surface breaks instead of unclassified changes. Refresh baselines with `monochange snapshot --package <id> --save` during release preparation. Rust and clap CLIs get the snapshot document from `monochange snapshot --view index`; TypeScript, Python, Go, and Dart CLIs emit it through a small script validated against the published command snapshot schema. See [skills/configuration.md](skills/configuration.md).
+- Gate CI on a dry-run publish check (`monochange step publish-packages --dry-run`), ideally also against a simulated release commit (`monochange run release --commit` without pushing), so changes that would break publication never merge. See [skills/multi-package-publishing.md](skills/multi-package-publishing.md).
+- Never publish with local credentials on behalf of a user unless they explicitly own that operation and the project rules allow it.
+- Gitignore only `.monochange/local/`. Never ignore the whole `.monochange/` directory, because release records (`.monochange/releases/<id>/release.json`) and prerelease state are committed release state that publish, tag, and readiness steps read from git history. Ignoring them makes releases unpublishable.
+
+## Fast workflow
+
+1. Check whether `monochange.toml` exists, then inspect it with `monochange config` and `monochange help`. `monochange step validate` checks parsing and target resolution but also succeeds without a config, so its success alone does not prove adoption is complete. For initialization or upgrades, read [skills/adoption.md](skills/adoption.md).
+2. Inspect packages with the configured workflow command (often `monochange run discover --format json`) or `monochange discover --format json` (equivalently `monochange step discover --format json`). Prefer JSON when another tool or agent consumes the package graph.
+3. Classify change severity before writing release intent: run `monochange change classify --detection-level semantic --format json --dependency-propagation public`, or call `monochange_classify_changes` with `detection_level: "semantic"`. Read [skills/change-classification.md](skills/change-classification.md), then account for every affected package, finding, coverage boundary, pending changeset action, and registered CLI surface finding.
+4. Create release intent with a configured workflow command (often `monochange run change ...`) or by writing `.changeset/*.md` manually. Read existing changesets first so you update or merge related intent instead of creating duplicates.
+5. Preview versioned files with the configured workflow command (often `monochange run release --dry-run --format json` or `--diff`) or `monochange preview` (the built-in dry-run form of `monochange prepare` / `monochange step prepare-release`). The preview is where you verify versions, changelog entries, generated manifests, lockfile work, and the release plan's `compatibility_evidence` before mutating the tree. The classified compatibility verdict lives in the `monochange change classify` report as `decision.compatibility_impact`; previews and classification reports use different fields.
+6. Extract a named release-note artifact when it needs separate review or delivery: `monochange notes --output <id> [--target <id>]`. It prints to stdout by default; use `--file <path>` for a CI artifact. This is read-only and does not prepare a release.
+7. Run validation and linting: `monochange check`, `monochange step validate`, and `monochange changeset validate --api`. API validation enforces only high-confidence evidence by default, so use `--strict` only after the repository has calibrated partial analyzers.
+8. When local preparation is requested, run `monochange prepare` or the configured preparation workflow and review its diff. Preparation consumes applied changesets. Commit, provider, tag, and publish actions must stay within the user's authorization and project rules. Keep release-record, readiness, bootstrap, plan, and publish artifacts when the workflow emits them.
+
+## What to open next
+
+- [skills/readme.md](skills/readme.md): index of all focused skill modules.
+- [skills/commands.md](skills/commands.md): verified built-in commands, step commands, user-defined command behavior, and all CLI step types.
+- [skills/configuration.md](skills/configuration.md): current `monochange.toml` structure and examples.
+- [skills/changesets.md](skills/changesets.md): changeset file shape, CLI creation, and lifecycle rules.
+- [skills/change-classification.md](skills/change-classification.md): release-aware severity decisions, uncertainty, and ecosystem review.
+- [skills/linting.md](skills/linting.md): `monochange check`, lint presets, and manifest policy.
+- [skills/multi-package-publishing.md](skills/multi-package-publishing.md): readiness, bootstrap, and package publishing flows.
+- [skills/trusted-publishing.md](skills/trusted-publishing.md): registry trust and OIDC notes for publishing.
+- [skills/reference.md](skills/reference.md): full operating guide.
+- [examples/readme.md](examples/readme.md): copyable example scenarios.
+
+## Verified command inventory
+
+The command inventory in this skill is based on `crates/monochange/src/cli.rs`, `crates/monochange_core/src/lib.rs`, and the CLI help snapshot `crates/monochange/tests/snapshots/cli_help__help_overview_lists_all_commands@help_overview_lists_all_commands.snap`.
+
+Built-in commands in the current CLI:
+
+- `monochange init`: create a starter `monochange.toml` from discovered manifests.
+- `monochange populate`: legacy default-workflow population command; the current default set is empty, so it preserves an existing config without adding workflows.
+- `monochange skill`: list, read, or install the bundled monochange agent skill.
+- `monochange subagents`: generate repository-local agent or subagent guidance for monochange work.
+- `monochange analyze`: inspect semantic changes for a package.
+- `monochange create`: create a `.changeset/*.md` file for one or more packages; runs `monochange step create-change-file`.
+- `monochange discover`: discover packages across supported ecosystems; runs `monochange step discover`.
+- `monochange config`: render resolved configuration and workspace metadata; runs `monochange step config`.
+- `monochange preview`: plan version bumps, changelogs, and release artifacts without writing files; runs `monochange step prepare-release` with dry-run forced on.
+- `monochange prepare`: prepare version bumps, changelogs, and release artifacts; runs `monochange step prepare-release`.
+- `monochange affected`: evaluate affected packages and changeset coverage; runs `monochange step affected-packages`.
+- `monochange diagnose`: inspect changeset provenance and review metadata; runs `monochange step diagnose-changesets`.
+- `monochange next` and `monochange next-versions`: read-only planned next versions for each group and package; both run `monochange step display-versions`.
+- `monochange notes --output <id>`: render one configured release-note output to stdout or an explicit file without modifying release state.
+- `monochange change classify --detection-level semantic --format json --dependency-propagation public`: compare the pull request and latest release, run the richest available ecosystem analysis, report finding evidence, and propose package bumps.
+- `monochange api diff --base origin/main --format json`: inspect API diff classification as structured data.
+- `monochange changeset validate --api --format markdown`: validate pending changesets against high-confidence classification evidence; add `--strict` to enforce advisory proposals.
+- `monochange step tag-release`: create release tags from an embedded release record.
+- `monochange step release-record`: inspect the release record reachable from a tag or commit.
+- `monochange check`: validate configuration, changesets, and manifest lint rules.
+- `monochange lint`: list, explain, or scaffold lint rules and presets.
+- `monochange mcp`: run the stdio MCP server.
+- `monochange step validate`: validate `monochange.toml` and changeset targets.
+- `monochange step publish-readiness`: verify publishability from a release record without publishing.
+- `monochange publish packages|readiness|placeholder`: short forms of `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish`.
+- `monochange step placeholder-publish`: publish first-time placeholder versions for packages in a release record.
+- `monochange versions list [--format text|json|json-min]`: read-only flat inventory of current package and group versions.
+- `monochange versions sync [--dry-run] [--format text|json|json-min] [--strategy default|exact|caret|compatible]`: synchronize internal workspace dependency constraints across all supported ecosystems. Bare `monochange versions` still runs the sync behavior but prints a deprecation warning; use `monochange versions sync` instead.
+
+Built-in step commands:
+
+- `monochange step config`
+- `monochange step validate`
+- `monochange step discover`
+- `monochange step display-versions`
+- `monochange step create-change-file`
+- `monochange step prepare-release`
+- `monochange step commit-release`
+- `monochange step verify-release-branch`
+- `monochange step publish-release`
+- `monochange step placeholder-publish`
+- `monochange step publish-packages`
+- `monochange step plan-publish-rate-limits`
+- `monochange step open-release-request`
+- `monochange step comment-released-issues`
+- `monochange step affected-packages`
+- `monochange step diagnose-changesets`
+- `monochange step retarget-release`
+
+Short built-in commands and `monochange step <name>` commands run the same `CliStepDefinition` implementations, so each short command accepts the flags of its step equivalent. Reach for the repository's configured `monochange run <name>` workflow first, then the short built-in when one exists. Keep using `monochange step <name>` for steps that have no short command (for example `commit-release`, `tag-release`, `plan-publish-rate-limits`, and `retarget-release`) and whenever you need the portable form that `[cli.*]` step types bind to. See [skills/commands.md](skills/commands.md) for the full alias table.
+
+`Command` is a valid `[cli.*].steps[].type` for running shell commands, but it is not exposed as `monochange step command`.
+
+## MCP tools
+
+The `monochange mcp` server exposes these tools:
+
+- `monochange_validate`: validate config and changeset targets.
+- `monochange_discover`: return structured packages, groups, dependencies, and ecosystems.
+- `monochange_diagnostics`: inspect pending changesets with git and review context.
+- `monochange_change`: create a changeset through structured tool input.
+- `monochange_release_preview`: run a dry-run release preview.
+- `monochange_release_manifest`: produce a release manifest payload for downstream automation.
+- `monochange_affected_packages`: evaluate changed paths and changeset coverage.
+- `monochange_lint_catalog`: list lint rules and presets.
+- `monochange_lint_explain`: explain one lint rule or preset.
+- `monochange_analyze_changes`: inspect semantic diffs for package-aware changes.
+- `monochange_classify_changes`: compare the pull request and latest release, then return evidence-backed package bumps.
+- `monochange_validate_changeset`: check one changeset against the current semantic diff.
+
+Prefer MCP tools when the caller needs structured data, and the shell when you need to run the exact repository workflow that maintainers use locally or in CI.
+
+## Semantic SemVer guardrails
+
+Release planning treats built-in semantic analysis as advisory evidence. `monochange change classify` reports the current pull request separately from the full interval since the package's latest release. Compare this evidence with human-authored changesets:
+
+- removed or incompatibly modified public API evidence implies at least `major`;
+- a removed `monochange/package-lifecycle` package implies at least `major` with high-confidence evidence;
+- added public API evidence implies at least `minor`;
+- dependency or metadata evidence is usually `patch` context;
+- resolve warnings about semantic changes without matching changesets before release.
+
+Package lifecycle findings are complete and high-confidence. TypeScript declaration findings can also be complete and high-confidence when semantic mode resolves the workspace compiler, config, dependencies, and explicit typed entrypoints. Cargo findings can be complete for the configured cargo-semver-checks feature and target matrix. Syntax fallbacks and unchecked runtime behavior remain partial. Follow [skills/change-classification.md](skills/change-classification.md) to inspect engine versions, every `coverage.checks` cell, and all coverage gaps before choosing release intent.
+
+To compare two refs, use `monochange analyze`:
+
+```bash
+monochange analyze --package core --main-ref <base-ref> --head-ref <head-ref>
+```
+
+For a release-aware trajectory:
+
+```bash
+monochange analyze --package core --release-ref <last-release-tag> --main-ref main --head-ref HEAD --format json
+```

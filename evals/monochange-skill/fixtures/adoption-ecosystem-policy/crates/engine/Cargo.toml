@@ -1,0 +1,8 @@
+[package]
+name = "acme-engine"
+version = "0.6.2"
+edition = "2021"
+license = "MIT"
+description = "Rule evaluation engine for the Acme platform"
+
+[dependencies]

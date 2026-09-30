@@ -1,0 +1,9 @@
+[package.sdk]
+path = "."
+type = "go"
+tag = true
+initial_version = "1.0.0"
+version_format = "go/{{ name }}/release-{{ version }}"
+
+[ecosystems.go]
+enabled = true

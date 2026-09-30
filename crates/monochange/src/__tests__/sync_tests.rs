@@ -41,6 +41,35 @@ fn package_record(
 // --- version inventory tests ---
 
 #[test]
+fn syncing_deno_jsonc_preserves_comments_and_trailing_commas() {
+	let contents = r#"// Internal dependencies
+{
+  "name": "app",
+  "version": "1.0.0",
+  "dependencies": {
+    /* Keep this explanation. */
+    "core": "^1.0.0",
+  },
+}
+"#;
+	let versions = BTreeMap::from([("core".to_string(), "2.0.0".to_string())]);
+	let names = std::collections::BTreeSet::from(["core".to_string()]);
+	let changes = sync::detect_deno_changes(
+		contents,
+		&versions,
+		&names,
+		&BTreeMap::new(),
+		VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect Deno JSONC changes: {error}"));
+	assert_eq!(changes.len(), 1);
+	let updated = sync::apply_sync_changes(contents, &changes, Ecosystem::Deno)
+		.unwrap_or_else(|error| panic!("sync Deno JSONC: {error}"));
+
+	insta::assert_snapshot!(updated);
+}
+
+#[test]
 fn version_inventory_uses_configured_package_ids_and_group_ids() {
 	let mut core = package_record(
 		"cargo:crates/core/Cargo.toml",

@@ -1,0 +1,49 @@
+{
+	"id": "planning-fixed-nightly-base",
+	"title": "Prepare a fixed-base nightly candidate without pending changesets",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n[package.\"@acme/api\"]\npath = \"packages/api\"\ntype = \"npm\"\n[package.\"@acme/ui\"]\npath = \"packages/ui\"\ntype = \"npm\"\n[package.\"@acme/tokens\"]\npath = \"packages/tokens\"\ntype = \"npm\"\n[group.main]\npackages = [\"@acme/api\", \"@acme/ui\", \"@acme/tokens\"]\nversion_format = \"primary\"\n[ecosystems.npm]\nenabled = true\n[lints.rules]\n\"npm/workspace-protocol\" = \"off\"\n"
+	},
+	"setupCommands": [
+		"git init -b main -q",
+		"git add -A",
+		"git commit -S -m 'chore: initialize evaluation fixture'"
+	],
+	"prompt": "Set up a nightly binary trial without changesets. Configure prerelease mode with channel nightly, increment numbering, fixed stable base 0.0.0, and registry publishing off. Prepare exactly one candidate locally so I can inspect manifests and the persisted prerelease state. Do not create fake release notes, publish, tag, or push.",
+	"expectation": "With no pending changesets, fixed-base prerelease preparation still releases the configured main group at 0.0.0-nightly.0, stamps manifests, persists state, and invents no release intent.",
+	"checks": [
+		{
+			"id": "nightly-config-safe",
+			"kind": "command",
+			"command": "monochange config --format json | node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),c=JSON.parse(fs.readFileSync(0,\"utf8\")).config.prerelease;a.equal(c.enabled,true);a.equal(c.base,\"fixed\");a.equal(c.base_version,\"0.0.0\");a.equal(c.channel,\"nightly\");a.equal(c.publish_packages,false);'",
+			"why": "Nightly preparation must persist its explicit fixed base with registry publishing disabled."
+		},
+		{
+			"id": "nightly-manifests",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"); for(const id of [\"api\",\"ui\",\"tokens\"]) a.equal(JSON.parse(fs.readFileSync(\"packages/\"+id+\"/package.json\",\"utf8\")).version,\"0.0.0-nightly.0\");'",
+			"why": "Fixed-base prereleases must honor their explicit binary version."
+		},
+		{
+			"id": "nightly-state-recorded",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),s=JSON.parse(fs.readFileSync(\".monochange/prerelease-state.json\",\"utf8\"));a.equal(s.base,\"fixed\");a.equal(s.channel,\"nightly\");a.equal(s.numbering,\"increment\");a.ok(JSON.stringify(s).includes(\"0.0.0-nightly.0\"));'",
+			"why": "Persisted state must retain the fixed base and current nightly counter."
+		},
+		{
+			"id": "no-invented-changesets",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\");a.equal(fs.existsSync(\".changeset\")?fs.readdirSync(\".changeset\").filter(x=>x.endsWith(\".md\")&&x!==\"README.md\").length:0,0);'",
+			"why": "A no-changeset binary trial must not fabricate release notes."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

@@ -16,7 +16,7 @@ monochange uses ecosystem adapters to translate native package-manager files int
 | npm-family     | `npm`             | npm workspaces, pnpm workspaces, Bun workspaces, and standalone `package.json` packages                | `package.json` versions and dependency ranges                                                | Direct `package-lock.json`, `pnpm-lock.yaml`, `bun.lock`, and `bun.lockb` updates by default; command overrides support package-manager refreshes       | `npm`                                            |
 | Deno           | `deno`            | Deno workspaces and standalone `deno.json` / `deno.jsonc` packages                                     | Deno manifest versions, exports/imports metadata, and dependency references                  | Direct `deno.lock` update when possible; no inferred lockfile command                                                                                   | `jsr`                                            |
 | Dart / Flutter | `dart`, `flutter` | Dart and Flutter workspaces plus standalone `pubspec.yaml` packages                                    | `pubspec.yaml` versions and dependency ranges                                                | Direct `pubspec.lock` update by default; configure `dart pub get` or `flutter pub get` when you need full solver refreshes                              | `pub.dev`                                        |
-| Python         | `python`          | uv workspaces, Poetry projects, and standalone `pyproject.toml` packages                               | PEP 621 `[project]` and Poetry `[tool.poetry]` package versions plus dependency specifiers   | Does not mutate `uv.lock` or `poetry.lock` directly; infers `uv lock` and `poetry lock --no-update` commands; unknown Python lockfiles are skipped      | `pypi`                                           |
+| Python         | `python`          | uv workspaces, Poetry projects, and standalone `pyproject.toml` packages                               | PEP 621 `[project]` and Poetry `[tool.poetry]` package versions plus dependency specifiers   | Does not mutate `uv.lock` or `poetry.lock` directly; infers `uv lock` and `poetry lock` commands; unknown Python lockfiles are skipped                  | `pypi`                                           |
 | Go             | `go`              | Standalone `go.mod` modules                                                                            | Internal `require` directives in `go.mod`; package versions stay in VCS tags                 | Does not mutate `go.sum` directly; infers `go mod tidy` so the Go toolchain refreshes `go.mod` and checksum data                                        | Go module proxy via VCS tags                     |
 | GitHub Actions | `github_actions`  | Configured `[package.<id>]` declarations with `action.yml` (or `action.yaml`) in the package directory | None: releases are git tags; a sibling `package.json` `version` field is synced when present | Not applicable, no lockfiles                                                                                                                            | None: the tag and GitHub release are the publish |
 
@@ -164,10 +164,13 @@ Python version and dependency behavior:
 
 Python lockfile behavior is command-based by design:
 
-- `uv.lock` infers `uv lock`
-- `poetry.lock` infers `poetry lock --no-update`
-- unknown Python lockfile names are ignored rather than guessed
-- configuring `[ecosystems.python].lockfile_commands` overrides the inferred commands
+<!-- {=pythonLockfileCommandInference} -->
+
+For Python projects, monochange infers package-manager commands instead of mutating lockfiles directly: `uv.lock` uses `uv lock`, and `poetry.lock` uses `poetry lock`. Poetry 2 preserves existing locked versions by default; its removed `--no-update` option must not be added. Unknown Python lockfile names are skipped rather than guessed.
+
+<!-- {/pythonLockfileCommandInference} -->
+
+Configuring `[ecosystems.python].lockfile_commands` overrides the inferred commands.
 
 Built-in Python publishing targets PyPI. monochange builds Python artifacts with `uv build --out-dir dist` and publishes them with `uv publish`, using `--trusted-publishing always` when trusted publishing is enabled and `--trusted-publishing never` otherwise. Placeholder publishing creates a minimal Hatchling project with a normalized module directory under `src/`.
 
@@ -208,7 +211,7 @@ Go behavior:
 - internal dependency ranges default to exact Go module versions with a leading `v`, matching Go module semantics
 - `require` directives participate in dependency updates, including grouped `require (...)` blocks
 - Go v2+ semantic import versioning remains encoded in module paths, not a separate manifest version field
-- release planning resolves each module's current version from its latest release tag, so `prepare` and `preview` can plan Go releases without a manifest version field
+- release planning resolves each module's current version from the highest semantic version among repository tags matching its release owner's `version_format`, so `prepare` and `preview` can plan Go releases without a manifest version field
 - `go.sum` is treated as checksum data, not as a lockfile to patch directly
 - monochange infers `go mod tidy` when `go.mod` / `go.sum` changes need package-manager refreshes
 - built-in publishing creates VCS tags: root modules use `v1.2.3`, while submodules use path-prefixed tags such as `api/v1.2.3`

@@ -25,8 +25,7 @@ use crate::output::text::TextReport;
 use crate::output::text::TextTheme;
 use crate::output::text::Tone;
 use crate::output::text::plural;
-use crate::release_artifacts::parse_tag_prefix_and_version;
-use crate::release_artifacts::release_tag_prefix;
+use crate::release_artifacts::latest_release_tag_in;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -110,6 +109,11 @@ async fn build_report(
 		.relative_manifest_path(root)
 		.unwrap_or_else(|| selected_package.manifest_path.clone());
 	let release_identity = configuration.effective_release_identity(&selected_package_id);
+	let tag_ecosystem = configuration
+		.package_by_id(&selected_package_id)
+		.map_or(selected_package.ecosystem.as_str(), |package| {
+			package.package_type.as_str()
+		});
 	let main_ref = match main_ref {
 		Some(main_ref) => main_ref.to_string(),
 		None => default_branch_name(root).await?,
@@ -117,7 +121,9 @@ async fn build_report(
 	let head_ref = head_ref.map_or_else(|| "HEAD".to_string(), ToString::to_string);
 	let resolved_release_ref = match release_ref {
 		Some(release_ref) => Some(release_ref.to_string()),
-		None => latest_release_tag_for_identity(root, release_identity.as_ref()).await?,
+		None => {
+			latest_release_tag_for_identity(root, release_identity.as_ref(), tag_ecosystem).await?
+		}
 	};
 	let config = AnalysisConfig {
 		detection_level,
@@ -268,6 +274,7 @@ async fn fallback_default_branch(root: &Path) -> MonochangeResult<String> {
 async fn latest_release_tag_for_identity(
 	root: &Path,
 	release_identity: Option<&EffectiveReleaseIdentity>,
+	ecosystem: &str,
 ) -> MonochangeResult<Option<String>> {
 	let Some(release_identity) = release_identity else {
 		return Ok(None);
@@ -276,27 +283,31 @@ async fn latest_release_tag_for_identity(
 		return Ok(None);
 	}
 
-	let tag_prefix = tag_prefix_for_identity(release_identity);
+	let ecosystem = if release_identity.owner_kind == ReleaseOwnerKind::Group {
+		"group"
+	} else {
+		ecosystem
+	};
 	let tag_output = run_git_capture(
 		root,
 		&["tag", "--list", "--sort=-v:refname"],
 		"failed to list git tags for release baseline resolution",
 	)
 	.await?;
-	let latest = tag_output
+	let tags = tag_output
 		.lines()
 		.map(str::trim)
 		.filter(|tag| !tag.is_empty())
-		.find_map(|tag| {
-			let (prefix, _) = parse_tag_prefix_and_version(tag)?;
-			(prefix == tag_prefix).then(|| tag.to_string())
-		});
+		.map(str::to_string)
+		.collect::<Vec<_>>();
 
-	Ok(latest)
-}
-
-fn tag_prefix_for_identity(release_identity: &EffectiveReleaseIdentity) -> String {
-	release_tag_prefix(&release_identity.owner_id, &release_identity.version_format)
+	Ok(latest_release_tag_in(
+		&tags,
+		&release_identity.owner_id,
+		ecosystem,
+		&release_identity.version_format,
+	)
+	.map(|(tag, _)| tag.to_string()))
 }
 
 fn first_release_warning(

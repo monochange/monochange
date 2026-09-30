@@ -1,0 +1,8 @@
+[cli.custom]
+help_text = "Custom command help"
+
+[package.missing]
+path = "missing"
+versioned_files = [
+	{ path = "**/not-a-manifest.txt", type = "cargo" },
+]

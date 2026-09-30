@@ -63,7 +63,7 @@
 							"type": "null"
 						}
 					],
-					"description": "Compatibility impact measured between the latest release and the\ncandidate. Absent when no reachable release tag matched the package."
+					"description": "Compatibility impact measured between the latest release and the\ncandidate. Absent when no repository release tag matched the package."
 				},
 				"review_required": {
 					"type": "boolean"

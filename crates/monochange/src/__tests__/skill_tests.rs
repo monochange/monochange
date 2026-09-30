@@ -1,9 +1,11 @@
 #![allow(clippy::disallowed_methods)]
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::symlink;
 use std::path::Path;
 use std::path::PathBuf;
 
+use rstest::rstest;
 use tempfile::tempdir;
 
 use super::*;
@@ -241,6 +243,172 @@ fn install_refuses_to_replace_a_curated_skill_without_force() {
 	assert!(overwritten.starts_with("---\nname: monochange"));
 }
 
+#[rstest]
+#[case::entrypoint("SKILL.md", false)]
+#[case::entrypoint_forced("SKILL.md", true)]
+#[case::module("skills/configuration.md", true)]
+#[case::example("examples/migration.md", true)]
+fn install_rejects_document_symlinks_without_modifying_any_files(
+	#[case] linked_file: &str,
+	#[case] force: bool,
+) {
+	let root = tempdir().expect("tempdir");
+	let fixture = monochange_test_helpers::fixture_path!("skill-install/symlinks");
+	let destination = root.path().join("monochange");
+	let external = root.path().join("external.md");
+	let linked_path = destination.join(linked_file);
+	fs::create_dir_all(linked_path.parent().expect("linked file parent"))
+		.expect("create skill directories");
+	fs::copy(fixture.join("external.md"), &external).expect("copy external document");
+
+	if linked_file != "SKILL.md" {
+		fs::copy(fixture.join("SKILL.md"), destination.join("SKILL.md"))
+			.expect("copy curated entrypoint");
+	}
+
+	symlink(&external, &linked_path).expect("link document");
+	let error = run_skill(SkillAction::Install {
+		destination: Some(destination.clone()),
+		force,
+	})
+	.err()
+	.expect("install must refuse a document symlink");
+	let mut settings = monochange_test_helpers::snapshot_settings();
+	settings.set_snapshot_suffix(monochange_test_helpers::current_test_name());
+	let _scope = settings.bind_to_scope();
+	insta::assert_snapshot!(error.to_string());
+	assert_eq!(
+		fs::read(&external).expect("read external"),
+		fs::read(fixture.join("external.md")).expect("read fixture")
+	);
+	assert!(
+		fs::symlink_metadata(&linked_path)
+			.expect("link metadata")
+			.is_symlink()
+	);
+
+	if linked_file != "SKILL.md" {
+		assert_eq!(
+			fs::read(destination.join("SKILL.md")).expect("read skill"),
+			fs::read(fixture.join("SKILL.md")).expect("read fixture")
+		);
+	}
+}
+
+#[rstest]
+#[case::destination("")]
+#[case::modules("skills")]
+#[case::examples("examples")]
+fn install_rejects_directory_symlinks_without_modifying_any_files(#[case] linked_directory: &str) {
+	let root = tempdir().expect("tempdir");
+	let fixture = monochange_test_helpers::fixture_path!("skill-install/symlinks");
+	let destination = root.path().join("monochange");
+	let external = root.path().join("external");
+	let linked_path = if linked_directory.is_empty() {
+		destination.clone()
+	} else {
+		destination.join(linked_directory)
+	};
+	fs::create_dir_all(&external).expect("create external directory");
+	fs::copy(fixture.join("external.md"), external.join("external.md"))
+		.expect("copy external document");
+
+	if !linked_directory.is_empty() {
+		fs::create_dir_all(&destination).expect("create skill directory");
+		fs::copy(fixture.join("SKILL.md"), destination.join("SKILL.md"))
+			.expect("copy curated entrypoint");
+	}
+
+	symlink(&external, &linked_path).expect("link directory");
+	let error = run_skill(SkillAction::Install {
+		destination: Some(destination.clone()),
+		force: true,
+	})
+	.err()
+	.expect("install must refuse a directory symlink");
+	let mut settings = monochange_test_helpers::snapshot_settings();
+	settings.set_snapshot_suffix(monochange_test_helpers::current_test_name());
+	let _scope = settings.bind_to_scope();
+	insta::assert_snapshot!(error.to_string());
+	assert_eq!(fs::read_dir(&external).expect("list external").count(), 1);
+	assert_eq!(
+		fs::read(external.join("external.md")).expect("read external"),
+		fs::read(fixture.join("external.md")).expect("read fixture")
+	);
+	assert!(
+		fs::symlink_metadata(&linked_path)
+			.expect("link metadata")
+			.is_symlink()
+	);
+
+	if !linked_directory.is_empty() {
+		assert_eq!(
+			fs::read(destination.join("SKILL.md")).expect("read skill"),
+			fs::read(fixture.join("SKILL.md")).expect("read fixture")
+		);
+	}
+}
+
+#[rstest]
+#[case::entrypoint("SKILL.md")]
+#[case::module("skills/configuration.md")]
+fn install_rejects_dangling_symlinks_without_creating_the_target(#[case] linked_file: &str) {
+	let root = tempdir().expect("tempdir");
+	let destination = root.path().join("monochange");
+	let external = root.path().join("missing.md");
+	let linked_path = destination.join(linked_file);
+	fs::create_dir_all(linked_path.parent().expect("linked file parent"))
+		.expect("create skill directories");
+	symlink(&external, &linked_path).expect("link absent document");
+
+	let error = run_skill(SkillAction::Install {
+		destination: Some(destination.clone()),
+		force: false,
+	})
+	.err()
+	.expect("install must refuse a dangling symlink");
+	let mut settings = monochange_test_helpers::snapshot_settings();
+	settings.set_snapshot_suffix(monochange_test_helpers::current_test_name());
+	let _scope = settings.bind_to_scope();
+	insta::assert_snapshot!(error.to_string());
+	assert!(
+		!external.exists(),
+		"install must not create the external target"
+	);
+	assert!(
+		fs::symlink_metadata(&linked_path)
+			.expect("link metadata")
+			.is_symlink()
+	);
+
+	if linked_file != "SKILL.md" {
+		assert!(
+			!destination.join("SKILL.md").exists(),
+			"preflight must not write an entrypoint before rejecting the symlink"
+		);
+	}
+}
+
+#[test]
+fn install_allows_a_symlink_above_the_explicit_destination() {
+	let root = tempdir().expect("tempdir");
+	let external = root.path().join("shared-skills");
+	let parent = root.path().join("skills");
+	fs::create_dir_all(&external).expect("create shared directory");
+	symlink(&external, &parent).expect("link runtime skill directory");
+
+	let outcome = run_skill(SkillAction::Install {
+		destination: Some(parent.join("monochange")),
+		force: false,
+	})
+	.expect("explicit install destination may have linked ancestors");
+	assert!(matches!(outcome, SkillOutcome::Installed { .. }));
+	assert_eq!(
+		fs::read(external.join("monochange/SKILL.md")).expect("read skill"),
+		SKILL_ENTRY.as_bytes()
+	);
+}
+
 #[test]
 fn install_without_a_destination_reports_usable_guidance() {
 	let error = run_skill(SkillAction::Install {
@@ -289,7 +457,7 @@ fn install_reports_write_failures() {
 	})
 	.err()
 	.unwrap_or_else(|| panic!("install under a file must fail"));
-	assert!(error.to_string().contains("failed to write the skill"));
+	assert!(error.to_string().contains("failed to inspect skill path"));
 }
 
 #[test]
@@ -406,11 +574,11 @@ fn install_reports_a_write_failure_instead_of_claiming_success() {
 }
 
 #[test]
-fn install_reports_a_create_failure_when_a_path_component_is_a_file() {
+fn install_reports_an_inspection_failure_when_a_path_component_is_a_file() {
 	let directory = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 
-	// A regular file where a directory component belongs makes `create_dir_all`
-	// fail, so the failure comes from creating the parent rather than writing.
+	// A regular file where a directory belongs prevents path inspection before
+	// any installation files can be written.
 	let blocker = directory.path().join("blocker");
 	fs::write(&blocker, b"not a directory").unwrap_or_else(|error| panic!("blocker: {error}"));
 
@@ -421,7 +589,21 @@ fn install_reports_a_create_failure_when_a_path_component_is_a_file() {
 	.err()
 	.unwrap_or_else(|| panic!("expected the blocked install to fail"));
 	assert!(
-		error.to_string().contains("failed to create"),
+		error.to_string().contains("failed to inspect skill path"),
 		"unexpected error: {error}"
 	);
+}
+
+#[test]
+fn write_tree_reports_parent_creation_failures() {
+	let root = tempdir().expect("tempdir");
+	let fixture = monochange_test_helpers::fixture_path!("skill-install/symlinks/external.md");
+	let blocker = root.path().join("blocker");
+	fs::copy(fixture, &blocker).expect("copy blocking file");
+
+	let error = write_tree(&blocker.join("monochange"))
+		.expect_err("creating a directory under a file must fail");
+	let settings = monochange_test_helpers::snapshot_settings();
+	let _scope = settings.bind_to_scope();
+	insta::assert_snapshot!(error.to_string());
 }

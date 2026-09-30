@@ -1,0 +1,39 @@
+{
+	"id": "ecosystem-python-poetry-version",
+	"title": "Adopt a legacy Poetry manifest and write its actual version field",
+	"fixture": "ecosystem-python-poetry",
+	"prompt": "Configure this legacy Poetry package with monochange, record a patch release for a packaging fix, and verify the pending release. The version must eventually update in [tool.poetry], retaining its build metadata and comment. Record the changeset and verify the preview, but leave changesets pending and manifests at their current versions. Do not publish, tag, commit, or contact a hosted provider.",
+	"expectation": "The Python package is discovered from tool.poetry. Explicit versioned_files select its existing version field, with an equivalent typed or structured-format entry accepted. The agent leaves a pending 1.2.4 plan and unchanged manifest; the grader prepares a copy to verify tool.poetry.version advances while its build metadata and comment remain intact, without adding a competing project table.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "poetry-package-typed-correctly",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.deepEqual(c.packages.map(p=>[p.id,p.package_type]),[[\"acme-legacy\",\"python\"]]);'",
+			"why": "Poetry is a Python manifest family and should use the first-class adapter."
+		},
+		{
+			"id": "poetry-patch-planned",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"preview\",\"--format\",\"json\"])); assert.deepEqual(d.release_targets.map(t=>[t.id,t.version]),[[\"acme-legacy\",\"1.2.4\"]]);'",
+			"why": "Discovery and version resolution must agree on the legacy manifest's current version."
+		},
+		{
+			"id": "prepare-writes-poetry-version-and-preserves-metadata",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; cli([\"prepare\"]); const s=fs.readFileSync(\"pyproject.toml\",\"utf8\"); assert.match(s,/^version = \"1.2.4\"$/m); assert.match(s,/^\\[tool\\.poetry\\]$/m); assert.doesNotMatch(s,/^\\[project\\]$/m); assert.ok(s.includes(\"# Legacy Poetry package: keep build metadata intact\")); assert.ok(s.includes(\"build-backend = \\\"poetry.core.masonry.api\\\"\"));'",
+			"why": "A planned Python bump is incomplete unless the existing Poetry version field is actually written."
+		}
+	]
+}

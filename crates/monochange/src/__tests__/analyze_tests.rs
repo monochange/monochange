@@ -105,7 +105,7 @@ fn filter_change_analysis_keeps_only_selected_package() {
 }
 
 #[test]
-fn tag_prefix_for_identity_matches_primary_and_namespaced_tags() {
+fn release_identity_formats_match_primary_and_namespaced_tags() {
 	let namespaced = EffectiveReleaseIdentity {
 		owner_id: "core".to_string(),
 		owner_kind: ReleaseOwnerKind::Package,
@@ -135,8 +135,24 @@ fn tag_prefix_for_identity_matches_primary_and_namespaced_tags() {
 		classification_enforced: true,
 	};
 
-	assert_eq!(tag_prefix_for_identity(&namespaced), "core/v");
-	assert_eq!(tag_prefix_for_identity(&primary), "v");
+	assert_eq!(
+		crate::matching_release_tag_version(
+			"core/v1.0.0",
+			&namespaced.owner_id,
+			"cargo",
+			&namespaced.version_format
+		),
+		Some(semver::Version::new(1, 0, 0))
+	);
+	assert_eq!(
+		crate::matching_release_tag_version(
+			"v1.0.0",
+			&primary.owner_id,
+			"group",
+			&primary.version_format
+		),
+		Some(semver::Version::new(1, 0, 0))
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -218,7 +234,7 @@ async fn default_branch_and_release_tag_resolution_cover_origin_head_and_missing
 		"main"
 	);
 	assert_eq!(
-		latest_release_tag_for_identity(tempdir.path(), None)
+		latest_release_tag_for_identity(tempdir.path(), None, "cargo")
 			.await
 			.unwrap_or_else(|error| panic!("no identity: {error}")),
 		None
@@ -239,7 +255,7 @@ async fn default_branch_and_release_tag_resolution_cover_origin_head_and_missing
 		classification_enforced: true,
 	};
 	assert_eq!(
-		latest_release_tag_for_identity(tempdir.path(), Some(&no_tag_identity))
+		latest_release_tag_for_identity(tempdir.path(), Some(&no_tag_identity), "cargo")
 			.await
 			.unwrap_or_else(|error| panic!("no tag identity: {error}")),
 		None
@@ -315,7 +331,7 @@ async fn latest_release_tag_and_text_rendering_cover_warning_branches() {
 		bump_ceiling: None,
 		classification_enforced: true,
 	};
-	let tag_error = latest_release_tag_for_identity(missing_repo.path(), Some(&identity))
+	let tag_error = latest_release_tag_for_identity(missing_repo.path(), Some(&identity), "cargo")
 		.await
 		.unwrap_err()
 		.render();

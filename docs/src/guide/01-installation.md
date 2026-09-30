@@ -69,15 +69,15 @@ The skill ships inside the binary, so it needs no network access or npm install.
 After copying the bundled skill, you get a small documentation set that is designed to load in layers:
 
 - `SKILL.md`: concise entrypoint for agents
-- `REFERENCE.md`: broader high-context reference with more examples
-- `skills/README.md`: index of focused deep dives
+- `skills/reference.md`: broader reference with more examples
+- `skills/readme.md`: index of focused deep dives
 - `skills/adoption.md`: setup-depth questions, migration guidance, and recommendation patterns
 - `skills/change-classification.md`: release-aware severity decisions, uncertainty, and ecosystem review
 - `skills/changesets.md`: changeset authoring and lifecycle guidance
 - `skills/commands.md`: built-in command catalog and workflow selection
 - `skills/configuration.md`: `monochange.toml` setup and editing guidance
 - `skills/linting.md`: `[lints]` presets, `monochange check`, and manifest-focused examples
-- `examples/README.md`: condensed scenario examples for quick recommendations
+- `examples/readme.md`: condensed scenario examples for quick recommendations
 
 This layout keeps the top-level skill small while still making the richer guidance available when an assistant needs more context.
 

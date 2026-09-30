@@ -1,0 +1,9 @@
+[package."@acme/api"]
+path = "packages/api"
+type = "npm"
+
+[ecosystems.npm]
+enabled = true
+
+[lints.rules]
+"npm/unlisted-package-private" = { level = "error", fix = true }

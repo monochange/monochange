@@ -1,0 +1,1 @@
+{"name":"@acme/api","version":"1.0.0","description":"Public API package for the private-package guardrail fixture","license":"MIT","repository":"https://github.com/acme/private-guardrail-workspace","type":"module","main":"src/index.ts"}

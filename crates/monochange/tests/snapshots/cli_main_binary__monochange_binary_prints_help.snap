@@ -25,8 +25,8 @@ Release Commands:
   diagnose   Inspect changeset provenance and review metadata
 
 Workspace Commands:
-  init       Generate monochange.toml with detected packages, groups, and default CLI commands
-  populate   Add any missing built-in CLI commands to monochange.toml so you can customize them
+  init       Generate monochange.toml with detected packages and groups
+  populate   Check for default CLI workflow aliases (none are provided in this version)
   discover   Discover packages across supported ecosystems
   config     Render resolved monochange configuration and workspace metadata
   check      Validate configuration, changesets, and run manifest lint rules

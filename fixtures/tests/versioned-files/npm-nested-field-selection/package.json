@@ -1,0 +1,11 @@
+{
+  "name": "@acme/api",
+  "version": "2.3.1",
+  "metadata": {
+    "version": "2.3.1"
+  },
+  "dependencies": {
+    "@acme/api": "^2.3.1",
+    "external-lib": "^9.0.0"
+  }
+}

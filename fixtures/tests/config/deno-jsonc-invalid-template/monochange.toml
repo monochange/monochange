@@ -1,0 +1,4 @@
+[package.commented]
+path = "."
+type = "deno"
+versioned_files = [{ path = "deno.jsonc", type = "deno", value_template = "{{ year }}.{{ month }}" }]

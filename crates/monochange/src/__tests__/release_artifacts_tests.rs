@@ -285,12 +285,18 @@ async fn release_target_and_title_helpers_cover_provider_and_skip_paths() {
 		"pkg-a/v0.9.0".to_string(),
 	];
 	assert_eq!(
-		find_previous_tag_in("pkg-a/v1.0.0", &sorted_tags),
-		Some("pkg-a/v0.9.0".to_string())
+		find_previous_tag_in(
+			"pkg-a/v1.0.0",
+			&sorted_tags,
+			"pkg-a",
+			"cargo",
+			&VersionFormat::Namespaced
+		),
+		Some(("pkg-a/v0.9.0", Version::new(0, 9, 0)))
 	);
 	assert_eq!(
-		parse_tag_prefix_and_version("pkg-a/v1.2.3"),
-		Some(("pkg-a/v".to_string(), Version::new(1, 2, 3)))
+		matching_release_tag_version("pkg-a/v1.2.3", "pkg-a", "cargo", &VersionFormat::Namespaced),
+		Some(Version::new(1, 2, 3))
 	);
 	assert_eq!(
 		compare_url_for_provider(&source, "pkg-a/v0.9.0", "pkg-a/v1.0.0"),
@@ -1472,16 +1478,19 @@ fn validate_release_record_file_fast_path_reports_error_for_unreadable_file() {
 }
 
 #[test]
-fn release_tag_prefix_matches_rendered_tag_names() {
+fn release_tag_matcher_matches_rendered_tag_names() {
 	assert_eq!(
-		release_tag_prefix("api", &VersionFormat::Namespaced),
-		"api/v"
+		matching_release_tag_version("api/v1.2.3", "api", "npm", &VersionFormat::Namespaced),
+		Some(Version::new(1, 2, 3))
 	);
-	assert_eq!(release_tag_prefix("api", &VersionFormat::Primary), "v");
+	assert_eq!(
+		matching_release_tag_version("v1.2.3", "api", "npm", &VersionFormat::Primary),
+		Some(Version::new(1, 2, 3))
+	);
 }
 
 #[test]
-fn latest_tag_version_with_prefix_returns_highest_matching_tag() {
+fn latest_release_tag_returns_highest_matching_semver_in_any_order() {
 	let sorted_tags = vec![
 		"v1.2.3".to_string(),
 		"api/v2.0.0".to_string(),
@@ -1489,27 +1498,109 @@ fn latest_tag_version_with_prefix_returns_highest_matching_tag() {
 	];
 
 	assert_eq!(
-		latest_tag_version_with_prefix(&sorted_tags, "v"),
-		Some(Version::new(1, 2, 3))
+		latest_release_tag_in(&sorted_tags, "api", "npm", &VersionFormat::Primary),
+		Some(("v1.2.3", Version::new(1, 2, 3)))
 	);
 	assert_eq!(
-		latest_tag_version_with_prefix(&sorted_tags, "api/v"),
-		Some(Version::new(2, 0, 0))
+		latest_release_tag_in(&sorted_tags, "api", "npm", &VersionFormat::Namespaced),
+		Some(("api/v2.0.0", Version::new(2, 0, 0)))
 	);
 	assert_eq!(
-		latest_tag_version_with_prefix(&sorted_tags, "other/v"),
+		latest_release_tag_in(&sorted_tags, "other", "npm", &VersionFormat::Namespaced),
 		None
 	);
-	assert_eq!(latest_tag_version_with_prefix(&[], "v"), None);
+	assert_eq!(
+		latest_release_tag_in(&[], "api", "npm", &VersionFormat::Primary),
+		None
+	);
 }
 
 #[test]
-fn latest_tag_version_with_prefix_ignores_non_semver_tags() {
+fn latest_release_tag_ignores_non_semver_tags() {
 	let sorted_tags = vec!["not-a-version".to_string(), "v0.2.0".to_string()];
 
 	assert_eq!(
-		latest_tag_version_with_prefix(&sorted_tags, "v"),
-		Some(Version::new(0, 2, 0))
+		latest_release_tag_in(&sorted_tags, "api", "npm", &VersionFormat::Primary),
+		Some(("v0.2.0", Version::new(0, 2, 0)))
+	);
+}
+
+#[rstest::rstest]
+#[case::prefix("core/v{{ version }}", "core/v1.2.3", "1.2.3")]
+#[case::ecosystem(
+	"{{ ecosystem }}/{{ name }}/release-{{version}}",
+	"go/sdk/release-1.2.3",
+	"1.2.3"
+)]
+#[case::suffix("{{name}}/{{version}}-release", "sdk/1.2.3-release", "1.2.3")]
+#[case::no_v("release-{{version}}", "release-1.2.3", "1.2.3")]
+#[case::repeated("{{version}}/{{name}}/{{ version }}", "1.2.3/sdk/1.2.3", "1.2.3")]
+#[case::adjacent("{{version}}{{version}}", "1.2.31.2.3", "1.2.3")]
+#[case::dev("{{name}}/v{{version}}", "sdk/v1.2.3-dev.7", "1.2.3-dev.7")]
+#[case::literal_version("baseline-0.0.0/{{version}}", "baseline-0.0.0/1.2.3", "1.2.3")]
+fn custom_release_tag_matcher_round_trips_the_complete_format(
+	#[case] template: &str,
+	#[case] tag: &str,
+	#[case] version: &str,
+) {
+	let format = VersionFormat::Custom(template.to_string());
+	assert_eq!(
+		matching_release_tag_version(tag, "sdk", "go", &format),
+		Some(Version::parse(version).expect("case SemVer"))
+	);
+	assert_eq!(
+		matching_release_tag_version("v99.0.0", "sdk", "go", &format),
+		None
+	);
+}
+
+#[test]
+fn custom_release_tags_select_semver_maximum_and_previous_context() {
+	let format = VersionFormat::Custom("go/{{ name }}/release-{{ version }}-ready".to_string());
+	let tags = [
+		"go/sdk/release-1.9.0-ready",
+		"v99.0.0",
+		"go/other/release-99.0.0-ready",
+		"go/sdk/release-1.10.0-dev.7-ready",
+	]
+	.map(str::to_string);
+	let previous = find_previous_tag_in("go/sdk/release-1.10.0-ready", &tags, "sdk", "go", &format)
+		.expect("matching previous tag");
+	assert_eq!(previous.1, Version::parse("1.10.0-dev.7").expect("SemVer"));
+	assert_eq!(
+		latest_release_tag_in(&tags, "sdk", "go", &format),
+		Some(previous.clone())
+	);
+	let context = TitleRenderContext::new(
+		"sdk",
+		"1.10.0",
+		1,
+		None,
+		"go/sdk/release-1.10.0-ready",
+		Some((previous.0, &previous.1)),
+	);
+	assert_eq!(
+		context.render("{{ previous_version }} -> {{ version }}"),
+		"1.10.0-dev.7 -> 1.10.0"
+	);
+}
+
+#[test]
+fn custom_release_tag_matcher_rejects_invalid_or_missing_version_templates() {
+	for template in ["literal", "{{ unknown }}/{{ version }}"] {
+		assert_eq!(
+			matching_release_tag_version(
+				"{{ unknown }}/1.2.3",
+				"sdk",
+				"go",
+				&VersionFormat::Custom(template.to_string())
+			),
+			None
+		);
+	}
+	assert_eq!(
+		find_previous_tag_in("not-a-tag", &[], "sdk", "go", &VersionFormat::Namespaced),
+		None
 	);
 }
 

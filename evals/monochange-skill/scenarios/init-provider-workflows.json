@@ -6,7 +6,7 @@
 	"prompt": "",
 	"expectation": "On a repository with no manifests, `monochange init --provider github` writes `monochange.toml` plus `.github/workflows/changeset-policy.yml` and `.github/workflows/release.yml`, activates a `[source]` table with `provider = \"github\"`, and ships no `[cli.*]` tables; the generated config passes `monochange step validate` even with zero packages. Plain `init` writes a provider-neutral config with no active `[source]` table. A second `init` refuses without `--force` and succeeds with it. Workflows are github-only: `--provider gitlab` writes config without `.github/`. `init` accepts only `github|gitlab|gitea` — `forgejo`, which `[source]` config itself accepts, is rejected with exit 1 and writes nothing. Every check removes what it generates so later checks start from the bare fixture.",
 	"setupCommands": [
-		"git init -q && git add -A && git -c user.email=eval@example.com -c user.name=eval commit -qm 'initial commit'"
+		"git init -q && git add -A && git commit -S -qm 'initial commit'"
 	],
 	"checks": [
 		{

@@ -1,0 +1,25 @@
+---
+source: crates/monochange_integration_tests/tests/deno_jsonc_version.rs
+expression: "dry_run[\"plan\"]"
+---
+{
+  "compatibility_evidence": [],
+  "decisions": [
+    {
+      "bump": "patch",
+      "package": "deno:deno.jsonc",
+      "planned_version": "1.2.4",
+      "reasons": [
+        "Preserve comments when preparing a Deno release"
+      ],
+      "trigger": "direct-change",
+      "upstream_sources": [
+        "deno:deno.jsonc"
+      ]
+    }
+  ],
+  "groups": [],
+  "unresolved_items": [],
+  "warnings": [],
+  "workspace_root": "."
+}

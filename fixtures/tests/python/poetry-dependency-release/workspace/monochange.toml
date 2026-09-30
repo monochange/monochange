@@ -1,0 +1,12 @@
+[package.py-core]
+path = "core"
+type = "python"
+versioned_files = [
+  { path = "core/pyproject.toml", type = "python", fields = ["version"] },
+  { path = "cli/pyproject.toml", type = "python", fields = ["dependencies"] },
+]
+
+[package.py-cli]
+path = "cli"
+type = "python"
+versioned_files = [{ path = "cli/pyproject.toml", type = "python", fields = ["version"] }]

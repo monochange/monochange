@@ -1,0 +1,5 @@
+---
+source: crates/monochange/src/__tests__/skill_tests.rs
+expression: error.to_string()
+---
+config error: refusing to install a skill through symbolic link [ROOT]/monochange/skills/configuration.md

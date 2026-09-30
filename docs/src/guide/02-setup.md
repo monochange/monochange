@@ -37,7 +37,7 @@ monochange init --provider github
 The `--provider` flag supports `github`, `gitlab`, and `gitea`. When provided, `monochange init`:
 
 1. **Configures the `[source]` section** - adds provider-specific settings for releases and pull/merge requests
-2. **Generates provider CLI commands** - includes `commit-release` and `release-pr` commands in `monochange.toml`
+2. **Keeps workflows optional** - writes no `[cli.*]` command definitions; use built-in commands or add custom workflows separately
 3. **Creates workflow files** (GitHub only) - writes `.github/workflows/release.yml` and `.github/workflows/changeset-policy.yml`
 4. **Auto-detects owner/repo** - parses `git remote get-url origin` to pre-populate `[source]`
 
@@ -51,10 +51,9 @@ repo = "monochange" # auto-detected from git remote
 
 [source.releases]
 enabled = true
-draft = false
-prerelease = false
 source = "monochange"
-branches = ["main", "release/*"]
+changelog_output = "default"
+branches = ["main"]
 enforce_for_tags = true
 enforce_for_publish = true
 enforce_for_commit = false
@@ -67,28 +66,7 @@ base = "main"
 title = "chore(release): prepare release"
 labels = ["release", "automated"]
 auto_merge = false
-
-[cli.commit-release]
-help_text = "Prepare a release and create a release commit"
-
-[[cli.commit-release.steps]]
-type = "PrepareRelease"
-name = "plan release"
-
-[[cli.commit-release.steps]]
-type = "CommitRelease"
-name = "create release commit"
-
-[cli.release-pr]
-help_text = "Prepare a release and open a release pull request"
-
-[[cli.release-pr.steps]]
-type = "PrepareRelease"
-name = "plan release"
-
-[[cli.release-pr.steps]]
-type = "OpenReleaseRequest"
-name = "open release PR"
+body_style = "full"
 ```
 
 The GitHub Actions workflows enable:

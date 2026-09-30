@@ -117,6 +117,100 @@ fn snapshot_file_updates(root: &Path, updates: Vec<FileUpdate>) -> String {
 		.join("\n---\n")
 }
 
+#[rstest::rstest]
+#[case::dependencies_only("dependencies_only", false, None, "2.3.1", None)]
+#[case::dependencies_only_shared("dependencies_only_shared", false, Some("3.0.0"), "2.3.1", None)]
+#[case::explicit_version("explicit_version", true, None, "2.5.0", None)]
+#[case::explicit_version_shared("explicit_version_shared", true, Some("3.0.0"), "3.0.0", None)]
+#[case::nested_version("nested_version", false, None, "2.3.1", Some("2.5.0"))]
+#[case::nested_version_shared(
+	"nested_version_shared",
+	false,
+	Some("3.0.0"),
+	"2.3.1",
+	Some("3.0.0")
+)]
+fn npm_versioned_file_respects_explicit_version_field_selection(
+	#[case] scenario: &str,
+	#[case] update_version: bool,
+	#[case] shared_version: Option<&str>,
+	#[case] expected_version: &str,
+	#[case] expected_nested_version: Option<&str>,
+) {
+	let root = fixture_path(if expected_nested_version.is_some() {
+		"versioned-files/npm-nested-field-selection"
+	} else {
+		"versioned-files/npm-field-selection"
+	});
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::from([(
+			"@acme/api".to_string(),
+			"2.4.0".to_string(),
+		)]),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
+	};
+	let mut fields = vec!["dependencies".to_string()];
+
+	if update_version {
+		fields.push("version".to_string());
+	}
+
+	if expected_nested_version.is_some() {
+		fields.push("metadata.version".to_string());
+	}
+
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "package.json".to_string(),
+		ecosystem_type: Some(EcosystemType::Npm),
+		format: None,
+		prefix: Some("~".to_string()),
+		fields: Some(fields),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let shared_version = shared_version.map(str::to_string);
+	let mut updates = BTreeMap::new();
+
+	apply_versioned_file_definition(
+		&root,
+		&mut updates,
+		&definition,
+		"2.5.0",
+		shared_version.as_ref(),
+		&["@acme/api"],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply npm update: {error}"));
+	let CachedDocument::Text(contents) = updates
+		.remove(&root.join("package.json"))
+		.unwrap_or_else(|| panic!("expected package.json update"))
+	else {
+		panic!("expected npm manifest text");
+	};
+	let manifest: serde_json::Value = serde_json::from_str(&contents)
+		.unwrap_or_else(|error| panic!("updated manifest is json: {error}"));
+	assert_eq!(manifest["version"], expected_version);
+
+	if let Some(expected_nested_version) = expected_nested_version {
+		assert_eq!(manifest["metadata"]["version"], expected_nested_version);
+	}
+
+	insta::with_settings!({snapshot_suffix => scenario}, {
+		insta::assert_snapshot!(contents);
+	});
+}
+
 #[test]
 fn format_versioned_file_updates_json_toml_yaml_and_env_fields() {
 	let json = update_format_versioned_file_text(
@@ -1534,7 +1628,7 @@ enabled = true
 	assert_eq!(updates[0].path, manifest_path);
 	let content = String::from_utf8(updates[0].content.clone())
 		.unwrap_or_else(|error| panic!("updated manifest should be utf-8: {error}"));
-	assert!(content.contains(r#""lib": "1.2.0""#));
+	assert!(content.contains(r#""lib": "^1.2.0""#));
 	assert!(content.contains(r#""actual": "^1.0.0""#));
 
 	std::fs::write(&manifest_path, "{")

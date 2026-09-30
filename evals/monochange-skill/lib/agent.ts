@@ -12,7 +12,7 @@
 //    `--strict-mcp-config` keeps their MCP servers out.
 
 import { spawn } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import process from "node:process";
 
@@ -23,6 +23,8 @@ import type { RunUsage } from "./types.ts";
 export const SKILL_INSTALL_NAME = "monochange";
 
 export interface AgentRunOptions {
+	/// Runtime executable or absolute path; useful when devenv provides a restricted PATH.
+	agentBin?: string;
 	/// Directory the agent works in. It is the project root the agent sees.
 	workdir: string;
 	/// Skill variant directory name under `skill-variants/`, the built-in
@@ -58,14 +60,25 @@ export interface AgentRunOptions {
 }
 
 export interface AgentRunResult {
+	durationMs?: number;
 	/// Flattened assistant text plus tool inputs, used for transcript grading.
 	transcript: string;
+	/// Submitted Bash command fields only, for checks that grade actual operations.
+	commands: string;
+	/// Separate tool calls retain shell-variable scope for command grading.
+	commandInputs: string[];
 	/// Final assistant message only.
 	finalMessage: string;
 	usage: RunUsage;
 	exit: number;
 	timedOut: boolean;
 	stderr: string;
+	/// A runtime-reported failure, including a missing terminal result record.
+	error?: string;
+	runtimeVersion?: string;
+	effectiveModel?: string;
+	/// Requested model recorded at execution time; unavailable in legacy saved outcomes.
+	requestedModel?: string;
 }
 
 /// Prepare skill discovery for a run.
@@ -102,48 +115,178 @@ function prepareSkill(workdir: string, skillVariant: string, source: "installed"
 /// results, and file contents the agent merely *read* arrive as other record
 /// types; including them would let a check match the skill's own prose instead
 /// of the agent's work.
-function extractFromLine(line: string): { text: string; toolInput: string } {
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(line);
-	} catch {
-		return { text: "", toolInput: "" };
-	}
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object" && !Array.isArray(value);
+}
 
-	const record = parsed as Record<string, unknown>;
-	if (record["type"] !== "assistant") {
-		return { text: "", toolInput: "" };
-	}
+/// Parse saved and live transcripts identically; tool results never count as agent evidence.
+export function parseAgentTranscript(
+	stdout: string,
+): Pick<
+	AgentRunResult,
+	| "transcript"
+	| "commands"
+	| "commandInputs"
+	| "finalMessage"
+	| "usage"
+	| "error"
+	| "runtimeVersion"
+	| "effectiveModel"
+> {
+	const parts: string[] = [];
+	const commands: string[] = [];
+	const usage: RunUsage = {
+		inputTokens: 0,
+		outputTokens: 0,
+		cacheReadTokens: 0,
+		cacheCreationTokens: 0,
+		costUsd: 0,
+		turns: 0,
+	};
+	let finalMessage = "";
+	let completed = false;
+	let error: string | undefined;
+	let runtimeVersion: string | undefined;
+	let effectiveModel: string | undefined;
 
-	const message = record["message"] as Record<string, unknown> | undefined;
-	const content = message?.["content"];
-	if (!Array.isArray(content)) {
-		return { text: "", toolInput: "" };
-	}
+	for (const line of stdout.split("\n")) {
+		let record: unknown;
 
-	const texts: string[] = [];
-	const toolInputs: string[] = [];
-	for (const block of content) {
-		const entry = block as Record<string, unknown>;
-		if (entry["type"] === "text" && typeof entry["text"] === "string") {
-			texts.push(entry["text"]);
+		try {
+			record = JSON.parse(line);
+		} catch {
+			// A runtime banner is not an assistant-authored transcript record.
+			continue;
 		}
-		if (entry["type"] === "tool_use") {
-			const input = entry["input"];
-			const serialized = typeof input === "string" ? input : JSON.stringify(input ?? "");
-			// The tool name is part of what the assistant authored: a check
-			// that hunts for an Edit of a generated file needs the name to
-			// match on.
-			const name = typeof entry["name"] === "string" ? entry["name"] : "";
-			toolInputs.push(name ? `${name} ${serialized}` : serialized);
+
+		if (!isRecord(record)) {
+			continue;
+		}
+
+		if (record["type"] === "system" && record["subtype"] === "init") {
+			if (typeof record["claude_code_version"] === "string")
+				runtimeVersion = record["claude_code_version"];
+			if (typeof record["model"] === "string") effectiveModel = record["model"];
+		}
+
+		if (record["type"] === "assistant" && isRecord(record["message"])) {
+			const content = record["message"]["content"];
+
+			if (!Array.isArray(content)) {
+				continue;
+			}
+
+			usage.turns += 1;
+			const texts: string[] = [];
+
+			for (const block of content) {
+				if (!isRecord(block)) {
+					continue;
+				}
+
+				if (block["type"] === "text" && typeof block["text"] === "string") {
+					parts.push(block["text"]);
+					texts.push(block["text"]);
+				}
+
+				if (block["type"] === "tool_use") {
+					const input = block["input"];
+					const serialized = typeof input === "string" ? input : JSON.stringify(input ?? "");
+					const name = typeof block["name"] === "string" ? block["name"] : "";
+					parts.push(name ? `${name} ${serialized}` : serialized);
+
+					if (name === "Bash") {
+						if (typeof input === "string") commands.push(input);
+						else if (isRecord(input) && typeof input["command"] === "string")
+							commands.push(input["command"]);
+					}
+				}
+			}
+
+			finalMessage = texts.join("\n");
+		}
+
+		if (record["type"] === "result") {
+			completed = true;
+			const reported = record["usage"];
+
+			if (isRecord(reported)) {
+				for (const [field, key] of [
+					["inputTokens", "input_tokens"],
+					["outputTokens", "output_tokens"],
+					["cacheReadTokens", "cache_read_input_tokens"],
+					["cacheCreationTokens", "cache_creation_input_tokens"],
+				] as const) {
+					const value = reported[key];
+
+					if (typeof value === "number") usage[field] = value;
+				}
+			}
+
+			if (typeof record["result"] === "string") finalMessage = record["result"];
+			if (typeof record["total_cost_usd"] === "number") usage.costUsd = record["total_cost_usd"];
+			if (typeof record["num_turns"] === "number") usage.turns = record["num_turns"];
+
+			if (record["subtype"] !== "success" || record["is_error"] !== false) {
+				error = `agent runtime error: ${JSON.stringify(record["errors"] ?? record["result"] ?? record["subtype"])}`;
+			}
 		}
 	}
 
-	return { text: texts.join("\n"), toolInput: toolInputs.join("\n") };
+	return {
+		transcript: parts.join("\n"),
+		commands: commands.join("\n"),
+		commandInputs: commands,
+		finalMessage,
+		usage,
+		runtimeVersion,
+		effectiveModel,
+		error: error ?? (completed ? undefined : "agent transcript has no terminal result record"),
+	};
+}
+
+/// A complete artifact cannot rescue a crashed, interrupted, or runtime-failed agent.
+export function agentFailure(
+	agent: Pick<AgentRunResult, "exit" | "timedOut" | "error">,
+	timeoutSeconds: number,
+): string | undefined {
+	if (agent.timedOut) {
+		return `agent timed out after ${timeoutSeconds}s`;
+	}
+
+	if (agent.exit !== 0) {
+		return `agent exited ${agent.exit}${agent.error ? `: ${agent.error}` : ""}`;
+	}
+
+	return agent.error;
+}
+
+/// Regrade the original transcript and execution outcome without launching an agent.
+export function readSavedAgent(directory: string): AgentRunResult {
+	const outcome: unknown = JSON.parse(readFileSync(join(directory, "outcome.json"), "utf8"));
+
+	if (
+		!isRecord(outcome) ||
+		typeof outcome["exit"] !== "number" ||
+		typeof outcome["timedOut"] !== "boolean"
+	) {
+		throw new Error(`Invalid saved agent outcome: ${directory}`);
+	}
+
+	return {
+		...parseAgentTranscript(readFileSync(join(directory, "transcript.jsonl"), "utf8")),
+		exit: outcome["exit"],
+		timedOut: outcome["timedOut"],
+		stderr: readFileSync(join(directory, "stderr.txt"), "utf8"),
+		durationMs: typeof outcome["durationMs"] === "number" ? outcome["durationMs"] : undefined,
+		requestedModel:
+			typeof outcome["requestedModel"] === "string" ? outcome["requestedModel"] : undefined,
+	};
 }
 
 /// Run one headless agent session and return its transcript.
 export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult> {
+	const startedAt = Date.now();
 	prepareSkill(options.workdir, options.skillVariant, options.skillSource);
 
 	// Transcripts are saved under the results tree; the real HOME is left
@@ -171,14 +314,17 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 	}
 
 	const binDir = dirname(options.monochangeCli);
-	const child = spawn("claude", args, {
+	const child = spawn(options.agentBin ?? "claude", args, {
 		cwd: options.workdir,
 		env: {
 			...process.env,
 			...options.env,
-			PATH: `${binDir}:${process.env["PATH"] ?? ""}`,
+			PATH: `${binDir}:${options.env?.["PATH"] ?? process.env["PATH"] ?? ""}`,
 		},
 		stdio: ["ignore", "pipe", "pipe"],
+		// POSIX tool processes inherit this group, so a timeout can terminate
+		// every descendant holding the runtime's pipes or editing its workdir.
+		detached: process.platform !== "win32",
 	});
 
 	let stdout = "";
@@ -187,7 +333,20 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 
 	const timer = setTimeout(() => {
 		timedOut = true;
-		child.kill("SIGKILL");
+
+		if (process.platform === "win32" || child.pid === undefined) {
+			child.kill("SIGKILL");
+			return;
+		}
+
+		try {
+			process.kill(-child.pid, "SIGKILL");
+		} catch (error) {
+			// The process can exit just before its timer fires.
+			if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) {
+				throw error;
+			}
+		}
 	}, options.timeoutSeconds * 1000);
 
 	child.stdout.on("data", (chunk: Buffer) => {
@@ -199,84 +358,51 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 
 	const exit = await new Promise<number>((resolveExit) => {
 		child.on("close", (code) => resolveExit(code ?? 1));
-		child.on("error", () => resolveExit(1));
+		child.on("error", (error) => {
+			stderr += error.message;
+			resolveExit(1);
+		});
 	});
 	clearTimeout(timer);
 
 	writeFileSync(join(options.transcriptDir, "transcript.jsonl"), stdout);
 	writeFileSync(join(options.transcriptDir, "stderr.txt"), stderr);
 
-	const transcriptParts: string[] = [];
-	const finalParts: string[] = [];
-	const usage: RunUsage = {
-		inputTokens: 0,
-		outputTokens: 0,
-		cacheReadTokens: 0,
-		cacheCreationTokens: 0,
-		costUsd: 0,
-		turns: 0,
-	};
-
-	for (const line of stdout.split("\n")) {
-		if (line.trim() === "") {
-			continue;
-		}
-		const { text, toolInput } = extractFromLine(line);
-		if (text) {
-			transcriptParts.push(text);
-			finalParts.push(text);
-		}
-		if (toolInput) {
-			transcriptParts.push(toolInput);
-		}
-
-		// The runtime reports cumulative usage per assistant turn and a final
-		// total in the result record. Take the maximum so a summary line never
-		// under-counts.
-		try {
-			const parsed = JSON.parse(line) as Record<string, unknown>;
-			if (parsed["type"] === "result") {
-				const reported = parsed["usage"] as Record<string, number> | undefined;
-				if (reported) {
-					usage.inputTokens = Math.max(usage.inputTokens, reported["input_tokens"] ?? 0);
-					usage.outputTokens = Math.max(usage.outputTokens, reported["output_tokens"] ?? 0);
-					usage.cacheReadTokens = Math.max(
-						usage.cacheReadTokens,
-						reported["cache_read_input_tokens"] ?? 0,
-					);
-					usage.cacheCreationTokens = Math.max(
-						usage.cacheCreationTokens,
-						reported["cache_creation_input_tokens"] ?? 0,
-					);
-				}
-				if (typeof parsed["total_cost_usd"] === "number") {
-					usage.costUsd = parsed["total_cost_usd"];
-				}
-				if (typeof parsed["num_turns"] === "number") {
-					usage.turns = parsed["num_turns"];
-				}
-			}
-			if (parsed["type"] === "assistant") {
-				usage.turns += 1;
-			}
-		} catch {
-			// Non-JSON lines are already handled by the extractor above.
-		}
-	}
-
-	return {
-		transcript: transcriptParts.join("\n"),
-		finalMessage: finalParts.join("\n"),
-		usage,
+	const result: AgentRunResult = {
+		...parseAgentTranscript(stdout),
 		exit,
 		timedOut,
 		stderr,
+		durationMs: Date.now() - startedAt,
+		requestedModel: options.model,
 	};
+	writeFileSync(
+		join(options.transcriptDir, "outcome.json"),
+		`${JSON.stringify({ exit, timedOut, error: result.error, durationMs: result.durationMs, requestedModel: result.requestedModel }, null, "\t")}\n`,
+	);
+
+	return result;
+}
+
+/// Include discovery channel and prompt variant in safe artifact directory names.
+export function runIdentity(
+	scenarioId: string,
+	variant: string,
+	source: "installed" | "cli",
+	repeat: number,
+	instructionVariant?: string,
+): string {
+	const skill = `${encodeURIComponent(variant)}__source-${source}`;
+	const instruction = instructionVariant
+		? `__instruction-${encodeURIComponent(instructionVariant)}`
+		: "";
+
+	return `${encodeURIComponent(scenarioId)}__${skill}__${repeat}${instruction}`;
 }
 
 /// Create a per-run scratch directory.
-export function runWorkdir(scenarioId: string, variant: string, repeat: number): string {
-	const path = join(WORK_DIR, "runs", `${scenarioId}__${variant}__${repeat}`);
+export function runWorkdir(identity: string): string {
+	const path = join(WORK_DIR, "runs", identity);
 	rmSync(path, { recursive: true, force: true });
 	mkdirSync(path, { recursive: true });
 	return path;

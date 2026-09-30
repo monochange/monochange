@@ -1,0 +1,46 @@
+{
+	"id": "guardrail-unknown-target-repair",
+	"title": "Recover release intent written against an obsolete package id",
+	"fixture": "rust-workspace",
+	"setupFiles": {
+		".changeset/parser-fix.md": "---\nacme-parser: fix\n---\n\nReject truncated parser input before returning an incomplete result.\n"
+	},
+	"setupCommands": [
+		"cp crates/core/Cargo.toml .core-original && cp crates/cli/Cargo.toml .cli-original"
+	],
+	"prompt": "Validation fails on .changeset/parser-fix.md. acme-parser was an old name; this fix belongs to the existing core crate. Use the CLI to inspect our configured ids and repair this changeset in place. Preserve its patch intent and release-note text. Preview the corrected plan, but do not prepare a release or alter versions.",
+	"expectation": "The existing file targets acme-core with fix, retains its body, remains the sole changeset, validates, and previews acme-core 1.4.1 without changing manifests.",
+	"checks": [
+		{
+			"id": "existing-file-repaired",
+			"kind": "file",
+			"path": ".changeset/parser-fix.md",
+			"match": "^---\\n[\"']?acme-core[\"']?: fix\\n---\\n\\nReject truncated parser input before returning an incomplete result\\.",
+			"why": "Repair must retain the authored intent and target the current configured core id."
+		},
+		{
+			"id": "no-duplicate-intent",
+			"kind": "command",
+			"command": "test \"$(find .changeset -name '*.md' -type f | wc -l | tr -d ' ')\" = 1",
+			"why": "Adding a valid second file while leaving or deleting the failed record is not an in-place repair."
+		},
+		{
+			"id": "validate-repaired-intent",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The corrected target and type must both resolve."
+		},
+		{
+			"id": "patch-preview",
+			"kind": "command",
+			"command": "monochange preview --format json > .preview.json && jq -e '.. | objects | select(.version? == \"1.4.1\")' .preview.json >/dev/null",
+			"why": "The corrected intent must actually contribute a patch release, not merely parse."
+		},
+		{
+			"id": "manifests-preserved",
+			"kind": "command",
+			"command": "cmp .core-original crates/core/Cargo.toml && cmp .cli-original crates/cli/Cargo.toml",
+			"why": "Preview must not prepare or manually apply versions."
+		}
+	]
+}

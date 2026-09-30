@@ -1,0 +1,45 @@
+{
+	"id": "ecosystem-same-name-distinct-owners",
+	"title": "Disambiguate a Cargo and npm package with the same manifest name",
+	"fixture": "ecosystem-name-collision",
+	"prompt": "Use monochange init in this repository. The Rust library and npm module are both called utility but must remain separate, independently versioned release owners. Both must be managed under unique ids without changing either manifest name or version. Verify the current version inventory.",
+	"expectation": "init disambiguates colliding package names by ecosystem. A correct refinement keeps distinct cargo and npm owners and their own baseline versions, and removes the starter shared group.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "uses-cli-initializer",
+			"kind": "transcript",
+			"pattern": "^Bash [^\\n]*\\bmonochange\\b[^\\n]*\\binit\\b",
+			"why": "This adoption task explicitly asks to exercise the actual initializer before refining its starter configuration."
+		},
+		{
+			"id": "two-unique-typed-owners",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.equal(c.packages.length,2); assert.equal(new Set(c.packages.map(p=>p.id)).size,2); assert.deepEqual(c.packages.map(p=>p.package_type).sort(),[\"cargo\",\"npm\"]); assert.equal(c.groups.length,0);'",
+			"why": "Name collisions must not silently deduplicate packages or collapse independent versions."
+		},
+		{
+			"id": "version-inventory-keeps-both-baselines",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"versions\",\"list\",\"--format\",\"json\"])); assert.deepEqual(Object.values(d).sort(),[\"1.2.3\",\"2.3.4\"]);'",
+			"why": "Both adapters must resolve their own baseline even though package names match."
+		},
+		{
+			"id": "manifest-identity-preserved",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; assert.equal(JSON.parse(fs.readFileSync(\"packages/utility/package.json\",\"utf8\")).name,\"utility\"); assert.match(fs.readFileSync(\"crates/utility/Cargo.toml\",\"utf8\"),/^name = \"utility\"$/m);'",
+			"why": "An id collision is solved in release config rather than renaming user packages."
+		}
+	]
+}

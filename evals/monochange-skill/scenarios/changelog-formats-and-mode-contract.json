@@ -21,7 +21,7 @@
 		{
 			"id": "append-mode-accumulates-two-releases",
 			"kind": "command",
-			"command": "git init -b main -q && git add -A && git -c user.name=A -c user.email=a@a.dev commit -qm init >/dev/null 2>&1; mkdir -p .changeset; printf -- '---\\n\"@acme/api\": patch\\n---\\n\\nHonor the caller abort signal\\n' > .changeset/a.md; monochange prepare >/dev/null 2>&1; printf -- '---\\n\"@acme/api\": fix\\n---\\n\\nGuard against an empty body\\n' > .changeset/b.md; monochange prepare >/dev/null 2>&1; grep -c '^## ' packages/api/CHANGELOG.md | grep -qx '2'",
+			"command": "git init -b main -q && git add -A && git commit -S -qm init >/dev/null 2>&1; mkdir -p .changeset; printf -- '---\\n\"@acme/api\": patch\\n---\\n\\nHonor the caller abort signal\\n' > .changeset/a.md; monochange prepare >/dev/null 2>&1; printf -- '---\\n\"@acme/api\": fix\\n---\\n\\nGuard against an empty body\\n' > .changeset/b.md; monochange prepare >/dev/null 2>&1; grep -c '^## ' packages/api/CHANGELOG.md | grep -qx '2'",
 			"why": "The default `append` mode inserts each release at the top of the existing file. Overwriting instead of accumulating would silently destroy release history, which is the regression this pins. Runs last because it mutates the tree."
 		}
 	]

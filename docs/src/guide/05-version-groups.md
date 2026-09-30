@@ -38,6 +38,7 @@ When any member releases:
 - dependents of newly synced members still receive propagated parent bumps
 - unmatched members (not found during discovery) produce warnings; unresolvable members (invalid IDs) produce errors
 - mismatched current versions produce warnings when `warn_on_group_mismatch = true`
+- `changelog.include` filters the group's changelog file only; named release-note outputs and provider notes render complete release content for their selected stream/output
 
 <!-- {/versionGroupsBehavior} -->
 

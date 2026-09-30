@@ -807,6 +807,8 @@ fn write_discovery_file(destination: &Path, path: &Path, contents: &[u8]) -> Mon
 	})
 }
 
+/// Retain workspace controls for every configured ecosystem so snapshot
+/// configuration validation does not depend on semantic-analyzer support.
 fn is_discovery_file(path: &Path) -> bool {
 	path.file_name()
 		.and_then(|name| name.to_str())
@@ -814,12 +816,14 @@ fn is_discovery_file(path: &Path) -> bool {
 			matches!(
 				name,
 				".gitignore"
+					| "action.yml" | "action.yaml"
 					| "Cargo.toml" | "bun.lockb"
 					| "deno.json" | "deno.jsonc"
-					| "monochange.toml"
+					| "go.mod" | "monochange.toml"
 					| "package.json"
 					| "pnpm-workspace.yaml"
 					| "pubspec.yaml"
+					| "pyproject.toml"
 			)
 		})
 }

@@ -1,0 +1,70 @@
+{
+	"id": "planning-group-changelog-filter",
+	"title": "Filter member notes at the shared group changelog boundary",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n[package.\"@acme/api\"]\npath = \"packages/api\"\ntype = \"npm\"\n[package.\"@acme/ui\"]\npath = \"packages/ui\"\ntype = \"npm\"\n[package.\"@acme/tokens\"]\npath = \"packages/tokens\"\ntype = \"npm\"\n[group.main]\npackages = [\"@acme/api\", \"@acme/ui\", \"@acme/tokens\"]\nversion_format = \"primary\"\n[ecosystems.npm]\nenabled = true\n[lints.rules]\n\"npm/workspace-protocol\" = \"off\"\n",
+		".changeset/api.md": "---\n\"@acme/api\": minor\n---\n\nExpose retryBudget in RequestOptions.\n",
+		".changeset/ui.md": "---\n\"@acme/ui\": patch\n---\n\nFix profile spinner alignment.\n"
+	},
+	"setupCommands": [
+		"git init -b main -q",
+		"git add -A",
+		"git commit -S -m 'chore: initialize evaluation fixture'"
+	],
+	"prompt": "The main group releases api, ui, and tokens together, but the shared SDK changelog should describe only @acme/api. Configure its changelog at docs/sdk-changelog.md to include only api changes, then render the default main-group notes into sdk-notes.md for review. Keep both existing changesets and all manifest versions untouched.",
+	"expectation": "A group changelog include list limits the shared changelog file to api while preserving group membership and both pending changesets. Default group notes describe the complete release, including ui; the file-only include policy must not hide changes from the provider release body.",
+	"checks": [
+		{
+			"id": "configuration-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The final configuration and pending changesets must resolve."
+		},
+		{
+			"id": "group-filter-is-configured",
+			"kind": "command",
+			"command": "monochange config --format json | node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),c=JSON.parse(fs.readFileSync(0,\"utf8\")).config,g=c.groups.find(x=>x.id===\"main\");a.ok(g);a.equal(g.changelog.path,\"docs/sdk-changelog.md\");a.deepEqual(g.changelog_include,{Selected:[\"@acme/api\"]});'",
+			"why": "The filter must be persisted at the release owner."
+		},
+		{
+			"id": "rendered-group-notes",
+			"kind": "file",
+			"path": "sdk-notes.md",
+			"match": "retryBudget",
+			"why": "The selected group note must contain the API change."
+		},
+		{
+			"id": "shared-changelog-file-filters-members",
+			"kind": "command",
+			"command": "scratch=$(mktemp -d); trap 'rm -rf \"$scratch\"' EXIT; cp -R . \"$scratch\"; cd \"$scratch\"; monochange prepare --format json >/dev/null && node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),s=fs.readFileSync(\"docs/sdk-changelog.md\",\"utf8\");a.ok(s.includes(\"retryBudget\"));a.ok(!s.includes(\"spinner\"));'",
+			"why": "Actual preparation in a scratch copy must honor the curated file filter without consuming the agent workdir's pending intent."
+		},
+		{
+			"id": "default-group-notes-cover-complete-release",
+			"kind": "command",
+			"command": "monochange notes --output default --target main | node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),s=fs.readFileSync(0,\"utf8\");a.ok(s.includes(\"retryBudget\"));a.ok(s.includes(\"spinner\"));'",
+			"why": "Provider release notes must describe the whole group release even when its changelog file is curated."
+		},
+		{
+			"id": "pending-intent-preserved",
+			"kind": "command",
+			"command": "test -f .changeset/api.md && test -f .changeset/ui.md",
+			"why": "Rendering notes must not consume release intent."
+		},
+		{
+			"id": "versions-preserved",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"); for(const id of [\"api\",\"ui\",\"tokens\"]) a.equal(JSON.parse(fs.readFileSync(\"packages/\"+id+\"/package.json\",\"utf8\")).version,\"2.3.1\");'",
+			"why": "Notes do not advance manifest versions."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

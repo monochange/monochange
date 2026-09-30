@@ -9,6 +9,9 @@
 let
   currentDir = builtins.dirOf __curPos.file;
   custom = inputs.ifiokjr-nixpkgs.packages.${pkgs.stdenv.system};
+  rustTestCertificateEnvironment = ''
+    export SSL_CERT_FILE="''${SSL_CERT_FILE:-${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt}"
+  '';
 in
 {
   packages =
@@ -206,6 +209,7 @@ in
         test:cargo
         test:docs
         test:node
+        eval:skill:contract
       '';
       description = "Run all tests across the crates and npm helper scripts.";
       binary = "bash";
@@ -213,6 +217,7 @@ in
     "test:cargo" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo bin --install
         export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
         cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
@@ -223,6 +228,7 @@ in
     "test:cargo:expensive" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo bin --install
         export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
         MONOCHANGE_EXPENSIVE_TESTS=1 cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
@@ -233,6 +239,7 @@ in
     "test:docs" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo test --doc --workspace --exclude xtask --all-features
       '';
       description = "Run documentation tests.";
@@ -242,7 +249,7 @@ in
       exec = ''
         set -euo pipefail
         pnpm build
-        pnpm vitest run --exclude 'worktrees/**' scripts/npm/tests/*.test.ts
+        pnpm vitest run --exclude 'worktrees/**' scripts/npm/tests/*.test.ts evals/monochange-skill/lib/__tests__/*.test.ts
       '';
       description = "Run npm helper, launcher, and repository utility tests with Vitest.";
       binary = "bash";
@@ -250,6 +257,7 @@ in
     "test:agent-evals" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo test --package monochange --all-features agent_eval_
       '';
       description = "Run the focused agent-style eval coverage for machine-readable workflows.";
@@ -272,7 +280,7 @@ in
         set -euo pipefail
         cargo build --package monochange
         # Agent-free contracts only: no model calls, no cost.
-        node evals/monochange-skill/run.ts --scenario cli-self-sufficiency
+        node evals/monochange-skill/run.ts --contract-only --variant package
       '';
       description = "Run the deterministic skill-eval contracts without invoking an agent.";
       binary = "bash";
@@ -280,11 +288,12 @@ in
     "coverage:all" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         mkdir -p target/coverage
-        cargo llvm-cov clean --workspace
-        cargo llvm-cov test --workspace --exclude xtask --all-features --lib --tests --no-report
-        cargo llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 70
-        cargo llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/lcov.info
+        cargo bin cargo-llvm-cov clean --workspace
+        cargo bin cargo-llvm-cov test --workspace --exclude xtask --all-features --lib --tests --no-report
+        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 70
+        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/lcov.info
       '';
       description = "Run workspace coverage, enforce a 70% line-coverage floor, and write target/coverage/lcov.info.";
       binary = "bash";
@@ -353,7 +362,7 @@ in
         set -euo pipefail
         cargo xtask schema release update
       '';
-      description = "Regenerate committed release JSON Schema assets, including versioned files.";
+      description = "Regenerate release JSON Schema aliases and fixtures; versioned files require explicit xtask --versioned.";
       binary = "bash";
     };
     "schema:release:check" = {
@@ -361,7 +370,7 @@ in
         set -euo pipefail
         cargo xtask schema release check
       '';
-      description = "Check committed release JSON Schema assets, including versioned files.";
+      description = "Check release JSON Schema aliases and fixtures; versioned files require explicit xtask --versioned.";
       binary = "bash";
     };
     "fix:clippy" = {
@@ -397,7 +406,7 @@ in
     "deny:check" = {
       exec = ''
         set -euo pipefail
-        cargo deny check
+        cargo bin cargo-deny check
       '';
       description = "Run cargo-deny checks for security advisories and license compliance.";
       binary = "bash";
@@ -626,6 +635,7 @@ in
     "snapshot:check" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo bin --install
         export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
         cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --unreferenced=reject
@@ -636,6 +646,7 @@ in
     "snapshot:update" = {
       exec = ''
         set -euo pipefail
+        ${rustTestCertificateEnvironment}
         cargo bin --install
         export PATH="$PWD/.bin/rust-nightly/cargo-nextest/0.9.132/bin:$PATH"
         cargo bin cargo-insta test --workspace --exclude xtask --all-features --test-runner nextest --disable-nextest-doctest --force-update-snapshots --unreferenced=delete

@@ -5,13 +5,13 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange populate
 
-Add any missing built-in CLI commands to monochange.toml so you can customize them
+Check monochange.toml for missing default CLI workflow aliases. This version provides no defaults, so the configuration stays unchanged. Use `monochange command` to define custom workflows.
 
 [1m[97mUsage:[0m [93mmonochange populate[0m [95m[OPTIONS][0m
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
-          Print help
+          Print help (see a summary with '-h')
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m

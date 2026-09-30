@@ -19,8 +19,8 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
   [93mdiagnose[0m       Inspect changeset provenance and review metadata
 
 [1m[96mWorkspace Commands:[0m
-  [93minit[0m           Generate monochange.toml with detected packages, groups, and default CLI commands
-  [93mpopulate[0m       Add any missing built-in CLI commands to monochange.toml so you can customize them
+  [93minit[0m           Generate monochange.toml with detected packages and groups
+  [93mpopulate[0m       Check for default CLI workflow aliases (none are provided in this version)
   [93mdiscover[0m       Discover packages across supported ecosystems
   [93mconfig[0m         Render resolved monochange configuration and workspace metadata
   [93mcheck[0m          Validate configuration, changesets, and run manifest lint rules

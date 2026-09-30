@@ -9,70 +9,33 @@
 // Results land in `results/` as JSON plus a Markdown scorecard.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import process from "node:process";
 
-import { runAgent, runWorkdir } from "./lib/agent.ts";
+import { agentFailure, readSavedAgent, runAgent, runIdentity, runWorkdir } from "./lib/agent.ts";
 import { allPassed, gradeAll } from "./lib/grade.ts";
+import { parseArgs, selectScenarios } from "./lib/options.ts";
+import { captureProvenance, readProvenance, skillDigest } from "./lib/provenance.ts";
+import { initializeRepository } from "./lib/setup.ts";
 import {
 	builtinVariants,
 	copyFixture,
+	copyForGrading,
 	ensureParent,
 	exec,
 	HARNESS_ROOT,
 	resolveMonochangeCli,
+	resolveSkillVariant,
+	quoteShellArgument,
+	resetDir,
 	RESULT_DIR,
 	SCENARIO_DIR,
 	SKILL_VARIANT_DIR,
 	WORK_DIR,
 } from "./lib/paths.ts";
-import type { Report, RunResult, Scenario } from "./lib/types.ts";
-
-interface Options {
-	scenarios: string[];
-	variants: string[];
-	repeats: number;
-	model: string;
-	timeoutSeconds: number;
-	list: boolean;
-	instructionVariant?: string;
-	keep: boolean;
-	/// Re-grade saved workdirs instead of driving the agent again.
-	regrade: boolean;
-	/// How the skill reaches the agent under test.
-	skillSource: "installed" | "cli";
-}
+import type { Provenance, Report, RunResult, Scenario } from "./lib/types.ts";
 
 const DEFAULT_TOOLS = ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "TodoWrite"];
-
-function parseArgs(argv: string[]): Options {
-	const value = (flag: string): string | undefined => {
-		const index = argv.indexOf(flag);
-		return index === -1 ? undefined : argv[index + 1];
-	};
-	const many = (flag: string): string[] => {
-		const collected: string[] = [];
-		for (let index = 0; index < argv.length; index += 1) {
-			if (argv[index] === flag && argv[index + 1]) {
-				collected.push(argv[index + 1] as string);
-			}
-		}
-		return collected;
-	};
-
-	return {
-		scenarios: many("--scenario"),
-		variants: many("--variant"),
-		repeats: Number(value("--repeats") ?? "1"),
-		model: value("--model") ?? process.env["MONOCHANGE_EVAL_MODEL"] ?? "sonnet",
-		timeoutSeconds: Number(value("--timeout") ?? "900"),
-		list: argv.includes("--list"),
-		instructionVariant: value("--instruction-variant"),
-		keep: argv.includes("--keep"),
-		regrade: argv.includes("--regrade"),
-		skillSource: value("--skill-source") === "cli" ? "cli" : "installed",
-	};
-}
 
 function loadScenarios(): Scenario[] {
 	if (!existsSync(SCENARIO_DIR)) {
@@ -100,68 +63,15 @@ function loadVariants(): string[] {
 }
 
 /// Path to a run workdir, without clearing it when re-grading.
-function runWorkdirFor(
-	regrade: boolean,
-	scenarioId: string,
-	variant: string,
-	repeat: number,
-): string {
-	const path = join(WORK_DIR, "runs", `${scenarioId}__${variant}__${repeat}`);
+function runWorkdirFor(regrade: boolean, identity: string): string {
+	const path = join(WORK_DIR, "runs", identity);
 	if (regrade) {
 		if (!existsSync(path)) {
 			throw new Error(`No saved workdir to re-grade: ${path}`);
 		}
 		return path;
 	}
-	return runWorkdir(scenarioId, variant, repeat);
-}
-
-/// Rebuild the assistant-authored transcript from a saved run, so a re-grade
-/// compares against the same text the original grade saw.
-function readTranscript(scenarioId: string, variant: string, repeat: number): string {
-	const path = join(
-		RESULT_DIR,
-		"transcripts",
-		`${scenarioId}__${variant}__${repeat}`,
-		"transcript.jsonl",
-	);
-	if (!existsSync(path)) {
-		return "";
-	}
-	const parts: string[] = [];
-	for (const line of readFileSync(path, "utf8").split("\n")) {
-		if (line.trim() === "") {
-			continue;
-		}
-		let parsed: Record<string, unknown>;
-		try {
-			parsed = JSON.parse(line) as Record<string, unknown>;
-		} catch {
-			continue;
-		}
-		if (parsed["type"] !== "assistant") {
-			continue;
-		}
-		const content = (parsed["message"] as Record<string, unknown> | undefined)?.["content"];
-		if (!Array.isArray(content)) {
-			continue;
-		}
-		for (const block of content) {
-			const entry = block as Record<string, unknown>;
-			if (entry["type"] === "text" && typeof entry["text"] === "string") {
-				parts.push(entry["text"]);
-			}
-			if (entry["type"] === "tool_use") {
-				const name = typeof entry["name"] === "string" ? entry["name"] : "";
-				parts.push(
-					name
-						? `${name} ${JSON.stringify(entry["input"] ?? "")}`
-						: JSON.stringify(entry["input"] ?? ""),
-				);
-			}
-		}
-	}
-	return parts.join("\n");
+	return runWorkdir(identity);
 }
 
 async function main(): Promise<void> {
@@ -181,10 +91,7 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	const selectedScenarios =
-		options.scenarios.length > 0
-			? scenarios.filter((scenario) => options.scenarios.includes(scenario.id))
-			: scenarios;
+	const selectedScenarios = selectScenarios(scenarios, options);
 	const selectedVariants =
 		options.variants.length > 0 ? options.variants : variants.length > 0 ? variants : ["package"];
 
@@ -192,12 +99,27 @@ async function main(): Promise<void> {
 		throw new Error("No scenarios selected.");
 	}
 
+	if (
+		options.instructionVariant &&
+		!selectedScenarios.some(
+			(scenario) => scenario.variants?.[options.instructionVariant] !== undefined,
+		)
+	) {
+		throw new Error(
+			`No selected scenario defines instruction variant: ${options.instructionVariant}`,
+		);
+	}
+
 	const monochangeCli = resolveMonochangeCli();
+	const provenance = captureProvenance(monochangeCli);
 	console.log(`monochange CLI: ${monochangeCli}`);
-	const version = exec(`${JSON.stringify(monochangeCli)} --version`, {
+	const version = exec(`${quoteShellArgument(monochangeCli)} --version`, {
 		cwd: HARNESS_ROOT,
 		timeoutSeconds: 60,
 	});
+	if (version.exit !== 0) {
+		throw new Error(`Cannot run evaluated monochange CLI: ${version.stderr}`);
+	}
 	console.log(`monochange version: ${version.stdout.trim()}`);
 
 	mkdirSync(RESULT_DIR, { recursive: true });
@@ -209,11 +131,36 @@ async function main(): Promise<void> {
 			for (let repeat = 1; repeat <= options.repeats; repeat += 1) {
 				const source = scenario.skillSource ?? options.skillSource;
 				const key = `${variant}${source === "cli" ? "-cli" : ""}`;
+				const identity = runIdentity(
+					scenario.id,
+					variant,
+					source,
+					repeat,
+					options.instructionVariant,
+				);
 				const label = `${scenario.id} / ${key} / run ${repeat}`;
 				console.log(`\n=== ${label} ===`);
 
-				const workdir = runWorkdirFor(options.regrade, scenario.id, key, repeat);
 				try {
+					const workdir = runWorkdirFor(options.regrade, identity);
+					const transcriptDir = join(RESULT_DIR, "transcripts", identity);
+					const provenancePath = join(transcriptDir, "provenance.json");
+					const runProvenance: Provenance = options.regrade
+						? readProvenance(provenancePath, source === "installed" && scenario.agent !== false)
+						: {
+								...provenance,
+								skillSha256:
+									source === "installed" && scenario.agent !== false
+										? skillDigest(resolveSkillVariant(variant))
+										: undefined,
+							};
+
+					if (!options.regrade) {
+						// A failed fresh run must not leave an older successful
+						// transcript available under the new run's provenance.
+						resetDir(transcriptDir);
+						writeFileSync(provenancePath, `${JSON.stringify(runProvenance, null, "\t")}\n`);
+					}
 					if (!options.regrade) {
 						copyFixture(scenario.fixture, workdir);
 
@@ -222,10 +169,12 @@ async function main(): Promise<void> {
 							ensureParent(target);
 							writeFileSync(target, contents);
 						}
+						initializeRepository(workdir, scenario.setupCommands ?? []);
 						for (const command of scenario.setupCommands ?? []) {
 							const result = exec(command, {
 								cwd: workdir,
 								timeoutSeconds: 300,
+								env: { PATH: `${dirname(monochangeCli)}:${process.env["PATH"] ?? ""}` },
 							});
 							if (result.exit !== 0) {
 								throw new Error(
@@ -237,45 +186,58 @@ async function main(): Promise<void> {
 
 					const agentStarted = Date.now();
 					const agent =
-						options.regrade || scenario.agent === false
+						scenario.agent === false
 							? {
-									transcript: options.regrade ? readTranscript(scenario.id, key, repeat) : "",
+									transcript: "",
+									commands: "",
+									commandInputs: [],
 									usage: undefined,
+									durationMs: 0,
+									runtimeVersion: undefined,
+									effectiveModel: undefined,
+									requestedModel: undefined,
 									timedOut: false,
 									exit: 0,
+									error: undefined,
 								}
-							: // Runs are sequential on purpose: parallel agents would
-								// contend for CPU and make the recorded duration, token,
-								// and cost figures per run meaningless.
-								// oxlint-disable-next-line no-await-in-loop
-								await runAgent({
-									workdir,
-									skillVariant: variant,
-									skillSource: source,
-									prompt: options.instructionVariant
-										? (scenario.variants?.[options.instructionVariant] ?? scenario.prompt)
-										: scenario.prompt,
-									model: options.model,
-									timeoutSeconds: options.timeoutSeconds,
-									allowedTools: DEFAULT_TOOLS,
-									monochangeCli,
-									transcriptDir: join(
-										RESULT_DIR,
-										"transcripts",
-										`${scenario.id}__${key}__${repeat}`,
-									),
-								});
-					const agentDurationMs = Date.now() - agentStarted;
+							: options.regrade
+								? readSavedAgent(transcriptDir)
+								: // Runs are sequential to keep resource contention out
+									// of the recorded wall-clock duration of each invocation.
+									// oxlint-disable-next-line no-await-in-loop
+									await runAgent({
+										agentBin: options.agentBin,
+										workdir,
+										skillVariant: variant,
+										skillSource: source,
+										prompt: options.instructionVariant
+											? (scenario.variants?.[options.instructionVariant] ?? scenario.prompt)
+											: scenario.prompt,
+										model: options.model,
+										timeoutSeconds: options.timeoutSeconds,
+										allowedTools: DEFAULT_TOOLS,
+										monochangeCli,
+										transcriptDir,
+									});
+					const agentDurationMs =
+						agent.durationMs ?? (options.regrade ? 0 : Date.now() - agentStarted);
 
 					const gradeStarted = Date.now();
+					// Some checks prepare releases or install skills. Preserve the
+					// agent's artifacts so a re-grade starts from the same state.
+					const gradeWorkdir = join(WORK_DIR, "grades", identity);
+					copyForGrading(workdir, gradeWorkdir);
 					const checks = gradeAll(scenario.checks, {
-						workdir,
+						workdir: gradeWorkdir,
 						transcript: agent.transcript,
+						commands: agent.commands,
+						commandInputs: agent.commandInputs,
 						monochangeCli,
 					});
 					const gradeDurationMs = Date.now() - gradeStarted;
 
-					const passed = allPassed(checks);
+					const error = agentFailure(agent, options.timeoutSeconds);
+					const passed = !error && allPassed(checks);
 					for (const result of checks) {
 						const mark = result.passed ? "PASS" : "FAIL";
 						console.log(`  [${mark}] ${result.check.id}: ${result.detail.split("\n")[0]}`);
@@ -296,27 +258,24 @@ async function main(): Promise<void> {
 
 					runs.push({
 						scenario: scenario.id,
+						provenance: runProvenance,
+						runtimeVersion: agent.runtimeVersion,
+						effectiveModel: agent.effectiveModel,
 						title: scenario.title,
 						variant,
 						skillSource: source,
-						model: options.model,
+						model: agent.requestedModel,
 						instructionVariant: options.instructionVariant,
 						repeat,
 						passed,
 						checks,
 						agentDurationMs,
 						gradeDurationMs,
-						transcriptPath: join(
-							"transcripts",
-							`${scenario.id}__${key}__${repeat}`,
-							"transcript.jsonl",
-						),
+						transcriptPath:
+							scenario.agent === false ? "" : join("transcripts", identity, "transcript.jsonl"),
 						usage: agent.usage,
-						error: agent.timedOut
-							? `agent timed out after ${options.timeoutSeconds}s`
-							: agent.exit !== 0
-								? `agent exited ${agent.exit}`
-								: undefined,
+						error,
+						agent: scenario.agent !== false,
 					});
 				} catch (error) {
 					console.error(`  harness error: ${String(error)}`);
@@ -325,10 +284,11 @@ async function main(): Promise<void> {
 						title: scenario.title,
 						variant,
 						skillSource: source,
-						model: options.model,
+						model: options.regrade || scenario.agent === false ? undefined : options.model,
 						instructionVariant: options.instructionVariant,
 						repeat,
 						passed: false,
+						agent: scenario.agent !== false,
 						checks: [],
 						agentDurationMs: 0,
 						gradeDurationMs: 0,
@@ -340,10 +300,17 @@ async function main(): Promise<void> {
 		}
 	}
 
+	const agentRuns = runs.filter((run) => run.agent);
+	const requestedModel = agentRuns[0]?.model;
 	const report: Report = {
+		mode: options.regrade ? "regrade" : "evaluation",
+		provenance,
 		startedAt,
 		finishedAt: new Date().toISOString(),
-		model: options.model,
+		model:
+			requestedModel && agentRuns.every((run) => run.model === requestedModel)
+				? requestedModel
+				: undefined,
 		repeats: options.repeats,
 		runs,
 	};
@@ -358,17 +325,29 @@ async function main(): Promise<void> {
 
 	console.log(`\n${markdown}`);
 	console.log(`\nReport: ${jsonPath}`);
+	process.exitCode = runs.every((run) => run.passed) ? 0 : 1;
+}
+
+function cellKey(run: RunResult): string {
+	return `${run.variant} (${run.skillSource}${run.instructionVariant ? `, ${run.instructionVariant}` : ""})`;
 }
 
 function renderMarkdown(report: Report): string {
 	const lines: string[] = ["# monochange skill evaluation", ""];
-	lines.push(`- Model: \`${report.model}\``);
+	lines.push(
+		`- Requested agent model: ${report.model ? `\`${report.model}\`` : "unavailable or mixed (inspect per-run execution metadata)"}`,
+	);
+	lines.push(`- Mode: ${report.mode ?? "evaluation"}`);
 	lines.push(`- Started: ${report.startedAt}`);
 	lines.push(`- Finished: ${report.finishedAt}`);
 	lines.push(`- Repeats per cell: ${report.repeats}`);
+	if (report.provenance) {
+		lines.push(`- Grading checkout: \`${report.provenance.checkoutCommit}\``);
+		lines.push(`- Grading CLI SHA-256: \`${report.provenance.cliSha256}\``);
+	}
 	lines.push("");
 
-	const variants = [...new Set(report.runs.map((run) => run.variant))];
+	const variants = [...new Set(report.runs.map(cellKey))];
 	const scenarios = [...new Set(report.runs.map((run) => run.scenario))];
 
 	lines.push("## Pass rate by scenario and skill variant");
@@ -378,7 +357,7 @@ function renderMarkdown(report: Report): string {
 	for (const scenario of scenarios) {
 		const cells = variants.map((variant) => {
 			const cellRuns = report.runs.filter(
-				(run) => run.scenario === scenario && run.variant === variant,
+				(run) => run.scenario === scenario && cellKey(run) === variant,
 			);
 			if (cellRuns.length === 0) {
 				return "-";
@@ -389,6 +368,17 @@ function renderMarkdown(report: Report): string {
 		lines.push(`| ${scenario} | ${cells.join(" | ")} |`);
 	}
 	lines.push("");
+	lines.push("Agent-free contracts validate the CLI; they do not compare skill effectiveness.", "");
+
+	const errors = report.runs.filter((run) => run.error);
+
+	if (errors.length > 0) {
+		lines.push("## Harness and agent errors", "");
+		for (const run of errors) {
+			lines.push(`- ${run.scenario} / ${cellKey(run)}: ${run.error?.replaceAll("\n", " ")}`);
+		}
+		lines.push("");
+	}
 
 	lines.push("## Failing checks");
 	lines.push("");
@@ -416,7 +406,9 @@ function renderMarkdown(report: Report): string {
 	lines.push("");
 	lines.push(`- Runs: ${report.runs.length}`);
 	lines.push(`- Input+output tokens: ${tokenTotal}`);
-	lines.push(`- Reported cost: $${costTotal.toFixed(2)}`);
+	lines.push(
+		`- Recorded agent cost: $${costTotal.toFixed(2)}${report.mode === "regrade" ? " (original invocations; no new agent calls)" : ""}`,
+	);
 	lines.push("");
 
 	return lines.join("\n");

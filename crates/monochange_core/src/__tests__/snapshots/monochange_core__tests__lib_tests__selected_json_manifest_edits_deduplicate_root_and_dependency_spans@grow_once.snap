@@ -1,0 +1,12 @@
+---
+source: crates/monochange_core/src/__tests__/lib_tests.rs
+expression: updated
+---
+{
+  "version": "10.0.0",
+  "dependencies": {
+    "api": "~10.0.0",
+    "external": "^9.0.0"
+  },
+  "metadata": { "version": "4.0.0" }
+}

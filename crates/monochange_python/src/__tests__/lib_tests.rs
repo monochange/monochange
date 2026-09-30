@@ -208,6 +208,37 @@ fn discover_python_packages_finds_poetry_project() {
 }
 
 #[test]
+fn discover_python_packages_preserves_native_names_and_supplies_canonical_dependency_aliases() {
+	let root = fixture_path("python/poetry-producer-name-normalization/workspace");
+	let discovery = discover_python_packages(&root)
+		.unwrap_or_else(|error| panic!("discover normalized producer: {error}"));
+	let producer = discovery
+		.packages
+		.iter()
+		.find(|package| package.name == "PY_Core")
+		.unwrap_or_else(|| panic!("missing native producer name"));
+
+	assert_eq!(
+		producer
+			.metadata
+			.get(monochange_core::PACKAGE_DEPENDENCY_NAME_METADATA_KEY)
+			.map(String::as_str),
+		Some("py-core")
+	);
+	assert!(
+		discovery
+			.packages
+			.iter()
+			.filter(|package| package.name != "PY_Core")
+			.all(|package| {
+				!package
+					.metadata
+					.contains_key(monochange_core::PACKAGE_DEPENDENCY_NAME_METADATA_KEY)
+			})
+	);
+}
+
+#[test]
 fn discover_python_packages_handles_dynamic_version() {
 	let root = fixture_path("python/dynamic-version");
 	let discovery =
@@ -316,6 +347,53 @@ fn default_lockfile_commands_return_empty_when_no_lockfile_exists() {
 
 // -- update_versioned_file_text --
 
+#[rstest::rstest]
+#[case::poetry("poetry-version-update/workspace", Some("3.1.1"), None, "3.1.1")]
+#[case::unchanged("poetry-version-update/workspace", None, None, "3.1.0")]
+#[case::pep621("poetry-project-precedence", Some("1.0.1"), Some("1.0.1"), "3.1.0")]
+#[case::dynamic("poetry-dynamic-project", Some("1.0.1"), None, "3.1.0")]
+fn update_versioned_file_text_respects_poetry_and_project_version_ownership(
+	#[case] scenario: &str,
+	#[case] owner_version: Option<&str>,
+	#[case] project_version: Option<&str>,
+	#[case] poetry_version: &str,
+) {
+	let input = fs::read_to_string(fixture_path(&format!("python/{scenario}/pyproject.toml")))
+		.unwrap_or_else(|error| panic!("read fixture: {error}"));
+	let result = update_versioned_file_text(
+		&input,
+		PythonVersionedFileKind::Manifest,
+		owner_version,
+		&BTreeMap::new(),
+	)
+	.unwrap_or_else(|error| panic!("update: {error}"));
+	let parsed: toml::Value =
+		toml::from_str(&result).unwrap_or_else(|error| panic!("parse updated manifest: {error}"));
+
+	assert_eq!(
+		parsed
+			.get("project")
+			.and_then(|project| project.get("version"))
+			.and_then(toml::Value::as_str),
+		project_version
+	);
+	assert_eq!(
+		parsed["tool"]["poetry"]["version"].as_str(),
+		Some(poetry_version)
+	);
+	let mut settings = insta::Settings::clone_current();
+	settings.set_snapshot_suffix(
+		scenario.replace('/', "_")
+			+ if owner_version.is_some() {
+				"_updated"
+			} else {
+				"_unchanged"
+			},
+	);
+	let _guard = settings.bind_to_scope();
+	insta::assert_snapshot!(result);
+}
+
 #[test]
 fn update_versioned_file_text_updates_project_version() {
 	let input = r#"[project]
@@ -355,6 +433,76 @@ dependencies = [
 		result.contains("click>=8.0"),
 		"unrelated deps should be preserved"
 	);
+}
+
+#[test]
+fn update_versioned_file_text_updates_poetry_dependency_constraints_and_preserves_metadata() {
+	let input = fs::read_to_string(fixture_path(
+		"python/poetry-dependency-update/pyproject.toml",
+	))
+	.unwrap_or_else(|error| panic!("read fixture: {error}"));
+	let deps = [
+		"py-core",
+		"inline-core",
+		"table-core",
+		"path-core",
+		"git-core",
+		"invalid-core",
+	]
+	.into_iter()
+	.map(|name| (name.to_string(), ">=2.0.0".to_string()))
+	.collect();
+	let result = update_versioned_file_text(&input, PythonVersionedFileKind::Manifest, None, &deps)
+		.unwrap_or_else(|error| panic!("update Poetry dependencies: {error}"));
+	let parsed: toml::Value =
+		toml::from_str(&result).unwrap_or_else(|error| panic!("parse updated manifest: {error}"));
+
+	assert_eq!(
+		parsed["tool"]["poetry"]["dependencies"]["PY_Core"].as_str(),
+		Some(">=2.0.0")
+	);
+	assert_eq!(
+		parsed["tool"]["poetry"]["dependencies"]["inline-core"]["version"].as_str(),
+		Some(">=2.0.0")
+	);
+	assert_eq!(
+		parsed["tool"]["poetry"]["dependencies"]["table-core"]["version"].as_str(),
+		Some(">=2.0.0")
+	);
+	assert_eq!(
+		parsed["tool"]["poetry"]["group"]["dev"]["dependencies"]["py-core"]["version"].as_str(),
+		Some(">=2.0.0")
+	);
+	insta::assert_snapshot!(result);
+}
+
+#[rstest::rstest]
+#[case::poetry("poetry", ">=1.1.0")]
+#[case::pep621("pep621", "py_core>=1.1.0")]
+fn update_versioned_file_text_normalizes_native_producer_names(
+	#[case] scenario: &str,
+	#[case] expected_constraint: &str,
+) {
+	let input = fs::read_to_string(fixture_path(&format!(
+		"python/poetry-producer-name-normalization/workspace/{scenario}/pyproject.toml"
+	)))
+	.unwrap_or_else(|error| panic!("read fixture: {error}"));
+	let deps = BTreeMap::from([("PY_Core".to_string(), ">=1.1.0".to_string())]);
+	let result = update_versioned_file_text(&input, PythonVersionedFileKind::Manifest, None, &deps)
+		.unwrap_or_else(|error| panic!("update normalized producer: {error}"));
+	let parsed: toml::Value =
+		toml::from_str(&result).unwrap_or_else(|error| panic!("parse updated manifest: {error}"));
+	let constraint = if let Some(project) = parsed.get("project") {
+		project["dependencies"][0].as_str()
+	} else {
+		parsed["tool"]["poetry"]["dependencies"]["py-core"].as_str()
+	};
+
+	assert_eq!(constraint, Some(expected_constraint));
+	let mut settings = insta::Settings::clone_current();
+	settings.set_snapshot_suffix(scenario);
+	let _guard = settings.bind_to_scope();
+	insta::assert_snapshot!(result);
 }
 
 #[test]
@@ -567,7 +715,7 @@ fn default_lockfile_commands_infers_poetry_lock_for_poetry_project() {
 	);
 	let commands = crate::default_lockfile_commands(&package);
 	assert_eq!(commands.len(), 1);
-	assert_eq!(commands.first().unwrap().command, "poetry lock --no-update");
+	assert_eq!(commands.first().unwrap().command, "poetry lock");
 }
 
 // -- extract_version_constraint --
@@ -930,7 +1078,7 @@ fn default_lockfile_commands_handles_uv_poetry_and_unknown_lockfiles() {
 		.map(|command| command.command.as_str())
 		.collect::<Vec<_>>();
 
-	assert_eq!(command_names, vec!["uv lock", "poetry lock --no-update"]);
+	assert_eq!(command_names, vec!["uv lock", "poetry lock"]);
 	assert_eq!(crate::lockfile_command("requirements.lock"), None);
 	let root_name = root.file_name().unwrap_or_else(|| panic!("temp root name"));
 	assert!(

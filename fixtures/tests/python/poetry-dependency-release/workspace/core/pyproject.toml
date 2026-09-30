@@ -1,0 +1,3 @@
+[tool.poetry]
+name = "py-core"
+version = "1.0.0"

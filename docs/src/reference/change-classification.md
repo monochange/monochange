@@ -6,13 +6,19 @@
 
 The classifier resolves these comparisons:
 
-| Kind               | Base                                                             | Head                                                | Purpose                                                     |
-| ------------------ | ---------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------- |
-| `pullRequest`      | The remote default branch, or `--base`                           | The synthetic merge result of the base and `--head` | Changes introduced after the pull request merges            |
-| `sourceDelta`      | The merge base of the default branch and the source candidate    | The source candidate                                | Changes authored on the pull request branch                 |
-| `workingTree`      | `HEAD`                                                           | The staged, unstaged, deleted, and untracked files  | A diagnostic view of local changes                          |
-| `release`          | The package release owner's latest reachable tag, or `--release` | The synthetic merge result                          | Accumulated change since the latest release                 |
-| `releaseToDefault` | The same release tag                                             | The default branch                                  | Change that has already accumulated before the pull request |
+| Kind               | Base                                                                         | Head                                                | Purpose                                                     |
+| ------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------- |
+| `pullRequest`      | The remote default branch, or `--base`                                       | The synthetic merge result of the base and `--head` | Changes introduced after the pull request merges            |
+| `sourceDelta`      | The merge base of the default branch and the source candidate                | The source candidate                                | Changes authored on the pull request branch                 |
+| `workingTree`      | `HEAD`                                                                       | The staged, unstaged, deleted, and untracked files  | A diagnostic view of local changes                          |
+| `release`          | The highest SemVer tag matching the owner's `version_format`, or `--release` | The synthetic merge result                          | Accumulated change since the latest release                 |
+| `releaseToDefault` | The same release tag                                                         | The default branch                                  | Change that has already accumulated before the pull request |
+
+<!-- {=tagBaselinePolicy} -->
+
+Tag baselines use the highest semantic version among repository tags that match the release owner's `version_format`. Selection does not require the tag's commit to be reachable from the current branch.
+
+<!-- {/tagBaselinePolicy} -->
 
 `pullRequest` and `release` are exact two-endpoint comparisons. `sourceDelta` uses the merge base only to identify work authored on the branch. When `--head` is `HEAD`, the source candidate materializes committed and local changes into one temporary Git commit. The bump comes from the net candidate comparison, while `workingTree` remains a diagnostic view. A local edit that reverses a committed breaking change therefore removes that break from the proposal instead of adding a second, contradictory signal.
 

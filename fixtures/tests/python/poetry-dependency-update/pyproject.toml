@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "poetry-cli"
+version = "1.0.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+PY_Core = "^1.0.0" # Preserve constraint comments.
+inline-core = { version = "^1.0.0", extras = ["http"], markers = "python_version >= '3.10'", optional = true }
+path-core = { path = "../core", develop = true }
+git-core = { git = "https://example.com/core.git", rev = "v1.0.0" }
+invalid-core = { version = 1 }
+unrelated = "^4.2"
+
+[tool.poetry.dependencies.table-core]
+version = "^1.0.0" # Preserve full table metadata.
+extras = ["cli"]
+source = "internal"
+
+[tool.poetry.group]
+metadata = "not-a-table"
+
+[tool.poetry.group.dev.dependencies]
+py-core = { version = "^1.0.0", extras = ["test"] }
+
+[tool.poetry.group.empty]
+optional = true

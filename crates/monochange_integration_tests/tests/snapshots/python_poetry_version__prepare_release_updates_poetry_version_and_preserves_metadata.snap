@@ -1,0 +1,25 @@
+---
+source: crates/monochange_integration_tests/tests/python_poetry_version.rs
+expression: "planned[\"plan\"]"
+---
+{
+  "compatibility_evidence": [],
+  "decisions": [
+    {
+      "bump": "patch",
+      "package": "python:pyproject.toml",
+      "planned_version": "3.1.1",
+      "reasons": [
+        "Fix the package's response handling."
+      ],
+      "trigger": "direct-change",
+      "upstream_sources": [
+        "python:pyproject.toml"
+      ]
+    }
+  ],
+  "groups": [],
+  "unresolved_items": [],
+  "warnings": [],
+  "workspace_root": "."
+}

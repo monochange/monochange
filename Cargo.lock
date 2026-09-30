@@ -2242,6 +2242,7 @@ dependencies = [
  "ignore",
  "insta",
  "miette",
+ "minijinja",
  "monochange_core",
  "monochange_test_helpers",
  "proptest",

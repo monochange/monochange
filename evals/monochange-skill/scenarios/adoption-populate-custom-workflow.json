@@ -1,0 +1,45 @@
+{
+	"id": "adoption-populate-custom-workflow",
+	"title": "Populate an existing configuration without inventing or replacing workflows",
+	"fixture": "adoption-existing-config",
+	"prompt": "Bring this existing monochange configuration up to the current CLI workflow definitions by running monochange populate. Keep our customer-owned verify-local command and parent_bump policy. Verify the result and tell us whether this version adds anything; do not add speculative release workflows.",
+	"expectation": "populate is currently an idempotent no-op because the built-in default command list is empty. The existing custom workflow must still execute, custom policy and comment remain intact, and a second populate must not change bytes.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "uses-populate",
+			"kind": "transcript",
+			"pattern": "^Bash [^\\n]*\\bmonochange\\b[^\\n]*\\bpopulate\\b",
+			"why": "The task evaluates agents using the real updater rather than manually inventing generated workflows."
+		},
+		{
+			"id": "customer-workflow-runs",
+			"kind": "command",
+			"command": "monochange run verify-local",
+			"why": "Preserving a workflow means it remains executable, not just present in TOML."
+		},
+		{
+			"id": "policy-and-comment-preserved",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const s=fs.readFileSync(\"monochange.toml\",\"utf8\"); assert.match(s,/# Customer workflow: preserve this policy/); assert.match(s,/parent_bump = \"none\"/); assert.equal((s.match(/^\\[cli\\./gm)||[]).length,1);'",
+			"why": "populate must preserve repository policy and must not invent default workflows that the installed CLI does not ship."
+		},
+		{
+			"id": "second-populate-is-byte-idempotent",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const before=fs.readFileSync(\"monochange.toml\",\"utf8\"); cli([\"populate\"]); assert.equal(fs.readFileSync(\"monochange.toml\",\"utf8\"),before);'",
+			"why": "Repeated configuration updates should not churn the file."
+		}
+	]
+}

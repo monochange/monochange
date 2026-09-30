@@ -1,0 +1,45 @@
+{
+	"id": "adoption-npm-private-root",
+	"title": "Separate public npm release ownership from private workspace tooling",
+	"fixture": "adoption-npm-private-root",
+	"prompt": "Use monochange init to configure this npm workspace. Only @acme/public is shipped; the root and @acme/internal are private development tooling and must never share its release identity. Record a patch for a corrected public export. Record the changeset and verify the preview, but leave changesets pending and manifests at their current versions. Do not publish, tag, commit, or contact a hosted provider.",
+	"expectation": "A starter config may discover private manifests, but only the public package is configured as a release owner or included in the release plan. Private package versions remain unchanged.",
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "uses-cli-initializer",
+			"kind": "transcript",
+			"pattern": "^Bash [^\\n]*\\bmonochange\\b[^\\n]*\\binit\\b",
+			"why": "This adoption task explicitly asks to exercise the actual initializer before refining its starter configuration."
+		},
+		{
+			"id": "public-target-without-private-group",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.equal(c.packages.find(p=>p.id===\"@acme/public\")?.package_type,\"npm\"); for(const g of c.groups) {if(g.packages.includes(\"@acme/public\")) assert.deepEqual(g.packages,[\"@acme/public\"]);}'",
+			"why": "Private development packages must not be collapsed into the public release group."
+		},
+		{
+			"id": "only-public-released",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"preview\",\"--format\",\"json\"])); assert.deepEqual(d.released_packages,[\"@acme/public\"]); assert.deepEqual(d.release_targets.map(t=>t.version),[\"1.2.4\"]);'",
+			"why": "A patch for the public package must not version or release private development tooling."
+		},
+		{
+			"id": "private-versions-preserved",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; assert.equal(JSON.parse(fs.readFileSync(\"package.json\",\"utf8\")).version,\"9.0.0\"); assert.equal(JSON.parse(fs.readFileSync(\"packages/internal/package.json\",\"utf8\")).version,\"0.1.0\");'",
+			"why": "Private versions are outside the authorized adoption changes."
+		}
+	]
+}

@@ -1683,6 +1683,16 @@ fn load_workspace_configuration_inherits_ecosystem_versioned_files_for_cargo_den
 }
 
 #[test]
+fn load_workspace_configuration_rejects_non_semver_deno_jsonc_value_templates() {
+	let root = fixture_path("config/deno-jsonc-invalid-template");
+	let error = load_workspace_configuration(&root)
+		.err()
+		.unwrap_or_else(|| panic!("expected an invalid manifest template diagnostic"));
+
+	insta::assert_snapshot!(error.to_string());
+}
+
+#[test]
 fn load_workspace_configuration_inherits_python_ecosystem_defaults() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
@@ -5858,6 +5868,22 @@ fn validate_ecosystem_version_readable_accepts_adapter_success() {
 }
 
 #[test]
+fn custom_npm_json_versioned_files_reach_the_adapter() {
+	let ecosystems = registry_with(Ecosystem::Npm, Ok(()));
+
+	for scenario in ["custom-versioned-json", "custom-versioned-json-glob"] {
+		let root = fixture_path(&format!("npm/{scenario}/workspace"));
+		let configuration = load_workspace_configuration(&root)
+			.unwrap_or_else(|error| panic!("custom npm JSON configuration: {error}"));
+		let warnings =
+			crate::validate_versioned_files_content_with_config(&root, &configuration, &ecosystems)
+				.unwrap_or_else(|error| panic!("custom npm JSON content validation: {error}"));
+
+		assert!(warnings.is_empty(), "{scenario}: {warnings:?}");
+	}
+}
+
+#[test]
 fn validate_ecosystem_version_readable_reports_unsupported_paths() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let manifest = tempdir.path().join("package.txt");
@@ -8345,6 +8371,39 @@ fn literal_auto_discover_walk_root_stops_before_first_glob_component() {
 }
 
 #[test]
+fn auto_discover_rejects_invalid_patterns_in_every_ecosystem() {
+	let root = fixture_path("config/auto-discover-invalid-include");
+	let mut errors = Vec::new();
+
+	for ecosystem in [
+		EcosystemType::Cargo,
+		EcosystemType::Npm,
+		EcosystemType::Deno,
+		EcosystemType::Dart,
+		EcosystemType::Python,
+		EcosystemType::Go,
+	] {
+		for (include, exclude) in [
+			(vec!["crates/[", "crates/*"], Vec::new()),
+			(vec!["crates/*"], vec!["crates/["]),
+			(Vec::new(), vec!["crates/["]),
+		] {
+			let settings = AutoDiscoverSettings {
+				include: include.into_iter().map(String::from).collect(),
+				exclude: exclude.into_iter().map(String::from).collect(),
+				id: monochange_core::default_auto_discover_id(),
+				defaults: AutoDiscoverPackageDefaults::default(),
+			};
+			let error = crate::discover_packages_from_ecosystem(&root, ecosystem, &settings)
+				.expect_err("invalid glob must fail rather than silently change ownership");
+			errors.push(error.to_string());
+		}
+	}
+
+	insta::assert_json_snapshot!(errors);
+}
+
+#[test]
 fn discover_packages_from_ecosystem_handles_root_glob_and_missing_literal_root() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
@@ -8861,10 +8920,12 @@ fn auto_discover_manifest_name_helpers_cover_comments_and_missing_values() {
 
 #[test]
 fn discover_packages_from_ecosystem_handles_empty_and_duplicate_manifest_cases() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let tempdir = monochange_test_helpers::setup_fixture!(
+		"config/auto-discover-empty-and-duplicate-manifests/workspace"
+	);
 	let root = tempdir.path();
 	let empty_settings = AutoDiscoverSettings {
-		include: vec!["[".to_string()],
+		include: vec![],
 		exclude: vec![],
 		id: monochange_core::default_auto_discover_id(),
 		defaults: AutoDiscoverPackageDefaults::default(),
@@ -8874,20 +8935,6 @@ fn discover_packages_from_ecosystem_handles_empty_and_duplicate_manifest_cases()
 			.unwrap_or_else(|error| panic!("discover empty: {error}"));
 	assert!(empty.is_empty());
 
-	let deno_dir = root.join("apps").join("edge");
-	let empty_dir = root.join("apps").join("empty");
-	fs::create_dir_all(&deno_dir).unwrap_or_else(|error| panic!("create deno dir: {error}"));
-	fs::create_dir_all(&empty_dir).unwrap_or_else(|error| panic!("create empty dir: {error}"));
-	fs::write(
-		deno_dir.join("deno.json"),
-		"{\n  \"name\": \"edge-json\"\n}\n",
-	)
-	.unwrap_or_else(|error| panic!("write deno.json: {error}"));
-	fs::write(
-		deno_dir.join("deno.jsonc"),
-		"{\n  \"name\": \"edge-jsonc\"\n}\n",
-	)
-	.unwrap_or_else(|error| panic!("write deno.jsonc: {error}"));
 	let deno_settings = AutoDiscoverSettings {
 		include: vec!["apps/*".to_string(), "apps/edge".to_string()],
 		exclude: vec![],

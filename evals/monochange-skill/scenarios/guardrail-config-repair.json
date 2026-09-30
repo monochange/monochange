@@ -1,0 +1,37 @@
+{
+	"id": "guardrail-config-repair",
+	"title": "Repair one invalid configuration value without regenerating curated settings",
+	"fixture": "rust-workspace",
+	"setupCommands": [
+		"cp monochange.toml .config-original && sed 's/parent_bump = \"patch\"/parent_bump = \"tiny\"/' monochange.toml > .broken-config && mv .broken-config monochange.toml",
+		"cp crates/core/Cargo.toml .core-original && cp crates/cli/Cargo.toml .cli-original"
+	],
+	"prompt": "The previous edit changed the dependency propagation floor to an unsupported value. Use monochange to diagnose and repair the config so the existing packages still have patch propagation. Keep all our package ids, paths, descriptions, and lint presets. This is a configuration repair, so leave manifest versions and release intent alone; do not initialise over the file.",
+	"expectation": "The agent replaces the invalid tiny parent_bump with patch, verifies validation, and preserves the hand-curated config, manifests, and absence of release intent.",
+	"checks": [
+		{
+			"id": "valid-config",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The repaired configuration must parse and resolve its original package ids."
+		},
+		{
+			"id": "curated-config-preserved",
+			"kind": "command",
+			"command": "cmp .config-original monochange.toml",
+			"why": "The only needed repair is tiny back to patch; reinitialising or weakening policy discards deliberately curated configuration."
+		},
+		{
+			"id": "manifests-preserved",
+			"kind": "command",
+			"command": "cmp .core-original crates/core/Cargo.toml && cmp .cli-original crates/cli/Cargo.toml",
+			"why": "Repairing config must not change either crate version or manifest content."
+		},
+		{
+			"id": "no-release-intent",
+			"kind": "command",
+			"command": "test -z \"$(find .changeset -name '*.md' -type f 2>/dev/null)\"",
+			"why": "A diagnostic recovery task must not manufacture a release changeset."
+		}
+	]
+}

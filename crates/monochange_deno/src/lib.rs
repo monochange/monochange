@@ -416,13 +416,120 @@ fn parse_json_manifest(manifest_path: &Path) -> MonochangeResult<Value> {
 			manifest_path.display()
 		))
 	})?;
-	let normalized = monochange_core::strip_json_comments(&contents);
-	serde_json::from_str::<Value>(&normalized).map_err(|error| {
+	parse_manifest_contents(&contents).map_err(|error| {
 		MonochangeError::Discovery(format!(
 			"failed to parse {}: {error}",
 			manifest_path.display()
 		))
 	})
+}
+
+/// Parse Deno JSON or JSONC manifest contents, including comments and trailing commas.
+///
+/// # Errors
+/// Returns an error for unterminated block comments or when the normalized
+/// contents cannot be parsed as JSON.
+pub fn parse_manifest_contents(contents: &str) -> Result<Value, serde_json::Error> {
+	let mut bytes = contents.as_bytes().to_vec();
+	let mut in_string = false;
+	let mut cursor = 0;
+
+	normalize_manifest_comments(&mut bytes)?;
+
+	while let Some(&byte) = bytes.get(cursor) {
+		if in_string && byte == b'\\' {
+			cursor += 2;
+			continue;
+		}
+
+		if byte == b'"' {
+			in_string = !in_string;
+		} else if !in_string && byte == b',' {
+			let next = bytes
+				.get(cursor + 1..)
+				.and_then(|remaining| remaining.iter().find(|byte| !byte.is_ascii_whitespace()));
+			let previous = bytes
+				.get(..cursor)
+				.and_then(|preceding| preceding.iter().rfind(|byte| !byte.is_ascii_whitespace()));
+
+			if matches!(next, Some(b'}' | b']'))
+				&& previous.is_some_and(|byte| !matches!(byte, b'[' | b'{' | b',' | b':'))
+			{
+				*bytes
+					.get_mut(cursor)
+					.expect("cursor points to the comma being examined") = b' ';
+			}
+		}
+
+		cursor += 1;
+	}
+
+	serde_json::from_slice(&bytes)
+}
+
+/// Replace comments with whitespace so tokens and diagnostic positions stay intact.
+fn normalize_manifest_comments(bytes: &mut [u8]) -> Result<(), serde_json::Error> {
+	let mut cursor = 0;
+	let mut in_string = false;
+
+	while let Some(&byte) = bytes.get(cursor) {
+		if byte == b'"' {
+			in_string = !in_string;
+			cursor += 1;
+			continue;
+		}
+
+		if in_string {
+			cursor += if byte == b'\\' { 2 } else { 1 };
+			continue;
+		}
+
+		if byte != b'/' {
+			cursor += 1;
+			continue;
+		}
+
+		let end = match bytes.get(cursor + 1) {
+			Some(b'/') => {
+				bytes
+					.get(cursor + 2..)
+					.and_then(|remaining| {
+						remaining
+							.iter()
+							.position(|byte| matches!(byte, b'\r' | b'\n'))
+					})
+					.map_or(bytes.len(), |offset| cursor + 2 + offset)
+			}
+			Some(b'*') => {
+				bytes
+					.get(cursor + 2..)
+					.and_then(|remaining| remaining.windows(2).position(|pair| pair == b"*/"))
+					.map(|offset| cursor + 2 + offset + 2)
+					.ok_or_else(|| {
+						<serde_json::Error as serde::de::Error>::custom(
+							"unterminated block comment",
+						)
+					})?
+			}
+			_ => {
+				cursor += 1;
+				continue;
+			}
+		};
+
+		for byte in bytes
+			.get_mut(cursor..end)
+			.expect("the detected comment range is within the document")
+		{
+			if !matches!(byte, b'\r' | b'\n') {
+				*byte = b' ';
+			}
+		}
+
+		cursor = end;
+	}
+
+	Ok(())
 }
 
 fn find_all_manifests(root: &Path) -> Vec<PathBuf> {
@@ -451,7 +558,7 @@ pub fn validate_versioned_file(
 			"versioned file `{display_path}` is not readable: {error}"
 		))
 	})?;
-	let json: Value = serde_json::from_str(&contents).map_err(|error| {
+	let json = parse_manifest_contents(&contents).map_err(|error| {
 		MonochangeError::Config(format!(
 			"versioned file `{display_path}` is not valid JSON: {error}"
 		))

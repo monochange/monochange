@@ -21,6 +21,96 @@ use crate::supported_versioned_file_kind;
 use crate::update_lockfile;
 
 #[test]
+fn parses_jsonc_comments_trailing_commas_and_escaped_strings() {
+	let parsed = super::parse_manifest_contents(
+		r#"// configuration
+{
+  "name": "@acme/café",
+  "version": "1.2.3",
+  "text": "comma,} quote\" and slash\\ // /* literal */",
+  "values": [1, true, null, /* keep the trailing comma valid */],
+  "compilerOptions": {"strict": true,},
+}"#,
+	)
+	.unwrap_or_else(|error| panic!("parse JSONC: {error}"));
+
+	assert_eq!(
+		parsed,
+		json!({
+			"name": "@acme/café",
+			"version": "1.2.3",
+			"text": "comma,} quote\" and slash\\ // /* literal */",
+			"values": [1, true, null],
+			"compilerOptions": {"strict": true},
+		})
+	);
+}
+
+#[rstest::rstest]
+#[case("[,]")]
+#[case("[1,,]")]
+#[case("{,}")]
+#[case("{\"version\":,}")]
+fn rejects_jsonc_commas_without_a_preceding_value(#[case] contents: &str) {
+	assert!(super::parse_manifest_contents(contents).is_err());
+}
+
+#[rstest::rstest]
+#[case("{\"version\":\"1.2.3\"} /* unfinished")]
+#[case("{\"value\":1/* gap */2}")]
+#[case("{\"value\":true/* gap */false}")]
+#[case("{\"value\":/1}")]
+fn rejects_malformed_jsonc_comments_and_separated_tokens(#[case] contents: &str) {
+	assert!(super::parse_manifest_contents(contents).is_err());
+}
+
+#[test]
+fn normalizes_jsonc_comments_without_changing_bytes_or_line_breaks_in_strings() {
+	let contents = concat!(
+		"{\r\n  /* café\r\n     comment */\"name\":\"café // /*literal*/\",\r\n",
+		"  \"values\":[1, /*comment*/ 2,], // line comment\r\n}",
+	);
+	let parsed = super::parse_manifest_contents(contents)
+		.unwrap_or_else(|error| panic!("parse JSONC comments: {error}"));
+
+	assert_eq!(
+		parsed,
+		json!({"name": "café // /*literal*/", "values": [1, 2]})
+	);
+	let mut bytes = contents.as_bytes().to_vec();
+	super::normalize_manifest_comments(&mut bytes)
+		.unwrap_or_else(|error| panic!("normalize JSONC comments: {error}"));
+	let normalized = String::from_utf8(bytes)
+		.unwrap_or_else(|error| panic!("normalization preserved UTF-8: {error}"));
+
+	assert_eq!(normalized.len(), contents.len());
+	let line_breaks = |text: &str| {
+		text.bytes()
+			.enumerate()
+			.filter(|(_, byte)| matches!(byte, b'\r' | b'\n'))
+			.collect::<Vec<_>>()
+	};
+	assert_eq!(line_breaks(&normalized), line_breaks(contents));
+}
+
+#[test]
+fn parses_jsonc_line_comments_at_end_of_document() {
+	let parsed = super::parse_manifest_contents("{\"name\":\"app\"} // comment without a newline")
+		.unwrap_or_else(|error| panic!("parse JSONC EOF comment: {error}"));
+
+	assert_eq!(parsed, json!({"name": "app"}));
+}
+
+#[test]
+fn validates_versioned_jsonc_with_comments_and_trailing_commas() {
+	let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/deno/jsonc-init/workspace/deno.jsonc");
+
+	super::validate_versioned_file(&path, "deno.jsonc", None)
+		.unwrap_or_else(|error| panic!("validate versioned JSONC: {error}"));
+}
+
+#[test]
 fn discovers_deno_workspace_packages() {
 	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/deno/workspace");
 	let discovery = discover_deno_packages(&fixture_root)

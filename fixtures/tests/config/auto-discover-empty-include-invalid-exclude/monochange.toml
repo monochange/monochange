@@ -1,0 +1,2 @@
+[ecosystems.go.auto_discover]
+exclude = ["modules/["]

@@ -22,6 +22,7 @@
 
 use std::io::Read;
 use std::io::Write;
+use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::path::Path;
 use std::path::PathBuf;
@@ -120,7 +121,9 @@ fn spawn_mock_github_server() -> MockGithubServer {
 	let stop_for_thread = Arc::clone(&stop);
 	let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel::<()>(0);
 	std::thread::spawn(move || {
-		let _ = listener.set_nonblocking(true);
+		listener
+			.set_nonblocking(true)
+			.expect("set mock listener nonblocking");
 		ready_tx
 			.send(())
 			.unwrap_or_else(|error| panic!("signal mock GitHub server readiness: {error}"));
@@ -129,11 +132,8 @@ fn spawn_mock_github_server() -> MockGithubServer {
 				std::thread::sleep(Duration::from_millis(5));
 				continue;
 			};
-			let Ok(stream_clone) = stream.try_clone() else {
-				continue;
-			};
 			let captured = Arc::clone(&captured);
-			std::thread::spawn(move || handle_request(stream_clone, captured));
+			std::thread::spawn(move || handle_request(stream, captured));
 		}
 	});
 	ready_rx
@@ -147,8 +147,18 @@ fn spawn_mock_github_server() -> MockGithubServer {
 }
 
 fn handle_request(mut stream: std::net::TcpStream, captured: Arc<Mutex<Vec<CapturedRequest>>>) {
-	let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+	// macOS inherits the listener's nonblocking mode on accepted sockets.
+	// Wait for the headers instead of treating an initial WouldBlock as EOF.
+	stream
+		.set_nonblocking(false)
+		.expect("set mock connection blocking");
+	stream
+		.set_read_timeout(Some(Duration::from_secs(5)))
+		.expect("set mock connection read timeout");
 	let (head, leftover) = read_until_header_end(&mut stream);
+	if head.is_empty() {
+		return;
+	}
 	let body = if head.lines().any(|line| {
 		line.to_ascii_lowercase()
 			.starts_with("transfer-encoding: chunked")
@@ -398,7 +408,71 @@ fn find_release_record(root: &Path) -> PathBuf {
 		.unwrap_or_else(|| panic!("expected a committed release record"))
 }
 
-fn publish_release_from_record(root: &Path, base_url: &str) {
+fn assert_loopback_destination(base_url: &str) {
+	let address = base_url
+		.strip_prefix("http://")
+		.and_then(|address| address.parse::<SocketAddr>().ok())
+		.expect("mock GitHub URL must be an explicit HTTP socket address");
+	assert!(
+		address.ip().is_loopback() && address.port() != 0,
+		"release replay tests must use a bound loopback server"
+	);
+}
+
+#[test]
+fn release_replay_rejects_non_mock_destinations() {
+	for base_url in [
+		"https://api.github.com",
+		"http://192.0.2.1:1234",
+		"http://127.0.0.1:0",
+		"http://localhost:1234",
+		"http://127.0.0.1:1234/path",
+	] {
+		assert!(
+			std::panic::catch_unwind(|| assert_loopback_destination(base_url)).is_err(),
+			"unexpectedly accepted {base_url}"
+		);
+	}
+}
+
+#[test]
+fn mock_github_waits_for_delayed_request_headers() {
+	let server = spawn_mock_github_server();
+	assert_loopback_destination(&server.base_url);
+	let address = server.base_url.strip_prefix("http://").expect("HTTP URL");
+	let mut stream = std::net::TcpStream::connect(address).expect("connect to mock GitHub");
+	stream
+		.set_read_timeout(Some(Duration::from_secs(5)))
+		.expect("set client read timeout");
+	std::thread::sleep(Duration::from_millis(100));
+	stream
+		.write_all(
+			b"POST /repos/ifiokjr/monochange/releases HTTP/1.1\r\nHost: localhost\r\nContent-Length: 2\r\n\r\n{}",
+		)
+		.expect("write delayed mock request");
+	let mut response = String::new();
+	stream
+		.read_to_string(&mut response)
+		.expect("read mock response");
+	assert!(response.starts_with("HTTP/1.1 201 Created\r\n"));
+	assert_eq!(
+		server.post_bodies_under("/repos/ifiokjr/monochange/releases"),
+		vec![serde_json::json!({})]
+	);
+}
+
+fn publish_release_from_record(root: &Path, server: &MockGithubServer) {
+	assert_loopback_destination(&server.base_url);
+	let configuration = monochange_config::load_workspace_configuration(root)
+		.expect("load mock release configuration");
+	let source = configuration.source.as_ref().expect("GitHub source");
+	assert!(
+		source
+			.api_url
+			.as_deref()
+			.is_none_or(|api_url| api_url == server.base_url),
+		"fixture API URL must not override the loopback mock destination"
+	);
 	let output = Command::new(get_cargo_bin("monochange"))
 		.current_dir(root)
 		.env("NO_COLOR", "1")
@@ -409,7 +483,7 @@ fn publish_release_from_record(root: &Path, base_url: &str) {
 		.env_remove("GITHUB_ACTIONS")
 		.env_remove("GH_TOKEN")
 		.env("GITHUB_TOKEN", "test-token")
-		.env("GITHUB_API_URL", base_url)
+		.env("GITHUB_API_URL", &server.base_url)
 		.args([
 			"step",
 			"publish-release",
@@ -422,9 +496,11 @@ fn publish_release_from_record(root: &Path, base_url: &str) {
 		.unwrap_or_else(|error| panic!("run publish-release: {error}"));
 	assert!(
 		output.status.success(),
-		"publish-release failed\nstdout:\n{}\nstderr:\n{}",
+		"publish-release failed against {}\nstdout:\n{}\nstderr:\n{}\ncaptured requests:\n{:#?}",
+		server.base_url,
 		String::from_utf8_lossy(&output.stdout),
-		String::from_utf8_lossy(&output.stderr)
+		String::from_utf8_lossy(&output.stderr),
+		server.requests.lock().unwrap()
 	);
 }
 
@@ -532,7 +608,7 @@ fn publish_release_from_record_names_owner_and_promotes_body_headings() {
 	commit_release_record(root);
 
 	let server = spawn_mock_github_server();
-	publish_release_from_record(root, &server.base_url);
+	publish_release_from_record(root, &server);
 
 	let release = published_release_for_tag(&server, "v1.1.0");
 	assert_release_notes_shape(&release);
@@ -571,7 +647,7 @@ fn publish_release_from_legacy_record_synthesizes_format_default_title() {
 	);
 
 	let server = spawn_mock_github_server();
-	publish_release_from_record(root, &server.base_url);
+	publish_release_from_record(root, &server);
 
 	let release = published_release_for_tag(&server, "v1.1.0");
 	assert_release_notes_shape(&release);
@@ -585,7 +661,7 @@ fn publish_release_from_record_names_owner_for_namespaced_targets() {
 	commit_release_record(root);
 
 	let server = spawn_mock_github_server();
-	publish_release_from_record(root, &server.base_url);
+	publish_release_from_record(root, &server);
 
 	// Namespaced workspaces release several axes at once, so the title names
 	// the package the release belongs to.

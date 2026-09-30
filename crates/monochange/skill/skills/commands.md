@@ -179,7 +179,7 @@ Run `cargo xtask skill commands check` before changing this file. Run `cargo xta
 | Command                               | Purpose                                                                                        |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `monochange init`                     | Generate `monochange.toml` from detected packages, groups, and optional provider settings.     |
-| `monochange populate`                 | Add missing workflow command definitions to `monochange.toml` so they can be customized.       |
+| `monochange populate`                 | Legacy default-workflow population; currently adds nothing because the default set is empty.   |
 | `monochange command`                  | Open an interactive dashboard for adding or editing `[cli.*]` workflow commands.               |
 | `monochange skill`                    | List, read, or install the bundled monochange agent skill.                                     |
 | `monochange subagents`                | Generate repo-local monochange agent/subagent guidance.                                        |
@@ -216,9 +216,12 @@ Run `cargo xtask skill commands check` before changing this file. Run `cargo xta
 
 Global flags include `--quiet`, `--verbose` (full lists and logs, every step timing, and progress notes), `--progress-format <auto|unicode|ascii|json>`, and `--jq <expression>` for JSON output filtering. Usage errors exit with status `2`; other failures exit with `1`, and `--progress-format json` reports them as a `diagnostic` event.
 
+`--quiet` suppresses explicit JSON output as well as text, so omit it when parsing stdout. Use `--format json` or `json-min` for a machine-readable payload, and `--jq` when the CLI should filter that payload. Inspect the actual JSON shape: ungrouped release plans keep per-package versions in `release_targets`, while the top-level `version` can be null.
+
 A few built-ins are deliberately narrow:
 
 - `monochange step validate` is the cheapest correctness check for configuration and changeset targets.
+- Validation can succeed without `monochange.toml`; check its presence separately during adoption. Neither validation nor `monochange check` rejects cross-stream changesets; a release preview verifies that invariant.
 - `monochange check` adds manifest linting and is the better pre-merge/pre-release check.
 - `monochange step publish-readiness` and `monochange step placeholder-publish` operate from an existing release record, so run them after a release has been prepared and committed.
 - `monochange step release-record` is useful when debugging publish jobs because it tells you which packages and versions a commit or tag is supposed to release.

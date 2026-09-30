@@ -1,0 +1,8 @@
+---
+source: crates/monochange_python/src/__tests__/lib_tests.rs
+expression: result
+---
+[project]
+name = "pep621-cli"
+version = "2.0.0"
+dependencies = ["py_core>=1.1.0"] # Preserve the dependency's spelling.

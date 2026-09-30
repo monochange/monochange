@@ -84,7 +84,9 @@ Use this guide when writing or refactoring Rust in monochange. It internalizes t
 
 ## Tests and documentation
 
-- Use `#[cfg(test)] mod tests` for unit tests and `tests/` for integration coverage.
+- Put Rust unit tests in a nearby `__tests__/<module_name>_tests.rs` file (`lib.rs` → `__tests__/lib_tests.rs`, `mod.rs` → `__tests__/mod_tests.rs`). Reference it with `#[cfg(test)]`, `#[path = "__tests__/<module_name>_tests.rs"]`, and `mod tests;`. Use at most one `#[cfg(test)]` per source file, solely for that module reference.
+- Keep test-only helpers, imports, and state in test files; shared helpers belong in the test helper crate. Do not add `#[allow(dead_code)]` to retain unused helpers.
+- Add integration tests in `crates/monochange_integration_tests/tests/`, using file fixtures and Insta snapshots. Existing integration tests retain their standard `tests/` layout.
 - Write focused tests with descriptive names.
 - Keep doc examples runnable and prefer `?` over `.unwrap()` in docs.
 - Prefer traits and dependency injection patterns that keep code testable without over-abstracting.

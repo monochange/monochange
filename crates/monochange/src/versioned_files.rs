@@ -321,7 +321,10 @@ pub(crate) fn build_versioned_file_updates_with_base_updates(
 		for versioned_file in dedup_versioned_file_definitions(&package_definition.versioned_files)
 		{
 			if let Some(override_name) = versioned_file.name.as_deref() {
-				let effective_dep_names = [override_name];
+				let effective_dep_names = [context
+					.package_by_config_id
+					.get(override_name)
+					.map_or(override_name, |package| package.name.as_str())];
 				let resolved_paths = path_cache.paths(root, &versioned_file.path)?;
 				apply_versioned_file_definition_to_paths(
 					root,
@@ -1669,11 +1672,9 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 			#[cfg(feature = "npm")]
 			(CachedDocument::Text(contents), VersionedFileKind::Npm(kind)) => {
 				if kind == monochange_npm::NpmVersionedFileKind::Manifest {
-					*contents = monochange_core::update_json_manifest_text(
+					*contents = monochange_core::update_selected_json_manifest_text(
 						contents,
-						shared_release_version
-							.map(String::as_str)
-							.or(Some(owner_version)),
+						Some(shared_release_version.map_or(owner_version, String::as_str)),
 						&fields,
 						&versioned_deps,
 					)

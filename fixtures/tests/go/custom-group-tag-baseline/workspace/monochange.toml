@@ -1,0 +1,14 @@
+[defaults]
+changelog = false
+
+[package.module_owner]
+path = "."
+type = "go"
+
+[group.sdk]
+packages = ["module_owner"]
+tag = true
+version_format = "{{ ecosystem }}/{{ name }}/release-{{ version }}-ready"
+
+[ecosystems.go]
+enabled = true

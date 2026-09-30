@@ -1,0 +1,25 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+[package.api]
+path = "packages/api"
+type = "npm"
+versioned_files = [{ path = "packages/ui/package.json", type = "npm", fields = ["dependencies"] }]
+
+[package.ui]
+path = "packages/ui"
+type = "npm"
+versioned_files = [{ path = "packages/ui/constraints/package.json", type = "npm", name = "api", fields = ["dependencies.@acme/api"], prefix = "~" }]
+
+[group.main]
+packages = ["api", "ui"]
+version_format = "primary"
+
+[ecosystems.npm]
+enabled = true
+dependency_version_prefix = "="
+lockfile_commands = [{ command = "cp packages/ui/package.json lockfile-input.json", cwd = "." }]
+
+[lints.rules]
+"npm/workspace-protocol" = "off"

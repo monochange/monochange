@@ -5,7 +5,7 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange init
 
-Generate monochange.toml with detected packages, groups, and default CLI commands
+Generate monochange.toml with detected packages and groups
 
 [1m[97mUsage:[0m [93mmonochange init[0m [95m[OPTIONS][0m
 

@@ -19,6 +19,7 @@ use monochange_core::EcosystemAdapter;
 use monochange_core::LockfileCommandExecution;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+use monochange_core::PACKAGE_DEPENDENCY_NAME_METADATA_KEY;
 use monochange_core::PackageDependency;
 use monochange_core::PackageRecord;
 use monochange_core::PublishState;
@@ -203,7 +204,7 @@ pub fn default_lockfile_commands(package: &PackageRecord) -> Vec<LockfileCommand
 fn lockfile_command(file_name: &str) -> Option<&'static str> {
 	match file_name {
 		UV_LOCK_FILE => Some("uv lock"),
-		POETRY_LOCK_FILE => Some("poetry lock --no-update"),
+		POETRY_LOCK_FILE => Some("poetry lock"),
 		_ => None,
 	}
 }
@@ -227,13 +228,20 @@ pub fn update_versioned_file(
 ) {
 	match kind {
 		PythonVersionedFileKind::Manifest => {
+			// Release maps retain native producer names, while Python dependencies
+			// compare names using PEP 503 normalization.
+			let versioned_deps = versioned_deps
+				.iter()
+				.map(|(name, version)| (normalize_python_package_name(name), version.clone()))
+				.collect();
 			update_project_version(document, owner_version);
-			update_project_dependencies(document, versioned_deps);
+			update_project_dependencies(document, &versioned_deps);
+			update_poetry_dependencies(document, &versioned_deps);
 		}
 		PythonVersionedFileKind::Lock => {
 			// Lock files (uv.lock, poetry.lock) are complex and fragile to
 			// mutate directly. Prefer running lockfile commands (`uv lock` or
-			// `poetry lock --no-update`) which re-resolve the full dependency
+			// `poetry lock`) which re-resolve the full dependency
 			// graph after manifest versions are updated.
 		}
 	}
@@ -243,12 +251,21 @@ fn update_project_version(document: &mut DocumentMut, owner_version: Option<&str
 	let Some(version) = owner_version else {
 		return;
 	};
-	let Some(project) = document
-		.get_mut("project")
-		.and_then(Item::as_table_like_mut)
-	else {
+	// Match discovery's preference for PEP 621 metadata, including projects
+	// whose version is dynamic rather than stored in the manifest.
+	let project = if document.contains_key("project") {
+		document.get_mut("project")
+	} else {
+		document
+			.get_mut("tool")
+			.and_then(Item::as_table_like_mut)
+			.and_then(|tool| tool.get_mut("poetry"))
+	};
+
+	let Some(project) = project.and_then(Item::as_table_like_mut) else {
 		return;
 	};
+
 	if let Some(existing) = project.get_mut("version")
 		&& let Some(existing_value) = existing.as_value()
 	{
@@ -282,6 +299,73 @@ fn update_project_dependencies(
 			let mut new_value = toml_edit::Value::from(updated);
 			*new_value.decor_mut() = item.decor().clone();
 			*item = new_value;
+		}
+	}
+}
+
+/// Update Poetry constraints without replacing extras, markers, or source metadata.
+fn update_poetry_dependencies(
+	document: &mut DocumentMut,
+	versioned_deps: &BTreeMap<String, String>,
+) {
+	if versioned_deps.is_empty() {
+		return;
+	}
+
+	let Some(poetry) = document
+		.get_mut("tool")
+		.and_then(Item::as_table_like_mut)
+		.and_then(|tool| tool.get_mut("poetry"))
+		.and_then(Item::as_table_like_mut)
+	else {
+		return;
+	};
+
+	if let Some(dependencies) = poetry
+		.get_mut("dependencies")
+		.and_then(Item::as_table_like_mut)
+	{
+		update_poetry_dependency_table(dependencies, versioned_deps);
+	}
+
+	let Some(groups) = poetry.get_mut("group").and_then(Item::as_table_like_mut) else {
+		return;
+	};
+
+	for (_, group) in groups.iter_mut() {
+		if let Some(dependencies) = group
+			.as_table_like_mut()
+			.and_then(|group| group.get_mut("dependencies"))
+			.and_then(Item::as_table_like_mut)
+		{
+			update_poetry_dependency_table(dependencies, versioned_deps);
+		}
+	}
+}
+
+/// Rewrite only existing version constraints in Poetry dependency entries.
+fn update_poetry_dependency_table(
+	dependencies: &mut dyn toml_edit::TableLike,
+	versioned_deps: &BTreeMap<String, String>,
+) {
+	for (name, dependency) in dependencies.iter_mut() {
+		let Some(version) = versioned_deps.get(&normalize_python_package_name(&name)) else {
+			continue;
+		};
+		let constraint = if dependency.as_str().is_some() {
+			Some(dependency)
+		} else {
+			dependency
+				.as_table_like_mut()
+				.and_then(|table| table.get_mut("version"))
+		};
+
+		if let Some(Item::Value(existing)) = constraint
+			&& existing.is_str()
+		{
+			let mut updated = toml_edit::Value::from(version.as_str());
+			*updated.decor_mut() = existing.decor().clone();
+			*existing = updated;
 		}
 	}
 }
@@ -549,6 +633,15 @@ fn parse_python_package(
 		version,
 		PublishState::Public,
 	);
+	let dependency_name = normalize_python_package_name(name);
+
+	if dependency_name != name {
+		record.metadata.insert(
+			PACKAGE_DEPENDENCY_NAME_METADATA_KEY.to_string(),
+			dependency_name,
+		);
+	}
+
 	record.declared_dependencies = dependencies;
 	Ok(Some(record))
 }

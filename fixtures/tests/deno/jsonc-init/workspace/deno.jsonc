@@ -1,0 +1,7 @@
+// Package configuration with comments and trailing commas
+{
+  "name": "@acme/commented",
+  "version": "1.2.3",
+  "exports": "./mod.ts",
+  "compilerOptions": { "strict": true, },
+}

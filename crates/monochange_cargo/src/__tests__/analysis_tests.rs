@@ -235,6 +235,139 @@ fn collect_public_symbols_covers_all_supported_public_item_kinds() {
 	}
 }
 
+#[rstest::rstest]
+#[case::constant(
+	"pub const LIMIT: usize = 3;",
+	"/// old documentation\npub const LIMIT: usize = 3;"
+)]
+#[case::static_item(
+	"pub static NAME: &str = \"core\";",
+	"#[doc = \"old documentation\"] pub static NAME: &str = \"core\";"
+)]
+#[case::struct_field(
+	"pub struct Item { pub value: u8 }",
+	"/// old documentation\npub struct Item { /// old documentation\n pub value: u8 }"
+)]
+#[case::tuple_field(
+	"pub struct Item(pub u8);",
+	"pub struct Item(#[doc = \"old documentation\"] pub u8);"
+)]
+#[case::enum_variant(
+	"pub enum Mode { Fast { value: u8 }, Slow(u8) }",
+	"/// old documentation\npub enum Mode { /// old documentation\n Fast { /// old documentation\n value: u8 }, Slow(#[doc = \"old documentation\"] u8) }"
+)]
+#[case::trait_items(
+	"pub trait Renderer { const LIMIT: u8 = 3; type Output; fn render(&self) {} }",
+	"/// old documentation\npub trait Renderer { /// old documentation\n const LIMIT: u8 = 3; /// old documentation\n type Output; /// old documentation\n fn render(&self) {} }"
+)]
+#[case::module_items(
+	"pub mod api { pub struct Item; }",
+	"/// old documentation\npub mod api { //! old documentation\n /// old documentation\n pub struct Item; }"
+)]
+#[case::type_alias(
+	"pub type Name = String;",
+	"#[doc = include_str!(\"guide.md\")] pub type Name = String;"
+)]
+#[case::union_field(
+	"pub union Number { pub value: u32 }",
+	"pub union Number { #[doc = \"old documentation\"] pub value: u32 }"
+)]
+#[case::doc_options(
+	"pub struct Item;",
+	"#[doc(hidden)] #[doc(alias = \"old documentation\")] pub struct Item;"
+)]
+#[case::conditional_doc(
+	"pub struct Item;",
+	"#[cfg_attr(doc, doc = \"old documentation\")] pub struct Item;"
+)]
+#[case::mixed_conditional(
+	"#[cfg_attr(feature = \"ffi\", repr(C), derive(Clone))] pub struct Item;",
+	"#[cfg_attr(feature = \"ffi\", repr(C), doc = \"old documentation\", derive(Clone))] pub struct Item;"
+)]
+#[case::nested_conditional(
+	"#[cfg_attr(feature = \"ffi\", repr(C))] pub struct Item;",
+	"#[cfg_attr(feature = \"ffi\", cfg_attr(doc, doc = \"old documentation\"), repr(C))] pub struct Item;"
+)]
+fn public_api_docs_do_not_change_signatures(#[case] plain: &str, #[case] documented: &str) {
+	assert!(diff_public_symbols_allow_empty(plain, documented).is_empty());
+	assert!(diff_public_symbols_allow_empty(documented, plain).is_empty());
+	let edited = documented.replace("old documentation", "new documentation");
+	assert!(diff_public_symbols_allow_empty(documented, &edited).is_empty());
+}
+
+#[rstest::rstest]
+#[case::field(
+	"pub struct Item { pub value: u8 }",
+	"pub struct Item { pub value: u16 }"
+)]
+#[case::variant("pub enum Mode { Fast }", "pub enum Mode { Slow }")]
+#[case::trait_signature(
+	"pub trait Renderer { fn render(&self); }",
+	"pub trait Renderer { fn render(&self, limit: u8); }"
+)]
+#[case::cfg(
+	"#[cfg(feature = \"old\")] pub struct Item;",
+	"#[cfg(feature = \"new\")] pub struct Item;"
+)]
+#[case::serde(
+	"pub struct Item { #[serde(rename = \"old\")] pub value: u8 }",
+	"pub struct Item { #[serde(rename = \"new\")] pub value: u8 }"
+)]
+#[case::repr("#[repr(C)] pub struct Item;", "#[repr(transparent)] pub struct Item;")]
+#[case::non_exhaustive("pub enum Mode { Fast }", "#[non_exhaustive] pub enum Mode { Fast }")]
+#[case::derive(
+	"#[derive(Clone)] pub struct Item;",
+	"#[derive(Clone, Copy)] pub struct Item;"
+)]
+#[case::conditional_cfg(
+	"#[cfg_attr(doc, cfg(feature = \"old\"), doc = \"old documentation\")] pub struct Item;",
+	"#[cfg_attr(doc, cfg(feature = \"new\"), doc = \"new documentation\")] pub struct Item;"
+)]
+#[case::constant_body("pub const LIMIT: u8 = 3;", "pub const LIMIT: u8 = 4;")]
+#[case::trait_method_body(
+	"pub trait Renderer { fn render() -> u8 { 3 } }",
+	"pub trait Renderer { fn render() -> u8 { 4 } }"
+)]
+#[case::macro_tokens(
+	"pub const VALUE: &str = stringify!(#[doc = \"old\"]);",
+	"pub const VALUE: &str = stringify!(#[doc = \"new\"]);"
+)]
+#[case::export_name(
+	"#[export_name = \"old\"] pub static VALUE: u8 = 1;",
+	"#[export_name = \"new\"] pub static VALUE: u8 = 1;"
+)]
+fn public_api_docs_normalization_preserves_semantic_changes(
+	#[case] before: &str,
+	#[case] after: &str,
+) {
+	let changes = diff_public_symbols_allow_empty(before, after);
+	assert_eq!(changes.len(), 1);
+	let change = changes
+		.first()
+		.unwrap_or_else(|| panic!("expected an API change"));
+
+	assert_eq!(change.kind, SemanticChangeKind::Modified);
+	assert_eq!(
+		monochange_semver::semantic_change_severity(change),
+		BumpSeverity::Major
+	);
+}
+
+#[rstest::rstest]
+#[case("cfg_attr(unknown syntax)")]
+#[case("cfg_attr()")]
+#[case("cfg_attr(doc)")]
+fn documentation_normalization_preserves_unfamiliar_conditional_attribute_syntax(
+	#[case] source: &str,
+) {
+	let mut meta = syn::parse_str::<syn::Meta>(source)
+		.unwrap_or_else(|error| panic!("parse attribute metadata: {error}"));
+	let original = render_signature(&meta);
+
+	assert!(retain_api_attribute(&mut meta));
+	assert_eq!(render_signature(&meta), original);
+}
+
 #[test]
 fn module_prefix_and_symbol_diff_cover_root_removed_and_unchanged_paths() {
 	assert!(module_prefix_for_file(Path::new("src/lib.rs")).is_empty());

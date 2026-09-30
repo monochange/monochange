@@ -1,0 +1,30 @@
+{
+	"id": "guardrail-private-package-lint-repair",
+	"title": "Mark an unmanaged internal package private without adding it to release planning",
+	"fixture": "guardrail-private-package",
+	"setupCommands": [
+		"cp monochange.toml .config-original && cp packages/api/package.json .api-original && cp packages/internal/src/index.ts .internal-source-original"
+	],
+	"prompt": "The internal test helpers under packages/internal are intentionally excluded from releases, but monochange check reports our unlisted-package-private policy. Use the CLI to diagnose and fix that package's manifest. Keep it out of monochange.toml, preserve its name, version, scripts and source, and leave the publishable api package untouched. Verify check passes; do not create release intent.",
+	"expectation": "The internal npm manifest gains private: true; configured publishable package, config and helper code are unchanged, and linting succeeds without adding release intent.",
+	"checks": [
+		{
+			"id": "internal-manifest-private-preserves-fields",
+			"kind": "command",
+			"command": "jq -e '.private == true and .name == \"@acme/internal-test-helpers\" and .version == \"0.0.0\" and .scripts.test == \"node --test\" and .type == \"module\"' packages/internal/package.json >/dev/null",
+			"why": "Marking private is the minimal fix; deleting identity or scripts loses working developer tooling."
+		},
+		{
+			"id": "lint-policy-passes",
+			"kind": "command",
+			"command": "monochange check",
+			"why": "The actual configured lint must no longer report an unmanaged publishable package."
+		},
+		{
+			"id": "unrelated-files-preserved",
+			"kind": "command",
+			"command": "cmp .config-original monochange.toml && cmp .api-original packages/api/package.json && cmp .internal-source-original packages/internal/src/index.ts && test -z \"$(find .changeset -name '*.md' -type f 2>/dev/null)\"",
+			"why": "The helper must stay outside release planning, with public manifests and source unaffected."
+		}
+	]
+}

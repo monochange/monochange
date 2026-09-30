@@ -1177,7 +1177,7 @@ fn render_help_command(
 fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String {
 	if result.added_commands.is_empty() {
 		format!(
-			"{} already defines all default CLI commands",
+			"left {} unchanged; this version provides no default CLI workflow aliases. Use `monochange command` to define custom workflows",
 			result.path.display()
 		)
 	} else {

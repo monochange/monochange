@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/npm_custom_versioned_json.rs
+expression: constraints
+---
+{
+	"metadata": {
+		"version": "1.2.4"
+	},
+	"keep": "unchanged"
+}

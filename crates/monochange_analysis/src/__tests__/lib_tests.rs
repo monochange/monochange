@@ -461,6 +461,11 @@ fn discovery_file_filter_accepts_only_safe_workspace_controls() {
 		"packages/web/.gitignore",
 		"pnpm-workspace.yaml",
 		"packages/app/pubspec.yaml",
+		"packages/sdk/go.mod",
+		"packages/python/pyproject.toml",
+		"actions/build/action.yml",
+		"actions/deploy/action.yaml",
+		"deno.json",
 		"deno.jsonc",
 		"monochange.toml",
 		"bun.lockb",
@@ -469,6 +474,8 @@ fn discovery_file_filter_accepts_only_safe_workspace_controls() {
 		assert!(is_safe_repository_path(Path::new(path)), "expected {path}");
 	}
 	assert!(!is_discovery_file(Path::new("src/lib.rs")));
+	assert!(!is_discovery_file(Path::new("packages/sdk/sdk.go")));
+	assert!(!is_discovery_file(Path::new("packages/python/app.py")));
 	assert!(!is_safe_repository_path(Path::new("../Cargo.toml")));
 	assert!(!is_safe_repository_path(Path::new("/Cargo.toml")));
 	assert!(!is_safe_repository_path(Path::new("")));

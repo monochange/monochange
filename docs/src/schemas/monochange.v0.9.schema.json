@@ -2086,7 +2086,7 @@
 			"type": "object"
 		},
 		"VersionSource": {
-			"description": "Where a package's current release version is read from.\n\nDefaults to `manifest` for ecosystems that store a version field in their\nmanifest. `tag` reads the baseline from the latest reachable release tag\nmatching the release owner's `version_format`, which suits GitHub Actions\nrepositories and other tag-only release targets.",
+			"description": "Where a package's current release version is read from.\n\nDefaults to `manifest` for ecosystems that store a version field in their\nmanifest. `tag` reads the baseline from the highest semantic version among\nrepository tags matching the release owner's `version_format`, without\nfiltering by branch reachability. This suits GitHub Actions repositories\nand other tag-only release targets.",
 			"enum": [
 				"manifest",
 				"tag"

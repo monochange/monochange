@@ -1,0 +1,65 @@
+{
+	"id": "planning-named-customer-artifact",
+	"title": "Define and render a named customer artifact with a selected release owner",
+	"fixture": "npm-monorepo",
+	"setupFiles": {
+		"monochange.toml": "[defaults]\nparent_bump = \"patch\"\n[package.\"@acme/api\"]\npath = \"packages/api\"\ntype = \"npm\"\n[package.\"@acme/ui\"]\npath = \"packages/ui\"\ntype = \"npm\"\n[package.\"@acme/tokens\"]\npath = \"packages/tokens\"\ntype = \"npm\"\n[group.main]\npackages = [\"@acme/api\", \"@acme/ui\", \"@acme/tokens\"]\nversion_format = \"primary\"\n[ecosystems.npm]\nenabled = true\n[lints.rules]\n\"npm/workspace-protocol\" = \"off\"\n\n[changelog.types]\nfeature = { bump = \"minor\", section = \"feat\", description = \"Customer-visible features\", stream = \"user\" }\nfix = { bump = \"patch\", section = \"fix\", description = \"Developer fixes\" }\n[changelog.streams.user]\ndescription = \"Customer updates\"\n",
+		".changeset/customer.md": "---\n\"@acme/ui\": feature\n---\n\nSave profile links for later.\n",
+		".changeset/developer.md": "---\n\"@acme/api\": fix\n---\n\nCorrect RequestOptions cancellation propagation.\n"
+	},
+	"prompt": "Add a changelog output named launch_card for the user stream and main group, in monochange format with release mode and path product-notes/{{ version }}.md. Render that named output into review/launch-card.md using the CLI. Include the customer feature and exclude developer internals. Leave all changesets and manifest versions intact; we are drafting the customer announcement only.",
+	"expectation": "The persisted named output selects user/main with the requested path/format/mode. CLI rendering writes customer feature notes only, without preparing or consuming changesets.",
+	"checks": [
+		{
+			"id": "named-output-configuration",
+			"kind": "command",
+			"command": "monochange config --format json | node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),o=JSON.parse(fs.readFileSync(0,\"utf8\")).config.changelog.outputs[\"launch_card\"];a.ok(o);a.equal(o.stream,\"user\");a.deepEqual(o.targets,[\"main\"]);a.equal(o.path,\"product-notes/{{ version }}.md\");a.equal(o.format,\"monochange\");a.equal(o.mode,\"release\");'",
+			"why": "The recurring output must persist its requested target, stream, path, format, and mode."
+		},
+		{
+			"id": "configuration-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The final configuration and pending changesets must resolve."
+		},
+		{
+			"id": "named-output-renders-customer-only",
+			"kind": "command",
+			"command": "monochange notes --output launch_card --target main | node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"),s=fs.readFileSync(0,\"utf8\");a.ok(s.includes(\"Save profile links\"));a.ok(!s.includes(\"RequestOptions\"));'",
+			"why": "Named output selection must obey its audience stream."
+		},
+		{
+			"id": "review-artifact-written",
+			"kind": "file",
+			"path": "review/launch-card.md",
+			"match": "Save profile links",
+			"why": "The requested local artifact must exist."
+		},
+		{
+			"id": "review-artifact-has-no-developer-detail",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\");a.ok(!fs.readFileSync(\"review/launch-card.md\",\"utf8\").includes(\"RequestOptions\"));'",
+			"why": "The saved artifact must retain the selected audience."
+		},
+		{
+			"id": "pending-intent-kept",
+			"kind": "command",
+			"command": "test -f .changeset/customer.md && test -f .changeset/developer.md",
+			"why": "Drafting announcements must not consume pending changesets."
+		},
+		{
+			"id": "manifests-intact",
+			"kind": "command",
+			"command": "node -e 'const fs=require(\"node:fs\"),a=require(\"node:assert/strict\"); for(const id of [\"api\",\"ui\",\"tokens\"]) a.equal(JSON.parse(fs.readFileSync(\"packages/\"+id+\"/package.json\",\"utf8\")).version,\"2.3.1\");'",
+			"why": "Drafting must not advance versions."
+		},
+		{
+			"id": "no-external-release",
+			"kind": "transcript",
+			"scope": "commands",
+			"pattern": "(?:npm|pnpm|cargo) publish|git push|gh workflow run|gh release (?:create|edit|delete)|git[ \\t]+tag[ \\t]+(?!(?:-l\\b|-n(?:\\d+)?(?=[ \\t;&|\\r\\n]|$)|--(?:list|sort|contains|no-contains|merged|no-merged|points-at|column|no-column|format|ignore-case)\\b))(?=[^ \\t;&|\\r\\n<>#])|\\bmonochange[\"']?[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:step[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish-packages|placeholder-publish|tag-release|push-release-commit|publish-release)|publish[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:packages|placeholder)|run[ \\t]+(?:(?:--quiet|-q|--snapshot|--(?:log-level|progress-format|jq)(?:=[^\\s;&|]+|[ \\t]+[^\\s;&|]+))[ \\t]+)*(?:publish(?:-packages|-release)?|tag-release|push-release-commit))(?=[ \\t;&|\\r\\n]|$)(?![^;&|\\r\\n]*[ \\t](?:--dry-run|--help|-h)(?:[ \\t;&|\\r\\n]|$))",
+			"absent": true,
+			"why": "Evaluation is limited to local planning and preparation; registry, tag, release, and push operations are outside the task."
+		}
+	]
+}

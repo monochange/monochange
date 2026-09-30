@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/python_poetry_version.rs
+expression: pep621_manifest
+---
+[project]
+name = "pep621-cli"
+version = "2.0.1"
+dependencies = ["py_core>=1.1.0"] # Preserve the dependency's spelling.

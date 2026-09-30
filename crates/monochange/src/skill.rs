@@ -277,6 +277,8 @@ fn install(destination: Option<PathBuf>, force: bool) -> MonochangeResult<SkillO
 	let Some(destination) = destination else {
 		return Err(MonochangeError::Config(missing_destination_message()));
 	};
+	validate_install_paths(&destination)?;
+
 	if destination.join("SKILL.md").exists() && !force {
 		return Err(MonochangeError::Config(format!(
 			"{} already contains a skill; pass --force to replace it",
@@ -294,12 +296,44 @@ fn install(destination: Option<PathBuf>, force: bool) -> MonochangeResult<SkillO
 	Ok(SkillOutcome::Installed { destination, files })
 }
 
+/// Reject linked skill paths before writes can change operator-owned files.
+fn validate_install_paths(directory: &Path) -> MonochangeResult<()> {
+	for topic in topics() {
+		let path = directory.join(topic.file);
+
+		// Security: static relative paths still escape through existing symlinks.
+		// Only inspect the selected tree; runtime directories above it may be linked.
+		for component in path
+			.ancestors()
+			.take_while(|component| component.starts_with(directory))
+		{
+			match std::fs::symlink_metadata(component) {
+				Ok(metadata) if metadata.is_symlink() => {
+					return Err(MonochangeError::Config(format!(
+						"refusing to install a skill through symbolic link {}",
+						component.display()
+					)));
+				}
+				Ok(_) => {}
+				Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+				Err(error) => {
+					return Err(MonochangeError::Io(format!(
+						"failed to inspect skill path {}: {error}",
+						component.display()
+					)));
+				}
+			}
+		}
+	}
+
+	Ok(())
+}
+
 /// Write every bundled document under `directory`, returning the file count.
 fn write_tree(directory: &Path) -> MonochangeResult<usize> {
 	let mut written = 0usize;
 	for topic in topics() {
-		// The install paths come from the static table, never from input, so a
-		// plain join cannot escape the destination.
+		// Static install paths have been checked for existing symlinks before writing.
 		let path = directory.join(topic.file);
 		// patch-coverage:ignore-start -- the create and write failures are exercised
 		// by the install failure tests; llvm-cov attributes a zero-count region to

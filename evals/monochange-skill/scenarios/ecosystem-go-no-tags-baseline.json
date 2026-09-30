@@ -1,0 +1,42 @@
+{
+	"id": "ecosystem-go-no-tags-baseline",
+	"title": "Plan a first Go release from an explicit baseline without creating tags",
+	"fixture": "ecosystem-go-no-tags",
+	"prompt": "Adopt monochange for this Go module. It has never had a release tag; use 1.2.0 as the starting release baseline. Record a patch for a corrected error message and show the pending 1.2.1 plan. Do not create any tags or invent a version field in go.mod. Record the changeset and verify the preview, but leave changesets pending and manifests at their current versions. Do not publish, tag, commit, or contact a hosted provider.",
+	"expectation": "The Go adapter resolves its own version from tags regardless of the optional version_source override. The owner has tag = true and an explicit initial_version, so an untagged repository still plans a nonempty release. Planning needs no tags, registry calls, or synthetic manifest version.",
+	"setupCommands": [
+		"git init -q"
+	],
+	"checks": [
+		{
+			"id": "config-exists",
+			"kind": "file",
+			"path": "monochange.toml",
+			"why": "A completed adoption or update leaves a repository configuration."
+		},
+		{
+			"id": "config-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "The configuration and pending changesets must be accepted by the real CLI."
+		},
+		{
+			"id": "go-owner-and-baseline",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const c=JSON.parse(cli([\"config\",\"--format\",\"json\"])).config; assert.equal(c.packages.length,1); assert.equal(c.packages[0].package_type,\"go\"); assert.equal(c.packages[0].initial_version,\"1.2.0\"); assert.equal(c.packages[0].tag,true);'",
+			"why": "The Go adapter intrinsically resolves versions from tags; tag enablement and initial_version provide an untagged first-release baseline."
+		},
+		{
+			"id": "untagged-go-plan-is-nonempty",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; const d=JSON.parse(cli([\"preview\",\"--format\",\"json\"])); assert.equal(d.release_targets.length,1); assert.equal(d.release_targets[0].version,\"1.2.1\"); assert.equal(d.released_packages.length,1);'",
+			"why": "A config that validates yet plans zero Go packages fails the user's task."
+		},
+		{
+			"id": "go-manifest-is-unchanged-and-no-tags-exist",
+			"kind": "command",
+			"command": "node -e 'const assert = require(\"node:assert/strict\"); const fs = require(\"node:fs\"); const {spawnSync} = require(\"node:child_process\"); const cli=(args)=>{const r=spawnSync(\"monochange\",args,{encoding:\"utf8\"}); assert.equal(r.status,0,r.stderr+ r.stdout); return r.stdout;}; assert.equal(fs.readFileSync(\"go.mod\",\"utf8\"),\"module github.com/acme/solo\\n\\ngo 1.22\\n\"); const tags=spawnSync(\"git\",[\"tag\",\"--list\"],{encoding:\"utf8\"}); assert.equal(tags.status,0,tags.stderr); assert.equal(tags.stdout.trim(),\"\");'",
+			"why": "The initial_version fallback must work without changing Go grammar or local tags."
+		}
+	]
+}
