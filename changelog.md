@@ -4,6 +4,453 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Name release-record replays and format-specific default release titles
+
+_Packages:_ 🟢 _@monochange/skill_, 🟠 _monochange_, 🔴 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #736](https://github.com/monochange/monochange/pull/736) · _Related issues:_ [#725](https://github.com/monochange/monochange/issues/725)
+
+Provider releases (GitHub, GitLab, Gitea, Forgejo) published from a committed release record fell back to the bare tag name (`v0.22.0`) for the release title, because the record carried no rendered title and the manifest built from it blanked `rendered_title`. Release records now persist the title rendered at prepare time, and `build_release_manifest_from_record` replays it; records from schema v0.8 and earlier synthesize the built-in default title for the target's version format, dated from the record's `created_at`, instead of degrading to the tag name.
+
+The built-in release title defaults are now format-specific:
+
+- primary versioning renders `v{{ version }} ({{ date }})` — one release axis, so the title carries the tag-style version with the date;
+- namespaced versioning renders `{{ id }} v{{ version }} ({{ date }})` — the owner is named because a workspace releases several axes at once.
+
+Repositories that prefer another shape can set it explicitly on a package, a group, or workspace-wide:
+
+```toml
+[defaults]
+release_title = "{{ id }} {{ version }} ({{ date }})"
+```
+
+`ReleaseRecordTarget` gains `rendered_title` and `rendered_changelog_title` (optional, empty-string defaults), which is a breaking change for struct literals; deserialize and serialize round-trips of existing records are unchanged. The release-record artifact schema advances to v0.9 with a no-op migration edge, so v0.8 records migrate unchanged.
+
+The agent skill's configuration topic now documents the release title templates — the defaults per version format, the available variables, precedence, and the record replay — and `@monochange/skill` republishes that guidance.
+
+### 🚀 Feature
+
+#### Keep classification reports specific to the pull request
+
+_Packages:_ 🟢 _@monochange/skill_, 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #743](https://github.com/monochange/monochange/pull/743)
+
+- The report records the commits it compared in the new top-level `base_commit` and `head_commit` fields. Match `head_commit` with the pull request head to confirm a saved report is current; a changed `base_commit` shows the base branch moved since the report was built.
+- Markdown and text reports list only findings the pull request produced under each package. A finding whose `comparisons` contain only `release` and `release_to_default` now appears under "Unreleased changes already on `<base>` (not part of this pull request)" and no longer counts toward the package's findings. The JSON `findings` array is unchanged, because the release floor still needs that evidence.
+- `--base` is documented as the pull request's base branch. Pass it for a stacked pull request so the classifier does not attribute the parent branch's changes to the child:
+
+```bash
+monochange change classify --base origin/feature/parent --head "$PR_HEAD_SHA" --format json
+```
+
+The classification report contract advances to `schema_version` `0.4` with a frozen `classification.v0.4.schema.json`. The change is additive: readers of `0.3` reports keep working.
+
+#### Prepare releases from Deno JSONC manifests
+
+_Packages:_ 🟢 _monochange_, 🟢 _monochange_config_, 🟠 _monochange_deno_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Repositories using `deno.jsonc` can now initialize, validate, discover, and prepare releases with comments and trailing commas. Validation recognizes the discovered JSONC manifest instead of requiring a nonexistent `deno.json`; dependency synchronization retains the original comments and layout.
+
+```sh
+monochange init
+monochange step validate
+monochange prepare --dry-run
+```
+
+These commands now accept supported Deno JSONC manifests throughout the workflow. The Deno adapter also exposes `parse_manifest_contents(contents: &str) -> Result<serde_json::Value, serde_json::Error>` for callers that need the same comment and trailing-comma handling.
+
+Malformed block comments and tokens split by comments are rejected instead of being silently accepted or joined into a different value.
+
+#### Add a global `--verbose` flag
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+`--verbose` (`-v`) now works on every command. It shows complete lists instead of the first 20 entries, full command-step logs and changeset details, the timing of every phase of every step, and progress notes such as the verified release commit that was created or each package that was published. It replaces the `check`-only `--verbose` flag, so `monochange check --verbose` keeps working.
+
+```bash
+monochange --verbose run release --dry-run
+```
+
+`--verbose` does not enable maintainer tracing; `--log-level` still does.
+
+#### Report failures and command step results as JSON
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+With `--progress-format json`, a failure is now a `diagnostic` event on stderr instead of human text, so the stream stays newline-delimited JSON:
+
+```text
+{"sequence":7,"event":"diagnostic","command":"release","dry_run":false,"code":"step.command_failed","summary":"command `cargo test` failed: exit status: 101","detail":"stderr (last 20 of 250 lines, full output above):\ntest a ... FAILED","context":{"command":"monochange run release","step":"[3/4] run tests"},"hints":["Fix the failure shown in the command output, then rerun."],"exit_code":1}
+```
+
+`--format json` output now includes a `commands` array describing each `Command` step: its `step` name, `id`, the `command` that ran, `status` (`succeeded`, or `skipped` for a dry run), `exit_code`, `stdout`, and `stderr`. The key is additive: release results keep their shape and gain a top-level `commands` field, and a workflow made only of `Command` steps prints `{"command", "dry_run", "commands"}` instead of text.
+
+#### Make workflow progress readable in terminals and CI logs
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+Long release workflows were hard to follow: every step printed twice (`▶ [2/9] step` and `▶ [2/9] step — running command …`), a silent external command added a "still running" line every five seconds (70 lines for one six-minute step in the release pull request job), and single-step commands such as `monochange next` wrapped one step line in a command banner and footer.
+
+Progress output now:
+
+- lines step results up in a column and gives unnamed built-in steps readable labels (`calculate next versions` instead of `DisplayVersions`)
+- shows the command a `Command` step runs as `$ <command>` under the step
+- prints a banner and a `<command> completed in 7m 36s` summary only for multi-step commands
+- marks dry-run `Command` steps as skipped instead of successful, because the command did not run
+- shows a live elapsed timer on the interactive spinner, and in captured or CI logs notes a silent command after 30 seconds and then once a minute
+- lists phase timings only for steps slower than one second
+- folds each step's command output into a collapsible `::group::` when `GITHUB_ACTIONS=true`, and turns warnings and the final failure into `::warning`/`::error` annotations
+
+```text
+monochange › release · 3 steps
+▶ [2/3] generate cargo lockfile
+  $ cargo generate-lockfile
+::group::[2/3] generate cargo lockfile · output
+  │     Updating crates.io index
+::endgroup::
+✔ [2/3] generate cargo lockfile          937ms
+```
+
+`--progress-format json` events are unchanged, apart from heartbeat and warning timing.
+
+#### Run workflow commands from `monochange.toml` at the top level and group the help by task
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+Commands defined as `[cli.<name>]` in `monochange.toml` now also run as `monochange <name>`, in addition to `monochange run <name>`. A built-in command keeps its name, so a workflow named like a built-in (for example `[cli.change]`) still runs through `monochange run change`. Prefer `monochange run <name>` in scripts: it keeps working if a later release adds a built-in command with the same name.
+
+`monochange --help` now groups commands by task (release, workspace, change analysis, automation) and lists the workflow commands from `monochange.toml` in their own section, noting which ones need `monochange run`. The `next-versions` alias still works but is no longer listed next to `next`.
+
+#### Preserve explicit dependency rules during release preparation
+
+_Packages:_ 🟢 _monochange_, 🟠 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Preparing a release now preserves configured dependency prefixes after native manifest synchronization, and lock commands see the final manifest contents. Dependency-only npm versioned entries leave the file's own version unchanged; scalar dependency fields still update their selected constraints.
+
+```toml
+[package.api]
+path = "packages/api"
+type = "npm"
+versioned_files = [
+	{ path = "packages/ui/constraints.json", type = "npm", name = "api", fields = ["dependencies"], prefix = "~" },
+]
+```
+
+The explicit `name` refers to a configured package ID and resolves to that package's native dependency name. When `api` releases, this entry updates matching constraints using `~` while preserving `constraints.json`'s own version.
+
+Library callers can use the additive `monochange_core::update_selected_json_manifest_text(contents, owner_version, fields, versioned_deps)` API to update only selected fields. Nested owner fields such as `metadata.version` still receive the owner version without implicitly changing the root `version`. The existing `update_json_manifest_text` API retains its implicit native-manifest root-version behavior.
+
+#### Show warnings without `--log-level`
+
+_Packages:_ 🟠 _monochange_, 🟢 _monochange_config_, 🟢 _monochange_github_, 🟢 _monochange_graph_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+Warnings raised with `tracing::warn!` were only visible with `--log-level`, so CI had to run `monochange --log-level=debug` to notice problems such as the release pull request silently falling back from a verified GitHub API commit to a regular git commit. monochange now prints every warning by default as one readable line with its details underneath, through the same stderr channel as progress, so it never splices into an active spinner:
+
+```text
+warning: could not create a verified release commit through the GitHub API; falling back to a regular git commit
+  reason: GitHub API POST `/repos/acme/app/git/trees` failed: status 422
+  commit: c686e78478ea2611d41e2d8521311a236f2a3470
+```
+
+Each distinct warning prints once per run. `--quiet` hides warnings, GitHub Actions receives them as `::warning` annotations, and `--progress-format json` emits a `warning` event with `message` and `fields`. `--log-level` still enables the full maintainer trace.
+
+`monochange_config` (non-standard GitHub `[source]` host) and `monochange_graph` (a version group member missing from discovery) now report their warnings with `tracing::warn!` instead of `eprintln!`, so they respect `--quiet` and progress rendering. Embedders that relied on those lines reaching stderr without a tracing subscriber must install one. Routine internal messages ("ignoring stale prepared release artifact", a failed prepared-release cache save, and git failures that are already returned as errors) moved to `debug`.
+
+#### Include canonical Python names in dependent release plans
+
+_Packages:_ 🟠 _monochange_core_, 🟢 _monochange_python_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+A producer named `PY_Core` now matches declared dependencies written as `py-core` or `py_core`, restoring dependent bumps and dependency ordering while preserving the producer's native name. A producer-only minor changeset can therefore release its consumers with their configured propagation policy instead of omitting them from the plan.
+
+Adapters can provide a canonical dependency-name alias through `PackageRecord.metadata` using the shared `PACKAGE_DEPENDENCY_NAME_METADATA_KEY` constant. `materialize_dependency_edges` matches the alias for consumers in the producer's ecosystem and emits each target ID once. This prevents a normalized Python alias from creating an unrelated Cargo dependency edge with the same spelling. Exact native-name matching retains its existing behavior, including adapters without an alias.
+
+### 📝 Changed
+
+#### Explain command failures with specific codes, context, and hints
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+Failure output was hard to read and sometimes pointed at the wrong fix. Command-line typos rendered as `error[config.invalid]: error: unrecognized subcommand …` with a hint to check `monochange.toml`; source snippets were re-indented under `cause:` so their carets no longer lined up; a failed `Command` step printed its full output three times and was labelled `workspace.discovery_failed`; and a broken `monochange.toml` made `monochange run <name>` report `unexpected argument '<name>'` instead of the parse error.
+
+Diagnostics now keep the greppable `error[<code>]: <summary>` first line, render multi-line causes and annotated source snippets as blocks, align `command`, `step`, and `path` context, and show workspace paths relative to the root:
+
+```text
+error[step.command_failed]: command `cargo test` failed: exit status: 101
+
+    stderr (last 20 of 250 lines, full output above):
+    test a ... FAILED
+
+  command: monochange run release
+  step:    [3/4] run tests
+  help:    Fix the failure shown in the command output, then rerun. To reproduce it on its own, run the command directly from the workspace root.
+```
+
+Codes are more specific. Scripts that search CI logs for the old codes should update them:
+
+| Failure                                       | Before                       | After                                   |
+| --------------------------------------------- | ---------------------------- | --------------------------------------- |
+| unknown command, flag, or value               | `config.invalid`             | `cli.usage`                             |
+| failed `Command` step                         | `workspace.discovery_failed` | `step.command_failed`                   |
+| missing git ref, shallow clone                | `workspace.discovery_failed` | `git.failed`                            |
+| release record lookup                         | `workspace.discovery_failed` | `release.record_failed`                 |
+| unknown package in a changeset or `--package` | `config.invalid`             | `config.unknown_package`                |
+| `monochange.toml` syntax error                | `config.invalid`             | `config.parse_failed`                   |
+| pre-rendered config validation                | `cli.diagnostic`             | `config.invalid` or `changeset.invalid` |
+
+Other improvements:
+
+- a command group without a subcommand, such as `monochange changeset`, explains that it needs one and lists them
+- when `monochange.toml` cannot be loaded, its error is reported even for commands defined in that file
+- a failed `Command` step repeats only the last 20 lines of each stream when its output already streamed live
+- generic hints are omitted when the message already says what to do, and git failures suggest fetching full history and tags in CI
+- `monochange affected --verify` keeps the real failure summary (such as uncovered packages) instead of reporting that changeset bumps underestimate API impact whenever any error exists
+
+#### Lead text results with the outcome instead of a completion line
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+Text results started with ``command `<name>` completed`` and then listed raw fields: a comma-joined `released packages:` line, `- group sdk -> v1.1.0 (tag: true, release: true)`, every changed file, the same files again as the release commit's `tracked paths`, and the full stdout of every command step. The release pull request job printed more than 150 lines after its progress output.
+
+Text results now open with a headline that answers the command's question, followed by titled sections with aligned columns. Long lists stop after 20 entries and point at `--format json`, which keeps the complete data. Colour is used only when stdout is an interactive terminal. The structure of `--format json` and `--format json-min` output is unchanged.
+
+```bash
+monochange preview
+```
+
+```text
+• Release preview · 2 packages · dry-run, no files were changed
+
+Releases
+  sdk  v1.1.0  group · tag · release
+
+Packages (2)
+  workflow-app, workflow-core
+
+Changed files (6)
+  Cargo.toml
+  …
+
+Manifest  .monochange/local/release-manifest.json
+```
+
+The same treatment applies to:
+
+- `monochange next`: configured package ids instead of record ids such as `cargo:crates/core/Cargo.toml`, with group members listed under their group
+- `monochange check`: `✔ Checks passed` or `✖ Checks failed · 9 errors · 7 fixable`, findings grouped by relative file path and sorted by line, rule ids on their own line, and one `monochange check --fix` hint instead of four summaries
+- `monochange discover`: ecosystems as a sorted table and warnings with relative paths
+- `monochange diagnose`: a one-line preview of each changeset's details, an aligned targets table, and provenance on one line
+- `monochange affected`: the policy verdict first, with duplicate warnings removed
+- `monochange versions sync`: updates grouped by relative file, and `already in sync` instead of no output
+- `monochange step validate`: `✔ Workspace validation passed`
+- `monochange create`: `✔ Created changeset <path>`, or `Would create changeset <path>` with the rendered file for `--dry-run`
+- release commits: the short SHA and subject with a tracked-path count, instead of every tracked path
+- command step logs: each command's last output line, instead of its whole stdout
+- `monochange step release-record`: the record's version, release targets, and how far the record commit is behind the requested ref
+- `monochange step tag-release` and `monochange step retarget-release`: what happened to each tag, with short commit SHAs
+- `monochange publish readiness`: `✔ Ready to publish` or `✖ Publishing is blocked`, with packages, trusted publishing, and publish order in aligned sections
+- `monochange analyze`: the semantic changes per frame as a table, with package details as aligned fields
+- `monochange migrate audit` and `monochange migrate release-records`: a verdict headline, then signals, recommendations, numbered next steps, or per-record schema changes
+- `monochange lint list` and `monochange lint explain`: a count headline, then rules and presets with their category, maturity, and fixability
+
+#### Make bare `monochange versions` read-only and exit with status 2 for usage errors
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+Bare `monochange versions` used to rewrite internal dependency constraints in package manifests, with only a deprecation warning. It is now a read-only check: it reports what `monochange versions sync` would change and never writes files. Run `monochange versions sync` to apply the changes.
+
+```bash
+monochange versions        # reports pending constraint updates, writes nothing
+monochange versions sync   # writes them
+```
+
+Command-line usage errors (`error[cli.usage]`, such as an unknown command or flag, and `error[cli.json_required]`) now exit with status `2`, matching common CLI conventions, so scripts can tell a mistyped invocation from a failed release step, which still exits with `1`. Update scripts that expect `1` for usage errors.
+
+### 🐛 Fixed
+
+#### Guide agents through verified adoption and release workflows
+
+_Packages:_ 🟢 _@monochange/cli_, 🟢 _@monochange/skill_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+The skill now distinguishes built-in commands from configured workflows, explains incremental package ownership and discovery filters, and documents the supported version-file, prerelease, stream, and release-note options. Agents can follow existing authorization through local preparation without repeatedly asking for permission.
+
+For a repository with no custom workflows, use `monochange create`, `monochange preview`, and `monochange prepare`; `monochange run <name>` requires a matching `[cli.<name>]` configuration. Poetry guidance uses the current `poetry lock` command, and Deno guidance covers JSONC manifests.
+
+The updated guidance is verified through CLI contracts and agent tasks across all six supported ecosystems.
+
+- **Document the reorganized monochange command line.** The skill's command reference now explains that `[cli.<name>]` workflows also run as `monochange <name>` (with `monochange run <name>` still preferred in scripts), that bare `monochange versions` is a read-only check, the global `--verbose` flag, and that usage errors exit with status `2` while `--progress-format json` reports failures as a `diagnostic` event. _Packages:_ 🟢 _@monochange/skill_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+- **Resolve custom tag formats and prerelease baselines.** Resolve tag-based version baselines, analysis release references, and previous release titles using the owner's complete `version_format`. Custom prefixes, suffixes, ecosystem names, repeated version variables, and prerelease identifiers such as `dev.7` now match their own release tags and ignore unrelated primary tags. Select the highest matching SemVer independently of Git's tag sort order. _Packages:_ 🟢 _monochange_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+#### Explain unsupported initializer ownership and workflow defaults
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+`monochange init` rejects multiple discovered package owners in one directory before writing configuration or provider workflows. Previously it could generate a starter configuration that immediately failed validation. Separate those packages into different directories or configure one release owner manually.
+
+When packages in separate directories share a name, generated package IDs now remain unique even for three or more owners and avoid colliding with another package's native name. Existing available IDs are preserved; extra owners receive deterministic numeric suffixes.
+
+`monochange populate` continues to preserve existing configuration. Its help and output now explain that this version provides no built-in CLI workflow defaults, instead of implying that workflow aliases were added. Define custom workflows under `[cli.<name>]`, or use the built-in `create`, `preview`, and `prepare` commands directly.
+
+#### Keep `--format markdown` output free of terminal colours
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+`--format markdown` output coloured headings and code spans with ANSI escape codes when stdout was a terminal, so copying it into a pull request or file pasted escape codes. Markdown output is now always plain markdown.
+
+`--format markdown` is also accepted by every command that offers `--format md`, such as `monochange affected` and `monochange step diagnose-changesets`, instead of failing with `invalid value 'markdown'`.
+
+#### Report provider releases and issue comments that come from a release record
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+`monochange step publish-release --from-ref <ref>` and `monochange step comment-released-issues` read a committed release record instead of preparing a release. Their results were dropped: text output was only ``command `step publish-release` completed``, and `--format json` printed that same sentence instead of JSON, so `monochange step publish-release --from-ref HEAD --format json | jq` failed.
+
+```bash
+monochange step publish-release --from-ref HEAD --draft --format json
+```
+
+The command now prints the planned or created provider releases and issue comments:
+
+```json
+{
+	"releases": [
+		{
+			"provider": "github",
+			"repository": "acme/app",
+			"target_id": "main",
+			"tag_name": "v1.2.0",
+			"name": "v1.2.0 (2026-09-30)",
+			"draft": true
+		}
+	],
+	"issue_comments": []
+}
+```
+
+Each release entry carries the complete `SourceReleaseRequest` fields; the example omits some for brevity.
+
+Text output lists them under `Provider releases` and `Issue comments`.
+
+#### Protect existing files during skill installation
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Skill installation checks the selected destination and every bundled document path for existing symbolic links before writing. Linked documents, linked subdirectories, and dangling links are rejected even with `--force`, preventing an installation from overwriting files outside the selected tree. Linked parent directories above an explicitly selected destination remain supported.
+
+```sh
+monochange skill install --dir .agents/skills/monochange --force
+```
+
+If a path inside this destination is linked, the command now reports that path and leaves the skill tree untouched. Choose a regular destination or deliberately remove the link before retrying.
+
+- **Preserve native manifest controls in analysis snapshots.** Retain `go.mod`, `pyproject.toml`, and GitHub Actions control manifests when materializing Git revisions and staged snapshots. Workspaces with configured Go or Python packages can now pass configuration validation during analysis of supported packages. This preserves package controls without adding Go, Python, or GitHub Actions semantic analyzers. _Packages:_ 🟢 _monochange_analysis_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+- **Ignore documentation changes when classifying Rust API impact.** Rust API analysis now ignores documentation attributes on public items and their nested fields, variants, and trait members. Editing, adding, or removing rustdoc no longer requests a major release. Type changes and API-affecting attributes still contribute to release classification. _Packages:_ 🟢 _monochange_cargo_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+#### Validate typed npm metadata files consistently
+
+_Packages:_ 🟢 _monochange_config_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Typed npm `versioned_files` entries now accept custom `.json` files, including glob-selected deployment metadata. Validation previously rejected files such as `constraints.json` even though release preparation could update them.
+
+Keep the explicit `type = "npm"` and select the fields to rewrite. Automatic package discovery still recognizes native npm manifests rather than treating every JSON file as a package.
+
+#### Diagnose invalid automatic-discovery patterns
+
+_Packages:_ 🟢 _monochange_config_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Malformed include or exclude globs now fail configuration loading with the ecosystem, field, and offending pattern. Previously an invalid pattern could silently hide packages or misalign the remaining include patterns. Excludes are validated even when the include list is empty.
+
+```toml
+[ecosystems.cargo.auto_discover]
+include = ["crates/["]
+```
+
+This configuration now produces an actionable error instead of an empty package inventory. Correct the pattern, for example to `crates/*`, before retrying.
+
+- **Validate release titles against their rendered context.** Validate package, group, and default `release_title` and `changelog_version_title` templates against the actual release context. Both title fields accept `id`, `version`, `previous_version`, `date`, `time`, `datetime`, `changes_count`, `tag_url`, and `compare_url`, including Jinja filters and conditionals. Invalid syntax and version-value variables such as `name`, `year`, and declared counters now produce a configuration error instead of rendering empty title text or falling back to a version. _Packages:_ 🟢 _monochange_config_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+#### Keep release pull request commits verified when the release deletes files
+
+_Packages:_ 🟢 _monochange_github_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #742](https://github.com/monochange/monochange/pull/742)
+
+Repositories that set `[source.pull_requests].verified_commits = true` lost the verified release commit whenever the release removed files, which is every release that consumes `.changeset/*.md` files. GitHub rejected the tree request with `status 422; Must supply either tree.sha or tree.content`, so the provider logged `falling back to regular release pull request commit` and left the unverified git commit on the release branch.
+
+Deleted paths are now sent to GitHub's create-tree API with an explicit `"sha": null`, which is how GitHub removes a path from the new tree, so the verified replacement commit is created and the release branch moves to it:
+
+```json
+{
+	"path": ".changeset/feature.md",
+	"mode": "100644",
+	"type": "blob",
+	"sha": null
+}
+```
+
+No configuration change is needed; the next release pull request opened from GitHub Actions gets the verified commit.
+
+#### Keep Poetry manifests and lock commands consistent with release plans
+
+_Packages:_ 🟢 _monochange_python_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Poetry-only packages now write the planned version to `[tool.poetry].version`. Internal dependency constraints in Poetry runtime and dependency-group tables update during preparation while preserving extras, markers, comments, and path or Git source metadata. Packages using `[project]` keep PEP 621 precedence, including dynamic versions.
+
+Producer and dependency names now use Python's canonical matching rules. A producer named `PY_Core` matches constraints written as `py-core` or `py_core`, so both Poetry and PEP 621 manifest updates include that package.
+
+For example, a release of an internal dependency to `1.1.0` updates its existing constraint without removing optional metadata:
+
+```toml
+[tool.poetry.dependencies]
+internal = { version = ">=1.1.0", extras = ["http"] }
+```
+
+Inferred Poetry lock commands now run `poetry lock`, supported by Poetry 2, instead of the removed `--no-update` option. Poetry 1 installations that need the old option can configure `lockfile_commands` explicitly.
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 Grouped release for `main`.

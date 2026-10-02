@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### 🚀 Feature
+
+#### Prepare releases from Deno JSONC manifests
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Repositories using `deno.jsonc` can now initialize, validate, discover, and prepare releases with comments and trailing commas. Validation recognizes the discovered JSONC manifest instead of requiring a nonexistent `deno.json`; dependency synchronization retains the original comments and layout.
+
+```sh
+monochange init
+monochange step validate
+monochange prepare --dry-run
+```
+
+These commands now accept supported Deno JSONC manifests throughout the workflow. The Deno adapter also exposes `parse_manifest_contents(contents: &str) -> Result<serde_json::Value, serde_json::Error>` for callers that need the same comment and trailing-comma handling.
+
+Malformed block comments and tokens split by comments are rejected instead of being silently accepted or joined into a different value.
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 ### 🐛 Fixed

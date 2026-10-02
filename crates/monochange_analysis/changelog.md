@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### 🐛 Fixed
+
+- **Preserve native manifest controls in analysis snapshots.** Retain `go.mod`, `pyproject.toml`, and GitHub Actions control manifests when materializing Git revisions and staged snapshots. Workspaces with configured Go or Python packages can now pass configuration validation during analysis of supported packages. This preserves package controls without adding Go, Python, or GitHub Actions semantic analyzers. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 ### Changed

@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### 🐛 Fixed
+
+#### Guide agents through verified adoption and release workflows
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+The skill now distinguishes built-in commands from configured workflows, explains incremental package ownership and discovery filters, and documents the supported version-file, prerelease, stream, and release-note options. Agents can follow existing authorization through local preparation without repeatedly asking for permission.
+
+For a repository with no custom workflows, use `monochange create`, `monochange preview`, and `monochange prepare`; `monochange run <name>` requires a matching `[cli.<name>]` configuration. Poetry guidance uses the current `poetry lock` command, and Deno guidance covers JSONC manifests.
+
+The updated guidance is verified through CLI contracts and agent tasks across all six supported ecosystems.
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 ### Changed

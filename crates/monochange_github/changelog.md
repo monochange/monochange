@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### 🐛 Fixed
+
+#### Keep release pull request commits verified when the release deletes files
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #742](https://github.com/monochange/monochange/pull/742)
+
+Repositories that set `[source.pull_requests].verified_commits = true` lost the verified release commit whenever the release removed files, which is every release that consumes `.changeset/*.md` files. GitHub rejected the tree request with `status 422; Must supply either tree.sha or tree.content`, so the provider logged `falling back to regular release pull request commit` and left the unverified git commit on the release branch.
+
+Deleted paths are now sent to GitHub's create-tree API with an explicit `"sha": null`, which is how GitHub removes a path from the new tree, so the verified replacement commit is created and the release branch moves to it:
+
+```json
+{
+	"path": ".changeset/feature.md",
+	"mode": "100644",
+	"type": "blob",
+	"sha": null
+}
+```
+
+No configuration change is needed; the next release pull request opened from GitHub Actions gets the verified commit.
+
+#### Show warnings without `--log-level`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #741](https://github.com/monochange/monochange/pull/741)
+
+Warnings raised with `tracing::warn!` were only visible with `--log-level`, so CI had to run `monochange --log-level=debug` to notice problems such as the release pull request silently falling back from a verified GitHub API commit to a regular git commit. monochange now prints every warning by default as one readable line with its details underneath, through the same stderr channel as progress, so it never splices into an active spinner:
+
+```text
+warning: could not create a verified release commit through the GitHub API; falling back to a regular git commit
+  reason: GitHub API POST `/repos/acme/app/git/trees` failed: status 422
+  commit: c686e78478ea2611d41e2d8521311a236f2a3470
+```
+
+Each distinct warning prints once per run. `--quiet` hides warnings, GitHub Actions receives them as `::warning` annotations, and `--progress-format json` emits a `warning` event with `message` and `fields`. `--log-level` still enables the full maintainer trace.
+
+`monochange_config` (non-standard GitHub `[source]` host) and `monochange_graph` (a version group member missing from discovery) now report their warnings with `tracing::warn!` instead of `eprintln!`, so they respect `--quiet` and progress rendering. Embedders that relied on those lines reaching stderr without a tracing subscriber must install one. Routine internal messages ("ignoring stale prepared release artifact", a failed prepared-release cache save, and git failures that are already returned as errors) moved to `debug`.
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 ### 💥 Breaking Change

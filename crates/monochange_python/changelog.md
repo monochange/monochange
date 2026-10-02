@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### 🐛 Fixed
+
+#### Include canonical Python names in dependent release plans
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+A producer named `PY_Core` now matches declared dependencies written as `py-core` or `py_core`, restoring dependent bumps and dependency ordering while preserving the producer's native name. A producer-only minor changeset can therefore release its consumers with their configured propagation policy instead of omitting them from the plan.
+
+Adapters can provide a canonical dependency-name alias through `PackageRecord.metadata` using the shared `PACKAGE_DEPENDENCY_NAME_METADATA_KEY` constant. `materialize_dependency_edges` matches the alias for consumers in the producer's ecosystem and emits each target ID once. This prevents a normalized Python alias from creating an unrelated Cargo dependency edge with the same spelling. Exact native-name matching retains its existing behavior, including adapters without an alias.
+
+#### Keep Poetry manifests and lock commands consistent with release plans
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
+Poetry-only packages now write the planned version to `[tool.poetry].version`. Internal dependency constraints in Poetry runtime and dependency-group tables update during preparation while preserving extras, markers, comments, and path or Git source metadata. Packages using `[project]` keep PEP 621 precedence, including dynamic versions.
+
+Producer and dependency names now use Python's canonical matching rules. A producer named `PY_Core` matches constraints written as `py-core` or `py_core`, so both Poetry and PEP 621 manifest updates include that package.
+
+For example, a release of an internal dependency to `1.1.0` updates its existing constraint without removing optional metadata:
+
+```toml
+[tool.poetry.dependencies]
+internal = { version = ">=1.1.0", extras = ["http"] }
+```
+
+Inferred Poetry lock commands now run `poetry lock`, supported by Poetry 2, instead of the removed `--no-update` option. Poetry 1 installations that need the old option can configure `lockfile_commands` explicitly.
+
 ## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
 
 ### 🚀 Feature

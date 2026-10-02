@@ -99,6 +99,28 @@ The classification report contract advances to `schema_version` `0.3` (`SCHEMA_V
 
 No configuration change is required. Re-run `monochange change classify` to pick up the pull-request-scoped verdict.
 
+## monochange_classification [0.4.0](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.0) (2026-09-30)
+
+### 💥 Breaking Change
+
+#### Keep classification reports specific to the pull request
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #743](https://github.com/monochange/monochange/pull/743)
+
+- The report records the commits it compared in the new top-level `base_commit` and `head_commit` fields. Match `head_commit` with the pull request head to confirm a saved report is current; a changed `base_commit` shows the base branch moved since the report was built.
+- Markdown and text reports list only findings the pull request produced under each package. A finding whose `comparisons` contain only `release` and `release_to_default` now appears under "Unreleased changes already on `<base>` (not part of this pull request)" and no longer counts toward the package's findings. The JSON `findings` array is unchanged, because the release floor still needs that evidence.
+- `--base` is documented as the pull request's base branch. Pass it for a stacked pull request so the classifier does not attribute the parent branch's changes to the child:
+
+```bash
+monochange change classify --base origin/feature/parent --head "$PR_HEAD_SHA" --format json
+```
+
+The classification report contract advances to `schema_version` `0.4` with a frozen `classification.v0.4.schema.json`. The change is additive: readers of `0.3` reports keep working.
+
+### 🐛 Fixed
+
+- **Correct missing release-baseline diagnostics.** Report `no matching release tag found for this package` when classification has no release baseline. The diagnostic no longer claims that the tag lookup filters by Git reachability. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #738](https://github.com/monochange/monochange/pull/738)
+
 ## [0.1.0] - 2026-09-15
 
 - Initial classification contract: compatibility findings, package decisions, and the skipped-report state.

@@ -3,7 +3,7 @@
 	"kind": "cli-surface",
 	"tool": {
 		"name": "monochange",
-		"version": "0.15.0"
+		"version": "0.16.0"
 	},
 	"provenance": {
 		"extractor": "clap",
@@ -634,7 +634,7 @@
 			"path": [
 				"next-versions"
 			],
-			"hidden": false,
+			"hidden": true,
 			"max_bump": "major",
 			"parser": {
 				"flags_are_posix_noncompliant": false,
